@@ -45,3 +45,16 @@ This v0.1 crate uses no third-party Rust dependencies and no machine/actuator in
 ## Claim ceiling
 
 The evaluator checks evidence references and repair-scope semantics only. It does not select inspections, diagnose physical faults, construct dependency graphs, schedule production, establish recovery-time improvement or authorize physical operations.
+
+## Frozen scenario corpus
+
+`fixtures/repair_scope_cases.tsv` contains 19 synthetic episodes. Its columns explicitly separate:
+- measurement and baseline source groups;
+- independence disposition and independence receipt ID;
+- calibration, applicability and outcome status;
+- affected, released and contained operation IDs;
+- expected admission/block reason and the two scope-error metrics.
+
+A `Pass` independence disposition requires a non-empty owner receipt reference. Different source labels alone do not prove independence. Unknown, blocked, missing or whitespace-only independence evidence blocks repair admission. The hidden-future paired rows have the same candidate-visible inputs and must yield identical evaluator results.
+
+The corpus contains development fixtures only. It is not described as a blind test set, and synthetic receipt identifiers do not attest to real inspections.
