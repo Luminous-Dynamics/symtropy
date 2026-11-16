@@ -35,6 +35,10 @@ The binding carries exact references to owner-controlled records. It does not co
 | Interlaboratory replication | [Symtropy #3591](https://github.com/Luminous-Dynamics/symtropy/issues/3591) | Test protocol, laboratory/article replication dimensions and metrology comparison |
 | Component provenance and custody | [Mycelix #5149](https://github.com/Luminous-Dynamics/mycelix/issues/5149) | Component identity, provenance, custody, correction, revocation and scoped approvals |
 | Decision-sufficient evidence request | [Symthaea #12046](https://github.com/Luminous-Dynamics/symthaea/issues/12046) | Read-only candidate evidence-request options, competent source, cost, latency and disclosure constraints |
+| Robotics degradation/lifecycle | [Symthaea #4863](https://github.com/Luminous-Dynamics/symthaea/issues/4863) and [Symtropy #3628](https://github.com/Luminous-Dynamics/symtropy/issues/3628) | Article/configuration-generation, usage, wear, maintenance, repair and observed degradation context |
+| Runtime evidence/certificate validity | [Symtropy #4858](https://github.com/Luminous-Dynamics/symtropy/issues/4858) and [#4117](https://github.com/Luminous-Dynamics/symtropy/issues/4117) | Observation drift, freshness, calibration/certificate horizon, state-dependent assurance validity and safe service response |
+| Design for knowability | [Symthaea #6124](https://github.com/Luminous-Dynamics/symthaea/issues/6124) | Design-stage access, measurement, inspection, calibration and requalification affordances |
+| Productive work vs terminal reserve | [Symthaea #11866](https://github.com/Luminous-Dynamics/symthaea/issues/11866) | Accepted productive work and independently evidenced terminal physical reserve as separate outcome dimensions |
 
 These are ownership references, not claims that every owner has published or accepted the required machine-readable interface. Until an exact stable artifact is available, the field remains unbound and the adapter must return `Unsupported` or `UnknownImpact`; it must not infer a schema from issue prose or invent a compatibility layer.
 
@@ -114,7 +118,31 @@ A GitHub issue URL alone is not a pinned contract. A mutable branch URL alone is
 
 If a required dependency cannot be pinned, the affected result is `UnknownImpact` or `Unsupported`, never an optimistic preservation.
 
-## 5. Closure and uncertainty semantics
+## 5. Dynamic condition and evidence-currentness boundary
+
+A configuration-delta evaluator is not a lifecycle health estimator. A robot can retain the same as-built configuration digest while its physical condition and evidence currency change.
+
+Examples include:
+- calibration expiry or observed calibration drift;
+- bearing wear/backlash, connector degradation or structural damage;
+- battery capacity/health decline;
+- sensor quality/freshness degradation or observation-model drift;
+- actuator derating, thermal state or reduced safe torque envelope;
+- changes in duty-cycle exposure, service history or environment;
+- certificate/model validity horizon expiry.
+
+The adapter should therefore carry exact references to the relevant lifecycle and runtime-currentness owner records, with effective time, observation time, configuration/article generation, calibration identity and validity horizon. It must not infer currentness from unchanged configuration identity, absence of a detector alarm, or missing telemetry.
+
+Composition rules:
+- #5488 owns **static change impact**: what a declared source-to-target delta could invalidate.
+- #4863/#3628 own **physical degradation and lifecycle history**: what has changed through use, wear, maintenance and repair.
+- #4858/#4117 own **observation drift and state-dependent assurance validity**: whether current observations/certificates still support an operating decision.
+- #6124 owns **design-for-knowability affordances**: whether the design permits important quantities to be observed and requalified after realization/service.
+- #11866 owns **productive work versus terminal reserve**: whether current useful output preserves required recoverability/future options.
+
+A static change-impact pass cannot clear a currentness or lifecycle hold. Conversely, a drift alarm does not by itself identify which claims have become false or authorize a physical action. Missing or stale dynamic evidence remains explicit and is escalated to its owner.
+
+## 6. Closure and uncertainty semantics
 
 The adapter must preserve the distinction between:
 
