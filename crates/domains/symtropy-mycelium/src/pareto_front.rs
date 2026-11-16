@@ -79,6 +79,11 @@ pub enum ParetoAnalysisError {
     InvalidTimeWindow(ParetoSampleId),
     InvalidObjective(ParetoSampleId),
     InvalidGrowthUnitIdentity(GrowthUnitId),
+    OverlappingGrowthUnitWindows {
+        growth_unit: GrowthUnitId,
+        earlier: ParetoSampleId,
+        later: ParetoSampleId,
+    },
     InvalidNormalization,
     InvalidReferencePoint,
     ReferencePointNotDominated(ParetoSampleId),
@@ -111,6 +116,15 @@ impl fmt::Display for ParetoAnalysisError {
                     id
                 )
             }
+            Self::OverlappingGrowthUnitWindows {
+                growth_unit,
+                earlier,
+                later,
+            } => write!(
+                f,
+                "time windows for growth unit {:?} overlap between samples {:?} and {:?}",
+                growth_unit, earlier, later
+            ),
             Self::InvalidNormalization => {
                 write!(f, "Pareto objective scales must be finite and positive")
             }
@@ -168,6 +182,8 @@ fn validate_samples(samples: &[ParetoPhenotypeSample]) -> Result<(), ParetoAnaly
     let mut sample_ids = BTreeSet::new();
     let mut growth_unit_identity =
         BTreeMap::<GrowthUnitId, (PlantGenotypeId, FungalStrainId)>::new();
+    let mut growth_unit_windows =
+        BTreeMap::<GrowthUnitId, Vec<(f64, f64, ParetoSampleId)>>::new();
 
     for sample in samples {
         if !sample_ids.insert(sample.id) {
@@ -194,6 +210,32 @@ fn validate_samples(samples: &[ParetoPhenotypeSample]) -> Result<(), ParetoAnaly
                 return Err(ParetoAnalysisError::InvalidGrowthUnitIdentity(
                     sample.growth_unit,
                 ));
+            }
+        }
+        growth_unit_windows
+            .entry(sample.growth_unit)
+            .or_default()
+            .push((
+                sample.window_start_hours,
+                sample.window_end_hours,
+                sample.id,
+            ));
+    }
+
+    for (growth_unit, windows) in &mut growth_unit_windows {
+        windows.sort_by(|left, right| {
+            left.0
+                .total_cmp(&right.0)
+                .then_with(|| left.1.total_cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
+        });
+        for pair in windows.windows(2) {
+            if pair[1].0 < pair[0].1 {
+                return Err(ParetoAnalysisError::OverlappingGrowthUnitWindows {
+                    growth_unit: *growth_unit,
+                    earlier: pair[0].2,
+                    later: pair[1].2,
+                });
             }
         }
     }
@@ -471,6 +513,31 @@ mod tests {
         let result = analyze_by_plant_genotype(&samples, origin(), normalization()).unwrap();
         assert_eq!(result[0].non_dominated.len(), 3);
         assert!(result[0].dominated_sample_ids.is_empty());
+    }
+
+    #[test]
+    fn overlapping_time_windows_within_a_growth_unit_are_rejected() {
+        let samples = [
+            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
+            sample(2, 1, 10, 7, 2.0, 2.0, 9.0, 19.0),
+        ];
+        assert_eq!(
+            analyze_by_plant_genotype(&samples, origin(), normalization()),
+            Err(ParetoAnalysisError::OverlappingGrowthUnitWindows {
+                growth_unit: GrowthUnitId(7),
+                earlier: ParetoSampleId(1),
+                later: ParetoSampleId(2),
+            })
+        );
+    }
+
+    #[test]
+    fn adjacent_time_windows_within_a_growth_unit_are_allowed() {
+        let samples = [
+            sample(1, 1, 10, 7, 1.0, 3.0, 0.0, 10.0),
+            sample(2, 1, 10, 7, 2.0, 2.0, 10.0, 20.0),
+        ];
+        assert!(analyze_by_plant_genotype(&samples, origin(), normalization()).is_ok());
     }
 
     #[test]
