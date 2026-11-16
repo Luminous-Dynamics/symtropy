@@ -1,0 +1,38 @@
+# GeoBio reference kernel v0.2
+
+Standalone, dependency-free Rust reference code for the GeoBio Foundry research programme.
+
+## Run locally
+
+From the Symtropy repository root:
+
+```sh
+cargo test --manifest-path research/geobio-foundry/kernel/Cargo.toml
+```
+
+The package has its own Cargo workspace and is intentionally not a member of Symtropy's production workspace. No production crate depends on this code.
+
+## Implemented
+
+- Typed process, material-flow, elemental-composition, origin and evidence records.
+- Explicit kg and J units in field names.
+- Input, product and waste flow validation.
+- Composition completeness checks: complete compositions must reconcile to total flow mass; incomplete compositions cannot claim that unlisted elements are zero.
+- Elemental mass-balance residuals.
+- Uncertainty propagation for independent measurements and explicitly named fully correlated groups.
+- Process-level status: within tolerance, outside tolerance or unquantified.
+- Independent-witness requirement for independently reproduced and qualified claims.
+- Nominal resource intensity per kg of declared primary product, with gross and recovered energy kept separate.
+- Numerical overflow checks and negative/non-finite input rejection.
+
+## Important limitations
+
+- Correlation groups assume perfect correlation within a group and independence between groups. A general covariance matrix is not implemented.
+- Resource-intensity ratios are nominal point estimates; ratio uncertainty is not propagated yet.
+- Detection-limit/censored measurements, elemental ontology mapping, isotope effects, process heat/exergy closure, JSON deserialization and lifecycle cost are not implemented.
+- The kernel does not model a live biological process, geomechanics, pressure vessels, life support or any physical actuator.
+- A synthetic fixture and unit tests do not establish laboratory, field, orbital or flight performance.
+
+## Fixture
+
+`../fixtures/water-electrolysis-reference.json` is a synthetic record for schema validation and stoichiometric illustration only. Its energy figure is deliberately illustrative and must not be cited as an engineering performance datum.
