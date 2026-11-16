@@ -3,10 +3,11 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule,
-    IntervalVerificationStatus, IntervalVerifierConfig, NormalizedTimeWindow, Vec3,
+    CapsuleRelativeUncertainty, IntervalVerificationStatus, IntervalVerifierConfig,
+    NormalizedTimeWindow, Vec3,
     co_translating_capsule_adaptive_query_with_certificate, verify_adaptive_collision_certificate,
     replay_interval_verification_receipt, verify_adaptive_no_contact_independently,
-    verify_capsule_interval_no_contact,
+    verify_capsule_interval_no_contact, verify_capsule_interval_no_contact_with_uncertainty,
     chord_collision, co_translating_capsule_adaptive_query,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
@@ -43,6 +44,27 @@ fn measure(label: &str, mut operation: impl FnMut()) {
     );
 }
 
+
+const ROBUST_BATCH_SIZE: usize = 50;
+const ROBUST_SAMPLES: usize = 51;
+
+fn measure_robust(label: &str, mut operation: impl FnMut()) {
+    let mut durations = Vec::with_capacity(ROBUST_SAMPLES);
+    for _ in 0..ROBUST_SAMPLES {
+        let start = Instant::now();
+        for _ in 0..ROBUST_BATCH_SIZE {
+            operation();
+        }
+        durations.push(start.elapsed() / ROBUST_BATCH_SIZE as u32);
+    }
+    durations.sort_unstable();
+    println!(
+        "{label},p50_ns={},p95_ns={},p99_ns={}",
+        percentile(&durations, 50).as_nanos(),
+        percentile(&durations, 95).as_nanos(),
+        percentile(&durations, 99).as_nanos()
+    );
+}
 fn main() {
     let linear = AnalyticPath::Linear {
         start: Vec3::new(-1_000.0, 0.0, 0.0),
@@ -554,6 +576,126 @@ fn main() {
             IntervalVerifierConfig::default(),
         )
         .expect("independent verifier confirms every adaptive no-contact leaf");
+    });
+    let robust_moving = Capsule::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        0.5,
+    )
+    .expect("valid robust verifier moving capsule");
+    let robust_obstacle = Capsule::new(
+        Vec3::new(2.0, 0.0, 0.0),
+        Vec3::new(2.0, 0.0, 0.0),
+        0.5,
+    )
+    .expect("valid robust verifier obstacle capsule");
+    let robust_window = NormalizedTimeWindow {
+        start_parameter: 0.0,
+        end_parameter: 1.0,
+    };
+    let robust_config = IntervalVerifierConfig {
+        maximum_nodes: 64,
+        maximum_depth: 12,
+    };
+    let robust_profiles = [
+        ("zero", CapsuleRelativeUncertainty::zero()),
+        (
+            "tight",
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: Vec3::new(0.25, 0.1, 0.1),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+        ),
+        (
+            "ambiguous",
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: Vec3::new(1.5, 0.0, 0.0),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+        ),
+    ];
+    for (name, uncertainty) in robust_profiles {
+        let receipt = verify_capsule_interval_no_contact_with_uncertainty(
+            robust_moving,
+            Vec3::new(0.0, 0.0, 0.0),
+            robust_obstacle,
+            Vec3::new(0.0, 0.0, 0.0),
+            uncertainty,
+            robust_window,
+            robust_config,
+        )
+        .expect("valid robust interval verification profile");
+        println!(
+            "robust-uncertainty-{name},status,{:?}",
+            receipt.status
+        );
+        println!(
+            "robust-uncertainty-{name},nodes_visited,{}",
+            receipt.parameter_boxes_visited
+        );
+        println!(
+            "robust-uncertainty-{name},nodes_pruned,{}",
+            receipt.parameter_boxes_pruned
+        );
+        measure_robust(&format!("robust-uncertainty-{name}"), || {
+            verify_capsule_interval_no_contact_with_uncertainty(
+                black_box(robust_moving),
+                black_box(Vec3::new(0.0, 0.0, 0.0)),
+                black_box(robust_obstacle),
+                black_box(Vec3::new(0.0, 0.0, 0.0)),
+                black_box(uncertainty),
+                robust_window,
+                robust_config,
+            )
+            .expect("valid robust interval verification profile");
+        });
+    }
+
+    let guaranteed_moving = Capsule::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        0.75,
+    )
+    .expect("valid guaranteed-contact moving capsule");
+    let guaranteed_obstacle = Capsule::new(
+        Vec3::new(0.5, 0.0, 0.0),
+        Vec3::new(0.5, 0.0, 0.0),
+        0.75,
+    )
+    .expect("valid guaranteed-contact obstacle capsule");
+    let guaranteed_uncertainty = CapsuleRelativeUncertainty {
+        origin_relative_mm: Vec3::new(0.1, 0.1, 0.1),
+        ..CapsuleRelativeUncertainty::zero()
+    };
+    let guaranteed_receipt = verify_capsule_interval_no_contact_with_uncertainty(
+        guaranteed_moving,
+        Vec3::new(0.0, 0.0, 0.0),
+        guaranteed_obstacle,
+        Vec3::new(0.0, 0.0, 0.0),
+        guaranteed_uncertainty,
+        robust_window,
+        robust_config,
+    )
+    .expect("valid guaranteed-contact uncertainty profile");
+    assert_eq!(
+        guaranteed_receipt.status,
+        IntervalVerificationStatus::ContactWitness
+    );
+    println!(
+        "robust-uncertainty-guaranteed-contact,status,{:?}",
+        guaranteed_receipt.status
+    );
+    measure_robust("robust-uncertainty-guaranteed-contact", || {
+        verify_capsule_interval_no_contact_with_uncertainty(
+            black_box(guaranteed_moving),
+            black_box(Vec3::new(0.0, 0.0, 0.0)),
+            black_box(guaranteed_obstacle),
+            black_box(Vec3::new(0.0, 0.0, 0.0)),
+            black_box(guaranteed_uncertainty),
+            robust_window,
+            robust_config,
+        )
+        .expect("valid guaranteed-contact uncertainty profile");
     });
 
 }
