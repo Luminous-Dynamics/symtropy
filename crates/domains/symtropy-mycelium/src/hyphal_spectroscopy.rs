@@ -12,8 +12,8 @@ use std::fmt;
 
 use crate::hyphal_graph::{HyphalGraph, SegmentId};
 use crate::observation_evidence::{
-    EvidenceGraphTarget, EvidenceReceiptError, ObservationEvidenceId,
-    ObservationEvidenceReceipt, ObservationSubject,
+    EvidenceGraphTarget, EvidenceReceiptError, ObservationEvidenceId, ObservationEvidenceReceipt,
+    ObservationSubject,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -29,9 +29,7 @@ pub enum RamanModality {
 impl RamanModality {
     const fn required_subject(self) -> ObservationSubject {
         match self {
-            Self::SipSpontaneousRaman | Self::SpontaneousRaman => {
-                ObservationSubject::RamanSpectrum
-            }
+            Self::SipSpontaneousRaman | Self::SpontaneousRaman => ObservationSubject::RamanSpectrum,
             Self::StimulatedRamanScattering => ObservationSubject::RamanChemicalMap,
         }
     }
@@ -65,8 +63,7 @@ impl SpectralStressor {
             Self::Copper {
                 concentration_umol_per_litre,
             } => {
-                if !concentration_umol_per_litre.is_finite()
-                    || *concentration_umol_per_litre < 0.0
+                if !concentration_umol_per_litre.is_finite() || *concentration_umol_per_litre < 0.0
                 {
                     return Err(RamanEvidenceError::InvalidStressor);
                 }
@@ -207,7 +204,10 @@ impl fmt::Display for RamanEvidenceError {
             Self::InvalidSpectralBand => write!(f, "Raman spectral band contains invalid values"),
             Self::EmptySpectrum => write!(f, "Raman observation must contain at least one band"),
             Self::NonIncreasingWavenumber => {
-                write!(f, "Raman bands must be sorted by strictly increasing wavenumber")
+                write!(
+                    f,
+                    "Raman bands must be sorted by strictly increasing wavenumber"
+                )
             }
             Self::MissingSourceReceipt(id) => write!(f, "missing Raman source receipt {:?}", id),
             Self::DuplicateSourceReceipt(id) => {
@@ -217,10 +217,18 @@ impl fmt::Display for RamanEvidenceError {
                 write!(f, "invalid Raman source receipt {:?}: {:?}", id, source)
             }
             Self::WrongSourceSubject { id, expected } => {
-                write!(f, "Raman receipt {:?} has wrong subject; expected {:?}", id, expected)
+                write!(
+                    f,
+                    "Raman receipt {:?} has wrong subject; expected {:?}",
+                    id, expected
+                )
             }
             Self::SegmentTargetMismatch(id) => {
-                write!(f, "Raman receipt {:?} does not target the stated hyphal segment", id)
+                write!(
+                    f,
+                    "Raman receipt {:?} does not target the stated hyphal segment",
+                    id
+                )
             }
             Self::MissingSegment(id) => {
                 write!(f, "Raman observation references missing segment {:?}", id)
@@ -229,10 +237,17 @@ impl fmt::Display for RamanEvidenceError {
                 write!(f, "missing independent calibration receipt {:?}", id)
             }
             Self::WrongCalibrationSubject(id) => {
-                write!(f, "Raman calibration receipt {:?} has the wrong subject", id)
+                write!(
+                    f,
+                    "Raman calibration receipt {:?} has the wrong subject",
+                    id
+                )
             }
             Self::CalibrationIsNotIndependent => {
-                write!(f, "calibration receipt must differ from measured spectrum receipt")
+                write!(
+                    f,
+                    "calibration receipt must differ from measured spectrum receipt"
+                )
             }
             Self::EmptyIsotopeLabel => write!(f, "other isotope label must not be empty"),
         }
@@ -279,10 +294,14 @@ impl HyphalRamanObservation {
             .filter(|item| item.id == self.source_receipt)
             .collect();
         if source_matches.is_empty() {
-            return Err(RamanEvidenceError::MissingSourceReceipt(self.source_receipt));
+            return Err(RamanEvidenceError::MissingSourceReceipt(
+                self.source_receipt,
+            ));
         }
         if source_matches.len() != 1 {
-            return Err(RamanEvidenceError::DuplicateSourceReceipt(self.source_receipt));
+            return Err(RamanEvidenceError::DuplicateSourceReceipt(
+                self.source_receipt,
+            ));
         }
         let receipt = source_matches[0];
         receipt
@@ -303,7 +322,9 @@ impl HyphalRamanObservation {
                 return Err(RamanEvidenceError::MissingSegment(segment));
             }
             if receipt.graph_target != Some(EvidenceGraphTarget::Segment(segment)) {
-                return Err(RamanEvidenceError::SegmentTargetMismatch(self.source_receipt));
+                return Err(RamanEvidenceError::SegmentTargetMismatch(
+                    self.source_receipt,
+                ));
             }
         }
         if let Some(calibration_id) = self.calibration_reference {
@@ -312,18 +333,20 @@ impl HyphalRamanObservation {
                 .filter(|item| item.id == calibration_id)
                 .collect();
             if calibration_matches.is_empty() {
-                return Err(RamanEvidenceError::MissingCalibrationReceipt(calibration_id));
+                return Err(RamanEvidenceError::MissingCalibrationReceipt(
+                    calibration_id,
+                ));
             }
             if calibration_matches.len() != 1 {
                 return Err(RamanEvidenceError::DuplicateSourceReceipt(calibration_id));
             }
             let calibration = calibration_matches[0];
-            calibration.validate().map_err(|source| {
-                RamanEvidenceError::InvalidSourceReceipt {
+            calibration
+                .validate()
+                .map_err(|source| RamanEvidenceError::InvalidSourceReceipt {
                     id: calibration_id,
                     source,
-                }
-            })?;
+                })?;
             if calibration.subject != ObservationSubject::RamanCalibrationReference {
                 return Err(RamanEvidenceError::WrongCalibrationSubject(calibration_id));
             }
@@ -507,7 +530,9 @@ mod tests {
         let item = observation(RamanModality::SpontaneousRaman);
         assert_eq!(
             item.validate_against(&graph(), &[]),
-            Err(RamanEvidenceError::MissingSourceReceipt(ObservationEvidenceId(10)))
+            Err(RamanEvidenceError::MissingSourceReceipt(
+                ObservationEvidenceId(10)
+            ))
         );
         let source = receipt(
             10,
@@ -516,7 +541,9 @@ mod tests {
         );
         assert!(matches!(
             item.validate_against(&graph(), &[source.clone(), source]),
-            Err(RamanEvidenceError::DuplicateSourceReceipt(ObservationEvidenceId(10)))
+            Err(RamanEvidenceError::DuplicateSourceReceipt(
+                ObservationEvidenceId(10)
+            ))
         ));
     }
 
@@ -528,7 +555,10 @@ mod tests {
 
         item = observation(RamanModality::SpontaneousRaman);
         item.bands[0].wavenumber_cm_inverse = f64::NAN;
-        assert_eq!(item.validate(), Err(RamanEvidenceError::InvalidSpectralBand));
+        assert_eq!(
+            item.validate(),
+            Err(RamanEvidenceError::InvalidSpectralBand)
+        );
 
         item = observation(RamanModality::SpontaneousRaman);
         item.stressor = SpectralStressor::Copper {
@@ -559,11 +589,15 @@ mod tests {
         let wrong_calibration = receipt(20, ObservationSubject::FluorescenceRoi, None);
         assert_eq!(
             item.validate_against(&graph(), &[source.clone()]),
-            Err(RamanEvidenceError::MissingCalibrationReceipt(ObservationEvidenceId(20)))
+            Err(RamanEvidenceError::MissingCalibrationReceipt(
+                ObservationEvidenceId(20)
+            ))
         );
         assert_eq!(
             item.validate_against(&graph(), &[source, wrong_calibration]),
-            Err(RamanEvidenceError::WrongCalibrationSubject(ObservationEvidenceId(20)))
+            Err(RamanEvidenceError::WrongCalibrationSubject(
+                ObservationEvidenceId(20)
+            ))
         );
     }
 
