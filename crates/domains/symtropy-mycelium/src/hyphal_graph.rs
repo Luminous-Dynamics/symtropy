@@ -1333,7 +1333,8 @@ mod tests {
                 let selected: Vec<_> = possible_edges
                     .iter()
                     .enumerate()
-                    .filter_map(|(index, edge)| ((mask >> index) & 1 == 1).then_some(*edge))
+                    .filter(|(index, _)| (mask >> index) & 1 == 1)
+                    .map(|(_, edge)| *edge)
                     .collect();
 
                 let mut graph = HyphalGraph::new();
@@ -1363,15 +1364,15 @@ mod tests {
                 let baseline = oracle_active_component_count(node_count, &selected, None, None);
                 let expected_bridges: Vec<_> = selected
                     .iter()
-                    .filter_map(|(edge_id, _, _)| {
-                        (oracle_active_component_count(
+                    .filter(|(edge_id, _, _)| {
+                        oracle_active_component_count(
                             node_count,
                             &selected,
                             Some(*edge_id),
                             None,
-                        ) > baseline)
-                            .then_some(SegmentId(*edge_id))
+                        ) > baseline
                     })
+                    .map(|(edge_id, _, _)| SegmentId(*edge_id))
                     .collect();
                 let expected_articulation: Vec<_> = (0..node_count)
                     .filter(|node_index| {
