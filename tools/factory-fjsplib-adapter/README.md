@@ -35,7 +35,7 @@ The tests use the official FJSPLib fattahi1 example in both text formats. They c
 
 ## Independent CP-SAT cross-check
 
-A benchmark-only Python adapter at `reference/ortools_fattahi1_check.py` parses the exact frozen `fixtures/fattahi1.fjsp` bytes and builds an independent optional-interval CP-SAT model. CI installs the pinned OR-Tools 9.15.6755 package and requires an OPTIMAL status with objective and best bound both equal to 66.
+A benchmark-only Python adapter at `reference/ortools_fattahi1_check.py` independently parses both frozen `fixtures/fattahi1.fjsp` and `fixtures/fattahi1.fajsp` inputs and builds an optional-interval CP-SAT model. CI installs the pinned OR-Tools 9.15.6755 package and requires each representation to return OPTIMAL with objective and best bound both equal to 66.
 
 This adapter is isolated to test/benchmark verification. The parser, exact solver, schedule verifier and any future runtime implementation remain Rust. Agreement on this one tiny known-answer case is a semantic cross-check, not a performance comparison or SOTA claim. The independent checker has its own parser/model and does not call the Rust exact solver.
 
