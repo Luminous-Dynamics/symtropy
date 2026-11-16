@@ -1359,7 +1359,7 @@ mod tests {
     fn brier_skill_rejects_mismatched_event_definitions() {
         let out = compute_case(&fixture("inputs")["cases"][35]).expect("event mismatch");
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
-        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER");
+        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_SCOPE_DIFFER");
         assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
