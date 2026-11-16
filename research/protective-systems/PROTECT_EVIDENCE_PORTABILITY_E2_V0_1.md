@@ -2,9 +2,9 @@
 
 **Snapshot:** 16 November 2026  
 **Owner:** PROTECT-EVIDENCE-PORTABILITY-001 #5524  
-**Parent E1:** PROTECT-MODEL-EVIDENCE-001 #5474 / PR #5493  
+**Parent E1:** PROTECT-MODEL-EVIDENCE-001 #5474 / PR #5493 (hosted run 43835683157 passed formatting, Clippy, all tests and all configured executables)  
 **Review branch:** `research/protect-evidence-portability-e2-review-v0-1`  
-**Status:** synthetic portability package and Rust verifier written; exact-head hosted verification pending
+**Status:** synthetic portability package, Rust profile verifier and independent RO-Crate validator job wired; exact-head hosted verification pending
 
 ## 1. Paradigm shift: semantic portability, not file conversion
 
