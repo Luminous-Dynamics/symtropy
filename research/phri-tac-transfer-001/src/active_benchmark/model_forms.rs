@@ -392,14 +392,6 @@ pub fn run_model_form_campaign(seed: u64) -> Result<ModelFormCampaignReport, Str
     })
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct ModelFormCampaignReport {
-    pub taxel_count: usize,
-    pub full_grid_contacts_per_taxel: usize,
-    pub heldout_force_count_per_taxel: usize,
-    pub results: Vec<ModelFormSummary>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,7 +406,7 @@ mod tests {
         let observations: Vec<_> = FULL_FORCE_GRID_N
             .iter()
             .enumerate()
-            .map(|(index, force_n)| CalibrationObservation {
+            .map(|(_index, force_n)| CalibrationObservation {
                 taxel_id: 0,
                 force_setpoint_n: *force_n,
                 voltage_v: voltage_for_force(expected, *force_n),
