@@ -334,12 +334,23 @@ A comparison is fair only when species, scale, initial conditions, forcing, obse
 
 ## 7. Research targets (not achieved results)
 
-Only freeze numeric superiority targets after reproducing the comparator and its split. The tournament should aim for:
-- no regression against the best reproduced BMX/reference morphology score on exactly matched cases;
-- improved coupled exchange forecasts or element-budget closure over current field-only and diffusion-only controls, with independent replicate blocks;
-- predictive interval coverage near its preregistered nominal level, with interval width and worst-stratum score visible;
-- 100% pass on frozen synthetic conservation, disconnected-path, idempotency, provenance and invalid-unit fixtures;
-- better decision value for measurement proposals than random, sensitivity-only and uncertainty-only policies under equal cost/budget.
+Freeze numeric superiority targets only after reproducing each comparator's exact release, hardware, data split and evaluation metric. Until then, these are proposed research targets, not achieved results or committed acceptance thresholds:
+
+| Competition axis | Published comparison point | Proposed Symtropy target after matched reproduction |
+|---|---|---|
+| 2D colony-edge segmentation | MyceliumSeg: 20,176 images and 567 manually pixel-labelled masks; boundary metrics are distinct from internal hyphal graph truth | Reproduce exact split and published metrics; do not use its colony masks to score branch/junction topology |
+| 2D hyphal skeletonization | SkelPy: 180 images / 72 h / three *Botrytis cinerea* isolates; mean normalized trace distance 0.0046, SD 0.0009; 3,842-image run in 12 h 30 min using 234 MB on Apple M4 | Match or improve trace error; target ≥2× throughput on the same hardware and image batch only if topology/trace error is non-inferior |
+| 3D printed filament geometry | Sten et al.: RMSE below 0.5 mm filament radius for most printed prototypes | Target median RMSE ≤0.25 filament radii and 95th-percentile RMSE ≤0.5 radii across every admitted prototype; report every case, not “most” |
+| Biological overlap / crossing | Sten et al.: F1 0.91–0.92 on six manually annotated *R. irregularis* images, with at least one documented manual false-negative correction | First reproduce the exact six-image result and the assisted-workflow ledger; then target automated F1 ≥0.95 on a larger independently adjudicated set, with 95% CIs and zero false fusion on depth-separated controls |
+| 3D topology / abstention | No directly comparable broad fungal 3D topology score is established by these small image sets | Zero false fusion on all known-truth depth-separated / near-touch fixtures; on independent biological data target false-fusion rate <1% while preserving ≥95% true-junction recall, with abstention/coverage shown |
+| Flow / resource dynamics | Nature 2025 AMF study: time-resolved graph data and measured cytoplasmic-flow trajectories, but only three AMF profiles in a 2D-constrained in-vitro system | Beat topology-only, uniform-flow and shuffled-flow baselines on leave-replicate-out and leave-strain-out predictive scores; freeze a numeric margin only after source data reproduction |
+| Multiscale simulation | BMX is the mechanistic high-detail comparison; sBARE is a preprint surrogate until reproduced | Target ≥10× lower compute at matched preregistered observable error and uncertainty coverage; retain BMX as the high-fidelity reference rather than replacing it by assertion |
+| Uncertainty / evidence | Competitors often report point accuracy or manual agreement; this does not automatically give calibrated uncertainty | Nominal 90% and 95% depth/topology intervals should achieve empirical coverage within ±3 percentage points on held-out scene families; report selective risk vs coverage |
+| Deterministic graph correctness | Current Symtropy code has explicit transactional topology and passive-transport primitives | 100% pass on frozen known-truth topology, conservation, replay, invalid-unit and cross-platform determinism cases |
+
+The field-revolution strategy is not to produce a slightly better skeletonization button. It is to join **image evidence → uncertain 3D hypotheses → event-sourced topology → independently measured flow → resource/element accounting → controlled intervention → calibrated model update** without collapsing these into a single opaque confidence score.
+
+The current code branch adds a conservative depth-interval gate: depth-disjoint projected crossings are ruled separate; overlapping or missing intervals require review; no fusion is emitted by the classifier. The graph criticality routine is being differentially checked against an independent removal oracle across 1,099 small graphs. The 12-scene analytic known-truth fixture file is benchmarks/mycelium/myco-3d-known-truth-fixtures-v0-1.json; it is synthetic graph geometry, not microscopy imagery.
 
 No SOTA claim may be made from synthetic verification, morphology resemblance, segmentation alone, one species, one field study, or runtime alone.
 
