@@ -588,6 +588,110 @@ mod tests {
         );
     }
 
+    fn parse_case_status(value: &str) -> GateStatus {
+        match value {
+            "pass" => GateStatus::Pass,
+            "block" => GateStatus::Block,
+            "unknown" => GateStatus::Unknown,
+            other => panic!("unknown gate status: {other}"),
+        }
+    }
+
+    fn parse_operation_ids(value: &str) -> Vec<u32> {
+        if value == "-" {
+            return Vec::new();
+        }
+        value
+            .split(',')
+            .map(|token| token.parse::<u32>().expect("valid operation id"))
+            .collect()
+    }
+
+    fn expected_block_reason(value: &str) -> Option<BlockReason> {
+        match value {
+            "-" => None,
+            "calibration_unknown" => Some(BlockReason::CalibrationUnknown),
+            "calibration_blocked" => Some(BlockReason::CalibrationBlocked),
+            "applicability_unknown" => Some(BlockReason::ApplicabilityUnknown),
+            "applicability_blocked" => Some(BlockReason::ApplicabilityBlocked),
+            "correlated" => Some(BlockReason::CorrelatedObservationOrigin),
+            "outcome_unknown" => Some(BlockReason::OutcomeUnknown),
+            "outcome_blocked" => Some(BlockReason::OutcomeBlocked),
+            "repair_scope_incomplete" => Some(BlockReason::RepairScopeIncomplete),
+            other => panic!("unknown block reason: {other}"),
+        }
+    }
+
+    #[test]
+    fn frozen_scenario_matrix_matches_independent_scope_expectations() {
+        let manifest = include_str!("../fixtures/repair_scope_cases.tsv");
+        let mut rows = 0usize;
+        let mut hidden_future_results = Vec::new();
+
+        for (line_index, line) in manifest.lines().enumerate() {
+            if line_index == 0 || line.trim().is_empty() {
+                continue;
+            }
+            let columns: Vec<&str> = line.split('\t').collect();
+            assert_eq!(columns.len(), 15, "fixture row {}", line_index + 1);
+            rows += 1;
+
+            let mut source = episode();
+            source.episode_id = columns[0].to_owned();
+            source.impact.receipt_id = format!("impact-{}", columns[0]);
+            source.impact.affected_operation_ids = parse_operation_ids(columns[8]);
+            source.inspection.receipt_id = format!("inspection-{}", columns[0]);
+            source.inspection.test_id = columns[1].to_owned();
+            source.inspection.outcome_id = format!("outcome-{}", columns[0]);
+            source.inspection.measurement_source_group = columns[3].to_owned();
+            source.inspection.baseline_source_group = columns[4].to_owned();
+            source.inspection.calibration_status = parse_case_status(columns[5]);
+            source.inspection.applicability_status = parse_case_status(columns[6]);
+            source.inspection.outcome_status = parse_case_status(columns[7]);
+
+            let candidate = RepairProposal {
+                diagnosis_receipt_id: source.inspection.receipt_id.clone(),
+                impact_receipt_id: source.impact.receipt_id.clone(),
+                release_operation_ids: parse_operation_ids(columns[9]),
+                containment_operation_ids: parse_operation_ids(columns[10]),
+            };
+
+            let evaluated = evaluate_scope(&source, &candidate).unwrap();
+            let expected_status = match columns[11] {
+                "eligible" => EvaluationStatus::Eligible,
+                "blocked" => EvaluationStatus::Blocked,
+                other => panic!("unknown expected status: {other}"),
+            };
+            assert_eq!(evaluated.status, expected_status, "fixture {}", columns[0]);
+            assert_eq!(
+                evaluated.block_reason,
+                expected_block_reason(columns[12]),
+                "fixture {}",
+                columns[0]
+            );
+            assert_eq!(
+                evaluated.metrics.false_preserved_affected_operations,
+                columns[13].parse::<usize>().unwrap(),
+                "fixture {}",
+                columns[0]
+            );
+            assert_eq!(
+                evaluated.metrics.unnecessary_released_operations,
+                columns[14].parse::<usize>().unwrap(),
+                "fixture {}",
+                columns[0]
+            );
+
+            if columns[1] == "hidden_future_pair" {
+                hidden_future_results.push(evaluated);
+            }
+        }
+
+        assert_eq!(rows, 17);
+        assert_eq!(hidden_future_results.len(), 2);
+        assert_eq!(hidden_future_results[0], hidden_future_results[1]);
+    }
+
     #[test]
     fn evaluation_is_deterministic_for_identical_receipts_and_scope() {
         let source = episode();
