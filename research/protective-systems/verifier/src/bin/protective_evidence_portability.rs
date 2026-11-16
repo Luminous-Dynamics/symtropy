@@ -707,6 +707,34 @@ mod tests {
     }
 
     #[test]
+    fn graph_and_edge_order_do_not_change_semantic_result() {
+        let baseline = run().expect("baseline profile graph");
+        let mut reordered = prov_value();
+        let graph = reordered["@graph"].as_array_mut().expect("graph");
+        graph.reverse();
+        let activity = graph
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("activity");
+        activity["prov:used"].as_array_mut().expect("used edges").reverse();
+
+        let candidate =
+            validate_crate(CRATE, &reordered.to_string()).expect("reordered profile graph");
+        assert_eq!(candidate.provenance_entity_count, baseline.provenance_entity_count);
+        assert_eq!(candidate.provenance_activity_count, baseline.provenance_activity_count);
+        assert_eq!(candidate.provenance_agent_count, baseline.provenance_agent_count);
+        assert_eq!(candidate.used_input_count, baseline.used_input_count);
+        assert_eq!(candidate.generated_output_count, baseline.generated_output_count);
+        assert_eq!(candidate.declared_derivation_count, baseline.declared_derivation_count);
+        assert_eq!(candidate.disposition, baseline.disposition);
+        assert_ne!(
+            candidate.provenance_graph_sha256,
+            baseline.provenance_graph_sha256,
+            "raw-byte digest should still bind the actual serialization"
+        );
+    }
+
+    #[test]
     fn duplicate_used_input_is_rejected() {
         let mut prov = prov_value();
         let activity = prov["@graph"]
