@@ -117,8 +117,7 @@ fn utility_estimate_receipt(
 
 fn refresh_utility_estimate_receipt(candidate: &mut ExperimentCandidate) {
     let frozen_policy = policy();
-    candidate.utility_estimate_receipt =
-        Some(utility_estimate_receipt(candidate, &frozen_policy));
+    candidate.utility_estimate_receipt = Some(utility_estimate_receipt(candidate, &frozen_policy));
 }
 
 fn candidate(id: &str) -> ExperimentCandidate {
@@ -189,8 +188,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
     };
 
     let frozen_policy = policy();
-    result.utility_estimate_receipt =
-        Some(utility_estimate_receipt(&result, &frozen_policy));
+    result.utility_estimate_receipt = Some(utility_estimate_receipt(&result, &frozen_policy));
     add_gate_evidence_receipt(
         &mut result,
         &frozen_policy,
