@@ -254,7 +254,7 @@
     "canonical_encoding": {
       "method": "ObservationEvidenceReceipt::canonical_bytes",
       "encoding_version": 1,
-      "magic_prefix": "MYCO-EVIDENCE-RECEIPT\\0",
+      "magic_prefix": "ASCII bytes MYCO-EVIDENCE-RECEIPT followed by one NUL byte",
       "integers": "little-endian",
       "floats": "IEEE-754 f64 bit patterns, little-endian; negative zero normalized to positive zero",
       "strings": "UTF-8 bytes prefixed with little-endian u32 byte length",
@@ -262,12 +262,14 @@
       "enums": "explicit fixed u8 tags",
       "independent_reviewer_panel": "reviewer keys sorted lexicographically before serialization",
       "cryptographic_hash": "not computed here; an independently admitted SHA-256 implementation must hash canonical bytes",
-      "status": "implemented_in_code; exact-head CI pending"
+      "status": "implemented_in_code; exact-head CI pending",
+      "header_layout_test": "unit test asserts exact 22-byte magic prefix, u16 schema version 1, evidence ID and source digest leading offsets"
     },
     "review_semantics": {
       "human_reviewed": "one pseudonymous reviewer key and reason code",
       "independently_adjudicated": "at least two distinct non-empty pseudonymous reviewer keys; panel order canonicalized",
-      "disposition_not_truth": "a review is a provenance record, not proof that a biological interpretation is correct"
+      "disposition_not_truth": "a review is a provenance record, not proof that a biological interpretation is correct",
+      "independent_panel_requirement": "at least two distinct non-empty pseudonymous keys; sort reviewer keys before encoding"
     }
   }
 }
