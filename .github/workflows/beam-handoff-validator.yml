@@ -5,12 +5,14 @@ on:
     paths:
       - ".github/workflows/beam-handoff-validator.yml"
       - "tools/beam-handoff-validator/**"
+      - "tools/physics-agent-benchmark/**"
       - "docs/research/muon-collider/**"
   push:
     branches: [ "main" ]
     paths:
       - ".github/workflows/beam-handoff-validator.yml"
       - "tools/beam-handoff-validator/**"
+      - "tools/physics-agent-benchmark/**"
       - "docs/research/muon-collider/**"
 
 permissions:
@@ -94,6 +96,30 @@ jobs:
           ' docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json >/dev/null
           cp docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json physics-agent-benchmark-cases.json
 
+      - name: Generate physics-agent benchmark lock
+        run: cargo generate-lockfile --manifest-path tools/physics-agent-benchmark/Cargo.toml
+
+      - name: Check physics-agent benchmark formatting
+        run: cargo fmt --manifest-path tools/physics-agent-benchmark/Cargo.toml -- --check
+
+      - name: Run physics-agent benchmark unit tests
+        run: cargo test --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml
+
+      - name: Run physics-agent benchmark strict Clippy
+        run: cargo clippy --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Evaluate synthetic physics-agent case registry
+        run: |
+          cargo run --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml -- \
+            docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json \
+            > physics-agent-report.json
+
+      - name: Assert physics-agent oracle report
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          jq -e '.status == "passed" and .case_count == 6 and .matched_case_count == 6 and .mismatch_count == 0' physics-agent-report.json >/dev/null
+
       - name: Retain lockfile and validation receipts
         if: always()
         uses: actions/upload-artifact@v4
@@ -101,8 +127,10 @@ jobs:
           name: beam-handoff-validator-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             tools/beam-handoff-validator/Cargo.lock
+            tools/physics-agent-benchmark/Cargo.lock
             summary-report.json
             full-report.json
             physics-agent-benchmark-cases.json
+            physics-agent-report.json
           if-no-files-found: warn
           retention-days: 30
