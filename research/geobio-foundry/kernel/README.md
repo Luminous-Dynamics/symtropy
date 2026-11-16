@@ -26,6 +26,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Numerical overflow checks and negative/non-finite input rejection.
 - Numerical overflow checks and negative/non-finite input rejection.
 - Complete-composition mass reconciliation and origin-intensity ratio overflow rejection.
+- Single-species ideal-gas pressure/known-mass-transfer reference module with explicit limitations and observation comparison.
 
 ## Important limitations
 
