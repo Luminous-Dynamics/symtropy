@@ -97,7 +97,6 @@ impl IntervalVerificationReceipt {
     }
 }
 
-
 /// A separately computed interval-verification receipt for every leaf of one
 /// adaptive certificate. This verifier re-runs the full time × axis-parameter
 /// search per leaf; it does not trust producer narrow-phase outputs or pruned
@@ -156,15 +155,13 @@ pub fn verify_adaptive_no_contact_independently(
             IntervalVerificationStatus::Clear => {}
             IntervalVerificationStatus::ContactWitness => {
                 return Err(
-                    IndependentAdaptiveVerificationError::IndependentContactWitness {
-                        leaf_index,
-                    },
+                    IndependentAdaptiveVerificationError::IndependentContactWitness { leaf_index },
                 );
             }
             IntervalVerificationStatus::Unresolved => {
-                return Err(IndependentAdaptiveVerificationError::IndependentUnresolved {
-                    leaf_index,
-                });
+                return Err(
+                    IndependentAdaptiveVerificationError::IndependentUnresolved { leaf_index },
+                );
             }
         }
 
@@ -677,7 +674,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn independent_interval_algorithm_can_recheck_a_complete_adaptive_no_contact_certificate() {
         use crate::co_translation_ccd::{
@@ -697,7 +693,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        assert_eq!(
+            certificate.report.status,
+            AdaptiveCollisionStatus::NoContact
+        );
 
         let independent = verify_adaptive_no_contact_independently(
             &certificate,
@@ -705,10 +704,12 @@ mod tests {
         )
         .unwrap();
         assert_eq!(independent.leaf_receipts.len(), certificate.leaves.len());
-        assert!(independent
-            .leaf_receipts
-            .iter()
-            .all(|receipt| receipt.status == IntervalVerificationStatus::Clear));
+        assert!(
+            independent
+                .leaf_receipts
+                .iter()
+                .all(|receipt| receipt.status == IntervalVerificationStatus::Clear)
+        );
         assert!(independent.parameter_boxes_visited > 0);
     }
 
@@ -747,9 +748,7 @@ mod tests {
                     maximum_depth: 0,
                 },
             ),
-            Err(IndependentAdaptiveVerificationError::IndependentUnresolved {
-                leaf_index: 0,
-            })
+            Err(IndependentAdaptiveVerificationError::IndependentUnresolved { leaf_index: 0 })
         );
     }
 
