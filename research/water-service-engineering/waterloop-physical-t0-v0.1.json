@@ -845,6 +845,598 @@
         "critical_person_days_delivered": 120,
         "tariff_billing_period_days": 28
       }
+    },
+    {
+      "case_id": "WL-T0-035-modular-bathroom-source-accepted",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-036-excluded-kitchen-source-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "kitchen_sink_dishwasher"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-037-excluded-blackwater-source-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "blackwater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-038-excluded-nappy-source-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "nappy_wash"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-039-mixed-laundry-source-unadmitted",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater",
+          "laundry_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": true,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-040-potable-nonpotable-cross-connection-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": true,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-041-stale-batch-quality-abstains",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": false,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-042-quality-use-profile-mismatch-not-comparable",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "subsurface_irrigation_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-043-bypass-to-product-outlet-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "reuse_product",
+        "failure_bypass_isolated_from_product": false
+      }
+    },
+    {
+      "case_id": "WL-T0-044-reject-route-missing-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": false,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-045-metrology-not-admitted-abstains",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": false,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-046-product-hold-module-missing-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-047-separately-admitted-laundry-source",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-laundry-only-toilet-v0.1",
+        "source_classes": [
+          "laundry_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-048-separate-rainwater-source",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-roof-rainwater-toilet-v0.1",
+        "source_classes": [
+          "roof_rainwater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": false,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-049-potable-makeup-without-protection-reject",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": true,
+        "backflow_protection_admitted": false,
+        "authority_review_admitted": false,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
+    },
+    {
+      "case_id": "WL-T0-050-potable-makeup-with-approved-protection",
+      "family": "modular_architecture",
+      "inputs": {
+        "configuration_id": "modular-bathroom-light-greywater-toilet-v0.1",
+        "source_classes": [
+          "bathroom_light_greywater"
+        ],
+        "source_profile_admitted": true,
+        "source_streams_mixed": false,
+        "mixed_feed_profile_admitted": false,
+        "intended_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "quality_assessment_use_profile_id": "nonpotable_toilet_flushing_v1",
+        "batch_quality_admitted": true,
+        "batch_quality_current": true,
+        "metrology_admitted": true,
+        "process_envelope_admitted": true,
+        "disinfection_validation_current": true,
+        "module_ids": [
+          "P0",
+          "P1",
+          "P2",
+          "P5",
+          "P6",
+          "P7",
+          "P8"
+        ],
+        "module_interfaces_complete": true,
+        "cross_connection_present": false,
+        "potable_makeup_connected": true,
+        "backflow_protection_admitted": true,
+        "authority_review_admitted": true,
+        "reject_route_present": true,
+        "failure_bypass_destination": "sewer",
+        "failure_bypass_isolated_from_product": true
+      }
     }
   ]
 }
