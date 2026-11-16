@@ -213,3 +213,30 @@ proves only that the retrieved artifact bytes match the declared digest.
 The E1 v0.1 fixture uses one JSON input and one JSON output payload with a
 strict path allow-list. This is an intentionally narrow conformance tranche,
 not a generic file importer or a live external API client.
+
+
+### Provider-native metadata snapshots
+
+The E1 fixture preserves six distinct artifacts: two raw dataset metadata responses,
+two file-metadata endpoint responses and two data payloads. For each dataset the
+verifier checks:
+
+- provider dataset ID matches the envelope dataset ID;
+- provider dataType matches the preserved semantic type;
+- file IDs in embedded fileDescriptors match the separate file-metadata response;
+- the payload file ID, filename, MIME type and byte size match its provider
+  fileDescriptor;
+- each raw metadata/payload byte sequence has a pinned length and SHA-256.
+
+The fixture mirrors the read-only IN-CORE pyIncore DataService boundary:
+get_dataset_metadata, get_dataset_files_metadata, get_dataset_file_metadata
+and get_dataset_blob. The provider's own MD5 field is preserved in the native
+metadata snapshot; the envelope separately computes SHA-256 over locally
+retrieved bytes. Neither digest authenticates the provider.
+
+The actual implementation references are pinned to a public pyIncore commit:
+- https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/pyincore/dataservice.py
+- https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/tests/pyincore/test_dataservice.py
+- https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/tests/data/dataset_metadata.json
+
+The current fixture is still synthetic and no IN-CORE endpoint is called.
