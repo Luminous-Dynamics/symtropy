@@ -260,6 +260,15 @@ impl HyphalGraph {
         self.segments.get(&id)
     }
 
+    /// Whether an event ID has been applied to this graph.
+    ///
+    /// The query supports external evidence receipts that bind observations to
+    /// the exact topology mutation they informed.
+    pub fn has_applied_event(&self, id: EventId) -> bool {
+        self.applied_events.contains_key(&id)
+    }
+
+
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
