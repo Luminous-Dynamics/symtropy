@@ -77,6 +77,12 @@ pub enum ObservationSubject {
     LiquidFilmBridge,
     /// An individually tracked bacterial trajectory in a microhabitat network.
     BacterialTrajectory,
+    /// A spontaneous or isotope-probing Raman spectrum acquired from a hyphal ROI.
+    RamanSpectrum,
+    /// An SRS chemical map acquired from a hyphal ROI.
+    RamanChemicalMap,
+    /// An independently sourced spectral calibration / reference observation.
+    RamanCalibrationReference,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -538,6 +544,9 @@ const fn subject_tag(subject: ObservationSubject) -> u8 {
         ObservationSubject::LiquidFilmPatch => 9,
         ObservationSubject::BacterialTrajectory => 10,
         ObservationSubject::LiquidFilmBridge => 11,
+        ObservationSubject::RamanSpectrum => 12,
+        ObservationSubject::RamanChemicalMap => 13,
+        ObservationSubject::RamanCalibrationReference => 14,
     }
 }
 
@@ -743,6 +752,9 @@ mod tests {
         assert_eq!(subject_tag(ObservationSubject::LiquidFilmPatch), 9);
         assert_eq!(subject_tag(ObservationSubject::BacterialTrajectory), 10);
         assert_eq!(subject_tag(ObservationSubject::LiquidFilmBridge), 11);
+        assert_eq!(subject_tag(ObservationSubject::RamanSpectrum), 12);
+        assert_eq!(subject_tag(ObservationSubject::RamanChemicalMap), 13);
+        assert_eq!(subject_tag(ObservationSubject::RamanCalibrationReference), 14);
         assert_ne!(
             subject_tag(ObservationSubject::LiquidFilmPatch),
             subject_tag(ObservationSubject::BacterialTrajectory)
