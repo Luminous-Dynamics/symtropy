@@ -166,8 +166,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         errors.push("PCE cannot be selected for new equipment".to_owned());
     }
 
-    if text_at(governance.unwrap_or(&Value::Null), "unknown_material_action")
-        != Some("abstain_or_human_review")
+    if text_at(
+        governance.unwrap_or(&Value::Null),
+        "unknown_material_action",
+    ) != Some("abstain_or_human_review")
     {
         errors.push("unknown material must trigger abstention or human review".to_owned());
     }
