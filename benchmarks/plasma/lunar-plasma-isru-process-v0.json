@@ -1,0 +1,1421 @@
+{
+  "schema_version": "luminous.lunar-plasma-isru-process.v0",
+  "benchmark_id": "LUNAR-PLASMA-PROCESS-TWIN-001",
+  "frozen_at": "2026-11-15",
+  "evidence_class": "synthetic",
+  "physical_measurements": false,
+  "plasma_solver_outputs": false,
+  "comparison_policy": "no source case is rankable until feedstock, accepted product, measurement and system boundaries match",
+  "scenarios": [
+    {
+      "id": "synthetic-balanced-accounting-positive",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-A",
+        "material_id": "SYNTHETIC-REGOLITH-A",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-grid-to-product-a",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "SYNTHETIC_ACCOUNTING_PASS"
+    },
+    {
+      "id": "blocked-unknown-reagent-inventory",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-B",
+        "material_id": "SYNTHETIC-REGOLITH-B",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residue-b",
+            "kind": "residual_solid",
+            "mass_g": 990
+          },
+          {
+            "stream_id": "o2-b",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": null,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [
+          "opening_inventory"
+        ],
+        "tolerance_g": 0.01
+      },
+      "product": {
+        "product_id": "synthetic-o2-b",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-only",
+        "calibration_ref": "synthetic-only"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "blocked-qualitative-oxygen-observation-only",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-C",
+        "material_id": "SYNTHETIC-REGOLITH-C",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "observations": [
+        {
+          "observation_id": "oes-only-c",
+          "method": "optical_emission",
+          "species": "O",
+          "evidence_class": "literature_qualitative"
+        }
+      ],
+      "product": {
+        "product_id": "claimed-o2-c",
+        "species": "O2",
+        "mass_g": null,
+        "purity_fraction": null,
+        "pressure_kpa": null,
+        "delivery_contract_id": null,
+        "quantitative_measurement_ref": null,
+        "calibration_ref": null
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "rejected-co2-promoted-to-o2",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-D",
+        "material_id": "SYNTHETIC-REGOLITH-D",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "observations": [
+        {
+          "observation_id": "co2-d",
+          "method": "synthetic_gas_analysis",
+          "species": "CO2",
+          "evidence_class": "synthetic"
+        }
+      ],
+      "product": {
+        "product_id": "invalid-o2-d",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.99,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "co2-d",
+        "calibration_ref": "synthetic-calibration-only"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "blocked-incomplete-grid-boundary",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-E",
+        "material_id": "SYNTHETIC-REGOLITH-E",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "grid_energy": {
+        "boundary_id": "synthetic-grid-to-product-e",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-e",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1000
+          },
+          {
+            "meter_id": "m-vacuum-e",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 500
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "blocked-unqualified-coproduct-credit",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-F",
+        "material_id": "SYNTHETIC-REGOLITH-F",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "coproducts": [
+        {
+          "stream_id": "silicon-bearing-residue-f",
+          "species_or_material": "Si-bearing solid",
+          "mass_g": 50,
+          "credited_as_product": true,
+          "product_grade_ref": null,
+          "receiving_process_ref": null
+        }
+      ],
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "not-comparable-product-contract",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-G",
+        "material_id": "SYNTHETIC-REGOLITH-G",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "comparison": {
+        "candidate_contract_id": "synthetic-o2-contract-a",
+        "reference_contract_id": "synthetic-oxygen-bearing-gas-contract-b",
+        "energy_boundary_id": "synthetic-boundary-g"
+      },
+      "expected_disposition": "NOT_COMPARABLE"
+    },
+    {
+      "id": "rejected-feedstock-mass-nonclosure",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-H",
+        "material_id": "SYNTHETIC-REGOLITH-H",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residue-h",
+            "kind": "residual_solid",
+            "mass_g": 970
+          },
+          {
+            "stream_id": "o2-h",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "blocked-expired-calibration",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-blocked-expired-calibration",
+        "material_id": "SYNTHETIC-MATERIAL-blocked-expired-calibration",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-blocked-expired-calibration",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-blocked-expired-calibration",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-blocked-expired-calibration",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-14T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-blocked-expired-calibration",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-blocked-expired-calibration",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-blocked-expired-calibration",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-blocked-expired-calibration",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-blocked-expired-calibration",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-blocked-expired-calibration",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-blocked-expired-calibration",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-blocked-expired-calibration",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "blocked-uncertainty-exceeds-decision-margin",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-blocked-uncertainty-exceeds-decision-margin",
+        "material_id": "SYNTHETIC-MATERIAL-blocked-uncertainty-exceeds-decision-margin",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-blocked-uncertainty-exceeds-decision-margin",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-blocked-uncertainty-exceeds-decision-margin",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-blocked-uncertainty-exceeds-decision-margin",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.05,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-blocked-uncertainty-exceeds-decision-margin",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-blocked-uncertainty-exceeds-decision-margin",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-blocked-uncertainty-exceeds-decision-margin",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-blocked-uncertainty-exceeds-decision-margin",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-blocked-uncertainty-exceeds-decision-margin",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-blocked-uncertainty-exceeds-decision-margin",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-blocked-uncertainty-exceeds-decision-margin",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-blocked-uncertainty-exceeds-decision-margin",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "blocked-unverified-sampling-recovery",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-blocked-unverified-sampling-recovery",
+        "material_id": "SYNTHETIC-MATERIAL-blocked-unverified-sampling-recovery",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-blocked-unverified-sampling-recovery",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-blocked-unverified-sampling-recovery",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-blocked-unverified-sampling-recovery",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": null,
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-blocked-unverified-sampling-recovery",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-blocked-unverified-sampling-recovery",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-blocked-unverified-sampling-recovery",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-blocked-unverified-sampling-recovery",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-blocked-unverified-sampling-recovery",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-blocked-unverified-sampling-recovery",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-blocked-unverified-sampling-recovery",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-blocked-unverified-sampling-recovery",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "rejected-calibration-species-scope",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-rejected-calibration-species-scope",
+        "material_id": "SYNTHETIC-MATERIAL-rejected-calibration-species-scope",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-rejected-calibration-species-scope",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-rejected-calibration-species-scope",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-rejected-calibration-species-scope",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "CO2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-rejected-calibration-species-scope",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-rejected-calibration-species-scope",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-rejected-calibration-species-scope",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-rejected-calibration-species-scope",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-rejected-calibration-species-scope",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-rejected-calibration-species-scope",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-rejected-calibration-species-scope",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-rejected-calibration-species-scope",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "rejected-sampling-recovery-mass-mismatch",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-rejected-sampling-recovery-mass-mismatch",
+        "material_id": "SYNTHETIC-MATERIAL-rejected-sampling-recovery-mass-mismatch",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-rejected-sampling-recovery-mass-mismatch",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-rejected-sampling-recovery-mass-mismatch",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-rejected-sampling-recovery-mass-mismatch",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 8.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-rejected-sampling-recovery-mass-mismatch",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-rejected-sampling-recovery-mass-mismatch",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-rejected-sampling-recovery-mass-mismatch",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-rejected-sampling-recovery-mass-mismatch",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-rejected-sampling-recovery-mass-mismatch",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-rejected-sampling-recovery-mass-mismatch",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-rejected-sampling-recovery-mass-mismatch",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-rejected-sampling-recovery-mass-mismatch",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "blocked-invalid-calendar-date",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-blocked-invalid-calendar-date",
+        "material_id": "SYNTHETIC-MATERIAL-blocked-invalid-calendar-date",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-blocked-invalid-calendar-date",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-blocked-invalid-calendar-date",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-blocked-invalid-calendar-date",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-02-30T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-blocked-invalid-calendar-date",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-blocked-invalid-calendar-date",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-blocked-invalid-calendar-date",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-blocked-invalid-calendar-date",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-blocked-invalid-calendar-date",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-blocked-invalid-calendar-date",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-blocked-invalid-calendar-date",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-blocked-invalid-calendar-date",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "BLOCKED"
+    },
+    {
+      "id": "rejected-cross-sensitivity-failure",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-rejected-cross-sensitivity-failure",
+        "material_id": "SYNTHETIC-MATERIAL-rejected-cross-sensitivity-failure",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1000,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-rejected-cross-sensitivity-failure",
+            "kind": "residual_solid",
+            "mass_g": 985
+          },
+          {
+            "stream_id": "accepted-o2-rejected-cross-sensitivity-failure",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-rejected-cross-sensitivity-failure",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "failed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-rejected-cross-sensitivity-failure",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-rejected-cross-sensitivity-failure",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-rejected-cross-sensitivity-failure",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-rejected-cross-sensitivity-failure",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-rejected-cross-sensitivity-failure",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-rejected-cross-sensitivity-failure",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-rejected-cross-sensitivity-failure",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-rejected-cross-sensitivity-failure",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "REJECTED"
+    },
+    {
+      "id": "rejected-feedstock-input-mismatch",
+      "evidence_class": "synthetic",
+      "feedstock": {
+        "batch_id": "SYNTHETIC-FEED-INPUT-MISMATCH",
+        "material_id": "SYNTHETIC-MATERIAL-INPUT-MISMATCH",
+        "dry_mass_g": 1000,
+        "mineralogy_status": "synthetic_declared",
+        "source_ref": "synthetic-fixture-only"
+      },
+      "feedstock_mass_balance": {
+        "input_mass_g": 1100,
+        "outputs": [
+          {
+            "stream_id": "residual-solids-input-mismatch",
+            "kind": "residual_solid",
+            "mass_g": 1085
+          },
+          {
+            "stream_id": "accepted-o2-input-mismatch",
+            "kind": "accepted_o2_product",
+            "mass_g": 10
+          },
+          {
+            "stream_id": "other-captured-gases-input-mismatch",
+            "kind": "other_captured_gas",
+            "mass_g": 5
+          }
+        ],
+        "tolerance_g": 0.01
+      },
+      "reagent_ledger": {
+        "opening_inventory_g": 80,
+        "fresh_makeup_g": 20,
+        "ending_inventory_g": 80,
+        "bound_in_residue_g": 5,
+        "purge_and_waste_g": 15,
+        "unknown_streams": [],
+        "tolerance_g": 0.01
+      },
+      "observations": [
+        {
+          "observation_id": "synthetic-oes-o2",
+          "method": "synthetic_oes",
+          "species": "O2",
+          "evidence_class": "synthetic"
+        },
+        {
+          "observation_id": "synthetic-gas-analysis-o2",
+          "method": "synthetic_quantitative_gas_analysis",
+          "species": "O2",
+          "evidence_class": "synthetic",
+          "calibration_ref": "synthetic-calibration-o2-gas-1",
+          "calibration_species": "O2",
+          "calibration_method": "synthetic_quantitative_gas_analysis",
+          "calibration_valid_from_utc": "2026-11-14T00:00:00Z",
+          "calibration_valid_until_utc": "2026-11-16T00:00:00Z",
+          "observed_at_utc": "2026-11-15T12:00:00Z",
+          "expanded_uncertainty_fraction": 0.03,
+          "decision_margin_fraction": 0.12,
+          "measured_mass_g": 9.5,
+          "sampling_recovery_fraction": 0.95,
+          "sampling_recovery_check_ref": "synthetic-sampling-recovery-check-1",
+          "cross_sensitivity_status": "passed",
+          "cross_sensitivity_check_ref": "synthetic-o2-co-co2-interference-check-1",
+          "sampling_interval_id": "synthetic-interval-001",
+          "raw_artifact_ref": "synthetic-raw-gas-analysis-trace-1"
+        }
+      ],
+      "product": {
+        "product_id": "synthetic-accepted-o2",
+        "species": "O2",
+        "mass_g": 10,
+        "purity_fraction": 0.995,
+        "pressure_kpa": 100,
+        "delivery_contract_id": "synthetic-o2-contract-a",
+        "quantitative_measurement_ref": "synthetic-gas-analysis-o2",
+        "calibration_ref": "synthetic-calibration-o2-gas-1"
+      },
+      "coproducts": [],
+      "grid_energy": {
+        "boundary_id": "synthetic-boundary-input-mismatch",
+        "meter_mode": "non_overlapping_branch_meters",
+        "meters": [
+          {
+            "meter_id": "m-source-pp-input-mismatch",
+            "role": "source_and_power_conditioning",
+            "energy_wh": 1200
+          },
+          {
+            "meter_id": "m-vacuum-input-mismatch",
+            "role": "vacuum_and_pumping",
+            "energy_wh": 800
+          },
+          {
+            "meter_id": "m-feed-input-mismatch",
+            "role": "feed_and_material_handling",
+            "energy_wh": 250
+          },
+          {
+            "meter_id": "m-gas-input-mismatch",
+            "role": "gas_circulation_and_capture",
+            "energy_wh": 400
+          },
+          {
+            "meter_id": "m-purification-input-mismatch",
+            "role": "separation_and_purification",
+            "energy_wh": 500
+          },
+          {
+            "meter_id": "m-thermal-input-mismatch",
+            "role": "thermal_management",
+            "energy_wh": 200
+          },
+          {
+            "meter_id": "m-controls-input-mismatch",
+            "role": "controls_instrumentation_and_standby",
+            "energy_wh": 150
+          }
+        ],
+        "required_roles": [
+          "source_and_power_conditioning",
+          "vacuum_and_pumping",
+          "feed_and_material_handling",
+          "gas_circulation_and_capture",
+          "separation_and_purification",
+          "thermal_management",
+          "controls_instrumentation_and_standby"
+        ],
+        "meter_calibration_status": "synthetic_declared"
+      },
+      "expected_disposition": "REJECTED"
+    }
+  ]
+}
