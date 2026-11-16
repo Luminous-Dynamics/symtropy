@@ -120,9 +120,14 @@ pub enum SamplingRateError {
 impl std::fmt::Display for SamplingRateError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidSamplingRate => write!(formatter, "sampling rate must be finite and positive"),
+            Self::InvalidSamplingRate => {
+                write!(formatter, "sampling rate must be finite and positive")
+            },
             Self::InvalidDuration => write!(formatter, "duration must be finite and positive"),
-            Self::TooManySamples => write!(formatter, "requested sample count exceeds the fixture limit"),
+            Self::TooManySamples => write!(
+                formatter,
+                "requested sample count exceeds the fixture limit"
+            ),
         }
     }
 }
@@ -164,9 +169,7 @@ pub fn sampling_rate_profile(
     let nyquist_hz = sampling_rate_hz / 2.0;
     let retained_power = SIGNAL_COMPONENTS
         .iter()
-        .filter(|component| {
-            component.task_critical && component.frequency_hz <= nyquist_hz
-        })
+        .filter(|component| component.task_critical && component.frequency_hz <= nyquist_hz)
         .map(|component| component.amplitude * component.amplitude / 2.0)
         .sum::<f64>();
     let retention = (retained_power / TASK_BAND_TOTAL_POWER).clamp(0.0, 1.0);
@@ -189,9 +192,8 @@ pub fn sampling_rate_profile(
 
 /// Return the canonical rate matrix and analytically derived retention values.
 pub fn canonical_rate_profiles() -> [SamplingRateProfile; 6] {
-    CANONICAL_SAMPLE_RATES_HZ.map(|rate| {
-        sampling_rate_profile(rate).expect("canonical sample rates are valid")
-    })
+    CANONICAL_SAMPLE_RATES_HZ
+        .map(|rate| sampling_rate_profile(rate).expect("canonical sample rates are valid"))
 }
 
 /// Generate samples after ideal anti-alias filtering at the target Nyquist.
@@ -315,8 +317,14 @@ mod tests {
 
     #[test]
     fn invalid_rates_and_durations_fail_closed() {
-        assert_eq!(task_band_retention(0.0), Err(SamplingRateError::InvalidSamplingRate));
-        assert_eq!(task_band_retention(f64::NAN), Err(SamplingRateError::InvalidSamplingRate));
+        assert_eq!(
+            task_band_retention(0.0),
+            Err(SamplingRateError::InvalidSamplingRate)
+        );
+        assert_eq!(
+            task_band_retention(f64::NAN),
+            Err(SamplingRateError::InvalidSamplingRate)
+        );
         assert_eq!(
             sample_ideal_lowpass(1.0, 0.0),
             Err(SamplingRateError::InvalidDuration)
