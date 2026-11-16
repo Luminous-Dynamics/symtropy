@@ -317,5 +317,966 @@
     "no occupied use or household installation",
     "no municipal approval or discharge authorization",
     "no procurement or manufacturing release"
+  ],
+  "qualification_envelopes": [
+    {
+      "train_id": "train_a_membrane_uf_uv_v0",
+      "envelope_revision": "0.1",
+      "qualification_status": "NOT_QUALIFIED",
+      "allowed_source_profile_ids": [
+        "bathroom_light_greywater_v0"
+      ],
+      "allowed_intended_use_profile_ids": [
+        "contained_test_load_only"
+      ],
+      "feed_envelope": {
+        "flow_weighted_quality_limits": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_max": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "turbidity_max_NTU": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "COD_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "TSS_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "hydraulic_envelope": {
+        "minimum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "minimum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_stage_differential_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "hydraulic_loading_L_m2_day": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residence_time_days": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "operating_envelope": {
+        "continuous_duty_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_idle_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_media_or_membrane_hours_before_changeout": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "cleaning_interval_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "process_specific_limits": {
+        "membrane_flux_L_m2_h": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "membrane_transmembrane_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "membrane_integrity_test_method_id": null,
+        "UVT_min_percent": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "UV_validated_dose_mJ_cm2": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "critical_barriers": [
+        "prefilter_performance",
+        "UF_membrane_integrity",
+        "UVT_and_validated_UV_dose",
+        "independent_product_sample"
+      ],
+      "required_evidence": [
+        "configuration_revision",
+        "source_batch_id",
+        "feed_characterisation",
+        "paired_independent_samples",
+        "instrument_and_method_admission",
+        "uncertainty_budget",
+        "residual_mass_balance",
+        "fault_challenge_receipts",
+        "maintenance_and_changeout_record"
+      ],
+      "release_rule": "NO_PRODUCT_USE_OR_QUALITY_CREDIT_UNTIL_THIS_EXACT_CONFIGURATION_ENVELOPE_IS_ADMITTED"
+    },
+    {
+      "train_id": "train_b_ozone_gac_uv_v0",
+      "envelope_revision": "0.1",
+      "qualification_status": "NOT_QUALIFIED",
+      "allowed_source_profile_ids": [
+        "bathroom_light_greywater_v0"
+      ],
+      "allowed_intended_use_profile_ids": [
+        "contained_test_load_only"
+      ],
+      "feed_envelope": {
+        "flow_weighted_quality_limits": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_max": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "turbidity_max_NTU": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "COD_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "TSS_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "hydraulic_envelope": {
+        "minimum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "minimum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_stage_differential_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "hydraulic_loading_L_m2_day": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residence_time_days": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "operating_envelope": {
+        "continuous_duty_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_idle_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_media_or_membrane_hours_before_changeout": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "cleaning_interval_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "process_specific_limits": {
+        "ozone_dose_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ozone_contact_time_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "GAC_target_analyte_method_id": null,
+        "GAC_breakthrough_limit": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "UVT_min_percent": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "UV_validated_dose_mJ_cm2": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "critical_barriers": [
+        "ozone_contact_and_offgas",
+        "GAC_target_analyte_breakthrough",
+        "UVT_and_validated_UV_dose",
+        "independent_product_sample"
+      ],
+      "required_evidence": [
+        "configuration_revision",
+        "source_batch_id",
+        "feed_characterisation",
+        "paired_independent_samples",
+        "instrument_and_method_admission",
+        "uncertainty_budget",
+        "residual_mass_balance",
+        "fault_challenge_receipts",
+        "maintenance_and_changeout_record"
+      ],
+      "release_rule": "NO_PRODUCT_USE_OR_QUALITY_CREDIT_UNTIL_THIS_EXACT_CONFIGURATION_ENVELOPE_IS_ADMITTED"
+    },
+    {
+      "train_id": "train_c_nature_based_comparator_v0",
+      "envelope_revision": "0.1",
+      "qualification_status": "NOT_QUALIFIED",
+      "allowed_source_profile_ids": [
+        "bathroom_light_greywater_v0"
+      ],
+      "allowed_intended_use_profile_ids": [
+        "contained_test_load_only"
+      ],
+      "feed_envelope": {
+        "flow_weighted_quality_limits": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_max": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "turbidity_max_NTU": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "COD_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "TSS_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "hydraulic_envelope": {
+        "minimum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "minimum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_stage_differential_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "hydraulic_loading_L_m2_day": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residence_time_days": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "operating_envelope": {
+        "continuous_duty_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_idle_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_media_or_membrane_hours_before_changeout": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "cleaning_interval_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "process_specific_limits": {
+        "hydraulic_loading_L_m2_day": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "media_depth_m": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residence_time_days": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "planted_area_m2": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "critical_barriers": [
+        "hydraulic_distribution_and_short_circuit_check",
+        "seasonal_performance",
+        "independent_product_sample"
+      ],
+      "required_evidence": [
+        "configuration_revision",
+        "source_batch_id",
+        "feed_characterisation",
+        "paired_independent_samples",
+        "instrument_and_method_admission",
+        "uncertainty_budget",
+        "residual_mass_balance",
+        "fault_challenge_receipts",
+        "maintenance_and_changeout_record"
+      ],
+      "release_rule": "NO_PRODUCT_USE_OR_QUALITY_CREDIT_UNTIL_THIS_EXACT_CONFIGURATION_ENVELOPE_IS_ADMITTED"
+    },
+    {
+      "train_id": "train_d_ec_hybrid_laundry_challenge_v0",
+      "envelope_revision": "0.1",
+      "qualification_status": "NOT_QUALIFIED",
+      "allowed_source_profile_ids": [
+        "laundry_greywater_challenge_v0"
+      ],
+      "allowed_intended_use_profile_ids": [
+        "contained_test_load_only"
+      ],
+      "feed_envelope": {
+        "flow_weighted_quality_limits": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "pH_max": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "turbidity_max_NTU": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "COD_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "TSS_max_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "hydraulic_envelope": {
+        "minimum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_flow_L_min": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "minimum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_inlet_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_stage_differential_pressure_kPa": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "hydraulic_loading_L_m2_day": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residence_time_days": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "operating_envelope": {
+        "continuous_duty_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_idle_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "maximum_media_or_membrane_hours_before_changeout": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "cleaning_interval_hours": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_min_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "ambient_temperature_max_c": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        }
+      },
+      "process_specific_limits": {
+        "current_density_A_m2": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "charge_loading_C_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "electrode_material_and_lot": null,
+        "electrode_mass_loss_g_m3": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "residual_metal_limits_mg_L": {
+          "status": "NOT_ESTABLISHED",
+          "value": null,
+          "units": null,
+          "source_evidence_id": null,
+          "uncertainty": null,
+          "notes": "Must remain null until a source- and configuration-specific physical test plus review establishes the envelope."
+        },
+        "downstream_treatment_configuration_id": null
+      },
+      "critical_barriers": [
+        "electrochemical_process_envelope",
+        "electrode_consumption_and_residual_metals",
+        "downstream_barrier",
+        "independent_product_sample"
+      ],
+      "required_evidence": [
+        "configuration_revision",
+        "source_batch_id",
+        "feed_characterisation",
+        "paired_independent_samples",
+        "instrument_and_method_admission",
+        "uncertainty_budget",
+        "residual_mass_balance",
+        "fault_challenge_receipts",
+        "maintenance_and_changeout_record"
+      ],
+      "release_rule": "NO_PRODUCT_USE_OR_QUALITY_CREDIT_UNTIL_THIS_EXACT_CONFIGURATION_ENVELOPE_IS_ADMITTED"
+    }
   ]
 }
