@@ -157,3 +157,14 @@ The 48-test hosted pass belongs to source head `a431b6cf...`. Follow-up commit `
 ## New outstanding issue: range observability
 
 The saturation family shows that a reference chain can be internally consistent while the tactile transducer itself has stopped responding at high loads. An independent reference channel does not fix loss of sensor information. This is now tracked separately under PHRI-TAC-OBSERVABILITY-001 / #5616. The future gate must detect flatlined response increments, clipped taxels and unidentifiable ranges and mark those operating points out-of-profile or more-evidence-required rather than interpreting model confidence as observability.
+
+
+## Response observability guard — synthetic v0.1
+
+The normal active-calibration path now checks raw-derived sensor response before policy selection/model fitting. Within each fixed position × temperature × loading-phase condition, candidates are sorted by commanded normal-force setpoint. Any adjacent force increase that does not produce a positive raw-response increment above the synthetic resolution fails the observability gate.
+
+The checker also requires all six declared force setpoints (0, 2, 4, 6, 8, 10 N) in every one of the twelve synthetic condition strata. Missing force levels or missing conditions produce incomplete evidence instead of a pass. Reports include flatline/decreasing transition counts, affected conditions, first plateau start, maximum observed force, missing conditions and incomplete condition counts.
+
+Tests cover nominal response, injected upper-range plateau, decreasing response, a truncated force range and a missing operating-condition stratum. The adversarial campaign reports observability per response family; diagnostic-only policy fits still execute under saturation to expose how models behave when the gate is ignored. The ordinary active-calibration runner uses the guard and refuses the fit if it fails.
+
+The 1e-12 raw-response resolution, six-point force manifest and twelve-condition manifest are synthetic fixture declarations only. They are not physical ADC resolution, force range or a calibration tolerance. A monotonic response test is not a complete observability proof for real multi-axis, nonlinear, hysteretic or mechanically coupled tactile systems.
