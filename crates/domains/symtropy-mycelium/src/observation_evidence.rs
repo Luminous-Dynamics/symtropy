@@ -735,7 +735,9 @@ mod tests {
         let first = item.canonical_bytes().unwrap();
         let second = item.canonical_bytes().unwrap();
         assert_eq!(first, second);
-        assert!(first.starts_with(b"MYCO-EVIDENCE-RECEIPT\0"));
+        assert_eq!(&first[..22], b"MYCO-EVIDENCE-RECEIPT\0");
+        assert_eq!(&first[24..32], &1_u64.to_le_bytes());
+        assert_eq!(&first[32..64], &[1_u8; 32]);
         assert_eq!(&first[22..24], &1_u16.to_le_bytes());
     }
 
