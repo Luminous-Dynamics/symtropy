@@ -12,6 +12,7 @@
 //! measurements are treated as independent.
 
 pub mod pressure;
+pub mod subterra;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -182,6 +183,27 @@ pub struct ResourceIntensityReport {
     /// True only when every returned ratio has propagated standard uncertainty.
     pub uncertainty_propagated: bool,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum MorphometryError {
+    InvalidProfile(Vec<String>),
+    NumericalOverflow(String),
+}
+
+impl std::fmt::Display for MorphometryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidProfile(errors) => {
+                write!(f, "invalid subterranean profile: {}", errors.join("; "))
+            }
+            Self::NumericalOverflow(context) => {
+                write!(f, "numerical overflow while calculating {context}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for MorphometryError {}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum KernelError {
