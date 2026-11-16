@@ -239,7 +239,7 @@
     {
       "id": "finish_energy_and_water",
       "unit": "kWh_and_L",
-      "denominator": "accepted_items_per_hour",
+      "denominator": "per_accepted_garment",
       "scope": "Accepted table-ready garments per operating hour after quality inspection and correct destination placement, including rework, jams, human support and stack correction.",
       "target_hypothesis": "Commercial first target >=100 accepted table-ready items/hour and stretch >=120; household separately compared to human P50.",
       "status": "proposal_target_only",
@@ -252,7 +252,7 @@
     {
       "id": "accepted_throughput",
       "unit": "garments_per_hour",
-      "denominator": "per_accepted_garment",
+      "denominator": "accepted_items_per_hour",
       "scope": "Accepted garments per elapsed operating hour including rework, jams and human support.",
       "target_hypothesis": "Improve only after quality and intervention gates pass.",
       "status": "proposal_target_only",
