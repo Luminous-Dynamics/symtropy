@@ -653,7 +653,6 @@ fn empty_dependency_inventory_cannot_manufacture_independence() {
     );
 }
 
-
 #[test]
 fn exact_maximum_independent_set_finds_pair_missed_by_greedy_order() {
     let result = evaluate(
