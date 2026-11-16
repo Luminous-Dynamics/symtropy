@@ -104,6 +104,21 @@ fn validate_dataset_payload_media_type(
     Ok(())
 }
 
+type ProviderFileRecord = (String, String, String, u64, String, String);
+
+fn ensure_file_descriptor_records_match(
+    dataset_records: &BTreeSet<ProviderFileRecord>,
+    endpoint_records: &BTreeSet<ProviderFileRecord>,
+    path: &str,
+) -> Result<(), String> {
+    if dataset_records != endpoint_records {
+        return Err(format!(
+            "{path}: filename/MIME/size/dataURL/MD5 metadata differs between fileDescriptors and the file-metadata endpoint"
+        ));
+    }
+    Ok(())
+}
+
 fn ensure_file_descriptor_ids_match(
     dataset_ids: &BTreeSet<String>,
     endpoint_ids: &BTreeSet<String>,
@@ -369,6 +384,8 @@ fn validate_envelope(
         let mut roles = BTreeSet::new();
         let mut dataset_file_ids = BTreeSet::new();
         let mut endpoint_file_ids = BTreeSet::new();
+        let mut dataset_file_records = BTreeSet::new();
+        let mut endpoint_file_records = BTreeSet::new();
         let mut payload_descriptor: Option<(String, String, String, u64)> = None;
         let mut native_file_descriptor: Option<(String, String, String, u64)> = None;
         let mut dataset_metadata_seen = false;
@@ -505,7 +522,16 @@ fn validate_envelope(
                         {
                             return Err(format!("{artifact_path}: provider MD5 metadata must be 32 lowercase hex characters"));
                         }
+                        let data_url = required_text(descriptor, "dataURL", &artifact_path)?;
                         let size = required_u64(descriptor, "size", &artifact_path)?;
+                        dataset_file_records.insert((
+                            file_id.to_owned(),
+                            filename.to_owned(),
+                            mime_type.to_owned(),
+                            size,
+                            data_url.to_owned(),
+                            md5sum.to_owned(),
+                        ));
                         if !dataset_file_ids.insert(file_id.to_owned()) {
                             return Err(format!("{artifact_path}: duplicate provider file ID {file_id}"));
                         }
@@ -528,6 +554,24 @@ fn validate_envelope(
                     for descriptor in descriptors {
                         require_not_deleted(descriptor, &artifact_path)?;
                         let file_id = required_text(descriptor, "id", &artifact_path)?;
+                        let filename = required_text(descriptor, "filename", &artifact_path)?;
+                        let mime_type = required_text(descriptor, "mimeType", &artifact_path)?;
+                        let data_url = required_text(descriptor, "dataURL", &artifact_path)?;
+                        let md5sum = required_text(descriptor, "md5sum", &artifact_path)?;
+                        if md5sum.len() != 32
+                            || !md5sum.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+                        {
+                            return Err(format!("{artifact_path}: file endpoint MD5 must be 32 lowercase hex characters"));
+                        }
+                        let size = required_u64(descriptor, "size", &artifact_path)?;
+                        endpoint_file_records.insert((
+                            file_id.to_owned(),
+                            filename.to_owned(),
+                            mime_type.to_owned(),
+                            size,
+                            data_url.to_owned(),
+                            md5sum.to_owned(),
+                        ));
                         if !endpoint_file_ids.insert(file_id.to_owned()) {
                             return Err(format!("{artifact_path}: duplicate file ID in provider file-metadata response"));
                         }
@@ -575,6 +619,7 @@ fn validate_envelope(
             return Err(format!("{path}: exactly one dataset metadata, file metadata and data payload artifact are required"));
         }
         ensure_file_descriptor_ids_match(&dataset_file_ids, &endpoint_file_ids, &path)?;
+        ensure_file_descriptor_records_match(&dataset_file_records, &endpoint_file_records, &path)?;
         let (payload_file_id, payload_file_name, payload_media_type, payload_size) =
             payload_descriptor.expect("payload role validated above");
         let (native_file_id, native_filename, native_media_type, native_size) =
@@ -836,6 +881,29 @@ mod tests {
         let error = ensure_file_descriptor_ids_match(&embedded, &endpoint, "dataset")
             .expect_err("file-metadata endpoint mismatch");
         assert!(error.contains("do not match the separate file-metadata endpoint"));
+    }
+
+    #[test]
+    fn file_metadata_endpoint_records_must_match_embedded_descriptors() {
+        let embedded = BTreeSet::from([(
+            "file-a".to_owned(),
+            "a.json".to_owned(),
+            "application/json".to_owned(),
+            10_u64,
+            "data/a".to_owned(),
+            "00000000000000000000000000000000".to_owned(),
+        )]);
+        let endpoint = BTreeSet::from([(
+            "file-a".to_owned(),
+            "renamed.json".to_owned(),
+            "application/json".to_owned(),
+            10_u64,
+            "data/a".to_owned(),
+            "00000000000000000000000000000000".to_owned(),
+        )]);
+        let error = ensure_file_descriptor_records_match(&embedded, &endpoint, "dataset")
+            .expect_err("filename mismatch");
+        assert!(error.contains("filename/MIME/size/dataURL/MD5 metadata differs"));
     }
 
     #[test]
