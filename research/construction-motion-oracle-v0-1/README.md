@@ -52,3 +52,15 @@ See docs/differential-adapter-contract.md.
 ## Claim ceiling
 
 Passing tests establish only the implemented mathematics for the declared line and planar semicircle families and the adapter's tested structural behavior. They do not establish arbitrary continuous collision detection, physical robot model accuracy, localization/tracking/stopping truth, safe separation, construction productivity, standards conformity or vendor interoperability.
+
+## External mesh-CCD query import
+
+The `external_ccd_query` module implements a read-only, dependency-free Rust reader for the public CCD-Query-IO rational CSV layout. It is interoperability infrastructure, not a collision detector.
+
+- Eight rows form one query; the caller declares whether the rows are edge-edge or vertex-face.
+- Six columns store x/y/z numerator-denominator integer pairs. A seventh column may repeat the boolean truth label on all eight rows.
+- Alternatively, the source may provide a separate JSON boolean array.
+- Integer lexemes are preserved as strings, including denominators larger than signed 64-bit range. No float conversion occurs during import; `ExactRational::to_f64` is an explicit later conversion for a selected floating geometry backend.
+- Mixed column layouts, zero denominators, malformed integers, inconsistent repeated labels, incorrect row grouping, malformed JSON and inline/external label disagreement are rejected.
+
+Upstream format reference: [CCD-Query-IO (MIT)](https://github.com/Continuous-Collision-Detection/CCD-Query-IO). The code's MIT licence does not grant rights to redistribute separately hosted NYU datasets. Keep the NYU 61518 collection, 63808 rounded/root-parity dataset and 74508 full-scene/TOI dataset as separate provenance records; the external benchmark issue is [#5505](https://github.com/Luminous-Dynamics/symtropy/issues/5505). Do not commit large archives or treat the synthetic construction corpus as a replacement for mesh CCD benchmarks.
