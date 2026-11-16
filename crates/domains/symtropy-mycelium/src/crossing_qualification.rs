@@ -194,6 +194,28 @@ mod tests {
     }
 
     #[test]
+    fn manually_constructed_invalid_depth_interval_is_rejected() {
+        let mut item = candidate(Some((1.0, 2.0)), Some((3.0, 4.0)));
+        item.first_depth = Some(DepthIntervalUm {
+            lower_um: 5.0,
+            upper_um: 4.0,
+        });
+        assert_eq!(
+            item.assess(),
+            Err(CrossingQualificationError::InvalidDepthInterval)
+        );
+
+        item.first_depth = Some(DepthIntervalUm {
+            lower_um: f64::NAN,
+            upper_um: 4.0,
+        });
+        assert_eq!(
+            item.assess(),
+            Err(CrossingQualificationError::InvalidDepthInterval)
+        );
+    }
+
+    #[test]
     fn invalid_projection_and_same_track_are_rejected() {
         let mut item = candidate(Some((1.0, 2.0)), Some((3.0, 4.0)));
         item.projected_distance_um = f64::INFINITY;
