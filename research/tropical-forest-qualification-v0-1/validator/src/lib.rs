@@ -10,6 +10,7 @@ pub mod canopy_kernel;
 pub mod conformal_kernel;
 pub mod coverage_inference_kernel;
 pub mod forecast_kernel;
+pub mod forecast_usefulness_kernel;
 pub mod forest_corpus_receipts;
 pub mod model_set_kernel;
 pub mod support_kernel;
@@ -3918,6 +3919,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return validate_probabilistic_forecast_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-FORECAST-USEFULNESS-LIMIT-001")
+    {
+        return forecast_usefulness_kernel::validate_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001")
     {
         return validate_executable_model_set_corpus(raw, &manifest);
@@ -5064,6 +5070,20 @@ mod tests {
         assert_eq!(receipt["case_count"], 7);
         assert_eq!(receipt["unresolved_identity_count"], 1);
         assert_eq!(receipt["site_or_support_conflict_count"], 4);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+
+    #[test]
+    fn forest_forecast_usefulness_dispatches_prefix_and_recovery_receipt() {
+        let bytes = include_str!("../../cases/forest-forecast-usefulness-synthetic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("forest forecast usefulness fixture dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_FORECAST_USEFULNESS_LIMIT");
+        let results = receipt["context_results"].as_array().expect("context results");
+        assert_eq!(results[0]["useful_horizon_days"], 90);
+        assert_eq!(results[0]["first_failure_horizon_days"], 180);
+        assert_eq!(results[1]["useful_horizon_days"], 30);
+        assert_eq!(results[1]["first_failure_horizon_days"], 90);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
