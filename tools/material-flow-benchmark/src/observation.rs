@@ -402,7 +402,12 @@ mod tests {
             Some("sensor-a"),
             PresenceReading::Present,
         );
-        let second = observation("evt-2", "sensor-2", Some("sensor-b"), PresenceReading::Present);
+        let second = observation(
+            "evt-2",
+            "sensor-2",
+            Some("sensor-b"),
+            PresenceReading::Present,
+        );
         let duplicate = first.clone();
         let report = adjudicate_receiver_presence(&[first, second, duplicate], &policy())
             .expect("well-formed observations");
