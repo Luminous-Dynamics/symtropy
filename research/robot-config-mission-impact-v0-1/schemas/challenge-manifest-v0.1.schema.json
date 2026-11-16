@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-challenge-manifest:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 generated challenge manifest v0.1",
+  "description": "Closed manifest schema for deterministic public synthetic development challenges; not physical-scene or evaluator-custody evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generator_id",
+    "seed_algorithm",
+    "seed_derivation",
+    "canonicalization",
+    "visibility",
+    "distribution_profile_id",
+    "distribution_profile_sha256",
+    "root_seed_hex",
+    "requested_count",
+    "allocation_method",
+    "bundle_selection_method",
+    "total_stratum_weight",
+    "stratum_counts",
+    "rejected_draw_count",
+    "rejected_draw_reason_counts",
+    "challenges",
+    "nonclaims",
+    "manifest_digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-challenge-manifest-v0.1"
+    },
+    "generator_id": {
+      "const": "robot-stochastic-challenge-generator/0.1"
+    },
+    "seed_algorithm": {
+      "const": "SplitMix64-v1-public-development-not-cryptographic"
+    },
+    "seed_derivation": {
+      "const": "sha256-domain-separated-first-u64-v1"
+    },
+    "canonicalization": {
+      "const": "serde_json-1.0.154-default-map-order-compact-utf8-no-trailing-newline-v1"
+    },
+    "visibility": {
+      "const": "public_synthetic_development"
+    },
+    "distribution_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "distribution_profile_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "root_seed_hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "requested_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "allocation_method": {
+      "const": "largest_remainder_then_seeded_shuffle"
+    },
+    "bundle_selection_method": {
+      "const": "uniform_within_stratum_atomic_bundle"
+    },
+    "total_stratum_weight": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "stratum_counts": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stratum_id",
+          "weight",
+          "total_weight",
+          "allocated_count",
+          "bundle_count"
+        ],
+        "properties": {
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "total_weight": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "allocated_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bundle_count": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "rejected_draw_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "rejected_draw_reason_counts": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "object"
+      }
+    },
+    "challenges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "challenge_id",
+          "challenge_index",
+          "challenge_seed_hex",
+          "seed_derivation_domain",
+          "stratum_id",
+          "mutation_family",
+          "changed_component_ids",
+          "factor_bundle_id",
+          "factor_profile_ref",
+          "coherence_group",
+          "task_profile",
+          "site_profile",
+          "odd_profile",
+          "severity",
+          "source_configuration_ref",
+          "target_configuration_ref",
+          "stratum_allocation",
+          "bundle_selection_probability",
+          "challenge_digest"
+        ],
+        "properties": {
+          "challenge_id": {
+            "type": "string",
+            "pattern": "^MIPG-[0-9]{6}$"
+          },
+          "challenge_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "challenge_seed_hex": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "seed_derivation_domain": {
+            "const": "MIP-CHALLENGE-SEED-V0.1"
+          },
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mutation_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "changed_component_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "factor_bundle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "factor_profile_ref": {
+            "type": "string",
+            "pattern": "^fixture://factor-profile/[a-z0-9/-]+$"
+          },
+          "coherence_group": {
+            "type": "string",
+            "minLength": 1
+          },
+          "task_profile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "site_profile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "odd_profile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "nominal",
+              "boundary",
+              "perturbed",
+              "out_of_envelope",
+              "unknown"
+            ]
+          },
+          "source_configuration_ref": {
+            "type": "string",
+            "pattern": "^fixture://generated-config/.+/A$"
+          },
+          "target_configuration_ref": {
+            "type": "string",
+            "pattern": "^fixture://generated-config/.+/B$"
+          },
+          "stratum_allocation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "weight",
+              "total_weight",
+              "allocated_count"
+            ],
+            "properties": {
+              "weight": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "total_weight": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "allocated_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "bundle_selection_probability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "numerator",
+              "denominator"
+            ],
+            "properties": {
+              "numerator": {
+                "const": 1
+              },
+              "denominator": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "challenge_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "manifest_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
