@@ -42,6 +42,8 @@ jobs:
         run: |
           cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release \
             | tee space-collider-reference.json
+          jq -e . space-collider-reference.json >/dev/null
+          jq -e '.performance_closure.evidence_class == "analytical_performance_closure" and .performance_closure.derived.burnoff_lifetime_min > 17 and .performance_closure.derived.burnoff_lifetime_min < 18 and .performance_closure.derived.annual_integrated_luminosity_ab_inv > 1900' space-collider-reference.json >/dev/null
           grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
           grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
           grep -q '"performance_closure"' space-collider-reference.json
