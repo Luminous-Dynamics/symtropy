@@ -544,25 +544,13 @@ mod tests {
         };
 
         for case_index in 0..64 {
-            let moving = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.5,
-            );
-            let obstacle = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.5,
-            );
+            let moving = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.5);
+            let obstacle = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.5);
             let moving_delta = p(next(), next(), next());
             let obstacle_delta = p(next(), next(), next());
-            let closest = co_translating_capsule_vs_capsule(
-                moving,
-                moving_delta,
-                obstacle,
-                obstacle_delta,
-            )
-            .unwrap();
+            let closest =
+                co_translating_capsule_vs_capsule(moving, moving_delta, obstacle, obstacle_delta)
+                    .unwrap();
 
             if closest.is_contact(moving.radius_mm, obstacle.radius_mm) {
                 for subdivisions in [1, 2, 4, 8, 16, 32, 64] {
