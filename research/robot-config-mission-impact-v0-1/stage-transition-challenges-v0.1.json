@@ -1,0 +1,671 @@
+{
+  "schema_version": "robot-mission-stage-transition-corpus-v0.1",
+  "benchmark_id": "ROBOT-MISSION-IMPACT-001",
+  "visibility": "public_synthetic_development",
+  "policy_id": "evidence-gated-stage-transition-policy-v0.1",
+  "stages_catalog_ref": "file://stage-catalog-v0.1.json",
+  "cases": [
+    {
+      "case_id": "MST-001",
+      "scenario": "controller acknowledges operation but no postcondition evidence exists",
+      "stage_id": "S07",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "robot_telemetry"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": []
+    },
+    {
+      "case_id": "MST-002",
+      "scenario": "robot reports completed but there is no independent observation",
+      "stage_id": "S07",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "independent_referee"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": []
+    },
+    {
+      "case_id": "MST-003",
+      "scenario": "low-risk observation is verified by the profile-approved telemetry source",
+      "stage_id": "S02",
+      "stage_criticality": "low_risk_intermediate",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "robot_telemetry"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "robot_telemetry",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "current",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e1"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-004",
+      "scenario": "robot telemetry claims output acceptance but independent referee is required",
+      "stage_id": "S08",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "independent_referee"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact",
+        "independent_referee"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "robot_telemetry",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "current",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e1"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-005",
+      "scenario": "independent referee measures output outside acceptance",
+      "stage_id": "S08",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "independent_referee"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact",
+        "independent_referee"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "independent_referee",
+          "observation_result": "violated",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "current",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e1"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-006",
+      "scenario": "tool calibration observation belongs to the previous configuration revision",
+      "stage_id": "S06",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "calibration",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "current",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-a",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "current",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e6"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-007",
+      "scenario": "localization result uses an obsolete site frame epoch",
+      "stage_id": "S03",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "frame_epoch",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-a",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e7"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-008",
+      "scenario": "tool observation is backed by expired calibration",
+      "stage_id": "S06",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "calibration",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "current",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "expired",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e8"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-009",
+      "scenario": "sensor evidence uses an unqualified clock mapping when time alignment is required",
+      "stage_id": "S03",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "clock_mapping",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": true,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "unqualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e9"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-010",
+      "scenario": "manual referee independently accepts output although command acknowledgement is absent",
+      "stage_id": "S08",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "independent_referee"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact",
+        "independent_referee"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "none",
+      "robot_report": "absent",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "independent_referee",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e10"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-011",
+      "scenario": "optional survey substage is skipped under explicit profile policy",
+      "stage_id": "S04",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "robot_telemetry"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": true,
+      "skip_requested": true,
+      "skip_authorized": true,
+      "command_acknowledgement": "none",
+      "robot_report": "absent",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": []
+    },
+    {
+      "case_id": "MST-012",
+      "scenario": "mandatory navigation stage attempts an unauthorized skip",
+      "stage_id": "S04",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "robot_telemetry"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": true,
+      "skip_authorized": false,
+      "command_acknowledgement": "none",
+      "robot_report": "absent",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": []
+    },
+    {
+      "case_id": "MST-013",
+      "scenario": "interrupted mission resumes with progress from a different configuration revision",
+      "stage_id": "S05",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": true,
+        "resume_requested": true,
+        "prior_configuration_revision": "rev-a",
+        "prior_frame_epoch_ref": "frame-b"
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e13"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-014",
+      "scenario": "event replay results in two accepted output units for one command identity",
+      "stage_id": "S07",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 1,
+      "accepted_unit_count": 2,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e14"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-015",
+      "scenario": "two competent sources give conflicting postcondition observations",
+      "stage_id": "S08",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "robot_telemetry",
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "accepted",
+      "robot_report": "completed",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "robot_telemetry",
+          "observation_result": "satisfied",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e15a"
+        },
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "violated",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e15b"
+        }
+      ]
+    },
+    {
+      "case_id": "MST-016",
+      "scenario": "safe hold preserves partial progress but next postcondition remains unknown",
+      "stage_id": "S10",
+      "stage_criticality": "quality_critical",
+      "task_revision": "task-r1",
+      "current_configuration_revision": "rev-b",
+      "current_frame_epoch_ref": "frame-b",
+      "required_source_classes": [
+        "referee_measurement"
+      ],
+      "required_evidence_axes": [
+        "configuration_identity",
+        "raw_artifact"
+      ],
+      "current_calibration_status": "not_required",
+      "clock_mapping_required": false,
+      "resume_context": {
+        "interrupted": false,
+        "resume_requested": false,
+        "prior_configuration_revision": null,
+        "prior_frame_epoch_ref": null
+      },
+      "optional_stage": false,
+      "skip_requested": false,
+      "skip_authorized": false,
+      "command_acknowledgement": "timeout",
+      "robot_report": "unknown",
+      "duplicate_event_replay_count": 0,
+      "accepted_unit_count": 0,
+      "evidence": [
+        {
+          "source_class": "referee_measurement",
+          "observation_result": "unknown",
+          "configuration_revision": "rev-b",
+          "frame_epoch_ref": "frame-b",
+          "calibration_status": "not_required",
+          "clock_mapping_status": "qualified",
+          "verifier_profile_ref": "fixture://verifier/profile-v0.1",
+          "raw_artifact_ref": "fixture://stage-artifact/e16"
+        }
+      ]
+    }
+  ]
+}
