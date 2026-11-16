@@ -3,8 +3,8 @@
 //! This crate deliberately does not claim structural strength. It generates
 //! a deterministic 3D graph and checks geometry/topology invariants only.
 
-pub mod tetrahedral;
 pub mod manufacturing;
+pub mod tetrahedral;
 
 use std::collections::HashSet;
 use std::error::Error;
