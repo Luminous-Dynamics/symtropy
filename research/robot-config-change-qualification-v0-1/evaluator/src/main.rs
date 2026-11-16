@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use robot_config_change_reference_evaluator::{
-    PACKAGE_DIR, read_json, repository_root,
-    validate_package,
+    PACKAGE_DIR, read_json, repository_root, validate_package,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -101,19 +100,31 @@ fn paths(
 fn load_inputs(
     args: &[String],
 ) -> Result<(Value, Value, Value, Value, Value, Option<PathBuf>), String> {
-    let (corpus_path, oracle_path, corpus_schema_path, oracle_schema_path, result_schema_path, output) =
-        paths(args)?;
+    let (
+        corpus_path,
+        oracle_path,
+        corpus_schema_path,
+        oracle_schema_path,
+        result_schema_path,
+        output,
+    ) = paths(args)?;
     let corpus = read_json(&corpus_path)?;
     let oracle = read_json(&oracle_path)?;
     let corpus_schema = read_json(&corpus_schema_path)?;
     let oracle_schema = read_json(&oracle_schema_path)?;
     let result_schema = read_json(&result_schema_path)?;
-    Ok((corpus, oracle, corpus_schema, oracle_schema, result_schema, output))
+    Ok((
+        corpus,
+        oracle,
+        corpus_schema,
+        oracle_schema,
+        result_schema,
+        output,
+    ))
 }
 
 fn validate_command(args: &[String]) -> Result<(), String> {
-    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) =
-        load_inputs(args)?;
+    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) = load_inputs(args)?;
     let result = validate_package(
         &corpus,
         &oracle,
@@ -143,8 +154,7 @@ fn validate_command(args: &[String]) -> Result<(), String> {
 fn evaluate_command(args: &[String]) -> Result<(), String> {
     let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) =
         load_inputs(args)?;
-    let output_path =
-        output.ok_or_else(|| "required_option_missing:--output".to_owned())?;
+    let output_path = output.ok_or_else(|| "required_option_missing:--output".to_owned())?;
     let result = validate_package(
         &corpus,
         &oracle,
@@ -159,8 +169,8 @@ fn evaluate_command(args: &[String]) -> Result<(), String> {
             result["oracle_comparison"]["mismatches"]
         ));
     }
-    let mut bytes = serde_json::to_vec_pretty(&result)
-        .map_err(|error| format!("result_serialize:{error}"))?;
+    let mut bytes =
+        serde_json::to_vec_pretty(&result).map_err(|error| format!("result_serialize:{error}"))?;
     bytes.push(b'\n');
     if let Some(parent) = output_path
         .parent()
