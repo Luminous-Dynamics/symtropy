@@ -170,3 +170,10 @@ Each nonnegative per-axis bound widens the interval coefficient before branch-an
 `Clear` means every admissible realization remains separated over the full time × both axis-parameter domain. `ContactWitness` is emitted only where the entire widened relative-vector interval is within the conservative contact threshold at one sample. All other cases remain `Unresolved` when a proof cannot be completed. These are deterministic set-membership bounds, not standard deviations, Gaussian assumptions or risk probabilities.
 
 Capsule radii remain upstream conservative geometry inputs. This API does not authenticate or infer uncertainty values; callers must bind each bound to the relevant calibration, localization, tracking, controller and transform evidence. See [#5714](https://github.com/Luminous-Dynamics/symtropy/issues/5714).
+## Source-bound robust interval replay certificates
+
+`RobustIntervalBinding` records caller-supplied site epoch, frame, design revision, moving/obstacle model digests, uncertainty-profile digest, clock domain, calibration, localization/tracking, controller and four coefficient-bound evidence references.
+
+`RobustIntervalVerificationCertificate` freezes the two capsule models/translations, bounded coefficient uncertainty, normalized time window, node/depth budget, complete interval receipt, and deterministic canonical bytes. Canonical encoding is versioned and field-ordered, uses length-prefixed UTF-8 strings and exact IEEE-754 bit patterns (including signed zero), and does not hash or authenticate the data.
+
+`replay_robust_interval_certificate` validates binding shape, re-runs the same independent interval verifier on the frozen values, compares the full receipt and checks the stored canonical bytes against the current fields. It is deterministic same-algorithm replay, not a second independent proof algorithm. Digest-shaped fields and evidence references are caller-supplied; cryptographic authenticity remains with the established evidence/attestation owner. See [#5718](https://github.com/Luminous-Dynamics/symtropy/issues/5718).
