@@ -379,3 +379,18 @@ The corresponding public challenge golden vector fixes:
 - canonical manifest digest: `37059e33d960c69c912ef753e5392cf902bc1a7bb232e11406c597f4eef5b633`.
 
 The three independent Linux/macOS/Windows workflow artifacts have identical manifest bytes and the same Cargo.lock bytes. The generator's golden-vector unit test replays the known-answer vector from the checked-in profile, seed and count.
+
+
+## 21. Stage-transition development corpus v0.1
+
+The first executable fixture increment is [#5657 — ROBOT-MISSION-STAGE-EVIDENCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/5657). It adds:
+- `stage-transition-challenges-v0.1.json`: 16 public synthetic challenges;
+- `stage-transition-oracle-v0.1.json`: separate public development dispositions;
+- closed Draft 2020-12 schemas for both;
+- Rust cross-file checks that bind stage IDs, verifier classes and each case to its expected disposition/reason.
+
+The policy tests only the fixture contract. An advancement requires an applicable observation from an allowed source class, exact configuration identity, current frame/calibration where required, qualified clock mapping where required, a verifier profile and raw artifact. For safety-critical fixtures, the required source-class profile must include an independent referee; quality-critical fixtures require a referee measurement or independent referee. A task/command acknowledgement or robot self-report is not an observation.
+
+The 16 cases include no-evidence command completion, self-report only, a permitted low-risk telemetry postcondition, critical independent-referee requirement, referee rejection, stale configuration, stale frame epoch, expired calibration, unqualified clock mapping, valid independent acceptance without command acknowledgement, authorized optional skip, unauthorized mandatory skip, interrupted resume across configuration revisions, duplicate accepted output replay, contradictory competent observations and an unknown postcondition under safe hold.
+
+This policy is a benchmark comparator, not the only permissible stage design for every robot. The competent stage/claim profile must define which evidence class is appropriate. No physical test, safety authorization or qualification is produced.
