@@ -1366,6 +1366,41 @@ mod tests {
     }
 
     #[test]
+    fn evidence_order_and_unrequired_sources_do_not_change_stage_disposition() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let mut corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+
+        let conflict = corpus["cases"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|case| string_at(case, &["case_id"]) == Some("MST-015"))
+            .unwrap();
+        let original_conflict = stage_transition_decision(conflict);
+        conflict["evidence"].as_array_mut().unwrap().reverse();
+        assert_eq!(stage_transition_decision(conflict), original_conflict);
+
+        let safe = corpus["cases"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|case| string_at(case, &["case_id"]) == Some("MST-017"))
+            .unwrap();
+        let original_safe = stage_transition_decision(safe);
+        safe["evidence"].as_array_mut().unwrap().push(json!({
+            "source_class": "robot_telemetry",
+            "observation_result": "violated",
+            "configuration_revision": "rev-b",
+            "frame_epoch_ref": "frame-b",
+            "calibration_status": "not_required",
+            "clock_mapping_status": "qualified",
+            "verifier_profile_ref": "fixture://verifier/unrequired-telemetry-v0.1",
+            "raw_artifact_ref": "fixture://stage-artifact/unrequired-telemetry"
+        }));
+        assert_eq!(stage_transition_decision(safe), original_safe);
+    }
+
+    #[test]
     fn safety_critical_stage_advances_only_with_current_independent_referee_evidence() {
         let base = repository_root().join("research/robot-config-mission-impact-v0-1");
         let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
