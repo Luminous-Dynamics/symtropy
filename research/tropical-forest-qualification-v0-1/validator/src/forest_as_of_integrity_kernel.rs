@@ -519,6 +519,26 @@ mod tests {
     }
 
     #[test]
+    fn latency_is_retained_for_a_post_cutoff_input() {
+        let manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        let receipt=validate_corpus(FIXTURE.as_bytes(),&manifest).expect("receipt");
+        let late=receipt["case_results"].as_array().expect("results")
+            .iter().find(|case|case["case_id"]=="LAB_QA_AFTER_CUTOFF").expect("late assay");
+        assert_eq!(late["disposition"],"INPUT_NOT_AVAILABLE_BY_CUTOFF");
+        assert_eq!(late["input_latencies"][0]["version_id"],"ROOT-ASSAY-V1");
+        assert_eq!(late["input_latencies"][0]["latency_seconds"],460);
+        assert_eq!(late["maximum_input_latency_seconds"],460);
+    }
+
+    #[test]
+    fn later_revision_cannot_be_selected_as_if_it_existed_at_the_cutoff() {
+        let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
+        manifest["cases"][3]["selected_input_version_ids"]=json!(["TREE-CENSUS-V2"]);
+        let raw=serde_json::to_vec(&manifest).expect("serialize");
+        assert!(validate_corpus(&raw,&manifest).is_err());
+    }
+
+    #[test]
     fn transform_fit_after_cutoff_is_rejected() {
         let manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
         let receipt=validate_corpus(FIXTURE.as_bytes(),&manifest).expect("receipt");
