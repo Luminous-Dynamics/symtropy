@@ -67,3 +67,31 @@ The first implementation is a stability screen, not a complete statistical analy
 The campaign now computes a deterministic 95% percentile-bootstrap interval for the mean **paired per-seed RMSE difference versus the full-grid arm** (2,000 resamples with replacement over the 50 or more seed-level paired differences). The CLI emits lower/upper interval endpoints per policy.
 
 The resampling unit is a complete paired synthetic seed, not a contact/frame. This avoids treating dependent contacts inside one generated domain as independent replicates. It estimates variability across this fixed synthetic generator's random seeds only; it is not a confidence interval for physical sensor populations, calibration uncertainty, a GUM coverage interval or transfer to new hardware.
+
+
+## First hosted 50-seed campaign — 16 November 2026
+
+Workflow #78 on source head `a419a63a1a8aa9335d6a2ee0dbcde9f4f7c5d5c6` completed with 40 Rust tests passing, rustfmt passing, strict Clippy passing, the 34-case transfer oracle passing and the 50-seed campaign CLI completing.
+
+First 50-seed campaign output (all values are synthetic model estimates; force units are N):
+
+| Policy | Target refs | RMSE mean | RMSE median | RMSE p95 | RMSE max | Prediction-interval diagnostic mean | Paired RMSE delta mean | Paired bootstrap 95% interval | Synthetic cost ms mean |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full target grid | 72 | 0.004234 | 0.004234 | 0.004234 | 0.004234 | 1.0000 | 0.000000 | [0.000000, 0.000000] | 45,240 |
+| Uniform stratified | 16 | 0.033170 | 0.033170 | 0.033170 | 0.033170 | 1.0000 | 0.028936 | [0.028936, 0.028936] | 10,480 |
+| Random stratified | 16 | 0.005848 | 0.005460 | 0.008348 | 0.010340 | 0.9610 | 0.001615 | [0.001273, 0.001995] | 10,019.4 |
+| Maximin stratified | 16 | 0.062137 | 0.062137 | 0.062137 | 0.062137 | 1.0000 | 0.057903 | [0.057903, 0.057903] | 10,480 |
+| D-optimal stratified | 16 | 0.004986 | 0.004986 | 0.004986 | 0.004986 | 0.9833 | 0.000752 | [0.000752, 0.000752] | 10,400 |
+| Source-only transfer | 0 | 0.530757 | 0.530757 | 0.530757 | 0.530757 | 0.1000 | 0.526523 | [0.526523, 0.526523] | 45,240 |
+| Transfer + D-optimal adaptation | 16 | 0.005161 | 0.005161 | 0.005161 | 0.005161 | 1.0000 | 0.000928 | [0.000928, 0.000928] | 55,640 |
+
+### Interpretation and limits
+
+- On this single synthetic response family, target-only D-optimal is the strongest sparse policy by mean and worst-case RMSE; it uses 16 rather than 72 target reference contacts and approaches the full-grid reference.
+- Seeded random stratification is less stable: lower mean RMSE than a poor fixed design, but higher p95/worst errors and a lower mean regression prediction-interval diagnostic than D-optimal.
+- Uniform and maximin are poor for this response basis and candidate geometry. A coverage metric alone does not guarantee parameter identifiability or good inverse-response prediction.
+- Source-only transfer fails under the deliberately shifted sensor profile. Transfer plus target adaptation recovers but consumes 72 source and 16 target reference contacts, costs more than target-only D-optimal and does not improve its mean or worst-case RMSE. It is not a calibration saving in this test.
+- Several seed-level distributions and bootstrap intervals collapse to a single value because this generator has fixed model coefficients, fixed stimulus geometry and only small deterministic noise changes. This does **not** establish policy stability across sensor articles, lots, response families or real physical units.
+- The bootstrap resamples paired seed-level differences, but these seeds are not independent physical instruments. The interval is conditional on this synthetic generator. The pseudo prediction interval is not a GUM uncertainty budget, and the cost values are not measured fixture time.
+
+The next required campaign changes the physical/model response family and introduces model misspecification, nonlinearity, hysteresis, reference common-mode faults, aging/remount and unit/lot variation. No physical acceptance decision should be based on this first campaign.
