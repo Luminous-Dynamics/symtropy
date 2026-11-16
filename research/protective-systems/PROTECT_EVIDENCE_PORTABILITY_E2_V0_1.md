@@ -28,7 +28,7 @@ References:
 
 ### RO-Crate 1.3
 
-E2 packages the six E1 provider-native metadata/payload artifacts and one provenance graph in a directory-style RO-Crate 1.3 fixture. It includes:
+E2 packages the six E1 provider-native metadata/payload artifacts, the exact E1 evidence envelope, an explicit dataset-binding manifest, and one provenance graph in a directory-style RO-Crate 1.3 fixture. It includes:
 - versioned JSON-LD context;
 - `ro-crate-metadata.json` descriptor as a CreativeWork;
 - `conformsTo` pinned to RO-Crate 1.3;
@@ -66,18 +66,24 @@ Contents:
 - two provider-shaped dataset metadata snapshots;
 - two separate file-metadata endpoint snapshots;
 - two exact E1 data payloads;
-- one PROV-O sparse derivation graph;
+- the exact E1 evidence envelope (byte-for-byte copy);
+- a binding manifest linking PROV entities to E1 dataset IDs or explicitly synthetic control IDs;
+- one sparse PROV-O graph;
 - one RO-Crate 1.3 metadata document.
 
-All six original E1 artifact bytes are copied exactly; the sparse PROV-O graph is a seventh file in the crate.
+The package contains nine data files: six original E1 artifacts, the E1 envelope, the binding manifest and the PROV-O graph. The six source artifacts and E1 envelope are byte-identical to their E1 fixture sources.
 
 ### Sparse graph fixture
 
 The graph includes:
 - two input Entities: water demand and power availability;
+- two output Entities: water service and clinic access;
+- explicit dataset IDs, direction and binding status on each Entity;
+- an Activity identity/execution status bound to the E1 analysis record;
+- `E1_ENVELOPE_DATASET` bindings for water demand and water service;
+- `SYNTHETIC_CONTROL_ONLY` bindings (with no artifact paths) for power availability and clinic access;
 - one analysis Activity;
 - one Agent;
-- two output Entities: water service and clinic access;
 - two `prov:used` edges;
 - two `prov:wasGeneratedBy` edges;
 - one `prov:wasAssociatedWith` edge;
@@ -92,8 +98,13 @@ Binary: `protective-evidence-portability`
 It checks:
 - RO-Crate 1.3 context, descriptor, conformsTo, root pointer and root Dataset;
 - exact root hasPart inventory and exact File entity inventory;
-- byte length, media type and SHA-256 for all seven package artifacts;
-- all six copied E1 artifacts against the E1 evidence envelope;
+- byte length, media type and SHA-256 for all nine package data files;
+- exact E1 envelope byte equality against the original E1 fixture;
+- E1 envelope analysis identity/execution status against the binding manifest;
+- E1 dataset IDs, directions and artifact paths against the binding manifest;
+- explicit synthetic-control-only status for non-E1 graph nodes;
+- consistency of all four PROV entity IDs/dataset IDs/directions/binding statuses against the binding manifest;
+- all six copied E1 provider artifacts against the E1 evidence envelope;
 - exact synthetic rights status, use and claim ceiling;
 - rejection of unauthenticated license claims;
 - PROV namespace binding, unique IDs and Entity/Activity/Agent counts;
@@ -104,7 +115,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 
 ## 5. Adversarial tests
 
-20 Rust unit tests are written:
+24 Rust unit tests are written:
 - valid RO-Crate + sparse PROV-O graph;
 - all-to-all derivation inference;
 - incorrect sparse derivation target;
@@ -122,6 +133,10 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 - duplicate used input edge;
 - graph/edge ordering metamorphic control (semantic result stable, byte digest changes);
 - RO-Crate contentSize uses the byte-count representation and rejects human-readable suffixes;
+- PROV dataset IDs match the binding manifest;
+- synthetic control cannot be promoted to an E1 dataset;
+- binding manifest pins the exact E1 envelope digest;
+- PROV activity identity matches the E1 analysis identity;
 - extra generation edge on an input;
 - descriptor pointing away from root.
 
