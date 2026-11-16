@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use robot_config_change_reference_evaluator::{
-    PACKAGE_DIR, read_json, repository_root, sha256_hex,
+    PACKAGE_DIR, read_json, repository_root,
     validate_instance, validate_package,
 };
 use serde_json::Value;
@@ -159,24 +159,7 @@ fn evaluate_command(args: &[String]) -> Result<(), String> {
             result["oracle_comparison"]["mismatches"]
         ));
     }
-    let canonical_corpus = serde_json::to_vec(&corpus)
-        .map_err(|error| format!("corpus_canonicalize:{error}"))?;
-    let canonical_oracle = serde_json::to_vec(&oracle)
-        .map_err(|error| format!("oracle_canonicalize:{error}"))?;
-    let canonical_result_schema = serde_json::to_vec(&result_schema)
-        .map_err(|error| format!("result_schema_canonicalize:{error}"))?;
-    let mut bound = result;
-    bound["input_digests"] = serde_json::json!({
-        "canonicalization": "serde_json-1.0.154-default-map-order-compact-utf8-no-trailing-newline-v1",
-        "corpus_canonical_json_sha256": sha256_hex(&canonical_corpus),
-        "oracle_canonical_json_sha256": sha256_hex(&canonical_oracle),
-        "result_schema_canonical_json_sha256": sha256_hex(&canonical_result_schema)
-    });
-    let errors = validate_instance(&result_schema, &bound);
-    if !errors.is_empty() {
-        return Err(format!("result_schema_invalid:{}", errors.join(",")));
-    }
-    let mut bytes = serde_json::to_vec_pretty(&bound)
+    let mut bytes = serde_json::to_vec_pretty(&result)
         .map_err(|error| format!("result_serialize:{error}"))?;
     bytes.push(b'\n');
     if let Some(parent) = output_path
@@ -190,10 +173,10 @@ fn evaluate_command(args: &[String]) -> Result<(), String> {
         .map_err(|error| format!("result_write:{}:{error}", output_path.display()))?;
     println!(
         "PASS: wrote {} cases / {} exact oracle-matched claim results; corpus={} oracle={} output={}",
-        bound["summary"]["case_count"],
-        bound["summary"]["claim_result_count"],
-        sha256_hex(&canonical_corpus),
-        sha256_hex(&canonical_oracle),
+        result["summary"]["case_count"],
+        result["summary"]["claim_result_count"],
+        result["input_digests"]["corpus_canonical_json_sha256"],
+        result["input_digests"]["oracle_canonical_json_sha256"],
         output_path.display()
     );
     Ok(())
