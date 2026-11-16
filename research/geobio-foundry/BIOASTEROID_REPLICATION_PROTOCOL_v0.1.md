@@ -6,7 +6,9 @@
 
 ## 1. Why replication comes first
 
-The 2026 BioAsteroid paper reports ISS microgravity leaching of 44 elements from L-chondrite meteorite samples. Its headline result for *Penicillium simplicissimum* is a palladium leachate result around 5.5 times its abiotic control, but the result has substantial variability and limited replicate counts.
+The 2026 BioAsteroid paper reports ISS microgravity leaching of 44 elements from L-chondrite meteorite samples. Its headline discussion reports a 5.5-fold **mean** palladium-release ratio for *Penicillium simplicissimum* (549.3 ± 234.4% of the non-biological control). However, the paper's ISS Tukey pairwise comparisons for Ru, Pd and Pt were non-significant (p > 0.05) across the pairwise tests, except for Pt differences between organisms. In the wider 44-element ISS comparisons, only phosphorus for *P. simplicissimum* versus the non-biological control reached p = 0.049. The palladium fold-change is therefore a high-variance exploratory signal, not a statistically established palladium advantage over the abiotic control.
+
+The paper reports n = 3 ISS samples for the relevant treatment groups in its ICP-MS statistical analysis (versus n = 4 biological Earth and n = 6 abiotic Earth samples). It explicitly acknowledges high variability, small sample volumes and limited replicates. GeoBio must reproduce the raw data and the published statistical treatment before claiming an effect.
 
 The published study used meteorite aliquots around 0.79 ± 0.14 g, fragments approximately 1–3.5 mm, and 5 mL of 50% R2A nutrient medium per sample. The medium contained organic nutrients and mineral salts. This is not a nutrient-independent asteroid biofactory, and leachate concentration is not the same thing as purified recovered metal.
 
@@ -56,6 +58,7 @@ Do not copy the original small replicate count as if it were sufficient for indu
 4. Randomize sample allocation and blind analytical labels where possible.
 5. Define missing-data, contamination, failed-reactor, and below-detection-limit handling before unblinding.
 6. Correct for multiple comparisons across the many elements. Do not select the most favorable element after seeing results and present it as the primary endpoint.
+7. For the ISS palladium endpoint, explicitly distinguish mean fold-change from inferential evidence. The published 5.5-fold mean result did not produce a significant ISS Tukey pairwise difference versus the abiotic control (the paper reports p > 0.05 for the Ru/Pd/Pt pairwise comparisons, with exceptions only for between-organism Pt comparisons). Treat the original Pd result as hypothesis-generating and design a powered confirmatory study rather than treating 5.5-fold as the expected effect.
 
 A mixed-effects model may be appropriate, with treatment and environment as fixed effects and mineral batch, hardware unit, and analytical batch as random effects where the design supports them. If sample size is too small for this model, report the limitation and use a simpler preregistered analysis.
 
