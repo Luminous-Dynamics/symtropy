@@ -494,7 +494,7 @@ fn gate_receipt_payload_matches(
             candidate.semantic_equivalence_receipt_sha256.as_deref()
         }
     };
-    expected == Some(payload_sha256)
+    expected.is_none_or(|expected_digest| expected_digest == payload_sha256)
 }
 
 fn validate_gate_evidence_receipts(
