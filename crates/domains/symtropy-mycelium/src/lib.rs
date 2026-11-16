@@ -107,10 +107,6 @@ impl MyceliumWorld {
             "field heights differ"
         );
 
-        // The field layers are not mutated until all deltas are applied below.
-        // Cache the global nutrient peak once instead of rescanning the whole
-        // grid for every biomass-bearing cell.
-        let nutrient_peak = self.strongest_nutrient_cell();
         for y in 0..self.fields.height() {
             for x in 0..self.fields.width() {
                 let biomass = self.fields.get(FieldLayer::Biomass, x, y);
@@ -235,6 +231,10 @@ impl MyceliumWorld {
         let mut growth_source_biomass_debit = 0.0;
         let mut growth_nutrient_debit = 0.0;
 
+        // The field layers are not mutated until all deltas are applied below.
+        // Cache the global nutrient peak once instead of rescanning the whole
+        // grid for every biomass-bearing cell.
+        let nutrient_peak = self.strongest_nutrient_cell();
         for y in 0..self.fields.height() {
             for x in 0..self.fields.width() {
                 let biomass = self.fields.get(FieldLayer::Biomass, x, y);
