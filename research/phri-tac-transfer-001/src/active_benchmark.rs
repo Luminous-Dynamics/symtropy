@@ -43,6 +43,9 @@ struct SyntheticDomain {
     reference_force_observations_n: Vec<f64>,
     /// Separate synthetic check channel; never used to fit this model.
     independent_check_reference_force_observations_n: Vec<f64>,
+    /// Synthetic fixture attestation for distinct reference calibration ancestry.
+    /// Real use requires separately validated provenance, not this boolean.
+    independent_reference_ancestry_attested: bool,
 }
 
 /// Pairwise reference-channel agreement is only a fault screen. Agreement does
@@ -55,6 +58,8 @@ pub struct ReferenceIntegrityReport {
     pub max_abs_disagreement_n: f64,
     pub rms_disagreement_n: f64,
     pub tolerance_n: f64,
+    pub independent_reference_ancestry_attested: bool,
+    /// Always false: pairwise numerical agreement is not proof of independence.
     pub agreement_proves_independence: bool,
 }
 
@@ -62,6 +67,7 @@ pub fn reference_integrity_check(
     primary_reference_n: &[f64],
     independent_check_reference_n: &[f64],
     tolerance_n: f64,
+    independent_reference_ancestry_attested: bool,
 ) -> Result<ReferenceIntegrityReport, String> {
     if primary_reference_n.is_empty()
         || primary_reference_n.len() != independent_check_reference_n.len()
@@ -82,11 +88,12 @@ pub fn reference_integrity_check(
     }
     let count = primary_reference_n.len() as f64;
     Ok(ReferenceIntegrityReport {
-        accepted: maximum <= tolerance_n,
+        accepted: maximum <= tolerance_n && independent_reference_ancestry_attested,
         sample_count: primary_reference_n.len(),
         max_abs_disagreement_n: maximum,
         rms_disagreement_n: (squared / count).sqrt(),
         tolerance_n,
+        independent_reference_ancestry_attested,
         // Pairwise numeric agreement can never prove distinct calibration
         // ancestry or rule out a shared systematic cause.
         agreement_proves_independence: false,
@@ -286,6 +293,7 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
         candidates,
         reference_force_observations_n,
         independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: true,
     }
 }
 
@@ -421,6 +429,35 @@ fn quadratic_form(vector: &[f64; PARAMS], matrix: &[[f64; PARAMS]; PARAMS]) -> f
         }
     }
     value.max(0.0)
+}
+
+fn fit_qualified_domain(
+    domain: &SyntheticDomain,
+    selected: &[usize],
+    prior: Option<&[f64; PARAMS]>,
+    prior_strength: f64,
+) -> Result<Fit, String> {
+    let integrity = reference_integrity_check(
+        &domain.reference_force_observations_n,
+        &domain.independent_check_reference_force_observations_n,
+        SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+        domain.independent_reference_ancestry_attested,
+    )?;
+    if !integrity.accepted {
+        return Err(format!(
+            "reference integrity gate failed: max disagreement {:.6} N, tolerance {:.6} N, ancestry attested {}",
+            integrity.max_abs_disagreement_n,
+            integrity.tolerance_n,
+            integrity.independent_reference_ancestry_attested,
+        ));
+    }
+    fit_model(
+        &domain.candidates,
+        &domain.reference_force_observations_n,
+        selected,
+        prior,
+        prior_strength,
+    )
 }
 
 fn fit_model(
