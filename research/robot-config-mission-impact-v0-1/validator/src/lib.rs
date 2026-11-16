@@ -4,6 +4,8 @@
 //! This package does not score robots, infer physical root causes, or qualify equipment.
 
 use serde_json::Value;
+
+pub mod generator;
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
@@ -826,6 +828,10 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             "owner-crosswalk-v0.1.json",
             "schemas/owner-crosswalk-v0.1.schema.json",
         ),
+        (
+            "challenge-distribution-v0.1.json",
+            "schemas/challenge-distribution-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
@@ -851,6 +857,15 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
         ));
         errors.extend(outcome_metric_invariants(&values[4], &values[2]));
         errors.extend(owner_crosswalk_invariants(&values[5], &values[1]));
+        errors.extend(generator::distribution_profile_invariants(&values[6]));
+        let manifest_schema_path = base.join("schemas/challenge-manifest-v0.1.schema.json");
+        match read_json(&manifest_schema_path) {
+            Ok(schema) if schema_is_valid(&schema) => {}
+            Ok(_) => errors.push(
+                "schema_meta_invalid:schemas/challenge-manifest-v0.1.schema.json".to_owned(),
+            ),
+            Err(error) => errors.push(error),
+        }
     }
 
     if errors.is_empty() {
@@ -877,6 +892,8 @@ mod tests {
             "schemas/event-type-catalog-v0.1.schema.json",
             "schemas/mission-outcome-metrics-v0.1.schema.json",
             "schemas/owner-crosswalk-v0.1.schema.json",
+            "schemas/challenge-distribution-v0.1.schema.json",
+            "schemas/challenge-manifest-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
@@ -884,6 +901,29 @@ mod tests {
                 "{name} must satisfy Draft 2020-12"
             );
         }
+    }
+
+    #[test]
+    fn generated_development_manifest_satisfies_closed_schema() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let profile = read_json(&base.join("challenge-distribution-v0.1.json")).unwrap();
+        let schema = read_json(&base.join("schemas/challenge-manifest-v0.1.schema.json")).unwrap();
+        let manifest = generator::generate_manifest(&profile, 0x0123_4567_89ab_cdef, 64).unwrap();
+        assert!(
+            validate_instance(&schema, &manifest).is_empty(),
+            "generated manifest must satisfy its closed schema"
+        );
+    }
+
+    #[test]
+    fn generated_manifest_profile_digest_binds_exact_distribution_content() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let profile = read_json(&base.join("challenge-distribution-v0.1.json")).unwrap();
+        let manifest = generator::generate_manifest(&profile, 0x0123_4567_89ab_cdef, 64).unwrap();
+        let expected = generator::sha256_hex(&serde_json::to_vec(&profile).unwrap());
+        assert_eq!(manifest["distribution_profile_sha256"], expected);
     }
 
     #[test]
