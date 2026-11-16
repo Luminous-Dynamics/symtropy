@@ -103,7 +103,7 @@ The generator must preserve the mechanism label and dependency. Do not allow an 
 
 ## 5. Canonical synthetic scenarios
 
-The initial catalogue should include at least these 12 scenarios, each with a frozen config digest and a separate truth oracle:
+The initial catalogue is available as a machine-readable fixture at [HUMAN_OBSERVATION_SCENARIOS_V0_1.json](HUMAN_OBSERVATION_SCENARIOS_V0_1.json). It contains 12 arbitrary-unit scenarios, a scorer-only truth boundary and explicit expected invariants. It is a specification fixture, not a generator implementation. Each executed run must freeze a config digest and separate truth oracle:
 
 | ID | Scenario | Required discriminator |
 |---|---|---|
