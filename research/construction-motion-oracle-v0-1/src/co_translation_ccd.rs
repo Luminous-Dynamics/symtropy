@@ -271,7 +271,6 @@ pub fn co_translating_capsule_time_sliced_aabb_candidates(
     })
 }
 
-
 /// Exact co-translating capsule closest approach restricted to a normalized
 /// global time window. The returned time parameter is remapped to [0, 1] in
 /// the original trajectory, and both closest points remain in world coordinates.
@@ -429,8 +428,7 @@ fn collect_adaptive_candidate_windows(
         }
 
         let half_width = window.width() * 0.5;
-        let can_split = depth < config.maximum_depth
-            && half_width >= config.minimum_window_width;
+        let can_split = depth < config.maximum_depth && half_width >= config.minimum_window_width;
         if can_split {
             let midpoint = window.start_parameter + half_width;
             let left = NormalizedTimeWindow {
@@ -452,9 +450,7 @@ fn collect_adaptive_candidate_windows(
 
     stats.candidate_window_count = candidates.len() as u32;
     stats.candidate_time_fraction = candidates.iter().map(|window| window.width()).sum();
-    if !stats.candidate_time_fraction.is_finite()
-        || stats.candidate_time_fraction > 1.0 + 1.0e-12
-    {
+    if !stats.candidate_time_fraction.is_finite() || stats.candidate_time_fraction > 1.0 + 1.0e-12 {
         return Err(TranslationCcdError::NumericalOverflow);
     }
     Ok((candidates, stats))
@@ -605,20 +601,21 @@ mod tests {
         Capsule::new(start, end, radius_mm).unwrap()
     }
 
-
     #[test]
     fn adaptive_space_time_prunes_asynchronous_whole_sweep_overlap() {
         let moving = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.25);
         let obstacle = capsule(p(6.0, 0.0, 0.0), p(6.0, 0.0, 0.0), 0.25);
         let shared_translation = p(10.0, 0.0, 0.0);
 
-        assert!(co_translating_capsule_swept_aabb_candidate(
-            moving,
-            shared_translation,
-            obstacle,
-            shared_translation,
-        )
-        .unwrap());
+        assert!(
+            co_translating_capsule_swept_aabb_candidate(
+                moving,
+                shared_translation,
+                obstacle,
+                shared_translation,
+            )
+            .unwrap()
+        );
 
         let report = co_translating_capsule_adaptive_query(
             moving,
@@ -723,7 +720,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(stats.maximum_depth_reached, 2);
-        assert!(windows.iter().all(|window| (window.width() - 0.25).abs() < 1.0e-12));
+        assert!(
+            windows
+                .iter()
+                .all(|window| (window.width() - 0.25).abs() < 1.0e-12)
+        );
         assert_eq!(
             windows.iter().map(|window| window.width()).sum::<f64>(),
             stats.candidate_time_fraction
