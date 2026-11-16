@@ -148,3 +148,10 @@ The T0 household-economics suite now has nine synthetic cases (026–034). It ex
 [WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md) and the machine-readable module interface, challenge profiles, preliminary BOM, P&ID tag schedule and 12-hazard FMEA starter implement the concept in Symtropy #5713. The first product target is a contained, maintainable pilot skid with physically separate non-potable circuits and a hold/divert safe state. No train is selected or qualified; all mechanical/process dimensions remain TBD pending source characterization and qualified design review.
 
 Machine-readable starter risk register: [`WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json`](WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json). It is not a completed FMEA, HAZOP or safety case.
+
+
+## Industry comparator and specification revision control
+
+[WATERLOOP_INDUSTRY_COMPARATOR_H300_REVISION_REGISTER_V0_1.md](WATERLOOP_INDUSTRY_COMPARATOR_H300_REVISION_REGISTER_V0_1.md) compares the official Hydraloop H300 8 July 2024 product sheet with the June 2026 Version 1.0 installation manual. The published H300 storage/energy figures differ materially (300 L / 220 kWh/year versus 100 L / 280 kWh/year), while both show 360 L/day nominal capacity. The register preserves both document revisions and does not choose either as the universal specification. It also captures startup, maintenance-flush, wet mass, clearances, pump service and backup-air-gap constraints for matched future trials.
+
+The nominal arithmetic normalisations (1.67 and 2.13 kWh per nominal m³ respectively) are not measured energy intensity. WaterLoop comparisons must use metered electricity divided by independently admitted useful delivered volume under the same intended-use and outage profile.
