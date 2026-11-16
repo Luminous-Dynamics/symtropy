@@ -76,7 +76,8 @@
       "contentSize": "824",
       "sha256": "4666739793f3a85025da66ab7d829222f7539549dcf93127728253c5a7756373",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped input dataset metadata snapshot."
     },
     {
       "@id": "model-evidence-metadata/synthetic-input-files.json",
@@ -86,7 +87,8 @@
       "contentSize": "323",
       "sha256": "2b719d5523bd6154b779cf9abff637603f1ba1da9b0da0874c59f881129bf386",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped input file-metadata endpoint response."
     },
     {
       "@id": "model-evidence-payloads/synthetic-input.json",
@@ -96,7 +98,8 @@
       "contentSize": "228",
       "sha256": "7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped water-demand input payload."
     },
     {
       "@id": "model-evidence-metadata/synthetic-output-dataset.json",
@@ -106,7 +109,8 @@
       "contentSize": "847",
       "sha256": "d04f016c8973ba8eb21fc2e9db64e2b8b6229258017873d09f7a6f62012612af",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped output dataset metadata snapshot."
     },
     {
       "@id": "model-evidence-metadata/synthetic-output-files.json",
@@ -116,7 +120,8 @@
       "contentSize": "327",
       "sha256": "fcb0ca282e15f69c4c940e19f2a4434bed3b36a701ce7be4e825acf027ffc633",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped output file-metadata endpoint response."
     },
     {
       "@id": "model-evidence-payloads/synthetic-output.json",
@@ -126,7 +131,8 @@
       "contentSize": "272",
       "sha256": "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic E1-shaped water-service output payload; not produced by an executed model."
     },
     {
       "@id": "provenance/e2-sparse-derivation.jsonld",
@@ -136,7 +142,8 @@
       "contentSize": "2251",
       "sha256": "10d6a59a8897ad855c3c0b219cc8dd6d12d1d02cda26d74a9f52abef9bc3456e",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Synthetic PROV-O graph fixture separating E1 lineage declarations from an E2-only sparse control derivation."
     },
     {
       "@id": "ex:agent/synthetic-provider",
@@ -153,7 +160,8 @@
       "sha256": "38e096a737d2a017c92f08a2ac4e34df323a13edffac26a23ec60f39aaae55b7",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY",
-      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "description": "Machine-readable binding between E1 dataset identities, E2 synthetic controls and the E2-only derivation assertion."
     },
     {
       "@id": "evidence/protective-model-evidence-envelope-v0.1.json",
@@ -164,7 +172,8 @@
       "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY",
-      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+      "description": "Exact E1 synthetic evidence envelope packaged unchanged in the E2 crate."
     },
     {
       "@id": "schemas/protect-evidence-binding-v0.1.schema.json",
@@ -175,7 +184,8 @@
       "sha256": "851e488723f971bfd59e1c86f8a2ecc86fe437c1cb9cd54ee2d119adc834c81c",
       "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
-      "permittedUse": "SYNTHETIC_TEST_ONLY"
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "description": "Pinned Draft 2020-12 schema for the E2 evidence-binding manifest."
     }
   ]
 }
