@@ -358,7 +358,7 @@ impl ObservationEvidenceReceipt {
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, EvidenceReceiptError> {
         self.validate()?;
         let mut out = Vec::with_capacity(256);
-        out.extend_from_slice(b"MYCO-EVIDENCE-RECEIPT\\0");
+        out.extend_from_slice(b"MYCO-EVIDENCE-RECEIPT\0");
         push_u16(&mut out, 1);
 
         push_u64(&mut out, self.id.0);
@@ -735,7 +735,7 @@ mod tests {
         let first = item.canonical_bytes().unwrap();
         let second = item.canonical_bytes().unwrap();
         assert_eq!(first, second);
-        assert!(first.starts_with(b"MYCO-EVIDENCE-RECEIPT\\0"));
+        assert!(first.starts_with(b"MYCO-EVIDENCE-RECEIPT\0"));
         assert_eq!(&first[22..24], &1_u16.to_le_bytes());
     }
 
