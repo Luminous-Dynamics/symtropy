@@ -98,10 +98,16 @@ impl fmt::Display for TemporalAlignmentError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidRawTimestamp => {
-                write!(f, "raw timestamp and error bound must be finite and non-negative")
+                write!(
+                    f,
+                    "raw timestamp and error bound must be finite and non-negative"
+                )
             }
             Self::InvalidCalibration => {
-                write!(f, "clock calibration bounds, rate and uncertainties are invalid")
+                write!(
+                    f,
+                    "clock calibration bounds, rate and uncertainties are invalid"
+                )
             }
             Self::SameClockCalibration(clock) => {
                 write!(f, "clock {:?} cannot be calibrated to itself", clock)
@@ -110,7 +116,11 @@ impl fmt::Display for TemporalAlignmentError {
                 write!(f, "duplicate clock calibration identity {:?}", id)
             }
             Self::DuplicateSourceClock(clock) => {
-                write!(f, "source clock {:?} already has a direct calibration", clock)
+                write!(
+                    f,
+                    "source clock {:?} already has a direct calibration",
+                    clock
+                )
             }
             Self::MissingCalibrationReceipt(id) => {
                 write!(f, "missing clock synchronization receipt {:?}", id)
@@ -119,15 +129,26 @@ impl fmt::Display for TemporalAlignmentError {
                 write!(f, "duplicate clock synchronization receipt {:?}", id)
             }
             Self::InvalidCalibrationReceipt { id, reason } => {
-                write!(f, "invalid clock synchronization receipt {:?}: {}", id, reason)
+                write!(
+                    f,
+                    "invalid clock synchronization receipt {:?}: {}",
+                    id, reason
+                )
             }
             Self::WrongCalibrationReceiptSubject(id) => {
-                write!(f, "receipt {:?} is not a clock synchronization observation", id)
+                write!(
+                    f,
+                    "receipt {:?} is not a clock synchronization observation",
+                    id
+                )
             }
             Self::MissingClockCalibration(clock) => {
                 write!(f, "no admitted calibration for source clock {:?}", clock)
             }
-            Self::TimestampOutsideCalibration { clock, seconds_bits } => {
+            Self::TimestampOutsideCalibration {
+                clock,
+                seconds_bits,
+            } => {
                 write!(
                     f,
                     "timestamp {} on clock {:?} is outside calibration validity",
@@ -136,7 +157,10 @@ impl fmt::Display for TemporalAlignmentError {
                 )
             }
             Self::NonFiniteAlignedTimestamp => {
-                write!(f, "aligned timestamp or propagated error bound is not finite")
+                write!(
+                    f,
+                    "aligned timestamp or propagated error bound is not finite"
+                )
             }
         }
     }
@@ -255,7 +279,9 @@ impl ExperimentTimeAligner {
             return Err(TemporalAlignmentError::InvalidCalibration);
         }
         if self.calibration_ids.contains_key(&calibration.id) {
-            return Err(TemporalAlignmentError::DuplicateCalibrationId(calibration.id));
+            return Err(TemporalAlignmentError::DuplicateCalibrationId(
+                calibration.id,
+            ));
         }
         if self.calibrations.contains_key(&calibration.source_clock) {
             return Err(TemporalAlignmentError::DuplicateSourceClock(
@@ -263,7 +289,9 @@ impl ExperimentTimeAligner {
             ));
         }
 
-        let mut matching = receipts.iter().filter(|receipt| receipt.id == calibration.evidence);
+        let mut matching = receipts
+            .iter()
+            .filter(|receipt| receipt.id == calibration.evidence);
         let receipt = matching
             .next()
             .ok_or(TemporalAlignmentError::MissingCalibrationReceipt(
@@ -274,12 +302,12 @@ impl ExperimentTimeAligner {
                 calibration.evidence,
             ));
         }
-        receipt.validate().map_err(|error| {
-            TemporalAlignmentError::InvalidCalibrationReceipt {
+        receipt
+            .validate()
+            .map_err(|error| TemporalAlignmentError::InvalidCalibrationReceipt {
                 id: calibration.evidence,
                 reason: error.to_string(),
-            }
-        })?;
+            })?;
         if receipt.subject != ObservationSubject::ClockSynchronization {
             return Err(TemporalAlignmentError::WrongCalibrationReceiptSubject(
                 calibration.evidence,
@@ -309,19 +337,13 @@ impl ExperimentTimeAligner {
             });
         }
 
-        let calibration = self
-            .calibrations
-            .get(&timestamp.clock)
-            .ok_or(TemporalAlignmentError::MissingClockCalibration(
-                timestamp.clock,
-            ))?;
+        let calibration = self.calibrations.get(&timestamp.clock).ok_or(
+            TemporalAlignmentError::MissingClockCalibration(timestamp.clock),
+        )?;
         calibration.align(timestamp)
     }
 
-    pub fn calibration_for(
-        &self,
-        source_clock: ExperimentClockId,
-    ) -> Option<&ClockCalibration> {
+    pub fn calibration_for(&self, source_clock: ExperimentClockId) -> Option<&ClockCalibration> {
         self.calibrations.get(&source_clock)
     }
 
@@ -459,7 +481,10 @@ mod tests {
         assert!((aligned.reference_seconds - 15.0005).abs() < 1e-12);
         assert!(aligned.error_bound_s > 0.012);
         assert_eq!(aligned.calibration, Some(ClockCalibrationId(102)));
-        assert_eq!(aligned.calibration_evidence, Some(ObservationEvidenceId(20)));
+        assert_eq!(
+            aligned.calibration_evidence,
+            Some(ObservationEvidenceId(20))
+        );
     }
 
     #[test]
@@ -551,7 +576,10 @@ mod tests {
     fn invalid_clock_calibration_parameters_are_rejected() {
         let mut item = calibration(20, 2);
         item.rate = 0.0;
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidCalibration));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidCalibration)
+        );
         item = calibration(20, 2);
         item.rate_error_bound = item.rate;
         assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidCalibration));
@@ -639,7 +667,10 @@ mod tests {
             seconds: -0.1,
             error_bound_s: 0.0,
         };
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidRawTimestamp));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidRawTimestamp)
+        );
         item.seconds = f64::NAN;
         assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidRawTimestamp));
         item.seconds = 1.0;
