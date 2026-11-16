@@ -456,7 +456,7 @@ fn custody_transaction(
                 sequence: 4,
                 actor_id: authorization.receiver_device_actor_id.clone(),
                 kind: TransactionEventKind::CustodyAcknowledged {
-                    command_id,
+                    command_id: command_id.clone(),
                     package_id: scenario.package.package_id.clone(),
                     evidence_digest: trace_digest.into(),
                 },
