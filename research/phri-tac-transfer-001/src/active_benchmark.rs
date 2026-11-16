@@ -333,6 +333,7 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
         candidates,
         reference_force_observations_n,
         independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: true,
     }
 }
 
@@ -714,13 +715,7 @@ fn information_matrix(
 
 fn source_prior(source_domain: &SyntheticDomain) -> Result<[f64; PARAMS], String> {
     let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
-    let fit = fit_model(
-        &source_domain.candidates,
-        &source_domain.reference_force_observations_n,
-        &selected,
-        None,
-        0.0,
-    )?;
+    let fit = fit_qualified_domain(source_domain, &selected, None, 0.0)?;
     Ok(fit.coefficients)
 }
 
@@ -814,13 +809,7 @@ fn evaluate_source_transfer(
     heldout: &HeldoutDomain,
 ) -> Result<PolicyResult, String> {
     let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
-    let fit = fit_model(
-        &source_domain.candidates,
-        &source_domain.reference_force_observations_n,
-        &selected,
-        None,
-        0.0,
-    )?;
+    let fit = fit_qualified_domain(source_domain, &selected, None, 0.0)?;
     // Source reference contacts are reported separately. They never count as
     // target-device calibration contacts and never inherit target identity.
     evaluate(
@@ -857,13 +846,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
 
     let mut results = Vec::new();
 
-    let full_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &all_target,
-        None,
-        0.0,
-    )?;
+    let full_fit = fit_qualified_domain(&target_domain, &all_target, None, 0.0)?;
     results.push(evaluate(
         "target_full_grid_reference",
         target_candidates,
@@ -874,13 +857,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let uniform_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &uniform,
-        None,
-        0.0,
-    )?;
+    let uniform_fit = fit_qualified_domain(&target_domain, &uniform, None, 0.0)?;
     results.push(evaluate(
         "uniform_stratified",
         target_candidates,
@@ -891,13 +868,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let random_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &random,
-        None,
-        0.0,
-    )?;
+    let random_fit = fit_qualified_domain(&target_domain, &random, None, 0.0)?;
     results.push(evaluate(
         "random_stratified",
         target_candidates,
@@ -908,13 +879,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let maximin_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &maximin,
-        None,
-        0.0,
-    )?;
+    let maximin_fit = fit_qualified_domain(&target_domain, &maximin, None, 0.0)?;
     results.push(evaluate(
         "maximin_stratified",
         target_candidates,
@@ -925,13 +890,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let d_optimal_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &d_optimal,
-        None,
-        0.0,
-    )?;
+    let d_optimal_fit = fit_qualified_domain(&target_domain, &d_optimal, None, 0.0)?;
     results.push(evaluate(
         "d_optimal_stratified",
         target_candidates,
@@ -945,13 +904,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     results.push(evaluate_source_transfer(&source_domain, &heldout)?);
 
     let prior = source_prior(&source_domain)?;
-    let transfer_active_fit = fit_model(
-        target_candidates,
-        &target_domain.reference_force_observations_n,
-        &d_optimal,
-        Some(&prior),
-        0.25,
-    )?;
+    let transfer_active_fit =
+        fit_qualified_domain(&target_domain, &d_optimal, Some(&prior), 0.25)?;
     results.push(evaluate(
         "transfer_plus_d_optimal_target_adaptation",
         target_candidates,
