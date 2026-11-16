@@ -1,0 +1,17 @@
+[package]
+name = "metric-induced-error-envelope-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Frame-typed tangent/cotangent metrics and coordinate-invariant error norms"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "metric-induced-microbenchmark"
+path = "src/bin/metric_microbenchmark.rs"
+
+[workspace]
