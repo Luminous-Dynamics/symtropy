@@ -349,11 +349,15 @@ Each provider has a distinct tagged native view. Mapping decisions classify
 fields as `EXACT_NATIVE`, `NORMALIZED_EQUIVALENT`, `DERIVED`,
 `PRESERVED_RAW_ONLY` or `UNKNOWN_OR_UNSUPPORTED`. The projection retains
 unmapped DataCite attributes, OGC properties and OpenLineage event/facet JSON.
-Unknown vendor fields are retained and explicitly reported; they are not
-coerced to defaults or silently dropped.
+Unknown vendor fields are retained and explicitly reported, including new
+JSON:API top-level members, OGC record members and OpenLineage RunEvent
+members; they are not coerced to defaults or silently dropped. The frozen
+baseline has 52 mapping decisions: 36 exact-native, one normalized-equivalent,
+one derived and 14 preserved-raw-only, with no unclassified baseline fields.
 
 The E4 report serializes and deserializes the typed envelope and checks
-structural equality. Source byte digests are separate from semantic
+structural equality. The OpenLineage projection additionally checks START and
+terminal job/schema identity, canonical UTC timestamps and event ordering. Source byte digests are separate from semantic
 projection equality: changing whitespace may change a raw SHA-256 while
 leaving provider-native typed values and mapping decisions unchanged.
 OGC bbox coordinates are explicitly classified as a normalized-equivalent
@@ -365,6 +369,6 @@ The exact E1 context envelope is separately hashed into a context receipt.
 The OpenLineage E3 facet must match its embedded E1 analysis ID and
 `NOT_EXECUTED` status with null run ID; it remains context only.
 
-The E4 prototype has 22 unit tests written. Hosted formatting, Clippy,
+The E4 prototype has 32 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
