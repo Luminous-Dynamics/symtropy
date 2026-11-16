@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 37;
+pub const CASE_COUNT: usize = 38;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -956,6 +956,15 @@ fn weighted_interval_score(input: &Value) -> Result<Value, String> {
     for pair in intervals.windows(2) {
         let wider = pair[0];
         let narrower = pair[1];
+        if (narrower.0 - wider.0).abs() <= f64::EPSILON {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "DUPLICATE_INTERVAL_ALPHA",
+                "sample_count": 1,
+                "interval_count": intervals.len(),
+                "weighted_interval_score": null
+            }));
+        }
         if narrower.1 < wider.1 || narrower.2 > wider.2 {
             return Ok(json!({
                 "probabilistic_disposition": "REJECT",
@@ -1030,7 +1039,8 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-033-crps-skill-vs-reference"
         | "HC-T0-034-crps-skill-zero-reference-undefined" => ensemble_crps_skill(input),
         "HC-T0-035-weighted-interval-score" | "HC-T0-036-weighted-interval-nesting-reject"
-        | "HC-T0-037-weighted-interval-alpha-reject" => weighted_interval_score(input),
+        | "HC-T0-037-weighted-interval-alpha-reject"
+        | "HC-T0-038-weighted-interval-duplicate-alpha-reject" => weighted_interval_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1173,7 +1183,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_seven_cases_match_separate_oracle() {
+    fn all_thirty_eight_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1344,6 +1354,13 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][36]).expect("invalid alpha");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "INTERVAL_ALPHA_OUTSIDE_ZERO_ONE");
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_duplicate_nominal_levels() {
+        let out = compute_case(&fixture("inputs")["cases"][37]).expect("duplicate interval alpha");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "DUPLICATE_INTERVAL_ALPHA");
     }
 
     #[test]
