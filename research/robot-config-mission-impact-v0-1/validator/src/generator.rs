@@ -6,8 +6,8 @@
 //! SplitMix64 stream is reproducible, not cryptographically secure. It must not
 //! be used to protect evaluator-held seeds or to assert physical validity.
 
-use ring::digest::{digest, SHA256};
-use serde_json::{json, Value};
+use ring::digest::{SHA256, digest};
+use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
 pub const GENERATOR_ID: &str = "robot-stochastic-challenge-generator/0.1";
@@ -55,9 +55,7 @@ pub fn seed_hex(seed: u64) -> String {
 /// Derive a reproducible seed with a domain and index bound into the hash.
 /// This provides domain separation, not seed secrecy or entropy.
 pub fn derive_seed(root_seed: u64, domain: &str, index: u64) -> u64 {
-    let material = format!(
-        "LUMINOUS-MIP-SEED-V0.1\0{root_seed:016x}\0{domain}\0{index:016x}"
-    );
+    let material = format!("LUMINOUS-MIP-SEED-V0.1\0{root_seed:016x}\0{domain}\0{index:016x}");
     let hashed = digest(&SHA256, material.as_bytes());
     let mut first = [0_u8; 8];
     first.copy_from_slice(&hashed.as_ref()[..8]);
@@ -112,9 +110,7 @@ struct Allocation {
 /// particularly uniqueness across nested strata and atomic bundle identity.
 pub fn distribution_profile_invariants(profile: &Value) -> Vec<String> {
     let mut errors = Vec::new();
-    if string_at(profile, &["schema_version"])
-        != Some("robot-config-mission-distribution-v0.1")
-    {
+    if string_at(profile, &["schema_version"]) != Some("robot-config-mission-distribution-v0.1") {
         errors.push("distribution_profile_schema_version_mismatch".to_owned());
     }
     if string_at(profile, &["generator_id"]) != Some(GENERATOR_ID) {
@@ -158,7 +154,9 @@ pub fn distribution_profile_invariants(profile: &Value) -> Vec<String> {
             errors.push(format!("distribution_stratum_weight_invalid:{stratum_id}"));
         }
         if array_at(stratum, &["changed_component_ids"]).is_none_or(Vec::is_empty) {
-            errors.push(format!("distribution_changed_components_empty:{stratum_id}"));
+            errors.push(format!(
+                "distribution_changed_components_empty:{stratum_id}"
+            ));
         }
         if string_at(stratum, &["coherence_group"]).is_none_or(str::is_empty) {
             errors.push(format!("distribution_coherence_group_missing:{stratum_id}"));
@@ -242,7 +240,11 @@ fn allocate_strata(
             index,
             count: base,
             remainder,
-            tie_break: derive_seed(root_seed, "stratum-allocation-tie", stable_text_index(stratum_id)),
+            tie_break: derive_seed(
+                root_seed,
+                "stratum-allocation-tie",
+                stable_text_index(stratum_id),
+            ),
         });
         allocated = allocated.saturating_add(base);
     }
@@ -322,8 +324,8 @@ fn challenge_value(
         .ok_or_else(|| "challenge_site_profile_missing".to_owned())?;
     let odd_profile = string_at(bundle, &["odd_profile"])
         .ok_or_else(|| "challenge_odd_profile_missing".to_owned())?;
-    let severity = string_at(bundle, &["severity"])
-        .ok_or_else(|| "challenge_severity_missing".to_owned())?;
+    let severity =
+        string_at(bundle, &["severity"]).ok_or_else(|| "challenge_severity_missing".to_owned())?;
     let coherence_group = string_at(stratum, &["coherence_group"])
         .ok_or_else(|| "challenge_coherence_group_missing".to_owned())?;
     let factor_profile_ref = string_at(bundle, &["factor_profile_ref"])
@@ -392,17 +394,19 @@ pub fn generate_manifest(
         )]);
     }
     let strata = array_at(profile, &["strata"]).expect("profile invariant checked");
-    let (allocations, total_weight) =
-        allocate_strata(strata, challenge_count, root_seed)?;
+    let (allocations, total_weight) = allocate_strata(strata, challenge_count, root_seed)?;
 
     let mut challenges = Vec::with_capacity(challenge_count);
     let mut next_index = 0_usize;
     for (stratum_index, stratum) in strata.iter().enumerate() {
         let allocated_count = allocations[stratum_index];
-        let stratum_weight = stratum["weight"].as_u64().expect("profile invariant checked");
+        let stratum_weight = stratum["weight"]
+            .as_u64()
+            .expect("profile invariant checked");
         let bundles = array_at(stratum, &["bundles"]).expect("profile invariant checked");
         for _ in 0..allocated_count {
-            let challenge_seed = derive_seed(root_seed, "MIP-CHALLENGE-SEED-V0.1", next_index as u64);
+            let challenge_seed =
+                derive_seed(root_seed, "MIP-CHALLENGE-SEED-V0.1", next_index as u64);
             let bundle_seed = derive_seed(challenge_seed, "MIP-ATOMIC-BUNDLE-CHOICE-V0.1", 0);
             let mut rng = SplitMix64::new(bundle_seed);
             let bundle_index = rng
@@ -426,7 +430,11 @@ pub fn generate_manifest(
 
     shuffle(
         &mut challenges,
-        derive_seed(root_seed, "MIP-CHALLENGE-ORDER-V0.1", challenge_count as u64),
+        derive_seed(
+            root_seed,
+            "MIP-CHALLENGE-ORDER-V0.1",
+            challenge_count as u64,
+        ),
     );
 
     let stratum_counts = strata
@@ -474,10 +482,7 @@ pub fn generate_manifest(
     manifest
         .as_object_mut()
         .expect("manifest constructed as object")
-        .insert(
-            "manifest_digest".to_owned(),
-            Value::String(manifest_digest),
-        );
+        .insert("manifest_digest".to_owned(), Value::String(manifest_digest));
     Ok(manifest)
 }
 
@@ -486,8 +491,7 @@ mod tests {
     use super::*;
 
     fn profile() -> Value {
-        let root = crate::repository_root()
-            .join("research/robot-config-mission-impact-v0-1");
+        let root = crate::repository_root().join("research/robot-config-mission-impact-v0-1");
         crate::read_json(&root.join("challenge-distribution-v0.1.json"))
             .expect("distribution profile parses")
     }
@@ -503,7 +507,10 @@ mod tests {
         let value = profile();
         let first = generate_manifest(&value, 0x0123_4567_89ab_cdef, 64).unwrap();
         let second = generate_manifest(&value, 0x0123_4567_89ab_cdef, 64).unwrap();
-        assert_eq!(canonical_json(&first).unwrap(), canonical_json(&second).unwrap());
+        assert_eq!(
+            canonical_json(&first).unwrap(),
+            canonical_json(&second).unwrap()
+        );
         assert_eq!(first["manifest_digest"], second["manifest_digest"]);
     }
 
@@ -522,7 +529,10 @@ mod tests {
         let (counts, total_weight) = allocate_strata(strata, 19, 0x55aa).unwrap();
         assert_eq!(total_weight, 8);
         assert_eq!(counts.iter().sum::<usize>(), 19);
-        assert_eq!(counts.iter().max().unwrap() - counts.iter().min().unwrap(), 1);
+        assert_eq!(
+            counts.iter().max().unwrap() - counts.iter().min().unwrap(),
+            1
+        );
     }
 
     #[test]
@@ -536,8 +546,7 @@ mod tests {
             let stratum = strata
                 .iter()
                 .find(|stratum| {
-                    string_at(stratum, &["stratum_id"])
-                        == string_at(challenge, &["stratum_id"])
+                    string_at(stratum, &["stratum_id"]) == string_at(challenge, &["stratum_id"])
                 })
                 .unwrap();
             assert_eq!(
@@ -548,15 +557,17 @@ mod tests {
                 .unwrap()
                 .iter()
                 .find(|bundle| {
-                    string_at(bundle, &["bundle_id"])
-                        == string_at(challenge, &["factor_bundle_id"])
+                    string_at(bundle, &["bundle_id"]) == string_at(challenge, &["factor_bundle_id"])
                 })
                 .unwrap();
-            for field in ["task_profile", "site_profile", "odd_profile", "severity", "factor_profile_ref"] {
-                assert_eq!(
-                    string_at(bundle, &[field]),
-                    string_at(challenge, &[field])
-                );
+            for field in [
+                "task_profile",
+                "site_profile",
+                "odd_profile",
+                "severity",
+                "factor_profile_ref",
+            ] {
+                assert_eq!(string_at(bundle, &[field]), string_at(challenge, &[field]));
             }
         }
     }
@@ -595,10 +606,7 @@ mod tests {
         let manifest = generate_manifest(&value, 0x1234, 16).unwrap();
         let expected = string_at(&manifest, &["manifest_digest"]).unwrap();
         let mut unsigned = manifest.clone();
-        unsigned
-            .as_object_mut()
-            .unwrap()
-            .remove("manifest_digest");
+        unsigned.as_object_mut().unwrap().remove("manifest_digest");
         assert_eq!(
             expected,
             sha256_hex(&canonical_json(&unsigned).unwrap()).as_str()
