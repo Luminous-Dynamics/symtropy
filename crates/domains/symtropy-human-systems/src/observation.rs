@@ -881,9 +881,13 @@ mod tests {
             right < left
         });
         assert!(has_reordering);
-        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
-            pair[0].available_at_seconds <= pair[1].available_at_seconds
-        }));
+        assert!(
+            scenario
+                .estimator_view
+                .observations
+                .windows(2)
+                .all(|pair| { pair[0].available_at_seconds <= pair[1].available_at_seconds })
+        );
     }
 
     #[test]
@@ -914,7 +918,9 @@ mod tests {
             )
         }));
         assert!(scenario.estimator_view.observations.iter().all(|event| {
-            event.value.is_none_or(|value| (0.3 - 1.0e-9..=0.7 + 1.0e-9).contains(&value))
+            event
+                .value
+                .is_none_or(|value| (0.3 - 1.0e-9..=0.7 + 1.0e-9).contains(&value))
         }));
     }
 
