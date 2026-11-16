@@ -870,6 +870,177 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     })
 }
 
+
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MetricSummary {
+    pub mean: f64,
+    pub median: f64,
+    pub p95: f64,
+    pub maximum: f64,
+}
+
+impl MetricSummary {
+    fn from_samples(samples: &[f64]) -> Result<Self, String> {
+        if samples.is_empty() || samples.iter().any(|sample| !sample.is_finite()) {
+            return Err("metric summary requires nonempty finite samples".to_owned());
+        }
+
+        let mut ordered = samples.to_vec();
+        ordered.sort_by(f64::total_cmp);
+        let mean = ordered.iter().sum::<f64>() / ordered.len() as f64;
+        let middle = ordered.len() / 2;
+        let median = if ordered.len().is_multiple_of(2) {
+            (ordered[middle - 1] + ordered[middle]) / 2.0
+        } else {
+            ordered[middle]
+        };
+        let p95_index = ((ordered.len() - 1) as f64 * 0.95).ceil() as usize;
+
+        Ok(Self {
+            mean,
+            median,
+            p95: ordered[p95_index],
+            maximum: ordered[ordered.len() - 1],
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CampaignPolicyResult {
+    pub policy_id: &'static str,
+    pub source_reference_contacts: usize,
+    pub target_reference_contacts: usize,
+    pub rmse_n: MetricSummary,
+    pub p95_absolute_error_n: MetricSummary,
+    pub worst_absolute_error_n: MetricSummary,
+    pub prediction_interval_coverage_95: MetricSummary,
+    pub mean_interval_width_95_n: MetricSummary,
+    pub total_estimated_fixture_cost_ms: MetricSummary,
+    /// Paired per-seed RMSE difference against the full target-grid arm.
+    /// Negative values favor this policy on this synthetic response family.
+    pub paired_rmse_delta_vs_full_grid_n: MetricSummary,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CampaignReport {
+    pub first_seed: u64,
+    pub replicate_count: usize,
+    pub source_candidate_pool_size: usize,
+    pub target_candidate_pool_size: usize,
+    pub heldout_case_count: usize,
+    pub target_contact_budget: usize,
+    pub results: Vec<CampaignPolicyResult>,
+}
+
+/// Run a paired-seed campaign. Every policy sees the same synthetic source,
+/// target and held-out domain for each seed. At least 50 replicates are required
+/// so a single favorable seed cannot define the reported policy ordering.
+///
+/// This remains a synthetic robustness summary, not evidence of physical
+/// metrological coverage or a substitute for the separately owned uncertainty
+/// calculation.
+pub fn run_active_calibration_campaign(
+    first_seed: u64,
+    replicate_count: usize,
+) -> Result<CampaignReport, String> {
+    if first_seed == 0 {
+        return Err("campaign first seed must be nonzero".to_owned());
+    }
+    if replicate_count < 50 {
+        return Err("campaign requires at least 50 paired seeds".to_owned());
+    }
+    let final_seed = first_seed
+        .checked_add((replicate_count - 1) as u64)
+        .ok_or_else(|| "campaign seed range overflow".to_owned())?;
+    if final_seed == 0 {
+        return Err("campaign seed range contains an invalid zero seed".to_owned());
+    }
+
+    let first_run = run_active_calibration_benchmark(first_seed)?;
+    if first_run.results.is_empty() {
+        return Err("single-seed benchmark returned no policy results".to_owned());
+    }
+    let policy_count = first_run.results.len();
+    let mut per_policy_results = vec![Vec::<PolicyResult>::with_capacity(replicate_count); policy_count];
+    let mut paired_rmse_deltas = vec![Vec::<f64>::with_capacity(replicate_count); policy_count];
+
+    let full_grid_rmse = first_run.results[0].rmse_n;
+    for (index, result) in first_run.results.iter().enumerate() {
+        per_policy_results[index].push(result.clone());
+        paired_rmse_deltas[index].push(result.rmse_n - full_grid_rmse);
+    }
+
+    for offset in 1..replicate_count {
+        let seed = first_seed
+            .checked_add(offset as u64)
+            .ok_or_else(|| "campaign seed increment overflow".to_owned())?;
+        let report = run_active_calibration_benchmark(seed)?;
+        if report.results.len() != policy_count
+            || report.candidate_pool_size != first_run.candidate_pool_size
+            || report.source_candidate_pool_size != first_run.source_candidate_pool_size
+            || report.heldout_case_count != first_run.heldout_case_count
+            || report.target_contact_budget != first_run.target_contact_budget
+        {
+            return Err(format!("campaign schema drift at seed {seed}"));
+        }
+
+        let seed_full_grid_rmse = report.results[0].rmse_n;
+        for (index, result) in report.results.into_iter().enumerate() {
+            if result.policy_id != first_run.results[index].policy_id
+                || result.source_reference_contacts
+                    != first_run.results[index].source_reference_contacts
+                || result.target_reference_contacts
+                    != first_run.results[index].target_reference_contacts
+            {
+                return Err(format!("policy identity or budget drift at seed {seed}"));
+            }
+            paired_rmse_deltas[index].push(result.rmse_n - seed_full_grid_rmse);
+            per_policy_results[index].push(result);
+        }
+    }
+
+    let mut campaign_results = Vec::with_capacity(policy_count);
+    for (results, paired_deltas) in per_policy_results
+        .into_iter()
+        .zip(paired_rmse_deltas.into_iter())
+    {
+        let first = results
+            .first()
+            .ok_or_else(|| "campaign policy result unexpectedly empty".to_owned())?;
+
+        let collect_metric = |extract: fn(&PolicyResult) -> f64| {
+            let samples: Vec<_> = results.iter().map(extract).collect();
+            MetricSummary::from_samples(&samples)
+        };
+
+        campaign_results.push(CampaignPolicyResult {
+            policy_id: first.policy_id,
+            source_reference_contacts: first.source_reference_contacts,
+            target_reference_contacts: first.target_reference_contacts,
+            rmse_n: collect_metric(|result| result.rmse_n)?,
+            p95_absolute_error_n: collect_metric(|result| result.p95_absolute_error_n)?,
+            worst_absolute_error_n: collect_metric(|result| result.worst_absolute_error_n)?,
+            prediction_interval_coverage_95: collect_metric(|result| result.interval_coverage_95)?,
+            mean_interval_width_95_n: collect_metric(|result| result.mean_interval_width_95_n)?,
+            total_estimated_fixture_cost_ms: collect_metric(|result| {
+                result.total_estimated_fixture_cost_ms as f64
+            })?,
+            paired_rmse_delta_vs_full_grid_n: MetricSummary::from_samples(&paired_deltas)?,
+        });
+    }
+
+    Ok(CampaignReport {
+        first_seed,
+        replicate_count,
+        source_candidate_pool_size: first_run.source_candidate_pool_size,
+        target_candidate_pool_size: first_run.target_candidate_pool_size,
+        heldout_case_count: first_run.heldout_case_count,
+        target_contact_budget: first_run.target_contact_budget,
+        results: campaign_results,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -960,6 +1131,36 @@ mod tests {
             assert!(result.worst_absolute_error_n.is_finite());
             assert!((0.0..=1.0).contains(&result.interval_coverage_95));
             assert!(result.mean_interval_width_95_n.is_finite());
+        }
+    }
+
+
+    #[test]
+    fn campaign_requires_at_least_fifty_paired_replicates() {
+        assert!(run_active_calibration_campaign(20261116, 49).is_err());
+        assert!(run_active_calibration_campaign(0, 50).is_err());
+    }
+
+    #[test]
+    fn fifty_seed_campaign_reports_paired_policy_distributions() {
+        let report = run_active_calibration_campaign(20261116, 50)
+            .expect("fifty-seed campaign runs");
+        assert_eq!(report.replicate_count, 50);
+        assert_eq!(report.results.len(), 7);
+        assert_eq!(report.target_candidate_pool_size, 72);
+        assert_eq!(report.heldout_case_count, 60);
+
+        let full_grid = &report.results[0];
+        assert_eq!(full_grid.policy_id, "target_full_grid_reference");
+        assert_eq!(full_grid.paired_rmse_delta_vs_full_grid_n.mean, 0.0);
+
+        for policy in &report.results {
+            assert!(policy.rmse_n.mean.is_finite());
+            assert!(policy.rmse_n.median.is_finite());
+            assert!(policy.rmse_n.p95.is_finite());
+            assert!(policy.rmse_n.maximum.is_finite());
+            assert!(policy.paired_rmse_delta_vs_full_grid_n.mean.is_finite());
+            assert!((0.0..=1.0).contains(&policy.prediction_interval_coverage_95.mean));
         }
     }
 
