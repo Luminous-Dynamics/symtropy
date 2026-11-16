@@ -399,7 +399,7 @@ fn run_episode(
                     || (event.body_a == gate_handle && event.body_b == package_handle);
                 if package_gate_pair {
                     gate_contact_event_count += 1;
-                    gate_contact_max_impulse_ns = gate_contact_max_impulse_ns.max(event.impulse);
+                    gate_contact_max_impulse_ns = gate_contact_max_impulse_ns.max(event.impulse as f64);
                 }
             }
         }
