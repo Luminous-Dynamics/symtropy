@@ -3,7 +3,7 @@
 **Snapshot:** 16 November 2026  
 **Owner:** PROTECT-EVIDENCE-PORTABILITY-001 #5524  
 **Parent E1:** PROTECT-MODEL-EVIDENCE-001 #5474 / PR #5493  
-**Implementation:** draft PR #5535  
+**Review branch:** `research/protect-evidence-portability-e2-review-v0-1`  
 **Status:** synthetic portability package and Rust verifier written; exact-head hosted verification pending
 
 ## 1. Paradigm shift: semantic portability, not file conversion
@@ -104,7 +104,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 
 ## 5. Adversarial tests
 
-15 Rust unit tests are written:
+18 Rust unit tests are written:
 - valid RO-Crate + sparse PROV-O graph;
 - all-to-all derivation inference;
 - incorrect sparse derivation target;
@@ -118,7 +118,9 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 - wrong RO-Crate version context;
 - unauthenticated license claim;
 - extra unlisted File entity;
-- wrong PROV namespace;
+- wrong PROV namespace or E2 prefix mapping;
+- duplicate used input edge;
+- extra generation edge on an input;
 - descriptor pointing away from root.
 
 Rust formatting, Clippy, test execution and executable output must be exact-head verified. A written test count is not a pass.
