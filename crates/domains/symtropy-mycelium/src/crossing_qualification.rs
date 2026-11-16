@@ -110,7 +110,6 @@ impl CrossingTopologyHypotheses {
     }
 }
 
-
 impl CrossingCandidate {
     pub fn validate(&self) -> Result<(), CrossingQualificationError> {
         if !self.projected_distance_um.is_finite() || self.projected_distance_um < 0.0 {
@@ -146,12 +145,10 @@ impl CrossingCandidate {
                 shared_3d_junction: false,
             }),
             CrossingAssessment::AmbiguousDepthRequiresReview
-            | CrossingAssessment::MissingDepthRequiresReview => {
-                Ok(CrossingTopologyHypotheses {
-                    separate_filaments: true,
-                    shared_3d_junction: true,
-                })
-            }
+            | CrossingAssessment::MissingDepthRequiresReview => Ok(CrossingTopologyHypotheses {
+                separate_filaments: true,
+                shared_3d_junction: true,
+            }),
         }
     }
 
