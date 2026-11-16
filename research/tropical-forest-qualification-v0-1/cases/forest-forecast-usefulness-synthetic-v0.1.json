@@ -1,0 +1,2592 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LUMINOUS-TROPICAL-FOREST-ECO-QUAL",
+  "corpus_id": "FOREST-FORECAST-USEFULNESS-LIMIT-001",
+  "evidence_class": "synthetic_known_truth_forecast_horizon_policy",
+  "claim_ceiling": "All contexts, forecast ensembles, observations, baselines, decision tolerances and regime labels are synthetic. No empirical forest forecast usefulness limit or AFEX forecast skill is established. A successful receipt verifies only the declared horizon qualification policy and known-truth arithmetic.",
+  "policy": {
+    "forecast_score": "empirical CRPS from the shared probabilistic forecast kernel",
+    "baseline_rule": "preselected frozen baseline, paired by forecast origin and horizon; never selected after observing the evaluation outcome",
+    "interval_rule": "central 80% nearest-rank interval must lie within the context-declared coverage band",
+    "block_rule": "all declared held-out evaluation blocks must pass for a horizon to qualify",
+    "prefix_rule": "useful horizon is the longest initial contiguous passing prefix; later passing horizons cannot reopen a failed prefix",
+    "abstention_rule": "empty model_samples denotes abstention; it remains in issuance coverage denominator and is not assigned zero CRPS"
+  },
+  "expected_context_count": 2,
+  "contexts": [
+    {
+      "context_id": "STABLE_CANOPY_BIOMASS",
+      "variable": "aboveground_biomass_density",
+      "unit": "Mg C ha-1",
+      "regime_id": "STABLE_BASELINE",
+      "baseline_id": "FROZEN_PERSISTENCE_BASELINE",
+      "decision_tolerance": 0.5,
+      "minimum_issuance_fraction": 0.9,
+      "interval_80_coverage_min": 0.65,
+      "interval_80_coverage_max": 0.95,
+      "horizons_days": [
+        30,
+        90,
+        180,
+        365
+      ],
+      "required_evaluation_blocks": [
+        "B1",
+        "B2",
+        "B3",
+        "B4"
+      ],
+      "cases": [
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 100,
+          "model_samples": [
+            99.9,
+            99.95,
+            100.05,
+            100.1
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 100.1,
+          "model_samples": [
+            100,
+            100.05,
+            100.14999999999999,
+            100.19999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 100.3,
+          "model_samples": [
+            100.60000000000001,
+            100.65,
+            100.75,
+            100.8
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 100.3,
+          "model_samples": [
+            100.2,
+            100.25,
+            100.35,
+            100.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 100.5,
+          "model_samples": [
+            100.80000000000001,
+            100.85000000000001,
+            100.95,
+            101
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 100.5,
+          "model_samples": [
+            100.4,
+            100.45,
+            100.55,
+            100.6
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 100.60000000000001,
+          "model_samples": [
+            100.50000000000001,
+            100.55000000000001,
+            100.65,
+            100.7
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 100.7,
+          "model_samples": [
+            101.00000000000001,
+            101.05000000000001,
+            101.15,
+            101.2
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 100.6,
+          "model_samples": [
+            100.5,
+            100.55,
+            100.64999999999999,
+            100.69999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 100.69999999999999,
+          "model_samples": [
+            100.6,
+            100.64999999999999,
+            100.74999999999999,
+            100.79999999999998
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 100.8,
+          "model_samples": [
+            100.7,
+            100.75,
+            100.85,
+            100.89999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-30-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 100.89999999999999,
+          "model_samples": [
+            101.2,
+            101.25,
+            101.35,
+            101.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 100,
+          "model_samples": [
+            99.9,
+            99.95,
+            100.05,
+            100.1
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 100.1,
+          "model_samples": [
+            100,
+            100.05,
+            100.14999999999999,
+            100.19999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 100.3,
+          "model_samples": [
+            100.60000000000001,
+            100.65,
+            100.75,
+            100.8
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 100.3,
+          "model_samples": [
+            100.2,
+            100.25,
+            100.35,
+            100.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 100.5,
+          "model_samples": [
+            100.80000000000001,
+            100.85000000000001,
+            100.95,
+            101
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 100.5,
+          "model_samples": [
+            100.4,
+            100.45,
+            100.55,
+            100.6
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 100.60000000000001,
+          "model_samples": [
+            100.50000000000001,
+            100.55000000000001,
+            100.65,
+            100.7
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 100.7,
+          "model_samples": [
+            101.00000000000001,
+            101.05000000000001,
+            101.15,
+            101.2
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 100.6,
+          "model_samples": [
+            100.5,
+            100.55,
+            100.64999999999999,
+            100.69999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 100.69999999999999,
+          "model_samples": [
+            100.6,
+            100.64999999999999,
+            100.74999999999999,
+            100.79999999999998
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 100.8,
+          "model_samples": [
+            100.7,
+            100.75,
+            100.85,
+            100.89999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-90-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 100.89999999999999,
+          "model_samples": [
+            101.2,
+            101.25,
+            101.35,
+            101.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 100,
+          "model_samples": [
+            102.96,
+            102.98,
+            103.02,
+            103.04
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 100.1,
+          "model_samples": [
+            103.05999999999999,
+            103.08,
+            103.11999999999999,
+            103.14
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 100.2,
+          "model_samples": [
+            103.16,
+            103.18,
+            103.22,
+            103.24000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 100.3,
+          "model_samples": [
+            103.25999999999999,
+            103.28,
+            103.32,
+            103.34
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 100.2,
+          "model_samples": [
+            103.16,
+            103.18,
+            103.22,
+            103.24000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 100.3,
+          "model_samples": [
+            103.25999999999999,
+            103.28,
+            103.32,
+            103.34
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 100.4,
+          "model_samples": [
+            103.36,
+            103.38000000000001,
+            103.42,
+            103.44000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 100.5,
+          "model_samples": [
+            103.46,
+            103.48,
+            103.52,
+            103.54
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 100.4,
+          "model_samples": [
+            103.36,
+            103.38000000000001,
+            103.42,
+            103.44000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 100.5,
+          "model_samples": [
+            103.46,
+            103.48,
+            103.52,
+            103.54
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 100.60000000000001,
+          "model_samples": [
+            103.56,
+            103.58000000000001,
+            103.62,
+            103.64000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 100.7,
+          "model_samples": [
+            103.66,
+            103.68,
+            103.72,
+            103.74000000000001
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 100.6,
+          "model_samples": [
+            103.55999999999999,
+            103.58,
+            103.61999999999999,
+            103.64
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 100.69999999999999,
+          "model_samples": [
+            103.65999999999998,
+            103.67999999999999,
+            103.71999999999998,
+            103.74
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 100.8,
+          "model_samples": [
+            103.75999999999999,
+            103.78,
+            103.82,
+            103.84
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-180-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 100.89999999999999,
+          "model_samples": [
+            103.85999999999999,
+            103.88,
+            103.91999999999999,
+            103.94
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 100,
+          "model_samples": [
+            99.9,
+            99.95,
+            100.05,
+            100.1
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 100.1,
+          "model_samples": [
+            100,
+            100.05,
+            100.14999999999999,
+            100.19999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 100.3,
+          "model_samples": [
+            100.60000000000001,
+            100.65,
+            100.75,
+            100.8
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 100.2,
+          "model_samples": [
+            100.10000000000001,
+            100.15,
+            100.25,
+            100.3
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 100.3,
+          "model_samples": [
+            100.2,
+            100.25,
+            100.35,
+            100.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 100.5,
+          "model_samples": [
+            100.80000000000001,
+            100.85000000000001,
+            100.95,
+            101
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 100.4,
+          "model_samples": [
+            100.30000000000001,
+            100.35000000000001,
+            100.45,
+            100.5
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 100.5,
+          "model_samples": [
+            100.4,
+            100.45,
+            100.55,
+            100.6
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 100.60000000000001,
+          "model_samples": [
+            100.50000000000001,
+            100.55000000000001,
+            100.65,
+            100.7
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 100.7,
+          "model_samples": [
+            101.00000000000001,
+            101.05000000000001,
+            101.15,
+            101.2
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 100.6,
+          "model_samples": [
+            100.5,
+            100.55,
+            100.64999999999999,
+            100.69999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 100.69999999999999,
+          "model_samples": [
+            100.6,
+            100.64999999999999,
+            100.74999999999999,
+            100.79999999999998
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 100.8,
+          "model_samples": [
+            100.7,
+            100.75,
+            100.85,
+            100.89999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        },
+        {
+          "forecast_id": "STABLE_CANOPY_BIOMASS-365-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 100.89999999999999,
+          "model_samples": [
+            101.2,
+            101.25,
+            101.35,
+            101.39999999999999
+          ],
+          "baseline_samples": [
+            98,
+            102
+          ]
+        }
+      ],
+      "expected": {
+        "context_id": "STABLE_CANOPY_BIOMASS",
+        "useful_horizon_days": 90,
+        "first_failure_horizon_days": 180,
+        "later_horizon_recovery_after_failure": true,
+        "horizon_results": [
+          {
+            "horizon_days": 30,
+            "qualified": true,
+            "passing_block_count": 4,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": 0.8874999999999993,
+            "mean_interval_coverage_80": 0.75,
+            "mean_absolute_median_error": 0.125,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              }
+            ]
+          },
+          {
+            "horizon_days": 90,
+            "qualified": true,
+            "passing_block_count": 4,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": 0.8874999999999993,
+            "mean_interval_coverage_80": 0.75,
+            "mean_absolute_median_error": 0.125,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              }
+            ]
+          },
+          {
+            "horizon_days": 180,
+            "qualified": false,
+            "passing_block_count": 0,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": -1.9824999999999982,
+            "mean_interval_coverage_80": 0,
+            "mean_absolute_median_error": 2.980000000000004,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -1.9824999999999982,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 2.980000000000004,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -1.9824999999999982,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 2.980000000000004,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -1.9824999999999982,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 2.980000000000004,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -1.9824999999999982,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 2.980000000000004,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              }
+            ]
+          },
+          {
+            "horizon_days": 365,
+            "qualified": true,
+            "passing_block_count": 4,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": 0.8874999999999993,
+            "mean_interval_coverage_80": 0.75,
+            "mean_absolute_median_error": 0.125,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8874999999999993,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.125,
+                "qualified": true,
+                "failure_reasons": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "context_id": "POST_DISTURBANCE_MORTALITY",
+      "variable": "mortality_probability",
+      "unit": "probability",
+      "regime_id": "POST_DISTURBANCE",
+      "baseline_id": "FROZEN_SEASONAL_CLIMATOLOGY",
+      "decision_tolerance": 0.04,
+      "minimum_issuance_fraction": 0.9,
+      "interval_80_coverage_min": 0.65,
+      "interval_80_coverage_max": 0.95,
+      "horizons_days": [
+        30,
+        90,
+        180,
+        365
+      ],
+      "required_evaluation_blocks": [
+        "B1",
+        "B2",
+        "B3",
+        "B4"
+      ],
+      "cases": [
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 0.15,
+          "model_samples": [
+            0.135,
+            0.145,
+            0.155,
+            0.16499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16499999999999998,
+            0.175,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 0.19,
+          "model_samples": [
+            0.175,
+            0.185,
+            0.195,
+            0.20500000000000002
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 30,
+          "observed": 0.21,
+          "model_samples": [
+            0.215,
+            0.22499999999999998,
+            0.235,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16499999999999998,
+            0.175,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 0.18999999999999997,
+          "model_samples": [
+            0.175,
+            0.18499999999999997,
+            0.19499999999999998,
+            0.20499999999999996
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 30,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.235,
+            0.245,
+            0.255,
+            0.265
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 0.19,
+          "model_samples": [
+            0.175,
+            0.185,
+            0.195,
+            0.20500000000000002
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 0.23,
+          "model_samples": [
+            0.21500000000000002,
+            0.225,
+            0.23500000000000001,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 30,
+          "observed": 0.25,
+          "model_samples": [
+            0.255,
+            0.265,
+            0.275,
+            0.28500000000000003
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.21499999999999997,
+            0.22499999999999998,
+            0.235,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 0.25,
+          "model_samples": [
+            0.235,
+            0.245,
+            0.255,
+            0.265
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-30-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 30,
+          "observed": 0.27,
+          "model_samples": [
+            0.275,
+            0.28500000000000003,
+            0.29500000000000004,
+            0.30500000000000005
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 0.15,
+          "model_samples": [
+            0.26,
+            0.27999999999999997,
+            0.32,
+            0.33999999999999997
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.27999999999999997,
+            0.29999999999999993,
+            0.33999999999999997,
+            0.35999999999999993
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 0.19,
+          "model_samples": [
+            0.3,
+            0.31999999999999995,
+            0.36,
+            0.37999999999999995
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 90,
+          "observed": 0.21,
+          "model_samples": [
+            0.32,
+            0.33999999999999997,
+            0.38,
+            0.39999999999999997
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.27999999999999997,
+            0.29999999999999993,
+            0.33999999999999997,
+            0.35999999999999993
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 0.18999999999999997,
+          "model_samples": [
+            0.3,
+            0.31999999999999995,
+            0.36,
+            0.37999999999999995
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 0.21,
+          "model_samples": [
+            0.32,
+            0.33999999999999997,
+            0.38,
+            0.39999999999999997
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 90,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.34,
+            0.36,
+            0.4,
+            0.42
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 0.19,
+          "model_samples": [
+            0.3,
+            0.31999999999999995,
+            0.36,
+            0.37999999999999995
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 0.21,
+          "model_samples": [
+            0.32,
+            0.33999999999999997,
+            0.38,
+            0.39999999999999997
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 0.23,
+          "model_samples": [
+            0.34,
+            0.36,
+            0.4,
+            0.42
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 90,
+          "observed": 0.25,
+          "model_samples": [
+            0.36000000000000004,
+            0.38,
+            0.42000000000000004,
+            0.44
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 0.21,
+          "model_samples": [
+            0.32,
+            0.33999999999999997,
+            0.38,
+            0.39999999999999997
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.34,
+            0.36,
+            0.4,
+            0.42
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 0.25,
+          "model_samples": [
+            0.36000000000000004,
+            0.38,
+            0.42000000000000004,
+            0.44
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-90-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 90,
+          "observed": 0.27,
+          "model_samples": [
+            0.38000000000000006,
+            0.4,
+            0.44000000000000006,
+            0.46
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 0.15,
+          "model_samples": [
+            0.135,
+            0.1425,
+            0.1575,
+            0.16499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16249999999999998,
+            0.1775,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 0.19,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 180,
+          "observed": 0.21,
+          "model_samples": [],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16249999999999998,
+            0.1775,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 0.18999999999999997,
+          "model_samples": [
+            0.175,
+            0.18249999999999997,
+            0.19749999999999998,
+            0.20499999999999996
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 0.21,
+          "model_samples": [
+            0.21499999999999997,
+            0.22499999999999998,
+            0.235,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 180,
+          "observed": 0.22999999999999998,
+          "model_samples": [],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 0.19,
+          "model_samples": [
+            0.175,
+            0.1825,
+            0.1975,
+            0.20500000000000002
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.20249999999999999,
+            0.2175,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 0.23,
+          "model_samples": [
+            0.235,
+            0.245,
+            0.255,
+            0.265
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 180,
+          "observed": 0.25,
+          "model_samples": [],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.20249999999999999,
+            0.2175,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.21499999999999997,
+            0.22249999999999998,
+            0.2375,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 0.25,
+          "model_samples": [
+            0.255,
+            0.265,
+            0.275,
+            0.28500000000000003
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-180-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 180,
+          "observed": 0.27,
+          "model_samples": [],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B1-O1",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 0.15,
+          "model_samples": [
+            0.135,
+            0.145,
+            0.155,
+            0.16499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B1-O2",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16499999999999998,
+            0.175,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B1-O3",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 0.19,
+          "model_samples": [
+            0.175,
+            0.185,
+            0.195,
+            0.20500000000000002
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B1-O4",
+          "block_id": "B1",
+          "horizon_days": 365,
+          "observed": 0.21,
+          "model_samples": [
+            0.215,
+            0.22499999999999998,
+            0.235,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B2-O1",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 0.16999999999999998,
+          "model_samples": [
+            0.15499999999999997,
+            0.16499999999999998,
+            0.175,
+            0.185
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B2-O2",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 0.18999999999999997,
+          "model_samples": [
+            0.175,
+            0.18499999999999997,
+            0.19499999999999998,
+            0.20499999999999996
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B2-O3",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B2-O4",
+          "block_id": "B2",
+          "horizon_days": 365,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.235,
+            0.245,
+            0.255,
+            0.265
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B3-O1",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 0.19,
+          "model_samples": [
+            0.175,
+            0.185,
+            0.195,
+            0.20500000000000002
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B3-O2",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B3-O3",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 0.23,
+          "model_samples": [
+            0.21500000000000002,
+            0.225,
+            0.23500000000000001,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B3-O4",
+          "block_id": "B3",
+          "horizon_days": 365,
+          "observed": 0.25,
+          "model_samples": [
+            0.255,
+            0.265,
+            0.275,
+            0.28500000000000003
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B4-O1",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 0.21,
+          "model_samples": [
+            0.195,
+            0.205,
+            0.215,
+            0.22499999999999998
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B4-O2",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 0.22999999999999998,
+          "model_samples": [
+            0.21499999999999997,
+            0.22499999999999998,
+            0.235,
+            0.245
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B4-O3",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 0.25,
+          "model_samples": [
+            0.235,
+            0.245,
+            0.255,
+            0.265
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        },
+        {
+          "forecast_id": "POST_DISTURBANCE_MORTALITY-365-B4-O4",
+          "block_id": "B4",
+          "horizon_days": 365,
+          "observed": 0.27,
+          "model_samples": [
+            0.275,
+            0.28500000000000003,
+            0.29500000000000004,
+            0.30500000000000005
+          ],
+          "baseline_samples": [
+            0.12,
+            0.28
+          ]
+        }
+      ],
+      "expected": {
+        "context_id": "POST_DISTURBANCE_MORTALITY",
+        "useful_horizon_days": 30,
+        "first_failure_horizon_days": 90,
+        "later_horizon_recovery_after_failure": true,
+        "horizon_results": [
+          {
+            "horizon_days": 30,
+            "qualified": true,
+            "passing_block_count": 4,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": 0.84375,
+            "mean_interval_coverage_80": 0.75,
+            "mean_absolute_median_error": 0.007500000000000005,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.0075,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8437499999999999,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              }
+            ]
+          },
+          {
+            "horizon_days": 90,
+            "qualified": false,
+            "passing_block_count": 0,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": -2.3124999999999996,
+            "mean_interval_coverage_80": 0,
+            "mean_absolute_median_error": 0.12999999999999998,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -2.3124999999999996,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 0.12999999999999995,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -2.3124999999999996,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 0.12999999999999998,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -2.3124999999999996,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 0.12999999999999998,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": -2.3125,
+                "interval_coverage_80": 0,
+                "mean_absolute_median_error": 0.13,
+                "qualified": false,
+                "failure_reasons": [
+                  "NON_POSITIVE_OR_UNDEFINED_PAIRED_CRPS_SKILL",
+                  "80_PERCENT_INTERVAL_COVERAGE_OUTSIDE_BAND",
+                  "DECISION_TOLERANCE_EXCEEDED"
+                ]
+              }
+            ]
+          },
+          {
+            "horizon_days": 180,
+            "qualified": false,
+            "passing_block_count": 0,
+            "mean_issuance_fraction": 0.75,
+            "mean_crps_skill_score": 0.8072916666666666,
+            "mean_interval_coverage_80": 0.6666666666666666,
+            "mean_absolute_median_error": 0.010000000000000002,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 3,
+                "issuance_fraction": 0.75,
+                "crps_skill_score": 0.8072916666666667,
+                "interval_coverage_80": 0.6666666666666666,
+                "mean_absolute_median_error": 0.01,
+                "qualified": false,
+                "failure_reasons": [
+                  "ISSUANCE_COVERAGE_BELOW_MINIMUM"
+                ]
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 3,
+                "issuance_fraction": 0.75,
+                "crps_skill_score": 0.8072916666666667,
+                "interval_coverage_80": 0.6666666666666666,
+                "mean_absolute_median_error": 0.01,
+                "qualified": false,
+                "failure_reasons": [
+                  "ISSUANCE_COVERAGE_BELOW_MINIMUM"
+                ]
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 3,
+                "issuance_fraction": 0.75,
+                "crps_skill_score": 0.8072916666666667,
+                "interval_coverage_80": 0.6666666666666666,
+                "mean_absolute_median_error": 0.01,
+                "qualified": false,
+                "failure_reasons": [
+                  "ISSUANCE_COVERAGE_BELOW_MINIMUM"
+                ]
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 3,
+                "issuance_fraction": 0.75,
+                "crps_skill_score": 0.8072916666666665,
+                "interval_coverage_80": 0.6666666666666666,
+                "mean_absolute_median_error": 0.010000000000000009,
+                "qualified": false,
+                "failure_reasons": [
+                  "ISSUANCE_COVERAGE_BELOW_MINIMUM"
+                ]
+              }
+            ]
+          },
+          {
+            "horizon_days": 365,
+            "qualified": true,
+            "passing_block_count": 4,
+            "mean_issuance_fraction": 1,
+            "mean_crps_skill_score": 0.84375,
+            "mean_interval_coverage_80": 0.75,
+            "mean_absolute_median_error": 0.007500000000000005,
+            "block_results": [
+              {
+                "block_id": "B1",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.0075,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B2",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B3",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.84375,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              },
+              {
+                "block_id": "B4",
+                "eligible_case_count": 4,
+                "issued_case_count": 4,
+                "issuance_fraction": 1,
+                "crps_skill_score": 0.8437499999999999,
+                "interval_coverage_80": 0.75,
+                "mean_absolute_median_error": 0.007500000000000007,
+                "qualified": true,
+                "failure_reasons": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
