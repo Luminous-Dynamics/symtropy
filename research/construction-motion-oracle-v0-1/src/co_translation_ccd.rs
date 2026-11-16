@@ -642,6 +642,29 @@ mod tests {
     }
 
     #[test]
+    fn adaptive_query_never_reports_clear_after_bound_overflow() {
+        let moving = capsule(
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            0.0,
+        );
+        let obstacle = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.0);
+        assert_eq!(
+            co_translating_capsule_adaptive_query(
+                moving,
+                p(f64::MAX, 0.0, 0.0),
+                obstacle,
+                p(0.0, 0.0, 0.0),
+                AdaptiveSubdivisionConfig {
+                    maximum_depth: 4,
+                    minimum_window_width: 1.0 / 16.0,
+                },
+            ),
+            Err(TranslationCcdError::NumericalOverflow)
+        );
+    }
+
+    #[test]
     fn affine_bound_overflow_is_an_error_not_a_pruned_interval() {
         let point = capsule(
             p(f64::MAX / 2.0, 0.0, 0.0),
