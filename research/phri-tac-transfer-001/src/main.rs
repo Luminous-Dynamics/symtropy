@@ -66,8 +66,7 @@ fn main() -> ExitCode {
             }
 
             match phri_tac_transfer_oracle::active_benchmark::run_active_calibration_campaign(
-                20261116,
-                50,
+                20261116, 50,
             ) {
                 Ok(campaign) => {
                     println!("active_calibration_campaign=paired_seed_v0_1");

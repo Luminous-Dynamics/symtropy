@@ -870,8 +870,6 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     })
 }
 
-
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MetricSummary {
     pub mean: f64,
@@ -962,7 +960,8 @@ pub fn run_active_calibration_campaign(
         return Err("single-seed benchmark returned no policy results".to_owned());
     }
     let policy_count = first_run.results.len();
-    let mut per_policy_results = vec![Vec::<PolicyResult>::with_capacity(replicate_count); policy_count];
+    let mut per_policy_results =
+        vec![Vec::<PolicyResult>::with_capacity(replicate_count); policy_count];
     let mut paired_rmse_deltas = vec![Vec::<f64>::with_capacity(replicate_count); policy_count];
 
     let full_grid_rmse = first_run.results[0].rmse_n;
@@ -1001,10 +1000,7 @@ pub fn run_active_calibration_campaign(
     }
 
     let mut campaign_results = Vec::with_capacity(policy_count);
-    for (results, paired_deltas) in per_policy_results
-        .into_iter()
-        .zip(paired_rmse_deltas)
-    {
+    for (results, paired_deltas) in per_policy_results.into_iter().zip(paired_rmse_deltas) {
         let first = results
             .first()
             .ok_or_else(|| "campaign policy result unexpectedly empty".to_owned())?;
@@ -1134,7 +1130,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn campaign_requires_at_least_fifty_paired_replicates() {
         assert!(run_active_calibration_campaign(20261116, 49).is_err());
@@ -1143,8 +1138,8 @@ mod tests {
 
     #[test]
     fn fifty_seed_campaign_reports_paired_policy_distributions() {
-        let report = run_active_calibration_campaign(20261116, 50)
-            .expect("fifty-seed campaign runs");
+        let report =
+            run_active_calibration_campaign(20261116, 50).expect("fifty-seed campaign runs");
         assert_eq!(report.replicate_count, 50);
         assert_eq!(report.results.len(), 7);
         assert_eq!(report.target_candidate_pool_size, 72);
