@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 37;
+pub const CASE_COUNT: usize = 39;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -740,14 +740,30 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     let observed = number(input, "observed")?;
     let target = text(input, "target_definition_id")?;
     let reference_target = text(input, "reference_target_definition_id")?;
+    let valid_time = text(input, "valid_time_definition_id")?;
+    let reference_valid_time = text(input, "reference_valid_time_definition_id")?;
+    let population = text(input, "evaluation_population_id")?;
+    let reference_population = text(input, "reference_evaluation_population_id")?;
+    let lead_time = number(input, "lead_time_hours")?;
+    let reference_lead_time = number(input, "reference_lead_time_hours")?;
     let forecast_members = numeric_array(input, "forecast_ensemble_members")?;
     let reference_members = numeric_array(input, "reference_ensemble_members")?;
-    if target != reference_target {
+    if target != reference_target
+        || valid_time != reference_valid_time
+        || population != reference_population
+        || !nearly_equal(lead_time, reference_lead_time)
+    {
         return Ok(json!({
             "probabilistic_disposition": "NOT_COMPARABLE",
-            "reason": "FORECAST_AND_REFERENCE_TARGET_DEFINITIONS_DIFFER",
+            "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
             "target_definition_id": target,
             "reference_target_definition_id": reference_target,
+            "valid_time_definition_id": valid_time,
+            "reference_valid_time_definition_id": reference_valid_time,
+            "evaluation_population_id": population,
+            "reference_evaluation_population_id": reference_population,
+            "lead_time_hours": lead_time,
+            "reference_lead_time_hours": reference_lead_time,
             "forecast_crps": null,
             "reference_crps": null,
             "crps_skill_score": null
@@ -797,15 +813,31 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
 fn brier_skill_score(input: &Value) -> Result<Value, String> {
     let event_id = text(input, "event_definition_id")?;
     let reference_event_id = text(input, "reference_event_definition_id")?;
+    let valid_time = text(input, "valid_time_definition_id")?;
+    let reference_valid_time = text(input, "reference_valid_time_definition_id")?;
+    let population = text(input, "evaluation_population_id")?;
+    let reference_population = text(input, "reference_evaluation_population_id")?;
+    let lead_time = number(input, "lead_time_hours")?;
+    let reference_lead_time = number(input, "reference_lead_time_hours")?;
     let probability = number(input, "forecast_probability")?;
     let reference_probability = number(input, "reference_probability")?;
     let observed_event = number(input, "observed_event")?;
-    if event_id != reference_event_id {
+    if event_id != reference_event_id
+        || valid_time != reference_valid_time
+        || population != reference_population
+        || !nearly_equal(lead_time, reference_lead_time)
+    {
         return Ok(json!({
             "probabilistic_disposition": "NOT_COMPARABLE",
-            "reason": "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER",
+            "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
             "event_definition_id": event_id,
             "reference_event_definition_id": reference_event_id,
+            "valid_time_definition_id": valid_time,
+            "reference_valid_time_definition_id": reference_valid_time,
+            "evaluation_population_id": population,
+            "reference_evaluation_population_id": reference_population,
+            "lead_time_hours": lead_time,
+            "reference_lead_time_hours": reference_lead_time,
             "brier_score": null,
             "reference_brier_score": null,
             "brier_skill_score": null
@@ -1167,7 +1199,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_seven_cases_match_separate_oracle() {
+    fn all_thirty_nine_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1336,6 +1368,23 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][36]).expect("invalid reference probability");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE");
+        assert_eq!(out["brier_skill_score"], Value::Null);
+    }
+
+
+    #[test]
+    fn crps_skill_rejects_mismatched_lead_time() {
+        let out = compute_case(&fixture("inputs")["cases"][37]).expect("lead-time mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_SCOPE_DIFFER");
+        assert_eq!(out["crps_skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn brier_skill_rejects_mismatched_evaluation_population() {
+        let out = compute_case(&fixture("inputs")["cases"][38]).expect("population mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_SCOPE_DIFFER");
         assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
