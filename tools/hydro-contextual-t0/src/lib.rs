@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 32;
+pub const CASE_COUNT: usize = 40;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -845,6 +845,196 @@ fn brier_reliability(input: &Value) -> Result<Value, String> {
     }))
 }
 
+fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
+    let observed = number(input, "observed")?;
+    let model_members = numeric_array(input, "model_members")?;
+    let reference_members = numeric_array(input, "reference_members")?;
+    let model_forecast_id = text(input, "model_forecast_id")?;
+    let reference_forecast_id = text(input, "reference_forecast_id")?;
+    let verification_population_id = text(input, "verification_population_id")?;
+    let lead_time_hours = number(input, "lead_time_hours")?;
+    let tolerance = number(input, "denominator_tolerance")?;
+    if model_forecast_id == reference_forecast_id || lead_time_hours < 0.0 {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD",
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
+            "model_crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    if tolerance < 0.0 {
+        return Err("denominator_tolerance must be non-negative".to_owned());
+    }
+    if observed < 0.0
+        || model_members.iter().any(|value| *value < 0.0)
+        || reference_members.iter().any(|value| *value < 0.0)
+    {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "NEGATIVE_STREAMFLOW_VALUE",
+            "model_member_count": model_members.len(),
+            "reference_member_count": reference_members.len(),
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
+            "observed": observed,
+            "model_crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    let crps = |members: &[f64]| {
+        let count = members.len() as f64;
+        let first = members
+            .iter()
+            .map(|value| (value - observed).abs())
+            .sum::<f64>()
+            / count;
+        let pairwise = members
+            .iter()
+            .flat_map(|left| members.iter().map(move |right| (left - right).abs()))
+            .sum::<f64>();
+        first - pairwise / (2.0 * count * count)
+    };
+    let model_crps = crps(&model_members);
+    let reference_crps = crps(&reference_members);
+    if reference_crps <= tolerance {
+        return Ok(json!({
+            "probabilistic_disposition": "UNDEFINED",
+            "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+            "model_member_count": model_members.len(),
+            "reference_member_count": reference_members.len(),
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
+            "observed": observed,
+            "model_crps": model_crps,
+            "reference_crps": reference_crps,
+            "crps_skill_score": null
+        }));
+    }
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE_ENSEMBLE",
+        "model_member_count": model_members.len(),
+        "reference_member_count": reference_members.len(),
+        "model_forecast_id": model_forecast_id,
+        "reference_forecast_id": reference_forecast_id,
+        "verification_population_id": verification_population_id,
+        "lead_time_hours": lead_time_hours,
+        "observed": observed,
+        "model_crps": model_crps,
+        "reference_crps": reference_crps,
+        "crps_skill_score": 1.0 - model_crps / reference_crps
+    }))
+}
+
+fn weighted_interval_score(input: &Value) -> Result<Value, String> {
+    let observed = number(input, "observed")?;
+    let median = number(input, "median_forecast")?;
+    let interval_rows = array(input, "intervals")?;
+    if interval_rows.is_empty() {
+        return Err("intervals: at least one central prediction interval is required".to_owned());
+    }
+    let mut intervals = Vec::with_capacity(interval_rows.len());
+    for (index, row) in interval_rows.iter().enumerate() {
+        let alpha = number(row, "alpha")?;
+        let lower = number(row, "lower_bound")?;
+        let upper = number(row, "upper_bound")?;
+        if !(0.0 < alpha && alpha < 1.0) {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "INTERVAL_ALPHA_OUTSIDE_ZERO_ONE",
+                "invalid_interval_index": index,
+                "sample_count": 1,
+                "interval_count": interval_rows.len(),
+                "weighted_interval_score": null
+            }));
+        }
+        if lower > upper {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "LOWER_BOUND_EXCEEDS_UPPER_BOUND",
+                "invalid_interval_index": index,
+                "sample_count": 1,
+                "interval_count": interval_rows.len(),
+                "weighted_interval_score": null
+            }));
+        }
+        if median < lower || median > upper {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "MEDIAN_OUTSIDE_CENTRAL_INTERVAL",
+                "invalid_interval_index": index,
+                "sample_count": 1,
+                "interval_count": interval_rows.len(),
+                "weighted_interval_score": null
+            }));
+        }
+        intervals.push((alpha, lower, upper));
+    }
+    intervals.sort_by(|left, right| left.0.total_cmp(&right.0));
+    for pair in intervals.windows(2) {
+        let wider = pair[0];
+        let narrower = pair[1];
+        if (narrower.0 - wider.0).abs() <= f64::EPSILON {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "DUPLICATE_INTERVAL_ALPHA",
+                "sample_count": 1,
+                "interval_count": intervals.len(),
+                "weighted_interval_score": null
+            }));
+        }
+        if narrower.1 < wider.1 || narrower.2 > wider.2 {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "CENTRAL_INTERVALS_NOT_NESTED",
+                "sample_count": 1,
+                "interval_count": intervals.len(),
+                "weighted_interval_score": null
+            }));
+        }
+    }
+    let mut weighted_sum = 0.5 * (observed - median).abs();
+    let mut details = Vec::with_capacity(intervals.len());
+    for (alpha, lower, upper) in &intervals {
+        let mut interval_score = upper - lower;
+        if observed < *lower {
+            interval_score += (2.0 / alpha) * (lower - observed);
+        } else if observed > *upper {
+            interval_score += (2.0 / alpha) * (observed - upper);
+        }
+        weighted_sum += (alpha / 2.0) * interval_score;
+        details.push(json!({
+            "alpha": alpha,
+            "nominal_coverage": 1.0 - alpha,
+            "lower_bound": lower,
+            "upper_bound": upper,
+            "interval_score": interval_score
+        }));
+    }
+    let wis = weighted_sum / (intervals.len() as f64 + 0.5);
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "WEIGHTED_INTERVAL_SCORE_NESTED_CENTRAL_INTERVALS",
+        "sample_count": 1,
+        "interval_count": intervals.len(),
+        "observed": observed,
+        "median_forecast": median,
+        "median_absolute_error": (observed - median).abs(),
+        "intervals": details,
+        "weighted_interval_score": wis
+    }))
+}
+
 pub fn compute_case(case: &Value) -> Result<Value, String> {
     let id = text(case, "case_id")?;
     let input = field(case, "inputs")?;
@@ -873,6 +1063,15 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-029-threshold-event-brier" => brier_score(input),
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
+
+        "HC-T0-033-crps-skill-vs-reference"
+        | "HC-T0-034-crps-skill-zero-reference-undefined"
+        | "HC-T0-039-crpss-invalid-forecast-identity-reject"
+        | "HC-T0-040-crpss-negative-lead-reject" => ensemble_crps_skill(input),
+        "HC-T0-035-weighted-interval-score"
+        | "HC-T0-036-weighted-interval-nesting-reject"
+        | "HC-T0-037-weighted-interval-alpha-reject"
+        | "HC-T0-038-weighted-interval-duplicate-alpha-reject" => weighted_interval_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1015,7 +1214,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_two_cases_match_separate_oracle() {
+    fn all_forty_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1149,6 +1348,65 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][31]).expect("negative ensemble member");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
+    }
+
+    #[test]
+    fn crps_skill_compares_model_against_explicit_reference() {
+        let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPS skill");
+        assert!((out["model_crps"].as_f64().expect("model CRPS") - 2.0 / 3.0).abs() < 1.0e-12);
+        assert!(
+            (out["reference_crps"].as_f64().expect("reference CRPS") - 4.0 / 9.0).abs() < 1.0e-12
+        );
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") + 0.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn crps_skill_abstains_when_reference_score_is_zero() {
+        let out = compute_case(&fixture("inputs")["cases"][33]).expect("zero-reference CRPS");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["crps_skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn weighted_interval_score_uses_all_nested_central_intervals() {
+        let out = compute_case(&fixture("inputs")["cases"][34]).expect("WIS");
+        assert_eq!(out["interval_count"], 2);
+        assert!((out["weighted_interval_score"].as_f64().expect("WIS") - 0.64).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_non_nested_intervals() {
+        let out = compute_case(&fixture("inputs")["cases"][35]).expect("crossed intervals");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "CENTRAL_INTERVALS_NOT_NESTED");
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_invalid_alpha() {
+        let out = compute_case(&fixture("inputs")["cases"][36]).expect("invalid alpha");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "INTERVAL_ALPHA_OUTSIDE_ZERO_ONE");
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_duplicate_nominal_levels() {
+        let out = compute_case(&fixture("inputs")["cases"][37]).expect("duplicate interval alpha");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "DUPLICATE_INTERVAL_ALPHA");
+    }
+
+    #[test]
+    fn crps_skill_rejects_same_model_and_reference_forecast_identity() {
+        let out = compute_case(&fixture("inputs")["cases"][38]).expect("invalid forecast identity");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD");
+    }
+
+    #[test]
+    fn crps_skill_rejects_negative_forecast_lead() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("negative lead");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD");
     }
 
     #[test]

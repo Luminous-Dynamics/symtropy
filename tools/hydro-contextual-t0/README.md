@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 32-case corpus exercises:
+The frozen 40-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -31,7 +31,7 @@ The evaluator reads frozen arrays. It does not generate, calibrate, select or ex
 
 ## Evidence receipt
 
-The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 32 rows match the separate oracle.
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 40 rows match the separate oracle.
 
 ## Nonclaims
 
@@ -58,10 +58,22 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 32-case synthetic corpus adds:
+The 40-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
 - rejection of probabilities outside [0,1] and negative streamflow members.
 
 CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins are descriptive, not proof of calibration; meaningful calibration requires many independent events, catchments, forecast horizons and uncertainty intervals. Event threshold, units, lead time and valid-time semantics must be frozen before scoring. All cases remain synthetic; the evaluator does not issue forecasts.
+
+
+### CRPSS and weighted interval score (cases 033–040)
+
+The 40-case synthetic corpus now also:
+- compares model ensemble CRPS against a named reference forecast using CRPSS;
+- records model/reference IDs, verification-population ID and lead time;
+- abstains when reference CRPS is zero/within tolerance and rejects identical forecast IDs or negative lead;
+- calculates weighted interval score across multiple central intervals;
+- rejects interval sets with invalid/duplicate alpha levels, non-nested bounds or median outside the central interval.
+
+CRPSS is not clipped: negative skill is reported as negative. WIS sorts interval levels by alpha, requires nesting and reports each interval score. The reference forecast must correspond to the same target population, event and lead time.
