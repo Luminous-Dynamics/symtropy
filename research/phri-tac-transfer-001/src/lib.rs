@@ -505,9 +505,18 @@ fn target_calibration_applicable(input: &CandidateInput) -> bool {
         return false;
     };
 
+    let distinct_target_calibration_required = matches!(
+        input.regime,
+        TransferRegime::CrossUnitZeroShot
+            | TransferRegime::CrossUnitFewShot
+            | TransferRegime::CrossFamilyZeroShot
+            | TransferRegime::CrossRevision
+    );
+
     calibration.state == CalibrationState::Current
         && calibration.device_id == input.target.unit_id
-        && calibration.calibration_id != input.source.calibration_id
+        && (!distinct_target_calibration_required
+            || calibration.calibration_id != input.source.calibration_id)
         && calibration.profile_digest == input.target.profile_digest
         && calibration.firmware_revision == input.target.firmware_revision
         && calibration.skin_revision == input.target.skin_revision
@@ -824,6 +833,18 @@ mod tests {
         assert!(parse_and_validate(&value).is_err());
     }
 
+
+    #[test]
+    fn same_device_may_reuse_its_current_calibration_when_profile_is_unchanged() {
+        let mut value = tracked_value();
+        mutate_case(&mut value, "PTT-001", |case| {
+            case["candidate_input"]["target_calibration"]["calibration_id"] =
+                serde_json::json!("cal-source-01");
+            case["candidate_input"]["model"]["target_calibration_id"] =
+                serde_json::json!("cal-source-01");
+        });
+        assert!(parse_and_validate(&value).is_ok());
+    }
 
     #[test]
     fn a_source_certificate_cannot_be_reused_as_the_target_unit_calibration() {
