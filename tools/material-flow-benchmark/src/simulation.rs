@@ -860,11 +860,18 @@ pub fn simulate_closed_gate_obstruction_sweep(
                     .max(result.gate_contact_max_impulse_ns);
                 maximum_contact_penetration_m = maximum_contact_penetration_m
                     .max(result.simulation.max_contact_penetration_m);
-                reconciliation_run_count += usize::from(result.reconciliation_required);
-                blind_retry_blocked_run_count += usize::from(result.blind_retry_blocked);
-                false_completion_blocked_run_count +=
-                    usize::from(result.false_completion_blocked);
-                passed_run_count += usize::from(result.fault_oracle_passed);
+                if result.reconciliation_required {
+                    reconciliation_run_count += 1;
+                }
+                if result.blind_retry_blocked {
+                    blind_retry_blocked_run_count += 1;
+                }
+                if result.false_completion_blocked {
+                    false_completion_blocked_run_count += 1;
+                }
+                if result.fault_oracle_passed {
+                    passed_run_count += 1;
+                }
                 cases.push(GateFaultSweepCase {
                     case_index,
                     seed,
