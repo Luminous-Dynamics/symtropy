@@ -90,6 +90,15 @@ jobs:
             echo
             echo "[simulation_result_digest]"
             sha256sum mfb-l1-evidence/result.json
+            echo
+            echo "[free_fall_convergence_digest]"
+            sha256sum mfb-l1-evidence/free-fall-convergence.json
+            echo
+            echo "[protocol_fault_campaign_digest]"
+            sha256sum mfb-l1-evidence/protocol-fault-campaign.json
+            echo
+            echo "[dependency_lock_digest]"
+            sha256sum tools/material-flow-benchmark/Cargo.lock
           } > mfb-l1-evidence/environment.txt
           cat mfb-l1-evidence/environment.txt
           cat mfb-l1-evidence/result.json
