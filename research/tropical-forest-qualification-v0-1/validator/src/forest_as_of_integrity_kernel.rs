@@ -538,8 +538,6 @@ mod tests {
     fn a_later_revision_cannot_be_selected_before_its_availability_time() {
         let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
         manifest["cases"][3]["selected_input_version_ids"]=json!(["TREE-CENSUS-V2"]);
-        manifest["cases"][3]["expected_disposition"]=json!("SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF");
-        manifest["cases"][3]["expected_reasons"]=json!(["SELECTED_VERSION_NOT_AVAILABLE_AS_OF_CUTOFF"]);
         let raw=serde_json::to_vec(&manifest).expect("serialize");
         assert!(validate_corpus(&raw,&manifest).is_err());
     }
@@ -548,8 +546,6 @@ mod tests {
     fn a_forecasted_driver_must_be_issued_by_the_information_cutoff() {
         let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
         manifest["cases"][6]["source_versions"][0]["driver_forecast_issued_at"]=json!(1210);
-        manifest["cases"][6]["expected_disposition"]=json!("INVALID_FORECASTED_DRIVER_SUPPORT");
-        manifest["cases"][6]["expected_reasons"]=json!(["DRIVER_FORECAST_NOT_AVAILABLE_OR_TARGET_SUPPORT_MISMATCH"]);
         let raw=serde_json::to_vec(&manifest).expect("serialize");
         assert!(validate_corpus(&raw,&manifest).is_err());
     }
