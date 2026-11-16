@@ -252,3 +252,20 @@ The product manual is a serious engineering baseline. The proposed differentiati
 ## 12. Nonclaims
 
 This architecture does not qualify a treatment train, pathogen removal, potable water, reuse safety, regulatory compliance, household savings, commercial readiness or product superiority. It authorizes no installation, purchase, construction or human exposure. Qualified plumbing/electrical/water-quality review and an approved unoccupied demonstrator protocol are prerequisites to physical testing.
+
+
+## 13. Local approval and staged first article — Johannesburg candidate site
+
+The City of Johannesburg Water Services By-law, 2004, in the consolidated version found for this research (including amendments through 6 June 2025), section 50 states that use of water from a source other than municipal water supply requires prior Council permission for domestic/commercial/industrial purposes, with a stated exception for rainwater tanks that are not connected to the water installation. The same text covers installation approval/drawings (section 36), specified work reserved for qualified plumbers (section 37), and owner provision/maintenance of the installation (section 38).
+
+Source: https://lawlibrary.org.za/akn/za-jhb/act/by-law/2004/water-services/eng@2009-09-30
+
+This is a consolidated historical text, not a site approval or legal opinion. Confirm the currently operative by-law, amendments, City requirements, building/plumbing permissions and exact scope of section 50 with the City and qualified local professionals before collecting or connecting greywater. Do not assume a proprietary greywater system or private-property location removes municipal approval requirements.
+
+**First physical article sequence:**
+1. Design and dry assembly review; no wastewater feed and no building connection.
+2. Clean-water-only unoccupied hydraulic/metering shakedown using an isolated test cistern or fixture-equivalent load; verify pressure, flow, volume, energy, safe diversion, containment and module interface.
+3. Only after permissions and sampling/lab plans are approved, separately characterise bath/shower source water with no treatment outlet or end-use connection. The preregistered source campaign is tracked by [#5545](https://github.com/Luminous-Dynamics/symtropy/issues/5545); its protocol and machine-readable templates are linked in the follow-on feed-characterisation PR.
+4. Treatment-module comparisons remain contained, unoccupied and independently sampled; no reclaimed water is delivered to a person or the environment without the applicable approvals and use-specific quality admission.
+
+This stage ordering is not a weakening of the greywater demonstrator: it obtains useful hydraulic and instrumentation evidence before introducing biological, chemical and public-health risk. It also prevents a prototype test from being misconstrued as installation or reuse authorization.
