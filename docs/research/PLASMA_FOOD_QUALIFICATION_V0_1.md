@@ -84,12 +84,18 @@ Do not interpret generator nameplate power as energy delivered to the food. If a
 
 ### 2.3 Measure cooking and quality
 
-Primary outcome:
-- total elapsed time from untreated raw ingredient to a predeclared accepted cooked-food endpoint.
+Report three distinct clocks rather than one ambiguous “cooking time”:
+1. **Household cook-stage time:** from opening the ready-to-cook pack / starting ordinary preparation to the predeclared accepted cooked-food endpoint.
+2. **Upstream process time and throughput:** plasma treatment time per batch and per kilogram, including loading, vacuum / gas handling, unloading, packaging and queueing.
+3. **Total sequential chain time:** untreated raw commodity through plasma pretreatment and cooking. Report this for a sequential process; a factory batch operation can run in parallel with other production and must not be silently compared with a household elapsed-time measure.
+
+Primary household-service outcome:
+- time-to-accepted-cooked-food from the same declared household start point, versus untreated and conventional-preparation controls.
 
 Secondary outcomes:
-- pretreatment time and cook time, separately;
-- total wall-plug energy across pretreatment and cooking;
+- pretreatment time / throughput and household cook time separately;
+- total sequential chain time, with any overlap / parallelization explicitly declared;
+- total wall-plug energy across pretreatment, auxiliaries, storage and cooking;
 - water consumption and cooked yield;
 - hydration / water-uptake kinetics;
 - hardness, chewiness, stickiness and texture uniformity;
@@ -175,8 +181,9 @@ All targets below are hypotheses, not established standards or results.
 ### H1 brown rice
 
 After the baseline is reproduced:
-- >=20% lower end-to-end time, including plasma pretreatment and cooking;
-- >=10% lower total wall-plug energy per accepted cooked kilogram;
+- >=20% lower household cook-stage time versus the matched untreated lot at the same accepted-food endpoint; report upstream treatment time and plant throughput separately;
+- >=10% lower total wall-plug energy per accepted cooked kilogram after including plasma equipment, vacuum / gas / cooling auxiliaries and household cooking;
+- publish total sequential chain time and any factory/household parallelization explicitly; do not claim end-to-end time savings from a reduced cooking stage alone;
 - no more than a predeclared 0.5-point reduction in a 9-point sensory-liking score;
 - no material deterioration in texture, nutrition, oxidation, storage stability or food-safety handling.
 
