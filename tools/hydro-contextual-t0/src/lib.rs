@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 32;
+pub const CASE_COUNT: usize = 36;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -755,6 +755,106 @@ fn brier_score(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn brier_skill_score(input: &Value) -> Result<Value, String> {
+    let event_id = text(input, "event_definition_id")?;
+    let reference_event_id = text(input, "reference_event_definition_id")?;
+    let tolerance = number(input, "denominator_tolerance")?;
+    if tolerance < 0.0 {
+        return Err("denominator_tolerance must be non-negative".to_owned());
+    }
+    if event_id != reference_event_id {
+        return Ok(json!({
+            "probabilistic_disposition": "NOT_COMPARABLE",
+            "reason": "REFERENCE_EVENT_DEFINITION_MISMATCH",
+            "event_definition_id": event_id,
+            "reference_event_definition_id": reference_event_id,
+            "sample_count": null,
+            "event_count": null,
+            "observed_event_frequency": null,
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    let probabilities = numeric_array(input, "forecast_probabilities")?;
+    let reference = numeric_array(input, "reference_probabilities")?;
+    let outcomes = numeric_array(input, "observed_events")?;
+    if probabilities.len() != reference.len() || probabilities.len() != outcomes.len() {
+        return Err("forecast, reference and observed-event arrays must have equal length".to_owned());
+    }
+    if let Some(index) = probabilities.iter().position(|value| !(0.0..=1.0).contains(value)) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE",
+            "event_definition_id": event_id,
+            "invalid_probability_index": index,
+            "sample_count": probabilities.len(),
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    if let Some(index) = reference.iter().position(|value| !(0.0..=1.0).contains(value)) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+            "event_definition_id": event_id,
+            "invalid_reference_probability_index": index,
+            "sample_count": probabilities.len(),
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    if let Some(index) = outcomes.iter().position(|value| *value != 0.0 && *value != 1.0) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
+            "event_definition_id": event_id,
+            "invalid_outcome_index": index,
+            "sample_count": outcomes.len(),
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    let brier = probabilities
+        .iter()
+        .zip(&outcomes)
+        .map(|(probability, outcome)| (probability - outcome).powi(2))
+        .sum::<f64>()
+        / probabilities.len() as f64;
+    let reference_brier = reference
+        .iter()
+        .zip(&outcomes)
+        .map(|(probability, outcome)| (probability - outcome).powi(2))
+        .sum::<f64>()
+        / reference.len() as f64;
+    let event_count = outcomes.iter().filter(|value| **value == 1.0).count();
+    let event_frequency = event_count as f64 / outcomes.len() as f64;
+    let skill = if reference_brier <= tolerance {
+        None
+    } else {
+        Some(1.0 - brier / reference_brier)
+    };
+    Ok(json!({
+        "probabilistic_disposition": if skill.is_some() { "ADMITTED" } else { "UNDEFINED" },
+        "reason": if skill.is_some() { "PAIRED_BRIER_SKILL_AGAINST_DECLARED_REFERENCE" } else { "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE" },
+        "event_definition_id": event_id,
+        "reference_event_definition_id": reference_event_id,
+        "sample_count": outcomes.len(),
+        "event_count": event_count,
+        "observed_event_frequency": event_frequency,
+        "mean_forecast_probability": mean(&probabilities),
+        "mean_reference_probability": mean(&reference),
+        "brier_score": brier,
+        "reference_brier_score": reference_brier,
+        "brier_skill_score": skill,
+        "skill_warning": "Always report raw forecast and reference Brier scores, event frequency, sample count and uncertainty. Brier skill can be difficult to interpret for rare events and must not be reported without its reference definition and event population."
+    }))
+}
+
 fn brier_reliability(input: &Value) -> Result<Value, String> {
     let probabilities = numeric_array(input, "forecast_probabilities")?;
     let outcomes = numeric_array(input, "observed_events")?;
@@ -873,6 +973,10 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-029-threshold-event-brier" => brier_score(input),
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
+        "HC-T0-033-brier-skill-score-positive"
+        | "HC-T0-034-brier-skill-score-negative"
+        | "HC-T0-035-brier-skill-zero-reference-undefined"
+        | "HC-T0-036-brier-skill-event-definition-mismatch" => brier_skill_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1015,7 +1119,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_two_cases_match_separate_oracle() {
+    fn all_thirty_six_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1149,6 +1253,41 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][31]).expect("negative ensemble member");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
+    }
+
+
+    #[test]
+    fn brier_skill_score_reports_positive_skill_against_declared_reference() {
+        let out = compute_case(&fixture("inputs")["cases"][32]).expect("positive Brier skill");
+        assert_eq!(out["probabilistic_disposition"], "ADMITTED");
+        assert!((out["brier_score"].as_f64().expect("Brier score") - 0.0575).abs() < 1.0e-12);
+        assert!((out["reference_brier_score"].as_f64().expect("reference score") - 0.24).abs() < 1.0e-12);
+        assert!((out["brier_skill_score"].as_f64().expect("skill score") - 0.7604166666666666).abs() < 1.0e-12);
+        assert_eq!(out["observed_event_frequency"], 0.6);
+    }
+
+    #[test]
+    fn brier_skill_score_preserves_negative_skill() {
+        let out = compute_case(&fixture("inputs")["cases"][33]).expect("negative Brier skill");
+        assert_eq!(out["probabilistic_disposition"], "ADMITTED");
+        assert!((out["brier_skill_score"].as_f64().expect("skill score") + 2.07).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn brier_skill_score_is_undefined_for_perfect_reference() {
+        let out = compute_case(&fixture("inputs")["cases"][34]).expect("perfect reference");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["brier_skill_score"], Value::Null);
+        assert!(out["brier_score"].is_number());
+        assert_eq!(out["reference_brier_score"], 0.0);
+    }
+
+    #[test]
+    fn brier_skill_score_rejects_mismatched_event_definitions() {
+        let out = compute_case(&fixture("inputs")["cases"][35]).expect("event mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "REFERENCE_EVENT_DEFINITION_MISMATCH");
+        assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
     #[test]
