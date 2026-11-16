@@ -1090,7 +1090,6 @@ fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
     );
 }
 
-
 #[test]
 fn cutoff_time_scale_must_match_the_frozen_claim_policy() {
     let mut query = cutoff(50, 50);
@@ -1106,13 +1105,7 @@ fn policy_knowledge_time_scale_must_match_the_claim() {
     let mut frozen = policy();
     frozen.knowledge_time_scale_id = "LOCAL-LOG-TIME".into();
     assert_eq!(
-        evaluate_claim(
-            &claim(),
-            &[],
-            &complete_coverage(),
-            cutoff(50, 50),
-            &frozen
-        ),
+        evaluate_claim(&claim(), &[], &complete_coverage(), cutoff(50, 50), &frozen),
         Err(EvaluationError::TimeScaleMismatch)
     );
 }
