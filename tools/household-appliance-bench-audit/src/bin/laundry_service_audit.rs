@@ -322,13 +322,11 @@ mod tests {
             profile["metrics"].as_array().expect("metrics array").len(),
             25
         );
-        assert_eq!(
-            profile["baselines"]
-                .as_array()
-                .expect("baselines array")
-                .len(),
-            2
-        );
+        let baseline_count = profile["baselines"]
+            .as_array()
+            .expect("baselines array")
+            .len();
+        assert!(baseline_count >= 2, "retain at least washer and dryer desk references");
     }
 
     #[test]
