@@ -937,8 +937,8 @@ mod tests {
                 1.0e-11,
             );
             close(
-                pairing(&covector_q, &vector_q),
-                pairing(&covector_y, &vector_y),
+                pairing(&covector_q, &vector_q).unwrap(),
+                pairing(&covector_y, &vector_y).unwrap(),
                 1.0e-11,
             );
         }
