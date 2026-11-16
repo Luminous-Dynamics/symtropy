@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 36-case corpus exercises:
+The frozen 44-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -58,7 +58,7 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 36-case synthetic corpus adds:
+The 44-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
@@ -69,10 +69,22 @@ CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins ar
 
 ### Paired Brier skill and rare-event reference safeguards (cases 033–036)
 
-The 36-case corpus adds:
+The 44-case corpus adds:
 - paired Brier skill score against a declared reference forecast for the exact same event definition;
 - positive and negative BSS cases (negative skill is retained, never clipped);
 - a perfect/zero-error reference case that makes BSS Undefined while preserving the raw forecast and reference Brier scores;
 - mismatched threshold/event definitions that return NOT_COMPARABLE.
 
 Every comparison reports raw forecast/reference Brier, event count, observed frequency, sample count and reference identity. This follows WMO-No. 1364's caution that Brier skill for very rare events may be counterintuitive when the reference and event climatology are not made explicit. BSS is never a standalone leaderboard number.
+
+### Continuous-distribution skill and quantile verification (cases 037–044)
+
+The 44-case corpus adds:
+- CRPS skill against a paired reference ensemble for the exact same target/lead definition;
+- positive and negative CRPSS examples, with negative skill retained;
+- an Undefined state when reference CRPS is zero;
+- NOT_COMPARABLE for target-definition mismatch;
+- Weighted Interval Score (WIS) from the median plus a set of central prediction intervals;
+- explicit rejection of crossed bounds and non-nested/quantile-crossing central intervals.
+
+CRPSS is 1 - CRPS_forecast / CRPS_reference. WIS uses interval scores weighted by the declared miscoverage levels; it scores sharpness and misses rather than just empirical coverage. The evaluator reports raw forecast/reference CRPS and the interval-level WIS components. All fixtures remain synthetic.
