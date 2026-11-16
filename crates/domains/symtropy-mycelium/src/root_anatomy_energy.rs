@@ -131,22 +131,37 @@ impl fmt::Display for RootAnatomyEnergyError {
                 write!(f, "ToS layer thickness must be finite and positive")
             }
             Self::InvalidRootSurfaceRate => {
-                write!(f, "root surface nutrient rate k must be finite and positive")
+                write!(
+                    f,
+                    "root surface nutrient rate k must be finite and positive"
+                )
             }
             Self::InvalidArbusculeRate => {
                 write!(f, "arbuscule nutrient rate k2 must be finite and positive")
             }
             Self::InvalidRootTransportCost => {
-                write!(f, "root transport energy cost E0 must be finite and positive")
+                write!(
+                    f,
+                    "root transport energy cost E0 must be finite and positive"
+                )
             }
             Self::InvalidFungalTransportCost => {
-                write!(f, "fungal transport energy cost E0f must be finite and non-negative")
+                write!(
+                    f,
+                    "fungal transport energy cost E0f must be finite and non-negative"
+                )
             }
             Self::InvalidFungalExchangeRatio => {
-                write!(f, "fungal nutrient-per-carbon ratio must be finite and positive")
+                write!(
+                    f,
+                    "fungal nutrient-per-carbon ratio must be finite and positive"
+                )
             }
             Self::InvalidObservedRootRadius => {
-                write!(f, "observed root radius must be finite and positive when supplied")
+                write!(
+                    f,
+                    "observed root radius must be finite and positive when supplied"
+                )
             }
             Self::NonFiniteDerivedValue => {
                 write!(f, "root anatomy equations produced a non-finite derived value")
@@ -185,9 +200,7 @@ impl RootAnatomyParameters {
         {
             return Err(RootAnatomyEnergyError::InvalidFungalTransportCost);
         }
-        if !self
-            .fungal_nutrient_per_carbon_k_ncf_mg_per_mg
-            .is_finite()
+        if !self.fungal_nutrient_per_carbon_k_ncf_mg_per_mg.is_finite()
             || self.fungal_nutrient_per_carbon_k_ncf_mg_per_mg <= 0.0
         {
             return Err(RootAnatomyEnergyError::InvalidFungalExchangeRatio);
@@ -282,8 +295,8 @@ pub fn evaluate_root_anatomy_energy(
 
     // Eq. 7: combined root-derived and fungal-derived nutrient benefit per
     // root energy investment for root uptake plus transfer to the stele.
-    let mycorrhizal_efficiency =
-        (root_surface_nutrient + fungal_nutrient) / (root_transport_energy + fungal_transport_energy);
+    let mycorrhizal_efficiency = (root_surface_nutrient + fungal_nutrient)
+        / (root_transport_energy + fungal_transport_energy);
 
     let report = RootAnatomyEnergyReport {
         tos_layer_count: parameters.tos_layer_count,
@@ -316,13 +329,17 @@ pub fn evaluate_root_anatomy_energy(
         report.total_hyphal_transport_energy_saving_j_per_hour,
     ];
     if finite_values.iter().any(|value| !value.is_finite())
-        || report.radius_approximation_relative_error.is_some_and(|value| !value.is_finite())
+        || report
+            .radius_approximation_relative_error
+            .is_some_and(|value| !value.is_finite())
         || report.layer_results.iter().any(|layer| {
             !layer.fungal_nutrient_rate_mg_per_hour.is_finite()
                 || !layer.root_transport_distance_m.is_finite()
                 || !layer.root_transport_energy_j_per_hour.is_finite()
                 || !layer.hyphal_transport_energy_saving_j_per_hour.is_finite()
-                || layer.nutrient_per_energy_mg_per_j.is_some_and(|value| !value.is_finite())
+                || layer
+                    .nutrient_per_energy_mg_per_j
+                    .is_some_and(|value| !value.is_finite())
         })
     {
         return Err(RootAnatomyEnergyError::NonFiniteDerivedValue);
@@ -415,9 +432,9 @@ mod tests {
         for x in 1..=12 {
             let report = evaluate_root_anatomy_energy(&parameters(x)).unwrap();
             let xf = f64::from(x);
-            let expected = 2.0 * std::f64::consts::PI * 0.001_f64.powi(2) * 3.0 * 10.0
-                * (xf.powi(3) - xf)
-                / 3.0;
+            let expected =
+                2.0 * std::f64::consts::PI * 0.001_f64.powi(2) * 3.0 * 10.0 * (xf.powi(3) - xf)
+                    / 3.0;
             close(
                 report.mycorrhizal_root_transport_energy_j_per_hour,
                 expected,
