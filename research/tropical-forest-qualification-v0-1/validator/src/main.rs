@@ -72,6 +72,7 @@ evaluates one synthetic fixture and prints a deterministic JSON receipt"
             | Some("PASS_SYNTHETIC_PRACTICAL_DESIGN")
             | Some("PASS_SYNTHETIC_SOURCE_IDENTITY_POLICY")
             | Some("PASS_SYNTHETIC_AFEX_ROOT_DISTRIBUTION_ORACLE")
+            | Some("PASS_SYNTHETIC_FORECAST_USEFULNESS_LIMIT")
     );
     if !successful_result {
         process::exit(1);
