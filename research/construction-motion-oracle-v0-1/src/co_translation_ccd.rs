@@ -1332,7 +1332,6 @@ mod tests {
     }
 }
 
-
 /// One terminal interval in a replayable adaptive collision certificate.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AdaptiveProofLeaf {
@@ -1357,9 +1356,7 @@ pub enum AdaptiveProofLeafDisposition {
         closest: CoTranslatingCapsuleClosestApproach,
     },
     /// The analytic query declined to classify this candidate interval.
-    Unresolved {
-        error: TranslationCcdError,
-    },
+    Unresolved { error: TranslationCcdError },
 }
 
 /// Complete typed input snapshot and terminal-interval ledger for one adaptive query.
