@@ -1,0 +1,212 @@
+{
+  "schema_version": "myco.observation_tool_tournament.v0.1",
+  "suite_id": "MYCO-OBS-TOOL-TOURNAMENT-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5504",
+  "status": "protocol_defined_source_admission_incomplete_execution_not_run",
+  "tools": [
+    {
+      "id": "mycelyso",
+      "publication_doi": "10.1186/s12859-019-3004-1",
+      "repository": "https://github.com/modsim/mycelyso",
+      "license": "BSD",
+      "organism_scope": "Streptomyces live-cell phase-contrast microfluidic time-lapse",
+      "task_scope": [
+        "segmentation",
+        "skeletonization",
+        "hypha_identity_tracking",
+        "graphml_export",
+        "growth_kinetics",
+        "HDF5_provenance"
+      ],
+      "reported_reference": {
+        "dataset_size_gib": 1.4,
+        "timepoints": 136,
+        "processing_seconds_mean": 52.5,
+        "processing_seconds_sd": 1.2,
+        "frames_per_second_approx": 2.5,
+        "cpu": "Intel Core i7-4790 quad-core 3.6GHz",
+        "ram_gib": 32,
+        "screening_total_gib": 680,
+        "screening_stack_count": 600
+      },
+      "metrics": [
+        "hyphal_growth_unit",
+        "hypha_elongation_rate",
+        "whole_network_elongation_rate",
+        "branching_point_count",
+        "tip_count",
+        "total_network_length"
+      ],
+      "caveats": [
+        "tracking capped when chamber coverage reached 20 percent in original screening",
+        "subset of positions was visually inspected",
+        "dense packed networks filtered to reduce tracking errors",
+        "Streptomyces profile is not AMF-specific"
+      ],
+      "source_admission": "paper and repository identified; exact commit and demo-data bytes to pin"
+    },
+    {
+      "id": "tipquant",
+      "publication_doi": "10.1111/nph.71474",
+      "repository": null,
+      "license": "CC BY 4.0 for article; software terms/source release separately verify",
+      "organism_scope": [
+        "Arabidopsis thaliana pollen tube",
+        "Fusarium graminearum hypha"
+      ],
+      "task_scope": [
+        "apex_detection",
+        "membrane_ROI_fluorescence",
+        "apical_cytoplasm_ROI_fluorescence",
+        "kymograph",
+        "live_tip_growth"
+      ],
+      "runtime_requirements": {
+        "python": ">=3.11",
+        "dependency_manager": "Poetry",
+        "modalities": [
+          "confocal"
+        ],
+        "microscope_vendors": [
+          "Leica",
+          "Nikon",
+          "Zeiss"
+        ]
+      },
+      "caveats": [
+        "turns >90 degrees and U-turns reduce detection robustness",
+        "not applicable to nongrowing cells",
+        "multiple tips per video unsupported without cropping",
+        "epifluorescence unsupported"
+      ],
+      "source_admission": "paper admitted; code exact revision / license / source test videos to pin"
+    },
+    {
+      "id": "hyphatracker",
+      "publication_doi": "10.1038/s41598-017-19103-1",
+      "code_release": "supplementary file HyphaTracker_v1.0.zip",
+      "repository": "https://bcp.phys.strath.ac.uk/photophysics/super-resolution/software/",
+      "license": "verify source and data terms",
+      "organism_scope": "Fusarium fujikuroi conidia germination and germ tubes",
+      "task_scope": [
+        "drift_correction",
+        "time_series_reduction",
+        "binary_segmentation",
+        "germling_ROI",
+        "identity_assignment",
+        "area_circularity_timing"
+      ],
+      "reported_reference": {
+        "images": 184,
+        "duration_hours": 15,
+        "frame_rate_per_hour": 12,
+        "validation": "simulated germlings at multiple SNRs"
+      },
+      "caveats": [
+        "crossing hyphae and image-boundary germlings omitted",
+        "omission only justifiable in sparse fields"
+      ],
+      "source_admission": "paper and supplement identified; exact downloadable package/hash and license to verify"
+    },
+    {
+      "id": "anamorf",
+      "publication_doi": "10.1002/btpr.2087",
+      "repository": null,
+      "license": "verify source release",
+      "organism_scope": "filamentous microbes",
+      "task_scope": [
+        "ImageJ_morphology_quantification"
+      ],
+      "caveats": [
+        "legacy 2015 package; pin source/data and assess modern compatibility"
+      ],
+      "source_admission": "paper identified; exact source and current reproducibility status unknown"
+    },
+    {
+      "id": "sparticle",
+      "publication_doi": "10.1186/s12859-019-3004-1",
+      "repository": null,
+      "license": "verify source release",
+      "organism_scope": "Streptomyces pellets and mycelium fragments",
+      "task_scope": [
+        "aggregate_scale_morphology"
+      ],
+      "caveats": [
+        "aggregate scale rather than individual hyphal graph identity"
+      ],
+      "source_admission": "secondary comparator reference; source exact revision to verify"
+    },
+    {
+      "id": "snt_fiji",
+      "publication_doi": "10.1038/s41592-021-01105-7",
+      "repository": "https://github.com/morphonets/SNT",
+      "license": "GPL-3.0",
+      "organism_scope": "general 3D filament/neurite tracing",
+      "task_scope": [
+        "manual_and_semi_automated_3d_trace",
+        "proof_editing",
+        "3d_morphology_quantification"
+      ],
+      "caveats": [
+        "cross-domain comparator, not fungal-specific accuracy reference"
+      ],
+      "source_admission": "docs/source identified; exact release and plugin version to pin"
+    }
+  ],
+  "shared_tracks": [
+    "segmentation",
+    "skeleton_geometry",
+    "temporal_identity_tracking",
+    "graph_topology",
+    "tip_dynamics",
+    "throughput",
+    "human_review_and_censoring"
+  ],
+  "critical_controls": [
+    "dense_vs_sparse_coverage",
+    "turns_greater_than_90_degrees",
+    "u_turns",
+    "multiple_active_tips",
+    "nongrowing_period",
+    "low_signal_to_noise",
+    "z_step_anisotropy",
+    "missing_frames",
+    "shuffled_time",
+    "reversed_time",
+    "identity_permutation",
+    "depth_separated_projection_crossing",
+    "coverage_censoring_audit"
+  ],
+  "split_contract": {
+    "unit": "entire independent acquisition sequence / biological replicate",
+    "holdouts": [
+      "sequence_out",
+      "replicate_out",
+      "microscope_vendor_out",
+      "acquisition_regime_out"
+    ],
+    "prohibited": [
+      "neighboring frames in train and test",
+      "sibling crops from same sequence across splits"
+    ]
+  },
+  "proposed_targets_not_results": {
+    "graph_quality": "improve identity/topology error on matched fungal stacks while reporting selective risk",
+    "false_join": "zero false joins on depth-separated known-truth controls",
+    "throughput": "at least 2x only when graph/track error is non-inferior on same input/hardware",
+    "tip_localization": "at least 95 percent within one filament radius on independent sequences, stratified by turn and multiple-tip regime",
+    "calibration": "90 and 95 percent interval coverage within plus/minus 3 percentage points on held-out acquisition regimes"
+  },
+  "receipts": [
+    "tool source revision and dependency lock",
+    "data/license admission and input digest",
+    "acquisition metadata, voxel calibration and frame cadence",
+    "annotations and annotator adjudication",
+    "preprocessing thresholds and censoring records",
+    "output graph/track digest and per-track metrics",
+    "runtime, memory and hardware",
+    "human intervention ledger",
+    "PASS_FAIL_NOT_RUN_INSUFFICIENT_EVIDENCE"
+  ],
+  "claim_ceiling": "Task-specific comparison of image/sequence tools; no fungal biological, AMF transport, soil-network or causal claims."
+}
