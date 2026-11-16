@@ -82,7 +82,7 @@ Every node has a unique identity, exact case scope, owner role, revision/digest 
 2. Each strategy resolves into at least one subclaim; each claim has direct qualified evidence or an explicit decomposition path.
 3. Evidence scope and effective/knowledge cutoffs match the exact case.
 4. Required hazards must all be present; extra/unregistered hazards are rejected rather than silently omitted.
-5. Every required hazard has at least one mitigation; every mitigation must attach to a registered hazard and have qualified evidence.
+5. Every required hazard is explicitly linked from a claim or strategy using an AddressesHazard relation and has at least one mitigation; every mitigation must attach to a registered hazard and have qualified evidence.
 6. Contradicted, unsupported or indeterminate claims/mitigations remain negative/unknown; no aggregate score can conceal them.
 7. Every assumption is explicit and owned. It is supported by qualified evidence, accepted through a current policy-pinned authority decision, open, expired or unknown. Unknown is indeterminate; open is an unresolved argument.
 8. Every defeater explicitly challenges a claim or mitigation. It is open, unknown, discharged by qualified evidence, or accepted/not-applicable under a current matching authority decision.
@@ -109,7 +109,7 @@ The result also returns all stable per-node blockers, outstanding authority role
 
 ## Frozen synthetic adversarial corpus
 
-The suite covers positive review-ready control, missing root strategy, strategy without subclaim, claim without support/decomposition, missing and unmitigated hazards, unregistered hazards, mitigation without evidence/without hazard attachment, unsupported/indeterminate mitigation, open or unchallenged defeaters, missing discharge evidence, unknown/open assumptions, stale/requalification-required/contradicted evidence, generic CI and Track V planning misuse, wrong aircraft scope, wrong cutoffs, common-cause duplicates, missing/pending/rejected/late authority decisions, authority validity shorter than the operation, node validity shorter than the operation, duplicate identities/edges, missing endpoints, cycles, disconnected nodes and node/edge permutation invariance.
+The suite covers positive review-ready control, missing root strategy, strategy without subclaim, claim without support/decomposition, missing and unmitigated hazards, unregistered hazards, hazards not linked to claims/strategies, mitigation without evidence/without hazard attachment, unsupported/indeterminate mitigation, open or unchallenged defeaters, missing discharge evidence, unknown/open assumptions, stale/requalification-required/contradicted evidence, generic CI and Track V planning misuse, wrong aircraft scope, wrong cutoffs, common-cause duplicates, missing/pending/rejected/late authority decisions, authority validity shorter than the operation, node validity shorter than the operation, duplicate identities/edges, missing endpoints, cycles, disconnected nodes and node/edge permutation invariance.
 
 All test IDs, digests, times, authority names and evidence references are fictional.
 
