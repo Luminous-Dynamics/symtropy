@@ -1053,7 +1053,11 @@ mod tests {
                 "fixture"
             ]));
         let errors = corpus_invariants(&corpus, &oracle);
-        assert!(errors.iter().any(|error| error.starts_with("oracle_claim_coverage_mismatch:")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("oracle_claim_coverage_mismatch:"))
+        );
     }
 
     #[test]
