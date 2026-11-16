@@ -13,9 +13,10 @@
 
 #![forbid(unsafe_code)]
 
-const GRID_BINS: usize = 1024;
+const QUADRATURE_BINS: usize = 1024;
 const GAUSSIAN_TAIL_SIGMAS: f64 = 8.0;
 const SQRT_TWO_PI: f64 = 2.506_628_274_631_000_2;
+const LN_TWO: f64 = std::f64::consts::LN_2;
 const PRIOR_COMPARISON_TOLERANCE: f64 = 1.0e-12;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -50,9 +51,9 @@ pub struct ModelDiscriminationScore {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct PredictiveMasses {
-    probabilities: Vec<Vec<f64>>,
-    normalized_priors: Vec<f64>,
+struct NormalQuadrature {
+    standardized_values: Vec<f64>,
+    normalized_weights: Vec<f64>,
 }
 
 fn validate_action(action: &CandidateActionForecast) -> Result<(), String> {
@@ -80,7 +81,9 @@ fn validate_action(action: &CandidateActionForecast) -> Result<(), String> {
 
     for left in 0..action.model_predictions.len() {
         for right in (left + 1)..action.model_predictions.len() {
-            if action.model_predictions[left].model_id == action.model_predictions[right].model_id {
+            if action.model_predictions[left].model_id
+                == action.model_predictions[right].model_id
+            {
                 return Err("candidate action contains duplicate model IDs".to_owned());
             }
         }
@@ -88,109 +91,183 @@ fn validate_action(action: &CandidateActionForecast) -> Result<(), String> {
     Ok(())
 }
 
-fn prior_signature(action: &CandidateActionForecast) -> Vec<(String, f64)> {
+fn prior_signature(action: &CandidateActionForecast) -> Result<Vec<(String, f64)>, String> {
     let total = action
         .model_predictions
         .iter()
         .map(|prediction| prediction.prior_weight)
         .sum::<f64>();
+    if !total.is_finite() || total <= 0.0 {
+        return Err("model prior total must be finite and positive".to_owned());
+    }
     let mut signature: Vec<_> = action
         .model_predictions
         .iter()
-        .map(|prediction| (prediction.model_id.clone(), prediction.prior_weight / total))
+        .map(|prediction| {
+            (
+                prediction.model_id.clone(),
+                prediction.prior_weight / total,
+            )
+        })
         .collect();
+    if signature.iter().any(|(_, prior)| !prior.is_finite() || *prior <= 0.0) {
+        return Err("normalized model prior weights must remain finite and positive".to_owned());
+    }
     signature.sort_by(|left, right| left.0.cmp(&right.0));
-    signature
+    Ok(signature)
 }
 
-fn predictive_masses(predictions: &[GaussianModelPrediction]) -> Result<PredictiveMasses, String> {
-    let total_prior = predictions
+fn normalized_priors(
+    predictions: &[GaussianModelPrediction],
+) -> Result<Vec<f64>, String> {
+    let total = predictions
         .iter()
         .map(|prediction| prediction.prior_weight)
         .sum::<f64>();
-    if !total_prior.is_finite() || total_prior <= 0.0 {
+    if !total.is_finite() || total <= 0.0 {
         return Err("model prior total must be finite and positive".to_owned());
     }
-
-    let normalized_priors: Vec<_> = predictions
+    let priors: Vec<_> = predictions
         .iter()
-        .map(|prediction| prediction.prior_weight / total_prior)
+        .map(|prediction| prediction.prior_weight / total)
         .collect();
-
-    let lower = predictions
-        .iter()
-        .map(|prediction| {
-            prediction.predictive_mean - GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
-        })
-        .fold(f64::INFINITY, f64::min);
-    let upper = predictions
-        .iter()
-        .map(|prediction| {
-            prediction.predictive_mean + GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
-        })
-        .fold(f64::NEG_INFINITY, f64::max);
-    let width = upper - lower;
-    if !lower.is_finite() || !upper.is_finite() || !width.is_finite() || width <= 0.0 {
-        return Err("predictive support is not finite and nonempty".to_owned());
+    if priors.iter().any(|prior| !prior.is_finite() || *prior <= 0.0) {
+        return Err("normalized model prior weights must remain finite and positive".to_owned());
     }
+    Ok(priors)
+}
 
-    let bin_width = width / GRID_BINS as f64;
-    let mut probabilities = Vec::with_capacity(predictions.len());
-    for prediction in predictions {
-        let variance_scale = prediction.predictive_std_dev;
-        let mut masses = Vec::with_capacity(GRID_BINS);
-        let mut mass_total = 0.0;
-        for bin in 0..GRID_BINS {
-            let observation = lower + (bin as f64 + 0.5) * bin_width;
-            let standardized = (observation - prediction.predictive_mean) / variance_scale;
-            let density =
-                (-0.5 * standardized * standardized).exp() / (variance_scale * SQRT_TWO_PI);
-            let mass = density * bin_width;
-            masses.push(mass);
-            mass_total += mass;
-        }
-        if !mass_total.is_finite() || mass_total <= 0.0 {
-            return Err("predictive density could not be normalized".to_owned());
-        }
-        for mass in &mut masses {
-            *mass /= mass_total;
-        }
-        probabilities.push(masses);
+fn standard_normal_quadrature() -> NormalQuadrature {
+    // Integrate over each model's own standardized coordinate. This avoids a
+    // shared physical-support grid missing a narrow distribution when model
+    // predictive variances differ substantially.
+    let step = (2.0 * GAUSSIAN_TAIL_SIGMAS) / QUADRATURE_BINS as f64;
+    let mut standardized_values = Vec::with_capacity(QUADRATURE_BINS);
+    let mut normalized_weights = Vec::with_capacity(QUADRATURE_BINS);
+    let mut weight_total = 0.0;
+    for index in 0..QUADRATURE_BINS {
+        let z = -GAUSSIAN_TAIL_SIGMAS + (index as f64 + 0.5) * step;
+        let weight = (-0.5 * z * z).exp() / SQRT_TWO_PI * step;
+        standardized_values.push(z);
+        normalized_weights.push(weight);
+        weight_total += weight;
     }
+    for weight in &mut normalized_weights {
+        *weight /= weight_total;
+    }
+    NormalQuadrature {
+        standardized_values,
+        normalized_weights,
+    }
+}
 
-    Ok(PredictiveMasses {
-        probabilities,
-        normalized_priors,
-    })
+fn normal_log_density(observation: f64, prediction: &GaussianModelPrediction) -> f64 {
+    let standardized =
+        (observation - prediction.predictive_mean) / prediction.predictive_std_dev;
+    -prediction.predictive_std_dev.ln()
+        - 0.5 * standardized * standardized
+        - SQRT_TWO_PI.ln()
+}
+
+fn log_sum_exp(values: &[f64]) -> f64 {
+    let maximum = values.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    if maximum == f64::NEG_INFINITY {
+        return f64::NEG_INFINITY;
+    }
+    maximum
+        + values
+            .iter()
+            .map(|value| (value - maximum).exp())
+            .sum::<f64>()
+            .ln()
+}
+
+fn log_add_exp(left: f64, right: f64) -> f64 {
+    let maximum = left.max(right);
+    if maximum == f64::NEG_INFINITY {
+        return f64::NEG_INFINITY;
+    }
+    maximum + ((left - maximum).exp() + (right - maximum).exp()).ln()
 }
 
 fn entropy(probabilities: &[f64]) -> f64 {
     probabilities
         .iter()
-        .filter(|probability| **probability > 0.0)
         .map(|probability| -probability * probability.ln())
         .sum()
 }
 
-fn kl_divergence(left: &[f64], right: &[f64]) -> f64 {
-    left.iter()
-        .zip(right)
-        .filter(|(probability, _)| **probability > 0.0)
-        .map(|(probability, reference)| probability * (probability / reference).ln())
-        .sum()
+fn expected_information_gain(
+    predictions: &[GaussianModelPrediction],
+    priors: &[f64],
+    quadrature: &NormalQuadrature,
+) -> f64 {
+    let mut information_gain = 0.0;
+    for (model_index, prediction) in predictions.iter().enumerate() {
+        let mut conditional_kl = 0.0;
+        let log_prior_terms: Vec<_> = predictions
+            .iter()
+            .zip(priors)
+            .map(|(model, prior)| (model, prior.ln()))
+            .collect();
+        for (z, weight) in quadrature
+            .standardized_values
+            .iter()
+            .zip(&quadrature.normalized_weights)
+        {
+            let observation =
+                prediction.predictive_mean + prediction.predictive_std_dev * z;
+            let own_log_density = normal_log_density(observation, prediction);
+            let mixture_terms: Vec<_> = log_prior_terms
+                .iter()
+                .map(|(model, log_prior)| {
+                    log_prior + normal_log_density(observation, model)
+                })
+                .collect();
+            let log_mixture_density = log_sum_exp(&mixture_terms);
+            conditional_kl += weight * (own_log_density - log_mixture_density);
+        }
+        information_gain += priors[model_index] * conditional_kl;
+    }
+    information_gain.max(0.0)
 }
 
-fn jensen_shannon_divergence(left: &[f64], right: &[f64]) -> f64 {
-    let midpoint: Vec<_> = left
+fn pairwise_js_divergence(
+    left: &GaussianModelPrediction,
+    right: &GaussianModelPrediction,
+    quadrature: &NormalQuadrature,
+) -> f64 {
+    let mut left_expectation = 0.0;
+    for (z, weight) in quadrature
+        .standardized_values
         .iter()
-        .zip(right)
-        .map(|(left_mass, right_mass)| 0.5 * (left_mass + right_mass))
-        .collect();
-    0.5 * kl_divergence(left, &midpoint) + 0.5 * kl_divergence(right, &midpoint)
+        .zip(&quadrature.normalized_weights)
+    {
+        let observation = left.predictive_mean + left.predictive_std_dev * z;
+        let left_log_density = normal_log_density(observation, left);
+        let right_log_density = normal_log_density(observation, right);
+        let log_midpoint = log_add_exp(left_log_density, right_log_density) - LN_TWO;
+        left_expectation += weight * (left_log_density - log_midpoint);
+    }
+
+    let mut right_expectation = 0.0;
+    for (z, weight) in quadrature
+        .standardized_values
+        .iter()
+        .zip(&quadrature.normalized_weights)
+    {
+        let observation = right.predictive_mean + right.predictive_std_dev * z;
+        let left_log_density = normal_log_density(observation, left);
+        let right_log_density = normal_log_density(observation, right);
+        let log_midpoint = log_add_exp(left_log_density, right_log_density) - LN_TWO;
+        right_expectation += weight * (right_log_density - log_midpoint);
+    }
+
+    (0.5 * (left_expectation + right_expectation)).max(0.0)
 }
 
-/// Score a single candidate action using numerical integration over
-/// posterior-predictive Gaussian mixtures.
+/// Score a single candidate action using deterministic numerical integration
+/// over each Gaussian model's standardized predictive distribution.
 ///
 /// Expected information gain is measured in nats. The minimum pairwise
 /// Jensen–Shannon divergence is a conservative guard: a stimulus is not
@@ -205,33 +282,21 @@ pub fn score_candidate_action(
         return Err("identifiability floor must be finite and nonnegative".to_owned());
     }
 
-    let masses = predictive_masses(&action.model_predictions)?;
-    let model_count = masses.probabilities.len();
-    let prior_model_entropy_nats = entropy(&masses.normalized_priors);
+    let priors = normalized_priors(&action.model_predictions)?;
+    let quadrature = standard_normal_quadrature();
+    let model_count = action.model_predictions.len();
+    let prior_model_entropy_nats = entropy(&priors);
 
-    let mut mixture = vec![0.0; GRID_BINS];
-    for (model_index, model_probabilities) in masses.probabilities.iter().enumerate() {
-        let prior = masses.normalized_priors[model_index];
-        for (bin, probability) in model_probabilities.iter().enumerate() {
-            mixture[bin] += prior * probability;
-        }
-    }
-
-    let mut expected_information_gain_nats = 0.0;
-    for (model_index, model_probabilities) in masses.probabilities.iter().enumerate() {
-        let prior = masses.normalized_priors[model_index];
-        expected_information_gain_nats += prior * kl_divergence(model_probabilities, &mixture);
-    }
-    expected_information_gain_nats = expected_information_gain_nats
-        .max(0.0)
-        .min(prior_model_entropy_nats);
-
+    let expected_information_gain_nats =
+        expected_information_gain(&action.model_predictions, &priors, &quadrature)
+            .min(prior_model_entropy_nats);
     let mut minimum_pairwise_js_divergence_nats = f64::INFINITY;
     for left in 0..model_count {
         for right in (left + 1)..model_count {
-            let divergence = jensen_shannon_divergence(
-                &masses.probabilities[left],
-                &masses.probabilities[right],
+            let divergence = pairwise_js_divergence(
+                &action.model_predictions[left],
+                &action.model_predictions[right],
+                &quadrature,
             );
             minimum_pairwise_js_divergence_nats =
                 minimum_pairwise_js_divergence_nats.min(divergence);
@@ -251,7 +316,8 @@ pub fn score_candidate_action(
         expected_information_gain_nats,
         minimum_pairwise_js_divergence_nats,
         identifiability_floor_nats,
-        pairwise_identifiable: minimum_pairwise_js_divergence_nats >= identifiability_floor_nats,
+        pairwise_identifiable: minimum_pairwise_js_divergence_nats
+            >= identifiability_floor_nats,
     })
 }
 
@@ -270,29 +336,22 @@ pub fn rank_candidate_actions(
     let mut action_ids = Vec::with_capacity(actions.len());
     for action in actions {
         validate_action(action)?;
-        if action_ids
-            .iter()
-            .any(|existing| existing == &action.action_id)
-        {
+        if action_ids.iter().any(|existing| existing == &action.action_id) {
             return Err("candidate action IDs must be unique".to_owned());
         }
         action_ids.push(action.action_id.clone());
     }
 
-    let expected_signature = prior_signature(&actions[0]);
+    let expected_signature = prior_signature(&actions[0])?;
     for action in actions.iter().skip(1) {
-        let signature = prior_signature(action);
+        let signature = prior_signature(action)?;
         if signature.len() != expected_signature.len()
-            || signature
-                .iter()
-                .zip(&expected_signature)
-                .any(|(left, right)| {
-                    left.0 != right.0 || (left.1 - right.1).abs() > PRIOR_COMPARISON_TOLERANCE
-                })
+            || signature.iter().zip(&expected_signature).any(|(left, right)| {
+                left.0 != right.0
+                    || (left.1 - right.1).abs() > PRIOR_COMPARISON_TOLERANCE
+            })
         {
-            return Err(
-                "candidate actions must use the same model IDs and normalized priors".to_owned(),
-            );
+            return Err("candidate actions must use the same model IDs and normalized priors".to_owned());
         }
     }
 
@@ -318,19 +377,20 @@ pub fn rank_candidate_actions(
 mod tests {
     use super::*;
 
-    fn action(action_id: &str, predictions: &[(&str, f64, f64, f64)]) -> CandidateActionForecast {
+    fn action(
+        action_id: &str,
+        predictions: &[(&str, f64, f64, f64)],
+    ) -> CandidateActionForecast {
         CandidateActionForecast {
             action_id: action_id.to_owned(),
             model_predictions: predictions
                 .iter()
-                .map(
-                    |(model_id, prior_weight, mean, std_dev)| GaussianModelPrediction {
-                        model_id: (*model_id).to_owned(),
-                        prior_weight: *prior_weight,
-                        predictive_mean: *mean,
-                        predictive_std_dev: *std_dev,
-                    },
-                )
+                .map(|(model_id, prior_weight, mean, std_dev)| GaussianModelPrediction {
+                    model_id: (*model_id).to_owned(),
+                    prior_weight: *prior_weight,
+                    predictive_mean: *mean,
+                    predictive_std_dev: *std_dev,
+                })
                 .collect(),
         }
     }
@@ -339,7 +399,10 @@ mod tests {
     fn identical_models_are_not_declared_identifiable() {
         let candidate = action(
             "same-observation",
-            &[("rational", 1.0, 2.0, 0.2), ("cubic", 1.0, 2.0, 0.2)],
+            &[
+                ("rational", 1.0, 2.0, 0.2),
+                ("cubic", 1.0, 2.0, 0.2),
+            ],
         );
         let score = score_candidate_action(&candidate, 0.01).expect("score");
         assert!(score.expected_information_gain_nats < 1.0e-10);
@@ -360,7 +423,10 @@ mod tests {
         assert!(score.expected_information_gain_nats > 0.5);
         assert!(score.minimum_pairwise_js_divergence_nats > 0.5);
         assert!(score.pairwise_identifiable);
-        assert!(score.expected_information_gain_nats <= score.prior_model_entropy_nats + 1.0e-9);
+        assert!(
+            score.expected_information_gain_nats
+                <= score.prior_model_entropy_nats + 1.0e-9
+        );
     }
 
     #[test]
@@ -407,11 +473,17 @@ mod tests {
     fn prior_weights_are_normalized_and_scaling_does_not_change_the_score() {
         let first = action(
             "test",
-            &[("rational", 1.0, 0.0, 0.2), ("cubic", 2.0, 0.5, 0.2)],
+            &[
+                ("rational", 1.0, 0.0, 0.2),
+                ("cubic", 2.0, 0.5, 0.2),
+            ],
         );
         let second = action(
             "test",
-            &[("rational", 10.0, 0.0, 0.2), ("cubic", 20.0, 0.5, 0.2)],
+            &[
+                ("rational", 10.0, 0.0, 0.2),
+                ("cubic", 20.0, 0.5, 0.2),
+            ],
         );
         let left = score_candidate_action(&first, 0.01).expect("left");
         let right = score_candidate_action(&second, 0.01).expect("right");
@@ -420,7 +492,8 @@ mod tests {
                 < 1.0e-12
         );
         assert!(
-            (left.minimum_pairwise_js_divergence_nats - right.minimum_pairwise_js_divergence_nats)
+            (left.minimum_pairwise_js_divergence_nats
+                - right.minimum_pairwise_js_divergence_nats)
                 .abs()
                 < 1.0e-12
         );
@@ -430,13 +503,19 @@ mod tests {
     fn invalid_forecasts_fail_closed() {
         let zero_variance = action(
             "invalid",
-            &[("rational", 1.0, 0.0, 0.0), ("cubic", 1.0, 0.5, 0.1)],
+            &[
+                ("rational", 1.0, 0.0, 0.0),
+                ("cubic", 1.0, 0.5, 0.1),
+            ],
         );
         assert!(score_candidate_action(&zero_variance, 0.01).is_err());
 
         let duplicate_model = action(
             "duplicate",
-            &[("rational", 1.0, 0.0, 0.1), ("rational", 1.0, 0.5, 0.1)],
+            &[
+                ("rational", 1.0, 0.0, 0.1),
+                ("rational", 1.0, 0.5, 0.1),
+            ],
         );
         assert!(score_candidate_action(&duplicate_model, 0.01).is_err());
     }
@@ -445,12 +524,33 @@ mod tests {
     fn candidate_actions_must_share_the_same_model_priors() {
         let first = action(
             "first",
-            &[("rational", 1.0, 0.0, 0.1), ("cubic", 1.0, 0.5, 0.1)],
+            &[
+                ("rational", 1.0, 0.0, 0.1),
+                ("cubic", 1.0, 0.5, 0.1),
+            ],
         );
         let second = action(
             "second",
-            &[("rational", 1.0, 0.0, 0.1), ("cubic", 3.0, 0.5, 0.1)],
+            &[
+                ("rational", 1.0, 0.0, 0.1),
+                ("cubic", 3.0, 0.5, 0.1),
+            ],
         );
         assert!(rank_candidate_actions(&[first, second], 0.01).is_err());
+    }
+
+    #[test]
+    fn different_predictive_scales_remain_numerically_resolvable() {
+        let candidate = action(
+            "mixed-scale",
+            &[
+                ("narrow", 1.0, 0.0, 1.0e-4),
+                ("broad", 1.0, 1.0, 1.0),
+            ],
+        );
+        let score = score_candidate_action(&candidate, 0.01).expect("score");
+        assert!(score.expected_information_gain_nats.is_finite());
+        assert!(score.minimum_pairwise_js_divergence_nats.is_finite());
+        assert!(score.minimum_pairwise_js_divergence_nats > 0.1);
     }
 }
