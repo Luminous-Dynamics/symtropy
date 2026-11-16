@@ -38,3 +38,5 @@ policy-mismatch|policy|NOT_ADMISSIBLE_FOR_CLAIM
 observation-removal|remove-segment|EVIDENCE_INCOMPLETE
 segment-permutation|permute|SAME_RESULT
 authorization-receipt-substitution|receipt-digest|NOT_ADMISSIBLE_FOR_CLAIM
+later-segment-after-gap|gap-accounting|EVIDENCE_INCOMPLETE
+overlapping-planned-windows-same-stream|expected-window-overlap|OVERLAPPING_EXPECTED_WINDOWS
