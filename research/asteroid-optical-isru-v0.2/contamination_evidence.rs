@@ -146,7 +146,10 @@ fn validate_witness(reading: &OpticalWitnessReading) -> Result<(), EvidenceError
     {
         return Err(EvidenceError::InvalidUncertainty);
     }
-    validate_calibration(reading.calibration_eligibility, &reading.calibration_receipt_id)
+    validate_calibration(
+        reading.calibration_eligibility,
+        &reading.calibration_receipt_id,
+    )
 }
 
 fn validate_qcm(reading: &QcmReading) -> Result<(), EvidenceError> {
@@ -165,9 +168,7 @@ fn validate_qcm(reading: &QcmReading) -> Result<(), EvidenceError> {
     if !reading.areal_mass_g_cm2.is_finite() || reading.areal_mass_g_cm2 < 0.0 {
         return Err(EvidenceError::InvalidQcmMass);
     }
-    if !reading.absolute_uncertainty_g_cm2.is_finite()
-        || reading.absolute_uncertainty_g_cm2 < 0.0
-    {
+    if !reading.absolute_uncertainty_g_cm2.is_finite() || reading.absolute_uncertainty_g_cm2 < 0.0 {
         return Err(EvidenceError::InvalidUncertainty);
     }
     validate_calibration(reading.calibration_eligibility, &reading.calibration_receipt_id)
@@ -339,33 +340,90 @@ mod tests {
 
     #[test]
     fn direct_witness_measurement_establishes_transmission_decrease() {
-        let result = compare_optical_witness(&witness(10, 0.98, 0.002), &witness(20, 0.90, 0.002), 2.0, 1.0, 1.0).unwrap();
+        let result = compare_optical_witness(
+            &witness(10, 0.98, 0.002),
+            &witness(20, 0.90, 0.002),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
         assert_eq!(result.disposition, ChangeDisposition::DecreaseEstablished);
         assert!((result.raw_change + 0.08).abs() < 1.0e-12);
     }
 
     #[test]
     fn uncertainty_bound_prevents_weak_signal_from_becoming_a_degradation_claim() {
-        let result = compare_optical_witness(&witness(10, 0.980, 0.010), &witness(20, 0.975, 0.010), 2.0, 1.0, 1.0).unwrap();
-        assert_eq!(result.disposition, ChangeDisposition::IndeterminateWithinUncertainty);
+        let result = compare_optical_witness(
+            &witness(10, 0.980, 0.010),
+            &witness(20, 0.975, 0.010),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        assert_eq!(
+            result.disposition,
+            ChangeDisposition::IndeterminateWithinUncertainty
+        );
     }
 
     #[test]
     fn qcm_deposition_does_not_imply_optical_transmission_loss() {
-        let deposition = compare_qcm_deposition(&qcm(10, 1.0e-8, 1.0e-10), &qcm(20, 5.0e-8, 1.0e-10), 2.0, 1.0, 1.0).unwrap();
-        let witness_result = compare_optical_witness(&witness(10, 0.98, 0.002), &witness(20, 0.979, 0.002), 2.0, 1.0, 1.0).unwrap();
+        let deposition = compare_qcm_deposition(
+            &qcm(10, 1.0e-8, 1.0e-10),
+            &qcm(20, 5.0e-8, 1.0e-10),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        let witness_result = compare_optical_witness(
+            &witness(10, 0.98, 0.002),
+            &witness(20, 0.979, 0.002),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
 
-        assert_eq!(deposition.disposition, ChangeDisposition::IncreaseEstablished);
-        assert_eq!(witness_result.disposition, ChangeDisposition::IndeterminateWithinUncertainty);
+        assert_eq!(
+            deposition.disposition,
+            ChangeDisposition::IncreaseEstablished
+        );
+        assert_eq!(
+            witness_result.disposition,
+            ChangeDisposition::IndeterminateWithinUncertainty
+        );
     }
 
     #[test]
     fn optical_loss_can_be_observed_without_a_qcm_increase() {
-        let qcm_result = compare_qcm_deposition(&qcm(10, 1.0e-8, 1.0e-10), &qcm(20, 1.0e-8, 1.0e-10), 2.0, 1.0, 1.0).unwrap();
-        let witness_result = compare_optical_witness(&witness(10, 0.98, 0.001), &witness(20, 0.90, 0.001), 2.0, 1.0, 1.0).unwrap();
+        let qcm_result = compare_qcm_deposition(
+            &qcm(10, 1.0e-8, 1.0e-10),
+            &qcm(20, 1.0e-8, 1.0e-10),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
+        let witness_result = compare_optical_witness(
+            &witness(10, 0.98, 0.001),
+            &witness(20, 0.90, 0.001),
+            2.0,
+            1.0,
+            1.0,
+        )
+        .unwrap();
 
-        assert_eq!(qcm_result.disposition, ChangeDisposition::NotDistinguishedFromZero);
-        assert_eq!(witness_result.disposition, ChangeDisposition::DecreaseEstablished);
+        assert_eq!(
+            qcm_result.disposition,
+            ChangeDisposition::NotDistinguishedFromZero
+        );
+        assert_eq!(
+            witness_result.disposition,
+            ChangeDisposition::DecreaseEstablished
+        );
     }
 
     #[test]
@@ -425,7 +483,13 @@ mod tests {
     #[test]
     fn reversed_time_and_invalid_uncertainty_are_rejected() {
         assert_eq!(
-            compare_optical_witness(&witness(20, 0.98, 0.001), &witness(10, 0.90, 0.001), 2.0, 1.0, 1.0),
+            compare_optical_witness(
+                &witness(20, 0.98, 0.001),
+                &witness(10, 0.90, 0.001),
+                2.0,
+                1.0,
+                1.0
+            ),
             Err(EvidenceError::InvalidTimestampOrder)
         );
 
@@ -440,7 +504,13 @@ mod tests {
     #[test]
     fn invalid_comparison_threshold_is_rejected() {
         assert_eq!(
-            compare_optical_witness(&witness(10, 0.98, 0.001), &witness(20, 0.90, 0.001), 0.0, 1.0, 1.0),
+            compare_optical_witness(
+                &witness(10, 0.98, 0.001),
+                &witness(20, 0.90, 0.001),
+                0.0,
+                1.0,
+                1.0
+            ),
             Err(EvidenceError::InvalidComparisonTolerance)
         );
     }
