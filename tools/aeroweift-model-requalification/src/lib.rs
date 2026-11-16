@@ -56,6 +56,10 @@ pub struct ModelEvidenceClaim {
     pub validated_at_effective: i64,
     /// Time at which the qualification result became recorded/known.
     pub recorded_at: i64,
+    /// Time scale for effective-time values (e.g. a named UTC/TAI realization).
+    pub effective_time_scale_id: String,
+    /// Time scale for recorded/knowledge-time values.
+    pub knowledge_time_scale_id: String,
     /// Exact dependency set consumed by this claim.
     pub dependencies: Vec<DependencyBinding>,
 }
@@ -102,8 +106,12 @@ pub struct ChangeEvent {
     pub successor_digest: String,
     /// Effective time: when the change took effect.
     pub effective_at: i64,
+    /// Time scale for effective-time values.
+    pub effective_time_scale_id: String,
     /// Recorded time: when this event entered the evidence system.
     pub recorded_at: i64,
+    /// Time scale for recorded/knowledge-time values.
+    pub knowledge_time_scale_id: String,
     /// Owner-declared semantic change class.
     pub change_class: ChangeClass,
     /// Owner-declared source qualification.
@@ -123,10 +131,14 @@ pub struct ChangeFeedCoverage {
     pub effective_from: i64,
     /// Inclusive end of the covered effective-time interval.
     pub effective_through: i64,
+    /// Time scale for the effective-time interval.
+    pub effective_time_scale_id: String,
     /// Earliest recorded/knowledge time for which the feed retains complete history.
     pub knowledge_from: i64,
     /// Latest recorded/knowledge time for which the feed asserts completeness.
     pub knowledge_through: i64,
+    /// Time scale for the knowledge-time interval.
+    pub knowledge_time_scale_id: String,
     /// First source sequence included in this coverage statement.
     pub first_sequence: u64,
     /// Last source sequence included in this coverage statement.
@@ -157,8 +169,12 @@ pub enum CoverageCompleteness {
 pub struct BitemporalCutoff {
     /// Target effective-time frontier being assessed.
     pub effective_at: i64,
+    /// Time scale of the effective-time cutoff.
+    pub effective_time_scale_id: String,
     /// Knowledge-time cutoff: only events recorded by this time may be considered.
     pub known_at: i64,
+    /// Time scale of the knowledge-time cutoff.
+    pub knowledge_time_scale_id: String,
 }
 
 /// Per-claim reliance status at the requested bitemporal cutoff.
@@ -201,6 +217,8 @@ pub enum EvaluationError {
     DependencyChainMismatch,
     /// A change event's source does not match the claim's declared source.
     ChangeSourceMismatch,
+    /// Effective-time or knowledge-time scale differs from the frozen claim/policy.
+    TimeScaleMismatch,
 }
 
 /// Per-claim result; historical evidence is never deleted or rewritten.
@@ -241,6 +259,10 @@ pub struct ClaimAssessment {
 pub struct RequalificationPolicy {
     /// Digest of the versioned dependency and change-class mapping.
     pub policy_sha256: String,
+    /// Required effective-time scale identity.
+    pub effective_time_scale_id: String,
+    /// Required recorded/knowledge-time scale identity.
+    pub knowledge_time_scale_id: String,
 }
 
 /// Check only digest syntax. Hashing/authentication is owned by the custody layer.
@@ -255,6 +277,8 @@ fn dependency_is_complete(dependency: &DependencyBinding) -> bool {
 fn validate_claim(claim: &ModelEvidenceClaim) -> Result<(), EvaluationError> {
     if claim.claim_id.trim().is_empty()
         || !is_sha256(&claim.validation_package_sha256)
+        || claim.effective_time_scale_id.trim().is_empty()
+        || claim.knowledge_time_scale_id.trim().is_empty()
         || claim.dependencies.is_empty()
     {
         return Err(EvaluationError::InvalidClaim);
@@ -277,6 +301,8 @@ fn validate_events(events: &[ChangeEvent]) -> Result<(), EvaluationError> {
             || !is_sha256(&event.prior_digest)
             || !is_sha256(&event.successor_digest)
             || !is_sha256(&event.event_sha256)
+            || event.effective_time_scale_id.trim().is_empty()
+            || event.knowledge_time_scale_id.trim().is_empty()
             || event.prior_digest == event.successor_digest
             || event.recorded_at < 0
         {
@@ -304,6 +330,8 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
             || item.recorded_at < 0
             || item.knowledge_from > item.knowledge_through
             || !is_sha256(&item.manifest_sha256)
+            || item.effective_time_scale_id.trim().is_empty()
+            || item.knowledge_time_scale_id.trim().is_empty()
             || item.effective_from > item.effective_through
             || item.first_sequence > item.last_sequence
         {
@@ -322,10 +350,14 @@ fn coverage_is_complete(
     cutoff: BitemporalCutoff,
     claim_validated_at: i64,
     claim_recorded_at: i64,
+    effective_time_scale_id: &str,
+    knowledge_time_scale_id: &str,
 ) -> bool {
     coverage.iter().any(|item| {
         item.dependency == dependency.kind
             && item.source_id == dependency.change_source_id
+            && item.effective_time_scale_id == effective_time_scale_id
+            && item.knowledge_time_scale_id == knowledge_time_scale_id
             && item.completeness == CoverageCompleteness::Complete
             && item.evidence_state == ChangeEvidenceState::OwnerQualified
             && item.effective_from <= claim_validated_at
@@ -347,8 +379,24 @@ pub fn evaluate_claim(
     policy: &RequalificationPolicy,
 ) -> Result<ClaimAssessment, EvaluationError> {
     validate_claim(claim)?;
+    if policy.effective_time_scale_id != claim.effective_time_scale_id
+        || policy.knowledge_time_scale_id != claim.knowledge_time_scale_id
+        || cutoff.effective_time_scale_id != claim.effective_time_scale_id
+        || cutoff.knowledge_time_scale_id != claim.knowledge_time_scale_id
+    {
+        return Err(EvaluationError::TimeScaleMismatch);
+    }
     if claim.validated_at_effective > cutoff.effective_at || claim.recorded_at > cutoff.known_at {
         return Err(EvaluationError::ClaimNotAvailableAtCutoff);
+    }
+    for event in events.iter().filter(|event| {
+        claim.dependencies.iter().any(|dependency| dependency.kind == event.dependency)
+    }) {
+        if event.effective_time_scale_id != claim.effective_time_scale_id
+            || event.knowledge_time_scale_id != claim.knowledge_time_scale_id
+        {
+            return Err(EvaluationError::TimeScaleMismatch);
+        }
     }
     let eligible_events: Vec<ChangeEvent> = events
         .iter()
@@ -365,6 +413,17 @@ pub fn evaluate_claim(
     // Events outside either requested cutoff were not part of this historical view.
     // They must not poison an earlier as-known assessment.
     validate_events(&eligible_events)?;
+    for item in coverage.iter().filter(|item| {
+        claim.dependencies.iter().any(|dependency| {
+            dependency.kind == item.dependency && dependency.change_source_id == item.source_id
+        })
+    }) {
+        if item.effective_time_scale_id != claim.effective_time_scale_id
+            || item.knowledge_time_scale_id != claim.knowledge_time_scale_id
+        {
+            return Err(EvaluationError::TimeScaleMismatch);
+        }
+    }
     let eligible_coverage: Vec<ChangeFeedCoverage> = coverage
         .iter()
         .filter(|item| {
@@ -418,6 +477,8 @@ pub fn evaluate_claim(
             cutoff,
             claim.validated_at_effective,
             claim.recorded_at,
+            &claim.effective_time_scale_id,
+            &claim.knowledge_time_scale_id,
         ) {
             indeterminate.insert(dependency.kind);
         }
