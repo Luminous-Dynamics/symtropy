@@ -288,8 +288,8 @@ fn positive_control_is_review_ready_only_and_never_permission() {
     assert_eq!(
         result.independent_evidence_groups_by_claim,
         vec![
-            ("root".to_string(), 0),
-            ("claim-model-envelope".to_string(), 1)
+            ("claim-model-envelope".to_string(), 1),
+            ("root".to_string(), 0)
         ]
     );
     assert_eq!(
@@ -333,11 +333,16 @@ fn claim_without_support_or_decomposition_is_explicitly_blocked() {
 
 #[test]
 fn required_hazard_without_mitigation_blocks_review() {
-    let (nodes, mut edges) = positive_case();
-    edges.retain(|item| {
-        !(item.from_node_id == "mitigation-conflict-screen"
-            && item.to_node_id == "hazard-collision"
-            && item.kind == EdgeKind::Mitigates)
+    let (mut nodes, mut edges) = positive_case();
+    nodes.retain(|node| {
+        node.node_id != "mitigation-conflict-screen"
+            && node.node_id != "evidence-mitigation-test"
+    });
+    edges.retain(|edge| {
+        edge.from_node_id != "mitigation-conflict-screen"
+            && edge.to_node_id != "mitigation-conflict-screen"
+            && edge.from_node_id != "evidence-mitigation-test"
+            && edge.to_node_id != "evidence-mitigation-test"
     });
     let result = evaluate(&nodes, &edges).unwrap();
     assert!(blocker(&result, BlockerReason::HazardWithoutMitigation));
@@ -354,9 +359,11 @@ fn missing_required_hazard_node_is_not_silently_omitted() {
 
 #[test]
 fn mitigation_without_effectiveness_evidence_is_blocked() {
-    let (nodes, mut edges) = positive_case();
-    edges.retain(|item| {
-        !(item.to_node_id == "mitigation-conflict-screen" && item.kind == EdgeKind::Supports)
+    let (mut nodes, mut edges) = positive_case();
+    nodes.retain(|node| node.node_id != "evidence-mitigation-test");
+    edges.retain(|edge| {
+        edge.from_node_id != "evidence-mitigation-test"
+            && edge.to_node_id != "evidence-mitigation-test"
     });
     let result = evaluate(&nodes, &edges).unwrap();
     assert!(blocker(&result, BlockerReason::MitigationWithoutEvidence));
@@ -392,8 +399,13 @@ fn open_defeater_blocks_even_when_other_claims_are_positive() {
 
 #[test]
 fn resolved_defeater_without_qualified_discharge_is_blocked() {
-    let (nodes, mut edges) = positive_case();
-    edges.retain(|item| item.kind != EdgeKind::Discharges);
+    let (mut nodes, mut edges) = positive_case();
+    nodes.retain(|node| node.node_id != "evidence-defeater-resolution");
+    edges.retain(|edge| {
+        edge.kind != EdgeKind::Discharges
+            && edge.from_node_id != "evidence-defeater-resolution"
+            && edge.to_node_id != "evidence-defeater-resolution"
+    });
     let result = evaluate(&nodes, &edges).unwrap();
     assert!(blocker(&result, BlockerReason::DefeaterWithoutDischarge));
 }
@@ -410,7 +422,8 @@ fn unknown_assumption_blocks_review_readiness() {
         .unwrap()
         .state = AssumptionState::Unknown;
     let result = evaluate(&nodes, &edges).unwrap();
-    assert!(blocker(&result, BlockerReason::UnresolvedAssumption));
+    assert!(blocker(&result, BlockerReason::AssumptionUnknown));
+    assert_eq!(result.status, AssuranceStatus::Indeterminate);
 }
 
 #[test]
@@ -604,8 +617,9 @@ fn evidence_with_unknown_correlation_does_not_add_independence_credit() {
 
 #[test]
 fn missing_external_authority_decision_is_not_inferred() {
-    let (mut nodes, edges) = positive_case();
+    let (mut nodes, mut edges) = positive_case();
     nodes.retain(|item| item.kind != NodeKind::AuthorityDecision);
+    edges.retain(|edge| edge.to_node_id != "authority-decision");
     let result = evaluate(&nodes, &edges).unwrap();
     assert!(blocker(&result, BlockerReason::MissingAuthorityDecision));
     assert_eq!(
