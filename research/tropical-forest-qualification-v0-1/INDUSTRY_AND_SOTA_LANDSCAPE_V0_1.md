@@ -509,3 +509,20 @@ New executable gate:
 - [Rust validator](validator/src/afex_source_identity_kernel.rs)
 
 The gate separates experiment/site/block/plot/subplot/sample-frame/campaign/observation identity and has explicit dispositions for exact match, documented alias, unresolved identity and support conflict. The synthetic alias case is fictional; no real AFEX aliases or exact child plot joins have been admitted.
+
+
+### 16 November 2026 — forestry digital twins and decision-specific forecast limits
+
+A 15 October 2026 systematic review of forestry digital twins describes a minimum operational concept built around a digital representation of the forest, repeated/continuous sensor updates, dynamic state/parameter updating, uncertainty propagation/calibration and feedback to decision support. It also reports that many forest digital-twin applications remain prototypes or early operational deployments, and tropical/boreal systems are underrepresented (DOI 10.1007/s44564-026-00029-8).
+
+A 14 August 2026 ecosystem model-ensemble review argues that observations and intercomparison diagnostics should drive model selection/weighting, and that scientists/stakeholders should co-design decision-relevant metrics (DOI 10.1111/gcb.70987).
+
+This informs a useful Symtropy distinction:
+- **Digital twin state**: what the current ecological evidence says about stocks, fluxes, support, uncertainty and model alternatives.
+- **Forecast skill**: whether probabilistic predictions beat paired baselines.
+- **Forecast usefulness**: how far into a given variable/regime/decision a forecast satisfies a frozen loss tolerance and issuance/calibration contract.
+- **Decision value**: whether additional evidence changes an action enough to justify cost and disturbance (#5223).
+
+New work [#5485](https://github.com/Luminous-Dynamics/symtropy/issues/5485) implements a first synthetic usefulness-limit policy. It deliberately composes with the shared CRPS kernel, block-coverage/conformal methods and decision-value owner instead of creating another forecasting stack. The 128-case synthetic fixture distinguishes a stable canopy variable from post-disturbance mortality; useful prefixes are 90 and 30 days respectively under the invented decision tolerances, with later-horizon recovery explicitly reported rather than allowed to erase the first failure.
+
+This is a policy proof, not empirical forecast performance. A real digital twin requires admitted source observations, repeated data assimilation, model state updates, forecast issuance receipts and held-out outcome verification.
