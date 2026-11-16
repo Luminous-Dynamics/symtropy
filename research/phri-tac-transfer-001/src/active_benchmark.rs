@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
+pub mod lifecycle;
 pub mod model_forms;
 
 const PARAMS: usize = 8;
