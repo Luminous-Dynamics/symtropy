@@ -65,15 +65,16 @@ For lunar deployments include surface photovoltaics + storage, surface distribut
 
 ## 4. Frozen campaign identity
 
-A run is comparable only when all identity fields match:
+A run is comparable only when the **shared campaign identity** matches:
 
 - target body, coordinate frame, site, epoch and illumination/visibility window;
 - feedstock lot and batch digest, sampling protocol, representativeness, assay, mineralogy, morphology, grain/fragment distribution, porosity, density and thermal history;
 - pressure, initial temperature, gravity regime and environmental boundary conditions;
-- receiver, containment and process-article identity/revision;
 - product contract: material/species, physical state, purity, contamination limit, pressure/temperature, required delivery state and assay protocol;
 - campaign duration, service demand, duty cycle and availability requirement;
-- calibration records, uncertainty and source/evidence class.
+- shared metrology protocol, uncertainty and source/evidence class.
+
+Candidate-specific process article, article revision, architecture configuration and calibration evidence are recorded on each candidate run, not folded into the shared campaign key. This is necessary because different whole-system architectures necessarily use different hardware. For the **process-isolation** track, candidates must additionally bind the same test-fixture/chamber identity; for the **whole-system** track, candidate hardware is expected to differ.
 
 A matching asteroid taxonomic class is not a substitute for a matching batch assay. A matching nominal laser power is not a substitute for a matching beam profile or absorbed energy.
 
