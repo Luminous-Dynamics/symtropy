@@ -62,6 +62,98 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         }
     }
 
+    let suites = profile
+        .get("benchmark_suites")
+        .and_then(Value::as_array);
+    let mut suite_ids = BTreeSet::new();
+    if let Some(suites) = suites {
+        for suite in suites {
+            let id = text_at(suite, "id").unwrap_or("<missing>");
+            if !suite_ids.insert(id.to_owned()) {
+                errors.push(format!("duplicate benchmark suite: {id}"));
+            }
+            if suite
+                .get("human_baseline_required")
+                .and_then(Value::as_bool)
+                != Some(true)
+            {
+                errors.push(format!("{id}: matched human baseline is required"));
+            }
+            let first_pass = suite
+                .get("first_pass_success_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let stretch = suite
+                .get("stretch_success_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            if stretch < first_pass {
+                errors.push(format!("{id}: stretch success target must not be below first-pass target"));
+            }
+            let first_throughput = suite
+                .get("first_pass_human_throughput_ratio")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let stretch_throughput = suite
+                .get("stretch_human_throughput_ratio")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            if stretch_throughput < first_throughput {
+                errors.push(format!("{id}: stretch throughput target must not be below first-pass target"));
+            }
+            if id == "standardized_commercial_textiles"
+                && (first_pass <= 0.994 || first_throughput <= 0.6)
+            {
+                errors.push(
+                    "standardized commercial target must exceed the reported DYNA napkin baseline"
+                        .to_owned(),
+                );
+            }
+            if id == "diverse_household_garments" && first_pass <= 0.991 {
+                errors.push(
+                    "diverse household target must exceed the reported ACT-2 aggregate baseline"
+                        .to_owned(),
+                );
+            }
+        }
+    } else {
+        errors.push("benchmark_suites must be an array".to_owned());
+    }
+    for required in [
+        "standardized_commercial_textiles",
+        "diverse_household_garments",
+    ] {
+        if !suite_ids.contains(required) {
+            errors.push(format!("required non-pooled benchmark suite missing: {required}"));
+        }
+    }
+
+    let comparators = profile
+        .get("external_comparators")
+        .and_then(Value::as_array);
+    let mut comparator_ids = BTreeSet::new();
+    if let Some(comparators) = comparators {
+        for comparator in comparators {
+            let id = text_at(comparator, "id").unwrap_or("<missing>");
+            if !comparator_ids.insert(id.to_owned()) {
+                errors.push(format!("duplicate external comparator: {id}"));
+            }
+            if comparator
+                .get("is_our_result")
+                .and_then(Value::as_bool)
+                != Some(false)
+            {
+                errors.push(format!("{id}: external benchmark cannot be presented as our result"));
+            }
+            let suite_id = text_at(comparator, "suite_id").unwrap_or("");
+            if !suite_ids.contains(suite_id) {
+                errors.push(format!("{id}: comparator references unknown or pooled suite"));
+            }
+        }
+    } else {
+        errors.push("external_comparators must be an array".to_owned());
+    }
+
     let metrics = profile.get("metrics").and_then(Value::as_array);
     let mut ids = BTreeSet::new();
     if let Some(metrics) = metrics {
@@ -333,6 +425,36 @@ mod tests {
         let (schema, mut profile) = fixture();
         profile["governance"]["symthaea_authority"] =
             Value::String("closed_loop_actuator_controller".to_owned());
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn external_robotics_results_cannot_be_claimed_as_ours() {
+        let (schema, mut profile) = fixture();
+        profile["external_comparators"][0]["is_our_result"] = Value::Bool(true);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn standardized_and_household_robot_tasks_cannot_be_pooled() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][1]["id"] =
+            Value::String("standardized_commercial_textiles".to_owned());
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn proposed_targets_must_exceed_external_frontier() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][0]["first_pass_success_target"] = json!(0.99);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn external_comparator_must_reference_a_declared_suite() {
+        let (schema, mut profile) = fixture();
+        profile["external_comparators"][0]["suite_id"] =
+            Value::String("pooled_all_garments".to_owned());
         assert!(!is_valid(&schema, &profile));
     }
 
