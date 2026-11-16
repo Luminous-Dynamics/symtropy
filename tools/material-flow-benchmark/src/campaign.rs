@@ -369,6 +369,7 @@ fn run_episode(
             duplicate_command_suppressed =
                 issue_release(&mut transaction, &mut trace, &episode.episode_id)?;
             record_release(scenario, &mut transaction, &mut trace, &episode.episode_id)?;
+            let duplicate_command_id = transaction.context.expected_command_id.clone();
             let disposition = emit(
                 &mut transaction,
                 &mut trace,
@@ -377,7 +378,7 @@ fn run_episode(
                 &authorization.audience_actor_id,
                 "inject_second_physical_release_observation",
                 TransactionEventKind::PackageReleased {
-                    command_id: transaction.context.expected_command_id.clone(),
+                    command_id: duplicate_command_id,
                     package_id: scenario.package.package_id.clone(),
                 },
             )?;
