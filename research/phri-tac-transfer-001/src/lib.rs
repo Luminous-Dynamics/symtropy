@@ -16,7 +16,7 @@ use std::collections::BTreeSet;
 pub const CORPUS_JSON: &str = include_str!("../cases-v0.json");
 pub const CORPUS_SCHEMA_JSON: &str = include_str!("../cases-v0.schema.json");
 
-const EXPECTED_CASE_COUNT: usize = 30;
+const EXPECTED_CASE_COUNT: usize = 34;
 
 const EXPECTED_CASES: &[(&str, &str)] = &[
     ("PTT-001", "within_device_heldout_contacts"),
@@ -49,6 +49,10 @@ const EXPECTED_CASES: &[(&str, &str)] = &[
     ("PTT-028", "model_binds_wrong_target_calibration"),
     ("PTT-029", "qualified_transfer_remains_model_estimate_when_claimed_as_such"),
     ("PTT-030", "qualified_cross_family_transfer"),
+    ("PTT-031", "source_train_target_validation_sample_overlap"),
+    ("PTT-032", "source_train_target_adaptation_sample_overlap"),
+    ("PTT-033", "source_unit_leaked_into_target_validation_group"),
+    ("PTT-034", "source_lot_leaked_into_target_adaptation_group"),
 ];
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
@@ -347,29 +351,38 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
         return SplitDisposition::Leaked;
     }
 
-    let sequence_or_sample_overlap =
-        overlaps(&source_train.sample_ids, &target_test.sample_ids)
-            || overlaps(&source_train.sequence_ids, &target_test.sequence_ids)
+    // No source training sample/contact sequence may leak into any target
+    // adaptation, validation, or test partition. The target partitions must
+    // also be pairwise disjoint. Frame-level uniqueness is insufficient:
+    // repeated frames from one physical press share a sequence identity.
+    let target_groups = [target_adaptation, target_validation, target_test];
+    let source_target_overlap = target_groups.iter().any(|target_group| {
+        overlaps(&source_train.sample_ids, &target_group.sample_ids)
+            || overlaps(&source_train.sequence_ids, &target_group.sequence_ids)
+    });
+    let target_partition_overlap =
+        overlaps(&target_adaptation.sample_ids, &target_validation.sample_ids)
+            || overlaps(&target_adaptation.sequence_ids, &target_validation.sequence_ids)
             || overlaps(&target_adaptation.sample_ids, &target_test.sample_ids)
             || overlaps(&target_adaptation.sequence_ids, &target_test.sequence_ids)
             || overlaps(&target_validation.sample_ids, &target_test.sample_ids)
-            || overlaps(&target_validation.sequence_ids, &target_test.sequence_ids)
-            || overlaps(&target_adaptation.sample_ids, &target_validation.sample_ids)
-            || overlaps(
-                &target_adaptation.sequence_ids,
-                &target_validation.sequence_ids,
-            );
+            || overlaps(&target_validation.sequence_ids, &target_test.sequence_ids);
 
-    if sequence_or_sample_overlap {
+    if source_target_overlap || target_partition_overlap {
         return SplitDisposition::Leaked;
     }
 
-    if input.holdout_materials
-        && (overlaps(&source_train.article_ids, &target_test.article_ids)
-            || overlaps(&target_adaptation.article_ids, &target_test.article_ids)
-            || overlaps(&target_validation.article_ids, &target_test.article_ids))
-    {
-        return SplitDisposition::Leaked;
+    if input.holdout_materials {
+        let source_or_target_article_overlap = target_groups.iter().any(|target_group| {
+            overlaps(&source_train.article_ids, &target_group.article_ids)
+        });
+        let target_article_overlap =
+            overlaps(&target_adaptation.article_ids, &target_validation.article_ids)
+                || overlaps(&target_adaptation.article_ids, &target_test.article_ids)
+                || overlaps(&target_validation.article_ids, &target_test.article_ids);
+        if source_or_target_article_overlap || target_article_overlap {
+            return SplitDisposition::Leaked;
+        }
     }
 
     if !source_train.unit_ids.contains(&input.source.unit_id)
@@ -391,6 +404,16 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
         return SplitDisposition::Leaked;
     }
 
+    let is_cross_unit = matches!(
+        input.regime,
+        TransferRegime::CrossUnitZeroShot
+            | TransferRegime::CrossUnitFewShot
+            | TransferRegime::CrossFamilyZeroShot
+    );
+    let source_target_identity_overlap = target_groups.iter().any(|target_group| {
+        overlaps(&source_train.unit_ids, &target_group.unit_ids)
+            || overlaps(&source_train.lot_ids, &target_group.lot_ids)
+    });
     let regime_identity_valid = match input.regime {
         TransferRegime::WithinDevice => input.source.unit_id == input.target.unit_id,
         TransferRegime::CrossRevision | TransferRegime::Aging => {
@@ -401,10 +424,12 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
         | TransferRegime::CrossFamilyZeroShot => {
             input.source.unit_id != input.target.unit_id
                 && input.source.lot_id != input.target.lot_id
-                && !overlaps(&source_train.unit_ids, &target_test.unit_ids)
-                && !overlaps(&source_train.lot_ids, &target_test.lot_ids)
+                && !source_target_identity_overlap
         }
     };
+    if is_cross_unit && source_target_identity_overlap {
+        return SplitDisposition::Leaked;
+    }
 
     if !regime_identity_valid {
         return SplitDisposition::Leaked;
@@ -754,6 +779,51 @@ mod tests {
         });
         assert!(parse_and_validate(&value).is_err());
     }
+
+    #[test]
+    fn source_training_must_not_overlap_target_adaptation_samples() {
+        let mut value = tracked_value();
+        mutate_case(&mut value, "PTT-003", |case| {
+            case["candidate_input"]["splits"]["target_adaptation"]["sample_ids"][0] =
+                serde_json::json!("src-sample-01");
+        });
+        assert!(parse_and_validate(&value).is_err());
+    }
+
+    #[test]
+    fn source_training_must_not_overlap_target_validation_sequences() {
+        let mut value = tracked_value();
+        mutate_case(&mut value, "PTT-003", |case| {
+            case["candidate_input"]["splits"]["target_validation"]["sequence_ids"][0] =
+                serde_json::json!("src-sequence-01");
+        });
+        assert!(parse_and_validate(&value).is_err());
+    }
+
+    #[test]
+    fn source_sensor_identity_must_not_appear_in_any_target_partition() {
+        let mut value = tracked_value();
+        mutate_case(&mut value, "PTT-003", |case| {
+            case["candidate_input"]["splits"]["target_validation"]["unit_ids"]
+                .as_array_mut()
+                .expect("array")
+                .push(serde_json::json!("sensor-source-01"));
+        });
+        assert!(parse_and_validate(&value).is_err());
+    }
+
+    #[test]
+    fn source_manufacturing_lot_must_not_appear_in_target_adaptation() {
+        let mut value = tracked_value();
+        mutate_case(&mut value, "PTT-003", |case| {
+            case["candidate_input"]["splits"]["target_adaptation"]["lot_ids"]
+                .as_array_mut()
+                .expect("array")
+                .push(serde_json::json!("lot-source-01"));
+        });
+        assert!(parse_and_validate(&value).is_err());
+    }
+
 
     #[test]
     fn a_source_certificate_cannot_be_reused_as_the_target_unit_calibration() {
