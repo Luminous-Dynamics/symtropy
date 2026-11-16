@@ -494,8 +494,7 @@ impl ProcedureGraph {
     }
 }
 
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)
 #[serde(deny_unknown_fields)]
 pub struct ProcedureEvidenceBundle {
     pub schema_version: u16,
@@ -608,7 +607,9 @@ impl ProcedureGraph {
                 errors.push(format!("{prefix}.source_commit: source binding mismatch"));
             }
             if receipt.configuration_digest != scenario.digests.configuration_digest {
-                errors.push(format!("{prefix}.configuration_digest: configuration binding mismatch"));
+                errors.push(format!(
+                    "{prefix}.configuration_digest: configuration binding mismatch"
+                ));
             }
             if !is_sha256_digest(&receipt.digest) {
                 errors.push(format!("{prefix}.digest: malformed SHA-256 digest"));
@@ -665,7 +666,9 @@ impl ProcedureGraph {
             }
         }
         if receipt_kinds.len() != expected_external.len() {
-            errors.push("evidence_bundle.receipts: evidence kind set is incomplete or contains extras".into());
+            errors.push(
+                "evidence_bundle.receipts: evidence kind set is incomplete or contains extras".into(),
+            );
         }
 
         if !errors.is_empty() {
@@ -844,12 +847,21 @@ mod tests {
     fn evidence_admission_rejects_source_and_configuration_mismatch() {
         let (scenario, procedure) = fixture();
         let mut source_mismatch = evidence_fixture();
-        source_mismatch.receipts[0].source_commit = "0000000000000000000000000000000000000000".into();
-        assert!(procedure.admit_evidence(&scenario, &source_mismatch).is_err());
+        source_mismatch.receipts[0].source_commit =
+            "0000000000000000000000000000000000000000".into();
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &source_mismatch)
+                .is_err()
+        );
 
         let mut config_mismatch = evidence_fixture();
         config_mismatch.receipts[0].configuration_digest = format!("sha256:{}", "f".repeat(64));
-        assert!(procedure.admit_evidence(&scenario, &config_mismatch).is_err());
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &config_mismatch)
+                .is_err()
+        );
     }
 
     #[test]
@@ -884,7 +896,11 @@ mod tests {
 
         let mut malformed_digest = evidence_fixture();
         malformed_digest.receipts[0].digest = "sha256:XYZ".into();
-        assert!(procedure.admit_evidence(&scenario, &malformed_digest).is_err());
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &malformed_digest)
+                .is_err()
+        );
     }
 
     #[test]
