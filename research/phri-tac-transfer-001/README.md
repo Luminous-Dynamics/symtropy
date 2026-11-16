@@ -39,3 +39,10 @@ The target candidate pool has 72 contacts across four temperature × loading-pha
 Results report synthetic regression RMSE, p95/worst absolute error, a regression prediction-interval diagnostic, and a transparent synthetic contact-cost proxy. The interval is not a GUM uncertainty budget, metrological uncertainty statement or calibrated physical coverage result. The cost proxy is not measured laboratory time. These are synthetic model estimates only.
 
 The target response profile is deliberately shifted from the source response profile. The harness is intended to reveal whether an active policy or transfer prior helps under sensor shift; no policy is presumed superior. Use multiple preregistered seeds and keep the full held-out set out of policy selection.
+
+
+### Selector/evaluator separation — hardened
+
+The active-policy API receives only `&[Candidate]`. A candidate contains a commanded stimulus setpoint and a sensor-derived feature vector; it does not contain a reference-force label. Reference-force observations live in a separate `SyntheticDomain` used by model fitting after selection. Held-out target truth lives in `HeldoutDomain` and is passed only to the evaluator after every policy selection is frozen. The synthetic reference channel also has a separate deterministic noise term. This is a code-level data boundary, not merely a statement that the selector promises not to read labels.
+
+The candidate setpoint is a declared stimulus, not an independently measured force. The held-out evaluator compares predictions with its separate synthetic truth. The regression prediction interval still does not constitute a metrological uncertainty budget.
