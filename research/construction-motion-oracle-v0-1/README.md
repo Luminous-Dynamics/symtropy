@@ -111,3 +111,18 @@ The space-time broad phase interval-evaluates each affine centerline endpoint co
 If an intermediate cannot be represented finitely, the query returns `NumericalOverflow`; an adaptive caller cannot turn the failure into `NoContact`. The model remains limited to finite binary-f64 inputs and the supported affine fixed-orientation capsule geometry. This is an interval-enclosure improvement, not a complete proof of physical model fidelity or a certified arbitrary-precision geometry engine.
 
 The regression suite includes large-coordinate sub-ulp translations, subnormal displacements, static AABB expansion and overflow handling. The benchmark reports static, whole-sweep and one-window AABB costs independently. No performance claim is made until the new exact-head CI run completes.
+
+
+## Replayable adaptive CCD certificates
+
+The certificate API records one terminal ledger leaf for every part of the normalized time interval:
+- pruned intervals include both conservative swept AABBs;
+- exact-clear leaves include the analytic closest-approach result;
+- contact leaves include a contact witness;
+- numerically ill-conditioned leaves are recorded as unresolved.
+
+The verifier requires the leaf windows to form a complete, ordered, gap-free dyadic partition of [0,1]. It recomputes the swept AABBs, checks every prune is truly disjoint, reruns exact narrow phase on checked leaves, and recomputes the overall status and counters. A successful no-contact verification therefore requires every terminal interval to be either a verified geometric prune or an exact clear result, with no unresolved leaves.
+
+The certificate-producing variant evaluates every surviving candidate leaf rather than stopping at the first contact, so its ledger is complete. The existing adaptive query remains available for early-contact latency. Certificates are typed replay records, not signed/cryptographically authenticated attestations or formal proofs; callers must bind the embedded geometry and translations to exact design, site, robot, tool, calibration and controller identities in their outer evidence record.
+
+The certificate API has a 65,536 terminal-leaf cap to bound memory use. See [#5651](https://github.com/Luminous-Dynamics/symtropy/issues/5651).
