@@ -114,4 +114,4 @@
     "Candidate and no-action baseline losses use identical observation case identities and the same admitted loss matrix.",
     "Loss values in T0 are synthetic units only; no public-safety, household or agency consequence model is implied."
   ]
-}undefined
+}
