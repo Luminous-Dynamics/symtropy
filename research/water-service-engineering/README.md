@@ -152,3 +152,5 @@ The source-aware architecture, process candidates, fail-safe boundary and matche
 - [demonstrator test matrix](waterloop-demonstrator-test-matrix-v0.1.json) and [schema](waterloop-demonstrator-test-matrix-v0.1.schema.json)
 
 This is a research reference and planning package only. The demonstrator matrix explicitly records `physical_testing_authorized: false`; qualified water-quality, plumbing and electrical review is required before physical work.
+
+- [safe-state-machine contract](waterloop-safe-state-machine-v0.1.json) and [schema](waterloop-safe-state-machine-v0.1.schema.json)
