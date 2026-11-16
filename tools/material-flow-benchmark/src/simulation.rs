@@ -545,36 +545,39 @@ fn simulate_scene(
         );
     }
 
-    Ok((SimulationResult {
-        schema_version: scenario.schema_version,
-        scenario_id: scenario.scenario_id.clone(),
-        seed: scenario.seed,
-        evidence_level: scenario.evidence_level,
-        simulation_track: if closed_gate_obstruction {
-            "stationary_receiver_closed_gate_obstruction_v1".into()
-        } else {
-            "stationary_receiver_rigid_package_drop_v1".into()
+    Ok((
+        SimulationResult {
+            schema_version: scenario.schema_version,
+            scenario_id: scenario.scenario_id.clone(),
+            seed: scenario.seed,
+            evidence_level: scenario.evidence_level,
+            simulation_track: if closed_gate_obstruction {
+                "stationary_receiver_closed_gate_obstruction_v1".into()
+            } else {
+                "stationary_receiver_rigid_package_drop_v1".into()
+            },
+            physics_engine: "symtropy-physics 0.2.1 / deterministic-net Q16.16".into(),
+            tick_count: first.ticks,
+            fixed_dt_seconds: FIXED_DT,
+            package_center_m: first.final_position_m,
+            package_linear_speed_m_s: first.final_speed_m_s,
+            package_angular_speed_rad_s: first.final_angular_speed_rad_s,
+            package_world_aabb_half_extents_m: first.final_world_aabb_half_extents_m,
+            max_contact_penetration_m: first.max_contact_penetration_m,
+            max_rotation_orthogonality_error: first.max_rotation_orthogonality_error,
+            max_rotation_determinant_error: first.max_rotation_determinant_error,
+            non_finite_body_count: first.non_finite_body_count,
+            physics_numerically_healthy,
+            safe_inside_tote,
+            settled,
+            replay_bitwise_equal,
+            physics_trace_digest: first.digest,
+            transaction_state,
+            accepted,
+            limitations,
         },
-        physics_engine: "symtropy-physics 0.2.1 / deterministic-net Q16.16".into(),
-        tick_count: first.ticks,
-        fixed_dt_seconds: FIXED_DT,
-        package_center_m: first.final_position_m,
-        package_linear_speed_m_s: first.final_speed_m_s,
-        package_angular_speed_rad_s: first.final_angular_speed_rad_s,
-        package_world_aabb_half_extents_m: first.final_world_aabb_half_extents_m,
-        max_contact_penetration_m: first.max_contact_penetration_m,
-        max_rotation_orthogonality_error: first.max_rotation_orthogonality_error,
-        max_rotation_determinant_error: first.max_rotation_determinant_error,
-        non_finite_body_count: first.non_finite_body_count,
-        physics_numerically_healthy,
-        safe_inside_tote,
-        settled,
-        replay_bitwise_equal,
-        physics_trace_digest: first.digest,
-        transaction_state,
-        accepted,
-        limitations,
-    }, blind_retry_blocked))
+        blind_retry_blocked,
+    ))
 }
 
 /// Run the nominal stationary-carrier receiving scene twice and require a
@@ -591,8 +594,8 @@ pub fn simulate_closed_gate_obstruction(
 ) -> Result<FaultSimulationResult, String> {
     let (simulation, blind_retry_blocked) = simulate_scene(scenario, true)?;
     let geometry = tote_geometry(scenario)?;
-    let package_bottom_m = simulation.package_center_m[1]
-        - simulation.package_world_aabb_half_extents_m[1];
+    let package_bottom_m =
+        simulation.package_center_m[1] - simulation.package_world_aabb_half_extents_m[1];
     let tote_top_m = 2.0 * geometry.inner_half_m[1];
     let physical_fault_effect_observed =
         !simulation.safe_inside_tote && package_bottom_m > tote_top_m + 0.001;
