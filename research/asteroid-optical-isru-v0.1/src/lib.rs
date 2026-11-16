@@ -134,6 +134,38 @@ pub fn ideal_solar_concentration_ratio(
     Ok((collector_diameter_m / image_diameter).powi(2))
 }
 
+/// Ideal average irradiance across the geometrical solar image for an ideal
+/// circular collector. Solar flux decreases with 1/r^2 as heliocentric
+/// distance r increases, while the apparent solar diameter (and therefore
+/// solar-image diameter at fixed range) decreases with 1/r. The ideal
+/// area-concentration ratio therefore grows with r^2, making the ideal
+/// average focal-plane irradiance invariant with heliocentric distance for
+/// fixed collector diameter and focal distance.
+///
+/// Total intercepted power still decreases with 1/r^2, and the image diameter
+/// still decreases with 1/r. This is an analytic idealization only: it assumes
+/// perfect collection and a uniform image and excludes optical losses,
+/// aberrations, nonuniform sunshape, pointing, deformation and receiver loss.
+pub fn ideal_solar_focal_irradiance_w_m2(
+    reference_flux_w_m2: f64,
+    collector_diameter_m: f64,
+    focal_distance_m: f64,
+    heliocentric_distance_au: f64,
+) -> Result<f64, AuditError> {
+    let local_flux = solar_flux_at_au(reference_flux_w_m2, heliocentric_distance_au)?;
+    let concentration = ideal_solar_concentration_ratio(
+        collector_diameter_m,
+        focal_distance_m,
+        heliocentric_distance_au,
+    )?;
+    let irradiance = local_flux * concentration;
+    if irradiance.is_finite() {
+        Ok(irradiance)
+    } else {
+        Err(AuditError::NonFinite("ideal_solar_focal_irradiance_w_m2"))
+    }
+}
+
 /// Ideal circular-aperture Airy first-null diameter in the far field:
 /// 2.44 * wavelength * range / aperture.
 ///
@@ -443,6 +475,25 @@ mod tests {
         assert!((near - (10.0_f64 / 0.93).powi(2)).abs() < 1.0e-9);
         assert!((far - (10.0_f64 / 9.3).powi(2)).abs() < 1.0e-9);
         assert!(near > far * 99.0);
+    }
+
+    #[test]
+    fn ideal_focal_irradiance_is_distance_invariant_but_image_shrinks() {
+        let one_au =
+            ideal_solar_focal_irradiance_w_m2(1361.0, 10.0, 100.0, 1.0).unwrap();
+        let belt =
+            ideal_solar_focal_irradiance_w_m2(1361.0, 10.0, 100.0, 2.7).unwrap();
+        assert!((one_au - belt).abs() <= one_au * 1.0e-9);
+
+        let image_one_au = solar_image_diameter_m(100.0, 1.0).unwrap();
+        let image_belt = solar_image_diameter_m(100.0, 2.7).unwrap();
+        assert!((image_belt - image_one_au / 2.7).abs() <= image_one_au * 1.0e-9);
+
+        let flux_one_au = solar_flux_at_au(1361.0, 1.0).unwrap();
+        let flux_belt = solar_flux_at_au(1361.0, 2.7).unwrap();
+        assert!(
+            (flux_belt / flux_one_au - 1.0 / (2.7_f64 * 2.7)).abs() < 1.0e-12
+        );
     }
 
     #[test]
