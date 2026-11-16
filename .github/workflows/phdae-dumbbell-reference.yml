@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/phdae-dumbbell-reference/**"
       - "docs/research/PHDAE_DUMBBELL_MOMENTUM_MAP_2026-10-31.md"
+      - "docs/research/PHYS_FULL_GROUP_STEP_EQUIVARIANCE_O2_2026-11-16.md"
       - ".github/workflows/phdae-dumbbell-reference.yml"
   push:
     branches:
@@ -29,6 +30,20 @@ jobs:
           rustup toolchain install 1.96.0 --profile minimal
           rustup component add --toolchain 1.96.0 rustfmt
 
+      - name: Validate frozen O(2) split-component fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          fixture = json.loads(Path("tools/phdae-dumbbell-reference/o2_split_component_v0.1.json").read_text())
+          assert fixture["schema_version"] == "luminous.phys_full_group_step_equivariance.v0.1"
+          assert fixture["full_group"]["name"] == "O(2)"
+          assert fixture["full_group"]["finite_component_group"]["multiplication"] == [[0, 1], [1, 0]]
+          assert fixture["full_group"]["adjoint_relation"] == "F J F^-1 = -J"
+          assert fixture["qualification_corpus"]["rotation_sample_count"] == 32
+          assert fixture["claim_boundary"]["scientific_search_pruning"] is False
+          PY
       - name: Check formatting
         run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-reference/constrained_dumbbell.rs
 
