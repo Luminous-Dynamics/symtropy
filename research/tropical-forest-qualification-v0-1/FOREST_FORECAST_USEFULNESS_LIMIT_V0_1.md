@@ -67,3 +67,10 @@ For a real decision, the unitful tolerance must be derived from the decision los
 ## 7. Claim ceiling
 
 Synthetic PASS validates the qualification policy and arithmetic only. It does not establish AFEX forecast skill, a forest's actual forecast horizon, calibrated disturbance recovery, or operational decision benefit. Empirical limits require admitted repeated observations, frozen rolling-origin forecasts and independent held-out blocks/sites.
+
+
+## 8. As-of integrity is a prerequisite for an empirical usefulness limit
+
+A forecast usefulness horizon is meaningful only if the model input set reflects what was actually known at issue time. The [#5487 as-of integrity gate](https://github.com/Luminous-Dynamics/symtropy/issues/5487) separates event/collection time from source/QA/rights/ingestion availability and freezes the exact data versions used by each forecast origin. Otherwise, retrospective lab results, later satellite composites or corrected plot data can leak into a historical forecast.
+
+Empirical usefulness limits must therefore bind the information cutoff, issue time, source versions and fitted-transform data cutoff. The new synthetic gate is [here](FOREST_AS_OF_FORECAST_INTEGRITY_V0_1.md); it does not itself establish any AFEX historical availability timestamp.
