@@ -152,6 +152,54 @@ fn rotate(a: Vec2, angle: f64) -> Vec2 {
     [cos * a[0] - sin * a[1], sin * a[0] + cos * a[1]]
 }
 
+fn reflect(a: Vec2) -> Vec2 {
+    [a[0], -a[1]]
+}
+
+fn rotate_state(state: State, angle: f64) -> State {
+    State {
+        q1: rotate(state.q1, angle),
+        q2: rotate(state.q2, angle),
+        v1: rotate(state.v1, angle),
+        v2: rotate(state.v2, angle),
+    }
+}
+
+fn reflect_state(state: State) -> State {
+    State {
+        q1: reflect(state.q1),
+        q2: reflect(state.q2),
+        v1: reflect(state.v1),
+        v2: reflect(state.v2),
+    }
+}
+
+fn o2_state(state: State, angle: f64, reflected_component: bool) -> State {
+    let state = if reflected_component {
+        reflect_state(state)
+    } else {
+        state
+    };
+    rotate_state(state, angle)
+}
+
+fn o2_vector(vector: Vec2, angle: f64, reflected_component: bool) -> Vec2 {
+    let vector = if reflected_component {
+        reflect(vector)
+    } else {
+        vector
+    };
+    rotate(vector, angle)
+}
+
+fn state_error(a: State, b: State) -> f64 {
+    (norm(sub(a.q1, b.q1)).powi(2)
+        + norm(sub(a.q2, b.q2)).powi(2)
+        + norm(sub(a.v1, b.v1)).powi(2)
+        + norm(sub(a.v2, b.v2)).powi(2))
+    .sqrt()
+}
+
 impl ConstrainedDumbbell {
     pub fn new(mass1: f64, mass2: f64, length: f64) -> Result<Self, Error> {
         if !mass1.is_finite() || !mass2.is_finite() || !length.is_finite() {
@@ -636,23 +684,6 @@ mod tests {
         }
     }
 
-    fn rotate_state(state: State, angle: f64) -> State {
-        State {
-            q1: rotate(state.q1, angle),
-            q2: rotate(state.q2, angle),
-            v1: rotate(state.v1, angle),
-            v2: rotate(state.v2, angle),
-        }
-    }
-
-    fn state_error(a: State, b: State) -> f64 {
-        (norm(sub(a.q1, b.q1)).powi(2)
-            + norm(sub(a.q2, b.q2)).powi(2)
-            + norm(sub(a.v1, b.v1)).powi(2)
-            + norm(sub(a.v2, b.v2)).powi(2))
-        .sqrt()
-    }
-
     fn advance(
         model: &ConstrainedDumbbell,
         mut state: State,
@@ -904,6 +935,152 @@ mod tests {
     }
 
     #[test]
+    fn reflection_component_conjugates_the_connected_rotation_generator() {
+        // J = [[0,-1],[1,0]], F = diag(1,-1), F^-1 = F^T = F.
+        // Compute F J F^-1 directly; it must equal -J.
+        let reflection = [[1.0, 0.0], [0.0, -1.0]];
+        let generator = [[0.0, -1.0], [1.0, 0.0]];
+        let mut left_product = [[0.0; 2]; 2];
+        let mut conjugated = [[0.0; 2]; 2];
+        for row in 0..2 {
+            for column in 0..2 {
+                for inner in 0..2 {
+                    left_product[row][column] += reflection[row][inner] * generator[inner][column];
+                }
+            }
+        }
+        for row in 0..2 {
+            for column in 0..2 {
+                for inner in 0..2 {
+                    conjugated[row][column] += left_product[row][inner] * reflection[inner][column];
+                }
+            }
+        }
+        let negative_generator = [
+            [-generator[0][0], -generator[0][1]],
+            [-generator[1][0], -generator[1][1]],
+        ];
+        assert_eq!(conjugated, negative_generator);
+
+        let angle = 0.731_f64;
+        let state = initial_state();
+        let left = reflect_state(rotate_state(state, angle));
+        let right = rotate_state(reflect_state(state), -angle);
+        assert!(state_error(left, right) < 3.0e-16);
+
+        let model = model();
+        let reflected = reflect_state(state);
+        assert!((model.hamiltonian(reflected).unwrap() - model.hamiltonian(state).unwrap()).abs()
+            < 2.0e-15);
+        assert!(
+            (model.angular_momentum(reflected) + model.angular_momentum(state)).abs() < 2.0e-15,
+            "2D angular momentum is a pseudoscalar and changes sign under reflection"
+        );
+        let reflected_momentum = model.linear_momentum(reflected);
+        let expected_momentum = reflect(model.linear_momentum(state));
+        assert!(norm(sub(reflected_momentum, expected_momentum)) < 2.0e-15);
+    }
+
+    #[test]
+    fn full_o2_components_commute_with_the_actual_discrete_step_map() {
+        let model = model();
+        let initial = initial_state();
+        let force1 = [0.9, -0.7];
+        let force2 = [-0.3, 1.1];
+        let dt = 0.05;
+        let canonical = model
+            .step(initial, force1, force2, dt, SolverOptions::default())
+            .unwrap();
+
+        let mut maximum_rotation_defect = 0.0_f64;
+        let mut maximum_reflection_defect = 0.0_f64;
+        for index in 0..32 {
+            let angle = std::f64::consts::TAU * index as f64 / 32.0;
+            for reflected_component in [false, true] {
+                let transformed = model
+                    .step(
+                        o2_state(initial, angle, reflected_component),
+                        o2_vector(force1, angle, reflected_component),
+                        o2_vector(force2, angle, reflected_component),
+                        dt,
+                        SolverOptions::default(),
+                    )
+                    .unwrap();
+                let expected = o2_state(canonical.after, angle, reflected_component);
+                let defect = state_error(transformed.after, expected);
+                if reflected_component {
+                    maximum_reflection_defect = maximum_reflection_defect.max(defect);
+                } else {
+                    maximum_rotation_defect = maximum_rotation_defect.max(defect);
+                }
+
+                // The scalar distance-constraint multiplier is invariant under O(2).
+                assert!((transformed.multiplier - canonical.multiplier).abs() < 4.0e-12);
+                assert!(
+                    (transformed.constraint_reaction_work - canonical.constraint_reaction_work)
+                        .abs()
+                        < 2.0e-13
+                );
+                assert!((transformed.energy_after - canonical.energy_after).abs() < 3.0e-12);
+                assert!((transformed.external_work - canonical.external_work).abs() < 3.0e-12);
+
+                let expected_angular = if reflected_component {
+                    -model.angular_momentum(canonical.after)
+                } else {
+                    model.angular_momentum(canonical.after)
+                };
+                assert!(
+                    (model.angular_momentum(transformed.after) - expected_angular).abs() < 4.0e-12
+                );
+            }
+        }
+
+        assert!(maximum_rotation_defect < 4.0e-12, "{maximum_rotation_defect:e}");
+        assert!(
+            maximum_reflection_defect < 4.0e-12,
+            "{maximum_reflection_defect:e}"
+        );
+    }
+
+    #[test]
+    fn wrong_force_covector_transform_is_rejected_by_step_equivariance() {
+        let model = model();
+        let initial = initial_state();
+        let force1 = [0.9, -0.7];
+        let force2 = [-0.3, 1.1];
+        let dt = 0.05;
+        let canonical = model
+            .step(initial, force1, force2, dt, SolverOptions::default())
+            .unwrap();
+        let correctly_reflected = model
+            .step(
+                reflect_state(initial),
+                reflect(force1),
+                reflect(force2),
+                dt,
+                SolverOptions::default(),
+            )
+            .unwrap();
+        let wrongly_reflected = model
+            .step(
+                reflect_state(initial),
+                force1,
+                force2,
+                dt,
+                SolverOptions::default(),
+            )
+            .unwrap();
+
+        assert!(
+            state_error(correctly_reflected.after, reflect_state(canonical.after)) < 4.0e-12
+        );
+        assert!(
+            state_error(wrongly_reflected.after, reflect_state(canonical.after)) > 1.0e-5,
+            "leaving the force components unchanged must break reflection equivariance"
+        );
+    }
+
+    #[test]
     fn negative_controls_reject_invalid_manifold_and_solver_inputs() {
         let model = model();
         let mut off_length = initial_state();
@@ -1014,9 +1191,126 @@ mod tests {
 }
 
 #[cfg(not(test))]
+fn emit_o2_probe(model: &ConstrainedDumbbell) {
+    let initial = State {
+        q1: [-0.6, 0.2],
+        q2: [0.6, 0.2],
+        v1: [0.25, -0.18],
+        v2: [0.25, 0.62],
+    };
+    let force1 = [0.9, -0.7];
+    let force2 = [-0.3, 1.1];
+    let dt = 0.05;
+    let canonical = model
+        .step(initial, force1, force2, dt, SolverOptions::default())
+        .expect("canonical O2 probe step must converge");
+
+    let mut maximum_rotation_defect = 0.0_f64;
+    let mut maximum_reflection_defect = 0.0_f64;
+    let mut maximum_multiplier_defect = 0.0_f64;
+    let mut maximum_energy_defect = 0.0_f64;
+    let mut maximum_external_work_defect = 0.0_f64;
+    let mut maximum_reaction_work_defect = 0.0_f64;
+    let mut maximum_angular_momentum_defect = 0.0_f64;
+
+    for index in 0..32 {
+        let angle = std::f64::consts::TAU * index as f64 / 32.0;
+        for reflected_component in [false, true] {
+            let transformed = model
+                .step(
+                    o2_state(initial, angle, reflected_component),
+                    o2_vector(force1, angle, reflected_component),
+                    o2_vector(force2, angle, reflected_component),
+                    dt,
+                    SolverOptions::default(),
+                )
+                .expect("transformed O2 probe step must converge");
+            let expected = o2_state(canonical.after, angle, reflected_component);
+            let state_defect = state_error(transformed.after, expected);
+            if reflected_component {
+                maximum_reflection_defect = maximum_reflection_defect.max(state_defect);
+            } else {
+                maximum_rotation_defect = maximum_rotation_defect.max(state_defect);
+            }
+
+            maximum_multiplier_defect = maximum_multiplier_defect
+                .max((transformed.multiplier - canonical.multiplier).abs());
+            maximum_energy_defect = maximum_energy_defect
+                .max((transformed.energy_after - canonical.energy_after).abs());
+            maximum_external_work_defect = maximum_external_work_defect
+                .max((transformed.external_work - canonical.external_work).abs());
+            maximum_reaction_work_defect = maximum_reaction_work_defect.max(
+                (transformed.constraint_reaction_work - canonical.constraint_reaction_work).abs(),
+            );
+
+            let expected_angular = if reflected_component {
+                -model.angular_momentum(canonical.after)
+            } else {
+                model.angular_momentum(canonical.after)
+            };
+            maximum_angular_momentum_defect = maximum_angular_momentum_defect.max(
+                (model.angular_momentum(transformed.after) - expected_angular).abs(),
+            );
+        }
+    }
+
+    let wrong_force_step = model
+        .step(
+            reflect_state(initial),
+            force1,
+            force2,
+            dt,
+            SolverOptions::default(),
+        )
+        .expect("wrong-law negative control remains a solvable physical step");
+    let wrong_force_transform_defect =
+        state_error(wrong_force_step.after, reflect_state(canonical.after));
+
+    let source_commit =
+        std::env::var("O2_SOURCE_COMMIT").unwrap_or_else(|_| "local".to_owned());
+    let fixture_sha256 =
+        std::env::var("O2_FIXTURE_SHA256").unwrap_or_else(|_| "unbound".to_owned());
+
+    println!(
+        concat!(
+            "{{",
+            "\"schema_version\":\"luminous.phys_full_group_step_equivariance_result.v0.1\",",
+            "\"source_commit\":\"{}\",",
+            "\"fixture_sha256\":\"{}\",",
+            "\"rotation_samples\":32,",
+            "\"component_samples\":2,",
+            "\"maximum_rotation_state_defect\":{:.17e},",
+            "\"maximum_reflection_state_defect\":{:.17e},",
+            "\"maximum_multiplier_defect\":{:.17e},",
+            "\"maximum_energy_defect\":{:.17e},",
+            "\"maximum_external_work_defect\":{:.17e},",
+            "\"maximum_reaction_work_defect\":{:.17e},",
+            "\"maximum_angular_momentum_defect\":{:.17e},",
+            "\"wrong_force_transform_defect\":{:.17e}",
+            "}}"
+        ),
+        source_commit,
+        fixture_sha256,
+        maximum_rotation_defect,
+        maximum_reflection_defect,
+        maximum_multiplier_defect,
+        maximum_energy_defect,
+        maximum_external_work_defect,
+        maximum_reaction_work_defect,
+        maximum_angular_momentum_defect,
+        wrong_force_transform_defect,
+    );
+}
+
+#[cfg(not(test))]
 fn main() {
     let model = ConstrainedDumbbell::new(1.3, 2.1, 1.2)
         .expect("frozen dumbbell model must be valid");
+    if std::env::args().nth(1).as_deref() == Some("--o2-probe") {
+        emit_o2_probe(&model);
+        return;
+    }
+
     let mut state = State {
         q1: [-0.6, 0.2],
         q2: [0.6, 0.2],

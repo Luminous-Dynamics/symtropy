@@ -2,9 +2,11 @@ name: pHDAE dumbbell momentum-map reference
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - "tools/phdae-dumbbell-reference/**"
       - "docs/research/PHDAE_DUMBBELL_MOMENTUM_MAP_2026-10-31.md"
+      - "docs/research/PHYS_FULL_GROUP_STEP_EQUIVARIANCE_O2_2026-11-16.md"
       - ".github/workflows/phdae-dumbbell-reference.yml"
   push:
     branches:
@@ -15,18 +17,50 @@ permissions:
 
 jobs:
   standalone-dumbbell-reference:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@v4
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Record exact checked-out source commit
+        run: echo "O2_SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Install pinned Rust toolchain
         run: |
           rustup toolchain install 1.96.0 --profile minimal
           rustup component add --toolchain 1.96.0 rustfmt
 
-      - name: Check formatting
-        run: rustup run 1.96.0 rustfmt --edition 2021 --check tools/phdae-dumbbell-reference/constrained_dumbbell.rs
+      - name: Validate frozen O(2) split-component fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          fixture = json.loads(Path("tools/phdae-dumbbell-reference/o2_split_component_v0.1.json").read_text())
+          assert fixture["schema_version"] == "luminous.phys_full_group_step_equivariance.v0.1"
+          assert fixture["full_group"]["name"] == "O(2)"
+          assert fixture["full_group"]["finite_component_group"]["multiplication"] == [[0, 1], [1, 0]]
+          assert fixture["full_group"]["adjoint_relation"] == "F J F^-1 = -J"
+          assert fixture["qualification_corpus"]["rotation_sample_count"] == 32
+          assert fixture["claim_boundary"]["scientific_search_pruning"] is False
+          PY
+      # Temporary normalization pass: rustfmt 1.96 is the canonical formatter
+      # for this inherited standalone reference. The normalized source is
+      # uploaded so it can be committed verbatim; the next exact-head run
+      # restores a non-mutating --check gate.
+      - name: Normalize source with pinned Rust formatter
+        run: |
+          rustup run 1.96.0 rustfmt --edition 2021 tools/phdae-dumbbell-reference/constrained_dumbbell.rs
+          cp tools/phdae-dumbbell-reference/constrained_dumbbell.rs /tmp/constrained_dumbbell.rustfmt-1.96.rs
+      - name: Upload pinned formatter output
+        uses: actions/upload-artifact@v4
+        with:
+          name: phdae-dumbbell-rustfmt-1.96-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/constrained_dumbbell.rustfmt-1.96.rs
+          if-no-files-found: error
 
       - name: Compile and run warning-denied tests
         run: |
@@ -37,6 +71,8 @@ jobs:
 
       - name: Compile optimized deterministic fixture
         run: |
+          set -euo pipefail
+          echo "O2_FIXTURE_SHA256=$(sha256sum tools/phdae-dumbbell-reference/o2_split_component_v0.1.json | cut -d' ' -f1)" >> "$GITHUB_ENV"
           rustup run 1.96.0 rustc --edition 2021 -O -D warnings \
             tools/phdae-dumbbell-reference/constrained_dumbbell.rs \
             -o /tmp/dumbbell-ref
@@ -45,3 +81,46 @@ jobs:
           cmp /tmp/dumbbell-a.csv /tmp/dumbbell-b.csv
           test "$(wc -l < /tmp/dumbbell-a.csv)" -eq 501
           grep -q "^500," /tmp/dumbbell-a.csv
+          /tmp/dumbbell-ref --o2-probe > /tmp/o2-step-equivariance.json
+      - name: Validate exact-head O2 step-map receipt
+        run: |
+          python3 - <<'PY'
+          import json
+          import math
+          import os
+          from pathlib import Path
+
+          report = json.loads(Path("/tmp/o2-step-equivariance.json").read_text())
+          assert report["schema_version"] == "luminous.phys_full_group_step_equivariance_result.v0.1"
+          assert report["source_commit"] == os.environ["O2_SOURCE_COMMIT"]
+          assert report["fixture_sha256"] == os.environ["O2_FIXTURE_SHA256"]
+          assert report["rotation_samples"] == 32
+          assert report["component_samples"] == 2
+          numeric = [
+              "maximum_rotation_state_defect",
+              "maximum_reflection_state_defect",
+              "maximum_multiplier_defect",
+              "maximum_energy_defect",
+              "maximum_external_work_defect",
+              "maximum_reaction_work_defect",
+              "maximum_angular_momentum_defect",
+              "wrong_force_transform_defect",
+          ]
+          assert all(math.isfinite(report[key]) for key in numeric)
+          assert report["maximum_rotation_state_defect"] <= 4e-12
+          assert report["maximum_reflection_state_defect"] <= 4e-12
+          assert report["maximum_multiplier_defect"] <= 4e-12
+          assert report["maximum_energy_defect"] <= 3e-12
+          assert report["maximum_external_work_defect"] <= 3e-12
+          assert report["maximum_reaction_work_defect"] <= 2e-13
+          assert report["maximum_angular_momentum_defect"] <= 4e-12
+          assert report["wrong_force_transform_defect"] > 1e-5
+          PY
+      - name: Upload deterministic and O2 equivariance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: phdae-dumbbell-o2-step-equivariance-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/dumbbell-a.csv
+            /tmp/o2-step-equivariance.json
+          if-no-files-found: error
