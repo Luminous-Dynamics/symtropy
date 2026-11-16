@@ -682,13 +682,13 @@ mod tests {
             );
             assert_eq!(
                 evaluated.metrics.false_preserved_affected_operations,
-                columns[15].parse::<usize>().unwrap(),
+                columns[14].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
             assert_eq!(
                 evaluated.metrics.unnecessary_released_operations,
-                columns[14].parse::<usize>().unwrap(),
+                columns[15].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
@@ -698,7 +698,7 @@ mod tests {
             }
         }
 
-        assert_eq!(rows, 18);
+        assert_eq!(rows, 19);
         assert_eq!(hidden_future_results.len(), 2);
         assert_eq!(hidden_future_results[0], hidden_future_results[1]);
     }
