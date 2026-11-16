@@ -8,7 +8,7 @@ on:
       - "research/robot-config-mission-impact-v0-1/**"
       - ".github/workflows/robot-config-mission-impact-validation.yml"
   pull_request:
-    branches: [main]
+    branches: [main, research/robot-config-mission-impact-v0-1]
     paths:
       - "research/robot-config-mission-impact-v0-1/**"
       - ".github/workflows/robot-config-mission-impact-validation.yml"
