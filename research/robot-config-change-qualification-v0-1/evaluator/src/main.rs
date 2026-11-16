@@ -172,8 +172,8 @@ fn evaluate_command(args: &[String]) -> Result<(), String> {
             result["oracle_comparison"]["mismatches"]
         ));
     }
-    let mut bytes = serde_json::to_vec_pretty(&result)
-        .map_err(|error| format!("result_serialize:{error}"))?;
+    let mut bytes =
+        serde_json::to_vec_pretty(&result).map_err(|error| format!("result_serialize:{error}"))?;
     bytes.push(b'\n');
     if let Some(parent) = output_path
         .parent()
