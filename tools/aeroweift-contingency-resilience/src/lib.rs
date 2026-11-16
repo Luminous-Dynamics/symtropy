@@ -9,7 +9,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 /// Supported high-level contingency trigger classes.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -132,8 +132,12 @@ pub struct OptionInventory {
     pub manifest_sha256: String,
     /// Inventory completeness.
     pub state: InventoryState,
+    /// Earliest effective time for which inventory history is complete.
+    pub effective_from: i64,
     /// Effective-time frontier represented by the inventory.
     pub effective_through: i64,
+    /// Earliest knowledge time for which inventory history is complete.
+    pub knowledge_from: i64,
     /// Knowledge-time frontier represented by the inventory.
     pub knowledge_through: i64,
 }
@@ -411,6 +415,8 @@ fn validate_policy(policy: &RecoverabilityPolicy) -> Result<(), EvaluationError>
 fn validate_case(case: &ContingencyCase) -> Result<(), EvaluationError> {
     if case.contingency_id.trim().is_empty()
         || !case.subject.is_complete()
+        || case.effective_at < 0
+        || case.known_at < 0
         || !finite_nonnegative(case.response_deadline_ms)
         || !finite_nonnegative(case.required_energy_reserve)
         || !finite_unit_interval(case.minimum_containment)
@@ -429,8 +435,10 @@ fn validate_inventory(
 ) -> Result<(), EvaluationError> {
     if inventory.source_id.trim().is_empty()
         || !is_sha256(&inventory.manifest_sha256)
-        || inventory.effective_through < 0
-        || inventory.knowledge_through < 0
+        || inventory.effective_from < 0
+        || inventory.effective_from > inventory.effective_through
+        || inventory.knowledge_from < 0
+        || inventory.knowledge_from > inventory.knowledge_through
     {
         return Err(EvaluationError::InvalidInventory);
     }
@@ -438,13 +446,15 @@ fn validate_inventory(
 }
 
 fn validate_option(option: &RecoveryOption) -> Result<(), EvaluationError> {
+    if !unique_nonempty(&option.dependency_domains) {
+        return Err(EvaluationError::InvalidDependencySet);
+    }
     if option.option_id.trim().is_empty()
         || option.contingency_id.trim().is_empty()
         || !option.subject.is_complete()
         || !is_sha256(&option.evidence_binding_sha256)
         || option.evidence_receipt_ids.is_empty()
-        || !unique_nonempty(&option.evidence_receipt_ids)
-        || !unique_nonempty(&option.dependency_domains)
+        || option.evidence_receipt_ids.iter().any(|value| value.trim().is_empty())
         || !finite_nonnegative(option.bounds.response_time_upper_ms)
         || !finite_nonnegative(option.bounds.energy_available_lower)
         || !finite_nonnegative(option.bounds.energy_required_upper)
@@ -679,7 +689,9 @@ pub fn evaluate_recoverability(
     }
 
     let inventory_complete = inventory.state == InventoryState::Complete
+        && inventory.effective_from <= case.effective_at
         && inventory.effective_through >= case.effective_at
+        && inventory.knowledge_from <= case.known_at
         && inventory.knowledge_through >= case.known_at;
 
     let mut options: Vec<OptionAssessment> = candidates
@@ -700,7 +712,6 @@ pub fn evaluate_recoverability(
     let has_reauthorization = options
         .iter()
         .any(|option| option.disposition == OptionDisposition::ReauthorizationRequired);
-    let has_known_candidate = !options.is_empty();
     let exceeds_determinate_limit = admissible_option_ids.len()
         > policy.maximum_determinate_option_count;
 
