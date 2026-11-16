@@ -10,6 +10,7 @@
 //! This module qualifies experimental claim scope; it does not establish that
 //! a biological mechanism is true beyond the linked source evidence.
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 use crate::observation_evidence::{
@@ -216,6 +217,13 @@ impl NetworkEvidenceAssessment {
     ) -> Result<(), NetworkEvidenceError> {
         self.validate()?;
 
+        let mut seen_receipt_ids = BTreeSet::new();
+        for receipt in receipts {
+            if !seen_receipt_ids.insert(receipt.id) {
+                return Err(NetworkEvidenceError::DuplicateObservationReceipt(receipt.id));
+            }
+        }
+
         let mut referenced = Vec::new();
         if let Some(id) = self.shared_fungal_link.observation {
             referenced.push(id);
@@ -332,6 +340,7 @@ pub enum NetworkEvidenceError {
     MissingSharedLinkReceipt,
     UnexpectedSharedLinkReceipt,
     MissingObservationReceipt(ObservationEvidenceId),
+    DuplicateObservationReceipt(ObservationEvidenceId),
     InvalidObservationReceipt {
         id: ObservationEvidenceId,
         source: EvidenceReceiptError,
@@ -379,6 +388,9 @@ impl fmt::Display for NetworkEvidenceError {
             },
             Self::MissingObservationReceipt(id) => {
                 write!(f, "observation {:?} does not resolve to a source receipt", id)
+            }
+            Self::DuplicateObservationReceipt(id) => {
+                write!(f, "source receipt ID {:?} is duplicated", id)
             }
             Self::InvalidObservationReceipt { id, source } => {
                 write!(f, "observation {:?} has an invalid source receipt: {}", id, source)
@@ -623,6 +635,48 @@ mod tests {
             receipt(5),
         ];
         assert_eq!(assessment.validate_against_receipts(&receipts), Ok(()));
+    }
+
+    #[test]
+    fn duplicate_source_receipt_ids_are_rejected() {
+        let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        let receipts = vec![
+            receipt(90),
+            receipt(1),
+            receipt(2),
+            receipt(3),
+            receipt(4),
+            receipt(5),
+            receipt(5),
+        ];
+        assert_eq!(
+            assessment.validate_against_receipts(&receipts),
+            Err(NetworkEvidenceError::DuplicateObservationReceipt(
+                ObservationEvidenceId(5)
+            ))
+        );
+    }
+
+    #[test]
+    fn invalid_source_receipt_is_rejected() {
+        let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        let mut invalid = receipt(3);
+        invalid.source_file_sha256 = crate::observation_evidence::Sha256Digest([0; 32]);
+        let receipts = vec![
+            receipt(90),
+            receipt(1),
+            receipt(2),
+            invalid,
+            receipt(4),
+            receipt(5),
+        ];
+        assert!(matches!(
+            assessment.validate_against_receipts(&receipts),
+            Err(NetworkEvidenceError::InvalidObservationReceipt {
+                id: ObservationEvidenceId(3),
+                source: EvidenceReceiptError::InvalidDigest
+            })
+        ));
     }
 
     #[test]
