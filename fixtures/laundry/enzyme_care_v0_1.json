@@ -1,0 +1,189 @@
+{
+  "schema_version":"0.1.0",
+  "program_id":"ENZYME-CARE-001",
+  "status":"proposal_no_physical_measurements",
+  "claim_ceiling":"no_formulation_or_garment_process_qualification",
+  "tracks":[
+    {
+      "id":"wool_anti_felting_finishing",
+      "objective":"Determine whether fibre-scale selective treatments can deliver durable dyed-wool washability without unacceptable strength, colour, comfort, residue, exposure or effluent trade-offs.",
+      "treatment_families":["untreated_control","sham_auxiliary_control","enzyme_only","enzyme_plus_polymer_prefill","enzyme_plus_reductant","commercial_reference"],
+      "substrate_strata":["merino_wool","other_declared_wool_types","knit_and_woven_construction","dyed_and_greige","dark_and_light_shades","different_yarn_and_fabric_mass"],
+      "primary_endpoints":["felting_shrinkage_after_repeat_cycles","tensile_strength_retention","colour_difference_and_fastness","residual_auxiliary_and_enzyme"],
+      "maximum_inference":"Only the tested fibre/dye/construction/treatment lot and wash/dry envelope; no universal washable-wool or dry-clean replacement claim."
+    },
+    {
+      "id":"stain_specific_enzyme_care",
+      "objective":"Test enzyme class and detergent combinations for predeclared soil/fibre pairs with matched controls and full rinse, residue, textile integrity and resource accounting.",
+      "treatment_families":["untreated_control","sham_auxiliary_control","enzyme_only","detergent_only","detergent_plus_single_enzyme","detergent_plus_enzyme_cocktail","inactive_enzyme_control","localized_pretreatment"],
+      "substrate_strata":["cotton","polyester","polyester_cotton_blend","wool_as_separate_stratum","dyed_printed_and_coated_textiles"],
+      "primary_endpoints":["stain_removal_index","spectral_reflectance_and_delta_e","residual_soil_and_enzyme","textile_strength_and_colour_fastness"],
+      "maximum_inference":"Only the tested stain recipe/age, fibre/dye, enzyme lot, dose, pH, temperature and process window; no universal detergent or cold-wash claim."
+    }
+  ],
+  "external_comparators":[
+    {
+      "id":"WOOL-PCDI-PREFILL-2025",
+      "track_id":"wool_anti_felting_finishing",
+      "treatment_family":"enzyme_plus_polymer_prefill",
+      "enzyme_only_claim":false,
+      "auxiliary_chemistry":["polycarbodiimide PCDI pre-fill"],
+      "substrate_scope":"Tested grey and dyed wool fabrics in the published study.",
+      "reported_outcomes":["felting shrinkage 5.06%","tensile strength change +0.27%","paper reports preservation of tested mechanical and colour attributes"],
+      "reported_conditions":"PCDI pre-fill followed by compound protease treatment; exact process parameters must be taken from full paper before replication.",
+      "reported_temperature_c":null,
+      "source_uri":"https://doi.org/10.1016/j.susmat.2025.e01780",
+      "scope_note":"Published swatch-level study; polymer-assisted rather than enzyme-only; does not qualify repeated whole-garment washing.",
+      "is_our_result":false
+    },
+    {
+      "id":"WOOL-PROTEASE-ONLY-2025",
+      "track_id":"wool_anti_felting_finishing",
+      "treatment_family":"enzyme_only",
+      "enzyme_only_claim":true,
+      "auxiliary_chemistry":[],
+      "substrate_scope":"Dyed wool textiles in the published study.",
+      "reported_outcomes":["felting/dimensional change 3.90% ±0.12%","tensile strength loss 11.39% ±0.61%","ΔE_CMC <1.00","reported improvement in air/moisture permeability and hand feel"],
+      "reported_conditions":"Compound protease wave-riding surface-modification process; exact activity/dose and wash protocol require full paper verification.",
+      "reported_temperature_c":null,
+      "source_uri":"https://doi.org/10.1016/j.ijbiomac.2025.142160",
+      "scope_note":"Study-specific values; strength loss is material and cannot be hidden by low shrinkage or colour results.",
+      "is_our_result":false
+    },
+    {
+      "id":"WOOL-THIOGLYCOLATE-PROTEASE-2025",
+      "track_id":"wool_anti_felting_finishing",
+      "treatment_family":"enzyme_plus_reductant",
+      "enzyme_only_claim":false,
+      "auxiliary_chemistry":["sodium thioglycolate STG or glycerol monomercaptoacetate GMT"],
+      "substrate_scope":"Grey and dyed wool fabrics in the published study.",
+      "reported_outcomes":["felting shrinkage <4%","5 g/L thioglycolate compound","6 U/mL protease","authors report minimal strength loss and no colour change"],
+      "reported_conditions":"Reductive pre-treatment followed by protease scale hydrolysis.",
+      "reported_temperature_c":null,
+      "source_uri":"https://doi.org/10.1016/j.ijbiomac.2025.141698",
+      "scope_note":"Auxiliary-reductant pathway, not enzyme-only; residual chemical, worker exposure, effluent and end-of-life require separate study.",
+      "is_our_result":false
+    },
+    {
+      "id":"WOOL-BISULFITE-PROTEASE-2025",
+      "track_id":"wool_anti_felting_finishing",
+      "treatment_family":"enzyme_plus_reductant",
+      "enzyme_only_claim":false,
+      "auxiliary_chemistry":["sodium bisulfite"],
+      "substrate_scope":"Dyed wool fabric in a two-bath process.",
+      "reported_outcomes":["felting shrinkage 4.14%","strength loss 6.58%","ΔE <1.1","5 g/L sodium bisulfite and 8 U/mL Savinase Ultra 16XL"],
+      "reported_conditions":"Sodium bisulfite pre-reduction followed by protease treatment.",
+      "reported_temperature_c":null,
+      "source_uri":"https://pubmed.ncbi.nlm.nih.gov/40101820/",
+      "scope_note":"Distinct reductant-assisted method; do not pool with PCDI or protease-only results.",
+      "is_our_result":false
+    },
+    {
+      "id":"BLOOD-PROTEASE-LIPASE-2025",
+      "track_id":"stain_specific_enzyme_care",
+      "treatment_family":"enzyme_plus_detergent",
+      "enzyme_only_claim":false,
+      "auxiliary_chemistry":["detergent formulation"],
+      "substrate_scope":"Blood-stained polyester and cotton fabrics.",
+      "reported_outcomes":["optimal reported condition pH 7.0","enzyme concentration 1 mg/mL","temperature 60°C","ΔE 58.42 ±0.5 polyester","ΔE 6.60 ±0.5 cotton"],
+      "reported_conditions":"Protease + lipase + detergent; study-specific stain/substrate and measurement reference.",
+      "reported_temperature_c":60,
+      "source_uri":"https://doi.org/10.1016/j.procbio.2025.05.009",
+      "scope_note":"Not evidence of cold washing, wool suitability, broad stain removal or lower whole-cycle environmental impact; ΔE must be interpreted with reference and direction.",
+      "is_our_result":false
+    }
+  ],
+  "control_arms":[
+    "wool_untreated_reference",
+    "wool_sham_auxiliary_without_enzyme",
+    "wool_protease_only",
+    "wool_pcdI_prefill_plus_protease",
+    "wool_thioglycolate_or_gmt_plus_protease",
+    "wool_bisulfite_plus_protease",
+    "wool_qualified_commercial_shrink_resist_reference",
+    "stain_water_only",
+    "stain_matched_standard_detergent",
+    "stain_enzyme_only",
+    "stain_detergent_plus_single_enzyme",
+    "stain_detergent_plus_protease_lipase",
+    "stain_inactive_enzyme_control",
+    "stain_localized_pretreatment"
+  ],
+  "standards":{
+    "domestic_wash_dry":"ISO 6330:2021",
+    "dimensional_change":"ISO 5077:2007",
+    "colour_fastness":"ISO 105-C06:2010",
+    "colour_fastness_role":"colour_fastness_only_not_stain_removal_metric"
+  },
+  "validation_policy":{
+    "independent_specimen_and_lot_holdout":true,
+    "random_measurement_split_allowed":false,
+    "repeated_specimen_is_independent_n":false,
+    "swatch_only_proves_garment_washability":false,
+    "repeat_cycles_required":true,
+    "blinded_assessment_required":true,
+    "pilot_variance_before_sample_size":true
+  },
+  "safety_policy":{
+    "closed_handling":true,
+    "open_powder_or_aerosol_allowed":false,
+    "characterized_supplier_preparations":true,
+    "enzyme_residual_assessment":true,
+    "auxiliary_chemistry_assessment":true,
+    "wastewater_assessment":true,
+    "live_microbe_appliance_production_allowed":false,
+    "occupational_exposure_assessment":true
+  },
+  "metrics":[
+    {"id":"wool_felting_shrinkage_cycle_10","track_id":"wool_anti_felting_finishing","unit":"percent_area_change","denominator":"garment_or_specimen_after_10_declared_wash_dry_cycles","scope":"Irreversible felting shrinkage measured separately from relaxation dimensional change.","target_hypothesis":"<=3%","status":"proposal_target_only","hard_guardrails":["matched_untreated_reference","ISO_6330_and_ISO_5077_method_recorded","garment_level_confirmation_required"]},
+    {"id":"wool_strength_retention_cycle_10","track_id":"wool_anti_felting_finishing","unit":"percent_retained","denominator":"matched_pre_treatment_tensile_strength_after_10_cycles","scope":"Tensile strength retention with warp/weft direction and specimen geometry recorded.","target_hypothesis":">=95%","status":"proposal_target_only","hard_guardrails":["no_compensation_by_shrinkage_score","test_method_and_uncertainty_reported"]},
+    {"id":"wool_colour_difference_cycle_10","track_id":"wool_anti_felting_finishing","unit":"delta_e_cmc","denominator":"matched_unwashed_and_unsoiled_reference","scope":"Colour difference and staining on dyed wool after treatment and repeated laundering.","target_hypothesis":"<=1.0","status":"proposal_target_only","hard_guardrails":["ISO_105_C06_colour_fastness_separate_from_stain_removal","instrument_and_illuminant_fixed"]},
+    {"id":"wool_surface_and_comfort_retention","track_id":"wool_anti_felting_finishing","unit":"percent_of_baseline_or_validated_grade","denominator":"matched_pre_treatment_specimen","scope":"Air/moisture permeability, hand, drape, elasticity, pilling and abrasion after repeated cycles.","target_hypothesis":"Non-inferior to declared control within preregistered margins.","status":"proposal_target_only","hard_guardrails":["blind_assessment","all_component_damage_reported"]},
+    {"id":"wool_durability_cycle_25_50","track_id":"wool_anti_felting_finishing","unit":"cycles","denominator":"independent_garment_lot_and_cycle_series","scope":"Retain shrink-resist, strength, colour and comfort properties through 25 and 50 declared wash/dry cycles.","target_hypothesis":"No breach of preregistered non-inferiority limits through 50 cycles.","status":"proposal_target_only","hard_guardrails":["repeated_measurements_not_independent_specimens","cycle_sequence_and_detergent_frozen"]},
+    {"id":"wool_chemical_and_enzyme_residue","track_id":"wool_anti_felting_finishing","unit":"validated_analytical_residual","denominator":"post_rinse_dry_garment_and_effluent","scope":"Enzyme protein and auxiliary chemical residues with skin-contact and migration relevance.","target_hypothesis":"Below independently justified analytical/exposure limits.","status":"proposal_target_only","hard_guardrails":["method_detection_limit_reported","each_auxiliary_assessed_separately"]},
+    {"id":"stain_removal_index","track_id":"stain_specific_enzyme_care","unit":"standardized_stain_removal_index","denominator":"matched_stained_specimen_and_stain_free_reference","scope":"Stain removal with frozen stain recipe/age, substrate, reflectance method and blinded visual score.","target_hypothesis":"Non-inferior to matched detergent control; superior only if confidence interval supports it.","status":"proposal_target_only","hard_guardrails":["not_inferred_from_delta_e_alone","stain_and_substrate_stratified"]},
+    {"id":"stain_colour_and_dye_damage","track_id":"stain_specific_enzyme_care","unit":"delta_e_and_fastness_grade","denominator":"matched_unstained_dyed_reference","scope":"Unwanted dye loss, hue change and dye transfer after enzyme treatment/rinse.","target_hypothesis":"Non-inferior to matched detergent control within preregistered margins.","status":"proposal_target_only","hard_guardrails":["ISO_105_C06_role_correct","dyed_printed_and_coated_strata_reported"]},
+    {"id":"stain_fibre_integrity","track_id":"stain_specific_enzyme_care","unit":"percent_strength_retained","denominator":"matched_pre_treatment_specimen","scope":"Tensile, dimensional change, pilling, fuzzing and surface damage for each substrate and enzyme class.","target_hypothesis":"No material degradation beyond preregistered non-inferiority margins.","status":"proposal_target_only","hard_guardrails":["cellulase_separate_guarded_track","wool_separate_from_polyester_cotton"]},
+    {"id":"whole_process_resource_burden","track_id":"shared","unit":"kWh_litre_g_chemical_per_accepted_garment","denominator":"accepted_garment","scope":"Energy, water, detergent, enzyme, auxiliaries, rinse and effluent treatment over the full treatment/care boundary.","target_hypothesis":"Reduce burden relative to matched baseline without quality or safety penalty.","status":"proposal_target_only","hard_guardrails":["all_auxiliaries_counted","effluent_accounted"]},
+    {"id":"wastewater_impact","track_id":"shared","unit":"COD_TOC_ecotoxicity_AOX_as_applicable","denominator":"litre_effluent_and_accepted_garment","scope":"Whole-process wastewater load, biodegradability and chemical fate, including auxiliaries and comparator routes.","target_hypothesis":"No unassessed adverse burden; quantify all relevant parameters.","status":"proposal_target_only","hard_guardrails":["AOX_required_for_chlorine_comparator","no_green_claim_from_enzyme_presence"]},
+    {"id":"occupational_exposure_control","track_id":"shared","unit":"exposure_assessment_and_incident_rate","denominator":"operator_task_and_shift","scope":"Inhalation/dermal exposure during enzyme and auxiliary handling, transfer, cleaning and maintenance.","target_hypothesis":"Closed process with exposure assessment and no uncontrolled aerosol/powder task.","status":"proposal_target_only","hard_guardrails":["SDS_and_qualified_hygiene_review","no_open_powder_or_nebulization"]},
+    {"id":"enzyme_formulation_stability","track_id":"stain_specific_enzyme_care","unit":"percent_activity_retained_over_storage","denominator":"declared_storage_interval_and_conditions","scope":"Enzyme activity under detergent surfactant, oxidant, pH, temperature and storage conditions.","target_hypothesis":"Establish stability envelope before any formulation claim.","status":"proposal_target_only","hard_guardrails":["lot_and_formulation_digest","real_time_and_accelerated_stability_separate"]},
+    {"id":"localized_stain_care_acceptance","track_id":"stain_specific_enzyme_care","unit":"fraction_accepted_target_stains","denominator":"predeclared_stain_fibre_pairs","scope":"Accepted stain removal after localized pretreatment with rinse and whole-garment impact accounted.","target_hypothesis":"Reduce unnecessary whole-garment processing for qualified target subset.","status":"proposal_target_only","hard_guardrails":["captured_effluent_and_residual_accounting","no_cross_substrate_inference"]}
+  ],
+  "hard_gates":[
+    "enzyme_only_and_auxiliary_assisted_routes_separately_labelled",
+    "PCDI_reductant_and_other_auxiliaries_have_independent_residual_and_exposure_assessment",
+    "stain_track_not_used_as_evidence_for_wool_washability",
+    "60_degree_blood_stain_result_not_relabelled_as_cold_wash",
+    "swatch_result_not_relabelled_as_garment_durability",
+    "repeat_cycle_and_lot_holdout_required",
+    "independent_chemical_and_textile_integrity_measurements",
+    "closed_enzyme_handling_and_occupational_exposure_control",
+    "wastewater_and_whole_process_resource_boundary",
+    "no_symthaea_actuation_or_interlock_override",
+    "no_universal_dry_clean_replacement_claim"
+  ],
+  "governance":{
+    "physical_observations":0,
+    "trained_models":0,
+    "formulations_qualified":0,
+    "product_claims":false,
+    "dry_clean_replacement_claim":false,
+    "symthaea_authority":"advisory_only_no_actuation",
+    "physical_interlocks":"independent_deterministic_device_controls",
+    "claim_scope":"experiment_contract_only"
+  },
+  "sources":[
+    {"id":"WOOL-PCDI-PREFILL","uri":"https://doi.org/10.1016/j.susmat.2025.e01780","scope_note":"Polymer pre-fill plus compound protease; 5.06% felting shrinkage and +0.27% tensile change in tested wool fabric."},
+    {"id":"WOOL-PROTEASE-ONLY","uri":"https://doi.org/10.1016/j.ijbiomac.2025.142160","scope_note":"Protease-only dyed wool treatment; 3.90% ±0.12% shrinkage and 11.39% ±0.61% strength loss as reported."},
+    {"id":"WOOL-THIOGLYCOLATE-PROTEASE","uri":"https://doi.org/10.1016/j.ijbiomac.2025.141698","scope_note":"Thioglycolate/GMT reductant plus protease; less than 4% felting shrinkage in tested fabrics."},
+    {"id":"WOOL-BISULFITE-PROTEASE","uri":"https://pubmed.ncbi.nlm.nih.gov/40101820/","scope_note":"Bisulfite pre-reduction plus protease; 4.14% shrinkage, 6.58% strength loss and ΔE below 1.1 in abstract."},
+    {"id":"BLOOD-PROTEASE-LIPASE","uri":"https://doi.org/10.1016/j.procbio.2025.05.009","scope_note":"Protease/lipase/detergent blood stain study on polyester/cotton at reported 60°C optimum."},
+    {"id":"DETERGENT-ENZYME-REVIEW-2026","uri":"https://doi.org/10.1016/j.nexres.2026.102060","scope_note":"2026 review discusses enzyme formulation stability, surfactant compatibility and oxidative stability."},
+    {"id":"JRC-TEXTILE-BREF","uri":"https://bureau-industrial-transformation.jrc.ec.europa.eu/sites/default/files/2023-01/TXT_BREF_2023_for_publishing%20ISSN%201831-9424_final_1_revised.pdf","scope_note":"Industrial reference describes auxiliary pretreatments, AOX trade-offs, operational durability and continuous-process challenges."},
+    {"id":"HSE-OCCUPATIONAL-ASTHMA","uri":"https://www.hse.gov.uk/asthma/substances.htm","scope_note":"HSE lists alpha-amylases and subtilisins as occupational asthma causes, including detergent/textile uses."},
+    {"id":"ISO-6330-2021","uri":"https://www.iso.org/standard/75934.html","scope_note":"Published domestic washing/drying test procedures for textile testing."},
+    {"id":"ISO-5077-2007","uri":"https://www.iso.org/standard/41877.html","scope_note":"Published dimensional-change method confirmed current in 2022."},
+    {"id":"ISO-105-C06-2010","uri":"https://www.iso.org/standard/51276.html","scope_note":"Published colour-fastness-to-laundering method; not a stain-removal metric."}
+  ]
+}
