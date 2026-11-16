@@ -400,7 +400,7 @@ pub fn render_report_json() -> Result<String, String> {
             "  \"sensitivity\": {},\n",
             "  \"interpretation\": [\n",
             "    \"The 25 ns nominal slot rate is not the actual collision rate when the ring is not fully filled; this source case yields a fill fraction below one.\",\n",
-            "    \"The total-cross-section interaction count is a rate proxy, not detector-accepted pile-up. The paper's rounded approximately 1e6 events/crossing implies a smaller effective process cross section than the 283 mb burn-off cross section; keep those meanings separate.\",\n",
+            "    \"The total-cross-section interaction count is a rate proxy, not detector-accepted pile-up. The paper reports pile-up only as approximately 1e6; the independently recomputed 1.73e6 total-cross-section proxy is consistent at that order of magnitude. Do not infer a separate inelastic cross section or detector-accepted event count from the rounded table entry.\",\n",
             "    \"The beam-beam tune shift xi=0.06 is an assumed parameter extrapolated in the paper, not independently qualified proton-beam stability. Sensitivity rows are arithmetic only.\",\n",
             "    \"Burn-off lifetime excludes other loss mechanisms. Annual integrated luminosity assumes the stated scheduled time, availability and effective luminosity fraction.\",\n",
             "    \"The synchrotron-radiation loss per turn is computed from the paper's stated per-beam power and beam current.\"\n",
