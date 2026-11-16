@@ -1,6 +1,4 @@
-use symtropy_freeflow_structure_lab::tetrahedral::{
-    TetrahedralAssembly, TetrahedralConfig,
-};
+use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
 use symtropy_freeflow_structure_lab::{Config, StructureGraph};
 
 fn main() {
@@ -14,10 +12,7 @@ fn main() {
         .expect("branching graph should pass topology audit");
     println!("branching_motif.nodes={}", branch_metrics.node_count);
     println!("branching_motif.members={}", branch_metrics.member_count);
-    println!(
-        "branching_motif.cycle_rank={}",
-        branch_metrics.cycle_rank
-    );
+    println!("branching_motif.cycle_rank={}", branch_metrics.cycle_rank);
     println!(
         "branching_motif.connected_components={}",
         branch_metrics.connected_components
@@ -27,9 +22,8 @@ fn main() {
         branch_metrics.same_build_digest_non_security
     );
 
-    let tetrahedral =
-        TetrahedralAssembly::generate(TetrahedralConfig::default())
-            .expect("valid face-attached tetrahedral fixture");
+    let tetrahedral = TetrahedralAssembly::generate(TetrahedralConfig::default())
+        .expect("valid face-attached tetrahedral fixture");
     let tetra_metrics = tetrahedral
         .audit()
         .expect("tetrahedral assembly should pass geometry/topology audit");
@@ -37,10 +31,7 @@ fn main() {
     println!("tetrahedral.cells={}", tetra_metrics.cell_count);
     println!("tetrahedral.nodes={}", tetra_metrics.node_count);
     println!("tetrahedral.members={}", tetra_metrics.member_count);
-    println!(
-        "tetrahedral.cycle_rank={}",
-        tetra_metrics.cycle_rank
-    );
+    println!("tetrahedral.cycle_rank={}", tetra_metrics.cycle_rank);
     println!(
         "tetrahedral.connected_components={}",
         tetra_metrics.connected_components
