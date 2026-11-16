@@ -363,10 +363,14 @@ fn quadratic_form(vector: &[f64; PARAMS], matrix: &[[f64; PARAMS]; PARAMS]) -> f
 
 fn fit_model(
     candidates: &[Candidate],
+    reference_force_observations_n: &[f64],
     selected: &[usize],
     prior: Option<&[f64; PARAMS]>,
     prior_strength: f64,
 ) -> Result<Fit, String> {
+    if candidates.len() != reference_force_observations_n.len() {
+        return Err("candidate and reference-observation cardinalities differ".to_owned());
+    }
     if selected.len() < PARAMS {
         return Err("at least eight target/source contacts are required".to_owned());
     }
@@ -385,11 +389,14 @@ fn fit_model(
         let candidate = candidates
             .get(*selected_index)
             .ok_or_else(|| "selected candidate index is out of bounds".to_owned())?;
+        let reference_force_n = *reference_force_observations_n
+            .get(*selected_index)
+            .ok_or_else(|| "reference observation index is out of bounds".to_owned())?;
         for (row, (rhs_value, information_row)) in
             rhs.iter_mut().zip(information.iter_mut()).enumerate()
         {
             let row_feature = candidate.features[row];
-            *rhs_value += row_feature * candidate.reference_force_n;
+            *rhs_value += row_feature * reference_force_n;
             for (column, value) in information_row.iter_mut().enumerate() {
                 *value += row_feature * candidate.features[column];
             }
@@ -408,7 +415,8 @@ fn fit_model(
     for selected_index in selected {
         let candidate = &candidates[*selected_index];
         let prediction = dot(&coefficients, &candidate.features);
-        let error = candidate.reference_force_n - prediction;
+        let reference_force_n = reference_force_observations_n[*selected_index];
+        let error = reference_force_n - prediction;
         squared_error += error * error;
     }
     let degrees_of_freedom = selected.len().saturating_sub(PARAMS).max(1) as f64;
@@ -603,9 +611,15 @@ fn information_matrix(
     Ok(information)
 }
 
-fn source_prior(source_candidates: &[Candidate]) -> Result<[f64; PARAMS], String> {
-    let selected: Vec<_> = (0..source_candidates.len()).collect();
-    let fit = fit_model(source_candidates, &selected, None, 0.0)?;
+fn source_prior(source_domain: &SyntheticDomain) -> Result<[f64; PARAMS], String> {
+    let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
+    let fit = fit_model(
+        &source_domain.candidates,
+        &source_domain.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
     Ok(fit.coefficients)
 }
 
@@ -616,22 +630,24 @@ fn evaluate(
     source_reference_contacts: usize,
     source_reference_cost_ms: u64,
     fit: &Fit,
-    heldout: &[Candidate],
+    heldout: &HeldoutDomain,
 ) -> Result<PolicyResult, String> {
     if target_selected.len() > target_candidates.len() {
         return Err("policy selected more target contacts than candidate pool".to_owned());
     }
-    if heldout.is_empty() {
-        return Err("held-out evaluation set must be nonempty".to_owned());
+    if heldout.candidates.is_empty()
+        || heldout.candidates.len() != heldout.evaluator_truth_force_n.len()
+    {
+        return Err("held-out stimulus and evaluator-truth cardinalities differ or are empty".to_owned());
     }
 
     let mut errors = Vec::with_capacity(heldout.len());
     let mut interval_widths = Vec::with_capacity(heldout.len());
     let mut covered = 0_usize;
 
-    for candidate in heldout {
+    for (index, candidate) in heldout.candidates.iter().enumerate() {
         let prediction = dot(&fit.coefficients, &candidate.features);
-        let error = candidate.reference_force_n - prediction;
+        let error = heldout.evaluator_truth_force_n[index] - prediction;
         errors.push(error.abs());
 
         let variance = fit.residual_variance
@@ -691,19 +707,25 @@ fn candidate_cost_sum(candidates: &[Candidate]) -> Result<u64, String> {
 }
 
 fn evaluate_source_transfer(
-    source_candidates: &[Candidate],
-    heldout: &[Candidate],
+    source_domain: &SyntheticDomain,
+    heldout: &HeldoutDomain,
 ) -> Result<PolicyResult, String> {
-    let selected: Vec<_> = (0..source_candidates.len()).collect();
-    let fit = fit_model(source_candidates, &selected, None, 0.0)?;
+    let selected: Vec<_> = (0..source_domain.candidates.len()).collect();
+    let fit = fit_model(
+        &source_domain.candidates,
+        &source_domain.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
     // Source reference contacts are reported separately. They never count as
     // target-device calibration contacts and never inherit target identity.
     evaluate(
         "transfer_only_source_model",
         &[],
         &[],
-        source_candidates.len(),
-        candidate_cost_sum(source_candidates)?,
+        source_domain.candidates.len(),
+        candidate_cost_sum(&source_domain.candidates)?,
         &fit,
         heldout,
     )
@@ -719,22 +741,29 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         return Err("benchmark seed must be nonzero".to_owned());
     }
 
-    let target_candidates = target_candidate_pool(seed);
-    let source_candidates = source_candidate_pool(seed);
+    let target_domain = target_candidate_pool(seed);
+    let source_domain = source_candidate_pool(seed);
     let heldout = heldout_target_pool(seed);
+    let target_candidates = &target_domain.candidates;
 
     let all_target: Vec<_> = (0..target_candidates.len()).collect();
-    let uniform = select_uniform(&target_candidates)?;
-    let random = select_random_stratified(&target_candidates, seed)?;
-    let maximin = select_maximin(&target_candidates)?;
-    let d_optimal = select_d_optimal(&target_candidates)?;
+    let uniform = select_uniform(target_candidates)?;
+    let random = select_random_stratified(target_candidates, seed)?;
+    let maximin = select_maximin(target_candidates)?;
+    let d_optimal = select_d_optimal(target_candidates)?;
 
     let mut results = Vec::new();
 
-    let full_fit = fit_model(&target_candidates, &all_target, None, 0.0)?;
+    let full_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &all_target,
+        None,
+        0.0,
+    )?;
     results.push(evaluate(
         "target_full_grid_reference",
-        &target_candidates,
+        target_candidates,
         &all_target,
         0,
         0,
@@ -742,10 +771,10 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let uniform_fit = fit_model(&target_candidates, &uniform, None, 0.0)?;
+    let uniform_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &uniform, None, 0.0)?;
     results.push(evaluate(
         "uniform_stratified",
-        &target_candidates,
+        target_candidates,
         &uniform,
         0,
         0,
@@ -753,10 +782,10 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let random_fit = fit_model(&target_candidates, &random, None, 0.0)?;
+    let random_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &random, None, 0.0)?;
     results.push(evaluate(
         "random_stratified",
-        &target_candidates,
+        target_candidates,
         &random,
         0,
         0,
@@ -764,10 +793,10 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let maximin_fit = fit_model(&target_candidates, &maximin, None, 0.0)?;
+    let maximin_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &maximin, None, 0.0)?;
     results.push(evaluate(
         "maximin_stratified",
-        &target_candidates,
+        target_candidates,
         &maximin,
         0,
         0,
@@ -775,10 +804,10 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let d_optimal_fit = fit_model(&target_candidates, &d_optimal, None, 0.0)?;
+    let d_optimal_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &d_optimal, None, 0.0)?;
     results.push(evaluate(
         "d_optimal_stratified",
-        &target_candidates,
+        target_candidates,
         &d_optimal,
         0,
         0,
@@ -786,24 +815,30 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    results.push(evaluate_source_transfer(&source_candidates, &heldout)?);
+    results.push(evaluate_source_transfer(&source_domain, &heldout)?);
 
-    let prior = source_prior(&source_candidates)?;
-    let transfer_active_fit = fit_model(&target_candidates, &d_optimal, Some(&prior), 0.25)?;
+    let prior = source_prior(&source_domain)?;
+    let transfer_active_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &d_optimal,
+        Some(&prior),
+        0.25,
+    )?;
     results.push(evaluate(
         "transfer_plus_d_optimal_target_adaptation",
-        &target_candidates,
+        target_candidates,
         &d_optimal,
-        source_candidates.len(),
-        candidate_cost_sum(&source_candidates)?,
+        source_domain.candidates.len(),
+        candidate_cost_sum(&source_domain.candidates)?,
         &transfer_active_fit,
         &heldout,
     )?);
 
     Ok(BenchmarkReport {
         seed,
-        source_candidate_pool_size: source_candidates.len(),
-        target_candidate_pool_size: target_candidates.len(),
+        source_candidate_pool_size: source_domain.candidates.len(),
+        target_candidate_pool_size: target_domain.candidates.len(),
         heldout_case_count: heldout.len(),
         target_contact_budget: TARGET_BUDGET,
         results,
