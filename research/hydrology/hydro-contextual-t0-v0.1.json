@@ -580,7 +580,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "persistence-v1"
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -625,7 +633,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "seasonal-climatology-train-only-v1"
+        "reference_forecast_id": "seasonal-climatology-train-only-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -674,7 +690,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "persistence-v1"
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -713,7 +737,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "seasonal-climatology-train-only-v1"
+        "reference_forecast_id": "seasonal-climatology-train-only-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -760,7 +792,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "persistence-v1"
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -809,7 +849,15 @@
         ],
         "denominator_tolerance": 1e-12,
         "forecast_id": "candidate-model-v0.1",
-        "reference_forecast_id": "persistence-v1"
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -858,7 +906,15 @@
             3
           ]
         ],
-        "denominator_tolerance": 1e-12
+        "denominator_tolerance": 1e-12,
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
       }
     },
     {
@@ -896,6 +952,274 @@
         "observed_events": [
           1,
           0
+        ],
+        "denominator_tolerance": 1e-12,
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
+      }
+    },
+    {
+      "case_id": "HC-T0-041-crps-skill-unit-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "observed": [
+          1,
+          2,
+          3
+        ],
+        "forecast_ensembles": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            0,
+            2,
+            4
+          ],
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            5
+          ]
+        ],
+        "denominator_tolerance": 1e-12,
+        "forecast_id": "candidate-model-v0.1",
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "L_per_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
+      }
+    },
+    {
+      "case_id": "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "observed": [
+          1,
+          2,
+          3
+        ],
+        "forecast_ensembles": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            0,
+            2,
+            4
+          ],
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            5
+          ]
+        ],
+        "denominator_tolerance": 1e-12,
+        "forecast_id": "candidate-model-v0.1",
+        "reference_forecast_id": "persistence-v1",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "instantaneous_15min",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00"
+      }
+    },
+    {
+      "case_id": "HC-T0-043-crps-skill-negative-score-not-clipped",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-model-v0.1",
+        "reference_forecast_id": "persistence-v1",
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "river_discharge",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "m3_s",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "daily_mean_00_00_UTC",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00",
+        "observed": [
+          1,
+          2,
+          3
+        ],
+        "forecast_ensembles": [
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            0.9
+          ],
+          [
+            1.9
+          ],
+          [
+            2.9
+          ]
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-044-brier-skill-negative-score-not-clipped",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-model-v0.1",
+        "reference_forecast_id": "seasonal-climatology-train-only-v1",
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_variable_id": "river_discharge_threshold_event",
+        "reference_variable_id": "river_discharge_threshold_event",
+        "forecast_unit_id": "probability",
+        "reference_unit_id": "probability",
+        "forecast_aggregation_id": "daily_binary_event",
+        "reference_aggregation_id": "daily_binary_event",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "utc_day_00_00",
+        "forecast_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0,
+          0
+        ],
+        "reference_probabilities": [
+          0.5,
+          0.5
+        ],
+        "observed_events": [
+          1,
+          1
         ],
         "denominator_tolerance": 1e-12
       }
