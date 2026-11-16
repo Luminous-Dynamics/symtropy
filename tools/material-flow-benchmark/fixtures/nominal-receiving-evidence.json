@@ -158,18 +158,7 @@
       "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "observed_at_unix_ms": 1799999999900,
       "expires_at_unix_ms": 1800003600000
-    },
-    {
-      "evidence_id": "ambiguous-outcome",
-      "kind": "ambiguous_outcome_observation",
-      "subject_id": "package-01",
-      "issuer_actor_id": "custodian-01",
-      "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
-      "source_commit": "240914e56939eade580a2b4245c5cf5592ddd276",
-      "configuration_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "observed_at_unix_ms": 1799999999900,
-      "expires_at_unix_ms": 1800003600000
     }
-  ]
+  ],
+  "execution_branch": "normal_completion"
 }
