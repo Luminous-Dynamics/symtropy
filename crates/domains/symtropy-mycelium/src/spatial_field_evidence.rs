@@ -901,18 +901,16 @@ mod tests {
             standard_error: Some(0.2),
         };
         let radius = radius();
-        let estimate =
-            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
-                density, &radius,
-            )
-            .unwrap();
+        let estimate = GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+            density, &radius,
+        )
+        .unwrap();
 
         let scale = std::f64::consts::PI * 1.0e-6;
         let derivative_length = scale * 1.5_f64.powi(2);
         let derivative_radius = 2.0 * scale * 1.5 * 2.5;
-        let expected_sd = ((derivative_length * 0.2).powi(2)
-            + (derivative_radius * 0.3).powi(2))
-        .sqrt();
+        let expected_sd =
+            ((derivative_length * 0.2).powi(2) + (derivative_radius * 0.3).powi(2)).sqrt();
 
         assert_eq!(
             estimate.uncertainty_status,
@@ -929,11 +927,10 @@ mod tests {
         };
         let mut radius = radius();
         radius.standard_deviation_um = None;
-        let estimate =
-            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
-                density, &radius,
-            )
-            .unwrap();
+        let estimate = GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+            density, &radius,
+        )
+        .unwrap();
         assert_eq!(estimate.standard_deviation, None);
         assert_eq!(
             estimate.uncertainty_status,
