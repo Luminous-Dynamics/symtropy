@@ -141,3 +141,8 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## Modular treatment-core design
+
+The current literature-informed design review is [`MODULAR_TREATMENT_CORE_DESIGN_REVIEW_V0_1.md`](MODULAR_TREATMENT_CORE_DESIGN_REVIEW_V0_1.md). It extends—not replaces—the parent demonstrator #5335 and feed-envelope child #5692. It proposes a source-separated shower/bath light-greywater v0 stream, replaceable process-core interfaces, non-potable flush-emulator output, explicit reject/residual routing and T0–T3 validation gates. It does not select or qualify a treatment train or authorize procurement/construction.
