@@ -1041,11 +1041,14 @@ fn parameter_identification_does_not_receive_model_pair_diversity_credit() {
     frozen.objective = ExperimentObjective::ParameterIdentification;
     let mut candidate = candidate("parameter-objective");
     candidate.objective = ExperimentObjective::ParameterIdentification;
+    candidate.expected_model_discrimination = 0.0;
+    refresh_utility_estimate_receipt(&mut candidate);
     let result = select_experiments(&[candidate], &frozen).unwrap();
     assert_eq!(
         result.pareto_front[0].independent_hypothesis_group_pair_count,
         0
     );
+    assert_eq!(result.pareto_front[0].expected_model_discrimination, 0.0);
 }
 
 #[test]
@@ -1381,5 +1384,42 @@ fn policy_requires_a_nonzero_independent_estimate_sample_floor() {
     assert_eq!(
         select_experiments(&[candidate("candidate")], &invalid_policy),
         Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
+    );
+}
+
+
+#[test]
+fn parameter_identification_pareto_order_ignores_model_discrimination_score() {
+    let mut frozen = policy();
+    frozen.objective = ExperimentObjective::ParameterIdentification;
+    let mut low_score = candidate("parameter-low-model-discrimination");
+    low_score.objective = ExperimentObjective::ParameterIdentification;
+    low_score.expected_model_discrimination = 0.05;
+    refresh_utility_estimate_receipt(&mut low_score);
+    let mut high_score = candidate("parameter-high-model-discrimination");
+    high_score.objective = ExperimentObjective::ParameterIdentification;
+    high_score.expected_model_discrimination = 0.99;
+    refresh_utility_estimate_receipt(&mut high_score);
+
+    let result = select_experiments(&[low_score, high_score], &frozen).unwrap();
+    assert_eq!(result.pareto_front.len(), 2);
+    assert!(
+        result
+            .pareto_front
+            .iter()
+            .all(|candidate| candidate.expected_model_discrimination == 0.0)
+    );
+}
+
+#[test]
+fn duplicate_utility_estimate_receipt_id_across_candidates_fails_closed() {
+    let first = candidate("candidate-a");
+    let mut second = candidate("candidate-b");
+    second.utility_estimate_receipt.as_mut().unwrap().receipt_id =
+        first.utility_estimate_receipt.as_ref().unwrap().receipt_id.clone();
+
+    assert_eq!(
+        select_experiments(&[first, second], &policy()),
+        Err(aeroweift_experiment_design::DesignError::DuplicateUtilityEstimateReceiptId)
     );
 }
