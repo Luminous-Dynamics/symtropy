@@ -307,6 +307,9 @@ pub struct ExperimentDesignPolicy {
     pub required_estimator_build_sha256: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
+    /// Exact owner namespace expected for each structured evidence gate role.
+    /// These are identity bindings only; signature and authority checks remain external.
+    pub expected_gate_issuer_ids: BTreeMap<GateEvidenceRole, String>,
     /// Modalities that require affirmative external authorization under this campaign.
     pub authorization_required_modalities: Vec<ExperimentModality>,
     /// Per-dimension non-substitutable resource budget.
@@ -438,6 +441,21 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
+        || policy.expected_gate_issuer_ids.len() != 5
+        || [
+            GateEvidenceRole::Authorization,
+            GateEvidenceRole::Safety,
+            GateEvidenceRole::Envelope,
+            GateEvidenceRole::IndependentReference,
+            GateEvidenceRole::SemanticEquivalence,
+        ]
+        .iter()
+        .any(|role| {
+            policy
+                .expected_gate_issuer_ids
+                .get(role)
+                .is_none_or(|issuer| issuer.trim().is_empty())
+        })
         || policy
             .authorization_required_modalities
             .iter()
@@ -475,6 +493,10 @@ fn gate_receipt_matches_scope(
         && receipt.scenario_manifest_sha256 == candidate.scenario_manifest_sha256
         && receipt.measurement_plan_sha256 == candidate.measurement_plan_sha256
         && receipt.policy_sha256 == policy.policy_sha256
+        && policy
+            .expected_gate_issuer_ids
+            .get(&receipt.role)
+            .is_some_and(|expected_issuer| expected_issuer == &receipt.issuer_id)
 }
 
 fn gate_receipt_payload_matches(
@@ -493,7 +515,7 @@ fn gate_receipt_payload_matches(
             candidate.semantic_equivalence_receipt_sha256.as_deref()
         }
     };
-    expected.is_none_or(|expected_digest| expected_digest == payload_sha256)
+    expected.is_some_and(|expected_digest| expected_digest == payload_sha256)
 }
 
 fn validate_gate_evidence_receipts(
