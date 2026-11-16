@@ -19,6 +19,7 @@ pub mod hyphal_spectroscopy;
 pub mod isotope_transfer;
 pub mod legacy_accounting;
 pub mod network_evidence;
+pub mod pareto_front;
 pub mod observation_evidence;
 pub mod spatial_field_evidence;
 pub mod symbiosis_checkpoints;
