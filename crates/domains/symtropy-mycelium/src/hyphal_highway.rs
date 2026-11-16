@@ -679,6 +679,8 @@ mod tests {
             ),
             receipt(11, ObservationSubject::LiquidFilmBridge, None),
             receipt(12, ObservationSubject::BacterialTrajectory, None),
+            receipt(20, ObservationSubject::LiquidFilmPatch, None),
+            receipt(21, ObservationSubject::LiquidFilmPatch, None),
         ];
         (network, transit, receipts)
     }
@@ -766,7 +768,7 @@ mod tests {
                 ObservationSubject::HyphalSegmentTrace,
                 Some(EvidenceGraphTarget::Segment(SegmentId(7))),
             ),
-            receipt(11, ObservationSubject::LiquidFilmPatch, None),
+            receipt(11, ObservationSubject::LiquidFilmBridge, None),
             receipt(
                 13,
                 ObservationSubject::HyphalSegmentTrace,
@@ -804,6 +806,44 @@ mod tests {
             })
         );
         assert!(assessment.supporting_links.is_empty());
+    }
+
+    #[test]
+    fn missing_source_receipt_for_endpoint_patch_prevents_qualification() {
+        let (mut network, transit, receipts) = fixture(
+            FilamentDomain::TrueFungus,
+            LiquidFilmState::Connected,
+        );
+        network
+            .patches
+            .get_mut(&LiquidPatchId(1))
+            .unwrap()
+            .observation = None;
+        assert_eq!(
+            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            HyphalHighwayOutcome::Unresolved(
+                HighwayUnresolvedReason::MissingPatchObservation(LiquidPatchId(1))
+            )
+        );
+    }
+
+    #[test]
+    fn wrong_endpoint_patch_receipt_subject_prevents_qualification() {
+        let (network, transit, mut receipts) = fixture(
+            FilamentDomain::TrueFungus,
+            LiquidFilmState::Connected,
+        );
+        receipts
+            .iter_mut()
+            .find(|item| item.id == ObservationEvidenceId(20))
+            .unwrap()
+            .subject = ObservationSubject::FluorescenceRoi;
+        assert_eq!(
+            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            HyphalHighwayOutcome::Unresolved(
+                HighwayUnresolvedReason::WrongPatchReceiptSubject(ObservationEvidenceId(20))
+            )
+        );
     }
 
     #[test]
