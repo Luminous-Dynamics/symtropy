@@ -1267,7 +1267,7 @@ fn emit_o2_probe(model: &ConstrainedDumbbell) {
         state_error(wrong_force_step.after, reflect_state(canonical.after));
 
     let source_commit =
-        std::env::var("GITHUB_SHA").unwrap_or_else(|_| "local".to_owned());
+        std::env::var("O2_SOURCE_COMMIT").unwrap_or_else(|_| "local".to_owned());
     let fixture_sha256 =
         std::env::var("O2_FIXTURE_SHA256").unwrap_or_else(|_| "unbound".to_owned());
 
