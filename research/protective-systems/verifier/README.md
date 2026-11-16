@@ -210,9 +210,18 @@ Any later trust decision needs a pinned authority/trust-root verification
 policy and independent model/physical validation. A locally calculated SHA-256
 proves only that the retrieved artifact bytes match the declared digest.
 
-The E1 v0.1 fixture uses one JSON input and one JSON output payload with a
-strict path allow-list. This is an intentionally narrow conformance tranche,
-not a generic file importer or a live external API client.
+The E1 v0.1 fixture preserves six artifacts: input/output dataset metadata,
+input/output file-metadata endpoint snapshots, and the input/output data
+payloads. For both datasets the verifier reconciles the provider dataset ID and
+dataType, embedded fileDescriptors against the separate file-metadata endpoint,
+and the payload ID, filename, MIME type and byte length against the provider
+descriptor. It also preserves the provider MD5 field while calculating local
+SHA-256 independently.
+
+The fixture uses exact pinned files and a path/role allow-list. This is an
+intentionally narrow conformance tranche, not a generic file importer or a
+live external API client. The validator has 22 unit tests written; none are
+claimed to have passed until Rust execution is observed.
 
 
 ### Provider-native metadata snapshots
