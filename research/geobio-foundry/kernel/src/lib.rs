@@ -675,6 +675,14 @@ pub fn resource_intensity(
         origin_mass.get(&origin).copied().unwrap_or(0.0) / product_mass_kg
     };
 
+    let origin_intensity = OriginMassIntensity {
+        local_measured_kg_per_kg_product: per_product_kg(OriginClass::LocalMeasured),
+        local_inferred_kg_per_kg_product: per_product_kg(OriginClass::LocalInferred),
+        imported_kg_per_kg_product: per_product_kg(OriginClass::Imported),
+        recycled_kg_per_kg_product: per_product_kg(OriginClass::Recycled),
+        unknown_origin_kg_per_kg_product: per_product_kg(OriginClass::Unknown),
+    };
+
     let recovered_energy_j_per_kg_product = process
         .energy
         .recovered_j
@@ -682,7 +690,15 @@ pub fn resource_intensity(
         .map(|measurement| measurement.value / product_mass_kg);
 
     let energy_per_kg = process.energy.gross_consumed_j.value / product_mass_kg;
+    let origin_intensities = [
+        origin_intensity.local_measured_kg_per_kg_product,
+        origin_intensity.local_inferred_kg_per_kg_product,
+        origin_intensity.imported_kg_per_kg_product,
+        origin_intensity.recycled_kg_per_kg_product,
+        origin_intensity.unknown_origin_kg_per_kg_product,
+    ];
     if !energy_per_kg.is_finite()
+        || origin_intensities.iter().any(|value| !value.is_finite())
         || recovered_energy_j_per_kg_product.is_some_and(|value| !value.is_finite())
     {
         return Err(KernelError::NumericalOverflow(
@@ -701,13 +717,7 @@ pub fn resource_intensity(
         primary_product_mass_kg: product_mass_kg,
         gross_energy_j_per_kg_product: energy_per_kg,
         recovered_energy_j_per_kg_product,
-        input_mass: OriginMassIntensity {
-            local_measured_kg_per_kg_product: per_product_kg(OriginClass::LocalMeasured),
-            local_inferred_kg_per_kg_product: per_product_kg(OriginClass::LocalInferred),
-            imported_kg_per_kg_product: per_product_kg(OriginClass::Imported),
-            recycled_kg_per_kg_product: per_product_kg(OriginClass::Recycled),
-            unknown_origin_kg_per_kg_product: per_product_kg(OriginClass::Unknown),
-        },
+        input_mass: origin_intensity,
         all_flow_compositions_complete,
         uncertainty_propagated: false,
     })
