@@ -276,7 +276,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "nonpotable_fixture_and_pipe_identification_required",
     ] {
         if !boolean(separation, key)? {
-            return Err(format!("potable/non-potable separation safeguard is false: {key}"));
+            return Err(format!(
+                "potable/non-potable separation safeguard is false: {key}"
+            ));
         }
     }
     if boolean(separation, "potable_makeup_connection_in_v0_1")? {
@@ -286,7 +288,10 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
     if !protection_method.contains("UNASSIGNED_PENDING")
         || !protection_method.contains("LOCAL_AUTHORITY_APPROVAL")
     {
-        return Err("future backflow/air-gap design must remain unassigned pending local approval".to_owned());
+        return Err(
+            "future backflow/air-gap design must remain unassigned pending local approval"
+                .to_owned(),
+        );
     }
     if !string(separation, "cross_connection_suspected_action")?.contains("LATCH_FAULT") {
         return Err("cross-connection suspicion must latch a fault".to_owned());
@@ -300,7 +305,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
     }
     for key in ["reject_destination", "overflow_destination"] {
         if !string(reject_routing, key)?.contains("UNASSIGNED_PENDING") {
-            return Err(format!("{key} must remain unassigned pending site approval"));
+            return Err(format!(
+                "{key} must remain unassigned pending site approval"
+            ));
         }
     }
     if !string(reject_routing, "blocked_reject_action")?.contains("STOP_FEED_AND_ALARM")
@@ -333,31 +340,70 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
     let source_plan = field(contract, "source_characterization_protocol")?;
     let source_populations = strings(source_plan, "source_populations")?;
     for required in ["SRC-LGW-BATH-SHOWER", "SRC-LAUNDRY", "SRC-RAINWATER"] {
-        require_contains(&source_populations, required, "source_characterization_protocol.source_populations")?;
+        require_contains(
+            &source_populations,
+            required,
+            "source_characterization_protocol.source_populations",
+        )?;
         if !sources.contains(required) {
-            return Err(format!("source-characterization plan references unknown source: {required}"));
+            return Err(format!(
+                "source-characterization plan references unknown source: {required}"
+            ));
         }
     }
     let survey_days = field(source_plan, "minimum_source_survey_days")?
         .as_u64()
         .ok_or_else(|| "minimum_source_survey_days: expected integer".to_owned())?;
-    let batches = field(source_plan, "minimum_independent_real_feed_batches_per_source_class")?
-        .as_u64()
-        .ok_or_else(|| "minimum_independent_real_feed_batches_per_source_class: expected integer".to_owned())?;
+    let batches = field(
+        source_plan,
+        "minimum_independent_real_feed_batches_per_source_class",
+    )?
+    .as_u64()
+    .ok_or_else(|| {
+        "minimum_independent_real_feed_batches_per_source_class: expected integer".to_owned()
+    })?;
     if survey_days < 7 || batches < 3 || !boolean(source_plan, "exploratory_only")? {
         return Err("source characterization minima must remain exploratory and include >=7 survey days and >=3 independent batches".to_owned());
     }
     let sample_fields = strings(source_plan, "sample_identity_fields")?;
-    for required in ["source_id", "batch_id", "time_zone", "storage_age", "laboratory", "method_revision", "uncertainty", "chain_of_custody"] {
-        require_contains(&sample_fields, required, "source_characterization_protocol.sample_identity_fields")?;
+    for required in [
+        "source_id",
+        "batch_id",
+        "time_zone",
+        "storage_age",
+        "laboratory",
+        "method_revision",
+        "uncertainty",
+        "chain_of_custody",
+    ] {
+        require_contains(
+            &sample_fields,
+            required,
+            "source_characterization_protocol.sample_identity_fields",
+        )?;
     }
     let common_panel = strings(source_plan, "common_characterization")?;
-    for required in ["pH", "temperature", "conductivity", "turbidity", "TSS", "COD"] {
-        require_contains(&common_panel, required, "source_characterization_protocol.common_characterization")?;
+    for required in [
+        "pH",
+        "temperature",
+        "conductivity",
+        "turbidity",
+        "TSS",
+        "COD",
+    ] {
+        require_contains(
+            &common_panel,
+            required,
+            "source_characterization_protocol.common_characterization",
+        )?;
     }
     let laundry_panel = strings(source_plan, "laundry_characterization")?;
     for required in ["anionic_surfactants", "sodium", "boron", "chloride"] {
-        require_contains(&laundry_panel, required, "source_characterization_protocol.laundry_characterization")?;
+        require_contains(
+            &laundry_panel,
+            required,
+            "source_characterization_protocol.laundry_characterization",
+        )?;
     }
     if !string(source_plan, "microbial_characterization")?.contains("Mycelix #6100") {
         return Err("microbiological panel must be defined through Mycelix #6100".to_owned());
@@ -372,20 +418,39 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "TRAIN-D-NATURE-BASED",
         "TRAIN-E-BATH-SHOWER-OZONE-GAC",
     ] {
-        require_contains(&experiment_trains, required, "matched_train_experiment.train_ids")?;
+        require_contains(
+            &experiment_trains,
+            required,
+            "matched_train_experiment.train_ids",
+        )?;
         if !trains.contains(required) {
-            return Err(format!("matched experiment references unknown train: {required}"));
+            return Err(format!(
+                "matched experiment references unknown train: {required}"
+            ));
         }
     }
     let matched_conditions = strings(experiment, "matched_conditions")?;
-    for required in ["same_source_batch_or_matched_aliquot", "same_feed_volume_and_hydraulic_loading", "same_temperature_band", "same_run_duration_and_sampling_schedule", "same_intended_use_profile", "same_energy_and_residual_boundaries"] {
-        require_contains(&matched_conditions, required, "matched_train_experiment.matched_conditions")?;
+    for required in [
+        "same_source_batch_or_matched_aliquot",
+        "same_feed_volume_and_hydraulic_loading",
+        "same_temperature_band",
+        "same_run_duration_and_sampling_schedule",
+        "same_intended_use_profile",
+        "same_energy_and_residual_boundaries",
+    ] {
+        require_contains(
+            &matched_conditions,
+            required,
+            "matched_train_experiment.matched_conditions",
+        )?;
     }
     let replicate_count = field(experiment, "minimum_independent_runs_per_train_batch")?
         .as_u64()
         .ok_or_else(|| "minimum_independent_runs_per_train_batch: expected integer".to_owned())?;
     if replicate_count < 3 {
-        return Err("matched train experiment needs at least three exploratory replicates".to_owned());
+        return Err(
+            "matched train experiment needs at least three exploratory replicates".to_owned(),
+        );
     }
     for key in [
         "report_absolute_concentrations_and_mass_loads",
@@ -395,7 +460,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "no_single_removal_score_may_select_the_train",
     ] {
         if !boolean(experiment, key)? {
-            return Err(format!("matched train experiment reporting requirement is false: {key}"));
+            return Err(format!(
+                "matched train experiment reporting requirement is false: {key}"
+            ));
         }
     }
 
@@ -576,9 +643,11 @@ mod tests {
             .as_array_mut()
             .expect("sources")
             .push(json!("SRC-BABY-NAPPY-WASH"));
-        assert!(validate_architecture(&contract)
-            .expect_err("nappy wash is prohibited")
-            .contains("accepts prohibited source"));
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("nappy wash is prohibited")
+                .contains("accepts prohibited source")
+        );
     }
 
     #[test]
@@ -611,54 +680,75 @@ mod tests {
     fn potable_nonpotable_separation_must_remain_physical() {
         let mut contract = fixture();
         contract["potable_nonpotable_separation"]["separate_physical_circuits"] = json!(false);
-        assert!(validate_architecture(&contract)
-            .expect_err("physical separation is mandatory")
-            .contains("potable/non-potable separation safeguard is false"));
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("physical separation is mandatory")
+                .contains("potable/non-potable separation safeguard is false")
+        );
     }
 
     #[test]
     fn a_potable_makeup_connection_is_not_enabled_in_v0_1() {
         let mut contract = fixture();
-        contract["potable_nonpotable_separation"]["potable_makeup_connection_in_v0_1"] = json!(true);
-        assert!(validate_architecture(&contract)
-            .expect_err("makeup connection not authorized")
-            .contains("must not enable a potable makeup connection"));
+        contract["potable_nonpotable_separation"]["potable_makeup_connection_in_v0_1"] =
+            json!(true);
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("makeup connection not authorized")
+                .contains("must not enable a potable makeup connection")
+        );
     }
 
     #[test]
     fn failure_bypass_cannot_reach_product() {
         let mut contract = fixture();
         contract["reject_and_overflow_routing"]["bypass_to_product_permitted"] = json!(true);
-        assert!(validate_architecture(&contract)
-            .expect_err("bypass to product rejected")
-            .contains("reject/bypass routing must be physically isolated"));
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("bypass to product rejected")
+                .contains("reject/bypass routing must be physically isolated")
+        );
     }
 
     #[test]
     fn batch_quality_cannot_be_unlocked_by_online_sensor_alone() {
         let mut contract = fixture();
-        contract["batch_quality_release_policy"]["online_sensor_alone_can_unlock_release"] = json!(true);
-        assert!(validate_architecture(&contract)
-            .expect_err("online sensor cannot authorize release")
-            .contains("online sensors may not independently unlock"));
+        contract["batch_quality_release_policy"]["online_sensor_alone_can_unlock_release"] =
+            json!(true);
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("online sensor cannot authorize release")
+                .contains("online sensors may not independently unlock")
+        );
     }
 
     #[test]
     fn source_characterization_requires_independent_real_feed_batches() {
         let mut contract = fixture();
-        contract["source_characterization_protocol"]["minimum_independent_real_feed_batches_per_source_class"] = json!(1);
-        assert!(validate_architecture(&contract)
-            .expect_err("minimum batch count")
-            .contains(">=3 independent batches"));
+        contract["source_characterization_protocol"]["minimum_independent_real_feed_batches_per_source_class"] =
+            json!(1);
+        assert!(
+            validate_architecture(&contract)
+                .expect_err("minimum batch count")
+                .contains(">=3 independent batches")
+        );
     }
 
     #[test]
     fn ozone_gac_comparator_is_present_as_candidate_not_selected() {
         let contract = fixture();
-        let train = contract["candidate_train_families"].as_array().unwrap()
-            .iter().find(|train| train["id"] == "TRAIN-E-BATH-SHOWER-OZONE-GAC")
+        let train = contract["candidate_train_families"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|train| train["id"] == "TRAIN-E-BATH-SHOWER-OZONE-GAC")
             .expect("ozone/GAC train");
-        assert!(train["selection"].as_str().unwrap().contains("candidate_for_matched_unoccupied_test_only"));
+        assert!(
+            train["selection"]
+                .as_str()
+                .unwrap()
+                .contains("candidate_for_matched_unoccupied_test_only")
+        );
         assert_eq!(train["candidate_sequence"][3], "M06-OZONE-GAC");
     }
 
