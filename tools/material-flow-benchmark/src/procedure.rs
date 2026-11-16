@@ -534,7 +534,7 @@ impl ProcedureGraph {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProcedureEvidenceBundle {
     pub schema_version: u16,
