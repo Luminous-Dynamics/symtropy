@@ -1,0 +1,48 @@
+name: AeroWeft Assurance Argument Red-Team Oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/aeroweift-assurance-redteam/**"
+      - "tools/aeroweift-assurance-case/**"
+      - "docs/research/aviation/AEROWEFT_ASSURANCE_ARGUMENT_RED_TEAM_001.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
+      - "fixtures/aeroweift-assurance-redteam/**"
+      - ".github/workflows/aeroweift-assurance-redteam-oracle.yml"
+  push:
+    branches:
+      - "research/aeroweFt-assurance-argument-red-team-stacked-002"
+    paths:
+      - "tools/aeroweift-assurance-redteam/**"
+      - "tools/aeroweift-assurance-case/**"
+      - "docs/research/aviation/AEROWEFT_ASSURANCE_ARGUMENT_RED_TEAM_001.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
+      - "docs/research/aviation/AEROWEFT_BENCHMARK_SUITE_V1.md"
+      - "fixtures/aeroweift-assurance-redteam/**"
+      - ".github/workflows/aeroweift-assurance-redteam-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aeroweift-assurance-redteam-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  isolated-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Formatting
+        run: cargo fmt --manifest-path tools/aeroweift-assurance-redteam/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --locked --manifest-path tools/aeroweift-assurance-redteam/Cargo.toml --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked --manifest-path tools/aeroweift-assurance-redteam/Cargo.toml --all-targets
