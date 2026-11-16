@@ -38,7 +38,10 @@ fn evaluate(reference: PlasmaReference) -> Result<String, String> {
         reference.collider_energy_spread_reference_percent_rms,
         reference.collider_normalized_transverse_emittance_reference_um,
     ];
-    if values.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+    if values
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0)
+    {
         return Err("plasma screen inputs must be finite and positive".to_owned());
     }
     if reference.muon_final_energy_gev <= reference.muon_injection_energy_gev {
@@ -139,7 +142,9 @@ mod tests {
         let report = render_report_json().expect("valid plasma report");
         assert!(report.contains("\"energy_spread_gap_ratio_if_definitions_match\":188.500000"));
         assert!(report.contains("\"reported_normalized_emittance_um_mrad\":8860.000000"));
-        assert!(report.contains("\"conditional_emittance_gap_ratio_if_definitions_match\":354.400000"));
+        assert!(
+            report.contains("\"conditional_emittance_gap_ratio_if_definitions_match\":354.400000")
+        );
         assert!(report.contains("\"muon_energy_gain_factor\":133.333333"));
     }
 
