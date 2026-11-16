@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Emit an exact tiny FJSP/FAJSP schedule certificate as TSV.
 
-use factory_fjsplib_adapter::exact::{ExactStatus, solve_exact};
+use factory_fjsplib_adapter::exact::{verify_schedule, ExactStatus, solve_exact};
 use factory_fjsplib_adapter::{FlexibleInstance, parse_fajsp, parse_fjsp};
 use std::env;
 use std::fs;
@@ -22,6 +22,9 @@ const FAJSP_FATTAHI1: &str = "4 2 2
 
 fn emit(instance: &FlexibleInstance) {
     let result = solve_exact(instance);
+    if let Some(schedule) = result.schedule.as_ref() {
+        assert!(verify_schedule(instance, schedule), "internal exact schedule certificate failed verification");
+    }
     println!(
         "record_type\tinstance_id\tformat\tstatus\toptimality_proven\tmakespan\tassignment_combinations\tmachine_order_combinations\tcyclic\tfeasible\toperation_id\tmachine_id\tsequence_index\tstart_ticks\tend_ticks\tdetails"
     );
