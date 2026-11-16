@@ -71,8 +71,10 @@ pub enum ObservationSubject {
     GrowingTip,
     CytoplasmicFlowStream,
     FluorescenceRoi,
-    /// A measured liquid patch or film segment in a hyphal-highway assay.
+    /// A measured liquid patch in a hyphal-highway assay.
     LiquidFilmPatch,
+    /// Evidence that an aqueous film connects two distinct liquid patches.
+    LiquidFilmBridge,
     /// An individually tracked bacterial trajectory in a microhabitat network.
     BacterialTrajectory,
 }
@@ -535,6 +537,7 @@ const fn subject_tag(subject: ObservationSubject) -> u8 {
         ObservationSubject::FluorescenceRoi => 8,
         ObservationSubject::LiquidFilmPatch => 9,
         ObservationSubject::BacterialTrajectory => 10,
+        ObservationSubject::LiquidFilmBridge => 11,
     }
 }
 
@@ -739,6 +742,7 @@ mod tests {
     fn new_hyphal_highway_subjects_have_stable_distinct_tags() {
         assert_eq!(subject_tag(ObservationSubject::LiquidFilmPatch), 9);
         assert_eq!(subject_tag(ObservationSubject::BacterialTrajectory), 10);
+        assert_eq!(subject_tag(ObservationSubject::LiquidFilmBridge), 11);
         assert_ne!(
             subject_tag(ObservationSubject::LiquidFilmPatch),
             subject_tag(ObservationSubject::BacterialTrajectory)
