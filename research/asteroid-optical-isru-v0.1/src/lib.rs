@@ -1,3 +1,5 @@
+pub mod tournament;
+
 //! Minimal, deterministic accounting and geometry checks for the
 //! ASTEROID-OPTICAL-ISRU-001 benchmark.
 //!
