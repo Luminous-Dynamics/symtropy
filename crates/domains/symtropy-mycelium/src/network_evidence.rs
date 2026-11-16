@@ -12,7 +12,9 @@
 
 use std::fmt;
 
-use crate::observation_evidence::ObservationEvidenceId;
+use crate::observation_evidence::{
+    EvidenceReceiptError, ObservationEvidenceId, ObservationEvidenceReceipt,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FungalNetworkIdentity {
@@ -203,6 +205,42 @@ impl NetworkEvidenceAssessment {
         Ok(())
     }
 
+    /// Validate every referenced observation ID against the supplied receipt set.
+    ///
+    /// This prevents a syntactically valid but unresolved caller-provided ID
+    /// from being accepted as source evidence. Each resolved receipt is itself
+    /// validated before it can support a criterion or flow claim.
+    pub fn validate_against_receipts(
+        &self,
+        receipts: &[ObservationEvidenceReceipt],
+    ) -> Result<(), NetworkEvidenceError> {
+        self.validate()?;
+
+        let mut referenced = Vec::new();
+        if let Some(id) = self.shared_fungal_link.observation {
+            referenced.push(id);
+        }
+        for criterion in &self.criteria {
+            if let Some(id) = criterion.observation {
+                referenced.push(id);
+            }
+        }
+        if let Some(id) = self.cytoplasmic_flow.observation {
+            referenced.push(id);
+        }
+
+        for id in referenced {
+            let receipt = receipts
+                .iter()
+                .find(|receipt| receipt.id == id)
+                .ok_or(NetworkEvidenceError::MissingObservationReceipt(id))?;
+            receipt
+                .validate()
+                .map_err(|source| NetworkEvidenceError::InvalidObservationReceipt { id, source })?;
+        }
+        Ok(())
+    }
+
     pub fn classify(&self) -> Result<NetworkEvidenceClassification, NetworkEvidenceError> {
         self.validate()?;
 
@@ -293,6 +331,11 @@ pub enum NetworkEvidenceError {
     },
     MissingSharedLinkReceipt,
     UnexpectedSharedLinkReceipt,
+    MissingObservationReceipt(ObservationEvidenceId),
+    InvalidObservationReceipt {
+        id: ObservationEvidenceId,
+        source: EvidenceReceiptError,
+    },
     MissingSharedLinkReasonCode,
     MissingFlowReceipt,
     FlowWithoutSharedNetwork,
@@ -333,6 +376,12 @@ impl fmt::Display for NetworkEvidenceError {
             }
             Self::MissingSharedLinkReceipt => {
                 write!(f, "shared fungal link requires a source receipt")
+            },
+            Self::MissingObservationReceipt(id) => {
+                write!(f, "observation {:?} does not resolve to a source receipt", id)
+            }
+            Self::InvalidObservationReceipt { id, source } => {
+                write!(f, "observation {:?} has an invalid source receipt: {}", id, source)
             }
             Self::UnexpectedSharedLinkReceipt => {
                 write!(f, "unreported shared fungal link must not carry a receipt")
@@ -526,6 +575,71 @@ mod tests {
         assert_eq!(
             assessment.classify(),
             Err(NetworkEvidenceError::FlowWithoutSharedNetwork)
+        );
+    }
+
+    fn receipt(id: u64) -> ObservationEvidenceReceipt {
+        ObservationEvidenceReceipt {
+            id: ObservationEvidenceId(id),
+            source_file_sha256: crate::observation_evidence::Sha256Digest([1; 32]),
+            frame: crate::observation_evidence::ImageFrameReference {
+                frame: crate::observation_evidence::ImageFrameIndex(0),
+                slice: None,
+                timestamp_s: 0.0,
+            },
+            roi: crate::observation_evidence::ImageRoiBoundsPx {
+                id: crate::observation_evidence::ObservationRoiId(id),
+                x_min: 0,
+                y_min: 0,
+                width_px: 10,
+                height_px: 10,
+            },
+            calibration: crate::observation_evidence::PhysicalSamplingCalibration {
+                pixel_width_um: 0.25,
+                pixel_height_um: 0.25,
+                voxel_depth_um: None,
+                frame_interval_s: None,
+            },
+            processor_name: "fixture".to_owned(),
+            processor_revision: "v1".to_owned(),
+            processor_parameters_sha256: crate::observation_evidence::Sha256Digest([2; 32]),
+            subject: crate::observation_evidence::ObservationSubject::HyphalSegmentTrace,
+            graph_target: None,
+            graph_event: None,
+            uncertainty: None,
+            disposition: crate::observation_evidence::EvidenceDisposition::MachineGenerated,
+        }
+    }
+
+    #[test]
+    fn all_criterion_receipts_must_resolve_and_validate() {
+        let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        let receipts = vec![
+            receipt(90),
+            receipt(1),
+            receipt(2),
+            receipt(3),
+            receipt(4),
+            receipt(5),
+        ];
+        assert_eq!(assessment.validate_against_receipts(&receipts), Ok(()));
+    }
+
+    #[test]
+    fn unresolved_criterion_receipt_id_is_rejected() {
+        let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        let receipts = vec![
+            receipt(90),
+            receipt(1),
+            receipt(2),
+            receipt(4),
+            receipt(5),
+        ];
+        assert_eq!(
+            assessment.validate_against_receipts(&receipts),
+            Err(NetworkEvidenceError::MissingObservationReceipt(
+                ObservationEvidenceId(4)
+            ))
         );
     }
 
