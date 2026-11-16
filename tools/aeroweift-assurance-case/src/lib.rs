@@ -405,8 +405,16 @@ pub enum BlockerReason {
     MitigationWithoutEvidence,
     /// Mitigation is contradicted or unsupported.
     MitigationNotSupported,
-    /// Assumption is open, expired or unknown.
+    /// Mitigation effectiveness is indeterminate.
+    MitigationIndeterminate,
+    /// A mitigation is present but is not attached to any identified hazard.
+    MitigationNotAttachedToHazard,
+    /// A defeater is present but does not challenge a claim or mitigation.
+    DefeaterWithoutChallenge,
+    /// Assumption is open or expired.
     UnresolvedAssumption,
+    /// Assumption state is unknown or not assessable.
+    AssumptionUnknown,
     /// Assumption has no supporting evidence or accepted authority record.
     AssumptionWithoutSupport,
     /// A mandatory defeater is open or unknown.
@@ -463,6 +471,10 @@ pub enum EvaluationError {
     DuplicateHazard,
     /// Duplicate authority decision for the same role/identity.
     DuplicateAuthorityDecision,
+    /// A hazard is present but absent from the frozen hazard manifest.
+    HazardNotInRequiredManifest,
+    /// A node's validity does not cover the entire proposed operation window.
+    NodeValidityDoesNotCoverOperation,
 }
 
 /// Complete result of evaluating one assurance case.
@@ -751,15 +763,18 @@ pub fn evaluate_assurance_case(
         if node.scope != policy.expected_scope {
             return Err(EvaluationError::ScopeMismatch);
         }
-        if node.valid_from > policy.expected_scope.effective_cutoff
-            || policy.expected_scope.effective_cutoff >= node.valid_until
+        if node.valid_from > policy.expected_scope.operation_start
+            || node.valid_until < policy.expected_scope.operation_end
         {
-            // Node validity is a structural applicability boundary, not an aggregate quality score.
-            return Err(EvaluationError::InvalidNode);
+            // Every relied-on case node must remain valid throughout the proposed operation.
+            return Err(EvaluationError::NodeValidityDoesNotCoverOperation);
         }
         if let Some(hazard_id) = &node.hazard_id {
             if !hazards.insert(hazard_id.as_str()) {
                 return Err(EvaluationError::DuplicateHazard);
+            }
+            if !policy.required_hazards.iter().any(|required| required == hazard_id) {
+                return Err(EvaluationError::HazardNotInRequiredManifest);
             }
         }
         if by_id.insert(node.node_id.as_str(), node).is_some() {
@@ -908,8 +923,14 @@ pub fn evaluate_assurance_case(
             add_blocker(&mut blockers, required, BlockerReason::HazardWithoutMitigation);
         }
         for mitigation in mitigations {
-            if mitigation.mitigation_state != Some(ClaimState::Supported) {
-                add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationNotSupported);
+            match mitigation.mitigation_state {
+                Some(ClaimState::Supported) => {}
+                Some(ClaimState::Indeterminate) => {
+                    add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationIndeterminate);
+                }
+                Some(ClaimState::Contradicted | ClaimState::Unsupported) | None => {
+                    add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationNotSupported);
+                }
             }
             let has_evidence = edges.iter().any(|edge| {
                 edge.to_node_id == mitigation.node_id
@@ -919,6 +940,20 @@ pub fn evaluate_assurance_case(
             if !has_evidence {
                 add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationWithoutEvidence);
             }
+        }
+    }
+
+    // Every supplied mitigation must be attached to at least one required hazard.
+    for mitigation in nodes.iter().filter(|node| node.kind == NodeKind::Mitigation) {
+        if !edges.iter().any(|edge| {
+            edge.from_node_id == mitigation.node_id
+                && edge.kind == EdgeKind::Mitigates
+                && by_id.get(edge.to_node_id.as_str()).is_some_and(|target| {
+                    target.kind == NodeKind::Hazard
+                        && target.hazard_id.as_ref().is_some_and(|id| policy.required_hazards.contains(id))
+                })
+        }) {
+            add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationNotAttachedToHazard);
         }
     }
 
@@ -946,8 +981,11 @@ pub fn evaluate_assurance_case(
                     add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
                 }
             }
-            AssumptionState::Open | AssumptionState::Unknown => {
+            AssumptionState::Open => {
                 add_blocker(&mut blockers, &node.node_id, BlockerReason::UnresolvedAssumption);
+            }
+            AssumptionState::Unknown => {
+                add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionUnknown);
             }
             AssumptionState::Expired => {
                 add_blocker(&mut blockers, &node.node_id, BlockerReason::EvidenceNotCurrent);
@@ -955,8 +993,17 @@ pub fn evaluate_assurance_case(
         }
     }
 
-    // A defeater must be discharged by evidence or explicitly accepted/not-applicable by authority.
+    // Every defeater must challenge a claim or mitigation and then be resolved/accepted.
     for node in nodes.iter().filter(|node| node.kind == NodeKind::Defeater) {
+        if !edges.iter().any(|edge| {
+            edge.from_node_id == node.node_id
+                && edge.kind == EdgeKind::Challenges
+                && by_id.get(edge.to_node_id.as_str()).is_some_and(|target| {
+                    matches!(target.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation)
+                })
+        }) {
+            add_blocker(&mut blockers, &node.node_id, BlockerReason::DefeaterWithoutChallenge);
+        }
         let defeater = node.defeater.as_ref().expect("node shape already validated");
         match defeater.state {
             DefeaterState::Open | DefeaterState::Unknown => {
@@ -1005,9 +1052,9 @@ pub fn evaluate_assurance_case(
         let decision = decisions[0].authority_decision.as_ref().expect("node shape already validated");
         match decision.status {
             AuthorityDecisionStatus::Accepted
-                if decision.effective_at <= policy.expected_scope.effective_cutoff
+                if decision.effective_at <= policy.expected_scope.operation_start
                     && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
-                    && decision.valid_until.is_none_or(|end| policy.expected_scope.effective_cutoff < end) => {}
+                    && decision.valid_until.is_none_or(|end| end >= policy.expected_scope.operation_end) => {}
             AuthorityDecisionStatus::Pending => {
                 outstanding_authority_roles.push(required.role.clone());
                 add_blocker(&mut blockers, &required.role, BlockerReason::AuthorityDecisionOutstanding);
@@ -1019,6 +1066,7 @@ pub fn evaluate_assurance_case(
             AuthorityDecisionStatus::Rejected
             | AuthorityDecisionStatus::Revoked
             | AuthorityDecisionStatus::Expired => {
+                outstanding_authority_roles.push(required.role.clone());
                 add_blocker(&mut blockers, &required.role, BlockerReason::AuthorityDecisionRejectedOrExpired);
             }
         }
@@ -1066,10 +1114,10 @@ fn has_accepted_decision_edge(
             && by_id.get(edge.to_node_id.as_str()).is_some_and(|decision_node| {
                 decision_node.authority_decision.as_ref().is_some_and(|decision| {
                     decision.status == AuthorityDecisionStatus::Accepted
-                        && decision.effective_at <= policy.expected_scope.effective_cutoff
+                        && decision.effective_at <= policy.expected_scope.operation_start
                         && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
                         && decision.valid_until.is_none_or(|end| {
-                            policy.expected_scope.effective_cutoff < end
+                            end >= policy.expected_scope.operation_end
                         })
                         && policy.required_authorities.iter().any(|required| {
                             required.role == decision.role
@@ -1105,6 +1153,8 @@ fn select_status(blockers: &BTreeSet<(String, BlockerReason)>) -> AssuranceStatu
         *reason == BlockerReason::EvidenceIndeterminate
             || *reason == BlockerReason::ClaimIndeterminate
             || *reason == BlockerReason::InsufficientIndependentEvidenceGroups
+            || *reason == BlockerReason::MitigationIndeterminate
+            || *reason == BlockerReason::AssumptionUnknown
     }) {
         return AssuranceStatus::Indeterminate;
     }
