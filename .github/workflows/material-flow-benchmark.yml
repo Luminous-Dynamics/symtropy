@@ -51,6 +51,14 @@ jobs:
           grep -q '"post_dispatch_ambiguities_blocked_retry": true' mfb-l1-evidence/protocol-fault-campaign.json
           grep -q '"no_episode_false_completed": true' mfb-l1-evidence/protocol-fault-campaign.json
           cat mfb-l1-evidence/protocol-fault-campaign.json
+      - name: Validate evidence-typed procedure graph
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-procedure -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json > mfb-l1-evidence/procedure-readiness.json
+          grep -q '"structurally_valid_for_external_review": true' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-readiness.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-readiness.json
+          cat mfb-l1-evidence/procedure-readiness.json
       - name: Run analytical four-timestep free-fall convergence
         run: |
           mkdir -p mfb-l1-evidence
@@ -96,6 +104,9 @@ jobs:
             echo
             echo "[protocol_fault_campaign_digest]"
             sha256sum mfb-l1-evidence/protocol-fault-campaign.json
+            echo
+            echo "[procedure_readiness_digest]"
+            sha256sum mfb-l1-evidence/procedure-readiness.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
