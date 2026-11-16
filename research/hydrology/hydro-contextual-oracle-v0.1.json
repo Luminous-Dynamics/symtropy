@@ -517,6 +517,8 @@
       "expected": {
         "probabilistic_disposition": "ADMITTED",
         "reason": "CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "target_definition_id": "daily_streamflow_m3_s",
         "forecast_member_count": 3,
         "reference_member_count": 3,
@@ -531,6 +533,8 @@
       "expected": {
         "probabilistic_disposition": "ADMITTED",
         "reason": "BSS_AGAINST_MATCHED_REFERENCE_PROBABILITY",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "event_definition_id": "daily_flow_exceeds_5_m3_s",
         "forecast_probability": 0.8,
         "reference_probability": 0.4,
@@ -546,6 +550,8 @@
       "expected": {
         "probabilistic_disposition": "UNDEFINED",
         "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "target_definition_id": "daily_streamflow_m3_s",
         "forecast_member_count": 3,
         "reference_member_count": 2,
@@ -560,6 +566,8 @@
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
         "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "event_definition_id": "daily_flow_exceeds_5_m3_s",
         "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
         "valid_time_definition_id": "2026-07-01T00:00:00Z",
@@ -579,6 +587,8 @@
       "expected": {
         "probabilistic_disposition": "REJECT",
         "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "event_definition_id": "daily_flow_exceeds_5_m3_s",
         "forecast_probability": 0.8,
         "reference_probability": 1.5,
@@ -594,6 +604,8 @@
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
         "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "target_definition_id": "daily_streamflow_m3_s",
         "reference_target_definition_id": "daily_streamflow_m3_s",
         "valid_time_definition_id": "2026-07-01T00:00:00Z",
@@ -613,6 +625,8 @@
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
         "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
         "event_definition_id": "daily_flow_exceeds_5_m3_s",
         "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
         "valid_time_definition_id": "2026-07-01T00:00:00Z",
@@ -623,6 +637,23 @@
         "reference_lead_time_hours": 24,
         "brier_score": null,
         "reference_brier_score": null,
+        "brier_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-040-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.8,
+        "reference_probability": 1,
+        "observed_event": 1,
+        "brier_score": 0.04,
+        "reference_brier_score": 0,
         "brier_skill_score": null
       }
     }
