@@ -14,7 +14,9 @@
 
 use std::fmt;
 
-use crate::observation_evidence::{ObservationEvidenceId, Sha256Digest};
+use crate::observation_evidence::{
+    ObservationEvidenceId, ObservationEvidenceReceipt, Sha256Digest,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FieldStudyId(pub u64);
@@ -155,6 +157,24 @@ impl FieldHyphalDensityObservation {
         Ok(())
     }
 
+    /// Validate the optional image/ROI receipt reference when one is present.
+    pub fn validate_against_receipts(
+        &self,
+        receipts: &[ObservationEvidenceReceipt],
+    ) -> Result<(), SpatialFieldError> {
+        self.validate()?;
+        if let Some(id) = self.observation_evidence {
+            let receipt = receipts
+                .iter()
+                .find(|receipt| receipt.id == id)
+                .ok_or(SpatialFieldError::MissingObservationEvidence(id))?;
+            receipt
+                .validate()
+                .map_err(|_| SpatialFieldError::InvalidLinkedObservationEvidence(id))?;
+        }
+        Ok(())
+    }
+
     /// Whether this record is eligible for geospatial training without
     /// imputing a coordinate or sampling depth.
     pub fn has_spatial_support(&self) -> bool {
@@ -219,6 +239,7 @@ pub struct EffectiveHyphalRadiusUm {
     pub imaged_hypha_count: u64,
     pub fungal_taxon_key: String,
     pub source_file_sha256: Sha256Digest,
+    pub observation_evidence: Option<ObservationEvidenceId>,
 }
 
 impl EffectiveHyphalRadiusUm {
@@ -240,6 +261,23 @@ impl EffectiveHyphalRadiusUm {
         }
         if self.source_file_sha256.is_zero() {
             return Err(SpatialFieldError::InvalidSourceDigest);
+        }
+        Ok(())
+    }
+
+    pub fn validate_against_receipts(
+        &self,
+        receipts: &[ObservationEvidenceReceipt],
+    ) -> Result<(), SpatialFieldError> {
+        self.validate()?;
+        if let Some(id) = self.observation_evidence {
+            let receipt = receipts
+                .iter()
+                .find(|receipt| receipt.id == id)
+                .ok_or(SpatialFieldError::MissingObservationEvidence(id))?;
+            receipt
+                .validate()
+                .map_err(|_| SpatialFieldError::InvalidLinkedObservationEvidence(id))?;
         }
         Ok(())
     }
@@ -290,6 +328,8 @@ pub enum SpatialFieldError {
     InvalidRadiusUncertainty,
     InvalidImagingSampleCount,
     InvalidTaxonKey,
+    MissingObservationEvidence(ObservationEvidenceId),
+    InvalidLinkedObservationEvidence(ObservationEvidenceId),
     NonFiniteDerivedQuantity,
 }
 
@@ -336,7 +376,15 @@ impl fmt::Display for SpatialFieldError {
                 write!(f, "radius standard deviation must be finite and non-negative")
             }
             Self::InvalidImagingSampleCount => write!(f, "imaged hypha count must be positive"),
-            Self::InvalidTaxonKey => write!(f, "fungal taxon key must be non-empty and at most 128 bytes"),
+            Self::InvalidTaxonKey => {
+                write!(f, "fungal taxon key must be non-empty and at most 128 bytes")
+            }
+            Self::MissingObservationEvidence(id) => {
+                write!(f, "linked observation evidence {:?} is missing", id)
+            }
+            Self::InvalidLinkedObservationEvidence(id) => {
+                write!(f, "linked observation evidence {:?} is invalid", id)
+            }
             Self::NonFiniteDerivedQuantity => write!(f, "derived geometric volume fraction is invalid"),
         }
     }
@@ -403,6 +451,7 @@ mod tests {
             imaged_hypha_count: 10_000,
             fungal_taxon_key: "AMF-taxon-A".to_string(),
             source_file_sha256: digest(3),
+            observation_evidence: None,
         }
     }
 
@@ -417,6 +466,18 @@ mod tests {
         assert_eq!(
             item.validate(),
             Err(SpatialFieldError::InvalidHyphalLengthDensity)
+        );
+    }
+
+    #[test]
+    fn optional_field_image_receipt_must_resolve_and_validate() {
+        let mut item = observation();
+        item.observation_evidence = Some(ObservationEvidenceId(404));
+        assert_eq!(
+            item.validate_against_receipts(&[]),
+            Err(SpatialFieldError::MissingObservationEvidence(
+                ObservationEvidenceId(404)
+            ))
         );
     }
 
