@@ -1543,7 +1543,11 @@ pub fn verify_adaptive_collision_certificate(
         return Err(AdaptiveCertificateError::EmptyCertificate);
     }
     if certificate.leaves[0].window.start_parameter != 0.0
-        || certificate.leaves.last().map(|leaf| leaf.window.end_parameter) != Some(1.0)
+        || certificate
+            .leaves
+            .last()
+            .map(|leaf| leaf.window.end_parameter)
+            != Some(1.0)
     {
         return Err(AdaptiveCertificateError::InvalidCoverage);
     }
