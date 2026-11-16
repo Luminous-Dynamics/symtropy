@@ -76,6 +76,23 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 
 This is an analytical pre-contact translational check (Tier B for that narrow claim). It does not validate contact response, packaging, rotational inertia, robot handling or end-to-end delivery. Its result is archived beside the L1 receiving episode in the CI evidence artifact.
 
+## Executable protocol fault campaign
+
+The schema validator and the execution runner intentionally have different jobs:
+
+- `mfb-validate-campaign`: checks that the frozen ten-fault matrix is structurally valid.
+- `mfb-run-campaign`: executes each typed event sequence against a fresh handoff state machine and emits a machine-readable report.
+
+The v1 runner checks:
+- wrong container, over-mass and expired grant are rejected before dispatch;
+- stale temperature, interlocked transfer gate and damaged/unknown seal enter safe hold before dispatch;
+- replaying the same logical command is suppressed;
+- a second physical release observation causes reconciliation rather than a second accepted release;
+- missing receiver acknowledgement, power interruption and network loss after release require reconciliation;
+- no ambiguous post-dispatch case permits a blind retry, and no injected fault is falsely recorded as completed.
+
+Example result fields include `all_expected_outcomes_observed`, `pre_dispatch_faults_never_dispatched`, `post_dispatch_ambiguities_blocked_retry`, per-episode traces and observed transaction states.
+
 ## What it does not prove
 
 The contract validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve general 3D packing, prove safety, or qualify HIL / field performance. The separate L1 simulator executes one reduced-order stationary receiving scene; a valid manifest or successful L1 episode is not a physical safety case or field qualification.
@@ -103,8 +120,13 @@ Validate the ten-fault campaign against the nominal scenario:
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
   tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-run-campaign -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
 
-Campaign validity proves only that the ten test episodes and their expected terminal states form a consistent test plan. It does not prove that any simulated or physical fault has been injected or recovered.
+`mfb-validate-campaign` proves only that the ten episodes and expected terminal states form a consistent test plan. It does not execute faults. The separate `mfb-run-campaign` binary executes the ten typed fault events against a fresh instance of the Rust handoff state machine and verifies the expected terminal states and negative controls: pre-dispatch failures never dispatch, same-command replay is suppressed, duplicate physical release evidence enters reconciliation, and post-dispatch ambiguity blocks blind retry.
+
+This is **protocol-level event injection**, not physical fault injection: it does not cut power, partition a live network, corrupt a sensor, move a real package or operate an actuator. Its report is included in the CI evidence artifact.
