@@ -19,13 +19,13 @@
       "prov:wasAssociatedWith": {
         "@id": "ex:agent/synthetic-provider"
       },
-      "ex:analysisId": "synthetic.analysis.water-continuity.001",
-      "ex:executionStatus": "NOT_EXECUTED",
       "ex:fixtureActivityId": "synthetic.e2.provenance.fixture.001",
       "ex:executionClass": "E2_SYNTHETIC_GRAPH_FIXTURE",
       "ex:sourceAnalysisId": "synthetic.analysis.water-continuity.001",
       "ex:sourceAnalysisExecutionStatus": "NOT_EXECUTED",
-      "ex:analysisExecutionClaim": "NONE"
+      "ex:analysisExecutionClaim": "NONE",
+      "schema:name": "Synthetic E2 provenance-graph fixture activity",
+      "schema:description": "A constructed test graph for exercising PROV relationships. It is not the unexecuted E1 model analysis and is not evidence of a real service transformation."
     },
     {
       "@id": "ex:agent/synthetic-provider",
