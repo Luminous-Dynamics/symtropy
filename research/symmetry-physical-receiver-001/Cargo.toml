@@ -1,0 +1,20 @@
+[package]
+name = "symmetry-physical-receiver-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Independent 3D receiver for symmetry-to-physical coordinate evidence"
+
+[dependencies]
+sha2 = { version = "=0.10.9", default-features = false }
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "dense_coordinate_receiver"
+path = "examples/dense_coordinate_receiver.rs"
+
+[workspace]
