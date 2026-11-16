@@ -26,7 +26,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Numerical overflow checks, negative/non-finite input rejection, complete-composition reconciliation and origin-intensity ratio overflow rejection.
 - Single-species ideal-gas pressure/known-mass-transfer reference module with explicit limitations and observation comparison.
 - Non-uniform one-dimensional subterranean profile summary with explicit unobserved intervals, coverage fraction, length-weighted width/height and standard uncertainty, observed extrema and profile variability.
-- Typed cross-field Subterra site-evidence validator rejecting logically inconsistent connectivity/access/survey/engineering/preservation states.
+- Typed cross-field Subterra site-evidence validator rejecting logically inconsistent connectivity/access/survey/engineering/preservation states. Non-Earth sampling/biological activity requires a named authorization-case reference; Earth records may mark planetary protection not applicable but still require a basis reference for an authorized activity.
 
 ## Important limitations
 
