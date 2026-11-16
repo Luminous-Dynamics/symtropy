@@ -77,6 +77,7 @@ pub struct FamilyPolicySummary {
 pub struct FamilyCampaignResult {
     pub family_id: &'static str,
     pub reference_integrity: ReferenceIntegrityReport,
+    pub observability: ResponseObservabilityReport,
     /// This is known from the synthetic fault injection. Pairwise channel
     /// agreement cannot discover an undisclosed shared systematic cause.
     pub shared_reference_common_cause_injected: bool,
@@ -519,10 +520,15 @@ pub fn run_adversarial_campaign(
             SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
             target_reference_domain.independent_reference_ancestry_attested,
         )?;
+        let observability = response_observability_check(
+            &target_reference_domain.candidates,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )?;
 
         family_summaries.push(FamilyCampaignResult {
             family_id: family.id(),
             reference_integrity,
+            observability,
             shared_reference_common_cause_injected: family.has_shared_reference_common_cause(),
             policies: policy_summaries,
         });
@@ -619,6 +625,15 @@ mod tests {
         let saturated = evaluate_family_policy_arms(20261116, ResponseFamily::Saturation)
             .expect("saturation family");
         assert!(saturated[0].worst_absolute_error_n > nominal[0].worst_absolute_error_n);
+        let saturated_domain =
+            family_training_domain(20261116, TARGET_PROFILE, ResponseFamily::Saturation);
+        let observability = response_observability_check(
+            &saturated_domain.candidates,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("saturation observability diagnostic");
+        assert!(!observability.accepted);
+        assert!(observability.flatline_transition_count > 0);
     }
 
     #[test]
