@@ -292,8 +292,12 @@ mod tests {
         assert_ne!(forward.stream, reverse.stream);
         assert_eq!(forward.direction(), FlowDirection::AlongSegment);
         assert_eq!(reverse.direction(), FlowDirection::AgainstSegment);
-        assert_eq!(forward.signed_volume_flow_mm3_per_s(), Some(0.3));
-        assert_eq!(reverse.signed_volume_flow_mm3_per_s(), Some(-0.075));
+        assert!(
+            (forward.signed_volume_flow_mm3_per_s().unwrap() - 0.3).abs() < 1e-12
+        );
+        assert!(
+            (reverse.signed_volume_flow_mm3_per_s().unwrap() + 0.075).abs() < 1e-12
+        );
     }
 
     #[test]
