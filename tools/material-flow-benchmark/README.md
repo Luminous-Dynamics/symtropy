@@ -98,6 +98,29 @@ The v1 runner checks:
 
 Example result fields include `all_expected_outcomes_observed`, `pre_dispatch_faults_never_dispatched`, `post_dispatch_ambiguities_blocked_retry`, per-episode traces and observed transaction states.
 
+## Evidence-typed reusable procedure graph
+
+The `mfb-validate-procedure` binary validates a versioned DAG of typed receiving/put-away steps bound to an exact MFB scenario, source commit and configuration digest.
+
+The nominal 15-step graph composes:
+- manifest, authorization, receiver-capability, package identity, tote fit, payload mass, seal, temperature and gate/interlock preflight;
+- a **release intent** (not a motor command or motion authorization);
+- source-release and receiver-arrival observations;
+- placement verification and counterparty custody acknowledgement;
+- a parallel reconciliation branch for an unknown post-intent outcome.
+
+Each step declares typed evidence inputs, an evidence output and prerequisite steps. The validator rejects duplicate operations/IDs, unknown dependencies, cycles, missing typed inputs, invalid evidence ancestry, missing preflight ancestors and wrong scenario/configuration bindings.
+
+Run it from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-procedure -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json
+```
+
+A successful result means **structurally valid for independent external review** only. The report hard-codes `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. It does not authenticate the underlying evidence values/signatures, execute a robot, assess live freshness, authorize movement or accept delivery. The procedure remains a plan submitted to separately governed authority, executor, observer and evaluator components.
+
 ## What it does not prove
 
 The contract validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve general 3D packing, prove safety, or qualify HIL / field performance. The separate L1 simulator executes one reduced-order stationary receiving scene; a valid manifest or successful L1 episode is not a physical safety case or field qualification.
@@ -128,6 +151,9 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-run-campaign -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
   tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-procedure -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
