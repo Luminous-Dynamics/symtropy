@@ -583,6 +583,173 @@
         "reference_brier_score": null,
         "brier_skill_score": null
       }
+    },
+    {
+      "case_id": "HC-T0-037-crps-skill-positive",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 4,
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "crps": 0.2222222222222222,
+        "reference_crps": 2.2222222222222223,
+        "crps_skill_score": 0.9,
+        "skill_warning": "Always report raw forecast and reference CRPS, member counts, target definition, lead time and sample population. A CRPSS value is not comparable across different target/lead definitions or observation populations."
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-negative",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE",
+        "target_definition_id": "daily_streamflow_m3_s_lead48h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead48h_v1",
+        "observed": 4,
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "crps": 2.2222222222222223,
+        "reference_crps": 0.2222222222222222,
+        "crps_skill_score": -9,
+        "skill_warning": "Always report raw forecast and reference CRPS, member counts, target definition, lead time and sample population. A CRPSS value is not comparable across different target/lead definitions or observation populations."
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "target_definition_id": "daily_streamflow_m3_s_lead6h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead6h_v1",
+        "observed": 4,
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "crps": 0.2222222222222222,
+        "reference_crps": 0,
+        "crps_skill_score": null,
+        "skill_warning": "Always report raw forecast and reference CRPS, member counts, target definition, lead time and sample population. A CRPSS value is not comparable across different target/lead definitions or observation populations."
+      }
+    },
+    {
+      "case_id": "HC-T0-040-crps-skill-target-mismatch",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "reason": "REFERENCE_TARGET_DEFINITION_MISMATCH",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "reference_target_definition_id": "daily_streamflow_m3_s_lead72h_v1",
+        "observed": null,
+        "forecast_member_count": null,
+        "reference_member_count": null,
+        "crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-041-weighted-interval-score-contained",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "WEIGHTED_INTERVAL_SCORE_WITH_NESTED_CENTRAL_INTERVALS",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 5,
+        "median_forecast": 5,
+        "median_absolute_error": 0,
+        "interval_count": 2,
+        "weighted_interval_contributions": 0.7,
+        "weighted_interval_score": 0.28,
+        "interval_scores": [
+          {
+            "alpha": 0.1,
+            "nominal_central_coverage": 0.9,
+            "lower": 3,
+            "upper": 7,
+            "width": 4,
+            "interval_score": 4,
+            "weighted_contribution": 0.2,
+            "miss_side": "COVERED"
+          },
+          {
+            "alpha": 0.5,
+            "nominal_central_coverage": 0.5,
+            "lower": 4,
+            "upper": 6,
+            "width": 2,
+            "interval_score": 2,
+            "weighted_contribution": 0.5,
+            "miss_side": "COVERED"
+          }
+        ],
+        "wis_warning": "WIS is only comparable for the same target definition, quantile/interval levels and verification population; publish those identities and sample counts."
+      }
+    },
+    {
+      "case_id": "HC-T0-042-weighted-interval-score-upper-miss",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "WEIGHTED_INTERVAL_SCORE_WITH_NESTED_CENTRAL_INTERVALS",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "observed": 8,
+        "median_forecast": 5,
+        "median_absolute_error": 3,
+        "interval_count": 2,
+        "weighted_interval_contributions": 3.7,
+        "weighted_interval_score": 2.08,
+        "interval_scores": [
+          {
+            "alpha": 0.1,
+            "nominal_central_coverage": 0.9,
+            "lower": 3,
+            "upper": 7,
+            "width": 4,
+            "interval_score": 24,
+            "weighted_contribution": 1.2,
+            "miss_side": "UPPER"
+          },
+          {
+            "alpha": 0.5,
+            "nominal_central_coverage": 0.5,
+            "lower": 4,
+            "upper": 6,
+            "width": 2,
+            "interval_score": 10,
+            "weighted_contribution": 2.5,
+            "miss_side": "UPPER"
+          }
+        ],
+        "wis_warning": "WIS is only comparable for the same target definition, quantile/interval levels and verification population; publish those identities and sample counts."
+      }
+    },
+    {
+      "case_id": "HC-T0-043-weighted-interval-crossed-bounds-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "LOWER_BOUND_EXCEEDS_UPPER_BOUND",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "invalid_interval_index": 0,
+        "weighted_interval_score": null,
+        "interval_scores": null
+      }
+    },
+    {
+      "case_id": "HC-T0-044-weighted-interval-quantile-crossing-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "CENTRAL_INTERVALS_NOT_NESTED_OR_QUANTILES_CROSS",
+        "target_definition_id": "daily_streamflow_m3_s_lead24h_v1",
+        "invalid_interval_index": 1,
+        "weighted_interval_score": null,
+        "interval_scores": null
+      }
     }
   ]
 }
