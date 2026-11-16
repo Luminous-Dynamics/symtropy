@@ -324,3 +324,12 @@ No procurement SKU is approved in this document. Select components only after th
 ## 10. Nonclaims
 
 This is a preliminary design/sizing basis. It is not a construction drawing, component selection release, pump specification, potable-water system, treatment validation, plumbing/electrical code approval, field installation, measured product performance or manufacturing readiness finding.
+
+
+## Future modular treatment tie-in — interface only
+
+The first bench remains the backup/storage circuit shown above. Do not add a treatment train to TK-101 or connect any recovery water to the backup/service test circuit.
+
+The future treatment module is a separate branch on the non-potable recovery circuit only, with independently metered inlet, interstage sample ports, outlet, backwash/reject/purge and contained quarantine. Its process configuration and safety boundary are described in [SOURCE_PROFILE_CASSETTE_ARCHITECTURE_V0_1.md](SOURCE_PROFILE_CASSETTE_ARCHITECTURE_V0_1.md).
+
+No pipe diameter, material, working pressure, module geometry, UV dose, membrane specification, ozone duty, valve actuation or electrical detail is selected by this interface note. Those remain open design inputs until test duty and qualified review.

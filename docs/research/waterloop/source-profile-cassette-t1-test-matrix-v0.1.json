@@ -1,0 +1,300 @@
+{
+  "schema_version": "waterloop-source-cassette-t1-test-matrix-v0.1",
+  "status": "proposed_test_matrix_not_authorization_to_run",
+  "evidence_class": "protocol_only",
+  "parent_issue": 5671,
+  "test_cell": "unoccupied_isolated_contained",
+  "output_use": "no_product_use_credit_before_independent_quality_admission",
+  "cases": [
+    {
+      "id": "SC-T1-001",
+      "name": "bathroom_source_baseline",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "matched_batch_characterisation",
+      "expected_state": "ACCEPT_FOR_CONTAINED_TEST_ONLY",
+      "required_observations": [
+        "source_batch_id",
+        "inlet_flow_volume",
+        "feed_samples",
+        "temperature",
+        "pH",
+        "conductivity",
+        "turbidity",
+        "COD",
+        "TSS",
+        "microbiological_indicators"
+      ]
+    },
+    {
+      "id": "SC-T1-002",
+      "name": "laundry_source_separate_challenge",
+      "source_profile": "laundry_greywater_challenge_v0",
+      "challenge": "separate_batch_never_mixed_with_bathroom_baseline",
+      "expected_state": "CHALLENGE_ONLY",
+      "required_observations": [
+        "source_batch_id",
+        "anionic_surfactant_method",
+        "sodium",
+        "boron",
+        "COD",
+        "TSS",
+        "microbiological_indicators"
+      ]
+    },
+    {
+      "id": "SC-T1-003",
+      "name": "unknown_mixed_feed",
+      "source_profile": "unknown_mixed_high_risk_v0",
+      "challenge": "present_mixed_or_unknown_stream",
+      "expected_state": "REJECT_AND_QUARANTINE",
+      "required_observations": [
+        "rejection_event_id",
+        "source_observation",
+        "quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-004",
+      "name": "kitchen_or_blackwater_inlet",
+      "source_profile": "kitchen_or_blackwater",
+      "challenge": "present excluded feed",
+      "expected_state": "REJECT_AND_QUARANTINE",
+      "required_observations": [
+        "source_observation",
+        "rejection_event_id",
+        "quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-005",
+      "name": "feed_outside_characterised_envelope",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "controlled feed excursion beyond validated envelope",
+      "expected_state": "ISOLATE_PRODUCT_OUTLET",
+      "required_observations": [
+        "process_variable",
+        "limit_revision",
+        "excursion_time",
+        "isolation_event",
+        "quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-006",
+      "name": "membrane_fouling_or_integrity_fault",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "controlled TMP/flux or integrity fault",
+      "expected_state": "ISOLATE_PRODUCT_OUTLET",
+      "required_observations": [
+        "TMP",
+        "flux",
+        "integrity_verification",
+        "fault_event",
+        "bypass_or_quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-007",
+      "name": "uvt_or_uv_barrier_fault",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "UVT outside validated range or lamp/intensity fault",
+      "expected_state": "ISOLATE_PRODUCT_OUTLET",
+      "required_observations": [
+        "UVT",
+        "flow",
+        "UV_intensity",
+        "validated_dose_state",
+        "isolation_event"
+      ]
+    },
+    {
+      "id": "SC-T1-008",
+      "name": "ozone_offgas_or_contact_fault",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_b_ozone_gac_uv_v0",
+      "challenge": "off-gas destructor or contact-control fault",
+      "expected_state": "STOP_TRAIN_AND_ISOLATE_PRODUCT",
+      "required_observations": [
+        "ozone_process_state",
+        "ambient_offgas_reading",
+        "destructor_state",
+        "stop_event"
+      ]
+    },
+    {
+      "id": "SC-T1-009",
+      "name": "GAC_breakthrough_or_unknown_age",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_b_ozone_gac_uv_v0",
+      "challenge": "seeded target-analyte breakthrough or unbound media identity",
+      "expected_state": "ISOLATE_PRODUCT_OUTLET",
+      "required_observations": [
+        "GAC_lot",
+        "operating_hours",
+        "target_analyte_result",
+        "media_identity_state",
+        "isolation_event"
+      ]
+    },
+    {
+      "id": "SC-T1-010",
+      "name": "electrocoagulation_electrode_degradation",
+      "source_profile": "laundry_greywater_challenge_v0",
+      "train": "train_d_ec_hybrid_laundry_challenge_v0",
+      "challenge": "seeded electrode passivation or elevated electrode consumption",
+      "expected_state": "STOP_OR_ISOLATE_TRAIN",
+      "required_observations": [
+        "current",
+        "voltage",
+        "charge_loading",
+        "electrode_mass_loss",
+        "sludge_volume",
+        "energy"
+      ]
+    },
+    {
+      "id": "SC-T1-011",
+      "name": "power_loss_during_required_barrier",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "interrupt power to active treatment module",
+      "expected_state": "ISOLATE_PRODUCT_OUTLET",
+      "required_observations": [
+        "power_state",
+        "valve_state",
+        "outlet_flow",
+        "quarantine_volume",
+        "restart_authorization"
+      ]
+    },
+    {
+      "id": "SC-T1-012",
+      "name": "stale_or_missing_quality_evidence",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "expire or remove required product sample admission",
+      "expected_state": "INDETERMINATE_AND_ISOLATE",
+      "required_observations": [
+        "sample_id",
+        "method_revision",
+        "validity_state",
+        "isolation_event"
+      ]
+    },
+    {
+      "id": "SC-T1-013",
+      "name": "residual_path_unmetered",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "disconnect or block one residual measurement path",
+      "expected_state": "REJECT_MASS_BALANCE_CLAIM",
+      "required_observations": [
+        "path_identity",
+        "measurement_state",
+        "balance_residual",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "SC-T1-014",
+      "name": "extended_idle_and_restart",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "declared idle period followed by controlled restart",
+      "expected_state": "REQUIRES_RESTART_VERIFICATION",
+      "required_observations": [
+        "idle_duration",
+        "temperature",
+        "stagnation_sample",
+        "process_restart",
+        "product_sample_admission"
+      ]
+    },
+    {
+      "id": "SC-T1-015",
+      "name": "quality_verification_gap",
+      "source_profile": "bathroom_light_greywater_v0",
+      "challenge": "simulate laboratory capability outage or expired verification interval",
+      "expected_state": "NO_QUALITY_CLAIM_DURING_GAP",
+      "required_observations": [
+        "last_valid_sample",
+        "gap_start",
+        "gap_duration",
+        "quality_claim_state",
+        "reverification_event"
+      ]
+    },
+    {
+      "id": "SC-T1-016-no-established-module-envelope",
+      "name": "no_established_module_envelope",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "attempt process operation without an admitted complete source/configuration envelope",
+      "expected_state": "REJECT_PROCESS_AND_ISOLATE_PRODUCT",
+      "required_observations": [
+        "cassette_configuration_id",
+        "envelope_revision",
+        "envelope_admission_state",
+        "product_outlet_state",
+        "rejection_event"
+      ]
+    },
+    {
+      "id": "SC-T1-017-source_outside_cassette_allowlist",
+      "name": "source_outside_cassette_allowlist",
+      "source_profile": "laundry_greywater_challenge_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "present laundry feed to a train whose allowlist is bathroom-only",
+      "expected_state": "REJECT_AND_QUARANTINE",
+      "required_observations": [
+        "source_profile_id",
+        "train_id",
+        "source_allowlist_revision",
+        "rejection_event",
+        "quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-018-intended_use_outside_envelope",
+      "name": "intended_use_outside_envelope",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "request an end use not included in the current contained-test-only allowlist",
+      "expected_state": "NO_PRODUCT_USE_CREDIT_AND_ISOLATE",
+      "required_observations": [
+        "intended_use_profile_id",
+        "allowed_use_profile_ids",
+        "envelope_revision",
+        "product_outlet_state"
+      ]
+    },
+    {
+      "id": "SC-T1-019-cassette_configuration_change_requalifies",
+      "name": "cassette_configuration_change_requalifies",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_b_ozone_gac_uv_v0",
+      "challenge": "change critical module identity such as UV reactor, GAC grade or geometry without a new configuration record",
+      "expected_state": "REQUALIFICATION_REQUIRED_NO_INHERITED_CREDIT",
+      "required_observations": [
+        "prior_configuration_id",
+        "new_configuration_id",
+        "changed_component_lot_or_revision",
+        "qualification_state",
+        "outlet_state"
+      ]
+    }
+  ],
+  "release_gates": [
+    "professional plumbing/electrical/building/safety review",
+    "source batch and sample method admission",
+    "contained residual/waste route approved",
+    "all instrument channels admitted and synchronized",
+    "seeded fail-safe scenarios pass",
+    "independent analytical lab results available",
+    "return-to-service verification passed"
+  ],
+  "nonclaims": [
+    "not a construction release",
+    "not a treatment qualification",
+    "not a potable or occupied use authorization",
+    "not municipal approval",
+    "not a waste discharge approval"
+  ]
+}

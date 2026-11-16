@@ -1,0 +1,474 @@
+{
+  "schema_version": "waterloop-source-cassette-functional-bom-v0.1",
+  "status": "functional_planning_bom_not_procurement_release",
+  "evidence_class": "design_hypothesis_and_open_requirements",
+  "parent_issue": 5671,
+  "design_pr": 5673,
+  "architecture_revision": "SOURCE_PROFILE_CASSETTE_ARCHITECTURE_V0_1",
+  "build_strategy": "one_train_at_a_time_shared_test_skid",
+  "source_segregation": [
+    "bathroom_batch_vessel",
+    "laundry_challenge_batch_vessel",
+    "rejected_unknown_quarantine_vessel"
+  ],
+  "items": [
+    {
+      "item_id": "WB-001",
+      "group": "common_backbone",
+      "description": "Segregated bathroom batch source vessel",
+      "quantity_basis": "one vessel per independently collected source batch",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "working_volume_from_batch_plan",
+        "wetted_material_compatibility",
+        "cover_drain_sample_and_containment_review"
+      ],
+      "notes": "No tank dimensions or nominal volume selected."
+    },
+    {
+      "item_id": "WB-002",
+      "group": "common_backbone",
+      "description": "Segregated laundry challenge source vessel",
+      "quantity_basis": "one separate vessel per laundry batch",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "source_boundary_and_batch_id",
+        "material_and_cleaning_compatibility",
+        "separate_transfer_path"
+      ],
+      "notes": "Must never share the raw feed path with the bathroom baseline."
+    },
+    {
+      "item_id": "WB-003",
+      "group": "common_backbone",
+      "description": "Rejected-feed quarantine vessel",
+      "quantity_basis": "one contained quarantine vessel",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "maximum_batch_volume",
+        "secondary_containment",
+        "safe_emptying_and_disposal_route"
+      ],
+      "notes": "For unknown, mixed or rejected feeds."
+    },
+    {
+      "item_id": "WB-004",
+      "group": "common_backbone",
+      "description": "Removable coarse screen housing",
+      "quantity_basis": "one per active feed path",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "screen_opening_from_measured_debris",
+        "pressure_drop",
+        "cleanability"
+      ],
+      "notes": "No screen mesh size selected."
+    },
+    {
+      "item_id": "WB-005",
+      "group": "common_backbone",
+      "description": "Equalisation and settling vessel",
+      "quantity_basis": "one per active process run",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "working_volume",
+        "residence_time",
+        "mixing_policy",
+        "drainability"
+      ],
+      "notes": "Do not assume a universal safe storage duration."
+    },
+    {
+      "item_id": "WB-006",
+      "group": "common_backbone",
+      "description": "Interchangeable cassette bay and support frame",
+      "quantity_basis": "one shared test skid",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "mechanical_load",
+        "alignment",
+        "access",
+        "bunding",
+        "fitting_compatibility"
+      ],
+      "notes": "Only one treatment train connected at a time."
+    },
+    {
+      "item_id": "WB-007",
+      "group": "common_backbone",
+      "description": "Keyed isolation and connection set",
+      "quantity_basis": "one inlet/outlet pair per cassette",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "pressure_rating",
+        "wetted_material_compatibility",
+        "backflow_review",
+        "cross_connection_challenge"
+      ],
+      "notes": "Connection style is not frozen."
+    },
+    {
+      "item_id": "WB-008",
+      "group": "common_backbone",
+      "description": "Feed transfer device and speed control",
+      "quantity_basis": "zero or one per configuration if hydraulic duty requires",
+      "design_status": "to_be_determined",
+      "release_evidence": [
+        "system_curve",
+        "pump_curve_if_used",
+        "suction_conditions",
+        "electrical_protection",
+        "duty_verification"
+      ],
+      "notes": "Gravity feed is preferred where it satisfies the test duty."
+    },
+    {
+      "item_id": "WB-009",
+      "group": "common_backbone",
+      "description": "Feed flow and cumulative volume meter",
+      "quantity_basis": "one active inlet boundary",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "range",
+        "turndown",
+        "accuracy",
+        "calibration",
+        "uncertainty",
+        "sampling_cadence"
+      ],
+      "notes": "Must bind to source batch identity."
+    },
+    {
+      "item_id": "WB-010",
+      "group": "common_backbone",
+      "description": "Product flow and volume meter",
+      "quantity_basis": "one active product boundary",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "range",
+        "accuracy",
+        "calibration",
+        "uncertainty",
+        "sample_timebase_binding"
+      ],
+      "notes": "No product-use credit before intended-use quality admission."
+    },
+    {
+      "item_id": "WB-011",
+      "group": "common_backbone",
+      "description": "Pressure measurement taps and instruments",
+      "quantity_basis": "at least two active taps plus process-stage taps",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "reference_type",
+        "range",
+        "accuracy",
+        "calibration",
+        "safe_isolation"
+      ],
+      "notes": "Gauge versus absolute pressure semantics must be declared."
+    },
+    {
+      "item_id": "WB-012",
+      "group": "common_backbone",
+      "description": "Differential pressure measurement",
+      "quantity_basis": "one per active filter or membrane stage",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "range",
+        "zero_check",
+        "pressure_rating",
+        "tap_location"
+      ],
+      "notes": "Used for clogging/fouling observation."
+    },
+    {
+      "item_id": "WB-013",
+      "group": "common_backbone",
+      "description": "Process sensor set: temperature, pH, conductivity and turbidity",
+      "quantity_basis": "one set per active test skid",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "measurand",
+        "range",
+        "calibration",
+        "method",
+        "location",
+        "uncertainty",
+        "stale_state"
+      ],
+      "notes": "These are process-monitoring instruments, not microbiological safety certificates."
+    },
+    {
+      "item_id": "WB-014",
+      "group": "common_backbone",
+      "description": "Sample ports and sample handling set",
+      "quantity_basis": "inlet, interstage, outlet and residual locations per active train",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "sampling_protocol",
+        "wetted_materials",
+        "custody",
+        "method",
+        "preservation",
+        "laboratory_acceptance"
+      ],
+      "notes": "Sample ports must not create stagnation or cross-contamination."
+    },
+    {
+      "item_id": "WB-015",
+      "group": "common_backbone",
+      "description": "Contained product test load vessel or emulator",
+      "quantity_basis": "one isolated test-use boundary",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "load_profile",
+        "backflow_protection",
+        "contained_drain",
+        "cleaning_procedure"
+      ],
+      "notes": "No occupied fixture connection."
+    },
+    {
+      "item_id": "WB-016",
+      "group": "common_backbone",
+      "description": "Separate residual collection vessels",
+      "quantity_basis": "at least three separate routes: solids, liquid reject/backwash, spent media/electrode waste",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "chemical_compatibility",
+        "secondary_containment",
+        "inspection",
+        "waste_characterisation",
+        "approved_disposal_route"
+      ],
+      "notes": "Do not mix unlike residuals."
+    },
+    {
+      "item_id": "WB-017",
+      "group": "common_backbone",
+      "description": "Electrical power and energy analyser",
+      "quantity_basis": "one total system meter plus branch meters where needed",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "voltage_current_power_energy_boundary",
+        "accuracy",
+        "verification",
+        "electrical_protection"
+      ],
+      "notes": "Include standby and auxiliary energy."
+    },
+    {
+      "item_id": "WB-018",
+      "group": "common_backbone",
+      "description": "Local data logger and clock",
+      "quantity_basis": "one read-only logger",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "clock_synchronisation",
+        "channel_map",
+        "sampling_rate",
+        "data_completeness",
+        "export_and_digest"
+      ],
+      "notes": "No remote actuation."
+    },
+    {
+      "item_id": "WB-019",
+      "group": "common_backbone",
+      "description": "Local stop and protected electrical isolation",
+      "quantity_basis": "one set per test skid",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "qualified_electrical_design",
+        "emergency_stop_test",
+        "lockout_tagout_procedure"
+      ],
+      "notes": "Human-controlled safe state."
+    },
+    {
+      "item_id": "WB-020",
+      "group": "common_backbone",
+      "description": "Secondary containment and drain bund",
+      "quantity_basis": "one under wet process skid and residual vessels",
+      "design_status": "functional_only",
+      "release_evidence": [
+        "capacity",
+        "chemical_compatibility",
+        "inspection",
+        "overflow_and_drain_review"
+      ],
+      "notes": "No discharge to stormwater."
+    },
+    {
+      "item_id": "TA-001",
+      "group": "train_a_membrane",
+      "description": "Slow-sand or validated prefilter column",
+      "quantity_basis": "one candidate stage",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "feed_characterisation",
+        "material_selection",
+        "hydraulic_duty",
+        "cleaning_and_service_review"
+      ],
+      "notes": "Use only if comparative tests justify it."
+    },
+    {
+      "item_id": "TA-002",
+      "group": "train_a_membrane",
+      "description": "Ultrafiltration module and housing",
+      "quantity_basis": "one candidate stage",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "membrane_specification",
+        "pressure_flux_envelope",
+        "integrity_method",
+        "reject_path",
+        "supplier_test_data"
+      ],
+      "notes": "No pore size or membrane material selected."
+    },
+    {
+      "item_id": "TA-003",
+      "group": "train_a_membrane",
+      "description": "Terminal UV reactor",
+      "quantity_basis": "one candidate barrier",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "UVT_flow_dose_validation",
+        "reactor_validation",
+        "sensor_calibration",
+        "failure_isolation"
+      ],
+      "notes": "A lamp-on signal is insufficient."
+    },
+    {
+      "item_id": "TA-004",
+      "group": "train_a_membrane",
+      "description": "Backwash and membrane-cleaning collection",
+      "quantity_basis": "one separated route",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "volume_and_mass_characterisation",
+        "cleaning_chemical_control",
+        "waste_route"
+      ],
+      "notes": "Count water and consumables."
+    },
+    {
+      "item_id": "TB-001",
+      "group": "train_b_ozone_gac",
+      "description": "Contained ozone contactor and generator",
+      "quantity_basis": "one laboratory test module",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "gas_safety_review",
+        "dose_contact_method",
+        "off_gas_control",
+        "electrical_design"
+      ],
+      "notes": "Test skid only; not a home-ready device."
+    },
+    {
+      "item_id": "TB-002",
+      "group": "train_b_ozone_gac",
+      "description": "Ozone off-gas destructor and monitor",
+      "quantity_basis": "one safety subsystem",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "destruction_performance",
+        "exposure_monitor",
+        "alarm_interlock_validation"
+      ],
+      "notes": "Ozone testing cannot proceed without this gate."
+    },
+    {
+      "item_id": "TB-003",
+      "group": "train_b_ozone_gac",
+      "description": "Granular activated carbon column and cassette",
+      "quantity_basis": "one candidate stage",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "target_analyte_breakthrough_method",
+        "media_lot",
+        "service_interval",
+        "spent_carbon_route"
+      ],
+      "notes": "No universal service life."
+    },
+    {
+      "item_id": "TB-004",
+      "group": "train_b_ozone_gac",
+      "description": "Terminal UV reactor",
+      "quantity_basis": "one candidate barrier",
+      "design_status": "not_selected",
+      "release_evidence": [
+        "UVT_flow_dose_validation",
+        "reactor_validation",
+        "sensor_calibration",
+        "failure_isolation"
+      ],
+      "notes": "Same validation requirements as Train A."
+    },
+    {
+      "item_id": "TC-001",
+      "group": "train_c_nature_based",
+      "description": "Contained planted/media treatment cell",
+      "quantity_basis": "one comparator cell",
+      "design_status": "comparator_only",
+      "release_evidence": [
+        "area",
+        "hydraulic_residence",
+        "loading",
+        "seasonal_test_plan",
+        "vector_and_operator_review"
+      ],
+      "notes": "Land and maintenance burden must be counted."
+    },
+    {
+      "item_id": "TD-001",
+      "group": "train_d_electrocoagulation",
+      "description": "Continuous-flow electrocoagulation test cell",
+      "quantity_basis": "one optional challenge module",
+      "design_status": "optional_not_selected",
+      "release_evidence": [
+        "charge_loading",
+        "current_voltage",
+        "RTD",
+        "electrode_life",
+        "metal_residuals",
+        "energy_and_sludge"
+      ],
+      "notes": "Separate laundry-only challenge."
+    },
+    {
+      "item_id": "TD-002",
+      "group": "train_d_electrocoagulation",
+      "description": "Electrode pack and power controller",
+      "quantity_basis": "one set per test configuration",
+      "design_status": "optional_not_selected",
+      "release_evidence": [
+        "electrode_material_and_lot",
+        "polarity_schedule",
+        "mass_loss",
+        "electrical_protection"
+      ],
+      "notes": "Electrode consumption is an operating cost."
+    },
+    {
+      "item_id": "TD-003",
+      "group": "train_d_electrocoagulation",
+      "description": "Floc separation and sludge capture",
+      "quantity_basis": "one downstream stage",
+      "design_status": "optional_not_selected",
+      "release_evidence": [
+        "sludge_mass_and_composition",
+        "dewatering",
+        "downstream_barrier",
+        "approved_disposal"
+      ],
+      "notes": "EC is not a complete reuse train."
+    }
+  ]
+}

@@ -250,3 +250,12 @@ Do not silently resolve these without evidence:
 - Initial storage-only test procedure and adversarial cases are frozen.
 - A preliminary DFM/BOM-category package exists.
 - No unsupported potable, health, code, field-savings or manufacturing-readiness claim is made.
+
+
+## Treatment module extension — source-profile cassette architecture
+
+The initial demonstrator remains storage-first and three-circuit. A later treatment cassette must attach only to the isolated non-potable recovery circuit after the source boundary, intended test use, instrumentation and residual routes are frozen.
+
+The new source-profile design input is [SOURCE_PROFILE_CASSETTE_ARCHITECTURE_V0_1.md](SOURCE_PROFILE_CASSETTE_ARCHITECTURE_V0_1.md), with the machine-readable contract in [source-profile-cassettes-v0.1.json](source-profile-cassettes-v0.1.json) and its schema. It compares membrane/UF/UV, ozone/GAC/UV and nature-based candidate processes without selecting a winner. Bathroom-only feed is the first characterization candidate; laundry remains a separate challenge; kitchen and blackwater are excluded from v0.1.
+
+No treatment stage, process envelope, supplier, pressure rating, vessel size or quality claim is released by this cross-reference.
