@@ -29,7 +29,7 @@ Reference: https://doi.org/10.1016/j.susmat.2025.e01780
 
 Zhang et al. report a “wave-riding” dyed-wool anti-felting strategy using compound proteases. Their abstract reports 3.90% ±0.12% dimensional/felting change, 11.39% ±0.61% controlled strength loss, improved air/moisture permeability and hand feel, and colour difference ΔE_CMC below 1.00 under their test conditions.
 
-Reference: https://doi.org/10.1016/j.ijbiomac.2025.142160
+Reference: https://doi.org/10.1039/D5GC01614B
 
 **Classification:** enzyme-only pathway in the reported treatment. The strength loss is material and must remain visible; the colour result does not erase strength, abrasion, handle or long-cycle uncertainty. A one-time swatch result is not durability qualification.
 
@@ -45,7 +45,7 @@ Reference: https://doi.org/10.1016/j.ijbiomac.2025.141698
 
 A separate dyed-wool study reports a two-bath approach using 5 g/L sodium bisulfite and 8 U/mL Savinase Ultra 16XL protease; the abstract reports 4.14% felting shrinkage, 6.58% strength loss and colour difference below 1.1.
 
-Reference: https://doi.org/10.1016/j.ijbiomac.2025.142160 (verify the full paper and its exact protocol before treating it as an independent comparator; this record is the abstract-level comparator available to this contract).
+Reference: https://doi.org/10.1016/j.ijbiomac.2025.142160 (PubMed PMID 40101820; the same paper is the bisulfite-assisted, two-bath comparator).
 
 **Classification:** enzyme + reducing auxiliary, distinct from the thioglycolate and PCDI processes. Do not pool auxiliary-assisted treatments under “enzyme-only”.
 
