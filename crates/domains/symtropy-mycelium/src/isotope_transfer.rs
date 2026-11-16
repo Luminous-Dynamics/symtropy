@@ -1035,6 +1035,7 @@ mod tests {
         }
         receipts.push(receipt(900, ObservationSubject::CytoplasmicFlowStream, 2.0));
 
+        let all_arms = TracerIntervention::ALL;
         let arm_evidence = all_arms
             .iter()
             .enumerate()
