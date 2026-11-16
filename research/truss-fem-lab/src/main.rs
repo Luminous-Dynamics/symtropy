@@ -1,6 +1,4 @@
-use symtropy_freeflow_structure_lab::tetrahedral::{
-    TetrahedralAssembly, TetrahedralConfig,
-};
+use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
 use symtropy_truss_fem_lab::{BoundaryConditions, TrussMaterial, TrussModel};
 
 fn main() {
@@ -28,7 +26,10 @@ fn main() {
     println!("Symtropy pin-jointed truss FEM reference lab");
     println!("nodes={}", model.nodes.len());
     println!("members={}", model.members.len());
-    println!("total_strain_energy_j={:.12e}", result.total_strain_energy_j);
+    println!(
+        "total_strain_energy_j={:.12e}",
+        result.total_strain_energy_j
+    );
     println!(
         "max_free_dof_equilibrium_residual_n={:.12e}",
         result.max_free_dof_equilibrium_residual_n
