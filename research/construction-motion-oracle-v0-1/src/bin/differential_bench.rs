@@ -4,16 +4,16 @@ use std::time::{Duration, Instant};
 use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule,
     IntervalVerificationStatus, IntervalVerifierConfig, NormalizedTimeWindow, Vec3,
-    co_translating_capsule_adaptive_query_with_certificate, verify_adaptive_collision_certificate,
-    replay_interval_verification_receipt, verify_adaptive_no_contact_independently,
-    verify_capsule_interval_no_contact,
     chord_collision, co_translating_capsule_adaptive_query,
+    co_translating_capsule_adaptive_query_with_certificate,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
-    swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
-    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
+    replay_interval_verification_receipt, swept_sphere_capsule_aabb_candidate,
+    translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
+    translating_capsule_vs_capsule, verify_adaptive_collision_certificate,
+    verify_adaptive_no_contact_independently, verify_capsule_interval_no_contact,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -447,19 +447,12 @@ fn main() {
             .expect("generated adaptive certificate verifies");
     });
 
-
-    let interval_moving = Capsule::new(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        0.6,
-    )
-    .expect("valid interval verifier moving capsule");
-    let interval_obstacle = Capsule::new(
-        Vec3::new(0.0, 0.9, 0.9),
-        Vec3::new(0.0, 0.9, 0.9),
-        0.6,
-    )
-    .expect("valid interval verifier obstacle capsule");
+    let interval_moving =
+        Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.6)
+            .expect("valid interval verifier moving capsule");
+    let interval_obstacle =
+        Capsule::new(Vec3::new(0.0, 0.9, 0.9), Vec3::new(0.0, 0.9, 0.9), 0.6)
+            .expect("valid interval verifier obstacle capsule");
     let interval_window = NormalizedTimeWindow {
         start_parameter: 0.0,
         end_parameter: 1.0,
@@ -474,10 +467,7 @@ fn main() {
         interval_config,
     )
     .expect("valid independent interval verification");
-    assert_eq!(
-        interval_receipt.status,
-        IntervalVerificationStatus::Clear
-    );
+    assert_eq!(interval_receipt.status, IntervalVerificationStatus::Clear);
     replay_interval_verification_receipt(
         interval_moving,
         Vec3::new(0.0, 0.0, 0.0),
@@ -522,7 +512,6 @@ fn main() {
         .expect("independent interval receipt replays");
     });
 
-
     let asynchronous_certificate = co_translating_capsule_adaptive_query_with_certificate(
         asynchronous_a,
         common_translation,
@@ -548,12 +537,15 @@ fn main() {
         "adaptive-independent-verifier,parameter_boxes_visited,{}",
         independent_certificate_receipt.parameter_boxes_visited
     );
-    measure("adaptive-independent-verifier-generation-and-replay", || {
-        verify_adaptive_no_contact_independently(
-            black_box(&asynchronous_certificate),
-            IntervalVerifierConfig::default(),
-        )
-        .expect("independent verifier confirms every adaptive no-contact leaf");
-    });
+    measure(
+        "adaptive-independent-verifier-generation-and-replay",
+        || {
+            verify_adaptive_no_contact_independently(
+                black_box(&asynchronous_certificate),
+                IntervalVerifierConfig::default(),
+            )
+            .expect("independent verifier confirms every adaptive no-contact leaf");
+        },
+    );
 
 }
