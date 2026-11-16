@@ -510,6 +510,244 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPSS_ON_IDENTICAL_CASES_AND_LEAD_TIME",
+        "case_count": 3,
+        "forecast_mean_crps": 0.4444444444444445,
+        "reference_mean_crps": 0.5555555555555556,
+        "crps_skill_score": 0.19999999999999996,
+        "comparison_context": {
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "persistence-v1",
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "forecast_variable_id": "river_discharge",
+          "forecast_unit_id": "m3_s",
+          "forecast_aggregation_id": "daily_mean_00_00_UTC",
+          "forecast_valid_time_semantics_id": "utc_day_00_00",
+          "case_count": 3,
+          "case_identity_ids": [
+            "event-001",
+            "event-002",
+            "event-003"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BSS_ON_IDENTICAL_EVENTS_AND_LEAD_TIME",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "case_count": 3,
+        "forecast_brier_score": 0.05666666666666667,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": 0.7733333333333333,
+        "comparison_context": {
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "seasonal-climatology-train-only-v1",
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "forecast_variable_id": "river_discharge",
+          "forecast_unit_id": "m3_s",
+          "forecast_aggregation_id": "daily_mean_00_00_UTC",
+          "forecast_valid_time_semantics_id": "utc_day_00_00",
+          "case_count": 3,
+          "case_identity_ids": [
+            "event-001",
+            "event-002",
+            "event-003"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-035-skill-population-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "EVALUATION_POPULATION_MISMATCH",
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "OTHER-CATCHMENT-SET-v1",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "case_count": 2,
+        "forecast_brier_score": 0.06500000000000002,
+        "reference_brier_score": 0,
+        "brier_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-037-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "case_count": 2,
+        "forecast_mean_crps": 0.5,
+        "reference_mean_crps": 0,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_LEAD_TIME_MISMATCH",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 48,
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crps-skill-case-identity-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "VERIFICATION_CASE_IDENTITY_MISMATCH",
+        "observation_case_count": 2,
+        "forecast_case_count": 2,
+        "reference_case_count": 2,
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-040-brier-skill-event-definition-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "EVENT_DEFINITION_MISMATCH",
+        "forecast_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-041-crps-skill-unit-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_UNIT_MISMATCH",
+        "forecast_unit_id": "m3_s",
+        "reference_unit_id": "L_per_s",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "AGGREGATION_SEMANTICS_MISMATCH",
+        "forecast_aggregation_id": "daily_mean_00_00_UTC",
+        "reference_aggregation_id": "instantaneous_15min",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-043-crps-skill-negative-score-not-clipped",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPSS_ON_IDENTICAL_CASES_AND_LEAD_TIME",
+        "case_count": 3,
+        "forecast_mean_crps": 2,
+        "reference_mean_crps": 0.10000000000000005,
+        "crps_skill_score": -18.99999999999999,
+        "comparison_context": {
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "persistence-v1",
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "forecast_variable_id": "river_discharge",
+          "forecast_unit_id": "m3_s",
+          "forecast_aggregation_id": "daily_mean_00_00_UTC",
+          "forecast_valid_time_semantics_id": "utc_day_00_00",
+          "case_count": 3,
+          "case_identity_ids": [
+            "event-001",
+            "event-002",
+            "event-003"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-044-brier-skill-negative-score-not-clipped",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BSS_ON_IDENTICAL_EVENTS_AND_LEAD_TIME",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "case_count": 2,
+        "forecast_brier_score": 1,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": -3,
+        "comparison_context": {
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "seasonal-climatology-train-only-v1",
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "forecast_variable_id": "river_discharge_threshold_event",
+          "forecast_unit_id": "probability",
+          "forecast_aggregation_id": "daily_binary_event",
+          "forecast_valid_time_semantics_id": "utc_day_00_00",
+          "case_count": 2,
+          "case_identity_ids": [
+            "event-001",
+            "event-002"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-045-crps-skill-variable-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_VARIABLE_MISMATCH",
+        "forecast_variable_id": "river_discharge",
+        "reference_variable_id": "water_level",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "VALID_TIME_SEMANTICS_MISMATCH",
+        "forecast_valid_time_semantics_id": "utc_day_00_00",
+        "reference_valid_time_semantics_id": "local_civil_midnight_day",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
     }
   ]
 }
