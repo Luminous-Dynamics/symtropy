@@ -75,9 +75,12 @@ fn factorial(value: usize) -> Option<u64> {
 }
 
 fn assignment_count(instance: &FlexibleInstance) -> Option<u64> {
-    instance.operations.iter().try_fold(1u64, |count, operation| {
-        count.checked_mul(operation.alternatives.len() as u64)
-    })
+    instance
+        .operations
+        .iter()
+        .try_fold(1u64, |count, operation| {
+            count.checked_mul(operation.alternatives.len() as u64)
+        })
 }
 
 fn order_count_for_assignment(
@@ -94,8 +97,12 @@ fn order_count_for_assignment(
     })
 }
 
-fn preflight_order_count(instance: &FlexibleInstance, index: usize,
-    selected_machines: &mut Vec<usize>, total: &mut u64) -> bool {
+fn preflight_order_count(
+    instance: &FlexibleInstance,
+    index: usize,
+    selected_machines: &mut Vec<usize>,
+    total: &mut u64,
+) -> bool {
     if index == instance.operations.len() {
         let Some(count) = order_count_for_assignment(instance, selected_machines) else {
             return false;
@@ -119,8 +126,12 @@ fn preflight_order_count(instance: &FlexibleInstance, index: usize,
 }
 
 fn permutations(values: &[usize]) -> Vec<Vec<usize>> {
-    fn visit(values: &[usize], used: &mut [bool], current: &mut Vec<usize>,
-        output: &mut Vec<Vec<usize>>) {
+    fn visit(
+        values: &[usize],
+        used: &mut [bool],
+        current: &mut Vec<usize>,
+        output: &mut Vec<Vec<usize>>,
+    ) {
         if current.len() == values.len() {
             output.push(current.clone());
             return;
@@ -137,8 +148,12 @@ fn permutations(values: &[usize]) -> Vec<Vec<usize>> {
     }
 
     let mut output = Vec::new();
-    visit(values, &mut vec![false; values.len()],
-        &mut Vec::with_capacity(values.len()), &mut output);
+    visit(
+        values,
+        &mut vec![false; values.len()],
+        &mut Vec::with_capacity(values.len()),
+        &mut output,
+    );
     output
 }
 
@@ -148,12 +163,19 @@ fn evaluate_machine_orders(
     machine_orders: &[Vec<usize>],
 ) -> Option<FlexibleSchedule> {
     let operation_count = instance.operations.len();
-    let durations: Vec<u64> = instance.operations.iter().enumerate().map(|(index, operation)| {
-        let machine_id = selected_machines[index];
-        operation.alternatives.iter()
-            .find(|alternative| alternative.machine_id == machine_id)
-            .map(|alternative| alternative.processing_ticks)
-    }).collect::<Option<Vec<_>>>()?;
+    let durations: Vec<u64> = instance
+        .operations
+        .iter()
+        .enumerate()
+        .map(|(index, operation)| {
+            let machine_id = selected_machines[index];
+            operation
+                .alternatives
+                .iter()
+                .find(|alternative| alternative.machine_id == machine_id)
+                .map(|alternative| alternative.processing_ticks)
+        })
+        .collect::<Option<Vec<_>>>()?;
 
     let mut outgoing = vec![Vec::<(usize, u64)>::new(); operation_count];
     let mut indegree = vec![0usize; operation_count];
@@ -210,7 +232,8 @@ fn evaluate_machine_orders(
         makespan = makespan.max(end_ticks);
         let machine_id = selected_machines[operation_id];
         let sequence_index = machine_orders[machine_id]
-            .iter().position(|candidate| *candidate == operation_id)?;
+            .iter()
+            .position(|candidate| *candidate == operation_id)?;
         scheduled.push(ScheduledOperation {
             operation_id,
             machine_id,
@@ -221,10 +244,14 @@ fn evaluate_machine_orders(
         });
     }
 
-    let public_orders = machine_orders.iter().enumerate().map(|(machine_id, order)| MachineOrder {
-        machine_id,
-        operation_ids: order.clone(),
-    }).collect();
+    let public_orders = machine_orders
+        .iter()
+        .enumerate()
+        .map(|(machine_id, order)| MachineOrder {
+            machine_id,
+            operation_ids: order.clone(),
+        })
+        .collect();
 
     Some(FlexibleSchedule {
         makespan,
@@ -259,8 +286,13 @@ fn enumerate_machine_orders(
     for order in &machine_permutations[machine_index] {
         current.push(order.clone());
         let complete = enumerate_machine_orders(
-            instance, selected_machines, machine_permutations,
-            machine_index + 1, current, stats, best,
+            instance,
+            selected_machines,
+            machine_permutations,
+            machine_index + 1,
+            current,
+            stats,
+            best,
         );
         current.pop();
         if !complete {
@@ -282,8 +314,11 @@ fn enumerate_assignments(
         let Some(order_count) = order_count_for_assignment(instance, selected_machines) else {
             return false;
         };
-        if stats.machine_order_combinations.checked_add(order_count)
-            .is_none_or(|total| total > MAX_MACHINE_ORDER_COMBINATIONS) {
+        if stats
+            .machine_order_combinations
+            .checked_add(order_count)
+            .is_none_or(|total| total > MAX_MACHINE_ORDER_COMBINATIONS)
+        {
             return false;
         }
 
@@ -291,7 +326,8 @@ fn enumerate_assignments(
         for (operation_id, machine_id) in selected_machines.iter().enumerate() {
             machine_operations[*machine_id].push(operation_id);
         }
-        let machine_permutations: Vec<Vec<Vec<usize>>> = machine_operations.iter()
+        let machine_permutations: Vec<Vec<Vec<usize>>> = machine_operations
+            .iter()
             .map(|operations| permutations(operations))
             .collect();
 
@@ -357,8 +393,12 @@ pub fn solve_exact(instance: &FlexibleInstance) -> ExactResult {
     }
 
     let mut total_order_combinations = 0u64;
-    if !preflight_order_count(instance, 0, &mut Vec::with_capacity(instance.operations.len()),
-        &mut total_order_combinations) {
+    if !preflight_order_count(
+        instance,
+        0,
+        &mut Vec::with_capacity(instance.operations.len()),
+        &mut total_order_combinations,
+    ) {
         return ExactResult {
             status: ExactStatus::Inconclusive,
             optimality_proven: false,
@@ -426,13 +466,21 @@ pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule)
         if scheduled.machine_id != schedule.selected_machines[scheduled.operation_id] {
             return false;
         }
-        if !instance.operations[scheduled.operation_id].alternatives.iter().any(|alternative| {
-            alternative.machine_id == scheduled.machine_id
-                && alternative.processing_ticks == scheduled.processing_ticks
-        }) {
+        if !instance.operations[scheduled.operation_id]
+            .alternatives
+            .iter()
+            .any(|alternative| {
+                alternative.machine_id == scheduled.machine_id
+                    && alternative.processing_ticks == scheduled.processing_ticks
+            })
+        {
             return false;
         }
-        if scheduled.start_ticks.checked_add(scheduled.processing_ticks) != Some(scheduled.end_ticks) {
+        if scheduled
+            .start_ticks
+            .checked_add(scheduled.processing_ticks)
+            != Some(scheduled.end_ticks)
+        {
             return false;
         }
     }
@@ -472,8 +520,11 @@ pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule)
         return false;
     }
 
-    let makespan = by_id.iter().filter_map(|operation| operation.map(|op| op.end_ticks))
-        .max().unwrap_or(0);
+    let makespan = by_id
+        .iter()
+        .filter_map(|operation| operation.map(|op| op.end_ticks))
+        .max()
+        .unwrap_or(0);
     makespan == schedule.makespan
 }
 
@@ -529,7 +580,10 @@ mod tests {
         let result = solve_exact(&instance);
         assert_eq!(result.status, ExactStatus::Inconclusive);
         assert!(!result.optimality_proven);
-        assert_eq!(result.inconclusive_reason, Some(InconclusiveReason::TooManyOperations));
+        assert_eq!(
+            result.inconclusive_reason,
+            Some(InconclusiveReason::TooManyOperations)
+        );
         assert!(result.schedule.is_none());
     }
 
