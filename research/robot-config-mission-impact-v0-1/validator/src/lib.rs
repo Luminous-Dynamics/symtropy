@@ -1352,6 +1352,16 @@ mod tests {
     }
 
     #[test]
+    fn missing_member_of_required_verifier_source_set_holds_the_stage() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][17]),
+            ("held", "REQUIRED_VERIFIER_EVIDENCE_MISSING")
+        );
+    }
+
+    #[test]
     fn safety_critical_stage_advances_only_with_current_independent_referee_evidence() {
         let base = repository_root().join("research/robot-config-mission-impact-v0-1");
         let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
