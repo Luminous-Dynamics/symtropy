@@ -516,15 +516,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "ADMITTED",
-        "reason": "CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "target_definition_id": "daily_streamflow_m3_s",
-        "forecast_member_count": 3,
-        "reference_member_count": 3,
-        "forecast_crps": 0.6666666666666666,
-        "reference_crps": 1.7777777777777777,
-        "crps_skill_score": 0.625
+        "reason": "MEAN_CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
+        "sample_count": 3,
+        "forecast_mean_crps": 0.4444444444444444,
+        "reference_mean_crps": 1.2592592592592593,
+        "crps_skill_score": 0.6470588235294118,
+        "sample_set_sha256": "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15"
       }
     },
     {
@@ -532,16 +531,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "ADMITTED",
-        "reason": "BSS_AGAINST_MATCHED_REFERENCE_PROBABILITY",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "forecast_probability": 0.8,
-        "reference_probability": 0.4,
-        "observed_event": 1,
-        "brier_score": 0.04,
-        "reference_brier_score": 0.36,
-        "brier_skill_score": 0.8888888888888888
+        "reason": "MEAN_BSS_AGAINST_MATCHED_REFERENCE_FORECAST",
+        "sample_count": 4,
+        "brier_score": 0.1,
+        "reference_brier_score": 0.305,
+        "brier_skill_score": 0.6721311475409836,
+        "sample_set_sha256": "1ada57b156cc7fffcaaae57b13a71ac51c1160f9de8cb330cdbe544fe96c2226"
       }
     },
     {
@@ -549,15 +546,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "UNDEFINED",
-        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "target_definition_id": "daily_streamflow_m3_s",
-        "forecast_member_count": 3,
-        "reference_member_count": 2,
-        "forecast_crps": 0.6666666666666666,
-        "reference_crps": 0,
-        "crps_skill_score": null
+        "reason": "REFERENCE_MEAN_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "sample_count": 3,
+        "forecast_mean_crps": 0.4444444444444444,
+        "reference_mean_crps": 0,
+        "crps_skill_score": null,
+        "sample_set_sha256": "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15"
       }
     },
     {
@@ -565,20 +561,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
-        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
-        "valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "evaluation_population_id": "highveld-events-holdout-v1",
-        "reference_evaluation_population_id": "highveld-events-holdout-v1",
-        "lead_time_hours": 24,
-        "reference_lead_time_hours": 24,
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 4,
         "brier_score": null,
         "reference_brier_score": null,
-        "brier_skill_score": null
+        "brier_skill_score": null,
+        "sample_set_sha256": null
       }
     },
     {
@@ -586,16 +576,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "REJECT",
-        "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "forecast_probability": 0.8,
-        "reference_probability": 1.5,
-        "observed_event": 1,
+        "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+        "sample_count": 4,
         "brier_score": null,
         "reference_brier_score": null,
-        "brier_skill_score": null
+        "brier_skill_score": null,
+        "sample_set_sha256": null
       }
     },
     {
@@ -603,20 +591,16 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
-        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "target_definition_id": "daily_streamflow_m3_s",
-        "reference_target_definition_id": "daily_streamflow_m3_s",
-        "valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "evaluation_population_id": "highveld-events-holdout-v1",
-        "reference_evaluation_population_id": "highveld-events-holdout-v1",
-        "lead_time_hours": 24,
-        "reference_lead_time_hours": 48,
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 3,
+        "forecast_sample_count": 3,
+        "reference_sample_count": 3,
         "forecast_crps": null,
         "reference_crps": null,
-        "crps_skill_score": null
+        "crps_skill_score": null,
+        "sample_set_sha256": null
       }
     },
     {
@@ -624,20 +608,14 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
-        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
-        "evaluation_population_id": "highveld-events-holdout-v1",
-        "reference_evaluation_population_id": "different-catchment-event-population-v1",
-        "lead_time_hours": 24,
-        "reference_lead_time_hours": 24,
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 4,
         "brier_score": null,
         "reference_brier_score": null,
-        "brier_skill_score": null
+        "brier_skill_score": null,
+        "sample_set_sha256": null
       }
     },
     {
@@ -645,16 +623,31 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "UNDEFINED",
-        "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
         "forecast_id": "candidate-ensemble-v1",
         "reference_forecast_id": "B0-seasonal-climatology-v1",
-        "event_definition_id": "daily_flow_exceeds_5_m3_s",
-        "forecast_probability": 0.8,
-        "reference_probability": 1,
-        "observed_event": 1,
-        "brier_score": 0.04,
+        "reason": "REFERENCE_MEAN_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "sample_count": 4,
+        "brier_score": 0.1,
         "reference_brier_score": 0,
-        "brier_skill_score": null
+        "brier_skill_score": null,
+        "sample_set_sha256": "1ada57b156cc7fffcaaae57b13a71ac51c1160f9de8cb330cdbe544fe96c2226"
+      }
+    },
+    {
+      "case_id": "HC-T0-041-crps-skill-sample-id-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_AND_REFERENCE_SAMPLE_IDS_DIFFER",
+        "sample_count": 3,
+        "forecast_sample_count": 3,
+        "reference_sample_count": 3,
+        "forecast_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null,
+        "sample_set_sha256": null
       }
     }
   ]
