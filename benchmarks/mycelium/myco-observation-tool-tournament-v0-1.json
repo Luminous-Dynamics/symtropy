@@ -8,7 +8,7 @@
       "id": "mycelyso",
       "publication_doi": "10.1186/s12859-019-3004-1",
       "repository": "https://github.com/modsim/mycelyso",
-      "license": "BSD",
+      "license": "BSD-2-Clause (confirmed in LICENSE.rst and __license__ header)",
       "organism_scope": "Streptomyces live-cell phase-contrast microfluidic time-lapse",
       "task_scope": [
         "segmentation",
@@ -43,7 +43,22 @@
         "dense packed networks filtered to reduce tracking errors",
         "Streptomyces profile is not AMF-specific"
       ],
-      "source_admission": "paper and repository identified; exact commit and demo-data bytes to pin"
+      "source_admission": "repository head and license file pinned; example data release still needs per-record license/checksum admission",
+      "source_revision": "8af386c6e7f02f1c83ca8136487c9f3c05605fc8",
+      "source_revision_url": "https://github.com/modsim/mycelyso/commit/8af386c6e7f02f1c83ca8136487c9f3c05605fc8",
+      "package_version": "1.0.1.dev2 (from mycelyso/__init__.py at inspected main)",
+      "source_file_digests": {
+        "README.rst": "97aaf3c533ec4654f09ef3fae3e0a9cffc53cb08",
+        "LICENSE.rst": "a340ad3b674821cda90c16ebd24262c85605eab1",
+        "setup.py": "5c960cc9c732b3d4065a9eaf81179a9f6c8f8b2a",
+        "mycelyso/__init__.py": "ff7c48bb9ddad88a90d9ca38727fb4672dd5f963"
+      },
+      "example_dataset": {
+        "doi": "10.5281/zenodo.376281",
+        "archived": false,
+        "file_checksum": null,
+        "record_level_rights": "not separately verified in this run"
+      }
     },
     {
       "id": "tipquant",
@@ -79,13 +94,30 @@
         "multiple tips per video unsupported without cropping",
         "epifluorescence unsupported"
       ],
-      "source_admission": "paper admitted; code exact revision / license / source test videos to pin"
+      "source_admission": "paper, code revision and raw-video Dryad dataset identified; code license needs review; data not downloaded",
+      "source_revision": "7495eaefa481d07fd6f657e3660a3c7c2dddb1f5",
+      "source_revision_url": "https://github.com/julianlegouic/TipQuant/commit/7495eaefa481d07fd6f657e3660a3c7c2dddb1f5",
+      "package_version": "1.0 (pyproject.toml at inspected main)",
+      "source_file_digests": {
+        "README.md": "f93e794eb786cdde8bd369a7c828bfb4d46f5fc3",
+        "pyproject.toml": "eef939fbccf31d6ae6c49b64372aef8e0157252a"
+      },
+      "code_license": "No root LICENSE file found in inspected GitHub tree; code reuse terms remain unresolved. The article's CC BY 4.0 license is for the paper, not automatically the code.",
+      "dataset": {
+        "doi": "10.5061/dryad.dr7sqvbd2",
+        "publication_version": "2026-07-10",
+        "total_size_mb": 203.05,
+        "raw_video_files": "figure and supplementary confocal TIFF videos for pollen tubes and Fusarium graminearum hyphae",
+        "rights": "Dryad datasets are CC0 under Dryad policy; confirm dataset README/metadata at ingest",
+        "downloaded": false,
+        "ingested": false
+      }
     },
     {
       "id": "hyphatracker",
       "publication_doi": "10.1038/s41598-017-19103-1",
       "code_release": "supplementary file HyphaTracker_v1.0.zip",
-      "repository": "https://bcp.phys.strath.ac.uk/photophysics/super-resolution/software/",
+      "repository": null,
       "license": "verify source and data terms",
       "organism_scope": "Fusarium fujikuroi conidia germination and germ tubes",
       "task_scope": [
@@ -106,7 +138,10 @@
         "crossing hyphae and image-boundary germlings omitted",
         "omission only justifiable in sparse fields"
       ],
-      "source_admission": "paper and supplement identified; exact downloadable package/hash and license to verify"
+      "source_admission": "paper/supplement identified; exact archive bytes, hash and software reuse rights to admit",
+      "source_archive": "Supplementary Software HyphaTracker_v1.0.zip",
+      "paper_license": "CC BY 4.0 for article; supplement/code license separate and not yet resolved",
+      "example_sequences": "four full-size image time series described at about 2GB each; author contact for more"
     },
     {
       "id": "anamorf",
