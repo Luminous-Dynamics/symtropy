@@ -628,19 +628,9 @@ mod tests {
     use super::*;
     use crate::{parse_fajsp, parse_fjsp};
 
-    const FJSP_FATTAHI1: &str = "2 2 2
-2 2 1 25 2 37 2 1 32 2 24
-2 2 1 45 2 65 2 1 21 2 65
-";
+    const FJSP_FATTAHI1: &str = include_str!("../fixtures/fattahi1.fjsp");
 
-    const FAJSP_FATTAHI1: &str = "4 2 2
-0 1 0
-2 3 1
-2 0 25 1 37
-2 0 32 1 24
-2 0 45 1 65
-2 0 21 1 65
-";
+    const FAJSP_FATTAHI1: &str = include_str!("../fixtures/fattahi1.fajsp");
 
     #[test]
     fn fattahi1_fjsp_exact_optimum_and_search_accounting() {
