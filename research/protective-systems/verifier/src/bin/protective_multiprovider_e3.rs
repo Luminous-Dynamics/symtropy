@@ -47,7 +47,6 @@ const CRATE_METADATA: &str = include_str!(
     "../../../fixtures/protective-evidence-multiprovider-e3-v0.1/ro-crate-metadata.json"
 );
 
-const ROOT: &str = "research/protective-systems/fixtures/protective-evidence-multiprovider-e3-v0.1/";
 const CLAIM_CEILING: &str = "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY";
 const RIGHTS_STATUS: &str = "SYNTHETIC_OPEN_FIXTURE";
 const PERMITTED_USE: &str = "SYNTHETIC_TEST_ONLY";
