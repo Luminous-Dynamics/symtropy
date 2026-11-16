@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 44,
+  "case_count": 46,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -48,7 +48,9 @@
     "HC-T0-041-crps-skill-unit-mismatch-not-comparable",
     "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable",
     "HC-T0-043-crps-skill-negative-score-not-clipped",
-    "HC-T0-044-brier-skill-negative-score-not-clipped"
+    "HC-T0-044-brier-skill-negative-score-not-clipped",
+    "HC-T0-045-crps-skill-variable-mismatch-not-comparable",
+    "HC-T0-046-crps-skill-valid-time-mismatch-not-comparable"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -105,6 +107,8 @@
     "Skill comparisons require exact identity of target case IDs, evaluation population, variable, unit, temporal aggregation, valid-time semantics and forecast lead; binary event comparisons additionally require exact event-definition identity.",
     "A positive skill score indicates improvement over the chosen reference; zero indicates parity; a negative score is valid evidence that the forecast is worse than the reference and must not be clipped or suppressed.",
     "Forecast and reference scores must be computed on the same verification cases; do not compare a candidate on an easier subset or a different lead time.",
-    "The reference forecast must be named, frozen and eligible for the same valid-time information set; training-only climatology and persistence are not interchangeable reference populations."
+    "The reference forecast must be named, frozen and eligible for the same valid-time information set; training-only climatology and persistence are not interchangeable reference populations.",
+    "Forecast/reference variable identities must match; a discharge forecast cannot be compared with water level or another target variable.",
+    "Forecast/reference valid-time semantics must match exactly, including timezone/day boundary and the temporal interval represented."
   ]
 }
