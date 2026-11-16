@@ -387,5 +387,4 @@ fn main() {
         )
         .expect("valid full interval asynchronous pair");
     });
-
 }
