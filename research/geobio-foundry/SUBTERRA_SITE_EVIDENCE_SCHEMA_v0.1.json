@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/subterra/site-evidence/v0.1",
+  "title": "Subterra Site Evidence Record v0.1",
+  "description": "Separates observed morphology, geological-origin hypotheses, connectivity, robotic accessibility, use-specific engineering suitability and preservation constraints. It is an evidence record, not a site-safety certificate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "site_id",
+    "body",
+    "morphology",
+    "origin_hypotheses",
+    "connectivity",
+    "accessibility",
+    "interior_survey",
+    "engineering_assessments",
+    "preservation",
+    "observations",
+    "unknowns"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "site_id": { "type": "string", "minLength": 1 },
+    "body": {
+      "type": "string",
+      "enum": ["Earth", "Moon", "Mars", "Venus", "Mercury", "Europa", "Enceladus", "Ganymede", "Callisto", "Titan", "Asteroid", "Comet", "Other"]
+    },
+    "coordinates": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["coordinate_frame", "latitude_deg", "longitude_deg"],
+      "properties": {
+        "coordinate_frame": { "type": "string", "minLength": 1 },
+        "latitude_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+        "longitude_deg": { "type": "number", "minimum": -360, "maximum": 360 },
+        "elevation_m": { "type": ["number", "null"] }
+      }
+    },
+    "morphology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["class", "state", "description", "evidence_refs"],
+      "properties": {
+        "class": {
+          "enum": ["pit", "skylight", "collapse_chain", "linear_depression", "cavity_opening", "surface_fracture", "mapped_void", "engineered_gallery", "unknown"]
+        },
+        "state": { "$ref": "#/$defs/claimState" },
+        "description": { "type": "string" },
+        "evidence_refs": { "$ref": "#/$defs/refArray" }
+      }
+    },
+    "origin_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mechanism", "state", "rationale", "evidence_refs"],
+        "properties": {
+          "mechanism": {
+            "enum": ["volcanic_lava_tube", "collapse", "karst_dissolution", "tectonic_fracture", "ice_related", "impact_related", "engineered_excavation", "other", "unknown"]
+          },
+          "state": { "$ref": "#/$defs/claimState" },
+          "rationale": { "type": "string" },
+          "evidence_refs": { "$ref": "#/$defs/refArray" }
+        }
+      }
+    },
+    "connectivity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "known_extent_m", "basis", "evidence_refs"],
+      "properties": {
+        "state": {
+          "enum": ["unknown", "candidate", "geophysically_supported", "directly_observed_connected", "contradicted"]
+        },
+        "known_extent_m": { "type": ["number", "null"], "minimum": 0 },
+        "basis": { "type": "string" },
+        "evidence_refs": { "$ref": "#/$defs/refArray" }
+      }
+    },
+    "accessibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "access_method", "egress_method", "evidence_refs"],
+      "properties": {
+        "state": {
+          "enum": ["unknown", "candidate", "robot_access_demonstrated", "human_access_assessed", "inaccessible", "out_of_domain"]
+        },
+        "access_method": { "type": ["string", "null"] },
+        "egress_method": { "type": ["string", "null"] },
+        "evidence_refs": { "$ref": "#/$defs/refArray" }
+      }
+    },
+    "interior_survey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "surveyed_extent_m", "coverage_fraction", "evidence_refs"],
+      "properties": {
+        "state": {
+          "enum": ["not_surveyed", "partial", "surveyed_within_declared_extent", "invalid"]
+        },
+        "surveyed_extent_m": { "type": ["number", "null"], "minimum": 0 },
+        "coverage_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "evidence_refs": { "$ref": "#/$defs/refArray" }
+      }
+    },
+    "engineering_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["use_case", "state", "envelope_id", "evidence_refs"],
+        "properties": {
+          "use_case": {
+            "enum": ["science", "robot_staging", "storage", "resource_processing", "industrial", "pressurized_module", "habitation", "other"]
+          },
+          "state": {
+            "enum": ["not_assessed", "candidate", "assessed_with_limitations", "qualified_for_declared_envelope", "rejected", "out_of_domain"]
+          },
+          "envelope_id": { "type": ["string", "null"] },
+          "evidence_refs": { "$ref": "#/$defs/refArray" }
+        }
+      }
+    },
+    "preservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planetary_protection_state", "sampling_permission", "biological_activity_permission", "basis_refs"],
+      "properties": {
+        "planetary_protection_state": {
+          "enum": ["not_applicable", "not_assessed", "review_required", "restricted", "authorized_for_declared_activity"]
+        },
+        "sampling_permission": {
+          "enum": ["not_assessed", "prohibited", "review_required", "authorized_for_declared_activity"]
+        },
+        "biological_activity_permission": {
+          "enum": ["not_assessed", "prohibited", "review_required", "authorized_for_declared_activity"]
+        },
+        "basis_refs": { "$ref": "#/$defs/refArray" }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["observation_id", "modality", "captured_at", "native_resolution", "coordinate_frame", "provenance_ref"],
+        "properties": {
+          "observation_id": { "type": "string", "minLength": 1 },
+          "modality": {
+            "enum": ["optical", "stereo", "thermal_ir", "sar", "radar_sounder", "gpr", "lidar", "photogrammetry", "seismic", "gravity", "magnetic", "spectroscopy", "in_situ_robot", "other"]
+          },
+          "captured_at": { "type": "string", "format": "date-time" },
+          "native_resolution": { "type": ["string", "null"] },
+          "coordinate_frame": { "type": "string", "minLength": 1 },
+          "provenance_ref": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "claimState": {
+      "enum": ["candidate", "supported", "directly_observed", "contradicted", "unknown"]
+    },
+    "refArray": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}
