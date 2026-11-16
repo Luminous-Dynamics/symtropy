@@ -4,8 +4,7 @@
 use std::{env, fs, process::ExitCode};
 
 use symtropy_material_flow_benchmark::{
-    ScenarioManifest,
-    simulation::simulate_closed_gate_obstruction_sweep,
+    ScenarioManifest, simulation::simulate_closed_gate_obstruction_sweep,
 };
 
 fn main() -> ExitCode {
