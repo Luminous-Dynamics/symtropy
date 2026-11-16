@@ -87,6 +87,8 @@ pub struct ExpectedDataWindow {
     pub minimum_samples: u64,
     /// Exact measurement/calibration profile expected for this window.
     pub measurement_profile_sha256: String,
+    /// Exact calibration receipt required by the approved measurement plan.
+    pub calibration_receipt_sha256: String,
     /// Explicit time-scale identity for this channel.
     pub time_scale_id: String,
     /// Horizontal frame for this channel.
@@ -245,6 +247,12 @@ pub struct DataSegment {
     pub sample_count: u64,
     /// Raw payload digest string; bytes are not recomputed here.
     pub payload_sha256: String,
+    /// Exact raw-data manifest digest containing this segment.
+    pub raw_data_manifest_sha256: String,
+    /// Capture receipt digest binding this segment's raw payload and metadata.
+    pub capture_receipt_sha256: String,
+    /// Exact calibration receipt actually used.
+    pub calibration_receipt_sha256: String,
     /// Measurement/calibration profile actually used.
     pub measurement_profile_sha256: String,
     /// Time scale actually used.
@@ -361,6 +369,10 @@ pub enum MismatchDimension {
     DataStream,
     /// Raw segment measurement/time/frame/datum basis differs.
     SegmentMeasurementBasis,
+    /// Segment uses a different calibration receipt from the approved plan.
+    CalibrationEvidence,
+    /// Segments for one expected window disagree on the raw-data manifest.
+    RawDataManifest,
     /// Capture software build differs from the pinned policy.
     CaptureBuild,
     /// Execution-fidelity policy differs from the frozen plan.
@@ -477,6 +489,7 @@ fn validate_plan(plan: &ExecutionPlan) -> Result<(), ExecutionError> {
             || !plan.permitted_run_window.contains(expected.window)
             || expected.minimum_samples == 0
             || !is_sha256(&expected.measurement_profile_sha256)
+            || !is_sha256(&expected.calibration_receipt_sha256)
             || expected.time_scale_id != plan.configuration.time_scale_id
             || expected.horizontal_frame_id != plan.configuration.horizontal_frame_id
             || expected.vertical_datum_id != plan.configuration.vertical_datum_id
@@ -550,6 +563,9 @@ fn validate_record(record: &ExecutionRecord) -> Result<(), ExecutionError> {
             || segment.window.end > record.actual_end
             || segment.sample_count == 0
             || !is_sha256(&segment.payload_sha256)
+            || !is_sha256(&segment.raw_data_manifest_sha256)
+            || !is_sha256(&segment.capture_receipt_sha256)
+            || !is_sha256(&segment.calibration_receipt_sha256)
             || !is_sha256(&segment.measurement_profile_sha256)
             || segment.time_scale_id.trim().is_empty()
             || segment.horizontal_frame_id.trim().is_empty()
@@ -699,6 +715,7 @@ fn assess_window(
         .collect();
 
     let mut accepted: Vec<&DataSegment> = Vec::new();
+    let mut raw_manifests = BTreeSet::new();
     for segment in matching_stream {
         if segment.window.start < expected.window.start
             || segment.window.end > expected.window.end
@@ -712,6 +729,11 @@ fn assess_window(
             }
             continue;
         }
+        if segment.calibration_receipt_sha256 != expected.calibration_receipt_sha256 {
+            mismatches.insert(MismatchDimension::CalibrationEvidence);
+            continue;
+        }
+        raw_manifests.insert(segment.raw_data_manifest_sha256.as_str());
         if segment.measurement_profile_sha256 != expected.measurement_profile_sha256
             || segment.time_scale_id != expected.time_scale_id
             || segment.horizontal_frame_id != expected.horizontal_frame_id
@@ -723,6 +745,9 @@ fn assess_window(
         accepted.push(segment);
     }
 
+    if raw_manifests.len() > 1 {
+        mismatches.insert(MismatchDimension::RawDataManifest);
+    }
     accepted.sort_by_key(|segment| segment.window.start);
     let mut cursor = expected.window.start;
     let mut samples = 0_u64;
