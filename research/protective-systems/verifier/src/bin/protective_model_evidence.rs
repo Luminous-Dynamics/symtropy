@@ -104,6 +104,19 @@ fn validate_dataset_payload_media_type(
     Ok(())
 }
 
+fn ensure_file_descriptor_ids_match(
+    dataset_ids: &BTreeSet<String>,
+    endpoint_ids: &BTreeSet<String>,
+    path: &str,
+) -> Result<(), String> {
+    if dataset_ids != endpoint_ids {
+        return Err(format!(
+            "{path}: embedded fileDescriptors IDs do not match the separate file-metadata endpoint"
+        ));
+    }
+    Ok(())
+}
+
 fn require_not_deleted(value: &Value, path: &str) -> Result<(), String> {
     if value.get("deleted").and_then(Value::as_bool) != Some(false) {
         return Err(format!("{path}.deleted must be explicitly false"));
@@ -561,9 +574,7 @@ fn validate_envelope(
         {
             return Err(format!("{path}: exactly one dataset metadata, file metadata and data payload artifact are required"));
         }
-        if dataset_file_ids != endpoint_file_ids {
-            return Err(format!("{path}: embedded fileDescriptors IDs do not match the separate file-metadata endpoint"));
-        }
+        ensure_file_descriptor_ids_match(&dataset_file_ids, &endpoint_file_ids, &path)?;
         let (payload_file_id, payload_file_name, payload_media_type, payload_size) =
             payload_descriptor.expect("payload role validated above");
         let (native_file_id, native_filename, native_media_type, native_size) =
@@ -816,6 +827,15 @@ mod tests {
         let tampered = b"{\"fixture_id\":\"tampered\"}\n";
         let error = validate_envelope(FIXTURE, tampered, OUTPUT_BYTES).expect_err("digest mismatch");
         assert!(error.contains("byte length mismatch") || error.contains("SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn embedded_file_descriptor_ids_must_match_file_metadata_endpoint() {
+        let embedded = BTreeSet::from(["file-a".to_owned(), "file-b".to_owned()]);
+        let endpoint = BTreeSet::from(["file-a".to_owned(), "file-c".to_owned()]);
+        let error = ensure_file_descriptor_ids_match(&embedded, &endpoint, "dataset")
+            .expect_err("file-metadata endpoint mismatch");
+        assert!(error.contains("do not match the separate file-metadata endpoint"));
     }
 
     #[test]
