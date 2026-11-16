@@ -104,3 +104,10 @@ A future blind tournament requires an independently held generator / outcome set
 ## 8. Claim ceiling
 
 Public corpus validity or synthetic EVSI agreement establishes only arithmetic / decision-policy behaviour for the declared toy cases. It does not establish optimal real conservation policy, field impact, legal authority or ecological calibration.
+
+
+## 16 November 2026: decision tolerance feeds forecast usefulness
+
+A forecast's error tolerance must be tied to its action context, not chosen to make the model pass. The new [#5485 usefulness-limit protocol](FOREST_FORECAST_USEFULNESS_LIMIT_V0_1.md) requires a unitful decision tolerance alongside proper-score skill, interval calibration, issuance coverage and block qualification.
+
+For empirical use, the tolerance should be derived from the action-loss function or explicitly approved domain protocol already owned here. A biomass tolerance in Mg C ha⁻¹ cannot be reused for mortality probability, root turnover or recruitment. The forecast-usefulness adapter consumes a declared tolerance and reports the first failing horizon, but does not invent or optimize the real conservation action.
