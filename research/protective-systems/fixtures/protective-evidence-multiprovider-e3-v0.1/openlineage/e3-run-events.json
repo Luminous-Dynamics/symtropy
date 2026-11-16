@@ -1,0 +1,76 @@
+{
+  "events": [
+    {
+      "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent",
+      "producer": "https://example.invalid/luminous-e3-adapter-fixture",
+      "run": {
+        "runId": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
+        "facets": {
+          "e3_evidence_context": {
+            "_producer": "https://example.invalid/luminous-e3-adapter-fixture",
+            "_schemaURL": "https://example.invalid/schemas/e3-openlineage-context-0.1.json",
+            "fixtureRunClass": "E3_ADAPTER_CONFORMANCE_FIXTURE",
+            "sourceE1AnalysisId": "synthetic.analysis.water-continuity.001",
+            "sourceE1ExecutionStatus": "NOT_EXECUTED",
+            "sourceBinding": "CONTEXT_ONLY",
+            "notASourceExecution": true
+          }
+        }
+      },
+      "job": {
+        "namespace": "luminous.synthetic.e3",
+        "name": "multiprovider-adapter-conformance"
+      },
+      "inputs": [
+        {
+          "namespace": "luminous.synthetic.fixtures",
+          "name": "datacite-doi-metadata"
+        }
+      ],
+      "outputs": [
+        {
+          "namespace": "luminous.synthetic.fixtures",
+          "name": "ogc-record-metadata"
+        }
+      ],
+      "eventType": "START",
+      "eventTime": "2026-11-16T10:00:00.000Z"
+    },
+    {
+      "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent",
+      "producer": "https://example.invalid/luminous-e3-adapter-fixture",
+      "run": {
+        "runId": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
+        "facets": {
+          "e3_evidence_context": {
+            "_producer": "https://example.invalid/luminous-e3-adapter-fixture",
+            "_schemaURL": "https://example.invalid/schemas/e3-openlineage-context-0.1.json",
+            "fixtureRunClass": "E3_ADAPTER_CONFORMANCE_FIXTURE",
+            "sourceE1AnalysisId": "synthetic.analysis.water-continuity.001",
+            "sourceE1ExecutionStatus": "NOT_EXECUTED",
+            "sourceBinding": "CONTEXT_ONLY",
+            "notASourceExecution": true
+          }
+        }
+      },
+      "job": {
+        "namespace": "luminous.synthetic.e3",
+        "name": "multiprovider-adapter-conformance"
+      },
+      "inputs": [
+        {
+          "namespace": "luminous.synthetic.fixtures",
+          "name": "datacite-doi-metadata"
+        }
+      ],
+      "outputs": [
+        {
+          "namespace": "luminous.synthetic.fixtures",
+          "name": "ogc-record-metadata"
+        }
+      ],
+      "eventType": "COMPLETE",
+      "eventTime": "2026-11-16T10:00:00.250Z"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "data": {
+    "id": "10.5555/synthetic-e3-protection-record-001",
+    "type": "dois",
+    "attributes": {
+      "doi": "10.5555/synthetic-e3-protection-record-001",
+      "identifiers": [],
+      "creators": [
+        {
+          "name": "Luminous Dynamics Synthetic Research Group",
+          "nameType": "Organizational"
+        }
+      ],
+      "titles": [
+        {
+          "title": "Synthetic multi-hazard resilience evidence fixture"
+        }
+      ],
+      "publisher": "Luminous Dynamics (synthetic fixture)",
+      "publicationYear": 2026,
+      "types": {
+        "resourceType": "Synthetic dataset",
+        "resourceTypeGeneral": "Dataset"
+      },
+      "subjects": [
+        {
+          "subject": "protective systems"
+        },
+        {
+          "subject": "resilience engineering"
+        }
+      ],
+      "dates": [
+        {
+          "date": "2026-11-16",
+          "dateType": "Created"
+        }
+      ],
+      "language": "en",
+      "relatedIdentifiers": [
+        {
+          "relatedIdentifier": "swh:1:cnt:0000000000000000000000000000000000000000",
+          "relatedIdentifierType": "SWHID",
+          "relationType": "Other",
+          "relationTypeInformation": "Syntactically valid SWHID-shaped test sentinel only; it is not asserted to resolve in Software Heritage."
+        }
+      ],
+      "rightsList": [
+        {
+          "rights": "Synthetic test fixture only; no external dataset license is asserted",
+          "rightsUri": null,
+          "lang": "en"
+        }
+      ],
+      "descriptions": [
+        {
+          "description": "Non-registered synthetic DOI-shaped metadata fixture. It is not a real DataCite record or a dataset publication.",
+          "descriptionType": "Abstract"
+        }
+      ],
+      "url": "https://example.invalid/e3/synthetic-resource",
+      "schemaVersion": "http://datacite.org/schema/kernel-4"
+    }
+  },
+  "meta": {
+    "e3FixtureExtension": {
+      "extensionOwner": "luminous-e3",
+      "preservationMode": "retain-unmapped-source-fields",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "notice": "Synthetic JSON:API top-level metadata extension; not a DataCite schema property."
+    }
+  }
+}
