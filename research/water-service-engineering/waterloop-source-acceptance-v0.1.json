@@ -1,0 +1,83 @@
+{
+  "schema_version": "waterloop-source-acceptance-v0.1",
+  "status": "research_reference_only",
+  "profile_id": "bathroom-light-greywater-toilet-flushing-v0",
+  "sources": [
+    {
+      "source": "shower",
+      "v0_disposition": "ACCEPT_FOR_CHARACTERISATION",
+      "conditions": [
+        "dedicated_gravity_pipe",
+        "no source mixing",
+        "first-entry timestamp",
+        "batch sample identity"
+      ]
+    },
+    {
+      "source": "bath",
+      "v0_disposition": "ACCEPT_FOR_CHARACTERISATION",
+      "conditions": [
+        "dedicated_gravity_pipe",
+        "no source mixing",
+        "first-entry timestamp",
+        "batch sample identity"
+      ]
+    },
+    {
+      "source": "warmup_water",
+      "v0_disposition": "SEPARATE_LOW_RISK_REFERENCE",
+      "conditions": [
+        "no contaminants added",
+        "separate volume accounting"
+      ]
+    },
+    {
+      "source": "laundry",
+      "v0_disposition": "EXCLUDED_V0_FUTURE_PROFILE_ONLY",
+      "reason": "surfactant, solids and source variability require separate characterization"
+    },
+    {
+      "source": "kitchen_sink_or_dishwasher",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "toilet_bidet_urinal",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "floor_drain",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "faeces_or_urine_soiled_laundry",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "animal_wash",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "vehicle_workshop_paint_solvent",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "chemical_cleaning",
+      "v0_disposition": "REJECT"
+    },
+    {
+      "source": "household_illness_restricted_source",
+      "v0_disposition": "REJECT_OR_SUSPEND"
+    }
+  ],
+  "residence_time_policy": {
+    "clock_start": "first raw-water entry into any untreated collection/equalisation volume",
+    "maximum_hours_from_WRC_guidance": 24,
+    "engineering_note": "24 hours is an outer guidance boundary, not a desired operating time; T1 tests 0,6,12,18,24 h and may require a shorter validated limit."
+  },
+  "release_invariants": [
+    "no potable use",
+    "toilet-flushing only until separately qualified",
+    "quality admission required",
+    "failed/stale critical evidence -> isolate product outlet"
+  ]
+}
