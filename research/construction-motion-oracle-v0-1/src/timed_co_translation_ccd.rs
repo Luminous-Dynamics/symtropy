@@ -197,18 +197,16 @@ fn rebase_span_to_time(
     let overlap_start_fraction = ((overlap_start_ms - span.start_ms) as f64) / span_duration;
     let overlap_end_fraction = ((overlap_end_ms - span.start_ms) as f64) / span_duration;
     let shift = span.translation.scale(overlap_start_fraction);
-    let overlap_translation =
-        span.translation.scale(overlap_end_fraction - overlap_start_fraction);
+    let overlap_translation = span
+        .translation
+        .scale(overlap_end_fraction - overlap_start_fraction);
 
     let capsule = Capsule {
         start: span.capsule_at_start.start.add(shift),
         end: span.capsule_at_start.end.add(shift),
         radius_mm: span.capsule_at_start.radius_mm,
     };
-    if !is_finite(capsule.start)
-        || !is_finite(capsule.end)
-        || !is_finite(overlap_translation)
-    {
+    if !is_finite(capsule.start) || !is_finite(capsule.end) || !is_finite(overlap_translation) {
         return Err(TimedCcdError::Geometry(
             TranslationCcdError::NumericalOverflow,
         ));
