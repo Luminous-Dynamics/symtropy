@@ -149,6 +149,27 @@ Required measurements and failure controls:
 
 Ozone is a laboratory/test-skid candidate only. It is not a consumer-ready process in this design. Gas exposure controls and qualified engineering review are prerequisites.
 
+
+### Train D — electrocoagulation-assisted laundry challenge (optional, not in first build)
+
+A 2026 review of electrocoagulation-based greywater/laundry treatment describes EC as a potentially useful pretreatment or core destabilisation step for colloids, fibres, turbidity and some surfactant-associated pollutants. It also concludes that EC alone is not a stable reuse solution where dissolved organics, pathogens, salts or micropollutants remain; hybrid downstream treatment is needed. Important scale-up burdens include electrical energy, electrode consumption/passivation, sludge and residual-metal control.
+
+A January 2026 continuous-flow **industrial laundry** study reported COD removal above 80%, turbidity removal above 90% and specific energy below 1.5 kWh/m³ for optimised reactor geometries. This is an industrial wastewater result, not residential laundry-greywater performance and not a directly comparable WaterLoop result. It is a reason to preserve an optional challenge test, not to add an EC module to the first build.
+
+Candidate challenge sequence:
+- separate laundry-only feed batch;
+- screen / equalisation;
+- continuous-flow EC test skid with recorded current, voltage, charge loading, electrode material/lot, polarity schedule and residence-time distribution;
+- solid/floc separation;
+- downstream treatment selection only after the residual dissolved organics, salts and microbiological barriers are measured;
+- separate electrode sludge, spent-electrode, purge and cleaning-waste collection.
+
+The EC module remains optional and unselected. It should proceed only if the laundry source-characterisation data show a contaminant profile that justifies its energy, electrode, sludge and maintenance burden.
+
+Sources:
+- *Electrocoagulation-based hybrid systems for greywater and laundry wastewater reuse: A critical review* (October 2026), DOI: https://doi.org/10.1016/j.dwt.2026.101869
+- *Hydrodynamic and electrode optimization of a continuous-flow electrocoagulation reactor for laundry wastewater* (January 2026), DOI: https://doi.org/10.1016/j.dwt.2026.101687
+
 ### Train C — passive / nature-based comparator
 
 A planted/media treatment module may be compared where land, climate, hydraulic loading, mosquito/vector management, maintenance access and residence time are suitable. Land occupation, seasonal variability, pre/post-treatment storage, microbial safety barrier and operator duties must be counted. Passive does not mean maintenance-free or safe by default.
@@ -299,3 +320,36 @@ A provisional 20% lifecycle-cost advantage over a matched reference can be used 
 ## 14. Nonclaims
 
 This architecture does not select an approved treatment train, certify pathogen removal, establish a potable-water result, permit occupied reuse, approve municipal plumbing, authorise discharge, or authorise procurement/construction. All candidate trains remain unqualified until the stated evidence gates are completed.
+
+## 15. Longitudinal sustainment benchmark — regional field lesson
+
+A 27 October 2026 study of an integrated decentralized biofilter–constructed wetland at Eswatini Christian University provides a relevant regional comparator. The 2015 field campaign reported COD, total nitrogen and total phosphorus reductions of 87.1%, 73.3% and 79.0%. The 2026 follow-up documented continued use of one containerized biofilter plus the wetland after other units had stopped, but the paper explicitly states that **no analytical water-quality measurements were made after December 2015**. The UV lamps were no longer operating in the 2026 configuration. The authors describe routine inspection of about 10–20 minutes by a locally trained groundskeeper, while the history also included electricity/wiring interruptions and loss of local laboratory capability.
+
+This is a useful sustainability reference, not proof of 2026 treatment quality, and it concerns domestic wastewater at institutional scale rather than isolated household greywater.
+
+Rhee et al. (2026), *Treatment Performance and Long-Term Operation of a Decentralized Biofilter-Constructed Wetland System in Eswatini: Conditions for Sustaining Treatment Service*, Water 18(21), 2679. DOI: https://doi.org/10.3390/w18212679
+
+### Required WaterLoop distinction
+
+A treatment asset can remain physically in service while its claimed quality performance is unverified. Report these as different timelines:
+- **operational status:** equipment operating, bypassed, isolated, under repair or decommissioned;
+- **quality verification status:** current admitted laboratory evidence for the exact process configuration and intended use;
+- **service status:** metered useful volume delivered at the point of use;
+- **maintenance support status:** trained local operator, specialist support, spares, consumables and laboratory availability.
+
+No quality claim may bridge a gap in independent quality verification. If a required barrier is offline, the corresponding product-use outlet must remain isolated unless a separately validated alternate treatment configuration and intended use are admitted. “The plant is still running” cannot be reported as “the water is still safe.”
+
+### Additional benchmark metrics
+
+Add longitudinal measures to the comparison:
+- fraction of scheduled periods with admitted quality verification;
+- quality-verification gap duration and stale-evidence abstention count;
+- fraction of service periods in which each required barrier is actually operational;
+- time-to-detect and time-to-isolate a barrier failure;
+- planned/unplanned downtime and service continuity;
+- routine operator minutes per day/week and specialist intervention hours;
+- spares/consumables lead time and replacement-task success;
+- laboratory access interruptions and time to restore monitoring;
+- quality-verified useful volume, not merely total flow through an operating unit.
+
+The design objective is **maintainable, quality-verifiable service over time**, not maximum initial removal efficiency or uninterrupted equipment runtime at any cost.
