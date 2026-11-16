@@ -82,6 +82,12 @@ fn check_unique_ids(values: &[Value], key: &str, prefix: &str, errors: &mut Vec<
     }
 }
 
+fn has_nonempty_ref(value: Option<&Value>) -> bool {
+    value
+        .and_then(Value::as_str)
+        .is_some_and(|reference| !reference.is_empty())
+}
+
 fn check_trace(
     pair_id: &str,
     side: &str,
@@ -138,7 +144,9 @@ fn check_trace(
                     .as_deref()
                     .is_some_and(|previous| previous != domain)
                 {
-                    errors.push(format!("event_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"));
+                    errors.push(format!(
+                        "event_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"
+                    ));
                 }
                 event_clock_domain = Some(domain.to_owned());
             }
@@ -151,7 +159,9 @@ fn check_trace(
                     .as_deref()
                     .is_some_and(|previous| previous != domain)
                 {
-                    errors.push(format!("arrival_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"));
+                    errors.push(format!(
+                        "arrival_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"
+                    ));
                 }
                 arrival_clock_domain = Some(domain.to_owned());
             }
@@ -161,15 +171,17 @@ fn check_trace(
         match stage {
             Some(Value::Null) => {}
             Some(Value::String(stage_id)) if stage_ids.contains(&stage_id.as_str()) => {}
-            Some(Value::String(stage_id)) => {
-                errors.push(format!("event_stage_undeclared:{pair_id}:{side}:{index}:{stage_id}"));
-            }
-            _ => errors.push(format!("event_stage_missing_or_invalid:{pair_id}:{side}:{index}")),
+            Some(Value::String(stage_id)) => errors.push(format!(
+                "event_stage_undeclared:{pair_id}:{side}:{index}:{stage_id}"
+            )),
+            _ => errors.push(format!(
+                "event_stage_missing_or_invalid:{pair_id}:{side}:{index}"
+            )),
         }
 
         match mapping_status {
-            Some("qualified") if mapping_ref.and_then(Value::as_str).is_some_and(|r| !r.is_empty()) => {}
-            Some("unqualified") if mapping_ref.and_then(Value::as_str).is_some_and(|r| !r.is_empty()) => {
+            Some("qualified") if has_nonempty_ref(mapping_ref) => {}
+            Some("unqualified") if has_nonempty_ref(mapping_ref) => {
                 if event_clock != arrival_clock {
                     has_unmapped_clock_relation = true;
                 }
@@ -179,7 +191,9 @@ fn check_trace(
                     has_unmapped_clock_relation = true;
                 }
             }
-            _ => errors.push(format!("clock_mapping_status_reference_mismatch:{pair_id}:{side}:{index}")),
+            _ => errors.push(format!(
+                "clock_mapping_status_reference_mismatch:{pair_id}:{side}:{index}"
+            )),
         }
     }
 
