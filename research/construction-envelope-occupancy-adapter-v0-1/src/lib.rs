@@ -393,11 +393,17 @@ mod tests {
     }
 
     fn report() -> Report {
+        report_for("task-001", 10, 40)
+    }
+
+    fn report_for(task_id: &str, start_ms: u64, end_ms: u64) -> Report {
+        let mut context = context();
+        context.task_id = task_id.into();
         let segment = Segment {
             slice_index: 0,
             primitive_id: "tool".into(),
-            start_ms: 10,
-            end_ms: 40,
+            start_ms,
+            end_ms,
             from_mm: Point3Mm {
                 x: 100,
                 y: 200,
@@ -444,7 +450,7 @@ mod tests {
                 policy_clearance: "evidence://policy".into(),
             },
         };
-        build(&context(), &[segment]).unwrap()
+        build(&context, &[segment]).unwrap()
     }
 
     fn binding(context: &Context) -> SiteBinding {
@@ -470,6 +476,18 @@ mod tests {
             expires_at_ms: 1_000,
             units: 1,
         }
+    }
+
+    fn reservation_with_uncertainty(
+        context: &Context,
+        slice: &EnvelopeSlice,
+        reservation_id: &str,
+        clock_uncertainty_ms: u64,
+    ) -> ReservationRequest {
+        let mut request = reservation(context, slice);
+        request.reservation_id = reservation_id.into();
+        request.clock_uncertainty_ms = clock_uncertainty_ms;
+        request
     }
 
     fn project(report: &Report) -> Result<ProjectedOccupancy, ProjectionError> {
@@ -528,6 +546,109 @@ mod tests {
         assert_eq!(
             result.lineage.source_slice.evidence,
             source.slices[0].evidence
+        );
+    }
+
+    #[test]
+    fn clock_uncertainty_expands_space_time_interval_exactly_once() {
+        use construction_spacetime_occupancy_core::SpatialOccupancyBook;
+
+        let first_report = report_for("task-001", 10, 40);
+        let second_report = report_for("task-002", 43, 73);
+        let first_slice = &first_report.slices[0];
+        let second_slice = &second_report.slices[0];
+        let first = project_slice(
+            &first_report,
+            first_slice,
+            binding(&first_report.context),
+            reservation_with_uncertainty(&first_report.context, first_slice, "reservation-1", 2),
+            "occupancy-1",
+            OccupancyKind::RobotOperatingEnvelope,
+        )
+        .unwrap();
+        let second = project_slice(
+            &second_report,
+            second_slice,
+            binding(&second_report.context),
+            reservation_with_uncertainty(&second_report.context, second_slice, "reservation-2", 2),
+            "occupancy-2",
+            OccupancyKind::RobotOperatingEnvelope,
+        )
+        .unwrap();
+
+        // Raw intervals [10,40) and [43,73) do not overlap. Applying each
+        // request's +/-2ms clock bound once gives [8,42) and [41,75), whose
+        // exact half-open overlap is [41,42).
+        assert_eq!(first.occupancy.reservation.clock_uncertainty_ms, 2);
+        assert_eq!(second.occupancy.reservation.clock_uncertainty_ms, 2);
+        let mut book = SpatialOccupancyBook::new(
+            first.occupancy.binding.clone(),
+            first.occupancy.reservation.clock_domain_id.clone(),
+        )
+        .unwrap();
+        book.insert(first.occupancy.clone()).unwrap();
+        let conflicts = book.conflicts_for(&second.occupancy).unwrap();
+        assert_eq!(conflicts.len(), 1);
+        assert_eq!(conflicts[0].overlap_start_ms, 41);
+        assert_eq!(conflicts[0].overlap_end_ms, 42);
+
+        // A zero-uncertainty control has no overlap. This detects accidental
+        // policy widening or hidden double application of a previous bound.
+        let first_zero = project_slice(
+            &first_report,
+            first_slice,
+            binding(&first_report.context),
+            reservation_with_uncertainty(&first_report.context, first_slice, "reservation-1-zero", 0),
+            "occupancy-1-zero",
+            OccupancyKind::RobotOperatingEnvelope,
+        )
+        .unwrap();
+        let second_zero = project_slice(
+            &second_report,
+            second_slice,
+            binding(&second_report.context),
+            reservation_with_uncertainty(&second_report.context, second_slice, "reservation-2-zero", 0),
+            "occupancy-2-zero",
+            OccupancyKind::RobotOperatingEnvelope,
+        )
+        .unwrap();
+        let mut zero_book = SpatialOccupancyBook::new(
+            first_zero.occupancy.binding.clone(),
+            first_zero.occupancy.reservation.clock_domain_id.clone(),
+        )
+        .unwrap();
+        zero_book.insert(first_zero.occupancy).unwrap();
+        assert!(zero_book.conflicts_for(&second_zero.occupancy).unwrap().is_empty());
+    }
+
+    #[test]
+    fn clock_uncertainty_overflow_is_rejected_by_existing_occupancy_owner() {
+        use construction_spacetime_occupancy_core::{SpatialError, SpatialOccupancyBook};
+
+        let source = report();
+        let slice = &source.slices[0];
+        let projected = project_slice(
+            &source,
+            slice,
+            binding(&source.context),
+            reservation_with_uncertainty(
+                &source.context,
+                slice,
+                "reservation-overflow",
+                u64::MAX,
+            ),
+            "occupancy-overflow",
+            OccupancyKind::RobotOperatingEnvelope,
+        )
+        .unwrap();
+        let book = SpatialOccupancyBook::new(
+            projected.occupancy.binding.clone(),
+            projected.occupancy.reservation.clock_domain_id.clone(),
+        )
+        .unwrap();
+        assert_eq!(
+            book.conflicts_for(&projected.occupancy),
+            Err(SpatialError::TimeExpansionOverflow)
         );
     }
 
