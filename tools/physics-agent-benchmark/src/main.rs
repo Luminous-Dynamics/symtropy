@@ -19,10 +19,12 @@ fn main() -> ExitCode {
 
 fn run() -> Result<(), (u8, String)> {
     let mut args = env::args().skip(1);
-    let registry_path = args
-        .next()
-        .map(PathBuf::from)
-        .ok_or_else(|| (64, "usage: physics-agent-benchmark REGISTRY.json".to_owned()))?;
+    let registry_path = args.next().map(PathBuf::from).ok_or_else(|| {
+        (
+            64,
+            "usage: physics-agent-benchmark REGISTRY.json".to_owned(),
+        )
+    })?;
 
     if args.next().is_some() {
         return Err((64, "unexpected extra argument".to_owned()));
@@ -47,6 +49,9 @@ fn run() -> Result<(), (u8, String)> {
     if report["status"].as_str() == Some("passed") {
         Ok(())
     } else {
-        Err((1, "one or more synthetic case classifications differ from the frozen oracle".to_owned()))
+        Err((
+            1,
+            "one or more synthetic case classifications differ from the frozen oracle".to_owned(),
+        ))
     }
 }
