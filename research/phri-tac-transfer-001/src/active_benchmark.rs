@@ -1003,7 +1003,7 @@ pub fn run_active_calibration_campaign(
     let mut campaign_results = Vec::with_capacity(policy_count);
     for (results, paired_deltas) in per_policy_results
         .into_iter()
-        .zip(paired_rmse_deltas.into_iter())
+        .zip(paired_rmse_deltas)
     {
         let first = results
             .first()
