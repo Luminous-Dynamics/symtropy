@@ -21,6 +21,7 @@ pub mod legacy_accounting;
 pub mod network_evidence;
 pub mod observation_evidence;
 pub mod pareto_front;
+pub mod root_anatomy_energy;
 pub mod spatial_field_evidence;
 pub mod symbiosis_checkpoints;
 pub mod temporal_alignment;
