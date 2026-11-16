@@ -156,3 +156,17 @@ The benchmark records verifier status, parameter boxes visited/pruned, generatio
 The aggregate no-contact verification succeeds only if every terminal leaf receives an independent `Clear` interval receipt. If any leaf contains a positive contact witness, has an unresolved interval, or exceeds the interval search budget, the aggregate verification fails closed. The return value preserves the per-leaf receipts and aggregate node/prune/depth counts.
 
 This is an independent second software algorithm for the declared affine capsule model—not a formal proof assistant, exact-rational implementation or hardware safety certificate. The caller still needs to bind the certificate to the design revision, site epoch, frames, robot/tool/payload, calibration, controller profile and clock domain.
+
+## Set-valued uncertainty verification
+
+The robust interval verifier accepts deterministic axis-aligned coefficient uncertainty through `CapsuleRelativeUncertainty`:
+- relative initial origin (`A.start - B.start`);
+- relative translation (`delta_A - delta_B`);
+- moving centerline direction (`A.end - A.start`);
+- obstacle centerline direction (`B.end - B.start`).
+
+Each nonnegative per-axis bound widens the interval coefficient before branch-and-bound. Coefficient correlations are discarded; this is conservative but can increase `Unresolved` outcomes. A zero uncertainty profile follows the exact nominal path and preserves its receipt.
+
+`Clear` means every admissible realization remains separated over the full time × both axis-parameter domain. `ContactWitness` is emitted only where the entire widened relative-vector interval is within the conservative contact threshold at one sample. All other cases remain `Unresolved` when a proof cannot be completed. These are deterministic set-membership bounds, not standard deviations, Gaussian assumptions or risk probabilities.
+
+Capsule radii remain upstream conservative geometry inputs. This API does not authenticate or infer uncertainty values; callers must bind each bound to the relevant calibration, localization, tracking, controller and transform evidence. See [#5714](https://github.com/Luminous-Dynamics/symtropy/issues/5714).

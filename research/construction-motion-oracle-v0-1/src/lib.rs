@@ -25,10 +25,11 @@ pub use co_translation_ccd::{
     endpoints_only_co_translating_capsule_collision, verify_adaptive_collision_certificate,
 };
 pub use independent_interval_verifier::{
-    IndependentAdaptiveNoContactReceipt, IndependentAdaptiveVerificationError,
-    IntervalContactWitness, IntervalVerificationReceipt, IntervalVerificationStatus,
-    IntervalVerifierConfig, IntervalVerifierError, replay_interval_verification_receipt,
-    verify_adaptive_no_contact_independently, verify_capsule_interval_no_contact,
+    CapsuleRelativeUncertainty, IndependentAdaptiveNoContactReceipt,
+    IndependentAdaptiveVerificationError, IntervalContactWitness, IntervalVerificationReceipt,
+    IntervalVerificationStatus, IntervalVerifierConfig, IntervalVerifierError,
+    replay_interval_verification_receipt, verify_adaptive_no_contact_independently,
+    verify_capsule_interval_no_contact, verify_capsule_interval_no_contact_with_uncertainty,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
