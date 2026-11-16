@@ -415,7 +415,12 @@ mod tests {
 
     #[test]
     fn observations_touching_clock_uncertainty_boundary_are_stale() {
-        let mut boundary = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let mut boundary = observation(
+            "evt-1",
+            "sensor-1",
+            Some("sensor-a"),
+            PresenceReading::Present,
+        );
         boundary.observed_at_unix_ms = 1_000;
         let report = adjudicate_receiver_presence(&[boundary], &policy())
             .expect("well-formed boundary observation");
