@@ -22,11 +22,13 @@ The benchmark combines:
 - `event-type-catalog-v0.1.json`: explicit 44-event development catalog binding each event to a stage or a non-stage record and permitted source class; not a universal robotics ontology.
 - `mission-pair-corpus-v0.1.json`: eight synthetic development pairs with exact source/target configuration references, one declared delta, matched task/site/acceptance conditions and candidate-visible event traces.
 - `development-oracle-v0.1.json`: separate public development labels for target mission disposition, first observed divergence, stage progression and outcome sensitivity. This is not a hidden holdout.
+- `mission-outcome-metrics-v0.1.json`: separate synthetic source/target outcome measures for accepted/rejected/held/aborted/unknown units, robot time, total crew time, energy, intervention, reinspection and uncertainty-guarded quality.
 - `schemas/mission-pair-corpus-v0.1.schema.json`: closed Draft 2020-12 schema for paired cases and event traces.
 - `schemas/stage-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for the stage vocabulary.
 - `schemas/event-type-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for event-to-stage/source mappings.
 - `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
-- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and checks cross-file corpus/oracle/event-to-stage/source invariants. It does not score robot performance or determine qualification.
+- `schemas/mission-outcome-metrics-v0.1.schema.json`: closed Draft 2020-12 schema for synthetic per-pair outcome measurements.
+- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and checks cross-file corpus/oracle/event-to-stage/source/outcome invariants. It does not score robot performance or determine qualification.
 - `.github/workflows/robot-config-mission-impact-validation.yml`: focused Ubuntu/Windows/macOS schema, fixture, format, Clippy and CLI workflow.
 
 All article IDs, configurations, task references, event IDs, timestamps and outcome-shaped values are invented fixtures. They are not measured robot outcomes or vendor performance data.
