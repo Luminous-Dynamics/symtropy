@@ -729,10 +729,10 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_transfer_fixtures_match_independent_expected_dispositions() {
+    fn all_thirty_four_transfer_fixtures_match_independent_expected_dispositions() {
         let report = validate_tracked().expect("frozen corpus is valid");
-        assert_eq!(report.case_count, 30);
-        assert_eq!(report.valid_splits + report.leaked_splits, 30);
+        assert_eq!(report.case_count, 34);
+        assert_eq!(report.valid_splits + report.leaked_splits, 34);
         assert_eq!(report.target_qualified_estimates, 2);
         assert_eq!(report.model_estimate_only, 3);
         assert_eq!(report.invalid_measurement_claims, 25);
