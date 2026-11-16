@@ -467,9 +467,20 @@ mod tests {
     fn frozen_operation_cannot_be_released() {
         let mut candidate = proposal();
         candidate.release_operation_ids = vec![0, 2, 3];
+        candidate.containment_operation_ids = vec![1];
         assert_eq!(
             evaluate_scope(&episode(), &candidate),
             Err(EvaluationError::FrozenOperationReleased(0))
+        );
+    }
+
+    #[test]
+    fn operation_cannot_be_both_released_and_contained() {
+        let mut candidate = proposal();
+        candidate.release_operation_ids = vec![0, 2, 3];
+        assert_eq!(
+            evaluate_scope(&episode(), &candidate),
+            Err(EvaluationError::OperationBothReleasedAndContained(0))
         );
     }
 
