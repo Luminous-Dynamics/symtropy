@@ -34,7 +34,8 @@
 - Process-level incomplete-inventory status; per-element passes cannot imply a complete inventory.
 - Independent-witness requirement for independently reproduced and qualified claims.
 - Gross energy and recovered energy reported separately.
-- Nominal feedstock-origin and gross-energy intensity per kilogram of a nominated product.
+- Feedstock-origin and gross/recovered-energy intensity per kilogram of a nominated product, with first-order uncertainty propagation and separate standard-uncertainty fields.
+- Shared correlation-group terms are carried through ratio derivatives; incomplete measurement uncertainty returns `None` rather than zero.
 - Numerical overflow and non-finite input rejection.
 - Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
 - Complete-composition reconciliation and non-finite resource-intensity ratio rejection.
@@ -48,14 +49,14 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 18 unit tests (13 resource + 5 pressure) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 21 unit tests (16 resource + 5 pressure) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
 ## Known limitations
 
 1. Correlation groups model perfect correlation within a group and independence between groups. A general covariance matrix, partial correlations and shared calibration covariance are not implemented.
-2. Resource-intensity ratios are nominal point estimates; ratio uncertainty is not propagated. The report explicitly returns `uncertainty_propagated = false`.
+2. Resource-intensity ratio uncertainty uses first-order derivatives and the simple correlation-group model. It is not a full covariance estimator and does not cover non-linear uncertainty, censored data, or model discrepancy.
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
 4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
 5. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
@@ -65,7 +66,7 @@
 ## Immediate next increments
 
 1. Add schema-to-Rust deserialization only after choosing a minimal, reviewed serialization dependency policy.
-2. Add uncertainty propagation for resource-intensity ratios and covariance-aware measurement models.
+2. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 3. Add independent analytical pressure-compartment mass/leak/isolation reference equations.
 4. Add deterministic synthetic geological fixtures with hidden regions and measurement provenance.
 5. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
