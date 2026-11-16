@@ -1,5 +1,6 @@
 mod luminosity;
 mod muon_scaling;
+mod plasma_screen;
 
 use std::process::ExitCode;
 
@@ -128,6 +129,7 @@ fn render_reference_report() -> Result<String, String> {
     let alternative_ratio = alternative_gamma.0 / lhc_gamma.0;
     let luminosity_closure = luminosity::render_report_json()?;
     let muon_scaling = muon_scaling::render_muon_scaling_report_json()?;
+    let plasma_screen = plasma_screen::render_report_json()?;
 
     Ok(format!(
         concat!(
@@ -150,6 +152,7 @@ fn render_reference_report() -> Result<String, String> {
             "  \"maximum_cm_energy_for_47000_km_circumference_2_t_fill_0p7_pev\": {:.6},\n",
             "  \"performance_closure\": {},\n",
             "  \"muon_scaling\": {},\n",
+            "  \"plasma_screen\": {},\n",
             "  \"paper_claim_review\": \"A 140x Lorentz-factor ratio is inconsistent with 1 PeV as centre-of-mass energy and 14 TeV LHC centre-of-mass energy; it corresponds to 1 PeV per beam. Clarify convention before using the compensation factor.\",\n",
             "  \"claim_ceiling\": \"analytical energy-convention, rigidity, revolution-frequency, luminosity and beam-operating-budget arithmetic only; no beam optics or dynamics, tune-shift validation, detector qualification, magnet, RF, orbit-control, thermal or flight qualification\"\n",
             "}}"
@@ -169,6 +172,7 @@ fn render_reference_report() -> Result<String, String> {
         ring_max_cm.0 / GEV_PER_PEV,
         luminosity_closure,
         muon_scaling,
+        plasma_screen,
     ))
 }
 
