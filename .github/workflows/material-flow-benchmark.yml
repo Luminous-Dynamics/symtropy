@@ -92,6 +92,8 @@ jobs:
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"fault_oracle_passed": true' mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"physical_fault_effect_observed": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -Eq '"gate_contact_event_count": [1-9][0-9]*' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -Eq '"gate_contact_max_impulse_ns": (0\.[0-9]*[1-9][0-9]*|[1-9][0-9]*(\.[0-9]*)?)' mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"reconciliation_required": true' mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"blind_retry_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"false_completion_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
