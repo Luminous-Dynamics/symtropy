@@ -37,3 +37,4 @@ capture-build-mismatch|capture-build|NOT_ADMISSIBLE_FOR_CLAIM
 policy-mismatch|policy|NOT_ADMISSIBLE_FOR_CLAIM
 observation-removal|remove-segment|EVIDENCE_INCOMPLETE
 segment-permutation|permute|SAME_RESULT
+authorization-receipt-substitution|receipt-digest|NOT_ADMISSIBLE_FOR_CLAIM
