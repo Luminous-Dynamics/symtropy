@@ -691,6 +691,98 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
     errors
 }
 
+/// Check the proposed MIP-to-RCQ family crosswalk without treating it as an
+/// accepted upstream interface. Exact owner receipts remain explicitly unpinned.
+pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+    let Some(mappings) = array_at(crosswalk, &["mappings"]) else {
+        return vec!["owner_crosswalk_mappings_missing".to_owned()];
+    };
+    let Some(cases) = array_at(corpus, &["cases"]) else {
+        return vec!["owner_crosswalk_mission_cases_missing".to_owned()];
+    };
+
+    check_unique_ids(mappings, "mission_pair_id", "crosswalk_pair", &mut errors);
+    check_unique_ids(mappings, "qualification_case_id", "crosswalk_qualification_case", &mut errors);
+
+    let mission_ids = cases
+        .iter()
+        .filter_map(|case| string_at(case, &["pair_id"]))
+        .collect::<BTreeSet<_>>();
+    let mapping_ids = mappings
+        .iter()
+        .filter_map(|mapping| string_at(mapping, &["mission_pair_id"]))
+        .collect::<BTreeSet<_>>();
+    if mission_ids != mapping_ids {
+        errors.push("owner_crosswalk_pair_coverage_mismatch".to_owned());
+    }
+
+    for mapping in mappings {
+        let pair_id = string_at(mapping, &["mission_pair_id"]).unwrap_or("unknown_pair");
+        let qualification_case = string_at(mapping, &["qualification_case_id"]);
+        let kind = string_at(mapping, &["mapping_kind"]);
+        if kind != Some("family_related_not_case_equivalence") {
+            errors.push(format!("owner_crosswalk_mapping_kind_not_conservative:{pair_id}"));
+        }
+
+        let Some(case) = cases.iter().find(|case| {
+            string_at(case, &["pair_id"]) == Some(pair_id)
+        }) else {
+            continue;
+        };
+        let mission_family = string_at(mapping, &["mission_mutation_family"]);
+        let corpus_family = string_at(case, &["mutation_family"]);
+        if mission_family != corpus_family {
+            errors.push(format!("owner_crosswalk_mission_family_mismatch:{pair_id}"));
+        }
+        if qualification_case.is_none_or(str::is_empty) {
+            errors.push(format!("owner_crosswalk_qualification_case_missing:{pair_id}"));
+        }
+        if string_at(mapping, &["qualification_family"]).is_none() {
+            errors.push(format!("owner_crosswalk_qualification_family_missing:{pair_id}"));
+        }
+    }
+
+    let qualification_owner = crosswalk.get("qualification_owner");
+    if string_at(qualification_owner.unwrap_or(&Value::Null), &["issue_url"])
+        != Some("https://github.com/Luminous-Dynamics/symtropy/issues/5488")
+        || string_at(
+            qualification_owner.unwrap_or(&Value::Null),
+            &["corpus_blob_sha"],
+        ) != Some("9e38da798173c653bd01fc1ceb648fd0ff8a6dff")
+    {
+        errors.push("owner_crosswalk_qualification_source_not_pinned".to_owned());
+    }
+
+    let reconfiguration_owner = crosswalk.get("reconfiguration_owner");
+    if reconfiguration_owner
+        .and_then(|owner| owner.get("transition_receipt_ref"))
+        .is_none_or(|value| !value.is_null())
+        || string_at(
+            reconfiguration_owner.unwrap_or(&Value::Null),
+            &["interface_state"],
+        ) != Some("owner_issue_contract_only_no_pinned_machine_receipt_in_this_tranche")
+    {
+        errors.push("owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface".to_owned());
+    }
+
+    let accepted_output_owner = crosswalk.get("accepted_output_owner");
+    if accepted_output_owner
+        .and_then(|owner| owner.get("owner_contract_artifact_ref"))
+        .is_none_or(|value| !value.is_null())
+        || string_at(
+            accepted_output_owner.unwrap_or(&Value::Null),
+            &["interface_state"],
+        ) != Some("task_acceptance_fixture_only_owner_machine_contract_not_pinned")
+    {
+        errors.push("owner_crosswalk_acceptance_contract_claimed_without_pinned_interface".to_owned());
+    }
+
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
 pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     let base = root.join("research/robot-config-mission-impact-v0-1");
     let files = [
@@ -713,6 +805,10 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
         (
             "mission-outcome-metrics-v0.1.json",
             "schemas/mission-outcome-metrics-v0.1.schema.json",
+        ),
+        (
+            "owner-crosswalk-v0.1.json",
+            "schemas/owner-crosswalk-v0.1.schema.json",
         ),
     ];
     let mut values = Vec::new();
@@ -738,6 +834,7 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             &values[0], &values[3], &values[1],
         ));
         errors.extend(outcome_metric_invariants(&values[4], &values[2]));
+        errors.extend(owner_crosswalk_invariants(&values[5], &values[1]));
     }
 
     if errors.is_empty() {
@@ -763,6 +860,7 @@ mod tests {
             "schemas/development-oracle-v0.1.schema.json",
             "schemas/event-type-catalog-v0.1.schema.json",
             "schemas/mission-outcome-metrics-v0.1.schema.json",
+            "schemas/owner-crosswalk-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
@@ -867,6 +965,41 @@ mod tests {
                 .any(|error| error
                     .starts_with("accepted_or_rejected_output_lacks_referee_measurement:"))
         );
+    }
+
+    #[test]
+    fn owner_crosswalk_covers_all_mission_pairs_without_claiming_owner_acceptance() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let crosswalk = read_json(&base.join("owner-crosswalk-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        assert!(owner_crosswalk_invariants(&crosswalk, &corpus).is_empty());
+    }
+
+    #[test]
+    fn owner_crosswalk_rejects_mission_family_mismatch() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let mut crosswalk = read_json(&base.join("owner-crosswalk-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        crosswalk["mappings"][0]["mission_mutation_family"] =
+            Value::String("tool_geometry_changed".to_owned());
+        assert!(owner_crosswalk_invariants(&crosswalk, &corpus)
+            .iter()
+            .any(|error| error.starts_with("owner_crosswalk_mission_family_mismatch:")));
+    }
+
+    #[test]
+    fn owner_crosswalk_does_not_allow_unpinned_owner_receipts_to_appear_accepted() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let mut crosswalk = read_json(&base.join("owner-crosswalk-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        crosswalk["reconfiguration_owner"]["transition_receipt_ref"] =
+            Value::String("fixture://unapproved/transition".to_owned());
+        assert!(owner_crosswalk_invariants(&crosswalk, &corpus)
+            .iter()
+            .any(|error| error == "owner_crosswalk_reconfiguration_receipt_claimed_without_pinned_interface"));
     }
 
     #[test]
