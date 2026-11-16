@@ -132,3 +132,14 @@ The South African GN 6292 Regulation 4 context case represents four people over 
 
 
 The full time-resolved service semantics, scenario families, South African regulatory context, benchmark targets and T1 physical gates are documented in [`SERVICE_CONTINUITY_BENCHMARK_V0_1.md`](SERVICE_CONTINUITY_BENCHMARK_V0_1.md).
+
+
+## Modular WaterLoop reference design
+
+[MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md](MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md) is the source-segregated, replaceable-treatment-bay reference design for issue [#5542](https://github.com/Luminous-Dynamics/symtropy/issues/5542), composed with the physical demonstrator parent [#5335](https://github.com/Luminous-Dynamics/symtropy/issues/5335).
+
+Machine-readable companions:
+- [waterloop-modular-interface-v0.1.json](waterloop-modular-interface-v0.1.json) — 8 typed source streams, 5 treatment/service modules, use profiles, module ports, safe states and evidence owners.
+- [waterloop-modular-test-matrix-v0.1.json](waterloop-modular-test-matrix-v0.1.json) — 20 positive/negative design and fault-test cases.
+
+The selected first physical increment is a **clean-water-only unoccupied hydraulic bench** with source/reject/treated/use measurement points and an interchangeable module bay. Greywater feed, treatment selection and any reuse are deferred until local permissions, source characterisation, professional design and independent quality admission are complete. The architecture is not a construction drawing or procurement authorization.
