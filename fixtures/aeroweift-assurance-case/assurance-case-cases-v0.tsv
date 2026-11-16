@@ -45,3 +45,6 @@ missing-mitigation-evidence-policy|remove-mitigation-purpose-requirement|REJECT
 missing-evidence-policy-target|required-claim-absent|INCOMPLETE_ARGUMENT
 duplicate-policy-evidence-purpose|duplicate-purpose|REJECT
 unrelated-evidence-purpose-no-independence-credit|extra-nonrequired-purpose|NO_INDEPENDENCE_INCREASE
+owner-lowers-claim-independent-group-floor|claim-minimum-zero|INSUFFICIENT_INDEPENDENT_EVIDENCE_GROUPS
+mitigation-independent-group-floor-not-met|unknown-correlation-group|MITIGATION_INSUFFICIENT_INDEPENDENT_EVIDENCE_GROUPS
+frozen-mitigation-minimum-zero|policy-minimum-zero|REJECT
