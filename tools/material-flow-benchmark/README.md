@@ -140,7 +140,26 @@ It currently enforces:
 - evidence-kind-specific subject binding (package, tote, receiver endpoint, transfer mechanism, grant or scenario);
 - issuer actor existence and allowed actor role for that evidence kind;
 - SHA-256 digest syntax;
-- observation time and expiry against the scenario timestamp and declared clock-uncertainty window.
+- freshness policy v1: receipt observation must precede the **earliest** plausible decision time; expiry must cover the **latest** plausible decision time; and every evidence kind has a versioned maximum observation age, measured at that latest plausible time.
+
+Version 1 maximum ages (milliseconds):
+
+| External evidence kind | Maximum age |
+|---|---:|
+| Manifest snapshot | 300,000 |
+| Authorization receipt | 60,000 |
+| Receiver capability receipt | 86,400,000 |
+| Package identity observation | 2,000 |
+| Container fit observation | 86,400,000 |
+| Payload mass observation | 2,000 |
+| Seal observation | 5,000 |
+| Temperature observation | 2,000 |
+| Transfer-gate observation | 500 |
+| Release-execution receipt | 10,000 |
+| Receiver-presence observation | 500 |
+| Placement observation | 1,000 |
+| Counterparty custody receipt | 30,000 |
+| Ambiguous-outcome observation | 5,000 |
 
 Run it from the repository root:
 
@@ -154,6 +173,14 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 The current synthetic bundle contains 14 external evidence envelopes. The admission report explicitly sets `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
 
 This is a structural receipt-admission gate, not a cryptographic verifier. It does not check signatures, revocation, hardware attestation, sensor truth, evidence-source independence or actual physical state. Do not equate an admitted envelope with a trusted observation or authorized actuation. CI archives the raw admission report and hashes it with the other MFB evidence outputs.
+
+### Exact-head receipt-admission qualification (2026-11-16)
+
+Dedicated workflow [43823753266](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266) passed on source head `386fc63ea84561f072ec58804154cb02f0d4b8d9`: **76 Rust tests**, strict formatting, Clippy `-D warnings`, protocol campaign, procedure graph, 14-receipt admission, four-timestep convergence, 480 Hz L1 simulation/replay and evidence upload.
+
+The report admitted **14/14** external evidence envelopes under freshness policy v1. It kept `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`.
+
+Artifact: `mfb-l1-evidence-386fc63ea84561f072ec58804154cb02f0d4b8d9` (ID `14205746262`), six files, ZIP SHA-256 `634d4ad1001fe0a5590cfdb9a77aa97c1df1b1f7281a8be35260da4b61b3593d`. SHA-256 outputs: receipt admission `cc8143b13d5e8820f456b61bc9153427e5f588c0e2d58ef091cc8001b739e8b0`; protocol campaign `bc21a056a4fef5c097567663fa020c9ed119094bad3a11b9764e7ef2b17dea6b`; procedure readiness `051507417022eca1705a4c1e200fc315229109e08100296bf36c1ee643341ed2`; convergence `d53fdc1130f7de4b1cdf75658d7af738a1b141bd1b5db4fbc539be5272549631`; L1 result `cd836f52f70483b4375e4aa39bca81be14b9546a6b4cf24ba607458501e85070`; Cargo.lock `9ec0cf115298a909b85593b829bd0966a9cc3bd67636cf691f8132f7c30fd654`.
 
 ## What it does not prove
 
