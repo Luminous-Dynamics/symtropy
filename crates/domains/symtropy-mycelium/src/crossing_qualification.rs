@@ -90,6 +90,27 @@ pub enum CrossingAssessment {
     MissingDepthRequiresReview,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CrossingTopologyHypotheses {
+    /// The candidate represents two distinct 3D filaments.
+    pub separate_filaments: bool,
+    /// The candidate could be a shared 3D junction; this is not fusion approval.
+    pub shared_3d_junction: bool,
+}
+
+impl CrossingTopologyHypotheses {
+    /// True only when the evidence leaves topology unresolved.
+    pub const fn requires_review(self) -> bool {
+        self.separate_filaments && self.shared_3d_junction
+    }
+
+    /// The classifier never authorizes a topology mutation.
+    pub const fn permits_automatic_join(self) -> bool {
+        false
+    }
+}
+
+
 impl CrossingCandidate {
     pub fn validate(&self) -> Result<(), CrossingQualificationError> {
         if !self.projected_distance_um.is_finite() || self.projected_distance_um < 0.0 {
@@ -109,6 +130,29 @@ impl CrossingCandidate {
             }
         }
         Ok(())
+    }
+
+    /// Return the set of topologies still admissible under the depth evidence.
+    ///
+    /// This is a hypothesis set, not a probability distribution. In ambiguous
+    /// cases both topologies remain possible; the caller must not select the
+    /// shared-junction hypothesis as an automatic graph mutation.
+    pub fn topology_hypotheses(
+        &self,
+    ) -> Result<CrossingTopologyHypotheses, CrossingQualificationError> {
+        match self.assess()? {
+            CrossingAssessment::DepthSeparated => Ok(CrossingTopologyHypotheses {
+                separate_filaments: true,
+                shared_3d_junction: false,
+            }),
+            CrossingAssessment::AmbiguousDepthRequiresReview
+            | CrossingAssessment::MissingDepthRequiresReview => {
+                Ok(CrossingTopologyHypotheses {
+                    separate_filaments: true,
+                    shared_3d_junction: true,
+                })
+            }
+        }
     }
 
     pub fn assess(&self) -> Result<CrossingAssessment, CrossingQualificationError> {
@@ -191,6 +235,36 @@ mod tests {
             DepthIntervalUm::new(f64::NAN, 1.0),
             Err(CrossingQualificationError::InvalidDepthInterval)
         );
+    }
+
+    #[test]
+    fn overlapping_depth_preserves_both_topology_hypotheses() {
+        let item = candidate(Some((1.0, 3.0)), Some((2.0, 4.0)));
+        let hypotheses = item.topology_hypotheses().unwrap();
+        assert!(hypotheses.separate_filaments);
+        assert!(hypotheses.shared_3d_junction);
+        assert!(hypotheses.requires_review());
+        assert!(!hypotheses.permits_automatic_join());
+    }
+
+    #[test]
+    fn disjoint_depth_excludes_shared_junction_hypothesis() {
+        let item = candidate(Some((1.0, 2.0)), Some((4.0, 5.0)));
+        let hypotheses = item.topology_hypotheses().unwrap();
+        assert!(hypotheses.separate_filaments);
+        assert!(!hypotheses.shared_3d_junction);
+        assert!(!hypotheses.requires_review());
+        assert!(!hypotheses.permits_automatic_join());
+    }
+
+    #[test]
+    fn missing_depth_preserves_both_topology_hypotheses() {
+        let item = candidate(Some((1.0, 2.0)), None);
+        let hypotheses = item.topology_hypotheses().unwrap();
+        assert!(hypotheses.separate_filaments);
+        assert!(hypotheses.shared_3d_junction);
+        assert!(hypotheses.requires_review());
+        assert!(!hypotheses.permits_automatic_join());
     }
 
     #[test]
