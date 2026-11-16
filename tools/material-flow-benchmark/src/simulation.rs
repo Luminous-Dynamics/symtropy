@@ -718,111 +718,6 @@ pub fn simulate_closed_gate_obstruction(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const FIXTURE: &str = include_str!("../fixtures/nominal-stationary-carrier.json");
-
-    fn fixture() -> ScenarioManifest {
-        serde_json::from_str(FIXTURE).expect("nominal MFB fixture must parse")
-    }
-
-    #[test]
-    fn nominal_receiver_drop_is_inside_tote_and_settled() {
-        let result = simulate_nominal(&fixture()).expect("nominal L1 episode should execute");
-        assert!(result.replay_bitwise_equal);
-        assert!(result.safe_inside_tote, "{result:?}");
-        assert!(result.settled, "{result:?}");
-        assert!(result.physics_numerically_healthy, "{result:?}");
-        assert!(result.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M);
-        assert_eq!(result.non_finite_body_count, 0);
-        assert_eq!(
-            result.transaction_state,
-            PhysicalTransactionState::Completed
-        );
-        assert!(result.accepted);
-    }
-
-    #[test]
-    fn closed_gate_obstruction_is_observed_physically_and_forces_reconciliation() {
-        let result = simulate_closed_gate_obstruction(&fixture())
-            .expect("closed-gate obstruction episode should execute");
-        assert!(result.physical_fault_effect_observed, "{result:?}");
-        assert!(result.gate_contact_event_count > 0, "{result:?}");
-        assert!(
-            result.gate_contact_max_impulse_ns.is_finite()
-                && result.gate_contact_max_impulse_ns > 0.0,
-            "{result:?}"
-        );
-        assert!(result.simulation.replay_bitwise_equal, "{result:?}");
-        assert!(result.simulation.settled, "{result:?}");
-        assert!(result.simulation.physics_numerically_healthy, "{result:?}");
-        assert!(
-            result.simulation.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M,
-            "{result:?}"
-        );
-        assert!(!result.simulation.safe_inside_tote, "{result:?}");
-        assert_eq!(
-            result.simulation.transaction_state,
-            PhysicalTransactionState::ReconciliationRequired
-        );
-        assert!(result.reconciliation_required);
-        assert!(result.blind_retry_blocked);
-        assert!(result.false_completion_blocked);
-        assert!(!result.simulation.accepted);
-        assert!(result.fault_oracle_passed, "{result:?}");
-    }
-
-    #[test]
-    fn small_gate_fault_sweep_retains_all_cases_and_is_repeatable() {
-        let first = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
-            .expect("three-seed gate sweep should execute");
-        let replay = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
-            .expect("repeated three-seed gate sweep should execute");
-        assert_eq!(first, replay);
-        assert_eq!(first.requested_run_count, 3);
-        assert_eq!(first.executed_run_count, 3);
-        assert_eq!(first.passed_run_count, 3, "{first:?}");
-        assert_eq!(first.failed_run_count, 0);
-        assert!(first.all_fault_oracles_passed);
-        assert_eq!(first.reconciliation_run_count, 3);
-        assert_eq!(first.blind_retry_blocked_run_count, 3);
-        assert_eq!(first.false_completion_blocked_run_count, 3);
-        assert!(first.minimum_gate_contact_events > 0);
-        assert!(first.maximum_gate_contact_impulse_ns > 0.0);
-        assert!(
-            first
-                .cases
-                .iter()
-                .all(|case| case.physics_trace_digest.is_some())
-        );
-    }
-
-    #[test]
-    fn gate_fault_sweep_rejects_zero_and_oversized_run_counts() {
-        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 0).is_err());
-        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 257).is_err());
-    }
-
-    #[test]
-    fn seed_is_bound_into_the_physics_trace() {
-        let baseline = simulate_nominal(&fixture()).expect("baseline episode should execute");
-        let mut other_seed = fixture();
-        other_seed.seed += 1;
-        let changed = simulate_nominal(&other_seed).expect("seeded episode should execute");
-        assert_ne!(baseline.physics_trace_digest, changed.physics_trace_digest);
-        assert!(changed.replay_bitwise_equal);
-    }
-
-    #[test]
-    fn non_l1_manifest_is_not_mislabelled_as_simulation() {
-        let mut scenario = fixture();
-        scenario.evidence_level = EvidenceLevel::L0Contract;
-        assert!(simulate_nominal(&scenario).is_err());
-    }
-}
-
 /// Run a deterministic seed sweep for the static gate-obstruction scene.
 /// Every requested seed is retained in the report, including simulation
 /// errors and failed fault oracles; cases are never silently dropped.
@@ -946,4 +841,109 @@ pub fn simulate_closed_gate_obstruction_sweep(
             "Execution errors remain explicit failed cases and are not removed from the denominator".into(),
         ],
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const FIXTURE: &str = include_str!("../fixtures/nominal-stationary-carrier.json");
+
+    fn fixture() -> ScenarioManifest {
+        serde_json::from_str(FIXTURE).expect("nominal MFB fixture must parse")
+    }
+
+    #[test]
+    fn nominal_receiver_drop_is_inside_tote_and_settled() {
+        let result = simulate_nominal(&fixture()).expect("nominal L1 episode should execute");
+        assert!(result.replay_bitwise_equal);
+        assert!(result.safe_inside_tote, "{result:?}");
+        assert!(result.settled, "{result:?}");
+        assert!(result.physics_numerically_healthy, "{result:?}");
+        assert!(result.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M);
+        assert_eq!(result.non_finite_body_count, 0);
+        assert_eq!(
+            result.transaction_state,
+            PhysicalTransactionState::Completed
+        );
+        assert!(result.accepted);
+    }
+
+    #[test]
+    fn closed_gate_obstruction_is_observed_physically_and_forces_reconciliation() {
+        let result = simulate_closed_gate_obstruction(&fixture())
+            .expect("closed-gate obstruction episode should execute");
+        assert!(result.physical_fault_effect_observed, "{result:?}");
+        assert!(result.gate_contact_event_count > 0, "{result:?}");
+        assert!(
+            result.gate_contact_max_impulse_ns.is_finite()
+                && result.gate_contact_max_impulse_ns > 0.0,
+            "{result:?}"
+        );
+        assert!(result.simulation.replay_bitwise_equal, "{result:?}");
+        assert!(result.simulation.settled, "{result:?}");
+        assert!(result.simulation.physics_numerically_healthy, "{result:?}");
+        assert!(
+            result.simulation.max_contact_penetration_m <= MAX_CONTACT_PENETRATION_M,
+            "{result:?}"
+        );
+        assert!(!result.simulation.safe_inside_tote, "{result:?}");
+        assert_eq!(
+            result.simulation.transaction_state,
+            PhysicalTransactionState::ReconciliationRequired
+        );
+        assert!(result.reconciliation_required);
+        assert!(result.blind_retry_blocked);
+        assert!(result.false_completion_blocked);
+        assert!(!result.simulation.accepted);
+        assert!(result.fault_oracle_passed, "{result:?}");
+    }
+
+    #[test]
+    fn small_gate_fault_sweep_retains_all_cases_and_is_repeatable() {
+        let first = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
+            .expect("three-seed gate sweep should execute");
+        let replay = simulate_closed_gate_obstruction_sweep(&fixture(), 3)
+            .expect("repeated three-seed gate sweep should execute");
+        assert_eq!(first, replay);
+        assert_eq!(first.requested_run_count, 3);
+        assert_eq!(first.executed_run_count, 3);
+        assert_eq!(first.passed_run_count, 3, "{first:?}");
+        assert_eq!(first.failed_run_count, 0);
+        assert!(first.all_fault_oracles_passed);
+        assert_eq!(first.reconciliation_run_count, 3);
+        assert_eq!(first.blind_retry_blocked_run_count, 3);
+        assert_eq!(first.false_completion_blocked_run_count, 3);
+        assert!(first.minimum_gate_contact_events > 0);
+        assert!(first.maximum_gate_contact_impulse_ns > 0.0);
+        assert!(
+            first
+                .cases
+                .iter()
+                .all(|case| case.physics_trace_digest.is_some())
+        );
+    }
+
+    #[test]
+    fn gate_fault_sweep_rejects_zero_and_oversized_run_counts() {
+        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 0).is_err());
+        assert!(simulate_closed_gate_obstruction_sweep(&fixture(), 257).is_err());
+    }
+
+    #[test]
+    fn seed_is_bound_into_the_physics_trace() {
+        let baseline = simulate_nominal(&fixture()).expect("baseline episode should execute");
+        let mut other_seed = fixture();
+        other_seed.seed += 1;
+        let changed = simulate_nominal(&other_seed).expect("seeded episode should execute");
+        assert_ne!(baseline.physics_trace_digest, changed.physics_trace_digest);
+        assert!(changed.replay_bitwise_equal);
+    }
+
+    #[test]
+    fn non_l1_manifest_is_not_mislabelled_as_simulation() {
+        let mut scenario = fixture();
+        scenario.evidence_level = EvidenceLevel::L0Contract;
+        assert!(simulate_nominal(&scenario).is_err());
+    }
 }
