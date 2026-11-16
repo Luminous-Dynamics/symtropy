@@ -791,7 +791,12 @@ mod tests {
         assert_eq!(first.false_completion_blocked_run_count, 3);
         assert!(first.minimum_gate_contact_events > 0);
         assert!(first.maximum_gate_contact_impulse_ns > 0.0);
-        assert!(first.cases.iter().all(|case| case.physics_trace_digest.is_some()));
+        assert!(
+            first
+                .cases
+                .iter()
+                .all(|case| case.physics_trace_digest.is_some())
+        );
     }
 
     #[test]
