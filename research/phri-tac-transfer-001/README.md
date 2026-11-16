@@ -53,3 +53,10 @@ The candidate setpoint is a declared stimulus, not an independently measured for
 The first hosted execution on 16 November 2026 completed the Rust test suite, strict Clippy and tracked-corpus CLI. For the one frozen seed in v0.1, the 16-contact D-optimal arm produced a 0.004986 N synthetic RMSE versus 0.004234 N for the 72-contact target-grid reference. Uniform and maximin were substantially worse on this response surface; the source-only arm was poor under the declared source/target shift; the transfer-prior arm traded somewhat better worst-case error/interval diagnostic coverage against greater total source+target contact cost. These are deterministic synthetic results, not physical calibration measurements or a stable policy ranking.
 
 This result is deliberately not the campaign conclusion. [PHRI-TAC-ROBUST-001 #5591](https://github.com/Luminous-Dynamics/symtropy/issues/5591) now owns paired multi-seed statistics, model-misspecification families, reference-channel common-mode/noise injection and per-stratum failure analysis. No policy should be selected from this single seed.
+
+
+## Paired multi-seed robustness campaign
+
+The follow-on executable exposes `run_active_calibration_campaign(first_seed, replicate_count)`. It requires at least 50 paired seeds and evaluates every policy on the same source, target and held-out domains for each seed. Each policy reports mean, median, p95 and maximum values for synthetic RMSE, p95/worst absolute error, prediction-interval coverage/width and generated fixture-cost proxy. It also reports the per-seed paired RMSE difference against the full target-grid arm.
+
+The first implementation is a stability screen, not a complete statistical analysis: bootstrap confidence intervals, cluster-aware inference, model-family misspecification, common-mode reference faults and multiple physical target articles remain follow-on requirements under #5591. These repeated runs remain synthetic and do not establish physical uncertainty coverage or calibration savings.
