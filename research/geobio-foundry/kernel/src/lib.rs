@@ -158,23 +158,28 @@ pub struct ElementalBalanceReport {
 #[derive(Clone, Debug, PartialEq)]
 pub struct OriginMassIntensity {
     pub local_measured_kg_per_kg_product: f64,
+    pub local_measured_standard_uncertainty: Option<f64>,
     pub local_inferred_kg_per_kg_product: f64,
+    pub local_inferred_standard_uncertainty: Option<f64>,
     pub imported_kg_per_kg_product: f64,
+    pub imported_standard_uncertainty: Option<f64>,
     pub recycled_kg_per_kg_product: f64,
+    pub recycled_standard_uncertainty: Option<f64>,
     pub unknown_origin_kg_per_kg_product: f64,
+    pub unknown_origin_standard_uncertainty: Option<f64>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ResourceIntensityReport {
     pub primary_product_mass_kg: f64,
     pub gross_energy_j_per_kg_product: f64,
+    pub gross_energy_standard_uncertainty: Option<f64>,
     /// Kept separate from gross energy; not netted.
     pub recovered_energy_j_per_kg_product: Option<f64>,
+    pub recovered_energy_standard_uncertainty: Option<f64>,
     pub input_mass: OriginMassIntensity,
     pub all_flow_compositions_complete: bool,
-    /// v0.2 intensities are nominal ratios; ratio uncertainty is not yet
-    /// propagated. This flag prevents callers from interpreting them as
-    /// uncertainty-qualified economic or engineering claims.
+    /// True only when every returned ratio has propagated standard uncertainty.
     pub uncertainty_propagated: bool,
 }
 
@@ -499,6 +504,43 @@ fn find_element<'a>(
         .map(|entry| &entry.mass_kg)
 }
 
+/// First-order uncertainty for A/B, where A is a sum of the supplied
+/// numerator measurements and B is one measured denominator. Shared
+/// correlation groups are propagated by the same fully-correlated-group
+/// approximation as elemental_balance. This is not a general covariance
+/// estimator.
+fn ratio_standard_uncertainty(
+    numerator_measurements: &[&Measurement],
+    numerator_value: f64,
+    denominator: &Measurement,
+    denominator_value: f64,
+    context: &str,
+) -> Result<Option<f64>, KernelError> {
+    if numerator_measurements.is_empty() {
+        return if numerator_value == 0.0 {
+            Ok(Some(0.0))
+        } else {
+            Err(KernelError::InvalidProcess(vec![
+                "non-zero numerator has no source measurements".to_string(),
+            ]))
+        };
+    }
+
+    let numerator_coefficient = 1.0 / denominator_value;
+    let denominator_coefficient =
+        -numerator_value / (denominator_value * denominator_value);
+    if !numerator_coefficient.is_finite() || !denominator_coefficient.is_finite() {
+        return Err(KernelError::NumericalOverflow(context.to_string()));
+    }
+
+    let mut terms = Vec::with_capacity(numerator_measurements.len() + 1);
+    for measurement in numerator_measurements {
+        terms.push((numerator_coefficient, *measurement));
+    }
+    terms.push((denominator_coefficient, denominator));
+    combined_uncertainty(&terms, context)
+}
+
 /// Calculate element-by-element material residuals. An unlisted element in a
 /// composition-incomplete flow makes that element unquantified. For complete
 /// flows, an absent element is known to be zero. Unknown composition is never
@@ -663,6 +705,7 @@ pub fn resource_intensity(
     }
 
     let mut origin_mass = BTreeMap::<OriginClass, f64>::new();
+    let mut origin_measurements = BTreeMap::<OriginClass, Vec<&Measurement>>::new();
     for flow in &process.inputs {
         let previous = origin_mass.get(&flow.origin).copied().unwrap_or(0.0);
         let combined = add_finite(
@@ -671,36 +714,80 @@ pub fn resource_intensity(
             "input mass by origin",
         )?;
         origin_mass.insert(flow.origin, combined);
+        origin_measurements
+            .entry(flow.origin)
+            .or_default()
+            .push(&flow.mass_kg);
     }
 
     let per_product_kg = |origin: OriginClass| {
         origin_mass.get(&origin).copied().unwrap_or(0.0) / product_mass_kg
     };
+    let ratio_uncertainty = |origin: OriginClass| -> Result<Option<f64>, KernelError> {
+        let numerator = origin_mass.get(&origin).copied().unwrap_or(0.0);
+        let measurements = origin_measurements
+            .get(&origin)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        ratio_standard_uncertainty(
+            measurements,
+            numerator,
+            &primary.mass_kg,
+            product_mass_kg,
+            "feedstock-origin intensity uncertainty",
+        )
+    };
 
     let origin_intensity = OriginMassIntensity {
         local_measured_kg_per_kg_product: per_product_kg(OriginClass::LocalMeasured),
+        local_measured_standard_uncertainty: ratio_uncertainty(OriginClass::LocalMeasured)?,
         local_inferred_kg_per_kg_product: per_product_kg(OriginClass::LocalInferred),
+        local_inferred_standard_uncertainty: ratio_uncertainty(OriginClass::LocalInferred)?,
         imported_kg_per_kg_product: per_product_kg(OriginClass::Imported),
+        imported_standard_uncertainty: ratio_uncertainty(OriginClass::Imported)?,
         recycled_kg_per_kg_product: per_product_kg(OriginClass::Recycled),
+        recycled_standard_uncertainty: ratio_uncertainty(OriginClass::Recycled)?,
         unknown_origin_kg_per_kg_product: per_product_kg(OriginClass::Unknown),
+        unknown_origin_standard_uncertainty: ratio_uncertainty(OriginClass::Unknown)?,
     };
 
-    let recovered_energy_j_per_kg_product = process
-        .energy
-        .recovered_j
-        .as_ref()
-        .map(|measurement| measurement.value / product_mass_kg);
+    let gross_energy_measurements = [&process.energy.gross_consumed_j];
+    let gross_energy_j_per_kg_product =
+        process.energy.gross_consumed_j.value / product_mass_kg;
+    let gross_energy_standard_uncertainty = ratio_standard_uncertainty(
+        &gross_energy_measurements,
+        process.energy.gross_consumed_j.value,
+        &primary.mass_kg,
+        product_mass_kg,
+        "gross-energy intensity uncertainty",
+    )?;
 
-    let energy_per_kg = process.energy.gross_consumed_j.value / product_mass_kg;
-    let origin_intensities = [
+    let (recovered_energy_j_per_kg_product, recovered_energy_standard_uncertainty) =
+        match &process.energy.recovered_j {
+            Some(recovered) => {
+                let measurements = [recovered];
+                let value = recovered.value / product_mass_kg;
+                let uncertainty = ratio_standard_uncertainty(
+                    &measurements,
+                    recovered.value,
+                    &primary.mass_kg,
+                    product_mass_kg,
+                    "recovered-energy intensity uncertainty",
+                )?;
+                (Some(value), uncertainty)
+            }
+            None => (None, None),
+        };
+
+    let intensity_values = [
         origin_intensity.local_measured_kg_per_kg_product,
         origin_intensity.local_inferred_kg_per_kg_product,
         origin_intensity.imported_kg_per_kg_product,
         origin_intensity.recycled_kg_per_kg_product,
         origin_intensity.unknown_origin_kg_per_kg_product,
+        gross_energy_j_per_kg_product,
     ];
-    if !energy_per_kg.is_finite()
-        || origin_intensities.iter().any(|value| !value.is_finite())
+    if intensity_values.iter().any(|value| !value.is_finite())
         || recovered_energy_j_per_kg_product.is_some_and(|value| !value.is_finite())
     {
         return Err(KernelError::NumericalOverflow(
@@ -715,13 +802,28 @@ pub fn resource_intensity(
         .chain(process.waste_streams.iter())
         .all(|flow| flow.composition_complete);
 
+    let uncertainty_propagated = [
+        origin_intensity.local_measured_standard_uncertainty,
+        origin_intensity.local_inferred_standard_uncertainty,
+        origin_intensity.imported_standard_uncertainty,
+        origin_intensity.recycled_standard_uncertainty,
+        origin_intensity.unknown_origin_standard_uncertainty,
+        gross_energy_standard_uncertainty,
+    ]
+    .iter()
+    .all(Option::is_some)
+        && (process.energy.recovered_j.is_none()
+            || recovered_energy_standard_uncertainty.is_some());
+
     Ok(ResourceIntensityReport {
         primary_product_mass_kg: product_mass_kg,
-        gross_energy_j_per_kg_product: energy_per_kg,
+        gross_energy_j_per_kg_product,
+        gross_energy_standard_uncertainty,
         recovered_energy_j_per_kg_product,
+        recovered_energy_standard_uncertainty,
         input_mass: origin_intensity,
         all_flow_compositions_complete,
-        uncertainty_propagated: false,
+        uncertainty_propagated,
     })
 }
 
@@ -987,6 +1089,61 @@ mod tests {
     }
 
     #[test]
+    fn resource_intensity_propagates_independent_ratio_uncertainty() {
+        let mut process = water_electrolysis_fixture();
+        process.inputs[0].mass_kg = Measurement::measured(2.0, 0.2, None);
+        process.inputs[0].elements = vec![
+            element("H", 0.223796, 0.0001),
+            element("O", 1.776204, 0.0001),
+        ];
+        process.inputs[0].composition_complete = false;
+        process.products[1].mass_kg = Measurement::measured(1.0, 0.1, None);
+        process.products[1].elements = vec![element("O", 1.0, 0.0001)];
+        process.products[1].composition_complete = false;
+
+        let report = resource_intensity(&process, 1e-6).unwrap();
+        let expected = (0.2_f64.powi(2) + (2.0_f64 * 0.1).powi(2)).sqrt();
+        assert!((report.input_mass.local_measured_standard_uncertainty.unwrap() - expected).abs() < 1e-12);
+        assert!(report.gross_energy_standard_uncertainty.is_some());
+        assert!(report.uncertainty_propagated);
+    }
+
+    #[test]
+    fn shared_scale_error_can_cancel_in_a_ratio() {
+        let mut process = water_electrolysis_fixture();
+        process.inputs = vec![MaterialFlow {
+            flow_id: "iron-feed".to_string(),
+            material_id: "iron-bearing-rock".to_string(),
+            origin: OriginClass::LocalMeasured,
+            mass_kg: Measurement::measured(2.0, 0.2, Some("shared-scale".to_string())),
+            composition_complete: true,
+            elements: vec![element("Fe", 2.0, 0.0)],
+        }];
+        process.products = vec![MaterialFlow {
+            flow_id: "iron-product".to_string(),
+            material_id: "iron".to_string(),
+            origin: OriginClass::LocalMeasured,
+            mass_kg: Measurement::measured(1.0, 0.1, Some("shared-scale".to_string())),
+            composition_complete: true,
+            elements: vec![element("Fe", 1.0, 0.0)],
+        }];
+        process.primary_product_flow_id = "iron-product".to_string();
+
+        let report = resource_intensity(&process, 1e-9).unwrap();
+        assert!((report.input_mass.local_measured_kg_per_kg_product - 2.0).abs() < 1e-12);
+        assert!(report.input_mass.local_measured_standard_uncertainty.unwrap().abs() < 1e-12);
+    }
+
+    #[test]
+    fn missing_ratio_uncertainty_is_explicit() {
+        let mut process = water_electrolysis_fixture();
+        process.energy.gross_consumed_j.standard_uncertainty = None;
+        let report = resource_intensity(&process, 1e-6).unwrap();
+        assert!(report.gross_energy_standard_uncertainty.is_none());
+        assert!(!report.uncertainty_propagated);
+    }
+
+    #[test]
     fn complete_composition_must_reconcile_to_total_flow_mass() {
         let mut process = water_electrolysis_fixture();
         process.inputs[0].elements[0].mass_kg.value = 0.20;
@@ -1012,7 +1169,9 @@ mod tests {
             - (50.0 / 0.888102))
             .abs()
             < 1e-9);
+        assert!(report.gross_energy_standard_uncertainty.is_some());
+        assert!(report.recovered_energy_standard_uncertainty.is_some());
         assert!(report.all_flow_compositions_complete);
-        assert!(!report.uncertainty_propagated);
+        assert!(report.uncertainty_propagated);
     }
 }
