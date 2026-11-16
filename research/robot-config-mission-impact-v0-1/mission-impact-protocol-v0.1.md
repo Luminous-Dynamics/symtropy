@@ -91,7 +91,7 @@ The stage catalog is profile-bound. This reference decomposition is a starting v
 
 For each stage transition record:
 - stage entry/exit criteria and transition identity;
-- event-time and arrival-time with clock domain;
+- event-time and arrival-time ticks, separate clock-domain references, and explicit clock-mapping state (qualified, unqualified or absent);
 - attempts, retries, duration and intervention;
 - evidence and raw-artifact references;
 - status: reached, passed, failed, blocked, not reached, intentionally skipped by policy, aborted, or unknown;
