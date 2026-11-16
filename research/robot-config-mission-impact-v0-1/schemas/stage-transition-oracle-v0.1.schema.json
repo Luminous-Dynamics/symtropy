@@ -28,7 +28,7 @@
     },
     "dispositions": {
       "type": "array",
-      "minItems": 12,
+      "minItems": 17,
       "items": {
         "type": "object",
         "additionalProperties": false,
