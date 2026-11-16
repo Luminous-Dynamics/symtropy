@@ -8,7 +8,7 @@
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
-pub const SOLAR_ANGULAR_DIAMETER_RAD: f64 = 9.30e-3;
+pub const SOLAR_ANGULAR_DIAMETER_AT_1_AU_RAD: f64 = 9.30e-3;
 pub const AU_REFERENCE_SOLAR_FLUX_W_M2: f64 = 1361.0;
 pub const NUMERIC_EPSILON: f64 = 1.0e-9;
 
@@ -102,14 +102,21 @@ pub fn solar_flux_at_au(
 }
 
 /// Geometric diameter of the solar image at a focal distance / mirror-to-target
-/// range, using the Sun's approximate angular diameter (9.30 mrad).
+/// range. The Sun's angular diameter is approximately 9.30 mrad at 1 AU and
+/// scales inversely with heliocentric distance.
 ///
 /// This is not a full concentrator model. Optical aberration, mirror shape,
 /// pointing, thermal deformation, obscuration and nonuniform focal irradiance
 /// are deliberately outside this screening relationship.
-pub fn solar_image_diameter_m(range_m: f64) -> Result<f64, AuditError> {
+pub fn solar_image_diameter_m(
+    range_m: f64,
+    heliocentric_distance_au: f64,
+) -> Result<f64, AuditError> {
     require_finite_positive(range_m, "range_m")?;
-    Ok(range_m * SOLAR_ANGULAR_DIAMETER_RAD)
+    require_finite_positive(heliocentric_distance_au, "heliocentric_distance_au")?;
+    let solar_angular_diameter =
+        SOLAR_ANGULAR_DIAMETER_AT_1_AU_RAD / heliocentric_distance_au;
+    Ok(range_m * solar_angular_diameter)
 }
 
 /// Ideal circular-aperture Airy first-null diameter in the far field:
@@ -402,8 +409,16 @@ mod tests {
 
     #[test]
     fn solar_image_scales_with_mirror_to_target_range() {
-        let spot = solar_image_diameter_m(100_000.0).unwrap();
+        let spot = solar_image_diameter_m(100_000.0, 1.0).unwrap();
         assert!((spot - 930.0).abs() < 1.0e-9);
+    }
+
+    #[test]
+    fn solar_image_shrinks_with_heliocentric_distance() {
+        let spot = solar_image_diameter_m(100_000.0, 2.0).unwrap();
+        assert!((spot - 465.0).abs() < 1.0e-9);
+        let belt_spot = solar_image_diameter_m(100_000.0, 2.7).unwrap();
+        assert!((belt_spot - (930.0 / 2.7)).abs() < 1.0e-9);
     }
 
     #[test]
@@ -421,7 +436,8 @@ mod tests {
 
     #[test]
     fn rejects_non_finite_geometry() {
-        assert!(solar_image_diameter_m(f64::NAN).is_err());
+        assert!(solar_image_diameter_m(f64::NAN, 1.0).is_err());
+        assert!(solar_image_diameter_m(100.0, 0.0).is_err());
         assert!(ideal_laser_airy_diameter_m(1.0e-6, f64::INFINITY, 1.0).is_err());
     }
 
