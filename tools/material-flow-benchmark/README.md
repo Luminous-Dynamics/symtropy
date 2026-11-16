@@ -61,18 +61,9 @@ The first 120 Hz L1 baseline measured 10.26 mm maximum contact penetration. Refi
 
 ### Executed ten-fault protocol campaign (2026-11-16)
 
-Exact-head workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) passed on source `a270a138095f187b6ad034fbb530cc27f746ec4f` with **61 Rust tests**, strict formatting, Clippy `-D warnings`, nominal and campaign-manifest validation, all ten protocol fault executions, four-timestep analytical convergence, L1 receiving simulation/replay and evidence upload.
+The protocol-level fault campaign first passed on push workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) on source `a270a138095f187b6ad034fbb530cc27f746ec4f`. The latest pull-request verification [43820234221](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43820234221) also passed on PR head `d95a12f9264a2659ae98fd2c7303889efba3ab22` (merge SHA `77a6d6bcbc7c3d1b155631d6e4d294d874ac12af`), with **61 tests**, strict formatting/Clippy and all benchmark steps green.
 
-The executed campaign reported:
-- **10/10 episodes accepted** against their expected terminal-state oracle;
-- pre-dispatch faults never issued a release command;
-- replay of the same logical command was suppressed;
-- a second distinct physical-release observation forced reconciliation;
-- missing acknowledgement, power interruption and network partition after release all blocked blind retry;
-- no injected fault was falsely reported as completed.
-
-Evidence artifact: `mfb-l1-evidence-a270a138095f187b6ad034fbb530cc27f746ec4f` (artifact ID `14204140876`). It contains `protocol-fault-campaign.json`, `free-fall-convergence.json`, `result.json` and environment metadata. The campaign is **protocol-level typed-event injection into an in-memory state machine**, not physical sensor/network/power fault injection, HIL or field testing.
-
+That latest evidence artifact is `mfb-l1-evidence-77a6d6bcbc7c3d1b155631d6e4d294d874ac12af` (ID `14204525955`), four files, ZIP SHA-256 `dd3c5e32bd11d82e7a144c7c97e5b49ffa12def9529bc4f5f58b61182b691a83`. `environment.txt` records SHA-256 digests for the scenario fixture, L1 result, free-fall convergence report, protocol campaign report and committed Cargo.lock.
 ## Tier-B free-fall convergence check
 
 The `mfb-validate-convergence` binary evaluates Symtropy's translational integrator against the closed-form uniform-gravity solution over four matched one-second runs:
