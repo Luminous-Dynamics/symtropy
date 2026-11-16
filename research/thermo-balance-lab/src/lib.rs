@@ -179,7 +179,10 @@ impl EnergyLedger {
         let i = to.index();
         let next_store = self.stores[i] + amount.get();
         let next_in = self.boundary_in + amount.get();
-        if !next_store.is_finite() || !next_in.is_finite() {
+        let next_total = self.total() + amount.get();
+        let next_expected = self.initial_total + next_in - self.boundary_out;
+        if !next_store.is_finite() || !next_in.is_finite()
+            || !next_total.is_finite() || !next_expected.is_finite() {
             return Err(LedgerError::NonFiniteEnergy);
         }
         self.stores[i] = next_store;
@@ -209,7 +212,10 @@ impl EnergyLedger {
         }
         let next_store = self.stores[i] - value;
         let next_out = self.boundary_out + value;
-        if !next_store.is_finite() || !next_out.is_finite() || next_store < 0.0 {
+        let next_total = self.total() - value;
+        let next_expected = self.initial_total + self.boundary_in - next_out;
+        if !next_store.is_finite() || !next_out.is_finite()
+            || !next_total.is_finite() || !next_expected.is_finite() || next_store < 0.0 {
             return Err(LedgerError::NonFiniteEnergy);
         }
         self.stores[i] = next_store.max(0.0);
@@ -269,7 +275,7 @@ pub fn solve_collision_1d(
         || !kinetic_before_j.is_finite() || !kinetic_after_j.is_finite() || !heat_j.is_finite() {
         return Err(LedgerError::NonFiniteEnergy);
     }
-    if heat_j < -1e-12 * kinetic_before_j.max(1.0) {
+    if heat_j < -1e-12 * kinetic_before_j.max(f64::MIN_POSITIVE) {
         return Err(LedgerError::LedgerMismatch);
     }
 
@@ -294,7 +300,8 @@ pub fn collide_and_account(
         mass_a_kg, mass_b_kg, velocity_a_mps, velocity_b_mps, restitution,
     )?;
     let ledger_kinetic = ledger.amount(EnergyStore::Kinetic).get();
-    if (ledger_kinetic - result.kinetic_before_j).abs() > 1e-10 * result.kinetic_before_j.max(1.0) {
+    if (ledger_kinetic - result.kinetic_before_j).abs()
+        > 1e-10 * result.kinetic_before_j.max(f64::MIN_POSITIVE) {
         return Err(LedgerError::LedgerMismatch);
     }
     if result.dissipated_to_heat_j > 0.0 {
