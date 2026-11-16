@@ -367,5 +367,4 @@ fn main() {
             .expect("valid absolute-time capsule query"),
         );
     });
-
 }
