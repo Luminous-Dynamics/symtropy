@@ -292,7 +292,9 @@ impl LifecycleSnapshot {
                 // silently reinstated.
                 next.bump_generation()?;
             }
-            LifecycleChange::SurfaceInspectionAccepted { condition_receipt_id } => {
+            LifecycleChange::SurfaceInspectionAccepted {
+                condition_receipt_id,
+            } => {
                 require_nonempty(condition_receipt_id, "surface condition receipt ID")?;
                 next.surface_condition = SurfaceCondition::QualifiedClean;
                 next.surface_condition_receipt_id = Some(condition_receipt_id.clone());
@@ -444,7 +446,9 @@ impl CalibrationPassport {
             .as_deref()
             .is_none_or(|receipt_id| receipt_id.trim().is_empty())
         {
-            reasons.push(AssessmentReason::MissingEvidenceReceipt("surface_condition"));
+            reasons.push(AssessmentReason::MissingEvidenceReceipt(
+                "surface_condition",
+            ));
         }
 
         let contact_cycles_since_calibration = current
@@ -596,9 +600,13 @@ mod tests {
             assessment.disposition,
             AssessmentDisposition::MaintenanceRequired
         );
-        assert!(assessment.reasons.contains(
-            &AssessmentReason::SurfaceConditionNotQualified(SurfaceCondition::ConditionUnknown)
-        ));
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::SurfaceConditionNotQualified(
+                    SurfaceCondition::ConditionUnknown
+                ))
+        );
     }
 
     #[test]
@@ -610,9 +618,13 @@ mod tests {
             assessment.disposition,
             AssessmentDisposition::UnqualifiedEvidence
         );
-        assert!(assessment.reasons.contains(
-            &AssessmentReason::MissingEvidenceReceipt("surface_condition")
-        ));
+        assert!(
+            assessment
+                .reasons
+                .contains(&AssessmentReason::MissingEvidenceReceipt(
+                    "surface_condition"
+                ))
+        );
     }
 
     #[test]
@@ -875,7 +887,9 @@ mod tests {
         let gap = event(
             "event-gap-02",
             2,
-            LifecycleChange::TemperatureObserved { temperature_c: 25.0 },
+            LifecycleChange::TemperatureObserved {
+                temperature_c: 25.0,
+            },
         );
         assert!(original.apply(&gap).is_err());
         assert_eq!(original.last_event_sequence, 0);
