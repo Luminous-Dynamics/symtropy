@@ -66,7 +66,8 @@ pub struct TimedCoTranslatingClosestApproach {
 
 impl TimedCoTranslatingClosestApproach {
     pub fn is_contact(self, moving_radius_mm: f64, obstacle_radius_mm: f64) -> bool {
-        self.closest.is_contact(moving_radius_mm, obstacle_radius_mm)
+        self.closest
+            .is_contact(moving_radius_mm, obstacle_radius_mm)
     }
 }
 
@@ -105,8 +106,7 @@ pub fn timed_co_translating_capsule_vs_capsule(
         return Err(TimedCcdError::NoTemporalOverlap);
     }
 
-    let moving_at_overlap_start =
-        rebase_span_to_time(moving, overlap_start_ms, overlap_end_ms)?;
+    let moving_at_overlap_start = rebase_span_to_time(moving, overlap_start_ms, overlap_end_ms)?;
     let obstacle_at_overlap_start =
         rebase_span_to_time(obstacle, overlap_start_ms, overlap_end_ms)?;
 
@@ -118,8 +118,7 @@ pub fn timed_co_translating_capsule_vs_capsule(
     )?;
 
     let overlap_duration_ms = overlap_end_ms - overlap_start_ms;
-    let closest_time_offset_ms =
-        (overlap_duration_ms as f64) * closest.time_parameter;
+    let closest_time_offset_ms = (overlap_duration_ms as f64) * closest.time_parameter;
     if !closest_time_offset_ms.is_finite() {
         return Err(TimedCcdError::Geometry(
             TranslationCcdError::NumericalOverflow,
@@ -164,16 +163,10 @@ fn validate_span(span: &CapsuleMotionSpan) -> Result<(), TimedCcdError> {
     if span.clock_uncertainty_ms != 0 {
         return Err(TimedCcdError::ClockUncertaintyUnmodeled);
     }
-    if !span.capsule_at_start.radius_mm.is_finite()
-        || span.capsule_at_start.radius_mm < 0.0
-    {
-        return Err(TimedCcdError::Geometry(
-            TranslationCcdError::InvalidRadius,
-        ));
+    if !span.capsule_at_start.radius_mm.is_finite() || span.capsule_at_start.radius_mm < 0.0 {
+        return Err(TimedCcdError::Geometry(TranslationCcdError::InvalidRadius));
     }
-    if !is_finite(span.capsule_at_start.start)
-        || !is_finite(span.capsule_at_start.end)
-    {
+    if !is_finite(span.capsule_at_start.start) || !is_finite(span.capsule_at_start.end) {
         return Err(TimedCcdError::Geometry(
             TranslationCcdError::NonFiniteCoordinate,
         ));
