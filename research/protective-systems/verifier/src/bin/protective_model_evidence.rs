@@ -1117,9 +1117,7 @@ mod tests {
     #[test]
     fn incomplete_lineage_is_rejected() {
         let mut root = fixture_value();
-        let _ = root["lineage_edges"].as_array_mut().expect("edges").pop();
-        root["lineage_edges"][0]["to"] =
-            Value::String("analysis:unregistered".into());
+        root["lineage_edges"][0]["to"] = Value::String("analysis:unregistered".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("incomplete lineage");
         assert!(error.contains("edge references unknown or directionally invalid lineage"));
@@ -1208,7 +1206,9 @@ mod tests {
             Value::String("../../../../secret.txt".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("path traversal");
-        assert!(error.contains("artifact path/name/media type does not match its direction and role"));
+        assert!(
+            error.contains("artifact path/name/media type does not match its direction and role")
+        );
     }
 
     #[test]
