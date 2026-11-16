@@ -199,7 +199,10 @@
     "Pythium ultimum is oomycete and must never be tagged as true fungus",
     "a path is not a confirmed highway unless each hop has source-supported hyphal support and connected liquid-film evidence",
     "unknown liquid state must never become connected by default",
-    "topology alone never proves bacterial dispersal"
+    "topology alone never proves bacterial dispersal",
+    "each endpoint liquid patch has a distinct source-linked LiquidFilmPatch receipt",
+    "the aqueous bridge has a separate LiquidFilmBridge receipt; endpoint patch receipts cannot be reused as the connecting-film receipt",
+    "one observation receipt ID cannot identify two different liquid patch identities"
   ],
   "split_contract": {
     "unit": "complete microfluidic device",
