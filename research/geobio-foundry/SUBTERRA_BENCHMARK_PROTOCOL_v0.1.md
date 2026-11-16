@@ -132,7 +132,7 @@ The manifest captures:
 
 Required semantic validation still sits beyond JSON Schema: every referenced source record must exist; no source graph cycle is permitted; observation IDs must resolve exactly once to observations in the declared site record; derived products must preserve the acquisition lineage of their source chain unless an explicitly reviewed transformation declares a new physical acquisition boundary; shared-cause groups must be scoped to an episode/campaign, not a global device or software name.
 
-The Symthaea dependence audit consumes corresponding typed declarations and computes transitive split components. Its output is an audit of declared grouping only, not proof of independence. A future adapter should retain original IDs and issue a source-to-audit mapping receipt; it must not silently infer independence from absent group declarations.
+The Symthaea draft dependence auditor (PR #12465) consumes this sidecar schema using strict typed JSON parsing and computes transitive split components after receiving a separate evaluator-owned record-to-split map. Its tests are AUTHORED, not executed or CI-qualified. Its output is an audit of declared grouping only, not proof of independence. An eventual integrated adapter should retain original IDs and issue a source-to-audit mapping receipt; it must not silently infer independence from absent group declarations.
 
 | Benchmark | Property | Proposed gate |
 |---|---|---|

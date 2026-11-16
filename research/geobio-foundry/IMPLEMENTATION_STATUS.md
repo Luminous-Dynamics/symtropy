@@ -65,6 +65,7 @@
 | Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Subterra network schema/fixture JSON syntax | **PASS** | Both committed files parse as JSON; Draft 2020-12 meta-validation/fixture validation not yet executed for this new schema |
 | Observation-lineage schema/fixture | **PASS (schema + fixture)** | Draft 2020-12 meta-validation and fixture validation were executed against the exact committed blobs; source-graph referential integrity/cycle checks and site observation cross-reference validation remain pending |
+| Cross-repository typed lineage consumer | **AUTHORED, NOT EXECUTED** | Symthaea draft PR #12465 copies the exact six-record fixture and adds strict JSON parsing, source graph/acquisition-ancestry validation and external split-map auditing; its 39 tests remain uncompiled/unexecuted and CI-skipped |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
@@ -81,7 +82,7 @@
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
 4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
 5. Subterra morphometry is a one-dimensional piecewise-constant profile summary, not a 3D interior reconstruction, cave-connectivity inference, geomechanics model or stability/safety assessment.
-6. The typed semantic validator checks a subset of cross-field dependencies but does not authenticate evidence references, validate coordinate transforms, or replace independent geotechnical/planetary-protection review. The schema-to-Rust record adapter is not yet implemented. Evidence that a conduit is connected does not by itself prove robot traversability; lack of demonstrated access must remain a separate state.
+6. The typed semantic validator checks a subset of cross-field dependencies but does not authenticate evidence references, validate coordinate transforms, or replace independent geotechnical/planetary-protection review. The site-evidence/network schema-to-Rust record adapter is not yet implemented. The separate observation-lineage sidecar is consumed by a draft Symthaea reference package (PR #12465), not by a production Symtropy runtime. Evidence that a conduit is connected does not by itself prove robot traversability; lack of demonstrated access must remain a separate state.
 7. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
 8. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
 9. The synthetic electrolysis fixture is not an empirical performance datum.
@@ -93,7 +94,7 @@
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 5. Add a dedicated CI lane or explicit nested-workspace verification target for `research/geobio-foundry/kernel`; the successful root-workspace CI run does not execute its 61 research tests.
-6. Meta-validate the observation-lineage schema, add semantic source-record/observation-reference checks, and test split-group leakage against Symthaea's dependence auditor.
+6. Add permanent Symtropy-side schema/fixture CI and validate every lineage observation ID against the corresponding site-evidence observation list; review and execute the typed cross-repository contract in Symthaea PR #12465.
 7. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
 8. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
 9. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
