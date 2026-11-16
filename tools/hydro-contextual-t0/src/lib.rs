@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 38;
+pub const CASE_COUNT: usize = 40;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -926,6 +926,10 @@ fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
         "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE_ENSEMBLE",
         "model_member_count": model_members.len(),
         "reference_member_count": reference_members.len(),
+        "model_forecast_id": model_forecast_id,
+        "reference_forecast_id": reference_forecast_id,
+        "verification_population_id": verification_population_id,
+        "lead_time_hours": lead_time_hours,
         "observed": observed,
         "model_crps": model_crps,
         "reference_crps": reference_crps,
@@ -1062,7 +1066,9 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
 
         "HC-T0-033-crps-skill-vs-reference"
-        | "HC-T0-034-crps-skill-zero-reference-undefined" => ensemble_crps_skill(input),
+        | "HC-T0-034-crps-skill-zero-reference-undefined"
+        | "HC-T0-039-crpss-invalid-forecast-identity-reject"
+        | "HC-T0-040-crpss-negative-lead-reject" => ensemble_crps_skill(input),
         "HC-T0-035-weighted-interval-score" | "HC-T0-036-weighted-interval-nesting-reject"
         | "HC-T0-037-weighted-interval-alpha-reject"
         | "HC-T0-038-weighted-interval-duplicate-alpha-reject" => weighted_interval_score(input),
@@ -1208,7 +1214,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_eight_cases_match_separate_oracle() {
+    fn all_forty_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1386,6 +1392,20 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][37]).expect("duplicate interval alpha");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "DUPLICATE_INTERVAL_ALPHA");
+    }
+
+    #[test]
+    fn crps_skill_rejects_same_model_and_reference_forecast_identity() {
+        let out = compute_case(&fixture("inputs")["cases"][38]).expect("invalid forecast identity");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD");
+    }
+
+    #[test]
+    fn crps_skill_rejects_negative_forecast_lead() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("negative lead");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD");
     }
 
     #[test]
