@@ -415,7 +415,7 @@ The standalone tool now also defines a `FaultCampaignManifest` and `mfb-validate
 
 The fixture `tools/material-flow-benchmark/fixtures/ten-fault-campaign.json` and its CLI verify only that the declared test campaign is complete and internally consistent. It does not execute a fault injection, simulate a physical response or prove safe recovery. Those results require the Symtropy scenario runner and later evidence levels.
 
-**Verification status (2026-11-16):** latest pull-request workflow [`43820234221`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43820234221) passed all steps on PR head `d95a12f9264a2659ae98fd2c7303889efba3ab22` (checked-out merge SHA `77a6d6bcbc7c3d1b155631d6e4d294d874ac12af`). It passed strict formatting, Clippy with `-D warnings`, **61 Rust tests**, nominal scenario validation, campaign-manifest validation, all ten executable protocol fault episodes, four-timestep analytical free-fall convergence, L1 simulation/replay and evidence upload. The dependency graph is committed in `Cargo.lock`; checks use `--locked`. Artifact `mfb-l1-evidence-77a6d6bcbc7c3d1b155631d6e4d294d874ac12af` (ID `14204525955`) contains four files: `protocol-fault-campaign.json`, `free-fall-convergence.json`, `result.json` and `environment.txt`. The environment record binds the scenario, all three result JSONs and `Cargo.lock` to SHA-256 digests; the artifact ZIP digest is `dd3c5e32bd11d82e7a144c7c97e5b49ffa12def9529bc4f5f58b61182b691a83`. No physical sensor, power, network, actuator, HIL, guarded-rig or field fault injection is claimed.
+**Verification status (2026-11-16):** newest dedicated workflow [`43821500342`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43821500342) passed on exact branch head `970ae35eb28d6ffaae0c4fbb141b5156b4a2312f`. It passed strict formatting, Clippy `-D warnings`, **67 Rust tests**, nominal scenario validation, campaign-manifest validation, all ten executable protocol faults, 15-step procedure graph validation, four-timestep analytical free-fall convergence, L1 simulation/replay and evidence upload. The dependency graph is committed in `Cargo.lock`; checks use `--locked`. Artifact `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (ID `14204208667`) contains five files: protocol campaign, procedure readiness, free-fall convergence, L1 result and environment metadata. SHA-256 ZIP digest: `b8fcda86fad54b649148faae8c722970596b3716f3f92c0df26decb070fc0e4c`. No physical sensor, power, network, actuator, HIL, guarded-rig or field fault injection is claimed.
 
 ### 12.3 Distributed physical-transaction reference state machine
 
@@ -519,7 +519,11 @@ The validator checks unique operation/step identity, closed dependency reference
 
 **Anti-self-approval boundary:** the graph's only success state is `structurally_valid_for_external_review`. The report explicitly fixes `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. A separately governed authority, executor, observer and evaluator are still required. The prototype validates the declared graph structure, not evidence authenticity, signatures, freshness, physical execution or success.
 
-This is the minimal executable foundation for the procedure-learning hypothesis in [#5501](https://github.com/Luminous-Dynamics/symtropy/issues/5501). Exact-head formatting/Clippy/tests and the CLI report are being qualified by the dedicated MFB workflow; no passing claim should be made until that run finishes.
+This is the minimal executable foundation for the procedure-learning hypothesis in [#5501](https://github.com/Luminous-Dynamics/symtropy/issues/5501).
+
+**Exact-head verification (2026-11-16):** workflow [43821500342](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43821500342) passed on source `970ae35eb28d6ffaae0c4fbb141b5156b4a2312f`: strict formatting, Clippy, **67 Rust tests**, campaign execution, procedure graph CLI, convergence, L1 simulation/replay and evidence upload. The report confirmed a 15-step valid graph with no motion authority, no physical command and no success attestation. Artifact `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (ID `14204208667`) includes the raw procedure readiness report.
+
+
 
 ## 12. First executable slice
 
