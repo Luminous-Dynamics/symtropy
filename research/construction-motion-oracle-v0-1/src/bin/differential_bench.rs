@@ -308,6 +308,10 @@ fn main() {
             "co-translating-capsules,time-sliced-candidate-slabs-{subdivisions},{}",
             outcome.candidate_slab_count
         );
+        println!(
+            "co-translating-capsules,time-sliced-candidate-fraction-{subdivisions},{}",
+            outcome.candidate_time_fraction()
+        );
         measure(
             &format!("co-translating-capsule-time-sliced-aabb-{subdivisions}"),
             || {
