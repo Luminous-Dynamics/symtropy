@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-sensor-condition-state-oracle:v0.1",
+  "title": "ROBOT-SENSOR-CONDITION-STATE-001 public oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "note",
+    "dispositions",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-sensor-condition-state-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-SENSOR-CONDITION-STATE-001"
+    },
+    "visibility": {
+      "const": "public_development_oracle_not_hidden_holdout"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "expected_disposition",
+          "reason_code"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^SCS-[0-9]{3}$"
+          },
+          "expected_disposition": {
+            "enum": [
+              "WithinDeclaredEnvelope",
+              "DegradedWithinDeclaredEnvelope",
+              "RequiresCleaningOrInspection",
+              "RequiresReferenceRecheck",
+              "RequiresRecalibration",
+              "RequiresApplicabilityReview",
+              "UnknownOrUnmeasured",
+              "OutsideDeclaredEnvelope"
+            ]
+          },
+          "reason_code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
