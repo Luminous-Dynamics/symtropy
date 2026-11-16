@@ -505,6 +505,55 @@ mod tests {
     }
 
     #[test]
+    fn generated_time_shifted_contacts_are_never_pruned() {
+        // The reported span starts differ from physical start times by independent
+        // constant offsets bounded by epsilon. Every exact physical contact must
+        // remain an outer-envelope candidate after widening and radius inflation.
+        let mut seed = 0x5ea1_2026_u64;
+        let mut next = || {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            ((seed >> 32) % 2_001) as i64 - 1_000
+        };
+        let mut contacts = 0_u32;
+        for index in 0..128_u64 {
+            let uncertainty_a = 1 + (index % 25);
+            let uncertainty_b = 1 + ((index * 7) % 25);
+            let offset_a = (index as i64 % (2 * uncertainty_a as i64 + 1)) - uncertainty_a as i64;
+            let offset_b = ((index * 3) as i64 % (2 * uncertainty_b as i64 + 1)) - uncertainty_b as i64;
+            let base_time = 100_000_u64;
+            let mut reported_a = span(next() as f64, next() as f64, base_time, base_time + 1_000, uncertainty_a);
+            let mut reported_b = span(next() as f64, next() as f64, base_time + 100, base_time + 900, uncertainty_b);
+            // Use point capsules so every generated case has a unique centreline parameter.
+            reported_a.capsule_at_start = Capsule::new(reported_a.capsule_at_start.start, reported_a.capsule_at_start.start, 0.5).unwrap();
+            reported_b.capsule_at_start = Capsule::new(reported_b.capsule_at_start.start, reported_b.capsule_at_start.start, 0.5).unwrap();
+
+            let outer = clock_uncertainty_aware_capsule_query(&reported_a, &reported_b).unwrap();
+            let physical_a = CapsuleMotionSpan {
+                start_ms: (base_time as i64 - offset_a) as u64,
+                end_ms: (base_time as i64 + 1_000 - offset_a) as u64,
+                clock_uncertainty_ms: 0,
+                ..reported_a.clone()
+            };
+            let physical_b = CapsuleMotionSpan {
+                start_ms: (base_time as i64 + 100 - offset_b) as u64,
+                end_ms: (base_time as i64 + 900 - offset_b) as u64,
+                clock_uncertainty_ms: 0,
+                ..reported_b.clone()
+            };
+            let actual = timed_co_translating_capsule_vs_capsule(&physical_a, &physical_b);
+            if actual.is_ok_and(|result| result.is_contact(0.5, 0.5)) {
+                contacts += 1;
+                assert_eq!(
+                    outer.disposition,
+                    ClockUncertaintyDisposition::PotentialContactUnresolved,
+                    "actual contact was pruned at generated case {index}"
+                );
+            }
+        }
+        assert!(contacts > 0, "generated suite must contain contact cases");
+    }
+
+    #[test]
     fn rejects_timestamp_arithmetic_overflow_and_identity_mismatch() {
         let a = span(0.0, 1.0, 5, 100, 10);
         let b = span(10.0, 0.0, 5, 100, 0);
