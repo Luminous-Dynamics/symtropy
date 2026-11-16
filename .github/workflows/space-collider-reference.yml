@@ -55,6 +55,9 @@ jobs:
           jq -e . space-collider-reference.json >/dev/null
           jq -e '.performance_closure.evidence_class == "analytical_performance_closure" and .performance_closure.derived.burnoff_lifetime_min > 17 and .performance_closure.derived.burnoff_lifetime_min < 18 and .performance_closure.derived.annual_integrated_luminosity_ab_inv > 1900' space-collider-reference.json >/dev/null
           jq -e '.performance_closure.derived.stored_energy_per_beam_from_bunch_population_j > 1.3e14 and .performance_closure.derived.stored_energy_per_beam_from_bunch_population_j < 1.4e14 and .performance_closure.derived.ccm_to_fcc_stored_energy_ratio > 16000' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.source_reference.derived_injection_power_mw_two_beams > 14.3 and .muon_scaling.source_reference.derived_injection_power_mw_two_beams < 14.5 and .muon_scaling.source_reference.derived_luminosity_decay_turns > 1360 and .muon_scaling.source_reference.derived_luminosity_decay_turns < 1370' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.fixed_energy_lunar_ring.muon_decay_turns < 3 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns > 2700 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns < 2760 and .muon_scaling.fixed_field_sweep[3].synchrotron_loss_fraction_per_turn > 4.7' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.fixed_field_lunar_species_comparison.muon_quantum_chi < 0.001 and .muon_scaling.fixed_field_lunar_species_comparison.electron_quantum_chi > 1 and .muon_scaling.fixed_field_fractional_loss_thresholds.circumference_km_for_100_percent_loss_per_turn > 5000' space-collider-reference.json >/dev/null
           grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
           grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
           grep -q '"performance_closure"' space-collider-reference.json
@@ -70,6 +73,7 @@ jobs:
             sha256sum tools/space-collider-reference/Cargo.toml
             sha256sum tools/space-collider-reference/src/main.rs
             sha256sum tools/space-collider-reference/src/luminosity.rs
+            sha256sum tools/space-collider-reference/src/muon_scaling.rs
             sha256sum space-collider-reference.json
           } > evidence-manifest.txt
 
