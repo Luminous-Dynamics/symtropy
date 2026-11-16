@@ -185,7 +185,7 @@ fn validate_case_semantics(case: &Value, path: &str, disposition: &str) -> Resul
             return Err(format!(
                 "{path}.case_id is not in the v0.1 frozen fixture set"
             ));
-        },
+        }
     }
     Ok(())
 }
