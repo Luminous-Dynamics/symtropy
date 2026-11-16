@@ -46,7 +46,8 @@ The Rust library currently implements:
 7. explicit solid/gas material stream mass closure;
 8. product acceptance requiring a separate captured stream, contract purity and independent assay;
 9. accepted product yield per declared source-energy meter plane;
-10. stable corpus source/case identity and cross-reference checks.
+10. stable corpus source/case identity and cross-reference checks;
+11. an isolated matched-campaign tournament validator for shared campaign identity, candidate-specific hardware, uncertainty intervals and robust pairwise comparison.
 
 The calculations are screening relationships, not full engineering models. In particular:
 - solar-image diameter and ideal concentration ratio are not a full collector/aberration/flux-profile model and scale with heliocentric distance;
@@ -55,6 +56,20 @@ The calculations are screening relationships, not full engineering models. In pa
 - energy-chain monotonicity is not a substitute for a complete first-law/exergy audit;
 - mass closure does not establish that the feedstock assay, capture apparatus or product assay is physically correct;
 - the JSON corpus audit confirms record structure and references, not the correctness of cited research.
+
+## Matched architecture tournament v0.1
+
+The isolated `src/tournament.rs` module adds a first typed comparison contract for the two tracks in the research protocol:
+
+- process-isolation comparisons require a shared campaign and test-fixture identity;
+- whole-system candidates may have different process articles and architecture configurations while sharing target, batch, environment, product contract, metrology protocol and campaign duration;
+- candidate-specific calibration record identity/status is required;
+- product assay identity, issuer, record digest, exact product-batch digest and campaign product-contract digest are bound;
+- the existing `MaterialBalance` validator is reused, and the product's captured raw stream cannot exceed the corresponding closed gas/solid balance stream;
+- accepted-product/day, accepted-product/source-boundary-kWh and accepted-product/system-kg-year intervals are derived from primitive declared values;
+- pairwise robust dominance is reported only where the campaign, product stream, source-energy meter plane/form match and one candidate's conservative interval clears the other's adverse interval on every objective.
+
+This is an **admissibility and accounting slice**, not a signed-attestation verifier, calibration authority, physical process model or full Pareto-front report. A non-empty assay identifier, issuer identifier and digest do not prove authenticity or independence by themselves; the applicable Mycelix/evidence-authority record must resolve those claims. A declared current calibration status likewise requires external record verification. The module contains synthetic unit tests, not experimental data.
 
 ## Run
 
