@@ -421,5 +421,4 @@ fn main() {
         verify_adaptive_collision_certificate(black_box(&certificate))
             .expect("generated adaptive certificate verifies");
     });
-
 }
