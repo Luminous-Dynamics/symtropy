@@ -35,3 +35,7 @@ path = "src/bin/protective_resilience_e0.rs"
 [[bin]]
 name = "protective-model-evidence"
 path = "src/bin/protective_model_evidence.rs"
+
+[[bin]]
+name = "protective-model-archive-intake"
+path = "src/bin/protective_model_archive_intake.rs"
