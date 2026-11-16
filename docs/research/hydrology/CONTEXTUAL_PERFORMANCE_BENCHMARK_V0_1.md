@@ -320,12 +320,12 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 40-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 32 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 40 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -396,3 +396,28 @@ Use event-block bootstrap or another predeclared dependence-aware uncertainty me
 Sources:
 - WMO, *Guidelines on the Verification of Hydrological Forecasts*, WMO-No. 1364 (2025): https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
 - Ruparell et al., *A Hydrologist's Guide to the CRPS*, ECMWF Technical Memorandum 935 (December 2025), DOI 10.21957/16101872b5: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
+
+
+## 16. CRPSS and weighted interval score — cases 033–040
+
+The proper-score layer has been extended to **40 synthetic cases**.
+
+### CRPSS against an explicit reference
+
+`CRPSS = 1 - CRPS(model ensemble) / CRPS(reference ensemble)`
+
+Cases 033–034 compute CRPSS against a named reference ensemble, record distinct model/reference forecast identifiers, verification-population identifier and lead time, and preserve negative skill. If the reference CRPS is zero or within the predeclared tolerance, CRPSS is `UNDEFINED`; no epsilon substitution is allowed. Cases 039–040 reject identical model/reference IDs and negative forecast lead.
+
+A valid real-world comparison must use the same observed target, verification population, event definition and lead time. The scoring contract records these identities, but physical/hydrological data admission and holdout governance still sit outside this synthetic evaluator.
+
+### Weighted interval score
+
+For (K) central intervals with levels (1-\alpha_k), median forecast (m), observation (y), and interval score (IS_{\alpha_k}):
+
+\[
+WIS = \frac{0.5|y-m| + \sum_{k=1}^{K}(\alpha_k/2)IS_{\alpha_k}}{K+0.5}
+\]
+
+The interval score is width plus a penalty when the observation falls outside the interval. The implementation sorts alpha levels, requires alpha in (0,1), unique alpha values, ordered bounds, a median inside each central interval and nested central intervals. Cases 035–038 include a valid WIS example and negative controls for non-nesting, invalid alpha and duplicate alpha.
+
+These cases verify formula and contract semantics only. A robust probabilistic forecast comparison still requires a large independent event/catchment population, multiple lead times, dependence-aware uncertainty, coverage/reliability and sharpness reporting.
