@@ -35,6 +35,7 @@ fn emit(instance: &FlexibleInstance) {
     let status = match result.status {
         ExactStatus::Exact => "EXACT",
         ExactStatus::Inconclusive => "INCONCLUSIVE",
+        ExactStatus::InvalidInput => "INVALID_INPUT",
         ExactStatus::NoFeasibleSchedule => "NO_FEASIBLE_SCHEDULE",
     };
     let makespan = result
