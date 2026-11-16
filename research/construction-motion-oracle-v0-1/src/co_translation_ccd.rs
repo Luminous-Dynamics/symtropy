@@ -12,6 +12,7 @@ use crate::{
 };
 
 const CONTACT_EPSILON_MM: f64 = 1.0e-9;
+const MAX_TIME_SUBDIVISIONS: u32 = 1_048_576;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TimeSlicedAabbCandidates {
@@ -24,6 +25,11 @@ pub struct TimeSlicedAabbCandidates {
 impl TimeSlicedAabbCandidates {
     pub fn has_candidate(self) -> bool {
         self.candidate_slab_count > 0
+    }
+
+    /// Fraction of the normalized time domain that remains a broad-phase candidate.
+    pub fn candidate_time_fraction(self) -> f64 {
+        f64::from(self.candidate_slab_count) / f64::from(self.subdivision_count)
     }
 }
 
@@ -147,8 +153,9 @@ pub fn co_translating_capsule_swept_aabb_candidate(
 ///
 /// The returned count is diagnostic, not a collision verdict. Increasing the
 /// subdivision count along a nested 1,2,4,8,... sequence can only remove
-/// candidates; it cannot turn a no-candidate result into a candidate. A
-/// positive result still requires the continuous narrow phase.
+/// candidate *time fraction*; raw candidate-slab count may rise when one
+/// coarse candidate slab splits into multiple candidate children. A positive
+/// result still requires the continuous narrow phase.
 pub fn co_translating_capsule_time_sliced_aabb_candidates(
     moving: Capsule,
     moving_translation: Vec3,
@@ -156,7 +163,7 @@ pub fn co_translating_capsule_time_sliced_aabb_candidates(
     obstacle_translation: Vec3,
     subdivisions: u32,
 ) -> Result<TimeSlicedAabbCandidates, TranslationCcdError> {
-    if subdivisions == 0 {
+    if subdivisions == 0 || subdivisions > MAX_TIME_SUBDIVISIONS {
         return Err(TranslationCcdError::InvalidSubdivisionCount);
     }
     validate_translating_capsule(moving, moving_translation)?;
@@ -488,33 +495,38 @@ mod tests {
         let counts: Vec<u32> = [1, 2, 4, 8, 16]
             .into_iter()
             .map(|n| {
-                co_translating_capsule_time_sliced_aabb_candidates(
+                let result = co_translating_capsule_time_sliced_aabb_candidates(
                     moving,
                     moving_delta,
                     obstacle,
                     obstacle_delta,
                     n,
                 )
-                .unwrap()
-                .candidate_slab_count
+                .unwrap();
+                (n, result.candidate_slab_count)
             })
             .collect();
-        assert!(counts.windows(2).all(|pair| pair[1] <= pair[0]));
+        assert!(counts.windows(2).all(|pair| {
+            u64::from(pair[1].1) * u64::from(pair[0].0)
+                <= u64::from(pair[0].1) * u64::from(pair[1].0)
+        }));
     }
 
     #[test]
     fn time_sliced_broad_phase_rejects_zero_subdivisions() {
         let valid = capsule(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), 0.5);
-        assert_eq!(
-            co_translating_capsule_time_sliced_aabb_candidates(
-                valid,
-                p(1.0, 0.0, 0.0),
-                valid,
-                p(-1.0, 0.0, 0.0),
-                0,
-            ),
-            Err(TranslationCcdError::InvalidSubdivisionCount)
-        );
+        for subdivisions in [0, MAX_TIME_SUBDIVISIONS + 1] {
+            assert_eq!(
+                co_translating_capsule_time_sliced_aabb_candidates(
+                    valid,
+                    p(1.0, 0.0, 0.0),
+                    valid,
+                    p(-1.0, 0.0, 0.0),
+                    subdivisions,
+                ),
+                Err(TranslationCcdError::InvalidSubdivisionCount)
+            );
+        }
     }
 
     #[test]
