@@ -66,7 +66,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-A-2",
@@ -78,7 +79,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
           "arrival_time_tick": 6,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-A-3",
@@ -90,7 +92,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-A-4",
@@ -102,7 +105,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
           "arrival_time_tick": 14,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -116,7 +120,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-B-2",
@@ -128,7 +133,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
           "arrival_time_tick": 6,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-B-3",
@@ -140,7 +146,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-B-4",
@@ -152,7 +159,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
           "arrival_time_tick": 10,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-001-B-5",
@@ -164,7 +172,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
           "arrival_time_tick": 14,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
-          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -229,7 +238,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-A-2",
@@ -241,7 +251,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
           "arrival_time_tick": 7,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-A-3",
@@ -253,7 +264,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
           "arrival_time_tick": 12,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-A-4",
@@ -265,7 +277,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -279,7 +292,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-B-2",
@@ -291,7 +305,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
           "arrival_time_tick": 7,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-B-3",
@@ -303,7 +318,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
           "arrival_time_tick": 9,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-B-4",
@@ -315,7 +331,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
           "arrival_time_tick": 12,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-002-B-5",
@@ -327,7 +344,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
-          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -392,7 +410,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-A-2",
@@ -404,7 +423,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
           "arrival_time_tick": 5,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-A-3",
@@ -416,7 +436,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
           "arrival_time_tick": 12,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-A-4",
@@ -428,7 +449,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -442,7 +464,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-B-2",
@@ -454,7 +477,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
           "arrival_time_tick": 5,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-B-3",
@@ -466,7 +490,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
           "arrival_time_tick": 12,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-B-4",
@@ -478,7 +503,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
           "arrival_time_tick": 13,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-003-B-5",
@@ -490,7 +516,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
-          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -550,7 +577,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-A-2",
@@ -562,7 +590,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-A-3",
@@ -574,7 +603,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
           "arrival_time_tick": 10,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-A-4",
@@ -586,7 +616,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
           "arrival_time_tick": 17,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -600,7 +631,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-B-2",
@@ -612,7 +644,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-B-3",
@@ -624,7 +657,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
           "arrival_time_tick": 10,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-B-4",
@@ -636,7 +670,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
           "arrival_time_tick": 11,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-004-B-5",
@@ -648,7 +683,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
           "arrival_time_tick": 17,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
-          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -713,7 +749,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
           "arrival_time_tick": 101,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-A-2",
@@ -725,7 +762,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
           "arrival_time_tick": 105,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-A-3",
@@ -737,7 +775,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
           "arrival_time_tick": 109,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-A-4",
@@ -749,7 +788,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
           "arrival_time_tick": 113,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         }
       ],
       "target_trace": [
@@ -763,7 +803,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
           "arrival_time_tick": 101,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-B-2",
@@ -775,7 +816,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
           "arrival_time_tick": 105,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-B-3",
@@ -787,7 +829,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
           "arrival_time_tick": 109,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-B-4",
@@ -799,7 +842,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
           "arrival_time_tick": 110,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         },
         {
           "event_id": "MIP-005-B-5",
@@ -811,7 +855,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
           "arrival_time_tick": 113,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
-          "clock_mapping_ref": null
+          "clock_mapping_ref": null,
+          "clock_mapping_status": "absent"
         }
       ]
     },
@@ -871,7 +916,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-A-2",
@@ -883,7 +929,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-A-3",
@@ -895,7 +942,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
           "arrival_time_tick": 13,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-A-4",
@@ -907,7 +955,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
           "arrival_time_tick": 17,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -921,7 +970,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-B-2",
@@ -933,7 +983,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-B-3",
@@ -945,7 +996,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
           "arrival_time_tick": 13,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-006-B-4",
@@ -957,7 +1009,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
           "arrival_time_tick": 17,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
-          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -1022,7 +1075,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-A-2",
@@ -1034,7 +1088,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
           "arrival_time_tick": 6,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-A-3",
@@ -1046,7 +1101,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
           "arrival_time_tick": 11,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-A-4",
@@ -1058,7 +1114,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -1072,7 +1129,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-B-2",
@@ -1084,7 +1142,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
           "arrival_time_tick": 6,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-B-3",
@@ -1096,7 +1155,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
           "arrival_time_tick": 7,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-007-B-4",
@@ -1108,7 +1168,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
           "arrival_time_tick": 8,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
-          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     },
@@ -1168,7 +1229,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-A-2",
@@ -1180,7 +1242,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
           "arrival_time_tick": 7,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-A-3",
@@ -1192,7 +1255,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
           "arrival_time_tick": 12,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-A-4",
@@ -1204,7 +1268,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
           "arrival_time_tick": 16,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A",
+          "clock_mapping_status": "qualified"
         }
       ],
       "target_trace": [
@@ -1218,7 +1283,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
           "arrival_time_tick": 3,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-B-2",
@@ -1230,7 +1296,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
           "arrival_time_tick": 4,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-B-3",
@@ -1242,7 +1309,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
           "arrival_time_tick": 5,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B",
+          "clock_mapping_status": "qualified"
         },
         {
           "event_id": "MIP-008-B-4",
@@ -1254,7 +1322,8 @@
           "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
           "arrival_time_tick": 6,
           "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
-          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B",
+          "clock_mapping_status": "qualified"
         }
       ]
     }
