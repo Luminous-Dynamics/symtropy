@@ -721,7 +721,8 @@ fn dominates(
     let strictly_better = left.expected_uncertainty_reduction
         > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
-        || independent_group_pair_count(left, 0.0) > independent_group_pair_count(right, 0.0)
+        || independent_group_pair_count(left, minimum_pair_separation)
+            > independent_group_pair_count(right, minimum_pair_separation)
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
