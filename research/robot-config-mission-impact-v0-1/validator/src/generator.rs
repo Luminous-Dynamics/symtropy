@@ -639,6 +639,45 @@ mod tests {
     }
 
     #[test]
+    fn public_golden_vector_matches_exact_manifest_digest_and_strata() {
+        let root = crate::repository_root()
+            .join("research/robot-config-mission-impact-v0-1");
+        let profile = profile();
+        let golden = crate::read_json(&root.join("golden-vectors-v0.1.json"))
+            .expect("golden vector artifact parses");
+        let vector = &golden["vectors"][0];
+        let seed = u64::from_str_radix(
+            string_at(vector, &["seed_hex"]).expect("golden seed exists"),
+            16,
+        )
+        .expect("golden seed is valid hexadecimal");
+        let count = vector["challenge_count"]
+            .as_u64()
+            .expect("golden challenge count exists") as usize;
+        let manifest = generate_manifest(&profile, seed, count).unwrap();
+        assert_eq!(
+            string_at(&manifest, &["manifest_digest"]),
+            string_at(vector, &["expected_manifest_sha256"])
+        );
+        assert_eq!(
+            string_at(&manifest, &["distribution_profile_sha256"]),
+            string_at(vector, &["profile_sha256"])
+        );
+        let expected_counts = array_at(vector, &["expected_stratum_counts"]).unwrap();
+        let actual_counts = array_at(&manifest, &["stratum_counts"]).unwrap();
+        assert_eq!(actual_counts.len(), expected_counts.len());
+        for expected in expected_counts {
+            let id = string_at(expected, &["stratum_id"]).unwrap();
+            let expected_count = expected["count"].as_u64().unwrap();
+            let actual = actual_counts
+                .iter()
+                .find(|row| string_at(row, &["stratum_id"]) == Some(id))
+                .expect("every golden stratum must exist in the manifest");
+            assert_eq!(actual["allocated_count"].as_u64(), Some(expected_count));
+        }
+    }
+
+    #[test]
     fn manifest_invariants_accept_generated_manifest() {
         let value = profile();
         let manifest = generate_manifest(&value, 0x1234, 16).unwrap();
