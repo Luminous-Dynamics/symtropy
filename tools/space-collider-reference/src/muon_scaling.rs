@@ -515,6 +515,29 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn fixed_field_decay_energy_flow_per_ring_meter_is_invariant_in_the_simple_repetition_model() {
+        let radius = 5_000.0 / (0.299_792_458 * 14.0);
+        let fill = 2.0 * std::f64::consts::PI * radius / 11_400.0;
+        let baseline = calculate_scenario(11_400.0, 14.0, fill, 1.8e12, 5.0).expect("baseline");
+        let lunar = calculate_scenario(11_000_000.0, 14.0, fill, 1.8e12, 5.0).expect("lunar");
+        close(
+            lunar.decay_energy_flow_per_ring_m_w,
+            baseline.decay_energy_flow_per_ring_m_w,
+            1.0e-9,
+        );
+    }
+
+    #[test]
+    fn quantum_parameter_separates_muon_and_electron_regimes_at_lunar_energy() {
+        let energy_gev = 4_824_561.404;
+        let muon_chi = classical_quantum_parameter(energy_gev, 14.0, MUON_MASS_GEV).expect("muon chi");
+        let electron_chi = classical_quantum_parameter(energy_gev, 14.0, ELECTRON_MASS_GEV).expect("electron chi");
+        assert!(muon_chi < 1.0e-3);
+        assert!(electron_chi > 1.0);
+    }
+
+
     fn fixed_field_loss_grows_with_square_of_circumference() {
         let c0 = 11_400.0;
         let radius = 5_000.0 / (0.299_792_458 * 14.0);
