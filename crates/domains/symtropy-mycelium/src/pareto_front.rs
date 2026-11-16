@@ -107,7 +107,11 @@ impl fmt::Display for ParetoAnalysisError {
                 write!(f, "sample {:?} has an invalid time window", id)
             }
             Self::InvalidObjective(id) => {
-                write!(f, "sample {:?} has a non-finite or non-positive objective", id)
+                write!(
+                    f,
+                    "sample {:?} has a non-finite or non-positive objective",
+                    id
+                )
             }
             Self::InvalidGrowthUnitIdentity(id) => {
                 write!(
@@ -182,8 +186,7 @@ fn validate_samples(samples: &[ParetoPhenotypeSample]) -> Result<(), ParetoAnaly
     let mut sample_ids = BTreeSet::new();
     let mut growth_unit_identity =
         BTreeMap::<GrowthUnitId, (PlantGenotypeId, FungalStrainId)>::new();
-    let mut growth_unit_windows =
-        BTreeMap::<GrowthUnitId, Vec<(f64, f64, ParetoSampleId)>>::new();
+    let mut growth_unit_windows = BTreeMap::<GrowthUnitId, Vec<(f64, f64, ParetoSampleId)>>::new();
 
     for sample in samples {
         if !sample_ids.insert(sample.id) {
@@ -256,8 +259,7 @@ fn validate_reference_coverage(
     reference: ParetoReferencePoint,
 ) -> Result<(), ParetoAnalysisError> {
     for sample in samples {
-        if sample.objectives.surface_area_density_per_m
-            < reference.surface_area_density_per_m
+        if sample.objectives.surface_area_density_per_m < reference.surface_area_density_per_m
             || sample.objectives.wave_speed_m_per_hour < reference.wave_speed_m_per_hour
         {
             return Err(ParetoAnalysisError::ReferencePointNotDominated(sample.id));
@@ -280,8 +282,7 @@ fn normalized_hypervolume(
     for sample in front {
         let x = sample.objectives.surface_area_density_per_m
             / normalization.surface_area_density_scale_per_m;
-        let y =
-            sample.objectives.wave_speed_m_per_hour / normalization.wave_speed_scale_m_per_hour;
+        let y = sample.objectives.wave_speed_m_per_hour / normalization.wave_speed_scale_m_per_hour;
         area += (x - previous_x).max(0.0) * (y - reference_y);
         previous_x = x;
     }
@@ -378,9 +379,7 @@ pub fn additive_epsilon_indicator(
     if approximation
         .iter()
         .any(|sample| sample.plant_genotype != host)
-        || reference
-            .iter()
-            .any(|sample| sample.plant_genotype != host)
+        || reference.iter().any(|sample| sample.plant_genotype != host)
     {
         return Err(ParetoAnalysisError::MixedHostGenotypes);
     }
