@@ -947,21 +947,15 @@ mod tests {
             .iter_mut()
             .find(|node| node["@id"] == ACTIVITY)
             .expect("activity");
-        activity["ex:analysisId"] = Value::String("other-analysis".into());
+        activity["ex:fixtureActivityId"] = Value::String("other-fixture".into());
         let error = validate_crate(CRATE, &prov.to_string())
-            .expect_err("analysis identity mismatch");
+            .expect_err("fixture activity identity mismatch");
         assert!(error.contains("synthetic E2 graph fixture and preserve E1 NOT_EXECUTED status"));
     }
 
     #[test]
     fn all_to_all_derivation_inference_is_rejected() {
         let mut prov = prov_value();
-        let clinic = prov["@graph"]
-            .as_array_mut()
-            .expect("graph")
-            .iter_mut()
-            .find(|node| node["@id"] == OUTPUT_CLINIC)
-            .expect("clinic output");
         let water = prov["@graph"]
             .as_array_mut()
             .expect("graph")
