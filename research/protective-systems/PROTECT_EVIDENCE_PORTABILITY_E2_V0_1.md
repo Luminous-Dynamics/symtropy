@@ -104,7 +104,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 
 ## 5. Adversarial tests
 
-19 Rust unit tests are written:
+20 Rust unit tests are written:
 - valid RO-Crate + sparse PROV-O graph;
 - all-to-all derivation inference;
 - incorrect sparse derivation target;
@@ -121,6 +121,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 - wrong PROV namespace or E2 prefix mapping;
 - duplicate used input edge;
 - graph/edge ordering metamorphic control (semantic result stable, byte digest changes);
+- RO-Crate contentSize uses the byte-count representation and rejects human-readable suffixes;
 - extra generation edge on an input;
 - descriptor pointing away from root.
 
