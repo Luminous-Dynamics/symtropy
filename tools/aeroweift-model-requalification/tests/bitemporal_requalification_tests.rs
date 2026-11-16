@@ -19,11 +19,13 @@ fn claim() -> ModelEvidenceClaim {
                 kind: DependencyKind::ModelArtifact,
                 digest: digest('b'),
                 change_source_id: "model-registry".into(),
+                change_stream_id: "model-registry::primary".into(),
             },
             DependencyBinding {
                 kind: DependencyKind::SensorStack,
                 digest: digest('c'),
                 change_source_id: "sensor-registry".into(),
+                change_stream_id: "sensor-registry::primary".into(),
             },
         ],
     }
@@ -38,6 +40,7 @@ fn coverage(
     ChangeFeedCoverage {
         dependency,
         source_id: source.into(),
+        source_stream_id: format!("{source}::primary"),
         effective_from: 0,
         effective_through: 100,
         recorded_at: 0,
@@ -84,6 +87,7 @@ macro_rules! event {
         ChangeEvent {
             event_id: $id.into(),
             source_id: $source.into(),
+            source_stream_id: format!("{}::primary", $source),
             source_sequence: $sequence,
             dependency: $dependency,
             prior_digest: digest($prior),
