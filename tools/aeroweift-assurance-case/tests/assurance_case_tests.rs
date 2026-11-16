@@ -1168,7 +1168,6 @@ fn frozen_mitigation_minimum_cannot_be_zero() {
     );
 }
 
-
 #[test]
 fn mitigation_independence_count_is_reported_even_when_the_floor_fails() {
     let (mut nodes, edges) = positive_case();
