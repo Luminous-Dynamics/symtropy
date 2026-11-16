@@ -139,7 +139,9 @@ pub struct EnergyInput {
     pub comparison_group_id: String,
     pub boundary_ref: String,
     pub boundary: Boundary,
+    pub cooked_output_kg: f64,
     pub accepted_edible_kg: f64,
+    pub rejected_output_kg: f64,
     pub serving_mass_kg: f64,
     pub terms: Vec<EnergyTerm>,
 }
@@ -154,6 +156,7 @@ pub enum OracleError {
     InvalidNotApplicable(EnergyStage),
     IncompatibleComparison(&'static str),
     ZeroControlEnergy,
+    InvalidMassBalance,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -164,7 +167,10 @@ pub struct EnergyReceipt {
     pub comparison_group_id: String,
     pub boundary_ref: String,
     pub boundary: Boundary,
+    pub cooked_output_kg: f64,
     pub accepted_edible_kg: f64,
+    pub rejected_output_kg: f64,
+    pub accepted_yield_fraction: f64,
     pub serving_mass_kg: f64,
     pub wall_plug_kwh: Option<f64>,
     pub wall_plug_kwh_per_accepted_kg: Option<f64>,
@@ -183,8 +189,13 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
     validate_non_empty("endpoint_id", &input.endpoint_id)?;
     validate_non_empty("comparison_group_id", &input.comparison_group_id)?;
     validate_non_empty("boundary_ref", &input.boundary_ref)?;
+    validate_positive("cooked_output_kg", input.cooked_output_kg)?;
     validate_positive("accepted_edible_kg", input.accepted_edible_kg)?;
+    validate_non_negative("rejected_output_kg", input.rejected_output_kg)?;
     validate_positive("serving_mass_kg", input.serving_mass_kg)?;
+    if (input.cooked_output_kg - input.accepted_edible_kg - input.rejected_output_kg).abs() > 1.0e-9 {
+        return Err(OracleError::InvalidMassBalance);
+    }
 
     let required: BTreeSet<_> = input.boundary.required_stages().iter().copied().collect();
     let mut provided = BTreeMap::<EnergyStage, &EnergyTerm>::new();
@@ -248,6 +259,9 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
         }
     }
 
+    if !total_kwh.is_finite() {
+        return Err(OracleError::InvalidNonNegativeNumber("total_wall_plug_kwh"));
+    }
     let complete = missing.is_empty();
     let wall_plug_kwh = complete.then_some(total_kwh);
     let wall_plug_kwh_per_accepted_kg =
@@ -262,7 +276,10 @@ pub fn calculate_energy(input: &EnergyInput) -> Result<EnergyReceipt, OracleErro
         comparison_group_id: input.comparison_group_id.clone(),
         boundary_ref: input.boundary_ref.clone(),
         boundary: input.boundary,
+        cooked_output_kg: input.cooked_output_kg,
         accepted_edible_kg: input.accepted_edible_kg,
+        rejected_output_kg: input.rejected_output_kg,
+        accepted_yield_fraction: input.accepted_edible_kg / input.cooked_output_kg,
         serving_mass_kg: input.serving_mass_kg,
         wall_plug_kwh,
         wall_plug_kwh_per_accepted_kg,
@@ -436,7 +453,9 @@ mod tests {
             comparison_group_id: "split-lot-001".to_owned(),
             boundary_ref: "PFB-1:B4".to_owned(),
             boundary: Boundary::GateToPlate,
+            cooked_output_kg: 2.25,
             accepted_edible_kg: 2.0,
+            rejected_output_kg: 0.25,
             serving_mass_kg: 0.25,
             terms,
         }
@@ -451,6 +470,7 @@ mod tests {
         assert_eq!(receipt.wall_plug_kwh, Some(1.2));
         assert_eq!(receipt.wall_plug_kwh_per_accepted_kg, Some(0.6));
         assert_eq!(receipt.wall_plug_kwh_per_serving, Some(0.15));
+        assert!((receipt.accepted_yield_fraction - (2.0 / 2.25)).abs() < 1.0e-12);
     }
 
     #[test]
@@ -537,7 +557,7 @@ mod tests {
             calculate_energy(&candidate_input).expect("candidate fixture");
 
         let comparison = compare_energy(&control, &candidate).expect("compatible");
-        assert_eq!(comparison.exploratory_reduction_percent, 50.0);
+        assert!((comparison.exploratory_reduction_percent - 50.0).abs() < 1.0e-9);
         assert_eq!(comparison.claimable_reduction_percent, None);
     }
 
@@ -561,6 +581,31 @@ mod tests {
         })
         .expect("valid time fixture");
         assert_eq!(ten_minute_pretreatment.total_sequential_minutes, Some(31.1));
+    }
+
+
+    #[test]
+    fn rejected_output_is_retained_in_the_acceptance_yield() {
+        let mut input = complete_input("candidate-1", 0.1);
+        input.cooked_output_kg = 2.0;
+        input.accepted_edible_kg = 1.5;
+        input.rejected_output_kg = 0.5;
+
+        let receipt = calculate_energy(&input).expect("valid mass balance");
+        assert_eq!(receipt.accepted_edible_kg, 1.5);
+        assert_eq!(receipt.rejected_output_kg, 0.5);
+        assert_eq!(receipt.accepted_yield_fraction, 0.75);
+        assert!((receipt.wall_plug_kwh_per_accepted_kg.unwrap() - 0.8).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn inconsistent_output_mass_balance_is_rejected() {
+        let mut input = complete_input("candidate-1", 0.1);
+        input.rejected_output_kg = 0.1;
+        assert_eq!(
+            calculate_energy(&input),
+            Err(OracleError::InvalidMassBalance)
+        );
     }
 
     #[test]
