@@ -134,6 +134,24 @@ Report the metric vector, not just a winner:
 
 Keep cost and Earth-delivered mass separate unless the source data support a consistent boundary and unit. Do not publish a weighted overall score as the primary result.
 
+### Heliocentric finite-Sun invariant
+
+For the ideal circular-collector screen, separate local solar flux, image size, total collected power and focal-plane irradiance:
+
+`F(r) = F_1 / r^2`
+
+`d_image(r) = L \theta_1 / r`
+
+`C(r) = (D / d_image(r))^2`
+
+Therefore the ideal average irradiance over the geometric image is:
+
+`E_image(r) = F(r) C(r) = F_1 (D / (L \theta_1))^2`
+
+For fixed collector diameter `D` and focal distance `L`, heliocentric distance cancels from this ideal average focal-plane irradiance. This does **not** mean system throughput is invariant: the total collector power still falls as `1/r^2`, while the image diameter falls as `1/r`. The result assumes perfect collection, a uniform geometric image and no receiver/thermal losses. Real sunshape, aberration, spillage, reflectance, pointing, deformation and flux nonuniformity require an optical model and measurement.
+
+The tournament must therefore report total intercepted power, focal-image diameter, spatial irradiance map, receiver-absorbed energy and accepted product separately. It must not infer process throughput or product/day from the ideal focal-plane irradiance alone. The analytic regression implementation is in dependent draft [PR #5552](https://github.com/Luminous-Dynamics/symtropy/pull/5552).
+
 ## 8. Uncertainty-aware Pareto comparison
 
 For each maximized metric, preserve an interval `[L, U]`. Candidate A robustly dominates B only when:
