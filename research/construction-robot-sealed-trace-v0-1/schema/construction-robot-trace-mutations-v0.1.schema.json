@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-robot-trace-mutations-v0.1.schema.json",
+  "title": "Construction Robot Trace Mutation Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "base_fixture",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "construction-robot-trace-mutations-v0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "base_fixture": {
+      "const": "trace-synthetic-vda-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 17,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "name",
+          "target",
+          "mutation",
+          "expected_verification"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^TRACE-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_verification": {
+            "enum": [
+              "reject",
+              "schema_reject",
+              "reject_or_anchoring_required",
+              "reject_or_annotation_rebind_required",
+              "accept_as_integrity_valid_completeness_unknown",
+              "integrity_valid_but_unanchored_not_authenticated"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

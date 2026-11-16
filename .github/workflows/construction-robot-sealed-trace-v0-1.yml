@@ -1,0 +1,230 @@
+name: Construction Robot Sealed Trace V0.1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/construction-robot-sealed-trace-v0-1/**"
+      - ".github/workflows/construction-robot-sealed-trace-v0-1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-robot-sealed-trace-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate trace schema and mutation corpus
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate schemas, fixture hashes and adversarial mutations
+        run: |
+          python - <<'PY'
+          import base64
+          import copy
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/construction-robot-sealed-trace-v0-1")
+          schema = json.loads((root / "schema/construction-robot-trace-v0.1.schema.json").read_text())
+          mutation_schema = json.loads((root / "schema/construction-robot-trace-mutations-v0.1.schema.json").read_text())
+          trace = json.loads((root / "fixtures/trace-synthetic-vda-001.json").read_text())
+          mutations = json.loads((root / "fixtures/trace-mutations-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(mutation_schema)
+          validator = Draft202012Validator(schema)
+          validator.validate(trace)
+          Draft202012Validator(mutation_schema).validate(mutations)
+
+          def jcs(value):
+              return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+
+          def digest(data):
+              return hashlib.sha256(data).hexdigest()
+
+          def event_digest(event):
+              unsigned = {key: value for key, value in event.items() if key != "event_digest"}
+              return digest(b"construction-robot-trace-event-v0.1\0" + jcs(unsigned))
+
+          def root_digest(candidate):
+              root_input = {
+                  "manifest": candidate["manifest"],
+                  "ordered_event_digests": [event["event_digest"] for event in candidate["events"]],
+                  "annotations": candidate["annotations"],
+              }
+              return digest(b"construction-robot-trace-root-v0.1\0" + jcs(root_input))
+
+          def verify(candidate):
+              if not validator.is_valid(candidate):
+                  return False
+              events = candidate["events"]
+              capture = candidate["manifest"]["capture"]
+              if len(events) != capture["event_count"] or not events:
+                  return False
+              if capture["first_sequence"] != 1 or capture["last_sequence"] != len(events):
+                  return False
+              previous = None
+              for index, event in enumerate(events, start=1):
+                  if event["capture_sequence"] != index or event["previous_event_digest"] != previous:
+                      return False
+                  try:
+                      payload_bytes = base64.b64decode(event["payload"]["data"], validate=True)
+                  except Exception:
+                      return False
+                  if digest(payload_bytes) != event["payload"]["sha256"]:
+                      return False
+                  if event_digest(event) != event["event_digest"]:
+                      return False
+                  previous = event["event_digest"]
+              event_ids = {event["event_digest"] for event in events}
+              for annotation in candidate["annotations"]:
+                  if annotation["source_event_digest"] not in event_ids:
+                      return False
+                  expected_annotation_digest = digest(
+                      b"construction-robot-trace-annotation-v0.1\0" + jcs(annotation["interpretation"])
+                  )
+                  if annotation["interpretation_digest"] != expected_annotation_digest:
+                      return False
+              if root_digest(candidate) != candidate["final_trace_digest"]:
+                  return False
+              return True
+
+          def reseal(candidate):
+              previous = None
+              for sequence, event in enumerate(candidate["events"], start=1):
+                  event["capture_sequence"] = sequence
+                  event["previous_event_digest"] = previous
+                  raw = base64.b64decode(event["payload"]["data"], validate=True)
+                  event["payload"]["sha256"] = digest(raw)
+                  event["event_digest"] = event_digest(event)
+                  previous = event["event_digest"]
+              capture = candidate["manifest"]["capture"]
+              capture["first_sequence"] = 1
+              capture["last_sequence"] = len(candidate["events"])
+              capture["event_count"] = len(candidate["events"])
+              candidate["final_trace_digest"] = root_digest(candidate)
+
+          assert verify(trace), "base synthetic trace failed its own integrity contract"
+          assert trace["manifest"]["capture"]["capture_completeness"] == "unknown"
+          assert trace["manifest"]["capture"]["recorder_drop_count"] == 0
+          assert trace["manifest"]["capture"]["broker_drop_evidence"] == "not_available"
+
+          # Mutation 001: change payload bytes without updating the payload digest.
+          candidate = copy.deepcopy(trace)
+          raw = bytearray(base64.b64decode(candidate["events"][0]["payload"]["data"]))
+          raw[0] ^= 1
+          candidate["events"][0]["payload"]["data"] = base64.b64encode(raw).decode()
+          assert not verify(candidate)
+
+          # Mutation 002: alter the payload digest.
+          candidate = copy.deepcopy(trace)
+          candidate["events"][0]["payload"]["sha256"] = "0" * 64
+          assert not verify(candidate)
+
+          # Mutation 003: reorder events.
+          candidate = copy.deepcopy(trace)
+          candidate["events"][1], candidate["events"][2] = candidate["events"][2], candidate["events"][1]
+          assert not verify(candidate)
+
+          # Mutation 004: remove an event.
+          candidate = copy.deepcopy(trace)
+          candidate["events"].pop(1)
+          assert not verify(candidate)
+
+          # Mutation 005: insert a duplicate event.
+          candidate = copy.deepcopy(trace)
+          candidate["events"].insert(1, copy.deepcopy(candidate["events"][0]))
+          assert not verify(candidate)
+
+          # Mutations 006-012: change metadata or chain links without resealing.
+          for field, value in [
+              ("topic", "altered/topic"),
+              ("qos", 2),
+              ("retain", True),
+              ("connection_epoch", "different-session"),
+          ]:
+              candidate = copy.deepcopy(trace)
+              candidate["events"][0][field] = value
+              assert not verify(candidate)
+          candidate = copy.deepcopy(trace)
+          candidate["events"][0]["timestamps"][0]["source"] = "robot_reported"
+          assert not verify(candidate)
+          candidate = copy.deepcopy(trace)
+          candidate["events"][0]["timestamps"][0]["uncertainty_ms"] = 0
+          assert not verify(candidate)
+          candidate = copy.deepcopy(trace)
+          candidate["events"][2]["previous_event_digest"] = "0" * 64
+          assert not verify(candidate)
+
+          # Mutation 013: claim complete capture without boundary evidence.
+          candidate = copy.deepcopy(trace)
+          candidate["manifest"]["capture"]["capture_completeness"] = "complete_with_boundary_evidence"
+          assert not validator.is_valid(candidate)
+
+          # Mutation 014: claim redaction without parent and transformation digests.
+          candidate = copy.deepcopy(trace)
+          candidate["manifest"]["capture"]["redaction_applied"] = True
+          assert not validator.is_valid(candidate)
+
+          # Mutation 015: rebind a parser annotation to a non-existent source event.
+          candidate = copy.deepcopy(trace)
+          interpretation = {"kind": "executor_action_finished_reported"}
+          candidate["annotations"] = [{
+              "source_event_digest": "0" * 64,
+              "parser_name": "synthetic-test-parser",
+              "parser_version": "0.1.0",
+              "rule_set_digest": "a" * 64,
+              "interpretation_digest": digest(b"construction-robot-trace-annotation-v0.1\0" + jcs(interpretation)),
+              "interpretation": interpretation,
+          }]
+          candidate["final_trace_digest"] = root_digest(candidate)
+          assert not verify(candidate)
+
+          # Mutation 016: a trace may be integrity-valid while completeness remains unknown.
+          assert verify(trace)
+          assert trace["manifest"]["capture"]["capture_completeness"] == "unknown"
+
+          # Mutation 017: a fully recomputed rewrite is internally consistent but remains unanchored.
+          candidate = copy.deepcopy(trace)
+          raw = bytearray(base64.b64decode(candidate["events"][0]["payload"]["data"]))
+          raw[0] ^= 1
+          candidate["events"][0]["payload"]["data"] = base64.b64encode(raw).decode()
+          reseal(candidate)
+          assert verify(candidate)
+          assert candidate["manifest"]["seal"]["external_anchor"] == "none"
+
+          assert len(mutations["cases"]) == 17
+          print(f"validated {len(trace['events'])} events and all payload/event/root digests; exercised 17 mutation cases")
+          PY
+
+  rust-verifier:
+    name: Rust verifier (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Verify locked package metadata
+        run: cargo metadata --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked --format-version 1
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml -- --check
+      - name: Run Rust verifier tests
+        run: cargo test --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Verify sealed synthetic trace fixture
+        run: cargo run --manifest-path research/construction-robot-sealed-trace-v0-1/verifier/Cargo.toml --locked -- verify research/construction-robot-sealed-trace-v0-1/fixtures/trace-synthetic-vda-001.json
