@@ -38,10 +38,12 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --manifest-path tools/space-collider-reference/Cargo.toml --all-targets -- -D warnings
 
-      - name: Execute reference report
+      - name: Execute report twice and require deterministic output
         run: |
-          cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release \
-            | tee space-collider-reference.json
+          cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release > report-1.json
+          cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release > report-2.json
+          cmp report-1.json report-2.json
+          mv report-1.json space-collider-reference.json
           jq -e . space-collider-reference.json >/dev/null
           jq -e '.performance_closure.evidence_class == "analytical_performance_closure" and .performance_closure.derived.burnoff_lifetime_min > 17 and .performance_closure.derived.burnoff_lifetime_min < 18 and .performance_closure.derived.annual_integrated_luminosity_ab_inv > 1900' space-collider-reference.json >/dev/null
           jq -e '.performance_closure.derived.stored_energy_per_beam_from_bunch_population_j > 1.3e14 and .performance_closure.derived.stored_energy_per_beam_from_bunch_population_j < 1.4e14 and .performance_closure.derived.ccm_to_fcc_stored_energy_ratio > 16000' space-collider-reference.json >/dev/null
@@ -50,3 +52,25 @@ jobs:
           grep -q '"performance_closure"' space-collider-reference.json
           grep -q '"burnoff_lifetime_min": 17.667845' space-collider-reference.json
           grep -q '"annual_integrated_luminosity_ab_inv": 1935.360000' space-collider-reference.json
+
+      - name: Fingerprint exact source and retained report
+        run: |
+          {
+            echo "source_commit=$(git rev-parse HEAD)"
+            echo "rustc=$(rustc +1.96.0 --version)"
+            echo "cargo=$(cargo +1.96.0 --version)"
+            sha256sum tools/space-collider-reference/Cargo.toml
+            sha256sum tools/space-collider-reference/src/main.rs
+            sha256sum tools/space-collider-reference/src/luminosity.rs
+            sha256sum space-collider-reference.json
+          } > evidence-manifest.txt
+
+      - name: Retain reference report and evidence manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: space-collider-reference-${{ github.sha }}
+          path: |
+            space-collider-reference.json
+            evidence-manifest.txt
+          if-no-files-found: error
+          retention-days: 90
