@@ -453,16 +453,16 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
                 .filter_map(|row| Some((row.get(0)?.as_str()?, row.get(1)?.as_str()?)))
                 .collect::<std::collections::BTreeMap<_, _>>();
             for event in events {
-                if let Some(stage_id) = event.get("stage_id").and_then(Value::as_str) {
-                    if matches!(
+                if let Some(stage_id) = event.get("stage_id").and_then(Value::as_str)
+                    && matches!(
                         stage_dispositions.get(stage_id),
                         Some(&"not_reached") | Some(&"not_run")
-                    ) {
-                        let event_id = string_at(event, &["event_id"]).unwrap_or("unknown_event");
-                        errors.push(format!(
-                            "event_emitted_by_unreached_stage:{pair_id}:{stage_id}:{event_id}"
-                        ));
-                    }
+                    )
+                {
+                    let event_id = string_at(event, &["event_id"]).unwrap_or("unknown_event");
+                    errors.push(format!(
+                        "event_emitted_by_unreached_stage:{pair_id}:{stage_id}:{event_id}"
+                    ));
                 }
             }
         }
