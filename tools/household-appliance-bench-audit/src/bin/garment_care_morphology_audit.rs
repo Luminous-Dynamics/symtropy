@@ -7,8 +7,10 @@ use std::fs;
 use std::process::ExitCode;
 
 const SCHEMA_ID: &str = "urn:luminous-dynamics:garment-care-morphology:0.1.0";
+#[cfg(test)]
 const SCHEMA_TEXT: &str =
     include_str!("../../../../schemas/laundry/garment_care_morphology_v0_1.schema.json");
+#[cfg(test)]
 const PROFILE_TEXT: &str =
     include_str!("../../../../fixtures/laundry/garment_care_morphology_v0_1.json");
 
