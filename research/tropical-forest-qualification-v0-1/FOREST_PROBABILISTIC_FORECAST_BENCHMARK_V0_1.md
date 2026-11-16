@@ -234,3 +234,22 @@ See:
 - [Rust adapter over the shared CRPS kernel](validator/src/forecast_usefulness_kernel.rs)
 
 The useful-horizon policy is not itself a confidence guarantee. Empirical limits require rolling-origin held-out hindcasts, adequate independent blocks/sites, uncertainty on block coverage, a preregistered decision tolerance and separate pre-/post-disturbance evaluations.
+
+
+## 16 November 2026: as-of-time integrity and data latency
+
+The new [#5487 as-of forecast integrity gate](https://github.com/Luminous-Dynamics/symtropy/issues/5487) separates ecological valid time, collection time, source release, QA/QC release, rights-effective time, system ingestion, forecast reference, information cutoff and issue/publication time. A source value can be collected before a forecast but still be unavailable at its issue time because a laboratory assay, satellite composite, quality check or licence release arrived later.
+
+The protocol uses the source/version that was actually available at the fold cutoff. A later correction cannot overwrite the historical input state, and realized future meteorology cannot masquerade as a forecast driver. A driver forecast is allowed only when its own issue time precedes the information cutoff and its target support covers the forecast target.
+
+Methodological anchors:
+- ecological forecasting identifies collection-to-availability latency as an operational constraint, especially for lab processing and QA/QC: https://pmc.ncbi.nlm.nih.gov/articles/PMC5816139/
+- NEON documents target latency and records submission publication time: https://projects.ecoforecast.org/neon4cast-docs/CronTiming.html
+- ecological forecast conventions distinguish `reference_datetime`, target `datetime` and publication time: https://doi.org/10.1002/ecs2.4686
+
+Artifacts:
+- [As-of integrity protocol](FOREST_AS_OF_FORECAST_INTEGRITY_V0_1.md)
+- [12-case synthetic corpus](cases/forest-as-of-forecast-integrity-synthetic-v0.1.json)
+- [Rust as-of validator](validator/src/forest_as_of_integrity_kernel.rs)
+
+All timestamps and source versions in v0.1 are synthetic. The gate does not establish AFEX data release times or a real historical hindcast. Missing availability or rights evidence is NOT_ESTIMABLE/REFUSED, not assumed available at collection time.
