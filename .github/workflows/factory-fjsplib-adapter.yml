@@ -31,6 +31,18 @@ jobs:
       run: cargo clippy --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets -- -D warnings
     - name: Tests
       run: cargo test --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets
+    - name: Set up benchmark-only Python reference environment
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+    - name: Install pinned OR-Tools reference solver
+      run: python -m pip install --disable-pip-version-check --only-binary=:all: ortools==9.15.6755
+    - name: Independent CP-SAT exact cross-check
+      run: |
+        python tools/factory-fjsplib-adapter/reference/ortools_fattahi1_check.py tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp | tee /tmp/fjsplib-cpsat-reference.json
+        grep -F '"status": "OPTIMAL"' /tmp/fjsplib-cpsat-reference.json
+        grep -F '"objective": 66' /tmp/fjsplib-cpsat-reference.json
+        grep -F '"best_bound": 66' /tmp/fjsplib-cpsat-reference.json
     - name: Verify documented Fattahi fixtures
       run: |
         cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fjsp | tee /tmp/fjsplib-fjsp.tsv
