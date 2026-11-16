@@ -13,6 +13,7 @@
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
+pub mod active_benchmark;
 pub mod active_plan;
 
 pub const CORPUS_JSON: &str = include_str!("../cases-v0.json");
