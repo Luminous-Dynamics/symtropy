@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 32-case corpus exercises:
+The frozen 36-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -58,10 +58,21 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 32-case synthetic corpus adds:
+The 36-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
 - rejection of probabilities outside [0,1] and negative streamflow members.
 
 CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins are descriptive, not proof of calibration; meaningful calibration requires many independent events, catchments, forecast horizons and uncertainty intervals. Event threshold, units, lead time and valid-time semantics must be frozen before scoring. All cases remain synthetic; the evaluator does not issue forecasts.
+
+
+### Paired Brier skill and rare-event reference safeguards (cases 033–036)
+
+The 36-case corpus adds:
+- paired Brier skill score against a declared reference forecast for the exact same event definition;
+- positive and negative BSS cases (negative skill is retained, never clipped);
+- a perfect/zero-error reference case that makes BSS Undefined while preserving the raw forecast and reference Brier scores;
+- mismatched threshold/event definitions that return NOT_COMPARABLE.
+
+Every comparison reports raw forecast/reference Brier, event count, observed frequency, sample count and reference identity. This follows WMO-No. 1364's caution that Brier skill for very rare events may be counterintuitive when the reference and event climatology are not made explicit. BSS is never a standalone leaderboard number.
