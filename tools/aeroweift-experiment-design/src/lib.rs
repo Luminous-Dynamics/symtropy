@@ -738,7 +738,14 @@ fn validate_utility_estimate_receipt(
         && receipt.confidence_level > 0.0
         && receipt.confidence_level < 1.0
         && receipt.confidence_level >= policy.minimum_estimate_confidence_level
-        && receipt.independent_unit_count >= policy.minimum_estimate_independent_units;
+        && receipt.independent_unit_count >= policy.minimum_estimate_independent_units
+        && (receipt.sample_unit != EstimateSampleUnit::ModelFamilyPair
+            || u64::try_from(independent_group_pair_count(
+                candidate,
+                policy.minimum_pair_separation,
+            ))
+            .ok()
+                == Some(receipt.independent_unit_count));
 
     if !scope_matches {
         reasons.insert(RejectionReason::InvalidUtilityEstimateReceipt);
