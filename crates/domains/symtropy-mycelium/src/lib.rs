@@ -20,6 +20,7 @@ pub mod legacy_accounting;
 pub mod network_evidence;
 pub mod observation_evidence;
 pub mod spatial_field_evidence;
+pub mod temporal_alignment;
 pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
