@@ -227,7 +227,9 @@ impl FieldObservationCatalog {
     }
 
     pub fn observation(&self, id: FieldSampleId) -> Option<&FieldHyphalDensityObservation> {
-        self.index_by_id.get(&id).map(|index| &self.observations[*index])
+        self.index_by_id
+            .get(&id)
+            .map(|index| &self.observations[*index])
     }
 
     pub fn studies(&self) -> impl Iterator<Item = FieldStudyId> + '_ {
@@ -236,9 +238,7 @@ impl FieldObservationCatalog {
 
     /// Only rows with both a valid coordinate and a known sampling-depth
     /// interval are included. All other rows remain accessible in observations.
-    pub fn spatially_supported_rows(
-        &self,
-    ) -> impl Iterator<Item = &FieldHyphalDensityObservation> {
+    pub fn spatially_supported_rows(&self) -> impl Iterator<Item = &FieldHyphalDensityObservation> {
         self.observations
             .iter()
             .filter(|item| item.has_spatial_support())
@@ -660,7 +660,10 @@ mod tests {
         let catalog = FieldObservationCatalog::new(vec![first, second]).unwrap();
 
         assert_eq!(catalog.observations().len(), 2);
-        assert_eq!(catalog.studies().collect::<Vec<_>>(), vec![FieldStudyId(10)]);
+        assert_eq!(
+            catalog.studies().collect::<Vec<_>>(),
+            vec![FieldStudyId(10)]
+        );
         assert_eq!(catalog.spatially_supported_rows().count(), 1);
         assert!(catalog.observation(FieldSampleId(2)).is_some());
     }
