@@ -99,6 +99,58 @@
         "https://globalsupport.vorwerk.com/hc/en-us/articles/18535706925724-What-are-the-technical-specifications-of-the-new-Thermomix-TM7"
       ],
       "notes": "Architectural comparator only. Manufacturer lists 2.2 L mixing bowl and 6.8 L Varoma set; not a pressure cooker or full-size food processor."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhep7",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "6L Digital Pressure Cooker",
+      "sku": "RHEP7 / 856295",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/6l-electric-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing states 6 L, 1000 W and 16 menu functions. Confirm current stock, type-plate voltage/frequency, pot material, pressure operating profile and warranty before acquisition."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhep6n",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "6L Electronic Pressure Cooker",
+      "sku": "RHEP6N / 863201",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/russell-hobbs-6l-electronic-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing states 6 L enamel removable pot, 1000 W, 17 menu functions and variable pressure. Manufacturer marketing claims require independent testing; verify exact type plate and documentation."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhpc06",
+      "domain": "stovetop_pressure_cooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "Stainless Steel 6L Stovetop Pressure Cooker",
+      "sku": "RHPC06",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/russell-hobbs-stainless-steel-6l-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing specifies 80 kPa gravity pressure valve and stainless-steel construction. Keep as a separate stovetop class; meter cooktop energy and report heat-source type rather than comparing watts directly to electric appliances."
+    },
+    {
+      "comparator_id": "kenwood-fdp65-400wh",
+      "domain": "food_processor",
+      "manufacturer": "Kenwood",
+      "model": "MultiPro Express",
+      "sku": "FDP65.400WH",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.pricecheck.co.za/offers/220870801/Kenwood%2BFDP65.400WH%2B3L%2BMultipro%2BExpress%2BFood%2BProcessor"
+      ],
+      "notes": "South African retail listings describe a 3 L, 1000 W model with multiple accessories. Retail listing is discovery evidence only; verify manufacturer datasheet, included accessories, local stock and warranty."
     }
   ],
   "tasks": [
