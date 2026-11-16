@@ -601,7 +601,17 @@ mod tests {
             receipt(3, ObservationSubject::FungalNutrientDelivery),
         ];
         assert_eq!(timeline.validate_against_receipts(&receipts), Ok(()));
-        assert_eq!(timeline.chronological_events()[0].id, CheckpointEventId(1));
+        // Center-time ordering is a deterministic display order only. These
+        // uncertainty intervals overlap, so the temporal comparator must not
+        // claim that either checkpoint preceded the other.
+        assert_eq!(timeline.chronological_events()[0].id, CheckpointEventId(2));
+        assert_eq!(
+            ExperimentTimeAligner::compare(
+                timeline.chronological_events()[0].time,
+                timeline.chronological_events()[1].time,
+            ),
+            Ok(TemporalOrdering::IndeterminateOverlap)
+        );
         assert!(timeline.has_checkpoint(SymbiosisCheckpoint::Maintenance));
     }
 
