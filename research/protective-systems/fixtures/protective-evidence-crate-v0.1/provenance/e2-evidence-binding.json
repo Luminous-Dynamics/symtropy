@@ -51,5 +51,20 @@
       "source": "E2_FIXTURE",
       "artifact_paths": []
     }
+  ],
+  "fixture_activity": {
+    "prov_activity_id": "ex:activity/e2-portability-fixture-001",
+    "fixture_activity_id": "synthetic.e2.provenance.fixture.001",
+    "execution_class": "E2_SYNTHETIC_GRAPH_FIXTURE",
+    "source_analysis_not_executed": true
+  },
+  "derivations": [
+    {
+      "generated_entity_id": "ex:entity/output-clinic-access",
+      "source_entity_id": "ex:entity/input-power-availability",
+      "assertion_source": "E2_FIXTURE_SYNTHETIC_CONTROL",
+      "source_class": "E2_FIXTURE",
+      "not_in_e1_lineage": true
+    }
   ]
 }
