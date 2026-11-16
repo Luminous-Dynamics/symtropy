@@ -5,6 +5,8 @@
 //! particle capture dynamics, orbital motion, or hardware safety. It checks
 //! declared boundaries and closed-form screening relationships only.
 
+pub mod tournament;
+
 use serde::Deserialize;
 use std::collections::BTreeSet;
 
