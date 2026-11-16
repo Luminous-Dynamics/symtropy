@@ -267,6 +267,7 @@ pub struct PolicyResult {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BenchmarkReport {
     pub seed: u64,
+    pub response_observability: ResponseObservabilityReport,
     pub source_candidate_pool_size: usize,
     pub target_candidate_pool_size: usize,
     pub heldout_case_count: usize,
@@ -955,6 +956,11 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     let source_domain = source_candidate_pool(seed);
     let heldout = heldout_target_pool(seed);
     let target_candidates = &target_domain.candidates;
+    let response_observability =
+        response_observability_check(target_candidates, SYNTHETIC_RESPONSE_RESOLUTION)?;
+    if !response_observability.accepted {
+        return Err("target response observability gate failed before policy selection".to_owned());
+    }
 
     let all_target: Vec<_> = (0..target_candidates.len()).collect();
     let uniform = select_uniform(target_candidates)?;
@@ -1035,6 +1041,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
 
     Ok(BenchmarkReport {
         seed,
+        response_observability,
         source_candidate_pool_size: source_domain.candidates.len(),
         target_candidate_pool_size: target_domain.candidates.len(),
         heldout_case_count: heldout.candidates.len(),
@@ -1414,6 +1421,7 @@ mod tests {
         assert_eq!(report.target_candidate_pool_size, 72);
         assert_eq!(report.heldout_case_count, 60);
         assert_eq!(report.target_contact_budget, 16);
+        assert!(report.response_observability.accepted);
         assert_eq!(report.results.len(), 7);
         assert_eq!(report.results[0].source_reference_contacts, 0);
         assert_eq!(report.results[0].target_reference_contacts, 72);
