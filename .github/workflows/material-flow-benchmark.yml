@@ -42,6 +42,15 @@ jobs:
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
       - name: Validate ten-fault campaign fixture
         run: cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json
+      - name: Execute ten-fault protocol campaign and negative controls
+        run: |
+          mkdir -p mfb-l1-evidence
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-run-campaign -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/ten-fault-campaign.json > mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"all_expected_outcomes_observed": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"pre_dispatch_faults_never_dispatched": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"post_dispatch_ambiguities_blocked_retry": true' mfb-l1-evidence/protocol-fault-campaign.json
+          grep -q '"no_episode_false_completed": true' mfb-l1-evidence/protocol-fault-campaign.json
+          cat mfb-l1-evidence/protocol-fault-campaign.json
       - name: Run analytical four-timestep free-fall convergence
         run: |
           mkdir -p mfb-l1-evidence
