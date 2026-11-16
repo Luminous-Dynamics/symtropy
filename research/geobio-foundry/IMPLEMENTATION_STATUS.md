@@ -22,6 +22,9 @@
 | `SUBTERRA_NETWORK_SCHEMA_v0.1.json` | Cave network graph separating candidate, geophysically supported, directly observed and contradicted links, with traversal and direction states |
 | `SUBTERRA_OBSERVATION_LINEAGE_SCHEMA_v0.1.json` | Dataset-level manifest linking site observations and derived products to one or more physical acquisitions and declared common-cause episodes |
 | `fixtures/subterra-observation-lineage-synthetic.json` | Synthetic multisite fixture with repeated derived products, shared calibration/environment episodes and an isolated control site |
+| `fixtures/subterra-site-evidence-lineage-a-synthetic.json` | Site A evidence record with two raw acquisitions and two derived observation products |
+| `fixtures/subterra-site-evidence-lineage-b-synthetic.json` | Site B evidence record sharing calibration/environment episodes with Site A |
+| `fixtures/subterra-site-evidence-lineage-c-synthetic.json` | Isolated Site C evidence record used as an evaluation control |
 | `fixtures/subterra-site-evidence-synthetic.json` | Synthetic Mars candidate record preserving unknown origin, connectivity, accessibility and use qualification |
 | `fixtures/subterra-nonuniform-profile-synthetic.json` | Synthetic profile with a deliberately unobserved interval |
 | `fixtures/subterra-cave-network-synthetic.json` | Synthetic cave graph separating observed topology from demonstrated traversal |
@@ -65,7 +68,8 @@
 | Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Subterra network schema/fixture JSON syntax | **PASS** | Both committed files parse as JSON; Draft 2020-12 meta-validation/fixture validation not yet executed for this new schema |
 | Observation-lineage schema/fixture | **PASS (schema + fixture)** | Draft 2020-12 meta-validation and fixture validation were executed against the exact committed blobs; source-graph referential integrity/cycle checks and site observation cross-reference validation remain pending |
-| Cross-repository typed lineage consumer | **AUTHORED, NOT EXECUTED** | Symthaea draft PR #12465 copies the exact six-record lineage and three site-evidence fixtures; strict JSON parsing, source graph/acquisition-ancestry validation, full site/observation reference coverage and external split-map auditing are authored but not compiled/executed |
+| Lineage site-evidence fixture cross-reference | **PASS (targeted local check)** | Parsed the exact committed JSON records, checked required observation fields/modality/date-time shapes and one-to-one site/observation mapping: 3 site records, 6 observations, 6 lineage records; this was not full Draft 2020-12 schema validation |
+| Cross-repository typed lineage consumer | **AUTHORED, NOT EXECUTED** | Symthaea draft PR #12465 copies the exact six-record lineage and three site-evidence fixtures; strict JSON parsing, source graph/acquisition-ancestry validation, full site/observation reference coverage and external split-map auditing are authored in 47 Rust cases but not compiled/executed |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
@@ -94,7 +98,7 @@
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 5. Add a dedicated CI lane or explicit nested-workspace verification target for `research/geobio-foundry/kernel`; the successful root-workspace CI run does not execute its 61 research tests.
-6. Add permanent Symtropy-side schema/fixture CI and validate every lineage observation ID against the corresponding site-evidence observation list; review and execute the typed cross-repository contract in Symthaea PR #12465.
+6. Add permanent Symtropy-side schema/fixture CI and source-graph cycle validation; review and execute the typed cross-repository contract and all 47 dependence-auditor tests in Symthaea PR #12465.
 7. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
 8. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
 9. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
