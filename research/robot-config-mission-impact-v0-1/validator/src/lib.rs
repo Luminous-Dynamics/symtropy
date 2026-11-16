@@ -144,7 +144,9 @@ fn check_trace(
                 }
                 event_clock_domain = Some(domain.to_owned());
             }
-            _ => errors.push(format!("event_clock_domain_missing:{pair_id}:{side}:{index}")),
+            _ => errors.push(format!(
+                "event_clock_domain_missing:{pair_id}:{side}:{index}"
+            )),
         }
 
         match arrival_clock {
@@ -159,7 +161,9 @@ fn check_trace(
                 }
                 arrival_clock_domain = Some(domain.to_owned());
             }
-            _ => errors.push(format!("arrival_clock_domain_missing:{pair_id}:{side}:{index}")),
+            _ => errors.push(format!(
+                "arrival_clock_domain_missing:{pair_id}:{side}:{index}"
+            )),
         }
 
         match stage {
@@ -380,17 +384,14 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
         for (side, path) in [("source", "source_trace"), ("target", "target_trace")] {
             match array_at(case, &[path]) {
                 Some(trace) if !trace.is_empty() => {
-                    let unmapped =
-                        check_trace(pair_id, side, trace, &stage_ids, &mut errors);
+                    let unmapped = check_trace(pair_id, side, trace, &stage_ids, &mut errors);
                     if side == "source" {
                         source_clock_unmapped = unmapped;
                     } else {
                         target_clock_unmapped = unmapped;
                     }
                 }
-                _ => errors.push(format!(
-                    "trace_missing_or_empty:{pair_id}:{side}"
-                )),
+                _ => errors.push(format!("trace_missing_or_empty:{pair_id}:{side}")),
             }
         }
         if source_clock_unmapped {
@@ -412,7 +413,9 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
                 items.iter().any(|item| {
                     matches!(
                         item.as_str(),
-                        Some("event_time_arrival_time_conflict" | "temporal_reconciliation_unknown")
+                        Some(
+                            "event_time_arrival_time_conflict" | "temporal_reconciliation_unknown"
+                        )
                     )
                 })
             });
@@ -564,21 +567,26 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
                 }
             }
             if outcome_total != 1 {
-                errors.push(format!("functional_unit_denominator_not_one:{pair_id}:{side}"));
+                errors.push(format!(
+                    "functional_unit_denominator_not_one:{pair_id}:{side}"
+                ));
             }
 
             let attempted = outcome
                 .get("functional_units_attempted")
                 .and_then(Value::as_u64);
             if attempted.is_none_or(|count| count > 1) {
-                errors.push(format!("functional_units_attempted_invalid:{pair_id}:{side}"));
+                errors.push(format!(
+                    "functional_units_attempted_invalid:{pair_id}:{side}"
+                ));
             }
-            let status_allows_zero_attempts =
-                matches!(status, Some("not_started" | "unknown"));
+            let status_allows_zero_attempts = matches!(status, Some("not_started" | "unknown"));
             if (attempted == Some(0) && !status_allows_zero_attempts)
                 || (status == Some("not_started") && attempted != Some(0))
             {
-                errors.push(format!("not_started_attempt_denominator_mismatch:{pair_id}:{side}"));
+                errors.push(format!(
+                    "not_started_attempt_denominator_mismatch:{pair_id}:{side}"
+                ));
             }
 
             let expected = if side == "source" {
@@ -602,15 +610,14 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
             let interventions = outcome
                 .get("operator_interventions")
                 .and_then(Value::as_u64);
-            let intervention_seconds = outcome
-                .get("intervention_seconds")
-                .and_then(Value::as_u64);
+            let intervention_seconds = outcome.get("intervention_seconds").and_then(Value::as_u64);
             let crew_seconds = outcome
                 .get("total_workflow_crew_seconds")
                 .and_then(Value::as_u64);
-            if interventions.is_none() || intervention_seconds.is_none() || crew_seconds.is_none()
-            {
-                errors.push(format!("intervention_or_crew_metric_missing:{pair_id}:{side}"));
+            if interventions.is_none() || intervention_seconds.is_none() || crew_seconds.is_none() {
+                errors.push(format!(
+                    "intervention_or_crew_metric_missing:{pair_id}:{side}"
+                ));
             } else if intervention_seconds > crew_seconds {
                 errors.push(format!(
                     "intervention_time_exceeds_workflow_crew_time:{pair_id}:{side}"
@@ -627,7 +634,8 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
             let quality = outcome.get("quality");
             let signed_error = quality.and_then(|value| value.get("signed_error_mm"));
             let uncertainty = quality.and_then(|value| value.get("expanded_uncertainty_mm"));
-            let measurement_ref = quality.and_then(|value| value.get("independent_measurement_ref"));
+            let measurement_ref =
+                quality.and_then(|value| value.get("independent_measurement_ref"));
             let has_measurement = signed_error.is_some_and(Value::is_number)
                 && uncertainty.is_some_and(Value::is_number)
                 && has_nonempty_ref(measurement_ref);
@@ -635,13 +643,22 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
                 && uncertainty.is_some_and(Value::is_null)
                 && measurement_ref.is_some_and(Value::is_null);
             if matches!(status, Some("accepted" | "rejected")) && !has_measurement {
-                errors.push(format!("accepted_or_rejected_output_lacks_referee_measurement:{pair_id}:{side}"));
+                errors.push(format!(
+                    "accepted_or_rejected_output_lacks_referee_measurement:{pair_id}:{side}"
+                ));
             }
-            if !matches!(status, Some("accepted" | "rejected")) && !has_measurement && !no_measurement {
-                errors.push(format!("partial_quality_measurement_fields:{pair_id}:{side}"));
+            if !matches!(status, Some("accepted" | "rejected"))
+                && !has_measurement
+                && !no_measurement
+            {
+                errors.push(format!(
+                    "partial_quality_measurement_fields:{pair_id}:{side}"
+                ));
             }
             if has_measurement {
-                let deviation = signed_error.and_then(Value::as_f64).unwrap_or(f64::INFINITY);
+                let deviation = signed_error
+                    .and_then(Value::as_f64)
+                    .unwrap_or(f64::INFINITY);
                 let expanded = uncertainty.and_then(Value::as_f64).unwrap_or(f64::INFINITY);
                 let tolerance = quality
                     .and_then(|value| value.get("acceptance_tolerance_mm"))
@@ -653,11 +670,17 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
                     || expanded < 0.0
                     || tolerance <= 0.0
                 {
-                    errors.push(format!("quality_measurement_numeric_invalid:{pair_id}:{side}"));
+                    errors.push(format!(
+                        "quality_measurement_numeric_invalid:{pair_id}:{side}"
+                    ));
                 } else if status == Some("accepted") && deviation.abs() + expanded > tolerance {
-                    errors.push(format!("accepted_output_outside_uncertainty_guarded_tolerance:{pair_id}:{side}"));
+                    errors.push(format!(
+                        "accepted_output_outside_uncertainty_guarded_tolerance:{pair_id}:{side}"
+                    ));
                 } else if status == Some("rejected") && deviation.abs() + expanded <= tolerance {
-                    errors.push(format!("rejected_output_inside_uncertainty_guarded_tolerance:{pair_id}:{side}"));
+                    errors.push(format!(
+                        "rejected_output_inside_uncertainty_guarded_tolerance:{pair_id}:{side}"
+                    ));
                 }
             }
         }
@@ -711,7 +734,9 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
 
     if errors.is_empty() {
         errors.extend(cross_file_invariants(&values[0], &values[1], &values[2]));
-        errors.extend(event_type_catalog_invariants(&values[0], &values[3], &values[1]));
+        errors.extend(event_type_catalog_invariants(
+            &values[0], &values[3], &values[1],
+        ));
         errors.extend(outcome_metric_invariants(&values[4], &values[2]));
     }
 
@@ -776,9 +801,11 @@ mod tests {
             .find(|item| item["event_type"] == "tool_identity_read")
             .unwrap();
         item["stage_id"] = Value::String("S05".to_owned());
-        assert!(event_type_catalog_invariants(&stage, &catalog, &corpus)
-            .iter()
-            .any(|error| error.starts_with("event_type_stage_mapping_mismatch:")));
+        assert!(
+            event_type_catalog_invariants(&stage, &catalog, &corpus)
+                .iter()
+                .any(|error| error.starts_with("event_type_stage_mapping_mismatch:"))
+        );
     }
 
     #[test]
@@ -794,12 +821,13 @@ mod tests {
             .iter_mut()
             .find(|item| item["event_type"] == "tool_identity_read")
             .unwrap();
-        item["allowed_source_classes"] = Value::Array(vec![Value::String(
-            "independent_referee".to_owned(),
-        )]);
-        assert!(event_type_catalog_invariants(&stage, &catalog, &corpus)
-            .iter()
-            .any(|error| error.starts_with("event_type_source_class_not_allowed:")));
+        item["allowed_source_classes"] =
+            Value::Array(vec![Value::String("independent_referee".to_owned())]);
+        assert!(
+            event_type_catalog_invariants(&stage, &catalog, &corpus)
+                .iter()
+                .any(|error| error.starts_with("event_type_source_class_not_allowed:"))
+        );
     }
 
     #[test]
