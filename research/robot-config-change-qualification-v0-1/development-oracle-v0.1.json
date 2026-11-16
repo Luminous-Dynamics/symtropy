@@ -1,0 +1,400 @@
+{
+  "schema_version": "robot-config-change-development-oracle-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-CHANGE-QUAL-001",
+  "visibility": "public_development_oracle_not_hidden_holdout",
+  "oracle_independence_note": "Expected labels are separately authored and reviewed; this JSON is public for development and cannot support a blind benchmark claim.",
+  "dispositions": [
+    {
+      "case_id": "RCQ-001",
+      "claims": [
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "DEPENDENCY_CLOSURE_UNCHANGED",
+          "No claim dependency changed under canonical semantic identity; raw source-byte identity remains distinct."
+        ],
+        [
+          "mobility.surface_envelope",
+          "PreservedByExactIdentity",
+          "DEPENDENCY_CLOSURE_UNCHANGED",
+          "Drive, payload, controller, localization and site dependencies are unchanged."
+        ],
+        [
+          "tool.swept_clearance",
+          "PreservedByExactIdentity",
+          "DEPENDENCY_CLOSURE_UNCHANGED",
+          "Tool and trajectory dependencies are semantically identical."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-002",
+      "claims": [
+        [
+          "operator.recovery.observability",
+          "RequiresApplicabilityReview",
+          "HMI_CHANGE_SCOPE_UNPROVEN",
+          "The changed display is in the claim dependency closure and no equivalence witness resolves the asserted cosmetic scope."
+        ],
+        [
+          "payload.handling",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "Payload handling dependencies are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-003",
+      "claims": [
+        [
+          "reach.envelope",
+          "PreservedByQualifiedEquivalence",
+          "QUALIFIED_TOOL_GEOMETRY_EQUIVALENCE",
+          "The synthetic witness covers the changed tool geometry/interface for the named reach claim."
+        ],
+        [
+          "tool.swept_clearance",
+          "PreservedByQualifiedEquivalence",
+          "QUALIFIED_TOOL_GEOMETRY_EQUIVALENCE",
+          "The synthetic witness explicitly covers tool geometry and mount for this claim."
+        ],
+        [
+          "process.output_quality",
+          "RequiresBenchReverification",
+          "PROCESS_TOOL_REPLACEMENT",
+          "A geometric/interface equivalence witness does not establish process output quality, wear state or process calibration."
+        ],
+        [
+          "mobility.surface_envelope",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "The mobile base and drive dependencies are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-004",
+      "claims": [
+        [
+          "reach.envelope",
+          "RequiresPhysicalReverification",
+          "TOOL_GEOMETRY_CHANGED",
+          "Reach depends on exact tool geometry and mount."
+        ],
+        [
+          "tool.swept_clearance",
+          "RequiresPhysicalReverification",
+          "SWEPT_VOLUME_CHANGED",
+          "The prior swept-volume claim no longer covers the changed tool."
+        ],
+        [
+          "process.output_quality",
+          "RequiresPhysicalReverification",
+          "PROCESS_TOOL_CHANGED",
+          "The tool change affects the physical process output."
+        ],
+        [
+          "mobility.surface_envelope",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "Drive and site mobility dependencies are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-005",
+      "claims": [
+        [
+          "payload.handling",
+          "PreservedByQualifiedEquivalence",
+          "WITHIN_QUALIFIED_LOAD_ENVELOPE",
+          "The synthetic witness covers mass, centre-of-mass and inertia for this claim."
+        ],
+        [
+          "mobility.surface_envelope",
+          "PreservedByQualifiedEquivalence",
+          "WITHIN_QUALIFIED_MOBILITY_ENVELOPE",
+          "The declared envelope explicitly includes the new payload state."
+        ],
+        [
+          "stopping.distance",
+          "PreservedByQualifiedEquivalence",
+          "WITHIN_QUALIFIED_STOPPING_LOAD_ENVELOPE",
+          "The witness covers the payload variables and stopping claim's declared load envelope."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-006",
+      "claims": [
+        [
+          "payload.handling",
+          "NotPreserved",
+          "OUTSIDE_QUALIFIED_LOAD_ENVELOPE",
+          "New physical evidence is required before the old load claim can apply."
+        ],
+        [
+          "mobility.surface_envelope",
+          "NotPreserved",
+          "OUTSIDE_QUALIFIED_MOBILITY_ENVELOPE",
+          "Prior mobility evidence does not cover the new load/CoM state."
+        ],
+        [
+          "stopping.distance",
+          "NotPreserved",
+          "OUTSIDE_QUALIFIED_STOPPING_LOAD_ENVELOPE",
+          "Prior stopping evidence does not cover the new payload state."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-007",
+      "claims": [
+        [
+          "perception.obstacle_detection",
+          "RequiresBenchReverification",
+          "CAMERA_SERIAL_CALIBRATION_MISSING",
+          "Same model does not preserve serial-specific calibration or performance evidence."
+        ],
+        [
+          "localization.visual",
+          "RequiresBenchReverification",
+          "CAMERA_SERIAL_CALIBRATION_MISSING",
+          "The camera serial/calibration path changed; new frame/quality checks are required."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "Geometric reach does not depend on the camera serial in this claim profile."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-008",
+      "claims": [
+        [
+          "localization.visual",
+          "RequiresPhysicalReverification",
+          "CAMERA_EXTRINSIC_CHANGED",
+          "A changed sensor mount/extrinsic affects the physical frame relation."
+        ],
+        [
+          "process.output_quality",
+          "RequiresPhysicalReverification",
+          "INSPECTION_FRAME_CHANGED",
+          "Placement/output acceptance depends on the new measurement frame."
+        ],
+        [
+          "measurement.synchronization",
+          "PreservedByExactIdentity",
+          "TIMEBASE_UNCHANGED",
+          "The timebase and sensor clock chain are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-009",
+      "claims": [
+        [
+          "energy.return_reserve",
+          "RequiresPhysicalReverification",
+          "BATTERY_HEALTH_UNMEASURED",
+          "New battery serial/health/capacity is not demonstrated by interface equivalence."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "GEOMETRIC_DEPENDENCIES_UNCHANGED",
+          "The declared mechanical envelope and geometric dependencies are unchanged."
+        ],
+        [
+          "stopping.distance",
+          "PreservedByQualifiedEquivalence",
+          "BATTERY_MASS_INTERFACE_EQUIVALENCE",
+          "The synthetic witness covers the unchanged mass/envelope relevant to this stopping claim; electrical-health claims are separate."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-010",
+      "claims": [
+        [
+          "mobility.surface_envelope",
+          "RequiresPhysicalReverification",
+          "DRIVE_MODULE_CHANGED",
+          "Traction, terrain and mobility depend on the drive module."
+        ],
+        [
+          "localization.visual",
+          "RequiresPhysicalReverification",
+          "ODOMETRY_SOURCE_CHANGED",
+          "Drive/odometry changes affect the localization chain."
+        ],
+        [
+          "stopping.distance",
+          "RequiresPhysicalReverification",
+          "BRAKING_TRACTION_CONFIGURATION_CHANGED",
+          "Stopping depends on drive, tyre/track and surface interaction."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "Manipulator geometry is unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-011",
+      "claims": [
+        [
+          "safety.interlock_response",
+          "RequiresPhysicalReverification",
+          "SAFETY_CHAIN_REVISION",
+          "The safety controller and brake chain changed."
+        ],
+        [
+          "stopping.distance",
+          "RequiresPhysicalReverification",
+          "BRAKE_CHAIN_REVISION",
+          "Physical stop response must be re-characterized for the target chain."
+        ],
+        [
+          "payload.handling",
+          "PreservedByExactIdentity",
+          "UNRELATED_DEPENDENCY_CLOSURE",
+          "The payload mass/CoM and mechanical handling dependencies are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-012",
+      "claims": [
+        [
+          "localization.visual",
+          "RequiresApplicabilityReview",
+          "FIRMWARE_SCOPE_UNPROVEN",
+          "A non-functional assertion without a complete change scope/equivalence witness cannot preserve dependent evidence."
+        ],
+        [
+          "operator.recovery.observability",
+          "RequiresApplicabilityReview",
+          "DIAGNOSTIC_FIRMWARE_SCOPE_UNPROVEN",
+          "The driver/diagnostic path may affect fault visibility and event semantics."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "MECHANICAL_DEPENDENCIES_UNCHANGED",
+          "The geometry claim is independent of this firmware change under the declared profile."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-013",
+      "claims": [
+        [
+          "stopping.distance",
+          "RequiresPhysicalReverification",
+          "MOTION_TIMING_CHANGED",
+          "Changed command timing affects physical stopping behaviour."
+        ],
+        [
+          "measurement.synchronization",
+          "RequiresBenchReverification",
+          "TIMESTAMP_PIPELINE_CHANGED",
+          "The event timing path changed and requires controlled synchronization testing."
+        ],
+        [
+          "tool.swept_clearance",
+          "RequiresPhysicalReverification",
+          "TRAJECTORY_CONTROL_CHANGED",
+          "The existing motion-envelope evidence is configuration-specific."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-014",
+      "claims": [
+        [
+          "measurement.synchronization",
+          "RequiresBenchReverification",
+          "TIMEBASE_REPLACED_NO_MAPPING",
+          "The changed clock chain needs an independently measured alignment/uncertainty result."
+        ],
+        [
+          "localization.visual",
+          "RequiresBenchReverification",
+          "SENSOR_TIME_ALIGNMENT_UNPROVEN",
+          "Localization fusion timing is not shown to remain applicable."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "TIMEBASE_UNRELATED_TO_GEOMETRIC_REACH",
+          "Geometric reach dependencies are unchanged."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-015",
+      "claims": [
+        [
+          "localization.visual",
+          "NotPreserved",
+          "SITE_FRAME_EPOCH_CHANGED",
+          "Site/map/frame-specific localization evidence is bound to the old epoch."
+        ],
+        [
+          "process.output_quality",
+          "RequiresPhysicalReverification",
+          "NEW_SITE_FRAME_REQUIRES_REFEREE_CHECK",
+          "The measurement and acceptance frame changed."
+        ],
+        [
+          "reach.envelope",
+          "PreservedByExactIdentity",
+          "INTRINSIC_GEOMETRY_UNCHANGED",
+          "Intrinsic reach is independent of the site frame in the declared claim profile."
+        ]
+      ]
+    },
+    {
+      "case_id": "RCQ-016",
+      "claims": [
+        [
+          "tool.swept_clearance",
+          "UnknownImpact",
+          "DEPENDENCY_CLOSURE_INCOMPLETE",
+          "An unclassified module may affect geometry, motion or tool clearance; no safe preservation inference is available."
+        ],
+        [
+          "mobility.surface_envelope",
+          "UnknownImpact",
+          "DEPENDENCY_CLOSURE_INCOMPLETE",
+          "The unclassified module could affect mass, power, sensing or drive state."
+        ],
+        [
+          "reach.envelope",
+          "UnknownImpact",
+          "DEPENDENCY_CLOSURE_INCOMPLETE",
+          "The missing dependency path prevents confirming whether reach is affected."
+        ],
+        [
+          "operator.recovery.observability",
+          "UnknownImpact",
+          "DEPENDENCY_CLOSURE_INCOMPLETE",
+          "The unclassified module has no admitted dependency mapping; the incomplete snapshot prevents proving absence of impact for this claim."
+        ]
+      ]
+    }
+  ],
+  "oracle_nonclaims": [
+    "These are synthetic expected dispositions, not robot measurements or safety decisions.",
+    "NotPreserved means prior evidence does not apply to the target configuration; it does not mean the target robot is inherently unsafe.",
+    "A preservation disposition does not prove issuer authenticity, physical truth, authority or the validity of the referenced witness.",
+    "A required physical or bench reverification is an obligation proposal, not permission to perform the activity."
+  ]
+}
