@@ -62,3 +62,5 @@ duplicate-gate-receipt-id|duplicate-receipt-id|REJECT
 duplicate-gate-receipt-role|duplicate-role|REJECT
 missing-structured-gate-receipt|digest-string-only|REJECT
 gate-receipt-payload-mismatch|payload-reference-mismatch|REJECT
+pareto-below-threshold-contrast-not-counted|separation-0.19-under-0.20-floor|NO_EXTRA_PAIR
+pareto-at-threshold-contrast-counted|separation-0.20-at-0.20-floor|EXTRA_PAIR
