@@ -6,7 +6,7 @@
   },
   "@graph": [
     {
-      "@id": "ex:activity/analysis-001",
+      "@id": "ex:activity/e2-portability-fixture-001",
       "@type": "prov:Activity",
       "prov:used": [
         {
@@ -20,7 +20,12 @@
         "@id": "ex:agent/synthetic-provider"
       },
       "ex:analysisId": "synthetic.analysis.water-continuity.001",
-      "ex:executionStatus": "NOT_EXECUTED"
+      "ex:executionStatus": "NOT_EXECUTED",
+      "ex:fixtureActivityId": "synthetic.e2.provenance.fixture.001",
+      "ex:executionClass": "E2_SYNTHETIC_GRAPH_FIXTURE",
+      "ex:sourceAnalysisId": "synthetic.analysis.water-continuity.001",
+      "ex:sourceAnalysisExecutionStatus": "NOT_EXECUTED",
+      "ex:analysisExecutionClaim": "NONE"
     },
     {
       "@id": "ex:agent/synthetic-provider",
@@ -49,9 +54,6 @@
       "prov:wasGeneratedBy": {
         "@id": "ex:activity/analysis-001"
       },
-      "prov:wasDerivedFrom": {
-        "@id": "ex:entity/input-water-demand"
-      },
       "schema:name": "Synthetic water service output",
       "ex:datasetId": "synthetic.dataset.water.output.001",
       "ex:datasetDirection": "OUTPUT",
@@ -66,7 +68,11 @@
       "schema:name": "Synthetic clinic access output",
       "ex:datasetId": "synthetic.dataset.clinic.output.control.001",
       "ex:datasetDirection": "OUTPUT",
-      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY"
+      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY",
+      "prov:wasDerivedFrom": {
+        "@id": "ex:entity/input-power-availability"
+      },
+      "ex:derivationAssertionSource": "E2_FIXTURE_SYNTHETIC_CONTROL"
     }
   ]
 }
