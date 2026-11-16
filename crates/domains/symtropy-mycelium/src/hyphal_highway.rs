@@ -968,7 +968,6 @@ mod tests {
             ))
         );
 
-        let mut receipts = receipts;
         receipts.push(receipt(12, ObservationSubject::FluorescenceRoi, None));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts),
