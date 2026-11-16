@@ -62,9 +62,8 @@ fn synchrotron_loss_per_turn_mev(
     }
 
     let mass_scale = (ELECTRON_MASS_GEV / particle_mass_gev).powi(4);
-    let loss = ELECTRON_U0_COEFFICIENT_MEV * beam_energy_gev.powi(4)
-        / bending_radius_m
-        * mass_scale;
+    let loss =
+        ELECTRON_U0_COEFFICIENT_MEV * beam_energy_gev.powi(4) / bending_radius_m * mass_scale;
     if !loss.is_finite() {
         return Err("synchrotron loss is non-finite".to_owned());
     }
@@ -121,8 +120,7 @@ fn calculate_scenario(
 
     // The isomagnetic, constant-field approximation:
     // rho = f_dip * C / (2 pi), p[GeV/c] = 0.299792458 B[T] rho[m].
-    let bending_radius_m =
-        dipole_fill_fraction * circumference_m / (2.0 * std::f64::consts::PI);
+    let bending_radius_m = dipole_fill_fraction * circumference_m / (2.0 * std::f64::consts::PI);
     let beam_energy_gev = 0.299_792_458 * dipole_field_t * bending_radius_m;
     let gamma = beam_energy_gev / MUON_MASS_GEV;
     if !beam_energy_gev.is_finite() || gamma < 1.0 {
@@ -149,14 +147,12 @@ fn calculate_scenario(
     // decays out of the circulating beam. This is total energy carried into
     // decay products, not deposited heat or neutrino dose.
     let muon_decay_rate_per_beam_s = muons_per_bunch * bunch_repetition_hz;
-    let decay_energy_flow_per_beam_w = muon_decay_rate_per_beam_s * beam_energy_gev * JOULES_PER_GEV;
+    let decay_energy_flow_per_beam_w =
+        muon_decay_rate_per_beam_s * beam_energy_gev * JOULES_PER_GEV;
     let decay_energy_flow_per_ring_m_w = decay_energy_flow_per_beam_w / circumference_m;
 
-    let synchrotron_loss_per_turn_mev = synchrotron_loss_per_turn_mev(
-        beam_energy_gev,
-        bending_radius_m,
-        MUON_MASS_GEV,
-    )?;
+    let synchrotron_loss_per_turn_mev =
+        synchrotron_loss_per_turn_mev(beam_energy_gev, bending_radius_m, MUON_MASS_GEV)?;
     let beam_energy_mev = beam_energy_gev * 1.0e3;
     let synchrotron_loss_fraction_per_turn = synchrotron_loss_per_turn_mev / beam_energy_mev;
     let synchrotron_power_per_beam_w =
@@ -164,10 +160,8 @@ fn calculate_scenario(
     let synchrotron_to_injection_power_ratio =
         synchrotron_power_per_beam_w / injection_power_per_beam_w;
 
-    let critical_photon_energy_ev =
-        1.5 * HBAR_C_EV_M * gamma.powi(3) / bending_radius_m;
-    let quantum_chi =
-        classical_quantum_parameter(beam_energy_gev, dipole_field_t, MUON_MASS_GEV)?;
+    let critical_photon_energy_ev = 1.5 * HBAR_C_EV_M * gamma.powi(3) / bending_radius_m;
+    let quantum_chi = classical_quantum_parameter(beam_energy_gev, dipole_field_t, MUON_MASS_GEV)?;
 
     let derived = [
         bending_radius_m,
@@ -328,10 +322,34 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
     )?;
 
     let fixed_field_sweep = [
-        calculate_scenario(11_400.0, source_field_t, source_fill_fraction, muons_per_bunch, repetition_hz)?,
-        calculate_scenario(100_000.0, source_field_t, source_fill_fraction, muons_per_bunch, repetition_hz)?,
-        calculate_scenario(1_000_000.0, source_field_t, source_fill_fraction, muons_per_bunch, repetition_hz)?,
-        calculate_scenario(11_000_000.0, source_field_t, source_fill_fraction, muons_per_bunch, repetition_hz)?,
+        calculate_scenario(
+            11_400.0,
+            source_field_t,
+            source_fill_fraction,
+            muons_per_bunch,
+            repetition_hz,
+        )?,
+        calculate_scenario(
+            100_000.0,
+            source_field_t,
+            source_fill_fraction,
+            muons_per_bunch,
+            repetition_hz,
+        )?,
+        calculate_scenario(
+            1_000_000.0,
+            source_field_t,
+            source_fill_fraction,
+            muons_per_bunch,
+            repetition_hz,
+        )?,
+        calculate_scenario(
+            11_000_000.0,
+            source_field_t,
+            source_fill_fraction,
+            muons_per_bunch,
+            repetition_hz,
+        )?,
     ];
 
     let moon = fixed_field_sweep[3];
@@ -350,14 +368,14 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
     let electron_chi =
         classical_quantum_parameter(moon.beam_energy_gev, source_field_t, ELECTRON_MASS_GEV)?;
 
-    let circumference_for_one_percent_loss_m = reference.circumference_m
-        * (0.01 / reference.synchrotron_loss_fraction_per_turn).sqrt();
-    let circumference_for_five_percent_loss_m = reference.circumference_m
-        * (0.05 / reference.synchrotron_loss_fraction_per_turn).sqrt();
-    let circumference_for_ten_percent_loss_m = reference.circumference_m
-        * (0.10 / reference.synchrotron_loss_fraction_per_turn).sqrt();
-    let circumference_for_one_hundred_percent_loss_m = reference.circumference_m
-        * (1.0 / reference.synchrotron_loss_fraction_per_turn).sqrt();
+    let circumference_for_one_percent_loss_m =
+        reference.circumference_m * (0.01 / reference.synchrotron_loss_fraction_per_turn).sqrt();
+    let circumference_for_five_percent_loss_m =
+        reference.circumference_m * (0.05 / reference.synchrotron_loss_fraction_per_turn).sqrt();
+    let circumference_for_ten_percent_loss_m =
+        reference.circumference_m * (0.10 / reference.synchrotron_loss_fraction_per_turn).sqrt();
+    let circumference_for_one_hundred_percent_loss_m =
+        reference.circumference_m * (1.0 / reference.synchrotron_loss_fraction_per_turn).sqrt();
 
     let values = [
         source_fill_fraction,
@@ -531,12 +549,13 @@ mod tests {
     #[test]
     fn quantum_parameter_separates_muon_and_electron_regimes_at_lunar_energy() {
         let energy_gev = 4_824_561.404;
-        let muon_chi = classical_quantum_parameter(energy_gev, 14.0, MUON_MASS_GEV).expect("muon chi");
-        let electron_chi = classical_quantum_parameter(energy_gev, 14.0, ELECTRON_MASS_GEV).expect("electron chi");
+        let muon_chi =
+            classical_quantum_parameter(energy_gev, 14.0, MUON_MASS_GEV).expect("muon chi");
+        let electron_chi =
+            classical_quantum_parameter(energy_gev, 14.0, ELECTRON_MASS_GEV).expect("electron chi");
         assert!(muon_chi < 1.0e-3);
         assert!(electron_chi > 1.0);
     }
-
 
     fn fixed_field_loss_grows_with_square_of_circumference() {
         let c0 = 11_400.0;
@@ -544,8 +563,8 @@ mod tests {
         let fill = 2.0 * std::f64::consts::PI * radius / c0;
         let baseline = calculate_scenario(c0, 14.0, fill, 1.8e12, 5.0).expect("baseline");
         let larger = calculate_scenario(100_000.0, 14.0, fill, 1.8e12, 5.0).expect("larger");
-        let ratio = larger.synchrotron_loss_fraction_per_turn
-            / baseline.synchrotron_loss_fraction_per_turn;
+        let ratio =
+            larger.synchrotron_loss_fraction_per_turn / baseline.synchrotron_loss_fraction_per_turn;
         close(ratio, (100_000.0 / c0).powi(2), 1.0e-8);
     }
 
@@ -559,7 +578,11 @@ mod tests {
         let electron =
             synchrotron_loss_per_turn_mev(energy, radius, ELECTRON_MASS_GEV).expect("electron");
         assert!(electron > muon && muon > proton);
-        close(muon / proton, (PROTON_MASS_GEV / MUON_MASS_GEV).powi(4), 1.0e-8);
+        close(
+            muon / proton,
+            (PROTON_MASS_GEV / MUON_MASS_GEV).powi(4),
+            1.0e-8,
+        );
     }
 
     #[test]
