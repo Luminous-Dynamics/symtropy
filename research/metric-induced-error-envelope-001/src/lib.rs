@@ -743,8 +743,13 @@ impl<F: CoordinateFrame, const N: usize> Cometric<F, N> {
 pub fn pairing<F: CoordinateFrame, const N: usize>(
     covector: &Cotangent<F, N>,
     vector: &Tangent<F, N>,
-) -> f64 {
-    dot(&covector.components, &vector.components)
+) -> Result<f64, MetricErrorV1> {
+    let value = dot(&covector.components, &vector.components);
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(MetricErrorV1::NonFiniteIntermediate)
+    }
 }
 
 #[cfg(test)]
@@ -777,6 +782,16 @@ mod tests {
         assert!(
             (left - right).abs() <= tolerance * scale,
             "{left} != {right}"
+        );
+    }
+
+    #[test]
+    fn pairing_rejects_overflow_from_finite_tangent_and_cotangent_inputs() {
+        let vector = Tangent::<CartesianQ, 1>::new([f64::MAX]).unwrap();
+        let covector = Cotangent::<CartesianQ, 1>::new([f64::MAX]).unwrap();
+        assert_eq!(
+            pairing(&covector, &vector),
+            Err(MetricErrorV1::NonFiniteIntermediate)
         );
     }
 
@@ -820,8 +835,8 @@ mod tests {
         let vector_y = rebasis.tangent_to_to(&vector_q).unwrap();
         let covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
         close(
-            pairing(&covector_q, &vector_q),
-            pairing(&covector_y, &vector_y),
+            pairing(&covector_q, &vector_q).unwrap(),
+            pairing(&covector_y, &vector_y).unwrap(),
             2.0e-13,
         );
 
@@ -944,7 +959,7 @@ mod tests {
         let wrong_vector_y = apply(&transpose(rebasis.matrix()), vector_q.components());
         let wrong_covector_y = rebasis.factor.solve(covector_q.components()).unwrap();
 
-        let correct_pairing = pairing(&correct_covector_y, &correct_vector_y);
+        let correct_pairing = pairing(&correct_covector_y, &correct_vector_y).unwrap();
         let wrong_pairing = dot(&wrong_covector_y, &wrong_vector_y);
 
         // This pair of mutually wrong maps still preserves the scalar pairing.
