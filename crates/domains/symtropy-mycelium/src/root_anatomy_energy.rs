@@ -120,6 +120,7 @@ pub enum RootAnatomyEnergyError {
     InvalidFungalTransportCost,
     InvalidFungalExchangeRatio,
     InvalidObservedRootRadius,
+    AllocationFailure,
     NonFiniteDerivedValue,
 }
 
@@ -162,6 +163,9 @@ impl fmt::Display for RootAnatomyEnergyError {
                     f,
                     "observed root radius must be finite and positive when supplied"
                 )
+            }
+            Self::AllocationFailure => {
+                write!(f, "unable to reserve per-layer root anatomy result storage")
             }
             Self::NonFiniteDerivedValue => {
                 write!(f, "root anatomy equations produced a non-finite derived value")
@@ -247,7 +251,10 @@ pub fn evaluate_root_anatomy_energy(
     let mut fungal_nutrient = 0.0;
     let mut fungal_transport_energy = 0.0;
     let mut total_hyphal_saving = 0.0;
-    let mut layer_results = Vec::with_capacity(parameters.tos_layer_count as usize);
+    let mut layer_results = Vec::new();
+    layer_results
+        .try_reserve_exact(parameters.tos_layer_count as usize)
+        .map_err(|_| RootAnatomyEnergyError::AllocationFailure)?;
 
     for layer_index in 1..=parameters.tos_layer_count {
         let i = f64::from(layer_index);
@@ -268,6 +275,8 @@ pub fn evaluate_root_anatomy_energy(
         let layer_saving = layer_nutrient * hyphal_distance * (e0 - e0f);
         total_hyphal_saving += layer_saving;
 
+        // Eq. 10: k_ner_i = 1 / (E0*t*(i-1)) for i>1. At i=1 the
+        // source assumes direct-to-stele delivery and the denominator is zero.
         let (efficiency_status, nutrient_per_energy) = if layer_index == 1 {
             // Eq. 10's denominator is zero at i=1: direct-to-stele delivery,
             // not an infinite numerical efficiency.
@@ -524,7 +533,7 @@ mod tests {
         let mut input = parameters(4);
         input.observed_root_radius_m = Some(0.005);
         let report = evaluate_root_anatomy_energy(&input).unwrap();
-        assert_eq!(report.observed_root_radius_m, Some(0.0044));
+        assert_eq!(report.observed_root_radius_m, Some(0.005));
         close(
             report.radius_approximation_relative_error.unwrap(),
             0.2,
