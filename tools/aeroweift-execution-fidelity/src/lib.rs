@@ -292,6 +292,8 @@ pub struct ExecutionRecord {
     pub segments: Vec<DataSegment>,
     /// Exact data-capture software build.
     pub capture_build_sha256: String,
+    /// Exact execution-fidelity policy used by the run recorder.
+    pub policy_sha256: String,
 }
 
 /// Frozen structural evaluation policy.
@@ -361,6 +363,8 @@ pub enum MismatchDimension {
     SegmentMeasurementBasis,
     /// Capture software build differs from the pinned policy.
     CaptureBuild,
+    /// Execution-fidelity policy differs from the frozen plan.
+    Policy,
 }
 
 /// Window-level coverage result.
@@ -500,6 +504,7 @@ fn validate_record(record: &ExecutionRecord) -> Result<(), ExecutionError> {
         || record.actual_start >= record.actual_end
         || !unique_nonempty(&record.actual_environment_strata)
         || !is_sha256(&record.capture_build_sha256)
+        || !is_sha256(&record.policy_sha256)
     {
         return Err(ExecutionError::InvalidExecutionRecord);
     }
@@ -508,9 +513,14 @@ fn validate_record(record: &ExecutionRecord) -> Result<(), ExecutionError> {
     for deviation in &record.deviations {
         if deviation.deviation_id.trim().is_empty()
             || !is_sha256(&deviation.record_sha256)
-            || deviation
-                .effective_window
-                .is_some_and(|window| !window.is_valid())
+            || deviation.effective_window.is_some_and(|window| {
+                !window.is_valid()
+                    || !TimeWindow {
+                        start: record.actual_start,
+                        end: record.actual_end,
+                    }
+                    .contains(window)
+            })
         {
             return Err(ExecutionError::InvalidDeviation);
         }
@@ -636,11 +646,11 @@ fn evaluate_authority(
         AuthorityState::Authorized => {
             let Some(receipt) = record.authority.receipt_sha256.as_deref() else {
                 *unknown = true;
-                return false;
+                return true;
             };
             if !is_sha256(receipt) {
                 *unknown = true;
-                return false;
+                return true;
             }
             if record.authority.scope_sha256.as_deref()
                 != Some(plan.authorization_scope_sha256.as_str())
@@ -650,7 +660,7 @@ fn evaluate_authority(
             }
             let Some(validity) = record.authority.valid_window else {
                 *unknown = true;
-                return false;
+                return true;
             };
             if !validity.is_valid()
                 || !validity.contains(TimeWindow {
@@ -665,7 +675,7 @@ fn evaluate_authority(
         }
         AuthorityState::Unknown => {
             *unknown = true;
-            false
+            true
         }
         AuthorityState::NotAuthorized | AuthorityState::NotRequired => {
             mismatches.insert(MismatchDimension::Authorization);
@@ -765,6 +775,9 @@ pub fn evaluate_execution(
     let mut documented_deviation = false;
     let mut outside_authority_envelope = false;
 
+    if record.policy_sha256 != plan.policy_sha256 || plan.policy_sha256 != policy.policy_sha256 {
+        mismatches.insert(MismatchDimension::Policy);
+    }
     if record.candidate_id != plan.candidate_id
         || record.candidate_sha256 != plan.candidate_sha256
         || record.selection_policy_sha256 != plan.selection_policy_sha256
@@ -856,8 +869,7 @@ pub fn evaluate_execution(
     let total_samples = record
         .segments
         .iter()
-        .map(|segment| segment.sample_count)
-        .sum();
+        .fold(0_u64, |total, segment| total.saturating_add(segment.sample_count));
 
     let not_admissible = !mismatches.is_empty() || !authority_ok && plan.authorization_required
         || outside_authority_envelope;
