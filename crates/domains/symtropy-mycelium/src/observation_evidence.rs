@@ -728,7 +728,7 @@ mod tests {
         let second = item.canonical_bytes().unwrap();
         assert_eq!(first, second);
         assert!(first.starts_with(b"MYCO-EVIDENCE-RECEIPT\\0"));
-        assert_eq!(&first[21..23], &1_u16.to_le_bytes());
+        assert_eq!(&first[22..24], &1_u16.to_le_bytes());
     }
 
     #[test]
