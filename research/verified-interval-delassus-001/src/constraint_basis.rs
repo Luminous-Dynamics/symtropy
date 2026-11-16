@@ -794,8 +794,14 @@ mod tests {
     fn singular_constraint_transform_is_rejected() {
         let (mass, jacobian) = fixture();
         let transform = [[1.0, 2.0], [2.0, 4.0]];
-        let residual = [Interval::point(0.25).unwrap(), Interval::point(-0.4).unwrap()];
-        let multiplier = [Interval::point(0.75).unwrap(), Interval::point(-1.25).unwrap()];
+        let residual = [
+            Interval::point(0.25).unwrap(),
+            Interval::point(-0.4).unwrap(),
+        ];
+        let multiplier = [
+            Interval::point(0.75).unwrap(),
+            Interval::point(-1.25).unwrap(),
+        ];
         assert!(matches!(
             certify_interval_constraint_basis_covariance(
                 &mass,
@@ -813,8 +819,14 @@ mod tests {
     fn forged_receipt_and_stale_problem_inputs_are_rejected() {
         let (mass, jacobian) = fixture();
         let transform = [[1.0, 2.0], [0.0, 1.0]];
-        let residual = [Interval::point(0.25).unwrap(), Interval::point(-0.4).unwrap()];
-        let multiplier = [Interval::point(0.75).unwrap(), Interval::point(-1.25).unwrap()];
+        let residual = [
+            Interval::point(0.25).unwrap(),
+            Interval::point(-0.4).unwrap(),
+        ];
+        let multiplier = [
+            Interval::point(0.75).unwrap(),
+            Interval::point(-1.25).unwrap(),
+        ];
         let mut certificate = certify_interval_constraint_basis_covariance(
             &mass,
             &jacobian,
@@ -859,8 +871,14 @@ mod tests {
     fn wrong_transpose_and_wrong_multiplier_variance_are_detected() {
         let (mass, jacobian) = fixture();
         let transform = [[1.0, 2.0], [0.0, 1.0]];
-        let residual = [Interval::point(0.25).unwrap(), Interval::point(-0.4).unwrap()];
-        let multiplier = [Interval::point(0.75).unwrap(), Interval::point(-1.25).unwrap()];
+        let residual = [
+            Interval::point(0.25).unwrap(),
+            Interval::point(-0.4).unwrap(),
+        ];
+        let multiplier = [
+            Interval::point(0.75).unwrap(),
+            Interval::point(-1.25).unwrap(),
+        ];
         let certificate = certify_interval_constraint_basis_covariance(
             &mass,
             &jacobian,
