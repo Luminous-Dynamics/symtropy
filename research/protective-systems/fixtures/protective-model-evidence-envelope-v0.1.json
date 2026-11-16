@@ -104,5 +104,6 @@
     "method_id": null,
     "calibration_reference": null
   },
-  "claim_ceiling": "Synthetic envelope, lineage-shape and local artifact-integrity conformance only. This is not an IN-CORE run, model validation, physical protection, field performance, regulatory compliance or certification."
+  "claim_ceiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+  "intended_use": "SYNTHETIC_TEST_ONLY"
 }
