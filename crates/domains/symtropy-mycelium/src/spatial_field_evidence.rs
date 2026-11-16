@@ -294,7 +294,7 @@ impl HyphalDensityRasterPrediction {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EffectiveHyphalRadiusUm {
     pub mean_radius_um: f64,
     pub standard_deviation_um: Option<f64>,
