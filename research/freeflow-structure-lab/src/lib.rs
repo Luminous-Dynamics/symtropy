@@ -282,12 +282,13 @@ impl StructureGraph {
         for _level in 0..config.depth {
             let mut next_branches = Vec::with_capacity(branches.len().saturating_mul(2));
             for branch in branches {
-                let offset = (branch.frame_u.scale(cos_twist)
-                    + branch.frame_v.scale(sin_twist))
+                let offset = (branch.frame_u.scale(cos_twist) + branch.frame_v.scale(sin_twist))
                     .scale(sin_angle);
-                let left_direction = (branch.direction.scale(cos_angle) + offset).normalized()
+                let left_direction = (branch.direction.scale(cos_angle) + offset)
+                    .normalized()
                     .ok_or(GenerationError::NonFiniteGeometry)?;
-                let right_direction = (branch.direction.scale(cos_angle) - offset).normalized()
+                let right_direction = (branch.direction.scale(cos_angle) - offset)
+                    .normalized()
                     .ok_or(GenerationError::NonFiniteGeometry)?;
 
                 let child_length = branch.length * config.length_ratio;
