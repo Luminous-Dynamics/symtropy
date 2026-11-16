@@ -515,6 +515,290 @@
           3
         ]
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "observed": [
+          1,
+          2,
+          3
+        ],
+        "forecast_ensembles": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            2,
+            3,
+            4
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            0,
+            2,
+            4
+          ],
+          [
+            1,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            5
+          ]
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002",
+          "event-003"
+        ],
+        "forecast_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.7
+        ],
+        "reference_probabilities": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "observed_events": [
+          1,
+          0,
+          1
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-035-skill-population-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "OTHER-CATCHMENT-SET-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "observed": [
+          1,
+          2
+        ],
+        "forecast_ensembles": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            4
+          ]
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 6,
+        "reference_lead_hours": 6,
+        "observation_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0.7,
+          0.2
+        ],
+        "reference_probabilities": [
+          1,
+          0
+        ],
+        "observed_events": [
+          1,
+          0
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-037-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "observed": [
+          1,
+          2
+        ],
+        "forecast_ensembles": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            1
+          ],
+          [
+            2
+          ]
+        ],
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 48,
+        "observation_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "forecast_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "reference_case_ids": [
+          "event-001",
+          "event-002"
+        ],
+        "observed": [
+          1,
+          2
+        ],
+        "forecast_ensembles": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ]
+        ],
+        "reference_ensembles": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "denominator_tolerance": 1e-12
+      }
     }
   ]
 }
