@@ -105,9 +105,7 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn validate_measurement(
-    measurement: &MeasurementReference,
-) -> Result<(), TemporalModelError> {
+fn validate_measurement(measurement: &MeasurementReference) -> Result<(), TemporalModelError> {
     if !nonempty(&measurement.id) {
         return Err(TemporalModelError::EmptyMeasurementId);
     }
@@ -120,9 +118,7 @@ fn validate_measurement(
     Ok(())
 }
 
-fn validate_calibration(
-    calibration: &CalibrationRecord,
-) -> Result<(), TemporalModelError> {
+fn validate_calibration(calibration: &CalibrationRecord) -> Result<(), TemporalModelError> {
     if !nonempty(&calibration.id) {
         return Err(TemporalModelError::EmptyCalibrationId);
     }
@@ -266,7 +262,10 @@ mod tests {
     #[test]
     fn measurement_inside_declared_half_open_interval_is_temporally_valid() {
         let result = assess_calibration_at(&measurement(150), &[calibration(vec![])], 500);
-        assert_eq!(result, Ok(CalibrationTemporalStatus::WithinDeclaredValidity));
+        assert_eq!(
+            result,
+            Ok(CalibrationTemporalStatus::WithinDeclaredValidity)
+        );
     }
 
     #[test]
