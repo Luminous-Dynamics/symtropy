@@ -249,14 +249,43 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "role",
         "relative_path",
+        "provider_file_id",
+        "file_name",
+        "media_type",
         "byte_length",
         "sha256"
       ],
       "properties": {
+        "role": {
+          "enum": [
+            "DATASET_METADATA",
+            "FILE_METADATA",
+            "DATA_PAYLOAD"
+          ]
+        },
         "relative_path": {
           "type": "string",
           "minLength": 1
+        },
+        "provider_file_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "media_type": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "byte_length": {
           "type": "integer",
