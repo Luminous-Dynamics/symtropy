@@ -273,11 +273,7 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
                     independent_check_reference_force_observations_n.push(
-                        force + deterministic_noise(
-                            seed ^ 0xE703_7ED1_A0B4_28DB,
-                            id,
-                            0.003,
-                        ),
+                        force + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003),
                     );
                     id += 1;
                 }
@@ -315,6 +311,9 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
+                    independent_check_reference_force_observations_n.push(
+                        force + deterministic_noise(seed ^ 0xE703_7ED1_A0B4_28DB, id, 0.003),
+                    );
                     id += 1;
                 }
             }
