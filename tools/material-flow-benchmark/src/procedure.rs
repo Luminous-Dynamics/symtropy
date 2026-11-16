@@ -685,12 +685,13 @@ impl ProcedureGraph {
             if receipt.expires_at_unix_ms <= receipt.observed_at_unix_ms {
                 errors.push(format!("{prefix}: expiry must be later than observation"));
             }
+            let clock_uncertainty_ms = u64::from(scenario.clock_uncertainty_ms);
             let latest_possible_decision_time = scenario
                 .started_at_unix_ms
-                .saturating_add(scenario.clock_uncertainty_ms);
+                .saturating_add(clock_uncertainty_ms);
             let earliest_possible_decision_time = scenario
                 .started_at_unix_ms
-                .saturating_sub(scenario.clock_uncertainty_ms);
+                .saturating_sub(clock_uncertainty_ms);
             // Fail closed across the entire uncertainty interval: the receipt
             // must already exist at the earliest plausible decision time and
             // remain valid through the latest plausible decision time.
