@@ -529,7 +529,9 @@
             "event-001",
             "event-002",
             "event-003"
-          ]
+          ],
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "persistence-v1"
         },
         "skill_score_unclipped": true
       }
@@ -553,7 +555,9 @@
             "event-001",
             "event-002",
             "event-003"
-          ]
+          ],
+          "forecast_id": "candidate-model-v0.1",
+          "reference_forecast_id": "seasonal-climatology-train-only-v1"
         },
         "skill_score_unclipped": true
       }
@@ -602,6 +606,31 @@
         "reason": "FORECAST_LEAD_TIME_MISMATCH",
         "forecast_lead_hours": 24,
         "reference_lead_hours": 48,
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crps-skill-case-identity-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "VERIFICATION_CASE_IDENTITY_MISMATCH",
+        "observation_case_count": 2,
+        "forecast_case_count": 2,
+        "reference_case_count": 2,
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-040-brier-skill-event-definition-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "EVENT_DEFINITION_MISMATCH",
+        "forecast_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
         "skill_score": null,
         "probabilistic_disposition": "NOT_COMPARABLE"
       }
