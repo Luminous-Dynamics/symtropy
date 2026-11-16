@@ -97,3 +97,17 @@ The adaptive query is benchmarked against the full-interval analytic query and t
 ### Adaptive query input errors
 
 The adaptive API returns typed errors for invalid normalized time windows, maximum depth above 20, and minimum window widths outside (0, 1]. These are input/contract failures, not collision outcomes. The shared `TranslationCcdError` owner exposes them alongside numerical conditioning and overflow errors so callers can distinguish invalid requests from `Unresolved` geometry.
+
+## Replayable adaptive CCD certificates
+
+The certificate API records one terminal ledger leaf for every part of the normalized time interval:
+- pruned intervals include both conservative swept AABBs;
+- exact-clear leaves include the analytic closest-approach result;
+- contact leaves include a contact witness;
+- numerically ill-conditioned leaves are recorded as unresolved.
+
+The verifier requires the leaf windows to form a complete, ordered, gap-free dyadic partition of [0,1]. It recomputes the swept AABBs, checks every prune is truly disjoint, reruns exact narrow phase on checked leaves, and recomputes the overall status and counters. A successful no-contact verification therefore requires every terminal interval to be either a verified geometric prune or an exact clear result, with no unresolved leaves.
+
+The certificate-producing variant evaluates every surviving candidate leaf rather than stopping at the first contact, so its ledger is complete. The existing adaptive query remains available for early-contact latency. Certificates are typed replay records, not signed/cryptographically authenticated attestations or formal proofs; callers must bind the embedded geometry and translations to exact design, site, robot, tool, calibration and controller identities in their outer evidence record.
+
+The certificate API has a 65,536 terminal-leaf cap to bound memory use. See [#5651](https://github.com/Luminous-Dynamics/symtropy/issues/5651).
