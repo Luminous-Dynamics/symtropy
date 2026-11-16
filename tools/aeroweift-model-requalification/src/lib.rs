@@ -165,7 +165,7 @@ pub enum CoverageCompleteness {
 }
 
 /// Two independent cutoffs for reproducible historical/current evaluation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BitemporalCutoff {
     /// Target effective-time frontier being assessed.
     pub effective_at: i64,
@@ -347,7 +347,7 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
 fn coverage_is_complete(
     coverage: &[ChangeFeedCoverage],
     dependency: &DependencyBinding,
-    cutoff: BitemporalCutoff,
+    cutoff: &BitemporalCutoff,
     claim_validated_at: i64,
     claim_recorded_at: i64,
     effective_time_scale_id: &str,
@@ -477,7 +477,7 @@ pub fn evaluate_claim(
         if !coverage_is_complete(
             &eligible_coverage,
             dependency,
-            cutoff,
+            &cutoff,
             claim.validated_at_effective,
             claim.recorded_at,
             &claim.effective_time_scale_id,
