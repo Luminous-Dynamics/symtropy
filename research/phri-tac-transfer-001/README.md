@@ -186,3 +186,30 @@ TouchWGNN paper comparator (not a reproduced result): seven piezoresistive modul
 
 Paper: https://doi.org/10.3389/frobt.2026.1791424
 Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC13351857/
+
+
+## First hosted 113-taxel model-form result — 16 November 2026
+
+Hosted workflow #145 completed successfully on source head `3cedcc2c86bd3c31c366d9e5b88980610da4d125`: **55 Rust tests passed**, rustfmt PASS, strict Clippy PASS, tracked 34-case transfer oracle PASS, paired 50-seed campaign CLI PASS, six-family adversarial CLI PASS and 113-taxel model-form CLI PASS. Follow-up commit `12f37c490fe865a515aaa4f68ca27e61014cdf33` contains runner-generated rustfmt-only changes.
+
+The model-form harness evaluates 113 synthetic taxels on 10 interleaved held-out force values each:
+
+| Model | Reference contacts/taxel | Total contacts | Pooled RMSE | Mean taxel RMSE | p95 taxel RMSE | Worst taxel RMSE |
+|---|---:|---:|---:|---:|---:|---:|
+| Per-taxel rational, 11-point grid | 11 | 1,243 | 0.004142 N | 0.004035 N | 0.005466 N | 0.005635 N |
+| Per-taxel rational, 6-point grid | 6 | 678 | 0.005358 N | 0.005146 N | 0.007320 N | 0.007690 N |
+| Per-taxel rational, 4-point grid | 4 | 452 | 0.005253 N | 0.005233 N | 0.006011 N | 0.006101 N |
+| Shared rational, 6 points/taxel | 6 | 678 | 0.658408 N | 0.639161 N | 0.962757 N | 1.034081 N |
+| Per-taxel affine, 6-point grid | 6 | 678 | 1.141575 N | 1.141572 N | 1.145063 N | 1.146402 N |
+
+### Interpretation
+
+- In this deliberately heterogeneous synthetic array, per-taxel rational calibration is substantially more accurate than a single shared rational curve or per-taxel affine response.
+- Four reference contacts per taxel used 452 rather than 1,243 contacts (63.6% fewer) while the pooled RMSE rose by about 26.8% and worst-taxel RMSE by about 8.3% versus the 11-point rational reference.
+- The four-point design outperformed the six-point design for this particular stimulus placement. This is not a general claim that fewer contacts are better; it is evidence that force-point placement and parameter identifiability need to be optimized jointly.
+- The global/shared curve's poor performance is expected because the synthetic taxel transfer functions differ. A more realistic hierarchical partial-pooling model may improve efficiency without imposing one curve on all taxels.
+- The affine control is unable to represent the rational sensor's saturation-shaped response over the full range.
+
+These are synthetic model-form results, not TouchWGNN replications or physical metrology results. TouchWGNN's published 0.0892 N RMSE and (R^2=0.9985) belong to its own 113-taxel hardware and its own force-gauge/protocol. The synthetic RMSE magnitudes must not be compared as though the datasets or measurement systems were matched.
+
+The next useful model family is hierarchical/partial pooling with taxel-specific residuals and a graph prior, plus calibration-point selection that targets weakly identified taxels, boundary taxels and saturated regions. Physical comparison still requires #4753's characterized phantom, reference instrument and taxel geometry.
