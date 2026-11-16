@@ -43,6 +43,8 @@ pub struct DependencyBinding {
     pub digest: String,
     /// Owner/source namespace expected to report changes for this dimension.
     pub change_source_id: String,
+    /// Exact event stream within the source namespace.
+    pub change_stream_id: String,
 }
 
 /// A historical model-evidence claim and the dependency identities it used.
@@ -92,6 +94,8 @@ pub struct ChangeEvent {
     pub event_id: String,
     /// Owner/source namespace.
     pub source_id: String,
+    /// Exact stream within the source namespace.
+    pub source_stream_id: String,
     /// Monotonic sequence number within the source stream.
     pub source_sequence: u64,
     /// Dependency dimension changed.
@@ -119,6 +123,8 @@ pub struct ChangeFeedCoverage {
     pub dependency: DependencyKind,
     /// Exact source namespace.
     pub source_id: String,
+    /// Exact event stream within the source namespace.
+    pub source_stream_id: String,
     /// Inclusive start of the covered effective-time interval.
     pub effective_from: i64,
     /// Inclusive end of the covered effective-time interval.
@@ -201,6 +207,8 @@ pub enum EvaluationError {
     DependencyChainMismatch,
     /// A change event's source does not match the claim's declared source.
     ChangeSourceMismatch,
+    /// A change event's stream does not match the claim's declared stream.
+    ChangeStreamMismatch,
 }
 
 /// Per-claim result; historical evidence is never deleted or rewritten.
@@ -249,7 +257,9 @@ fn is_sha256(value: &str) -> bool {
 }
 
 fn dependency_is_complete(dependency: &DependencyBinding) -> bool {
-    is_sha256(&dependency.digest) && !dependency.change_source_id.trim().is_empty()
+    is_sha256(&dependency.digest)
+        && !dependency.change_source_id.trim().is_empty()
+        && !dependency.change_stream_id.trim().is_empty()
 }
 
 fn validate_claim(claim: &ModelEvidenceClaim) -> Result<(), EvaluationError> {
@@ -270,10 +280,12 @@ fn validate_claim(claim: &ModelEvidenceClaim) -> Result<(), EvaluationError> {
 
 fn validate_events(events: &[ChangeEvent]) -> Result<(), EvaluationError> {
     let mut ids = BTreeSet::new();
-    let mut sequences: BTreeMap<(&str, u64), (&str, &str)> = BTreeMap::new();
+    let mut sequences: BTreeMap<(&str, &str, u64), (&str, &str)> = BTreeMap::new();
     for event in events {
         if event.event_id.trim().is_empty()
             || event.source_id.trim().is_empty()
+            || event.source_stream_id.trim().is_empty()
+            || event.source_sequence == 0
             || !is_sha256(&event.prior_digest)
             || !is_sha256(&event.successor_digest)
             || !is_sha256(&event.event_sha256)
@@ -285,7 +297,11 @@ fn validate_events(events: &[ChangeEvent]) -> Result<(), EvaluationError> {
         if !ids.insert(event.event_id.as_str()) {
             return Err(EvaluationError::DuplicateEventId);
         }
-        let key = (event.source_id.as_str(), event.source_sequence);
+        let key = (
+            event.source_id.as_str(),
+            event.source_stream_id.as_str(),
+            event.source_sequence,
+        );
         if let Some((_, previous_digest)) =
             sequences.insert(key, (event.event_id.as_str(), event.event_sha256.as_str()))
         {
@@ -301,6 +317,8 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
     let mut keys = BTreeSet::new();
     for item in coverage {
         if item.source_id.trim().is_empty()
+            || item.source_stream_id.trim().is_empty()
+            || item.first_sequence == 0
             || item.recorded_at < 0
             || item.knowledge_from > item.knowledge_through
             || !is_sha256(&item.manifest_sha256)
@@ -309,7 +327,11 @@ fn validate_coverage(coverage: &[ChangeFeedCoverage]) -> Result<(), EvaluationEr
         {
             return Err(EvaluationError::InvalidCoverage);
         }
-        if !keys.insert((item.dependency, item.source_id.as_str())) {
+        if !keys.insert((
+            item.dependency,
+            item.source_id.as_str(),
+            item.source_stream_id.as_str(),
+        )) {
             return Err(EvaluationError::DuplicateCoverage);
         }
     }
@@ -326,6 +348,7 @@ fn coverage_is_complete(
     coverage.iter().any(|item| {
         item.dependency == dependency.kind
             && item.source_id == dependency.change_source_id
+            && item.source_stream_id == dependency.change_stream_id
             && item.completeness == CoverageCompleteness::Complete
             && item.evidence_state == ChangeEvidenceState::OwnerQualified
             && item.effective_from <= claim_validated_at
@@ -376,6 +399,7 @@ pub fn evaluate_claim(
                 && claim.dependencies.iter().any(|dependency| {
                     dependency.kind == item.dependency
                         && dependency.change_source_id == item.source_id
+                        && dependency.change_stream_id == item.source_stream_id
                 })
         })
         .cloned()
@@ -434,9 +458,13 @@ pub fn evaluate_claim(
             if event.source_id != dependency.change_source_id {
                 return Err(EvaluationError::ChangeSourceMismatch);
             }
+            if event.source_stream_id != dependency.change_stream_id {
+                return Err(EvaluationError::ChangeStreamMismatch);
+            }
             let event_is_covered = eligible_coverage.iter().any(|item| {
                 item.dependency == dependency.kind
                     && item.source_id == dependency.change_source_id
+                    && item.source_stream_id == dependency.change_stream_id
                     && item.first_sequence <= event.source_sequence
                     && item.last_sequence >= event.source_sequence
             });
@@ -504,6 +532,7 @@ pub fn evaluate_claim(
             .filter(|event| {
                 event.dependency == dependency.kind
                     && event.source_id == dependency.change_source_id
+                    && event.source_stream_id == dependency.change_stream_id
                     && event.effective_at <= claim.validated_at_effective
                     && event.recorded_at <= claim.recorded_at
                     && event.evidence_state == ChangeEvidenceState::OwnerQualified
