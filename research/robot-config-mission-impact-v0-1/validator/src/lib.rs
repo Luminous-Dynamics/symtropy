@@ -226,6 +226,9 @@ pub fn cross_file_invariants(
             if !stage_ids.contains(&stage_id) {
                 errors.push(format!("oracle_divergence_stage_undeclared:{pair_id}:{stage_id}"));
             }
+            if attribution != Some("stage_localized_not_root_cause") {
+                errors.push(format!("localized_divergence_marked_unknown:{pair_id}"));
+            }
         } else {
             errors.push(format!("oracle_divergence_stage_missing:{pair_id}"));
         }
@@ -364,7 +367,9 @@ mod tests {
             "unknown dependency scope must not receive invented stage attribution"
         );
         assert!(
-            !errors.iter().any(|error| error == "null_divergence_not_marked_unknown:MIP-008")
+            errors
+                .iter()
+                .any(|error| error == "localized_divergence_marked_unknown:MIP-008")
         );
     }
 
