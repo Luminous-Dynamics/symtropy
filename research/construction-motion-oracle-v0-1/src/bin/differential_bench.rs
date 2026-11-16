@@ -5,7 +5,8 @@ use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule,
     IntervalVerificationStatus, IntervalVerifierConfig, NormalizedTimeWindow, Vec3,
     co_translating_capsule_adaptive_query_with_certificate, verify_adaptive_collision_certificate,
-    replay_interval_verification_receipt, verify_capsule_interval_no_contact,
+    replay_interval_verification_receipt, verify_adaptive_no_contact_independently,
+    verify_capsule_interval_no_contact,
     chord_collision, co_translating_capsule_adaptive_query,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
@@ -519,6 +520,40 @@ fn main() {
             black_box(interval_receipt),
         )
         .expect("independent interval receipt replays");
+    });
+
+
+    let asynchronous_certificate = co_translating_capsule_adaptive_query_with_certificate(
+        asynchronous_a,
+        common_translation,
+        asynchronous_b,
+        common_translation,
+        adaptive_config,
+    )
+    .expect("valid asynchronous no-contact certificate");
+    assert_eq!(
+        asynchronous_certificate.report.status,
+        AdaptiveCollisionStatus::NoContact
+    );
+    let independent_certificate_receipt = verify_adaptive_no_contact_independently(
+        black_box(&asynchronous_certificate),
+        IntervalVerifierConfig::default(),
+    )
+    .expect("independent verifier confirms every adaptive no-contact leaf");
+    println!(
+        "adaptive-independent-verifier,leaf_count,{}",
+        independent_certificate_receipt.leaf_receipts.len()
+    );
+    println!(
+        "adaptive-independent-verifier,parameter_boxes_visited,{}",
+        independent_certificate_receipt.parameter_boxes_visited
+    );
+    measure("adaptive-independent-verifier-generation-and-replay", || {
+        verify_adaptive_no_contact_independently(
+            black_box(&asynchronous_certificate),
+            IntervalVerifierConfig::default(),
+        )
+        .expect("independent verifier confirms every adaptive no-contact leaf");
     });
 
 }
