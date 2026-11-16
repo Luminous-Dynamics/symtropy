@@ -709,7 +709,9 @@ mod tests {
     #[test]
     fn exact_solver_returns_inconclusive_before_exceeding_operation_bound() {
         let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
-        instance.operations.push(instance.operations[0].clone());
+        let mut extra_operation = instance.operations[0].clone();
+        extra_operation.id = instance.operations.len();
+        instance.operations.push(extra_operation);
         let result = solve_exact(&instance);
         assert_eq!(result.status, ExactStatus::Inconclusive);
         assert!(!result.optimality_proven);
