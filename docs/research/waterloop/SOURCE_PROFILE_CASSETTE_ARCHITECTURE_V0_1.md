@@ -353,3 +353,22 @@ Add longitudinal measures to the comparison:
 - quality-verified useful volume, not merely total flow through an operating unit.
 
 The design objective is **maintainable, quality-verifiable service over time**, not maximum initial removal efficiency or uninterrupted equipment runtime at any cost.
+
+
+## 16. First-article functional BOM and T1 challenge matrix
+
+The following companion artifacts define a build-planning interface without freezing any supplier or dimension:
+- [Functional BOM v0.1](SOURCE_PROFILE_CASSETTE_FUNCTIONAL_BOM_V0_1.csv): shared batch/measurement backbone plus Train A/B/C/D candidate items. It states quantities as functional planning counts, not procurement quantities; exact working volumes, pipe sizes, materials, pressure ratings, membrane ratings and component SKUs remain open.
+- [T1 test matrix v0.1](source-profile-cassette-t1-test-matrix-v0.1.json) and [schema](source-profile-cassette-t1-test-matrix-v0.1.schema.json): 15 source, process, safety, residual and longitudinal-monitoring challenges.
+
+### Assembly concept
+
+Use one common cassette bay and run one treatment train at a time. Keep separate source vessels for bathroom baseline and laundry challenge, and never share a raw-feed path between them. The shared skid provides controlled batch feed, inlet/product measurement, sample ports, stage taps, power metering and read-only logging. Each cassette is connected only after its own configuration ID and process envelope are admitted. Separate collection remains for settled solids, membrane/backwash liquids and spent carbon/electrode sludge.
+
+The first article is a **contained bench module**, not an occupied-household appliance. Train A/B/C/D can be tested sequentially using the same matched batch and measurement backbone; cleaning/blank verification between configurations is part of the protocol.
+
+### T1 fault matrix
+
+The 15 frozen challenges include bathroom baseline, laundry-only challenge, unknown/mixed feed rejection, kitchen/blackwater rejection, feed-envelope excursion, membrane fouling/integrity failure, UVT/UV failure, ozone off-gas failure, GAC breakthrough/unknown age, EC electrode degradation, power loss, stale quality evidence, unmetered residual path, extended idle/restart and quality-verification gap.
+
+For every failed/unknown critical state, expected output is isolation/quarantine or an explicit loss of quality claim. These are proposed test cases only; running them requires the release gates in the test matrix and the professional/safety reviews already stated above.
