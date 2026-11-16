@@ -628,10 +628,7 @@ fn pairwise_independent(left: &OptionAssessment, right: &OptionAssessment) -> bo
 /// Maximum independent set is NP-hard. V0 caps exact search at the policy's
 /// `maximum_determinate_option_count` (itself bounded to 24); larger sets receive a
 /// deterministic greedy lower bound and must not be described as a proven maximum.
-fn independent_witness(
-    options: &[OptionAssessment],
-    exact_limit: usize,
-) -> (Vec<String>, bool) {
+fn independent_witness(options: &[OptionAssessment], exact_limit: usize) -> (Vec<String>, bool) {
     let mut admissible: Vec<&OptionAssessment> = options
         .iter()
         .filter(|option| option.disposition == OptionDisposition::Admissible)
@@ -641,12 +638,18 @@ fn independent_witness(
     if admissible.len() > exact_limit {
         let mut selected: Vec<&OptionAssessment> = Vec::new();
         for candidate in admissible {
-            if selected.iter().all(|chosen| pairwise_independent(candidate, chosen)) {
+            if selected
+                .iter()
+                .all(|chosen| pairwise_independent(candidate, chosen))
+            {
                 selected.push(candidate);
             }
         }
         return (
-            selected.into_iter().map(|option| option.option_id.clone()).collect(),
+            selected
+                .into_iter()
+                .map(|option| option.option_id.clone())
+                .collect(),
             false,
         );
     }
@@ -724,13 +727,7 @@ fn independent_witness(
     }
 
     let mut best = 0_u64;
-    search(
-        (1_u64 << count) - 1,
-        0,
-        &conflicts,
-        &admissible,
-        &mut best,
-    );
+    search((1_u64 << count) - 1, 0, &conflicts, &admissible, &mut best);
     (ids_for_mask(best, &admissible), true)
 }
 
