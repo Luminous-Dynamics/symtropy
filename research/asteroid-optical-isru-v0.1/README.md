@@ -38,16 +38,17 @@ Each source record has a source URL, evidence class and caveat. Each case binds 
 The Rust library currently implements:
 
 1. inverse-square incident solar-flux screening from a declared 1 AU reference;
-2. finite-Sun angular-diameter geometry for an ideal solar image at a declared mirror-to-target range;
-3. ideal circular-aperture Airy first-null diameter for a declared far-field laser aperture/range/wavelength;
-4. monotone source-to-optical-to-receiver-to-process energy meter-plane validation;
-5. explicit solid/gas material stream mass closure;
-6. product acceptance requiring a separate captured stream, contract purity and independent assay;
-7. accepted product yield per declared source-energy meter plane;
-8. stable corpus source/case identity and cross-reference checks.
+2. finite-Sun angular-diameter geometry scaled by heliocentric distance;
+3. ideal circular-aperture aperture-to-solar-image concentration ratio;
+4. ideal circular-aperture Airy first-null diameter for a declared far-field laser aperture/range/wavelength;
+5. monotone source-to-optical-to-receiver-to-process energy meter-plane validation;
+6. explicit solid/gas material stream mass closure;
+7. product acceptance requiring a separate captured stream, contract purity and independent assay;
+8. accepted product yield per declared source-energy meter plane;
+9. stable corpus source/case identity and cross-reference checks.
 
 The calculations are screening relationships, not full engineering models. In particular:
-- solar-image diameter is not a full collector/aberration/flux-profile model;
+- solar-image diameter and ideal concentration ratio are not a full collector/aberration/flux-profile model and scale with heliocentric distance;
 - the laser Airy diameter excludes beam quality, jitter, tracking, receiver aperture and safety;
 - energy-chain monotonicity is not a substitute for a complete first-law/exergy audit;
 - mass closure does not establish that the feedstock assay, capture apparatus or product assay is physically correct;
