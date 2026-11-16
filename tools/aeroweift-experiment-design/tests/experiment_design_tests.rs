@@ -458,13 +458,15 @@ fn reject_all_is_an_abstention_not_a_successful_recommendation() {
 }
 
 #[test]
-fn model_discrimination_requires_semantically_comparable_outputs() {
-    let mut unmatched = candidate("unmatched-models");
-    unmatched.semantic_equivalence = SemanticEquivalence::NotRequired;
-    let result = select_experiments(&[unmatched], &policy()).unwrap();
-    assert!(
-        reason(&result, "unmatched-models")
-            .contains(&RejectionReason::SemanticEquivalenceNotEstablished)
+fn model_discrimination_can_compare_different_outputs_under_common_observables() {
+    let mut alternative = candidate("different-model-forms");
+    alternative.modality = ExperimentModality::Simulation;
+    alternative.semantic_equivalence = SemanticEquivalence::NotRequired;
+    alternative.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[alternative], &policy()).unwrap();
+    assert_eq!(
+        result.pareto_front[0].candidate_id,
+        "different-model-forms"
     );
 }
 
