@@ -1,0 +1,835 @@
+{
+  "schema_version": "dynamic-drss-benchmark-contract/0.1",
+  "benchmark_id": "DRSS-DYNAMIC-JSP-2025",
+  "source": {
+    "repository_url": "https://github.com/nuno-a-marques/drss",
+    "revision": "b3db3fb98ab5215fd8612a5ea3638702a1d39728",
+    "readme_path": "README.md",
+    "readme_git_blob_sha1": "c3bbb6d68b864a511cc9bce03d26d795a9b5a8ee",
+    "readme_bytes": 16903,
+    "periodic_source_archive": {
+      "path": "drss-prs.zip",
+      "git_blob_sha1": "a64ea1ae19054d7da894320c7c7b0b9c8dda18e2",
+      "bytes": 24023748
+    },
+    "real_time_source_archive": {
+      "path": "drss-rtrs.zip",
+      "git_blob_sha1": "713c46453481e5afb0e15c58bfa94d9db6e1a435",
+      "bytes": 19575462
+    },
+    "license_status": "unspecified_at_pinned_revision_no_root_LICENSE_or_COPYING_and_no_GitHub_SPDX_metadata",
+    "reuse_policy": "integrity_check_only_do_not_commit_or_upload_upstream_source_archives_or_models"
+  },
+  "simulator_protocol": {
+    "machines": 20,
+    "jobs_per_episode": 2500,
+    "warmup_jobs_excluded_from_tardiness": 500,
+    "replications_per_scenario": 100,
+    "operations_per_job_min": 2,
+    "operations_per_job_max": 14,
+    "processing_time_min": 1,
+    "validation": {
+      "utilisation_levels": [
+        0.83,
+        0.87,
+        0.93,
+        0.96
+      ],
+      "allowance_factors": [
+        2.5,
+        3.5,
+        5,
+        7
+      ],
+      "processing_time_max_values": [
+        50,
+        100
+      ],
+      "scenario_count": 32,
+      "reference_rows": [
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 2.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 331823
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 2.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 590031
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 3.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 108854
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 3.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 176085
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 10837
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 13666
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 7,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 302
+        },
+        {
+          "utilisation": 0.83,
+          "allowance_factor": 7,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 343
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 2.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 578357
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 2.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1020988
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 3.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 293228
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 3.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 478362
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 60361
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 80757
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 7,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 3991
+        },
+        {
+          "utilisation": 0.87,
+          "allowance_factor": 7,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 4297
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 2.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1208267
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 2.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 2126587
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 3.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 870462
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 3.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1456940
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 416861
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 624458
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 7,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 95647
+        },
+        {
+          "utilisation": 0.93,
+          "allowance_factor": 7,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 116017
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 2.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1680673
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 2.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 2944442
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 3.5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1329707
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 3.5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 2248914
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 5,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 783862
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 5,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1238100
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 7,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 276994
+        },
+        {
+          "utilisation": 0.96,
+          "allowance_factor": 7,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 370385
+        }
+      ]
+    },
+    "test": {
+      "utilisation_levels": [
+        0.8,
+        0.85,
+        0.9,
+        0.95,
+        0.97
+      ],
+      "allowance_factors": [
+        2,
+        3,
+        4,
+        6,
+        8
+      ],
+      "processing_time_max_values": [
+        50,
+        100,
+        200
+      ],
+      "scenario_count": 75,
+      "reference_rows": [
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 2,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 369241
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 2,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 681827
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 2,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 1318873
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 3,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 119671
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 3,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 201698
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 3,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 369831
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 4,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 21719
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 4,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 33211
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 4,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 56527
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 6,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 98
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 6,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 138
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 6,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 172
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 8,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 7
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 8,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 16
+        },
+        {
+          "utilisation": 0.8,
+          "allowance_factor": 8,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 48
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 2,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 621761
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 2,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1130057
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 2,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 2163763
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 3,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 322463
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 3,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 547952
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 3,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 1004930
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 4,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 116701
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 4,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 176537
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 4,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 306929
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 6,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 5697
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 6,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 6172
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 6,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 8488
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 8,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 50
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 8,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 34
+        },
+        {
+          "utilisation": 0.85,
+          "allowance_factor": 8,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 54
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 2,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1046847
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 2,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1889954
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 2,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 3594317
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 3,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 725368
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 3,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1241692
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 3,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 2296481
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 4,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 428998
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 4,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 678579
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 4,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 1199313
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 6,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 80044
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 6,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 98732
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 6,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 155712
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 8,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 7247
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 8,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 6589
+        },
+        {
+          "utilisation": 0.9,
+          "allowance_factor": 8,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 7401
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 2,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1749588
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 2,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 3113202
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 2,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 5858747
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 3,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1407777
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 3,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 2416214
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 3,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 4470124
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 4,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1064130
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 4,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1749864
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 4,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 3152303
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 6,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 428072
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 6,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 615217
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 6,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 1031406
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 8,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 122761
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 8,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 146724
+        },
+        {
+          "utilisation": 0.95,
+          "allowance_factor": 8,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 217069
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 2,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 2154590
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 2,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 3785902
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 2,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 7074386
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 3,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1782232
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 3,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 3086554
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 3,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 5707281
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 4,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 1416460
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 4,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 2360131
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 4,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 4291922
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 6,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 671327
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 6,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 1020995
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 6,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 1748243
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 8,
+          "processing_time_max": 50,
+          "reference_mean_tardiness": 252311
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 8,
+          "processing_time_max": 100,
+          "reference_mean_tardiness": 322718
+        },
+        {
+          "utilisation": 0.97,
+          "allowance_factor": 8,
+          "processing_time_max": 200,
+          "reference_mean_tardiness": 506110
+        }
+      ]
+    }
+  },
+  "decision_interface": {
+    "selection_modes": [
+      "periodic_rule_selection",
+      "real_time_rule_selection"
+    ],
+    "periodic_window_intervals_jobs": [
+      50,
+      100,
+      200,
+      400,
+      800
+    ],
+    "natural_log_transform_applied_to_all_state_variables": true,
+    "state_sets": [
+      {
+        "id": "SS_1",
+        "features": [
+          "processing_times_of_pending_operations",
+          "tardiness_of_pending_jobs"
+        ]
+      },
+      {
+        "id": "SS_2",
+        "features": [
+          "processing_times_of_pending_operations",
+          "earliness_of_pending_jobs"
+        ]
+      },
+      {
+        "id": "SS_3",
+        "features": [
+          "processing_times_of_pending_operations",
+          "tardiness_of_pending_jobs",
+          "earliness_of_pending_jobs"
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "name": "RR",
+        "code": 18
+      },
+      {
+        "name": "H2",
+        "code": 214
+      },
+      {
+        "name": "S9",
+        "code": 508
+      }
+    ]
+  },
+  "score_contract": {
+    "formula_id": "geometric_mean_over_scenarios_of_mean_tardiness_divided_by_scenario_reference_mean_tardiness",
+    "scenario_score": "mean_tardiness_on_scenario / published_reference_mean_tardiness_for_that_scenario",
+    "aggregation": "geometric_mean_of_scenario_scores",
+    "lower_is_better": true,
+    "published_algorithm_scores": [
+      {
+        "algorithm": "RR",
+        "validation_score": 1.146,
+        "test_score": 1.219
+      },
+      {
+        "algorithm": "H2",
+        "validation_score": 1.624,
+        "test_score": 1.509
+      },
+      {
+        "algorithm": "S9",
+        "validation_score": 1.102,
+        "test_score": 1.213
+      },
+      {
+        "algorithm": "RF-Class.",
+        "validation_score": 0.995,
+        "test_score": 1.06
+      },
+      {
+        "algorithm": "RF-Reg.",
+        "validation_score": 0.998,
+        "test_score": 1
+      },
+      {
+        "algorithm": "NN-Class.",
+        "validation_score": 0.989,
+        "test_score": 0.997
+      },
+      {
+        "algorithm": "NN-Reg.",
+        "validation_score": 1.023,
+        "test_score": 1.039
+      },
+      {
+        "algorithm": "SVM-Class.",
+        "validation_score": 0.994,
+        "test_score": 0.997
+      },
+      {
+        "algorithm": "SVM-Reg.",
+        "validation_score": 0.992,
+        "test_score": 0.995
+      },
+      {
+        "algorithm": "QL",
+        "validation_score": 1.007,
+        "test_score": 1.06
+      },
+      {
+        "algorithm": "DQL",
+        "validation_score": 0.981,
+        "test_score": 1.034
+      }
+    ]
+  },
+  "claim_ceiling": "Pinned upstream benchmark metadata and README reference tables are checked for integrity and completeness only. No DRSS code is executed here, no paper result is reproduced, and no Symtropy dispatch or factory-performance claim is established."
+}
