@@ -291,7 +291,11 @@ fn clock_position_margin(span: &CapsuleMotionSpan) -> Result<f64, ClockUncertain
     }
     let duration_ms = (span.end_ms - span.start_ms) as f64;
     let uncertainty_fraction = (span.clock_uncertainty_ms as f64) / duration_ms;
-    let speed_numerator = span.translation.x.hypot(span.translation.y).hypot(span.translation.z);
+    let speed_numerator = span
+        .translation
+        .x
+        .hypot(span.translation.y)
+        .hypot(span.translation.z);
     let margin = speed_numerator * uncertainty_fraction;
     if !margin.is_finite() {
         return Err(ClockUncertaintyError::Geometry(
@@ -373,10 +377,19 @@ mod tests {
         let b = span(10.0, -20.0, 250, 750, 0);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         let exact = timed_co_translating_capsule_vs_capsule(&a, &b).unwrap();
-        assert_eq!(result.disposition, ClockUncertaintyDisposition::ExactContact);
-        assert_eq!(result.possible_overlap_start_ms, Some(exact.overlap_start_ms));
+        assert_eq!(
+            result.disposition,
+            ClockUncertaintyDisposition::ExactContact
+        );
+        assert_eq!(
+            result.possible_overlap_start_ms,
+            Some(exact.overlap_start_ms)
+        );
         assert_eq!(result.possible_overlap_end_ms, Some(exact.overlap_end_ms));
-        assert_eq!(result.closest_time_offset_ms, Some(exact.closest_time_offset_ms));
+        assert_eq!(
+            result.closest_time_offset_ms,
+            Some(exact.closest_time_offset_ms)
+        );
         assert_eq!(result.conservative_closest, Some(exact.closest));
     }
 
@@ -478,7 +491,9 @@ mod tests {
             ClockUncertaintyDisposition::PotentialContactUnresolved
         );
         assert!(large.moving_clock_margin_mm >= small.moving_clock_margin_mm);
-        assert!(large.possible_overlap_start_ms.unwrap() <= small.possible_overlap_start_ms.unwrap());
+        assert!(
+            large.possible_overlap_start_ms.unwrap() <= small.possible_overlap_start_ms.unwrap()
+        );
         assert!(large.possible_overlap_end_ms.unwrap() >= small.possible_overlap_end_ms.unwrap());
     }
 
@@ -519,17 +534,13 @@ mod tests {
             let uncertainty_a = 1 + (index % 25);
             let uncertainty_b = 1 + ((index * 7) % 25);
             let offset_a = (index as i64 % (2 * uncertainty_a as i64 + 1)) - uncertainty_a as i64;
-            let offset_b = ((index * 3) as i64 % (2 * uncertainty_b as i64 + 1)) - uncertainty_b as i64;
+            let offset_b =
+                ((index * 3) as i64 % (2 * uncertainty_b as i64 + 1)) - uncertainty_b as i64;
             let base_time = 100_000_u64;
             let (reported_a_x, reported_a_dx, reported_b_x, reported_b_dx) = if index < 32 {
                 (-10.0, 20.0, 10.0, -20.0)
             } else {
-                (
-                    next() as f64,
-                    next() as f64,
-                    next() as f64,
-                    next() as f64,
-                )
+                (next() as f64, next() as f64, next() as f64, next() as f64)
             };
             let mut reported_a = span(
                 reported_a_x,
@@ -546,8 +557,18 @@ mod tests {
                 uncertainty_b,
             );
             // Use point capsules so every generated case has a unique centreline parameter.
-            reported_a.capsule_at_start = Capsule::new(reported_a.capsule_at_start.start, reported_a.capsule_at_start.start, 0.5).unwrap();
-            reported_b.capsule_at_start = Capsule::new(reported_b.capsule_at_start.start, reported_b.capsule_at_start.start, 0.5).unwrap();
+            reported_a.capsule_at_start = Capsule::new(
+                reported_a.capsule_at_start.start,
+                reported_a.capsule_at_start.start,
+                0.5,
+            )
+            .unwrap();
+            reported_b.capsule_at_start = Capsule::new(
+                reported_b.capsule_at_start.start,
+                reported_b.capsule_at_start.start,
+                0.5,
+            )
+            .unwrap();
 
             let outer = clock_uncertainty_aware_capsule_query(&reported_a, &reported_b).unwrap();
             let physical_a = CapsuleMotionSpan {
