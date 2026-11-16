@@ -126,6 +126,8 @@ Versioned planetary site records, native-scale source data, coordinate frames, s
 ### Subterra Evidence Graph
 Links a surface feature, competing geological-origin hypotheses, geophysical observations, inferred subsurface geometry, robot traverses, hazards, environmental measurements and engineering assessments. Every node records provenance, units, uncertainty, validity interval and evidence tier.
 
+A typed semantic validator checks cross-field dependencies: direct connectivity requires demonstrated access and a surveyed interior extent; surveyed interiors require access and survey evidence; qualified pressurized-use claims require an explicit engineering envelope and prerequisite site evidence; sampling or biological activity cannot be authorized without a matching planetary-protection authorization record. This checks record consistency, not the truth or legal validity of evidence.
+
 ### Subterra Morphometry
 Stores non-uniform cross-section profiles, chambers, branches, bottlenecks, boulders, fractures, surface roughness, roof/wall/floor geometry and surveyed/unobserved intervals. Morphology is not a stability assessment.
 
