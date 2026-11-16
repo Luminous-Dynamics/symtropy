@@ -343,6 +343,7 @@ fn main() {
         adaptive_config,
     )
     .expect("valid adaptive asynchronous query");
+    assert_eq!(adaptive_report.status, AdaptiveCollisionStatus::NoContact);
     println!(
         "adaptive-asynchronous-pair,status,{:?}",
         adaptive_report.status
