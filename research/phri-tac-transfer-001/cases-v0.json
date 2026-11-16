@@ -4466,7 +4466,7 @@
           "calibration_id": "cal-target-01",
           "device_id": "sensor-target-01",
           "state": "current",
-          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "firmware_revision": "fw-1",
           "skin_revision": "skin-1",
           "maximum_age_cycles": 1000,
@@ -4498,8 +4498,8 @@
         "expected": {
           "split_integrity": "valid",
           "transfer_eligibility": "eligible",
-          "metrology_disposition": "invalid_measurement_claim",
-          "recalibration_disposition": "required"
+          "metrology_disposition": "target_qualified_estimate",
+          "recalibration_disposition": "not_indicated"
         }
       }
     }
