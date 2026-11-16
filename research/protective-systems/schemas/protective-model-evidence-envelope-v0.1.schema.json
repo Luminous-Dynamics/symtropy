@@ -7,6 +7,7 @@
   "required": [
     "schema_version",
     "evidence_class",
+    "intended_use",
     "source",
     "analysis",
     "scope",
@@ -52,8 +53,18 @@
       "$ref": "#/$defs/uncertainty"
     },
     "claim_ceiling": {
-      "type": "string",
-      "minLength": 1
+      "enum": [
+        "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY",
+        "EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY"
+      ]
+    },
+    "intended_use": {
+      "enum": [
+        "SYNTHETIC_TEST_ONLY",
+        "INTEROPERABILITY_EVALUATION",
+        "RESEARCH_EVALUATION",
+        "PUBLICATION_REVIEW"
+      ]
     }
   },
   "$defs": {
@@ -225,8 +236,12 @@
           ]
         },
         "permitted_use": {
-          "type": "string",
-          "minLength": 1
+          "enum": [
+            "SYNTHETIC_TEST_ONLY",
+            "INTEROPERABILITY_EVALUATION",
+            "RESEARCH_EVALUATION",
+            "PUBLICATION_REVIEW"
+          ]
         }
       }
     },
