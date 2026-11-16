@@ -654,6 +654,37 @@ fn validate_gate_evidence_receipts(
     }
 }
 
+fn same_hypothesis_set(left: &[HypothesisGroup], right: &[HypothesisGroup]) -> bool {
+    let mut left = left.to_vec();
+    let mut right = right.to_vec();
+    left.sort_unstable();
+    right.sort_unstable();
+    left == right
+}
+
+fn same_hypothesis_contrast_set(
+    left: &[HypothesisContrast],
+    right: &[HypothesisContrast],
+) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut left = left.to_vec();
+    let mut right = right.to_vec();
+    let sort_contrasts = |items: &mut Vec<HypothesisContrast>| {
+        items.sort_by(|a, b| {
+            a.left_hypothesis_id
+                .cmp(&b.left_hypothesis_id)
+                .then_with(|| a.right_hypothesis_id.cmp(&b.right_hypothesis_id))
+                .then_with(|| a.separation_lower_bound.total_cmp(&b.separation_lower_bound))
+                .then_with(|| a.contrast_estimate_sha256.cmp(&b.contrast_estimate_sha256))
+        });
+    };
+    sort_contrasts(&mut left);
+    sort_contrasts(&mut right);
+    left == right
+}
+
 fn validate_utility_estimate_receipt(
     candidate: &ExperimentCandidate,
     policy: &ExperimentDesignPolicy,
@@ -682,8 +713,11 @@ fn validate_utility_estimate_receipt(
         && receipt.estimator_build_sha256 == candidate.estimator_build_sha256
         && receipt.estimate_method_sha256 == candidate.estimate_method_sha256
         && receipt.confidence_level == candidate.estimate_confidence_level
-        && receipt.hypothesis_groups == candidate.hypothesis_groups
-        && receipt.hypothesis_contrasts == candidate.hypothesis_contrasts
+        && same_hypothesis_set(&receipt.hypothesis_groups, &candidate.hypothesis_groups)
+        && same_hypothesis_contrast_set(
+            &receipt.hypothesis_contrasts,
+            &candidate.hypothesis_contrasts,
+        )
         && receipt.expected_uncertainty_reduction == candidate.expected_uncertainty_reduction
         && receipt.expected_model_discrimination == candidate.expected_model_discrimination
         && receipt.worst_case_robust_reduction == candidate.worst_case_robust_reduction
