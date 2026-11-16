@@ -19,14 +19,30 @@ const RIDGE: f64 = 1.0e-8;
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Candidate {
     id: usize,
-    force_n: f64,
+    /// Commanded stimulus setpoint, not the reference-measured force.
+    force_setpoint_n: f64,
     position: f64,
     temperature: f64,
     phase: f64,
     stratum: usize,
     cost_ms: u64,
+    /// Raw-derived feature vector available to the selector.
     features: [f64; PARAMS],
-    reference_force_n: f64,
+}
+
+/// Training labels are deliberately stored separately from selector-visible
+/// stimuli. Policy functions receive only `&[Candidate]`.
+#[derive(Clone, Debug, PartialEq)]
+struct SyntheticDomain {
+    candidates: Vec<Candidate>,
+    reference_force_observations_n: Vec<f64>,
+}
+
+/// Held-out truth is not attached to selector-visible candidate records.
+#[derive(Clone, Debug, PartialEq)]
+struct HeldoutDomain {
+    candidates: Vec<Candidate>,
+    evaluator_truth_force_n: Vec<f64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -140,7 +156,10 @@ fn design_features(raw: f64, position: f64, temperature: f64, phase: f64) -> [f6
     ]
 }
 
-fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> Candidate {
+fn make_candidate(
+    id: usize,
+    stimulus: SyntheticStimulus,
+) -> (Candidate, f64) {
     let SyntheticStimulus {
         profile,
         force_n,
@@ -164,28 +183,31 @@ fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> Candidate {
         + if phase > 0.0 { 100 } else { 0 }
         + if position.abs() > 0.9 { 80 } else { 0 };
 
-    Candidate {
+    let candidate = Candidate {
         id,
-        force_n,
+        force_setpoint_n: force_n,
         position,
         temperature,
         phase,
         stratum,
         cost_ms,
         features: design_features(raw, position, temperature, phase),
-        reference_force_n: force_n,
-    }
+    };
+    let reference_observation_n =
+        force_n + deterministic_noise(seed ^ 0xD1B5_4A32_D192_ED03, id, 0.003);
+    (candidate, reference_observation_n)
 }
 
-fn target_candidate_pool(seed: u64) -> Vec<Candidate> {
+fn target_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
+    let mut reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
         for position in [-1.0, 0.0, 1.0] {
             for temperature in [-1.0, 1.0] {
                 for phase in [-1.0, 1.0] {
-                    candidates.push(make_candidate(
+                    let (candidate, reference_observation_n) = make_candidate(
                         id,
                         SyntheticStimulus {
                             profile: TARGET_PROFILE,
@@ -196,24 +218,30 @@ fn target_candidate_pool(seed: u64) -> Vec<Candidate> {
                             seed: seed ^ 0xA5A5_5A5A_1234_5678,
                             noise_scale: 0.006,
                         },
-                    ));
+                    );
+                    candidates.push(candidate);
+                    reference_force_observations_n.push(reference_observation_n);
                     id += 1;
                 }
             }
         }
     }
-    candidates
+    SyntheticDomain {
+        candidates,
+        reference_force_observations_n,
+    }
 }
 
-fn source_candidate_pool(seed: u64) -> Vec<Candidate> {
+fn source_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
+    let mut reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
         for position in [-1.0, 0.0, 1.0] {
             for temperature in [-1.0, 1.0] {
                 for phase in [-1.0, 1.0] {
-                    candidates.push(make_candidate(
+                    let (candidate, reference_observation_n) = make_candidate(
                         id,
                         SyntheticStimulus {
                             profile: SOURCE_PROFILE,
@@ -224,23 +252,29 @@ fn source_candidate_pool(seed: u64) -> Vec<Candidate> {
                             seed: seed ^ 0x5A5A_A5A5_8765_4321,
                             noise_scale: 0.006,
                         },
-                    ));
+                    );
+                    candidates.push(candidate);
+                    reference_force_observations_n.push(reference_observation_n);
                     id += 1;
                 }
             }
         }
     }
-    candidates
+    SyntheticDomain {
+        candidates,
+        reference_force_observations_n,
+    }
 }
 
-fn heldout_target_pool(seed: u64) -> Vec<Candidate> {
+fn heldout_target_pool(seed: u64) -> HeldoutDomain {
     let mut candidates = Vec::with_capacity(60);
+    let mut evaluator_truth_force_n = Vec::with_capacity(60);
     let mut id = 0;
     for force in [1.0, 3.0, 5.0, 7.0, 9.0] {
         for position in [-0.7, 0.25, 0.8] {
             for temperature in [-0.6, 0.6] {
                 for phase in [-0.5, 0.5] {
-                    candidates.push(make_candidate(
+                    let (candidate, _heldout_reference_observation_n) = make_candidate(
                         id,
                         SyntheticStimulus {
                             profile: TARGET_PROFILE,
@@ -251,13 +285,18 @@ fn heldout_target_pool(seed: u64) -> Vec<Candidate> {
                             seed: seed ^ 0x1357_9BDF_2468_ACE0,
                             noise_scale: 0.006,
                         },
-                    ));
+                    );
+                    candidates.push(candidate);
+                    evaluator_truth_force_n.push(force);
                     id += 1;
                 }
             }
         }
     }
-    candidates
+    HeldoutDomain {
+        candidates,
+        evaluator_truth_force_n,
+    }
 }
 
 fn invert_matrix(matrix: [[f64; PARAMS]; PARAMS]) -> Result<[[f64; PARAMS]; PARAMS], String> {
