@@ -1,0 +1,191 @@
+{
+  "schema_version": "myco.global_density_tournament.v0.1",
+  "suite_id": "AMF-GLOBAL-DENSITY-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5599",
+  "source_admission": "benchmarks/mycelium/amf-global-density-source-admission-v0-1.json",
+  "execution_status": "not_run",
+  "prediction_target": {
+    "name": "field-observed AM fungal hyphal length density",
+    "unit": "metres of hypha per cubic centimetre soil",
+    "excludes": [
+      "dry biomass",
+      "carbon stock",
+      "carbon turnover",
+      "nutrient flux",
+      "plant benefit"
+    ]
+  },
+  "model_families": [
+    {
+      "id": "source_rf_gee",
+      "role": "published baseline",
+      "status": "reproduction_required"
+    },
+    {
+      "id": "nonspatial_environmental",
+      "role": "simple diagnostic baseline"
+    },
+    {
+      "id": "study_hierarchical",
+      "role": "study-level heterogeneity and shrinkage"
+    },
+    {
+      "id": "spatial_blocked_tree",
+      "role": "spatially structured nonlinear predictor"
+    },
+    {
+      "id": "quantile_rf",
+      "role": "distributional prediction"
+    },
+    {
+      "id": "calibrated_residual_spatial",
+      "role": "post-model spatial residual correction"
+    },
+    {
+      "id": "stacked_uncertainty_ensemble",
+      "role": "ensemble with calibrated predictive distribution"
+    }
+  ],
+  "data_contract": {
+    "record_identity": [
+      "study_id",
+      "source_publication_id",
+      "sample_id",
+      "soil_core_id_if_available",
+      "source_row_key"
+    ],
+    "predictors": [
+      "climate",
+      "soil_properties",
+      "land_cover",
+      "vegetation",
+      "depth",
+      "host",
+      "fungal_symbiont_if_reported",
+      "method"
+    ],
+    "geolocation": "preserve coordinate precision and horizontal uncertainty; missing coordinates remain non-spatial rows",
+    "depth": "standardize depth interval explicitly; do not pool unmatched horizons without adjustment",
+    "repeated_measure_policy": "group all cores and repeated measures from a study/site/plot into a single holdout group"
+  },
+  "split_contract": {
+    "headline_splits": [
+      "leave_study_out",
+      "spatial_blocked",
+      "leave_biome_out",
+      "leave_method_out",
+      "deep_soil_holdout"
+    ],
+    "secondary_splits": [
+      "leave_country_region_out",
+      "temporal_holdout_if_collection_dates_are_available"
+    ],
+    "diagnostic_only": [
+      "random_record_split"
+    ],
+    "block_size_policy": "derive from training-only residual spatial autocorrelation range and freeze before test evaluation",
+    "leakage_controls": [
+      "same study cannot occur in train and test",
+      "same plot/core repeated records cannot cross splits",
+      "raster covariates use matched time support where known",
+      "preprocessing and imputation fitted on training data only"
+    ]
+  },
+  "uncertainty_contract": {
+    "sources": [
+      "measurement_error",
+      "between_study_variation",
+      "geolocation_uncertainty",
+      "depth_harmonization",
+      "covariate_uncertainty",
+      "model_uncertainty",
+      "radius_calibration",
+      "biomass_conversion"
+    ],
+    "required_coverages": [
+      0.5,
+      0.8,
+      0.9,
+      0.95
+    ],
+    "report_by": [
+      "global",
+      "biome",
+      "ecoregion",
+      "sampling_intensity_decile",
+      "method",
+      "depth_band"
+    ],
+    "metrics": [
+      "coverage_error",
+      "mean_interval_width",
+      "weighted_interval_score",
+      "crps_if_full_distribution_available",
+      "worst_stratum_coverage",
+      "ood_precision_recall"
+    ]
+  },
+  "geometry_to_biomass": {
+    "input_length_density_unit": "m/cm^3 soil",
+    "input_effective_radius_unit": "um",
+    "derived_intermediate": "geometric hyphal volume fraction, assuming circular cylindrical cross-sections",
+    "assumptions_to_audit": [
+      "effective radius definition",
+      "hyphal branching",
+      "overlap/double-counting",
+      "wall/lumen",
+      "species and strain transfer",
+      "growth-condition transfer",
+      "dry tissue density"
+    ],
+    "prohibited_shortcut": "do not call geometric volume fraction dry biomass or carbon stock without separately calibrated tissue-density and carbon-fraction conversions"
+  },
+  "active_sampling": {
+    "fixed_budget_units": [
+      "soil_core_count",
+      "field_site_cost",
+      "laboratory_processing_cost"
+    ],
+    "policies": [
+      "random_sampling",
+      "uncertainty_only",
+      "sampling_gap_coverage",
+      "expected_global_integral_variance_reduction",
+      "hybrid_biome_and_uncertainty"
+    ],
+    "evaluation": "repeat simulated field-sampling rounds on held-out spatial blocks; measure global aggregate uncertainty reduction and biome worst-stratum improvements"
+  },
+  "metrics": [
+    "rmse_log_density",
+    "mae_log_density",
+    "mean_absolute_percentage_error_where_valid",
+    "weighted_interval_score",
+    "interval_coverage_50_80_90_95",
+    "interval_width",
+    "residual_morans_i",
+    "leave_study_out_log_score",
+    "leave_biome_out_error",
+    "global_mean_integral_error",
+    "global_total_uncertainty",
+    "biome_bias",
+    "sample_intensity_calibration",
+    "ood_detection",
+    "runtime",
+    "peak_memory"
+  ],
+  "proposed_targets_not_results": {
+    "reproduction": "match the exact paper-reported outputs and uncertainty within published rounding/tolerance",
+    "interval_calibration": "90 percent interval coverage within plus or minus 5 percentage points overall and in adequately sampled biomes",
+    "spatial_skill": "improve leave-study-out and spatial-block scores over published RF without degrading interval calibration",
+    "active_sampling": "at least 20 percent lower global aggregate uncertainty than random sampling at the same simulation budget",
+    "worst_stratum": "report sparse-biome undercoverage and OOD rather than force a global pass"
+  },
+  "claim_boundaries": [
+    "modelled density does not prove continuous network connectivity",
+    "global maps do not directly observe each raster cell",
+    "geometric volume fraction is not dry biomass",
+    "biomass stock is not turnover or carbon flux",
+    "hyphal abundance is not plant nutrient delivery",
+    "a positive network-effect claim requires a distinct controlled outcome benchmark"
+  ]
+}
