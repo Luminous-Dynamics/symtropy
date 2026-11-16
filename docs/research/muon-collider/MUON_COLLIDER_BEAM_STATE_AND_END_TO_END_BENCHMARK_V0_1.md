@@ -321,7 +321,7 @@ The November 2026 NLASG report supplies a 10 TeV design-study reference and emph
 
 The RCS1 tracking work is another important anchor: RF distribution and energy–field mismatch affect transverse emittance growth. A handoff that preserves only RMS beam values can hide the tails and correlations needed to diagnose these effects.
 
-## 14A. Competitive benchmark scorecard
+## 15. Competitive benchmark scorecard
 
 The following are **reproduction gates and proposed comparison criteria**, not claims that Symtropy has achieved these results. A result is comparable only when the reference distribution, physics model, geometry, solver tolerances, particle statistics, acceptance definitions and evaluation budget match.
 
@@ -356,7 +356,7 @@ A credible first research result would not be “Symtropy beats the world's acce
 
 A stronger result would show the same method across two different domains—for example, cooling-to-acceleration and lattice-to-BIB—without changing the meaning of the evidence contract. That would demonstrate reusable research infrastructure rather than a one-off optimizer.
 
-## 15. Initial implementation sequence
+## 16. Initial implementation sequence
 
 1. Freeze the envelope schema and a field dictionary, including units and coordinate conversion rules.
 2. Add valid synthetic fixtures and negative controls. Label these schema-only.
@@ -367,7 +367,7 @@ A stronger result would show the same method across two different domains—for 
 7. Add held-out experiment correlation and an end-to-end benchmark manifest.
 8. Only then benchmark optimizer and active-learning strategies against matched conventional baselines.
 
-## 16. Acceptance criteria and claim ceiling
+## 17. Acceptance criteria and claim ceiling
 
 The first implementation is accepted only when:
 - schema and fixture validation pass, including negative controls;
