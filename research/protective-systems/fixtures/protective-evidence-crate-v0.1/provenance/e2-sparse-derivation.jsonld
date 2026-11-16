@@ -19,8 +19,8 @@
       "prov:wasAssociatedWith": {
         "@id": "ex:agent/synthetic-provider"
       },
-      "analysisId": "synthetic.analysis.water-continuity.001",
-      "executionStatus": "NOT_EXECUTED"
+      "ex:analysisId": "synthetic.analysis.water-continuity.001",
+      "ex:executionStatus": "NOT_EXECUTED"
     },
     {
       "@id": "ex:agent/synthetic-provider",
@@ -31,17 +31,17 @@
       "@id": "ex:entity/input-water-demand",
       "@type": "prov:Entity",
       "schema:name": "Synthetic water demand input",
-      "datasetId": "synthetic.dataset.water.input.001",
-      "datasetDirection": "INPUT",
-      "bindingStatus": "E1_ENVELOPE_DATASET"
+      "ex:datasetId": "synthetic.dataset.water.input.001",
+      "ex:datasetDirection": "INPUT",
+      "ex:bindingStatus": "E1_ENVELOPE_DATASET"
     },
     {
       "@id": "ex:entity/input-power-availability",
       "@type": "prov:Entity",
       "schema:name": "Synthetic power availability input",
-      "datasetId": "synthetic.dataset.power.input.control.001",
-      "datasetDirection": "INPUT",
-      "bindingStatus": "SYNTHETIC_CONTROL_ONLY"
+      "ex:datasetId": "synthetic.dataset.power.input.control.001",
+      "ex:datasetDirection": "INPUT",
+      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY"
     },
     {
       "@id": "ex:entity/output-water-service",
@@ -53,9 +53,9 @@
         "@id": "ex:entity/input-water-demand"
       },
       "schema:name": "Synthetic water service output",
-      "datasetId": "synthetic.dataset.water.output.001",
-      "datasetDirection": "OUTPUT",
-      "bindingStatus": "E1_ENVELOPE_DATASET"
+      "ex:datasetId": "synthetic.dataset.water.output.001",
+      "ex:datasetDirection": "OUTPUT",
+      "ex:bindingStatus": "E1_ENVELOPE_DATASET"
     },
     {
       "@id": "ex:entity/output-clinic-access",
@@ -64,9 +64,9 @@
         "@id": "ex:activity/analysis-001"
       },
       "schema:name": "Synthetic clinic access output",
-      "datasetId": "synthetic.dataset.clinic.output.control.001",
-      "datasetDirection": "OUTPUT",
-      "bindingStatus": "SYNTHETIC_CONTROL_ONLY"
+      "ex:datasetId": "synthetic.dataset.clinic.output.control.001",
+      "ex:datasetDirection": "OUTPUT",
+      "ex:bindingStatus": "SYNTHETIC_CONTROL_ONLY"
     }
   ]
 }
