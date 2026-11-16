@@ -8,9 +8,9 @@
 //! It does not model human physiology, estimate a person's state, or produce
 //! human-valid sensor parameters.
 //!
-//! Latent truth is returned in a distinct scorer-only structure. The caller
-//! must not pass scorer_truth or alternate_scorer_truth to an estimator.
-//! This type boundary is not a security boundary inside a single process.
+//! The estimator-facing view has no sample ordinal, physical timestamp, latent
+//! state, or generator seed. Scorer-only truth and event links are returned in
+//! a different view. These Rust types are an API boundary, not process isolation.
 
 use std::f64::consts::TAU;
 
@@ -94,6 +94,8 @@ pub enum MissingReason {
     MarActivityLinked,
     /// Missingness depends on the hidden latent target value.
     MnarLatentState,
+    /// A scheduled, exogenous sensor outage, independent of signal value.
+    IndependentSensorOutage,
     /// Shared outage affects sensors in the same common-cause group.
     CommonCauseOutage,
 }
@@ -115,19 +117,16 @@ pub enum ObservationStatus {
 
 /// One delivered observation packet.
 ///
-/// source_event_id identifies the original sensor capture. It remains the
-/// same for duplicate deliveries. delivery_id identifies this particular
-/// transport delivery. sensor_timestamp_seconds is expressed in clock_domain;
-/// available_at_seconds is expressed in the simulation receive-time domain.
-/// Ground-truth physical capture time is deliberately absent here.
+/// The estimator-facing event intentionally omits the latent physical capture
+/// time and sample ordinal. The raw sensor timestamp is expressed in
+/// clock_domain; available_at_seconds is expressed in the receive-time domain.
+/// source_event_id is an opaque deterministic identity, not a time encoding.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ObservationEvent {
-    /// Stable sensor/capture identity; duplicate packets retain this ID.
+    /// Opaque identity of the original sensor capture; duplicates retain this ID.
     pub source_event_id: u64,
     /// Unique identity for each packet delivery, including duplicates.
     pub delivery_id: u64,
-    /// Index of the underlying scheduled capture.
-    pub sample_index: u64,
     /// Synthetic sensor identifier.
     pub sensor_id: u16,
     /// Channel semantics.
@@ -152,9 +151,9 @@ pub struct ObservationEvent {
 /// physiological variables, measurements, clinical observations or estimates.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LatentTruthPoint {
-    /// Underlying scheduled capture index.
+    /// Underlying scheduled capture index; scorer-only.
     pub sample_index: u64,
-    /// Exact physical event time in synthetic seconds.
+    /// Exact physical event time in synthetic seconds; scorer-only.
     pub event_time_seconds: f64,
     /// First latent channel.
     pub latent_primary: f64,
@@ -162,7 +161,22 @@ pub struct LatentTruthPoint {
     pub latent_secondary: f64,
 }
 
-/// Immutable description of one generator invocation.
+/// Scorer-only link from an opaque packet identity to its physical truth row.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScorerEventTruth {
+    /// Opaque source event identity, matching estimator-facing packets.
+    pub source_event_id: u64,
+    /// Underlying sample index; never included in ObservationEvent.
+    pub sample_index: u64,
+    /// Physical event time in synthetic seconds.
+    pub event_time_seconds: f64,
+    /// First latent channel at capture.
+    pub latent_primary: f64,
+    /// Second latent channel at capture.
+    pub latent_secondary: f64,
+}
+
+/// Immutable description of one generator invocation; scorer-only.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScenarioManifest {
     /// Stable scenario ID.
@@ -177,22 +191,40 @@ pub struct ScenarioManifest {
     pub claim_ceiling: &'static str,
 }
 
-/// Output separates estimator-facing events from scorer-only latent truth.
-///
-/// In a deployed benchmark harness, put these on separate interfaces or
-/// processes. Separate Rust fields alone do not provide isolation.
+/// Estimator-facing input. It does not expose the PRNG seed or latent truth.
 #[derive(Debug, Clone, PartialEq)]
-pub struct ScenarioRun {
-    /// Scenario manifest and deterministic seed.
-    pub manifest: ScenarioManifest,
-    /// Delivered observation events; suitable for estimator-facing input.
+pub struct EstimatorView {
+    /// Scenario identity for stratified evaluation.
+    pub scenario_id: ScenarioId,
+    /// Delivered event stream, sorted by availability and delivery ID.
     pub observations: Vec<ObservationEvent>,
-    /// Main latent truth track; scorer-only.
-    pub scorer_truth: Vec<LatentTruthPoint>,
-    /// Alternate latent truth for HOBS-11; scorer-only.
+}
+
+/// Scorer-only truth and mapping. Keep it out of the estimator process.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScorerView {
+    /// Scenario generation metadata and seed.
+    pub manifest: ScenarioManifest,
+    /// Main latent truth track.
+    pub truth: Vec<LatentTruthPoint>,
+    /// Mapping from opaque source event IDs to latent truth rows.
+    pub event_truth: Vec<ScorerEventTruth>,
+    /// Alternate latent truth for HOBS-11.
     ///
     /// The same composite observation stream is compatible with either world.
-    pub alternate_scorer_truth: Option<Vec<LatentTruthPoint>>,
+    pub alternate_truth: Option<Vec<LatentTruthPoint>>,
+}
+
+/// Output with explicit estimator/scorer views.
+///
+/// The caller must pass only estimator_view to a candidate estimator. The two
+/// views must be separated into distinct processes for a security boundary.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScenarioRun {
+    /// Estimator-facing observations.
+    pub estimator_view: EstimatorView,
+    /// Scorer-only latent truth and identity mapping.
+    pub scorer_view: ScorerView,
 }
 
 /// Build one canonical scenario from a stable ID and seed.
@@ -202,9 +234,11 @@ pub struct ScenarioRun {
 /// floating-point execution environment.
 pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
     let mut random = SplitMix64::new(seed);
+    let mut identity_random = SplitMix64::new(seed ^ 0xA11C_E5E5_D15C_A11E);
     let mut observations = Vec::with_capacity(400);
-    let mut scorer_truth = Vec::with_capacity(361);
-    let mut alternate_scorer_truth = if scenario_id == ScenarioId::IndistinguishableWorlds {
+    let mut truth = Vec::with_capacity(361);
+    let mut event_truth = Vec::with_capacity(400);
+    let mut alternate_truth = if scenario_id == ScenarioId::IndistinguishableWorlds {
         Some(Vec::with_capacity(361))
     } else {
         None
@@ -228,14 +262,14 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                 (primary, activity, primary)
             };
 
-        scorer_truth.push(LatentTruthPoint {
+        truth.push(LatentTruthPoint {
             sample_index,
             event_time_seconds: physical_time,
             latent_primary,
             latent_secondary,
         });
 
-        if let Some(alternate) = alternate_scorer_truth.as_mut() {
+        if let Some(alternate) = alternate_truth.as_mut() {
             alternate.push(LatentTruthPoint {
                 sample_index,
                 event_time_seconds: physical_time,
@@ -253,25 +287,32 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
         } else {
             0
         };
+        let primary_source_id = identity_random.next_u64();
+        let secondary_source_id = identity_random.next_u64();
+        let event_start = observations.len();
 
         match scenario_id {
             ScenarioId::Clean | ScenarioId::IrregularCadence => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
                 );
             }
             ScenarioId::McarDropout => {
-                let in_burst = (7_200.0..=7_800.0).contains(&physical_time);
-                let missing = in_burst || random.unit() < 0.10;
-                let (value, status) = if missing {
+                // The iid MCAR process and the independent scheduled outage
+                // are sampled separately and retain separate reason labels.
+                let iid_missing = random.unit() < 0.10;
+                let in_outage = (7_200.0..=7_800.0).contains(&physical_time);
+                let (value, status) = if in_outage {
+                    (None, ObservationStatus::Missing(MissingReason::IndependentSensorOutage))
+                } else if iid_missing {
                     (None, ObservationStatus::Missing(MissingReason::Mcar))
                 } else {
                     (Some(measured_signal), ObservationStatus::Observed)
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, value, status, false,
                 );
@@ -279,7 +320,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
             ScenarioId::MarActivityArtifact => {
                 let activity = latent_secondary;
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 1,
+                    &mut observations, &mut next_delivery_id, secondary_source_id, 1,
                     ObservationQuantity::ActivityProxy, sensor_timestamp, physical_time,
                     clock_domain, Some(activity), ObservationStatus::Observed, false,
                 );
@@ -294,7 +335,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     )
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, value, status, false,
                 );
@@ -307,7 +348,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     (Some(measured_signal), ObservationStatus::Observed)
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, value, status, false,
                 );
@@ -316,7 +357,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                 let elapsed_hours = physical_time / 3_600.0;
                 let value = measured_signal + 0.02 * elapsed_hours + random.symmetric(0.01);
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, Some(value), ObservationStatus::Observed, false,
                 );
@@ -338,14 +379,14 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     }
                 });
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, Some(quantized), status, false,
                 );
             }
             ScenarioId::ClockOffsetAndDrift => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                     clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
                 );
@@ -353,32 +394,32 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
             ScenarioId::DelayedAvailability => {
                 let latency = 600.0 + random.symmetric(30.0);
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time + latency,
                     clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
                 );
             }
             ScenarioId::PacketFaults => {
-                // Keep the first two packets in each group to make reordering
-                // a deterministic fixture property, not a lucky random event.
-                let forced_reorder_pair = sample_index % 10;
-                if forced_reorder_pair > 1 && random.unit() < 0.03 {
+                // Force a reorder for the first pair of each ten-sample group;
+                // this is a deterministic semantic control, not a lucky draw.
+                let within_group = sample_index % 10;
+                if within_group > 1 && random.unit() < 0.03 {
                     continue;
                 }
-                let latency = match forced_reorder_pair {
+                let latency = match within_group {
                     0 => 125.0,
                     1 => 0.0,
                     _ => 5.0 + random.unit() * 20.0,
                 };
-                let source_event_id = source_id(sample_index, 0);
-                push_event_with_source_id(
-                    &mut observations, &mut next_delivery_id, sample_index, source_event_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time + latency,
-                    clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
+                push_event(
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
+                    ObservationQuantity::PrimarySignal, sensor_timestamp,
+                    physical_time + latency, clock_domain, Some(measured_signal),
+                    ObservationStatus::Observed, false,
                 );
                 if random.unit() < 0.05 {
-                    push_event_with_source_id(
-                        &mut observations, &mut next_delivery_id, sample_index, source_event_id, 0,
+                    push_event(
+                        &mut observations, &mut next_delivery_id, primary_source_id, 0,
                         ObservationQuantity::PrimarySignal, sensor_timestamp,
                         physical_time + latency + 1.0, clock_domain, Some(measured_signal),
                         ObservationStatus::Observed, true,
@@ -387,7 +428,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
             }
             ScenarioId::CommonCauseFailure => {
                 let common_outage = (10_800.0..=12_600.0).contains(&physical_time);
-                for sensor_id in 0..2 {
+                for sensor_id in 0..2_u16 {
                     let value = if common_outage {
                         None
                     } else {
@@ -399,8 +440,13 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     } else {
                         ObservationStatus::Observed
                     };
+                    let source_id = if sensor_id == 0 {
+                        primary_source_id
+                    } else {
+                        secondary_source_id
+                    };
                     push_event(
-                        &mut observations, &mut next_delivery_id, sample_index, sensor_id,
+                        &mut observations, &mut next_delivery_id, source_id, sensor_id,
                         ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
                         clock_domain, value, status, false,
                     );
@@ -408,17 +454,33 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
             }
             ScenarioId::IndistinguishableWorlds => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, sample_index, 0,
+                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
                     ObservationQuantity::CompositeSignal, sensor_timestamp, physical_time,
                     clock_domain, Some(latent_primary + latent_secondary),
                     ObservationStatus::Observed, false,
                 );
             }
         }
+
+        // Build the scorer-only identity map after all deliveries for this
+        // capture have been emitted. Duplicates share one source-event link.
+        for event in &observations[event_start..] {
+            if !event_truth
+                .iter()
+                .any(|link: &ScorerEventTruth| link.source_event_id == event.source_event_id)
+            {
+                event_truth.push(ScorerEventTruth {
+                    source_event_id: event.source_event_id,
+                    sample_index,
+                    event_time_seconds: physical_time,
+                    latent_primary,
+                    latent_secondary,
+                });
+            }
+        }
     }
 
-    // The estimator consumes packets in availability order, not capture order.
-    // delivery_id supplies a stable tie-break when packets arrive together.
+    // Estimators receive packets in availability order, not capture order.
     observations.sort_by(|left, right| {
         left.available_at_seconds
             .total_cmp(&right.available_at_seconds)
@@ -426,17 +488,23 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
     });
 
     ScenarioRun {
-        manifest: ScenarioManifest {
+        estimator_view: EstimatorView {
             scenario_id,
-            seed,
-            duration_seconds: DEFAULT_DURATION_SECONDS,
-            nominal_cadence_seconds: DEFAULT_CADENCE_SECONDS,
-            claim_ceiling:
-                "Synthetic arbitrary-unit fixture only; no human physiological or clinical validity.",
+            observations,
         },
-        observations,
-        scorer_truth,
-        alternate_scorer_truth,
+        scorer_view: ScorerView {
+            manifest: ScenarioManifest {
+                scenario_id,
+                seed,
+                duration_seconds: DEFAULT_DURATION_SECONDS,
+                nominal_cadence_seconds: DEFAULT_CADENCE_SECONDS,
+                claim_ceiling:
+                    "Synthetic arbitrary-unit fixture only; no human physiological or clinical validity.",
+            },
+            truth,
+            event_truth,
+            alternate_truth,
+        },
     }
 }
 
@@ -448,36 +516,10 @@ fn activity_proxy(time_seconds: f64) -> f64 {
     0.5 + 0.5 * (TAU * time_seconds / 1_800.0).sin()
 }
 
-fn source_id(sample_index: u64, sensor_id: u16) -> u64 {
-    (sample_index << 16) | u64::from(sensor_id)
-}
-
 #[allow(clippy::too_many_arguments)]
 fn push_event(
     events: &mut Vec<ObservationEvent>,
     next_delivery_id: &mut u64,
-    sample_index: u64,
-    sensor_id: u16,
-    quantity: ObservationQuantity,
-    sensor_timestamp_seconds: f64,
-    available_at_seconds: f64,
-    clock_domain: u16,
-    value: Option<f64>,
-    status: ObservationStatus,
-    is_duplicate_delivery: bool,
-) {
-    push_event_with_source_id(
-        events, next_delivery_id, sample_index, source_id(sample_index, sensor_id), sensor_id,
-        quantity, sensor_timestamp_seconds, available_at_seconds, clock_domain, value, status,
-        is_duplicate_delivery,
-    );
-}
-
-#[allow(clippy::too_many_arguments)]
-fn push_event_with_source_id(
-    events: &mut Vec<ObservationEvent>,
-    next_delivery_id: &mut u64,
-    sample_index: u64,
     source_event_id: u64,
     sensor_id: u16,
     quantity: ObservationQuantity,
@@ -491,7 +533,6 @@ fn push_event_with_source_id(
     events.push(ObservationEvent {
         source_event_id,
         delivery_id: *next_delivery_id,
-        sample_index,
         sensor_id,
         quantity,
         sensor_timestamp_seconds,
@@ -543,11 +584,21 @@ mod tests {
         generate_scenario(scenario_id, 0x5EED_2026)
     }
 
-    fn missing_count(scenario: &ScenarioRun) -> usize {
+    fn truth_link<'a>(scenario: &'a ScenarioRun, event: &ObservationEvent) -> &'a ScorerEventTruth {
         scenario
+            .scorer_view
+            .event_truth
+            .iter()
+            .find(|link| link.source_event_id == event.source_event_id)
+            .expect("every delivered source event has scorer truth")
+    }
+
+    fn missing_count(scenario: &ScenarioRun, reason: MissingReason) -> usize {
+        scenario
+            .estimator_view
             .observations
             .iter()
-            .filter(|event| matches!(event.status, ObservationStatus::Missing(_)))
+            .filter(|event| event.status == ObservationStatus::Missing(reason))
             .count()
     }
 
@@ -564,32 +615,41 @@ mod tests {
     #[test]
     fn fixed_scenario_and_seed_replay_identically() {
         for scenario_id in ScenarioId::ALL {
-            assert_eq!(
-                generate_scenario(scenario_id, 42),
-                generate_scenario(scenario_id, 42)
-            );
+            assert_eq!(generate_scenario(scenario_id, 42), generate_scenario(scenario_id, 42));
+        }
+    }
+
+    #[test]
+    fn estimator_view_does_not_expose_truth_seed_or_sample_ordinal() {
+        let scenario = run(ScenarioId::ClockOffsetAndDrift);
+        assert_eq!(scenario.estimator_view.scenario_id, ScenarioId::ClockOffsetAndDrift);
+        assert_eq!(scenario.scorer_view.manifest.seed, 0x5EED_2026);
+        assert!(scenario.scorer_view.truth.len() > 1);
+        // ObservationEvent has no sample_index, physical timestamp, or seed field.
+        for event in &scenario.estimator_view.observations {
+            assert_ne!(event.source_event_id, 0);
         }
     }
 
     #[test]
     fn clean_scenario_has_one_complete_regular_event_per_capture() {
         let scenario = run(ScenarioId::Clean);
-        assert_eq!(scenario.scorer_truth.len(), 361);
-        assert_eq!(scenario.observations.len(), 361);
-        assert_eq!(missing_count(&scenario), 0);
-        for (index, event) in scenario.observations.iter().enumerate() {
-            assert_eq!(event.sample_index, index as u64);
-            assert_eq!(event.status, ObservationStatus::Observed);
-            assert!(event.value.is_some_and(f64::is_finite));
-            assert!((event.available_at_seconds - event.sensor_timestamp_seconds).abs() < 1.0e-9);
-        }
+        assert_eq!(scenario.scorer_view.truth.len(), 361);
+        assert_eq!(scenario.estimator_view.observations.len(), 361);
+        assert!(scenario.estimator_view.observations.iter().all(|event| {
+            event.status == ObservationStatus::Observed && event.value.is_some_and(f64::is_finite)
+        }));
+        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
+            pair[0].available_at_seconds <= pair[1].available_at_seconds
+        }));
     }
 
     #[test]
-    fn irregular_cadence_is_strictly_ordered_but_not_uniform() {
+    fn irregular_capture_schedule_is_strictly_ordered_but_not_uniform() {
         let scenario = run(ScenarioId::IrregularCadence);
         let times: Vec<_> = scenario
-            .scorer_truth
+            .scorer_view
+            .truth
             .iter()
             .map(|point| point.event_time_seconds)
             .collect();
@@ -600,37 +660,37 @@ mod tests {
     }
 
     #[test]
-    fn missing_observations_have_no_numeric_sentinel_value() {
-        for scenario_id in [
-            ScenarioId::McarDropout,
-            ScenarioId::MarActivityArtifact,
-            ScenarioId::MnarStateDependentDropout,
-            ScenarioId::CommonCauseFailure,
-        ] {
-            let scenario = run(scenario_id);
-            let missing: Vec<_> = scenario
-                .observations
-                .iter()
-                .filter(|event| matches!(event.status, ObservationStatus::Missing(_)))
-                .collect();
-            assert!(!missing.is_empty(), "{}", scenario_id.as_str());
-            assert!(missing.iter().all(|event| event.value.is_none()));
+    fn mcar_iid_missingness_is_separate_from_exogenous_sensor_outage() {
+        let scenario = run(ScenarioId::McarDropout);
+        assert!(missing_count(&scenario, MissingReason::Mcar) > 0);
+        assert!(missing_count(&scenario, MissingReason::IndependentSensorOutage) > 0);
+        for event in &scenario.estimator_view.observations {
+            if matches!(event.status, ObservationStatus::Missing(_)) {
+                assert!(event.value.is_none());
+            }
+        }
+        for link in &scenario.scorer_view.event_truth {
+            let event = scenario.estimator_view.observations.iter()
+                .find(|event| event.source_event_id == link.source_event_id).unwrap();
+            if event.status == ObservationStatus::Missing(MissingReason::IndependentSensorOutage) {
+                assert!((7_200.0..=7_800.0).contains(&link.event_time_seconds));
+            }
         }
     }
 
     #[test]
     fn mnar_missingness_only_hides_values_above_the_declared_threshold() {
         let scenario = run(ScenarioId::MnarStateDependentDropout);
-        for event in &scenario.observations {
-            let truth = &scenario.scorer_truth[event.sample_index as usize];
+        for event in &scenario.estimator_view.observations {
+            let link = truth_link(&scenario, event);
             match event.status {
                 ObservationStatus::Missing(MissingReason::MnarLatentState) => {
-                    assert!(truth.latent_primary > 0.65);
+                    assert!(link.latent_primary > 0.65);
                     assert!(event.value.is_none());
                 }
                 ObservationStatus::Observed => {
-                    assert!(truth.latent_primary <= 0.65);
-                    assert_eq!(event.value, Some(truth.latent_primary));
+                    assert!(link.latent_primary <= 0.65);
+                    assert_eq!(event.value, Some(link.latent_primary));
                 }
                 other => panic!("unexpected HOBS-04 status: {other:?}"),
             }
@@ -640,11 +700,9 @@ mod tests {
     #[test]
     fn mar_scenario_exposes_activity_as_a_separate_observation_channel() {
         let scenario = run(ScenarioId::MarActivityArtifact);
-        assert!(scenario
-            .observations
-            .iter()
+        assert!(scenario.estimator_view.observations.iter()
             .any(|event| event.quantity == ObservationQuantity::ActivityProxy));
-        assert!(scenario.observations.iter().any(|event| {
+        assert!(scenario.estimator_view.observations.iter().any(|event| {
             event.status == ObservationStatus::Missing(MissingReason::MarActivityLinked)
         }));
     }
@@ -652,9 +710,9 @@ mod tests {
     #[test]
     fn clock_fault_changes_sensor_clock_not_physical_truth() {
         let scenario = run(ScenarioId::ClockOffsetAndDrift);
-        for event in &scenario.observations {
-            let truth = &scenario.scorer_truth[event.sample_index as usize];
-            let expected = truth.event_time_seconds * (1.0 + 200.0e-6) + 12.0;
+        for event in &scenario.estimator_view.observations {
+            let link = truth_link(&scenario, event);
+            let expected = link.event_time_seconds * (1.0 + 200.0e-6) + 12.0;
             assert!((event.sensor_timestamp_seconds - expected).abs() < 1.0e-8);
             assert_eq!(event.clock_domain, 7);
         }
@@ -663,43 +721,38 @@ mod tests {
     #[test]
     fn delayed_packets_respect_separate_availability_time() {
         let scenario = run(ScenarioId::DelayedAvailability);
-        for event in &scenario.observations {
-            let truth = &scenario.scorer_truth[event.sample_index as usize];
-            let latency = event.available_at_seconds - truth.event_time_seconds;
+        for event in &scenario.estimator_view.observations {
+            let link = truth_link(&scenario, event);
+            let latency = event.available_at_seconds - link.event_time_seconds;
             assert!((570.0..=630.0).contains(&latency));
         }
-        assert!(scenario
-            .observations
-            .windows(2)
-            .all(|pair| pair[0].available_at_seconds <= pair[1].available_at_seconds));
+        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
+            pair[0].available_at_seconds <= pair[1].available_at_seconds
+        }));
     }
 
     #[test]
     fn packet_faults_create_duplicates_and_out_of_order_capture_events() {
         let scenario = run(ScenarioId::PacketFaults);
-        assert!(scenario
-            .observations
-            .iter()
+        assert!(scenario.estimator_view.observations.iter()
             .any(|event| event.is_duplicate_delivery));
-        let has_reordering = scenario
-            .observations
-            .windows(2)
-            .any(|pair| pair[1].sample_index < pair[0].sample_index);
+        let has_reordering = scenario.estimator_view.observations.windows(2).any(|pair| {
+            let left = truth_link(&scenario, &pair[0]).sample_index;
+            let right = truth_link(&scenario, &pair[1]).sample_index;
+            right < left
+        });
         assert!(has_reordering);
-        assert!(scenario
-            .observations
-            .windows(2)
-            .all(|pair| pair[0].available_at_seconds <= pair[1].available_at_seconds));
+        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
+            pair[0].available_at_seconds <= pair[1].available_at_seconds
+        }));
     }
 
     #[test]
     fn common_cause_outage_affects_both_sensors_in_the_same_interval() {
         let scenario = run(ScenarioId::CommonCauseFailure);
         for sample_index in 180..=210 {
-            let pair: Vec<_> = scenario
-                .observations
-                .iter()
-                .filter(|event| event.sample_index == sample_index)
+            let pair: Vec<_> = scenario.estimator_view.observations.iter()
+                .filter(|event| truth_link(&scenario, event).sample_index == sample_index)
                 .collect();
             assert_eq!(pair.len(), 2);
             assert!(pair.iter().all(|event| {
@@ -712,42 +765,31 @@ mod tests {
     #[test]
     fn clipping_is_flagged_and_values_remain_inside_sensor_limits() {
         let scenario = run(ScenarioId::QuantizationAndClipping);
-        assert!(scenario.observations.iter().any(|event| {
-            matches!(
-                event.status,
-                ObservationStatus::ClippedLow | ObservationStatus::ClippedHigh
-            )
+        assert!(scenario.estimator_view.observations.iter().any(|event| {
+            matches!(event.status, ObservationStatus::ClippedLow | ObservationStatus::ClippedHigh)
         }));
-        assert!(scenario.observations.iter().all(|event| {
-            event
-                .value
-                .is_none_or(|value| (0.3 - 1.0e-9..=0.7 + 1.0e-9).contains(&value))
+        assert!(scenario.estimator_view.observations.iter().all(|event| {
+            event.value.is_none_or(|value| (0.3 - 1.0e-9..=0.7 + 1.0e-9).contains(&value))
         }));
     }
 
     #[test]
-    fn indistinguishable_worlds_have_distinct_truth_but_the_same_composite_observation() {
+    fn indistinguishable_worlds_have_distinct_truth_but_the_same_observations() {
         let scenario = run(ScenarioId::IndistinguishableWorlds);
-        let alternate = scenario.alternate_scorer_truth.as_ref().unwrap();
-        assert_ne!(
-            scenario.scorer_truth[0].latent_primary,
-            alternate[0].latent_primary
-        );
-        assert_ne!(
-            scenario.scorer_truth[0].latent_secondary,
-            alternate[0].latent_secondary
-        );
-        assert_eq!(scenario.scorer_truth.len(), alternate.len());
-        assert!(scenario.observations.iter().all(|event| {
+        let alternate = scenario.scorer_view.alternate_truth.as_ref().unwrap();
+        assert_ne!(scenario.scorer_view.truth[0].latent_primary, alternate[0].latent_primary);
+        assert_ne!(scenario.scorer_view.truth[0].latent_secondary, alternate[0].latent_secondary);
+        assert_eq!(scenario.scorer_view.truth.len(), alternate.len());
+        assert!(scenario.estimator_view.observations.iter().all(|event| {
             event.quantity == ObservationQuantity::CompositeSignal && event.value == Some(1.0)
         }));
     }
 
     #[test]
-    fn every_delivered_event_has_finite_times_and_valid_value_semantics() {
+    fn all_events_have_finite_times_and_valid_missing_value_semantics() {
         for scenario_id in ScenarioId::ALL {
             let scenario = generate_scenario(scenario_id, 7);
-            for event in &scenario.observations {
+            for event in &scenario.estimator_view.observations {
                 assert!(event.sensor_timestamp_seconds.is_finite());
                 assert!(event.available_at_seconds.is_finite());
                 match event.status {
