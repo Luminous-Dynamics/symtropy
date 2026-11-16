@@ -26,9 +26,11 @@ Replace a fixed huge Monte Carlo campaign with sequential, decision-aware experi
 
 No opaque weighted score. A test may be information-rich but decision-irrelevant; a cheap test may be useful but not sufficient; a safe experiment may still be non-discriminating. Keep these dimensions explicit.
 
-## Ownership
+## Ownership and composition boundaries
 
-Track V owns the aviation-specific experiment design profile, frozen candidate/utility schema, Pareto selector, sealed-holdout controls and model-discrimination benchmark. It does not own:
+Track V owns the aviation-specific experiment design profile, frozen candidate/utility schema, scope-bound gate receipt checks, Pareto selector, sealed-holdout controls and model-discrimination benchmark. It does not own:
+- sequential finite-horizon policy/tree optimization or an anytime-valid evidence primitive; compose the existing constrained sequential planner [#3588](https://github.com/Luminous-Dynamics/symtropy/pull/3588), which itself composes #3375/#3547;
+- counterexample-guided model-family expansion, adversarial falsification and calibrated ambiguity sets; compose [SIM-REL-029 #3171](https://github.com/Luminous-Dynamics/symtropy/issues/3171);
 - simulator/solver backends or multi-fidelity physics model selection (#4487);
 - the single canonical physics qualification corpus (#460);
 - semantic-equivalence policy (#4366);
@@ -42,7 +44,7 @@ The prototype consumes owner-supplied admissibility facts. It does not independe
 
 ## Selection contract
 
-Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate.
+Candidate estimates are normalized [0,1] conservative bounds produced by a pinned estimator and method at a declared confidence level. Benefits are lower bounds; uninformative probability is an upper bound. The selector does not calculate or authenticate those estimates. Model-discrimination candidates must also provide explicit hypothesis-pair contrast estimates; listing model families alone is not sufficient. The exact campaign, model/sensor/control scope, intended-use profile, scenario, design and measurement-plan digests are bound to every candidate and repeated in each affirmative gate receipt. A receipt's payload digest must match the legacy gate reference; duplicate IDs/roles or a receipt from another design/policy fail closed.
 
 The following dimensions remain separate:
 - expected decision-relevant predictive uncertainty reduction;
@@ -55,8 +57,7 @@ The following dimensions remain separate:
 
 Hard eligibility gates include:
 - decision question and objective identity match;
-- explicit external authorization where required; controlled flight is always authorization-gated, and the frozen policy can require it for HIL/other modalities;
-- positive owner receipts for safety, envelope, reference, semantic-equivalence and authorization gates; ControlledFlight is always authorization-gated, and the frozen policy can require authorization for HIL/other modalities;
+- explicit external authorization where required; ControlledFlight is always authorization-gated, and the frozen policy can require authorization for HIL/other modalities;
 - owner receipts for affirmative safety, envelope, reference, semantic-equivalence and authorization gates; ControlledFlight is always authorization-gated, and the frozen policy can additionally require authorization for HIL/other modalities;
 - positive owner receipts for safety, envelope, independent-reference, semantic-equivalence and authorization gates;
 - safety constraints clear;
@@ -64,15 +65,15 @@ Hard eligibility gates include:
 - independent reference measurement/oracle available;
 - semantic equivalence established for cross-implementation comparisons;
 - no use of sealed confirmatory or challenge outcomes to select the experiment;
-- two or more distinct model hypotheses with exact variant digests and distinct correlation/lineage groups for model-discrimination claims;
+- two or more exact model hypotheses with distinct artifact digests and correlation/lineage groups for model-discrimination claims; explicit pairwise contrasts name both hypothesis IDs, provide a conservative lower bound on predicted outcome separation, and bind a contrast-estimate digest; multiple variants from one correlated family count as one group-pair, not multiple independent distinctions; the reported Pareto pair count and dominance relation use the same frozen minimum contrast-separation threshold as admission;
 - probability of an uninformative result below a frozen policy maximum;
 - frozen policy thresholds and cost budget satisfied.
 
-Only after eligibility is established does Pareto ranking happen. Benefits are maximized; uninformative probability and each resource-cost dimension are minimized. Costs are never summed or exchanged: a low compute cost cannot compensate for exceeding a facility, energy or adjudication budget. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization.
+Only after eligibility is established does Pareto ranking happen. Benefits are maximized; uninformative probability and each resource-cost dimension are minimized. Costs are never summed or exchanged: a low compute cost cannot compensate for exceeding a facility, energy or adjudication budget. The output is a set of nondominated options, not a single "winner" forced by arbitrary scalarization. The Pareto record exposes the number of distinct independent model-family pairs with qualifying contrast bounds.
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 40 adversarial tests:
+The dependency-free Rust suite currently contains 66 adversarial tests (pending exact-head verification):
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
@@ -81,6 +82,7 @@ The dependency-free Rust suite currently contains 40 adversarial tests:
 - cross-implementation semantic mismatch and matched positive control;
 - sealed challenge/confirmatory data leakage rejection;
 - correlated model-family pseudo-diversity rejection;
+- explicit pairwise hypothesis contrasts, lower-bound separation thresholds, duplicate hypothesis IDs, same-artifact cross-family relabelling and distinct group-pair coverage;
 - explicit model-discrimination and robust-reduction thresholds;
 - cost-budget and malformed/non-finite utility rejection;
 - parameter-identification case that does not falsely require independent model families;
@@ -91,7 +93,8 @@ The dependency-free Rust suite currently contains 40 adversarial tests:
 - exact campaign/model/use-scope binding;
 - affirmative owner-receipt requirements and authorization hard-gate against candidate-flag bypass;
 - frozen estimator build/method/confidence binding;
-- non-substitutable resource budgets and multidimensional Pareto tradeoffs.
+- non-substitutable resource budgets and multidimensional Pareto tradeoffs;
+- valid zero ceilings for resource dimensions that a modality is not allowed to consume.
 
 ## SOTA comparison protocol
 
@@ -104,8 +107,6 @@ Use equal candidate sets, priors, available information, admissibility rules and
 - robust/minimax experimental design under prior/model uncertainty;
 - active learning and sequential model discrimination;
 - batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including mean-/quantile-based misclassification acquisition and input constraints;
-- model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
-- batch active learning for reliability-based model validation (Lämmle et al., Reliability Engineering & System Safety 272, August 2026; DOI 10.1016/j.ress.2026.112631), including its mean-/quantile-based misclassification acquisition and input constraints;
 - model-discrepancy active learning with Bayesian experimental design (Yang et al., Computer Methods in Applied Mechanics and Engineering, 1 November 2025; DOI 10.1016/j.cma.2025.118198);
 - the multi-fidelity admission/escalation lane in #4487.
 
@@ -142,9 +143,18 @@ A reduction in test count is not success if the resulting model is less reliable
 - ASTM F3705-25 / F3442-26: DAA test and performance comparison only for matched operating assumptions.
 - NASA NESC-RP-23-01853: cross-simulation comparison under common inputs can contribute to validation, while remaining distinct from empirical flight validation.
 - NASA 2025 strategic path management flight evaluation: two helicopters in a live-virtual-constructive environment with up to 330 virtual aircraft; a useful scale comparator, not universal safety evidence.
-- NASA NESC 6DOF check-case programme: standardized common-input multi-simulation comparisons can expose implementation defects and contribute to credibility, but remain distinct from empirical physical validation.
 - NASA NESC 6DOF check-case programme: standardized common inputs and cross-simulation comparisons can identify implementation defects and contribute to model credibility, but remain distinct from physical empirical validation.
 
 ## Claim ceiling
 
-A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, utility estimates and separate resource budgets. It does not verify those utility estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
+A passing result qualifies the selector only for the supplied synthetic candidate space, frozen policy, thresholds, contrast/utility estimates and separate resource budgets. It does not verify those estimates, authenticate owner gate receipts, prove a candidate model true, authorize a physical test, establish aircraft safety, or demonstrate certification/regulatory compliance.
+
+
+### Semantic boundary clarification
+
+Controlled flight always requires external authorization; the frozen campaign policy has an explicit `authorization_required_modalities` set and can require it for HIL or other modalities too. For model-form discrimination, the common scenario/measurement contract and explicit pairwise prediction contrasts must match, but competing model outputs are expected to differ; implementation-equivalence receipts are required specifically for cross-implementation comparisons, not as a blanket requirement for physical model hypotheses. The Pareto result's model-family-pair count uses the exact same policy separation floor used for admission.
+
+
+### Gate issuer and payload binding hardening
+
+The frozen selection policy pins exactly one expected issuer namespace for each of the five gate roles (authorization, safety, envelope, independent reference and semantic equivalence). Every structured gate receipt must match that role-specific issuer namespace and the candidate's exact payload-digest reference. A role receipt with no corresponding candidate digest reference is inadmissible, even if its scope fields match. This prevents receipt presence alone or an arbitrary non-empty issuer label from satisfying an affirmative gate. It does not authenticate the issuer or signature; Track Q/Mycelix remains the trust owner.
