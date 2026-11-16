@@ -1,0 +1,428 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "luminous-kitchen-workcell-2026-11-v0.1",
+  "status": "draft_not_run",
+  "claim_ceiling": "No physical performance, food-safety, conformity, sensory or lifecycle claim is established.",
+  "preregistration": {
+    "protocol_revision": "KITCHEN-WORKCELL-001-V0.1",
+    "frozen_before_trials": false,
+    "frozen_at": null,
+    "reviewer_refs": []
+  },
+  "comparators": [
+    {
+      "comparator_id": "zavor-lux-zsell02",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Zavor",
+      "model": "LUX LCD",
+      "sku": "ZSELL02",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/multi-cookers/best-multi-cookers-of-the-year-a7136971834/"
+      ],
+      "notes": "Consumer Reports lists this 6 qt model as its highest-rated multicooker in its 2026 overview; exact local-market revision and availability must be verified."
+    },
+    {
+      "comparator_id": "breville-fast-slow-pro-bpr700",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Breville",
+      "model": "Fast Slow Pro",
+      "sku": "BPR700BSS",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/multi-cookers/best-multi-cookers-of-the-year-a7136971834/"
+      ],
+      "notes": "6 qt comparator; verify regional SKU, voltage and accessories."
+    },
+    {
+      "comparator_id": "instant-pot-duo-crisp-8qt",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Instant Pot",
+      "model": "Duo Crisp 11-in-1 8 qt",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [],
+      "notes": "Exact regional model/SKU to be fixed before acquisition."
+    },
+    {
+      "comparator_id": "breville-paradice-9-bfp638",
+      "domain": "food_processor",
+      "manufacturer": "Breville",
+      "model": "the Paradice 9",
+      "sku": "BFP638",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/",
+        "https://www.breville.com/en-us/product/BFP638"
+      ],
+      "notes": "Consumer Reports' 2026 test describes a 7-cup model; other regional technical sheets identify a 9-cup pack, so regional model variant must be fixed."
+    },
+    {
+      "comparator_id": "cuisinart-core-custom-fp130",
+      "domain": "food_processor",
+      "manufacturer": "Cuisinart",
+      "model": "Core Custom",
+      "sku": "FP-130",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/"
+      ],
+      "notes": "Verify market-specific accessories and technical revision."
+    },
+    {
+      "comparator_id": "magimix-5200xl",
+      "domain": "food_processor",
+      "manufacturer": "Magimix",
+      "model": "5200XL",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/"
+      ],
+      "notes": "Verify regional voltage, bowl accessories and SKU."
+    },
+    {
+      "comparator_id": "thermomix-tm7",
+      "domain": "integrated_cooking_machine",
+      "manufacturer": "Vorwerk",
+      "model": "Thermomix TM7",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://globalsupport.vorwerk.com/hc/en-us/articles/18535706925724-What-are-the-technical-specifications-of-the-new-Thermomix-TM7"
+      ],
+      "notes": "Architectural comparator only. Manufacturer lists 2.2 L mixing bowl and 6.8 L Varoma set; not a pressure cooker or full-size food processor."
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "thermal-ribs",
+      "domain": "thermal",
+      "operation": "pressure-cook pork ribs",
+      "input_manifest_required": [
+        "ingredient lot",
+        "initial mass",
+        "cut dimensions",
+        "starting temperature",
+        "liquid mass",
+        "vessel fill fraction",
+        "ambient temperature",
+        "supply voltage"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "energy_wh",
+        "accepted_edible_yield_g",
+        "texture_assay",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Use certified commercial equipment only; do not defeat lid, pressure, vent or thermal protections.",
+      "control_condition": "Identical ingredient lot and mass; manufacturer's prescribed safe settings."
+    },
+    {
+      "task_id": "thermal-chili",
+      "domain": "thermal",
+      "operation": "prepare beef-and-bean chili",
+      "input_manifest_required": [
+        "ingredient lot",
+        "initial masses",
+        "bean hydration state",
+        "starting temperature",
+        "liquid mass",
+        "vessel fill fraction"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "energy_wh",
+        "accepted_edible_yield_g",
+        "scorching_incidence",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Certified product instructions govern pressure, fill and release; no unsafe overfill or blocked-vent trials.",
+      "control_condition": "Same recipe, ingredient lots and serving endpoint."
+    },
+    {
+      "task_id": "thermal-rice",
+      "domain": "thermal",
+      "operation": "cook rice",
+      "input_manifest_required": [
+        "rice lot",
+        "dry mass",
+        "water mass",
+        "rinse protocol",
+        "starting temperature",
+        "vessel fill fraction"
+      ],
+      "primary_metrics": [
+        "energy_wh",
+        "time_to_plate_s",
+        "cooked_mass_g",
+        "moisture_assay",
+        "texture_assay"
+      ],
+      "safety_boundary": "Normal user operation only.",
+      "control_condition": "Same rice-to-water ratio and blinded texture endpoint."
+    },
+    {
+      "task_id": "thermal-vegetables",
+      "domain": "thermal",
+      "operation": "steam mixed vegetables",
+      "input_manifest_required": [
+        "vegetable lots",
+        "cut size",
+        "initial mass",
+        "starting temperature",
+        "basket loading map"
+      ],
+      "primary_metrics": [
+        "temperature_uniformity_c",
+        "time_to_plate_s",
+        "energy_wh",
+        "texture_assay",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Normal user operation only.",
+      "control_condition": "Same cut geometry, mass and endpoint."
+    },
+    {
+      "task_id": "prep-chop-onion",
+      "domain": "processing",
+      "operation": "uniform chopping of onion",
+      "input_manifest_required": [
+        "onion lot",
+        "peeled starting mass",
+        "dimensions",
+        "starting temperature",
+        "blade and bowl revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "yield_loss_fraction",
+        "temperature_rise_c",
+        "noise_dba"
+      ],
+      "safety_boundary": "Guarded commercial equipment; no hand access during operation.",
+      "control_condition": "Same lot, mass, pulse sequence and particle-size assay."
+    },
+    {
+      "task_id": "prep-grate-cheese",
+      "domain": "processing",
+      "operation": "grate chilled cheese",
+      "input_manifest_required": [
+        "cheese lot",
+        "fat/moisture label",
+        "starting temperature",
+        "mass",
+        "grating disc revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "yield_loss_fraction",
+        "residue_mass_g",
+        "cleaning_time_s"
+      ],
+      "safety_boundary": "Manufacturer-approved pusher and guard only.",
+      "control_condition": "Same cheese lot and temperature window."
+    },
+    {
+      "task_id": "prep-small-herbs",
+      "domain": "processing",
+      "operation": "small-batch herb chopping",
+      "input_manifest_required": [
+        "herb lot",
+        "leaf mass",
+        "moisture condition",
+        "starting temperature",
+        "bowl/accessory configuration"
+      ],
+      "primary_metrics": [
+        "unprocessed_fraction",
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "residue_mass_g",
+        "cleaning_time_s"
+      ],
+      "safety_boundary": "No manual intervention while blade is energized.",
+      "control_condition": "Same herb lot and target mass; compare full-bowl and mini-bowl configurations."
+    },
+    {
+      "task_id": "prep-dice-carrot",
+      "domain": "processing",
+      "operation": "repeatable carrot dicing",
+      "input_manifest_required": [
+        "carrot lot",
+        "diameter range",
+        "starting mass",
+        "feed orientation",
+        "dicing grid revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "out_of_spec_mass_fraction",
+        "yield_loss_fraction",
+        "throughput_g_per_min"
+      ],
+      "safety_boundary": "Use stock chute and pusher; do not bypass guards.",
+      "control_condition": "Same geometry and orientation; image or sieve assay with blinded labels."
+    },
+    {
+      "task_id": "workflow-multidish",
+      "domain": "workflow",
+      "operation": "coordinate a multi-dish meal with synchronized serving",
+      "input_manifest_required": [
+        "full recipe manifests",
+        "appliance IDs",
+        "available outlets/power cap",
+        "user time budget",
+        "serve time"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "late_dish_count",
+        "energy_wh",
+        "accepted_servings"
+      ],
+      "safety_boundary": "Scheduler proposes sequences only; appliances retain local deterministic control.",
+      "control_condition": "Compare manual plan, fixed-rule scheduler and Symtropy schedule on same tasks."
+    },
+    {
+      "task_id": "cleaning-processor",
+      "domain": "cleaning",
+      "operation": "clean bowl, lid, pusher, blade hub and attachments after standardized task",
+      "input_manifest_required": [
+        "soil recipe",
+        "part list",
+        "pre-clean residue mass",
+        "cleaning protocol",
+        "water temperature"
+      ],
+      "primary_metrics": [
+        "cleaning_time_s",
+        "water_l",
+        "parts_count",
+        "residual_soil_mass_g",
+        "damage_incidence"
+      ],
+      "safety_boundary": "Do not infer microbiological cleanliness from visual cleanliness.",
+      "control_condition": "Same soil and cleaning instruction; independent residue/hygiene method if claimed."
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "energy_wh_per_accepted_serving",
+      "unit": "Wh/accepted serving",
+      "denominator": "accepted edible serving count",
+      "method": "calibrated mains power meter; include preheat, cook, release, transfer and cleaning where assigned to task",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.9,
+      "notes": "Exploratory target: at least 10% lower than best matched baseline without worse food quality or safety."
+    },
+    {
+      "metric_id": "user_present_time_per_accepted_meal",
+      "unit": "minutes/accepted meal",
+      "denominator": "accepted meal",
+      "method": "timestamped direct observation; separate total elapsed time",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.85,
+      "notes": "Exploratory target: at least 15% lower; no substitution of unattended elapsed time."
+    },
+    {
+      "metric_id": "particle_size_cv",
+      "unit": "coefficient of variation",
+      "denominator": "all sampled output particles by mass/size method",
+      "method": "predeclared image/sieve measurement with calibration and sampling plan",
+      "evidence_class": "assayed",
+      "target_ratio_max": 0.75,
+      "notes": "Exploratory target: at least 25% reduction without greater fines or yield loss."
+    },
+    {
+      "metric_id": "avoidable_prep_loss_fraction",
+      "unit": "fraction of edible input mass",
+      "denominator": "edible input mass",
+      "method": "tare-corrected mass balance of input, accepted output, residue and declared inedible trim",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.8,
+      "notes": "Exploratory target: at least 20% reduction in avoidable trim and transfer loss."
+    },
+    {
+      "metric_id": "sensory_liking_9pt",
+      "unit": "points on 9-point liking scale",
+      "denominator": "valid blinded panel responses",
+      "method": "randomized blinded consumer or trained panel protocol, prespecified analysis",
+      "evidence_class": "assayed",
+      "non_inferiority_margin": 0.5,
+      "notes": "Non-inferiority margin is exploratory and requires power calculation before confirmatory trial."
+    },
+    {
+      "metric_id": "food_safety_validation",
+      "unit": "not a numeric optimization metric",
+      "denominator": "product-specific independent conformity and food-safety evidence",
+      "method": "competent laboratory and applicable authority review",
+      "evidence_class": "assayed",
+      "notes": "Hard gate; no AI estimate or modelled microbial lethality is accepted as qualification."
+    },
+    {
+      "metric_id": "cleaning_time",
+      "unit": "seconds/task",
+      "denominator": "complete post-task cleaning cycle",
+      "method": "timestamped observation under frozen cleaning procedure",
+      "evidence_class": "measured"
+    }
+  ],
+  "target_hypotheses": [
+    {
+      "hypothesis_id": "H-ENERGY-10",
+      "metric_id": "energy_wh_per_accepted_serving",
+      "target": "<=0.90 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "taste or texture non-inferior margin fails",
+        "safety or conformity concern",
+        "water or cleaning burden materially increases"
+      ]
+    },
+    {
+      "hypothesis_id": "H-LABOR-15",
+      "metric_id": "user_present_time_per_accepted_meal",
+      "target": "<=0.85 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "total time-to-plate worsens beyond declared service tolerance",
+        "operator intervention burden increases"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PRECISION-25",
+      "metric_id": "particle_size_cv",
+      "target": "<=0.75 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "fines or yield loss increase",
+        "output bruising/temperature rise worsens"
+      ]
+    },
+    {
+      "hypothesis_id": "H-WASTE-20",
+      "metric_id": "avoidable_prep_loss_fraction",
+      "target": "<=0.80 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "food mass balance fails closure tolerance",
+        "waste is shifted to another process stage"
+      ]
+    }
+  ],
+  "instruments": [],
+  "runs": []
+}
