@@ -249,3 +249,32 @@ The actual implementation references are pinned to a public pyIncore commit:
 - https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/tests/data/dataset_metadata.json
 
 The current fixture is still synthetic and no IN-CORE endpoint is called.
+
+
+## E2 PROV-O and RO-Crate 1.3 evidence portability
+
+The `protective-evidence-portability` binary validates a synthetic RO-Crate 1.3
+package containing the six provider-native E1 artifacts and a sparse W3C
+PROV-O JSON-LD graph.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
+```
+
+The gate checks the RO-Crate descriptor/root/file inventory, byte sizes and
+SHA-256 values for the seven package artifacts, agreement with the E1 manifest,
+rights and claim ceilings, and PROV-O entity/activity/agent, used/generated/
+associated relations. The sparse graph has two used inputs and two generated
+outputs, but exactly one provider-declared `prov:wasDerivedFrom` relation.
+It rejects all-to-all derivation inference, unknown File entities, digest swaps,
+rights escalation and claim-ceiling escalation.
+
+The package remains synthetic and returns
+`ABSTAIN_SYNTHETIC_NOT_EXECUTED`. RO-Crate conformance does not authenticate
+the provider or grant a license; a provenance graph does not prove model
+validity or physical resilience. Fifteen unit tests are written; their
+execution is pending an exact-head hosted run.
