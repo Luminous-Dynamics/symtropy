@@ -402,6 +402,14 @@ fn affected_rule(family: &str, claim_id: &str) -> Option<Rule> {
             "HMI_CHANGE_SCOPE_UNPROVEN",
             "The changed display is in this claim's fixture dependency closure and no scope witness resolves the asserted cosmetic change.",
         )),
+        ("tool_equivalent_replacement", "reach.envelope") => Some(qualified(
+            "QUALIFIED_TOOL_GEOMETRY_EQUIVALENCE",
+            "The synthetic witness covers the changed tool geometry and interface for the named reach claim.",
+        )),
+        ("tool_equivalent_replacement", "tool.swept_clearance") => Some(qualified(
+            "QUALIFIED_TOOL_GEOMETRY_EQUIVALENCE",
+            "The synthetic witness explicitly covers the tool geometry and mount for this clearance claim.",
+        )),
         ("tool_equivalent_replacement", "process.output_quality") => Some(bench(
             "PROCESS_TOOL_REPLACEMENT",
             "Geometry and interface equivalence do not establish process output quality, wear state or process calibration.",
@@ -464,6 +472,10 @@ fn affected_rule(family: &str, claim_id: &str) -> Option<Rule> {
                 "The replacement battery serial has no measured health or usable-capacity evidence.",
             ))
         }
+        ("battery_replacement_same_mechanical_envelope", "stopping.distance") => Some(qualified(
+            "BATTERY_MASS_INTERFACE_EQUIVALENCE",
+            "The synthetic witness covers the unchanged mass and mechanical envelope relevant to this stopping claim; electrical-health claims remain separate.",
+        )),
         ("drive_module_replacement", "mobility.surface_envelope") => Some(physical(
             "DRIVE_MODULE_CHANGED",
             "Traction and terrain mobility depend on the changed drive module.",
