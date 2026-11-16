@@ -26,8 +26,9 @@ pub use co_translation_ccd::{
 };
 pub use independent_interval_verifier::{
     IntervalContactWitness, IntervalVerificationReceipt, IntervalVerificationStatus,
+    IndependentAdaptiveNoContactReceipt, IndependentAdaptiveVerificationError,
     IntervalVerifierConfig, IntervalVerifierError, replay_interval_verification_receipt,
-    verify_capsule_interval_no_contact,
+    verify_adaptive_no_contact_independently, verify_capsule_interval_no_contact,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
