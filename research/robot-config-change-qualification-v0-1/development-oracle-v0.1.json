@@ -384,9 +384,9 @@
         ],
         [
           "operator.recovery.observability",
-          "PreservedByExactIdentity",
-          "DECLARED_INDEPENDENT_DEPENDENCIES",
-          "This claim's complete declared dependency closure excludes the changed module."
+          "UnknownImpact",
+          "DEPENDENCY_CLOSURE_INCOMPLETE",
+          "The unclassified module has no admitted dependency mapping; the incomplete snapshot prevents proving absence of impact for this claim."
         ]
       ]
     }
