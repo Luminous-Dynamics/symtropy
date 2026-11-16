@@ -380,4 +380,27 @@ fn main() {
         )
         .expect("valid full interval asynchronous pair");
     });
+    measure("capsule-static-aabb-outward", || {
+        black_box(asynchronous_a.aabb());
+    });
+    measure("capsule-whole-sweep-aabb-outward", || {
+        co_translating_capsule_swept_aabb_candidate(
+            black_box(asynchronous_a),
+            black_box(common_translation),
+            black_box(asynchronous_b),
+            black_box(common_translation),
+        )
+        .expect("valid outward whole-sweep AABB");
+    });
+    measure("capsule-one-window-aabb-outward", || {
+        co_translating_capsule_time_sliced_aabb_candidates(
+            black_box(asynchronous_a),
+            black_box(common_translation),
+            black_box(asynchronous_b),
+            black_box(common_translation),
+            1,
+        )
+        .expect("valid outward one-window AABB");
+    });
+
 }
