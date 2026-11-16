@@ -197,7 +197,11 @@ fn validate_envelope(
         .get("documentation_uri")
         .and_then(Value::as_str)
         .map(str::trim)
-        .filter(|item| !item.is_empty())
+        .filter(|item| {
+            item.starts_with("https://")
+                || item.starts_with("http://")
+                || item.starts_with("urn:")
+        })
         .is_some();
 
     let analysis = root
@@ -262,7 +266,7 @@ fn validate_envelope(
     let mut artifact_receipts = Vec::new();
     let mut artifact_paths = BTreeSet::new();
     let mut all_revisions_known = true;
-    let mut all_rights_cleared = true;
+    let mut all_rights_metadata_present = true;
     let mut all_dataset_crs_known = true;
 
     for (index, dataset) in datasets.iter().enumerate() {
@@ -301,7 +305,7 @@ fn validate_envelope(
             evidence_class,
             intended_use,
         )?;
-        all_rights_cleared &= rights_cleared;
+        all_rights_metadata_present &= rights_cleared;
 
         let crs_known = validate_version_field(
             dataset
@@ -446,7 +450,7 @@ fn validate_envelope(
     } else if !version_known
         || !run_id_known
         || !all_revisions_known
-        || !all_rights_cleared
+        || !all_rights_metadata_present
         || !all_dataset_crs_known
         || !scope_crs_known
         || !documentation_uri_known
@@ -454,7 +458,7 @@ fn validate_envelope(
     {
         "ABSTAIN_INCOMPLETE_EXTERNAL_EVIDENCE"
     } else {
-        "ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED"
+        "ENVELOPE_METADATA_COMPLETE_SOURCE_AND_RIGHTS_AUTHENTICITY_UNVERIFIED"
     };
 
     let canonical = serde_json::to_vec(&root)
@@ -550,7 +554,7 @@ mod tests {
             .expect("complete synthetic metadata envelope");
         assert_eq!(
             report.disposition,
-            "ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED"
+            "ENVELOPE_METADATA_COMPLETE_SOURCE_AND_RIGHTS_AUTHENTICITY_UNVERIFIED"
         );
     }
 
