@@ -1,0 +1,63 @@
+# ROBOT-CONFIG-MISSION-IMPACT-001 — development artifacts v0.1
+
+Status: public synthetic development package. This is a separate workstream from #5488; it measures mission consequences, not qualification applicability.
+
+Issue: https://github.com/Luminous-Dynamics/symtropy/issues/5547
+
+## Research question
+
+When the same sampled work package is executed under source configuration A and target configuration B, what changes in complete-mission completion, independently accepted output, stage progression, intervention, recovery, resource use and reproducibility?
+
+The benchmark combines:
+- seeded scenario distributions and paired A/B conditions;
+- stage-aware mission traces rather than aggregate success only;
+- accepted-output and quality measurements;
+- independent reconstruction and cross-lab variation;
+- claim applicability and lifecycle references from existing owners.
+
+## Artifacts
+
+- `mission-impact-protocol-v0.1.md`: matched stochastic study design, stage vocabulary, comparator arms, metrics, statistics, physical-test gate and ownership boundaries.
+- `stage-catalog-v0.1.json`: ten-stage reference vocabulary for task contract, site observation, frame/localization, navigation, base positioning, tool/calibration, operation, independent acceptance, recovery and state reconciliation.
+- `mission-pair-corpus-v0.1.json`: eight synthetic development pairs with exact source/target configuration references, one declared delta, matched task/site/acceptance conditions and candidate-visible event traces.
+- `development-oracle-v0.1.json`: separate public development labels for target mission disposition, first observed divergence, stage progression and outcome sensitivity. This is not a hidden holdout.
+- `schemas/mission-pair-corpus-v0.1.schema.json`: closed Draft 2020-12 schema for paired cases and event traces.
+- `schemas/stage-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for the stage vocabulary.
+- `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
+
+All article IDs, configurations, task references, event IDs, timestamps and outcome-shaped values are invented fixtures. They are not measured robot outcomes or vendor performance data.
+
+## Research motivation
+
+1. Gläßer et al., *Benchmarking Real-World Robotic Manipulation through Stochastic Challenges*, CoRL 2026, arXiv:2611.12804. It proposes standardizing challenge distributions rather than only fixed scenes and reports 568 trials across two robot platforms and two labs. Its authors note that a single researcher rebuilt scenes in both labs, leaving independent-team reconstruction variation unmeasured.
+   - https://arxiv.org/abs/2611.12804
+   - https://rpl-bonn.github.io/stochastic-challenges/
+2. Wang et al., *RoboCasa-Shift*, arXiv:2610.27861, 20 October 2026. Its matched clean/perturbed rollouts show why paired outcome sensitivity and stage-level failure progression can reveal differences hidden by aggregate success.
+   - https://arxiv.org/abs/2610.27861
+3. He et al., *MOST: Memory of Object States and Task Progress for Long-Horizon Mobile Manipulation*, arXiv:2611.00734, 31 October 2026. It motivates preserving task-relevant world-state changes and subtask progress through long missions.
+   - https://arxiv.org/abs/2611.00734
+
+These papers concern general/household mobile manipulation. They inform benchmark methodology; their results are not construction-robot performance comparators.
+
+## Composition
+
+- Symtropy #5488: claim-specific evidence applicability after a configuration delta.
+- Symtropy #5411: last accepted A to first accepted B reconfiguration chronology.
+- Symtropy #3605: functional unit and accepted-output accounting.
+- Symtropy #3523/#3524: task-specific construction-robot performance profiles.
+- Symtropy #3505/#3522/#3531: physical procedures, trial receipts and evidence admissibility.
+- Symtropy #3591: cross-lab metrology and reproducibility.
+- Symtropy #3628: accepted production, wear, maintenance, repair and restoration.
+- Symtropy #1834: robot capability/work-package compatibility.
+- Symthaea #10543/#4918/#12046: generic change impact, dependency/common-mode lineage and evidence request planning.
+- Symthaea #4863/#11866: lifecycle/degradation and productive work versus terminal reserve.
+
+No second capability engine, evidence graph, accepted-output ledger, maintenance ledger, controller, digital-twin truth store or safety authority is proposed.
+
+## Current verification
+
+This tranche contains documentation, JSON fixtures and structural schemas only. It has no Rust evaluator, blind holdout, robot connection, HIL campaign or physical test. JSON parsing and cross-file checks must be reported separately from independent JSON Schema validation, CI and physical qualification.
+
+## Nonclaims
+
+The package establishes benchmark semantics and synthetic fixtures only. It does not establish robot performance, causal failure attribution, physical safety, calibration validity, qualification, construction productivity, standards conformity or commercial superiority. The public development oracle is visible and must not be scored as blind evaluation data.
