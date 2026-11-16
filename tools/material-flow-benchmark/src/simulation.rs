@@ -102,7 +102,6 @@ struct ToteGeometry {
     wall_half_m: [f64; 3],
 }
 
-#[derive(Debug, Clone, Copy)]
 struct BuiltWorld {
     world: PhysicsWorld<3>,
     package_handle: BodyHandle,
