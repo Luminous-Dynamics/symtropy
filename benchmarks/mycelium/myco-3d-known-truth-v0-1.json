@@ -229,5 +229,25 @@
     "critical_boundary": "This is a set of admissible graph-topology hypotheses, not a probability distribution and not a positive fusion detector.",
     "automatic_join_permitted": false,
     "downstream_policy": "Preserve both topologies or request independent review; never convert the shared-junction hypothesis directly into a graph mutation."
+  },
+  "observation_receipt_contract": {
+    "implementation": "symtropy_mycelium::observation_evidence::ObservationEvidenceReceipt",
+    "receipt_fields": [
+      "source_file_sha256",
+      "frame_index",
+      "optional_z_slice",
+      "timestamp_s",
+      "roi_pixel_bounds",
+      "pixel_width_height_um",
+      "optional_voxel_depth_um",
+      "processor_name_and_revision",
+      "processor_parameters_sha256",
+      "observation_subject",
+      "optional_graph_node_or_segment_target",
+      "optional_spatial_uncertainty_um",
+      "human_review_or_adjudication_disposition"
+    ],
+    "claim_boundary": "Receipt validates traceability, declared calibration and uncertainty fields; it does not establish measurement correctness.",
+    "next_qualification_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5509"
   }
 }
