@@ -389,7 +389,11 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
-        || policy.authorization_required_modalities.iter().collect::<BTreeSet<_>>().len()
+        || policy
+            .authorization_required_modalities
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
             != policy.authorization_required_modalities.len()
         || !is_sha256(&policy.policy_sha256)
         || policy.maximum_cost_units == 0
@@ -480,8 +484,14 @@ fn validate_hypothesis_contract(candidate: &ExperimentCandidate) -> bool {
             return false;
         }
         let (Some(left), Some(right)) = (
-            candidate.hypothesis_groups.iter().find(|h| h.hypothesis_id == contrast.left_hypothesis_id),
-            candidate.hypothesis_groups.iter().find(|h| h.hypothesis_id == contrast.right_hypothesis_id),
+            candidate
+                .hypothesis_groups
+                .iter()
+                .find(|h| h.hypothesis_id == contrast.left_hypothesis_id),
+            candidate
+                .hypothesis_groups
+                .iter()
+                .find(|h| h.hypothesis_id == contrast.right_hypothesis_id),
         ) else {
             return false;
         };
@@ -489,9 +499,15 @@ fn validate_hypothesis_contract(candidate: &ExperimentCandidate) -> bool {
             return false;
         }
         let pair = if contrast.left_hypothesis_id < contrast.right_hypothesis_id {
-            (contrast.left_hypothesis_id.as_str(), contrast.right_hypothesis_id.as_str())
+            (
+                contrast.left_hypothesis_id.as_str(),
+                contrast.right_hypothesis_id.as_str(),
+            )
         } else {
-            (contrast.right_hypothesis_id.as_str(), contrast.left_hypothesis_id.as_str())
+            (
+                contrast.right_hypothesis_id.as_str(),
+                contrast.left_hypothesis_id.as_str(),
+            )
         };
         if !pairs.insert(pair) {
             return false;
@@ -517,13 +533,18 @@ fn candidate_rejection_reasons(
     }
     if (candidate.requires_external_authorization
         || candidate.modality == ExperimentModality::ControlledFlight
-        || policy.authorization_required_modalities.contains(&candidate.modality))
+        || policy
+            .authorization_required_modalities
+            .contains(&candidate.modality))
         && candidate.authorization != AuthorizationState::Authorized
     {
         reasons.insert(RejectionReason::AuthorizationNotGranted);
     }
     if candidate.safety_constraints_clear
-        && candidate.safety_gate_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .safety_gate_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -531,7 +552,10 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::SafetyConstraintNotClear);
     }
     if candidate.within_declared_envelope
-        && candidate.envelope_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .envelope_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -539,7 +563,10 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::OutsideDeclaredEnvelope);
     }
     if candidate.independent_reference_available
-        && candidate.independent_reference_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .independent_reference_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -547,12 +574,18 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::MissingIndependentReference);
     }
     if candidate.semantic_equivalence == SemanticEquivalence::Established
-        && candidate.semantic_equivalence_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .semantic_equivalence_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if candidate.authorization == AuthorizationState::Authorized
-        && candidate.authorization_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .authorization_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -601,11 +634,26 @@ fn candidate_rejection_reasons(
         || !is_sha256(&candidate.design_sha256)
         || !is_sha256(&candidate.scenario_manifest_sha256)
         || !is_sha256(&candidate.measurement_plan_sha256)
-        || candidate.authorization_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.safety_gate_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.envelope_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.independent_reference_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.semantic_equivalence_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate
+            .authorization_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .safety_gate_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .envelope_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .independent_reference_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .semantic_equivalence_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::InvalidEvidenceBinding);
     }
@@ -667,12 +715,13 @@ fn dominates(
         && left.resource_cost.cpu_seconds <= right.resource_cost.cpu_seconds
         && left.resource_cost.accelerator_seconds <= right.resource_cost.accelerator_seconds
         && left.resource_cost.energy_joules <= right.resource_cost.energy_joules
-        && left.resource_cost.adjudication_person_minutes <= right.resource_cost.adjudication_person_minutes;
+        && left.resource_cost.adjudication_person_minutes
+            <= right.resource_cost.adjudication_person_minutes;
 
-    let strictly_better = left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
+    let strictly_better = left.expected_uncertainty_reduction
+        > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
-        || independent_group_pair_count(left, 0.0)
-            > independent_group_pair_count(right, 0.0)
+        || independent_group_pair_count(left, 0.0) > independent_group_pair_count(right, 0.0)
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
@@ -682,15 +731,13 @@ fn dominates(
         || left.resource_cost.cpu_seconds < right.resource_cost.cpu_seconds
         || left.resource_cost.accelerator_seconds < right.resource_cost.accelerator_seconds
         || left.resource_cost.energy_joules < right.resource_cost.energy_joules
-        || left.resource_cost.adjudication_person_minutes < right.resource_cost.adjudication_person_minutes;
+        || left.resource_cost.adjudication_person_minutes
+            < right.resource_cost.adjudication_person_minutes;
 
     no_worse && strictly_better
 }
 
-fn to_pareto(
-    candidate: &ExperimentCandidate,
-    minimum_pair_separation: f64,
-) -> ParetoCandidate {
+fn to_pareto(candidate: &ExperimentCandidate, minimum_pair_separation: f64) -> ParetoCandidate {
     ParetoCandidate {
         candidate_id: candidate.candidate_id.clone(),
         expected_uncertainty_reduction: candidate.expected_uncertainty_reduction,
@@ -744,21 +791,17 @@ pub fn select_experiments(
         .iter()
         .copied()
         .filter(|candidate| {
-            !admissible
-                .iter()
-                .copied()
-                .any(|other| {
-                    other.candidate_id != candidate.candidate_id
-                        && dominates(other, candidate, policy.minimum_pair_separation)
-                })
+            !admissible.iter().copied().any(|other| {
+                other.candidate_id != candidate.candidate_id
+                    && dominates(other, candidate, policy.minimum_pair_separation)
+            })
         })
         .collect();
 
-    let mut pareto_front: Vec<ParetoCandidate> =
-        front
-            .into_iter()
-            .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation))
-            .collect();
+    let mut pareto_front: Vec<ParetoCandidate> = front
+        .into_iter()
+        .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation))
+        .collect();
     pareto_front.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     rejected.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
 
