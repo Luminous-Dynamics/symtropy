@@ -10,8 +10,7 @@ on:
       - ".github/workflows/aeroweift-experiment-design-oracle.yml"
   push:
     branches:
-      - "research/aeroweFt-validation-experiment-design-001"
-      - "research/aeroweFt-validation-experiment-design-stacked-003"
+      - "research/aeroweFt-validation-experiment-design-*"
     paths:
       - "tools/aeroweift-experiment-design/**"
       - "docs/research/aviation/AEROWEFT_VALIDATION_EXPERIMENT_DESIGN_001.md"
