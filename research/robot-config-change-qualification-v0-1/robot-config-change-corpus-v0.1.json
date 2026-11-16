@@ -1,0 +1,1039 @@
+{
+  "schema_version": "robot-config-change-corpus-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-CHANGE-QUAL-001",
+  "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5488",
+  "evidence_scope": "synthetic_development_only",
+  "corpus_visibility": "public_development_not_blind",
+  "claim_catalog": [
+    {
+      "claim_id": "reach.envelope",
+      "criticality": "quality_critical",
+      "depends_on": [
+        "base.structure",
+        "arm.kinematics",
+        "tool.geometry",
+        "tool.mount",
+        "payload.mass_com"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "geometry_metrology",
+        "calibration",
+        "ODD_applicability"
+      ]
+    },
+    {
+      "claim_id": "tool.swept_clearance",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "base.structure",
+        "arm.kinematics",
+        "tool.geometry",
+        "tool.mount",
+        "payload.geometry",
+        "frame.transform",
+        "trajectory.profile"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "geometry_metrology",
+        "trajectory_bound",
+        "ODD_applicability",
+        "independent_referee"
+      ]
+    },
+    {
+      "claim_id": "payload.handling",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "base.structure",
+        "arm.kinematics",
+        "drive.module",
+        "payload.mass_com_inertia",
+        "controller.motion"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "load_metrology",
+        "ODD_applicability",
+        "independent_referee"
+      ]
+    },
+    {
+      "claim_id": "process.output_quality",
+      "criticality": "quality_critical",
+      "depends_on": [
+        "tool.geometry",
+        "tool.mount",
+        "process.recipe",
+        "controller.process",
+        "robot.calibration",
+        "substrate.profile",
+        "reference.metrology"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "process_validation",
+        "measurement_uncertainty",
+        "acceptance_profile"
+      ]
+    },
+    {
+      "claim_id": "mobility.surface_envelope",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "base.structure",
+        "drive.module",
+        "payload.mass_com_inertia",
+        "controller.motion",
+        "localization.profile",
+        "site.surface"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "physical_test",
+        "ODD_coverage",
+        "independent_referee"
+      ]
+    },
+    {
+      "claim_id": "stopping.distance",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "drive.module",
+        "brake.chain",
+        "safety.controller",
+        "payload.mass_com_inertia",
+        "controller.motion",
+        "site.surface",
+        "reference.metrology"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "physical_test",
+        "measurement_uncertainty",
+        "independent_referee",
+        "ODD_coverage"
+      ]
+    },
+    {
+      "claim_id": "perception.obstacle_detection",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "sensor.camera",
+        "sensor.mount",
+        "sensor.calibration",
+        "sensor.driver",
+        "timebase.clock",
+        "perception.model"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "calibration",
+        "physical_test",
+        "ODD_coverage",
+        "independent_referee"
+      ]
+    },
+    {
+      "claim_id": "localization.visual",
+      "criticality": "quality_critical",
+      "depends_on": [
+        "sensor.camera",
+        "sensor.mount",
+        "sensor.calibration",
+        "drive.module",
+        "frame.transform",
+        "site.map_epoch",
+        "timebase.clock",
+        "localization.software"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "calibration",
+        "frame_admission",
+        "physical_test",
+        "ODD_applicability"
+      ]
+    },
+    {
+      "claim_id": "measurement.synchronization",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "timebase.clock",
+        "sensor.camera",
+        "sensor.lidar",
+        "sensor.imu",
+        "controller.timestamps"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "clock_metrology",
+        "synchronization_test",
+        "independent_referee"
+      ]
+    },
+    {
+      "claim_id": "energy.return_reserve",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "battery.module",
+        "battery.health",
+        "power.bus",
+        "payload.mass_com",
+        "drive.module",
+        "workload.profile",
+        "controller.energy"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "energy_measurement",
+        "ODD_coverage",
+        "physical_test"
+      ]
+    },
+    {
+      "claim_id": "safety.interlock_response",
+      "criticality": "safety_critical",
+      "depends_on": [
+        "safety.controller",
+        "brake.chain",
+        "estop.chain",
+        "safety.io",
+        "controller.firmware",
+        "reference.metrology",
+        "timebase.clock"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "physical_test",
+        "independent_referee",
+        "measurement_uncertainty",
+        "authority_scope"
+      ]
+    },
+    {
+      "claim_id": "endurance.accepted_output",
+      "criticality": "quality_critical",
+      "depends_on": [
+        "robot.serial",
+        "drive.module",
+        "actuator.serials",
+        "tool.geometry",
+        "battery.module",
+        "controller.firmware",
+        "duty_cycle",
+        "maintenance.profile"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "physical_campaign",
+        "accepted_output",
+        "censoring",
+        "replication"
+      ]
+    },
+    {
+      "claim_id": "operator.recovery.observability",
+      "criticality": "operational_critical",
+      "depends_on": [
+        "hmi.display",
+        "fault.event_schema",
+        "controller.diagnostics",
+        "timebase.clock"
+      ],
+      "evidence_axes": [
+        "configuration_identity",
+        "event_completeness",
+        "operator_adjudication"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "RCQ-001",
+      "mutation_family": "representation_preserving",
+      "description": "Canonical serialization changes, but an independently specified canonical semantic graph is identical; source bytes differ.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-001",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-001",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "manifest.serialization",
+          "component_type": "representation",
+          "source_ref": "fixture://manifest/bytes/A",
+          "target_ref": "fixture://manifest/bytes/B",
+          "declared_scope": "serialization_only",
+          "scope_witness": "fixture://witness/canonical-equivalence/001"
+        }
+      ],
+      "equivalence_witnesses": [
+        {
+          "witness_id": "WIT-001",
+          "witness_type": "canonical_semantic_equivalence",
+          "covers_claims": [
+            "reach.envelope",
+            "mobility.surface_envelope",
+            "tool.swept_clearance"
+          ],
+          "status": "admitted_synthetic_development_witness"
+        }
+      ],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-001/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-001/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        },
+        {
+          "claim_id": "tool.swept_clearance",
+          "prior_evidence_ref": "fixture://evidence/tool.swept_clearance/RCQ-001/source",
+          "target_claim_profile_ref": "fixture://claim-profile/tool.swept_clearance/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-002",
+      "mutation_family": "hmi_scope_unproven",
+      "description": "A diagnostic display is replaced. The change is asserted to be cosmetic, but no accepted scope/equivalence witness proves that operator recovery signals and event visibility are unchanged.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-002",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-002",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "hmi.display",
+          "component_type": "human_interface",
+          "source_ref": "fixture://hmi/display/A",
+          "target_ref": "fixture://hmi/display/B",
+          "declared_scope": "asserted_cosmetic_no_scope_proof",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "operator.recovery.observability",
+          "prior_evidence_ref": "fixture://evidence/operator.recovery.observability/RCQ-002/source",
+          "target_claim_profile_ref": "fixture://claim-profile/operator.recovery.observability/v1"
+        },
+        {
+          "claim_id": "payload.handling",
+          "prior_evidence_ref": "fixture://evidence/payload.handling/RCQ-002/source",
+          "target_claim_profile_ref": "fixture://claim-profile/payload.handling/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-003",
+      "mutation_family": "tool_equivalent_replacement",
+      "description": "A tool is replaced by a different serial with a qualified interface and geometry-equivalence witness covering the relevant tool profile.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-003",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-003",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "tool.geometry",
+          "component_type": "end_effector",
+          "source_ref": "fixture://tool/serial/A",
+          "target_ref": "fixture://tool/serial/B",
+          "declared_scope": "equivalent_geometry",
+          "scope_witness": "fixture://witness/tool-geometry/003"
+        },
+        {
+          "component_id": "tool.mount",
+          "component_type": "tool_mount",
+          "source_ref": "fixture://mount/A",
+          "target_ref": "fixture://mount/B",
+          "declared_scope": "qualified_interface_unchanged",
+          "scope_witness": "fixture://witness/tool-interface/003"
+        }
+      ],
+      "equivalence_witnesses": [
+        {
+          "witness_id": "WIT-003",
+          "witness_type": "qualified_tool_geometry_and_interface_equivalence",
+          "covers_claims": [
+            "reach.envelope",
+            "tool.swept_clearance"
+          ],
+          "status": "admitted_synthetic_development_witness"
+        }
+      ],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-003/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        },
+        {
+          "claim_id": "tool.swept_clearance",
+          "prior_evidence_ref": "fixture://evidence/tool.swept_clearance/RCQ-003/source",
+          "target_claim_profile_ref": "fixture://claim-profile/tool.swept_clearance/v1"
+        },
+        {
+          "claim_id": "process.output_quality",
+          "prior_evidence_ref": "fixture://evidence/process.output_quality/RCQ-003/source",
+          "target_claim_profile_ref": "fixture://claim-profile/process.output_quality/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-003/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-004",
+      "mutation_family": "tool_geometry_changed",
+      "description": "A replacement tool changes length and swept geometry; the base and drive remain unchanged.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-004",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-004",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "tool.geometry",
+          "component_type": "end_effector",
+          "source_ref": "fixture://tool/geometry/A",
+          "target_ref": "fixture://tool/geometry/B",
+          "declared_scope": "geometry_changed",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-004/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        },
+        {
+          "claim_id": "tool.swept_clearance",
+          "prior_evidence_ref": "fixture://evidence/tool.swept_clearance/RCQ-004/source",
+          "target_claim_profile_ref": "fixture://claim-profile/tool.swept_clearance/v1"
+        },
+        {
+          "claim_id": "process.output_quality",
+          "prior_evidence_ref": "fixture://evidence/process.output_quality/RCQ-004/source",
+          "target_claim_profile_ref": "fixture://claim-profile/process.output_quality/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-004/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-005",
+      "mutation_family": "payload_within_qualified_envelope",
+      "description": "Payload mass changes and centre of mass moves, but both remain inside a synthetic qualified mass/CoM/inertia envelope with a claim-specific witness.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-005",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-005",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "payload.mass_com_inertia",
+          "component_type": "payload",
+          "source_ref": "fixture://payload/state/A",
+          "target_ref": "fixture://payload/state/B",
+          "declared_scope": "changed_within_declared_envelope",
+          "scope_witness": "fixture://witness/payload-envelope/005"
+        }
+      ],
+      "equivalence_witnesses": [
+        {
+          "witness_id": "WIT-005",
+          "witness_type": "qualified_mass_com_inertia_envelope",
+          "covers_claims": [
+            "payload.handling",
+            "mobility.surface_envelope",
+            "stopping.distance"
+          ],
+          "status": "admitted_synthetic_development_witness"
+        }
+      ],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "payload.handling",
+          "prior_evidence_ref": "fixture://evidence/payload.handling/RCQ-005/source",
+          "target_claim_profile_ref": "fixture://claim-profile/payload.handling/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-005/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        },
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-005/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-006",
+      "mutation_family": "payload_outside_qualified_envelope",
+      "description": "Payload mass and centre of mass move outside the prior qualified envelope; old load/stability/stopping evidence cannot support the target configuration.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-006",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-006",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "payload.mass_com_inertia",
+          "component_type": "payload",
+          "source_ref": "fixture://payload/state/A",
+          "target_ref": "fixture://payload/state/OUTSIDE",
+          "declared_scope": "outside_qualified_envelope",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "payload.handling",
+          "prior_evidence_ref": "fixture://evidence/payload.handling/RCQ-006/source",
+          "target_claim_profile_ref": "fixture://claim-profile/payload.handling/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-006/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        },
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-006/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-007",
+      "mutation_family": "camera_serial_replacement",
+      "description": "A camera with the same model is replaced by a new serial. No current serial-specific calibration or measured equivalence is supplied.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-007",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-007",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "sensor.camera",
+          "component_type": "camera",
+          "source_ref": "fixture://camera/serial/A",
+          "target_ref": "fixture://camera/serial/B",
+          "declared_scope": "same_model_new_serial",
+          "scope_witness": null
+        },
+        {
+          "component_id": "sensor.calibration",
+          "component_type": "calibration",
+          "source_ref": "fixture://camera/cal/A",
+          "target_ref": "fixture://camera/cal/MISSING",
+          "declared_scope": "not_reprovided",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "perception.obstacle_detection",
+          "prior_evidence_ref": "fixture://evidence/perception.obstacle_detection/RCQ-007/source",
+          "target_claim_profile_ref": "fixture://claim-profile/perception.obstacle_detection/v1"
+        },
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-007/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-007/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-008",
+      "mutation_family": "camera_mount_extrinsic_change",
+      "description": "The camera mount moves and the extrinsic transform changes. A calibration file exists but no independent target-frame verification is supplied.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-008",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-008",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "sensor.mount",
+          "component_type": "sensor_mount",
+          "source_ref": "fixture://camera/mount/A",
+          "target_ref": "fixture://camera/mount/B",
+          "declared_scope": "extrinsic_changed",
+          "scope_witness": null
+        },
+        {
+          "component_id": "sensor.calibration",
+          "component_type": "calibration",
+          "source_ref": "fixture://camera/extrinsic/A",
+          "target_ref": "fixture://camera/extrinsic/B",
+          "declared_scope": "declared_only",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-008/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "process.output_quality",
+          "prior_evidence_ref": "fixture://evidence/process.output_quality/RCQ-008/source",
+          "target_claim_profile_ref": "fixture://claim-profile/process.output_quality/v1"
+        },
+        {
+          "claim_id": "measurement.synchronization",
+          "prior_evidence_ref": "fixture://evidence/measurement.synchronization/RCQ-008/source",
+          "target_claim_profile_ref": "fixture://claim-profile/measurement.synchronization/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-009",
+      "mutation_family": "battery_replacement_same_mechanical_envelope",
+      "description": "A battery module is replaced with matching declared mass, envelope and interface, but new serial health/usable capacity evidence is absent.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-009",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-009",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "battery.module",
+          "component_type": "battery",
+          "source_ref": "fixture://battery/serial/A",
+          "target_ref": "fixture://battery/serial/B",
+          "declared_scope": "interface_mass_envelope_match",
+          "scope_witness": "fixture://witness/battery-interface/009"
+        },
+        {
+          "component_id": "battery.health",
+          "component_type": "battery_health",
+          "source_ref": "fixture://battery/health/A",
+          "target_ref": "fixture://battery/health/MISSING",
+          "declared_scope": "not_measured",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [
+        {
+          "witness_id": "WIT-009",
+          "witness_type": "qualified_mechanical_interface_equivalence",
+          "covers_claims": [
+            "reach.envelope",
+            "stopping.distance"
+          ],
+          "status": "admitted_synthetic_development_witness"
+        }
+      ],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "energy.return_reserve",
+          "prior_evidence_ref": "fixture://evidence/energy.return_reserve/RCQ-009/source",
+          "target_claim_profile_ref": "fixture://claim-profile/energy.return_reserve/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-009/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        },
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-009/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-010",
+      "mutation_family": "drive_module_replacement",
+      "description": "Drive/tire module changes. No matched traction, odometry, localization or braking characterization exists for the new module.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-010",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-010",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "drive.module",
+          "component_type": "drive_train",
+          "source_ref": "fixture://drive/module/A",
+          "target_ref": "fixture://drive/module/B",
+          "declared_scope": "drive_geometry_or_material_changed",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-010/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        },
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-010/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-010/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-010/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-011",
+      "mutation_family": "safety_chain_revision",
+      "description": "Safety-controller and braking-chain revisions change. The platform/model name is unchanged.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-011",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-011",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "safety.controller",
+          "component_type": "safety_controller",
+          "source_ref": "fixture://safety/controller/A",
+          "target_ref": "fixture://safety/controller/B",
+          "declared_scope": "revision_changed",
+          "scope_witness": null
+        },
+        {
+          "component_id": "brake.chain",
+          "component_type": "braking_chain",
+          "source_ref": "fixture://brake/chain/A",
+          "target_ref": "fixture://brake/chain/B",
+          "declared_scope": "revision_changed",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "safety.interlock_response",
+          "prior_evidence_ref": "fixture://evidence/safety.interlock_response/RCQ-011/source",
+          "target_claim_profile_ref": "fixture://claim-profile/safety.interlock_response/v1"
+        },
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-011/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        },
+        {
+          "claim_id": "payload.handling",
+          "prior_evidence_ref": "fixture://evidence/payload.handling/RCQ-011/source",
+          "target_claim_profile_ref": "fixture://claim-profile/payload.handling/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-012",
+      "mutation_family": "firmware_change_scope_unproven",
+      "description": "A firmware/driver revision is declared non-functional, but the change inventory omits dependency and equivalence evidence.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-012",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-012",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "controller.firmware",
+          "component_type": "firmware",
+          "source_ref": "fixture://firmware/A",
+          "target_ref": "fixture://firmware/B",
+          "declared_scope": "declared_nonfunctional_without_scope_witness",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-012/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "operator.recovery.observability",
+          "prior_evidence_ref": "fixture://evidence/operator.recovery.observability/RCQ-012/source",
+          "target_claim_profile_ref": "fixture://claim-profile/operator.recovery.observability/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-012/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-013",
+      "mutation_family": "controller_timing_changed",
+      "description": "A controller update changes command scheduling and motion timing; the new timing behaviour has not been qualified.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-013",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-013",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "controller.motion",
+          "component_type": "motion_controller",
+          "source_ref": "fixture://controller/motion/A",
+          "target_ref": "fixture://controller/motion/B",
+          "declared_scope": "timing_semantics_changed",
+          "scope_witness": null
+        },
+        {
+          "component_id": "controller.timestamps",
+          "component_type": "timestamp_pipeline",
+          "source_ref": "fixture://timestamp/pipeline/A",
+          "target_ref": "fixture://timestamp/pipeline/B",
+          "declared_scope": "changed",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "stopping.distance",
+          "prior_evidence_ref": "fixture://evidence/stopping.distance/RCQ-013/source",
+          "target_claim_profile_ref": "fixture://claim-profile/stopping.distance/v1"
+        },
+        {
+          "claim_id": "measurement.synchronization",
+          "prior_evidence_ref": "fixture://evidence/measurement.synchronization/RCQ-013/source",
+          "target_claim_profile_ref": "fixture://claim-profile/measurement.synchronization/v1"
+        },
+        {
+          "claim_id": "tool.swept_clearance",
+          "prior_evidence_ref": "fixture://evidence/tool.swept_clearance/RCQ-013/source",
+          "target_claim_profile_ref": "fixture://claim-profile/tool.swept_clearance/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-014",
+      "mutation_family": "timebase_replaced",
+      "description": "A shared clock source is replaced. No verified clock mapping, alignment uncertainty or synchronization test is supplied.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-014",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-014",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "timebase.clock",
+          "component_type": "clock_source",
+          "source_ref": "fixture://clock/A",
+          "target_ref": "fixture://clock/B",
+          "declared_scope": "new_timebase_no_mapping",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "measurement.synchronization",
+          "prior_evidence_ref": "fixture://evidence/measurement.synchronization/RCQ-014/source",
+          "target_claim_profile_ref": "fixture://claim-profile/measurement.synchronization/v1"
+        },
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-014/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-014/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-015",
+      "mutation_family": "site_frame_epoch_changed",
+      "description": "The robot's target site/map/frame epoch changes. Intrinsic mechanism geometry is unchanged, but previous site-specific localization and placement evidence is bound to the old epoch.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-015",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-015",
+      "dependency_snapshot_complete": true,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-02",
+        "frame_ref": "fixture-frame-02",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "site.map_epoch",
+          "component_type": "site_context",
+          "source_ref": "fixture://site/epoch/A",
+          "target_ref": "fixture://site/epoch/B",
+          "declared_scope": "new_site_epoch",
+          "scope_witness": null
+        },
+        {
+          "component_id": "frame.transform",
+          "component_type": "coordinate_frame",
+          "source_ref": "fixture://frame/A",
+          "target_ref": "fixture://frame/B",
+          "declared_scope": "new_frame_without_equivalence",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "localization.visual",
+          "prior_evidence_ref": "fixture://evidence/localization.visual/RCQ-015/source",
+          "target_claim_profile_ref": "fixture://claim-profile/localization.visual/v1"
+        },
+        {
+          "claim_id": "process.output_quality",
+          "prior_evidence_ref": "fixture://evidence/process.output_quality/RCQ-015/source",
+          "target_claim_profile_ref": "fixture://claim-profile/process.output_quality/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-015/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        }
+      ]
+    },
+    {
+      "case_id": "RCQ-016",
+      "mutation_family": "unclassified_component_missing_dependencies",
+      "description": "An unclassified module changes and the dependency snapshot is incomplete. A physical effect on several robot claims cannot be ruled out.",
+      "source_configuration_ref": "fixture://robot/base/A/RCQ-016",
+      "target_configuration_ref": "fixture://robot/base/B/RCQ-016",
+      "dependency_snapshot_complete": false,
+      "context": {
+        "operating_domain": "synthetic_construction_workcell",
+        "site_epoch": "fixture-site-epoch-01",
+        "frame_ref": "fixture-frame-01",
+        "timebase_ref": "fixture-clock-01"
+      },
+      "changed_components": [
+        {
+          "component_id": "module.unknown.17",
+          "component_type": "unclassified_module",
+          "source_ref": "fixture://module/unknown/A",
+          "target_ref": "fixture://module/unknown/B",
+          "declared_scope": "scope_unknown",
+          "scope_witness": null
+        }
+      ],
+      "equivalence_witnesses": [],
+      "claims_to_evaluate": [
+        {
+          "claim_id": "tool.swept_clearance",
+          "prior_evidence_ref": "fixture://evidence/tool.swept_clearance/RCQ-016/source",
+          "target_claim_profile_ref": "fixture://claim-profile/tool.swept_clearance/v1"
+        },
+        {
+          "claim_id": "mobility.surface_envelope",
+          "prior_evidence_ref": "fixture://evidence/mobility.surface_envelope/RCQ-016/source",
+          "target_claim_profile_ref": "fixture://claim-profile/mobility.surface_envelope/v1"
+        },
+        {
+          "claim_id": "reach.envelope",
+          "prior_evidence_ref": "fixture://evidence/reach.envelope/RCQ-016/source",
+          "target_claim_profile_ref": "fixture://claim-profile/reach.envelope/v1"
+        },
+        {
+          "claim_id": "operator.recovery.observability",
+          "prior_evidence_ref": "fixture://evidence/operator.recovery.observability/RCQ-016/source",
+          "target_claim_profile_ref": "fixture://claim-profile/operator.recovery.observability/v1"
+        }
+      ]
+    }
+  ]
+}
