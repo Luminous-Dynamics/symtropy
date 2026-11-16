@@ -166,7 +166,9 @@ impl CheckpointObservation {
             ));
         }
         if self.outcome != CheckpointOutcome::Unreported && self.observation.is_none() {
-            return Err(SymbiosisCheckpointError::MissingObservationReceipt(self.id));
+            return Err(SymbiosisCheckpointError::MissingObservationReceiptForEvent(
+                self.id,
+            ));
         }
         if !self.time.reference_seconds.is_finite()
             || !self.time.error_bound_s.is_finite()
