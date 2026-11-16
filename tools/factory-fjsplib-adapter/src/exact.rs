@@ -359,10 +359,34 @@ fn enumerate_assignments(
     true
 }
 
+fn duration_envelope_fits(instance: &FlexibleInstance) -> bool {
+    instance
+        .operations
+        .iter()
+        .try_fold(0u64, |sum, operation| {
+            let maximum_duration = operation
+                .alternatives
+                .iter()
+                .map(|alternative| alternative.processing_ticks)
+                .max()?;
+            sum.checked_add(maximum_duration)
+        })
+        .is_some()
+}
+
 /// Solve a tiny FJSP/FAJSP makespan instance by exhaustive machine-assignment
 /// and machine-order enumeration. A search exceeding its declared envelope is
 /// INCONCLUSIVE, never silently truncated and never reported as optimal.
 pub fn solve_exact(instance: &FlexibleInstance) -> ExactResult {
+    if !duration_envelope_fits(instance) {
+        return ExactResult {
+            status: ExactStatus::Inconclusive,
+            optimality_proven: false,
+            inconclusive_reason: Some(InconclusiveReason::ArithmeticOverflow),
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    }
     if instance.operations.len() > MAX_EXACT_OPERATIONS {
         return ExactResult {
             status: ExactStatus::Inconclusive,
@@ -486,7 +510,10 @@ pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule)
     }
 
     for edge in &instance.precedences {
-        let (Some(before), Some(after)) = (by_id[edge.before], by_id[edge.after]) else {
+        let (Some(before), Some(after)) = (
+            by_id.get(edge.before).and_then(|value| *value),
+            by_id.get(edge.after).and_then(|value| *value),
+        ) else {
             return false;
         };
         if before.end_ticks > after.start_ticks {
@@ -585,6 +612,30 @@ mod tests {
             Some(InconclusiveReason::TooManyOperations)
         );
         assert!(result.schedule.is_none());
+    }
+
+    #[test]
+    fn duration_envelope_overflow_is_inconclusive_not_no_feasible() {
+        let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        instance.operations[0].alternatives[0].processing_ticks = u64::MAX;
+        instance.operations[1].alternatives[0].processing_ticks = u64::MAX;
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Inconclusive);
+        assert!(!result.optimality_proven);
+        assert_eq!(
+            result.inconclusive_reason,
+            Some(InconclusiveReason::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn invalid_precedence_certificate_is_rejected_without_panicking() {
+        let valid_instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        let result = solve_exact(&valid_instance);
+        let schedule = result.schedule.unwrap();
+        let mut invalid_instance = valid_instance;
+        invalid_instance.precedences[0].after = usize::MAX;
+        assert!(!verify_schedule(&invalid_instance, &schedule));
     }
 
     #[test]
