@@ -93,3 +93,7 @@ An unresolved interval can never be re-labelled clear. An established contact ta
 The proof is limited to rigid fixed-orientation capsules undergoing affine translation over a common time domain: the union of endpoint AABBs encloses each capsule throughout a window. If the per-window boxes are disjoint, no instantaneous contact is possible in that window.
 
 The adaptive query is benchmarked against the full-interval analytic query and the uniform time-sliced AABB baseline. Its purpose is selective pruning before expensive downstream narrow phases, not an assumed speed advantage over this already-small analytic kernel. Benchmark node visits, pruned intervals, candidate time fraction, exact narrow-phase calls and end-to-end latency together. See [#5541](https://github.com/Luminous-Dynamics/symtropy/issues/5541).
+
+### Adaptive query input errors
+
+The adaptive API returns typed errors for invalid normalized time windows, maximum depth above 20, and minimum window widths outside (0, 1]. These are input/contract failures, not collision outcomes. The shared `TranslationCcdError` owner exposes them alongside numerical conditioning and overflow errors so callers can distinguish invalid requests from `Unresolved` geometry.
