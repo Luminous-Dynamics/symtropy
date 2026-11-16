@@ -443,3 +443,66 @@ The initial change matrix is: unchanged repeat baseline; camera serial replaceme
 The experiment ends at first independently accepted B output, not at first command acknowledgement or machine cycle. It separates module swap, configuration reconciliation, calibration, commissioning, requalification, first-article inspection, elapsed time, total crew-hours, accepted functional units, geometric uncertainty, interventions, energy and recovery.
 
 No hardware has been selected and no physical trial is authorized. Entry gates require the actual base/module bill of materials, site/ODD and risk approvals, verified safe-stop/isolation, independent metrology, #3522 trial receipt, #3531 admissibility, #3505 safety, #5411 transition receipt and #3605 acceptance semantics. Missing owner contracts remain unresolved.
+
+
+## 23. Sensor condition as a changing physical state — contamination-aware recovery
+
+The new executable development workstream is [#5678 — ROBOT-SENSOR-CONDITION-STATE-001](https://github.com/Luminous-Dynamics/symtropy/issues/5678). It adds 16 public synthetic cases plus a separate public oracle and closed schemas. The first Rust implementation is intentionally an adapter/benchmark rule set, not a cleaning controller, calibration engine or sensor acceptance authority.
+
+### Why binary clean/dirty and calendar-only maintenance are inadequate
+
+A camera window or LiDAR aperture may accumulate dust, water droplets, condensation, oil, mud, cement slurry or abrasion. These may degrade different signal paths differently: an aggregate point count can hide a blocked LiDAR sector; a self-diagnostic may report healthy while an external reference target fails; multiple modalities can degrade together from one exposure event. A cleaning work order is only an intervention record. It does not establish restored optical performance, current calibration, correct sensor identity or valid downstream claims.
+
+Relevant research:
+- Maymoun et al. (September 2026) investigate a piezoelectric-film self-cleaning approach for outdoor optical sensor surfaces. This is a cleaning-mechanism study, not proof of universal field durability or sensor recovery. https://doi.org/10.1177/09544062261486847
+- Jeon et al. (February 2026) study a surface-acoustic-wave cover lens for removing droplet contamination from optical sensors. https://doi.org/10.3390/sym18020347
+- A 2026 systematic review on sensor degradation recommends physical contamination parameters, controlled environmental testing plus field validation, and joint/common-cause failure scenarios rather than assuming independent sensor dropout. https://www.mdpi.com/1424-8220/26/16/5316
+- Condition-based calibration literature argues that periodic calibration can cause both unnecessary calibration and periods of undetected out-of-calibration operation; condition indicators must remain tied to metrological traceability. https://pmc.ncbi.nlm.nih.gov/articles/PMC10007291/
+
+### The sensor-condition record
+
+Preserve the sensor's serial/mount/configuration, modality, calibration status/reference, contaminant family, exposure state, severity band, aperture impact, common-cause event, self-diagnostic, modality-specific quality state, cross-modal consistency, cleaning/maintenance reference, post-clean reference state, verifier class, and raw reference artifact.
+
+The synthetic v0.1 corpus uses symbolic severity/quality bands. It deliberately does **not** invent universal percentages of aperture coverage, MTF thresholds, point-return thresholds or a universal health score. Those values must come from the competent sensor and task profile, instrument validation and measurement uncertainty. Camera diagnostics and LiDAR diagnostics are modality-specific rather than interchangeable.
+
+### Restoration state machine
+
+1. Exposure changes the sensor-condition state; it may invalidate specific perception/localization/inspection claims.
+2. A self-diagnostic or cross-modal residual raises a condition observation; it does not self-certify continued use.
+3. A maintenance/cleaning event is recorded by the lifecycle owner (#3628).
+4. A new reference observation is acquired using the relevant approved procedure and source class.
+5. Calibration/identity/frame applicability is checked by the metrology/claim owners (#1607/#5488).
+6. Only the exact claims covered by current evidence may be considered restored. Unknown remains unknown; a new sensor serial or changed mount does not inherit calibration by product-family similarity.
+
+No maintenance request or actuation is issued by the benchmark. Symthaea #12046 remains the evidence-request planner, and competent human/organizational approval remains required.
+
+### Synthetic dispositions and controls
+
+The current 16 cases cover a clean reference baseline; degraded-but-in-envelope dust; severe droplet obstruction; unknown oil-film condition; a LiDAR sector blockage hidden by a healthy aggregate diagnostic; common-cause camera/LiDAR exposure; self-diagnostic/reference contradiction; cleaning without post-clean check; post-clean check with expired calibration; same-model replacement with new serial/mount; incomplete reference artifact; verified post-clean recovery; a clean sensor with a failed reference check; insufficient verifier class; a low-risk self-diagnostic-only profile; and a shared exposure requiring review.
+
+The key negative controls are:
+- zero restoration solely because a cleaning record exists;
+- zero acceptance when calibration is expired/missing or sensor serial/mount binding is stale;
+- zero treatment of sensors exposed to the same contamination event as independent corroboration;
+- zero healthy classifications that override a failed competent reference check.
+
+### Prospective physical benchmark targets
+
+These are targets for a future independently controlled physical campaign, not current results:
+- 0 silent healthy classifications when a competent reference check fails;
+- 0 restoration dispositions based solely on cleaning completion;
+- 100% stale sensor-serial/mount/calibration/frame references remain inadmissible;
+- report missed-degradation and false-alarm rates separately by contaminant, modality and severity;
+- quantify unnecessary cleaning/recalibration avoided versus calendar-only baselines without increasing false clears;
+- reproduce controlled contamination response curves and then validate their external validity on field-exposed sensor articles.
+
+### Ownership
+
+- #1607 owns frames, calibration and measurement uncertainty.
+- #3628 owns maintenance, cleaning and restoration chronology.
+- #5488/#10543/#4918 own claim applicability and dependency/common-cause lineage.
+- #3522/#3531/#3505 own physical trials and evidence admissibility.
+- #12046 owns decision-sufficient evidence-request planning.
+- #5678 owns only sensor-condition benchmark fixtures and read-only decision comparisons.
+
+This is not a new sensor-health controller, universal calibration service, preventive-maintenance scheduler, safety authority or robot return-to-work authorization.
