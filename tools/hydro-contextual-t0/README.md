@@ -58,7 +58,7 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 44-case synthetic corpus adds:
+The 46-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
@@ -69,7 +69,7 @@ CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins ar
 
 ### Reference-relative probabilistic skill (cases 033–038)
 
-The 44-case synthetic corpus adds CRPSS and Brier Skill Score against a named reference forecast. A skill score is admitted only when forecast and reference share the same evaluation population, exact ordered observation case IDs and lead time; BSS also requires the same event definition. Scores are not clipped, so negative skill remains visible. A zero/near-zero reference score returns Undefined. The comparison does not prove the reference is scientifically appropriate; the reference forecast identity and generation protocol still need independent admission for real work.
+The 46-case synthetic corpus adds CRPSS and Brier Skill Score against a named reference forecast. A skill score is admitted only when forecast and reference share the same evaluation population, exact ordered observation case IDs and lead time; BSS also requires the same event definition. Scores are not clipped, so negative skill remains visible. A zero/near-zero reference score returns Undefined. The comparison does not prove the reference is scientifically appropriate; the reference forecast identity and generation protocol still need independent admission for real work.
 
 
 The CRPSS/BSS extension requires both `forecast_id` and `reference_forecast_id`. Cases 039–040 reject a reference with mismatched verification case IDs or a different event threshold definition. This makes persistence and train-only seasonal climatology separate, explicit reference populations rather than an unnamed baseline.
@@ -79,4 +79,7 @@ The CRPSS/BSS extension requires both `forecast_id` and `reference_forecast_id`.
 
 CRPSS and Brier Skill Score now compare a candidate to an explicitly named reference on identical verification cases and lead time. The comparator contract also pins evaluation population, variable, units, temporal aggregation and valid-time semantics; threshold-event comparisons pin the event definition. A mismatch is NOT_COMPARABLE, not a rescaled or partial score. A zero-loss reference is UNDEFINED. Negative skill remains negative (worse than reference) and is never clipped to zero.
 
-Cases 041–042 seed unit and aggregation mismatch; cases 043–044 prove negative CRPSS/BSS survive unchanged. The 44-case corpus contains synthetic fixtures only and does not include a live forecast or South African station observation.
+Cases 041–042 seed unit and aggregation mismatch; cases 043–044 prove negative CRPSS/BSS survive unchanged. The 46-case corpus contains synthetic fixtures only and does not include a live forecast or South African station observation.
+
+
+Additional cases 045–046 reject comparisons when the forecast/reference variable differs (discharge vs water level) or when the valid-time calendar/day boundary differs. The complete skill comparability key is therefore population, case identity, lead, variable, unit, aggregation, valid-time semantics and (for BSS) event definition.
