@@ -439,8 +439,8 @@ fn initial_stratum_candidate(candidates: &[Candidate], stratum: usize) -> Option
         .enumerate()
         .filter(|(_, candidate)| candidate.stratum == stratum)
         .max_by(|(_, left), (_, right)| {
-            let left_score = (left.force_n / 10.0 - 0.5).abs() + left.position.abs() * 0.25;
-            let right_score = (right.force_n / 10.0 - 0.5).abs() + right.position.abs() * 0.25;
+            let left_score = (left.force_setpoint_n / 10.0 - 0.5).abs() + left.position.abs() * 0.25;
+            let right_score = (right.force_setpoint_n / 10.0 - 0.5).abs() + right.position.abs() * 0.25;
             left_score
                 .total_cmp(&right_score)
                 .then_with(|| right.id.cmp(&left.id))
@@ -449,7 +449,7 @@ fn initial_stratum_candidate(candidates: &[Candidate], stratum: usize) -> Option
 }
 
 fn normalized_stimulus_distance(left: &Candidate, right: &Candidate) -> f64 {
-    let force = (left.force_n - right.force_n) / 10.0;
+    let force = (left.force_setpoint_n - right.force_setpoint_n) / 10.0;
     let position = (left.position - right.position) / 2.0;
     let temperature = (left.temperature - right.temperature) / 2.0;
     let phase = (left.phase - right.phase) / 2.0;
