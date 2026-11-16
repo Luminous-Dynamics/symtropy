@@ -14,7 +14,8 @@
 | `RESEARCH_PROGRAMME_v0.2.md` | Seven paradigm shifts, system architecture, work packages and demonstrator |
 | `SOTA_GAP_ANALYSIS_2026-11-16.md` | Current public industry/research baselines and differentiation boundaries |
 | `BENCHMARK_PROTOCOL_v0.2.md` | Evidence tiers, baselines, proposed gates, experimental design and failure dispositions |
-| `BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md` | Reproduction-first biological/abiotic/hybrid protocol with process accounting and statistical controls |
+| `BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md` | Reproduction-first biological/abiotic/hybrid protocol with process accounting, sample sizes and statistical significance controls |
+| `PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md` | Ideal-gas analytical reference assumptions, equations, exclusions, S0/S1 tests and physical qualification boundary |
 | `RESOURCE_GRAPH_SCHEMA_v0.2.json` | JSON Schema for evidence-aware resource-process records |
 | `fixtures/water-electrolysis-reference.json` | Synthetic stoichiometric/schema fixture; energy values are illustrative |
 | `kernel/Cargo.toml` | Standalone, dependency-free Rust package with its own workspace |
