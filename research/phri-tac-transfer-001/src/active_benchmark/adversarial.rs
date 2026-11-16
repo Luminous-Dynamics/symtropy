@@ -566,6 +566,7 @@ mod tests {
             &domain.reference_force_observations_n,
             &domain.independent_check_reference_force_observations_n,
             SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
         )
         .expect("pairwise reference check");
         assert!(integrity.max_abs_disagreement_n <= integrity.tolerance_n);
