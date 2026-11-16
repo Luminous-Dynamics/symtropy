@@ -1,8 +1,8 @@
 use aeroweift_assurance_case::{
-    AssuranceCasePolicy, AssuranceCaseScope, AssuranceEdge, AssuranceNode, AssumptionData,
-    AssumptionState, AssuranceStatus, AuthorityDecisionData, AuthorityDecisionStatus,
+    AssumptionData, AssumptionState, AssuranceCasePolicy, AssuranceCaseScope, AssuranceEdge,
+    AssuranceNode, AssuranceStatus, AuthorityDecisionData, AuthorityDecisionStatus,
     AuthorityRequirement, BlockerReason, ClaimData, ClaimState, DefeaterData, DefeaterState,
-    EdgeKind, EvidenceDisposition, EvidenceReference, EvidenceSourceKind, EvaluationError,
+    EdgeKind, EvaluationError, EvidenceDisposition, EvidenceReference, EvidenceSourceKind,
     NodeKind, evaluate_assurance_case,
 };
 
@@ -121,7 +121,12 @@ fn positive_case() -> (Vec<AssuranceNode>, Vec<AssuranceEdge>) {
     root.payload_sha256 = digest('5');
 
     let strategy = node("strategy", NodeKind::Strategy);
-    let claim = claim_node("claim-model-envelope", NodeKind::Claim, ClaimState::Supported, 1);
+    let claim = claim_node(
+        "claim-model-envelope",
+        NodeKind::Claim,
+        ClaimState::Supported,
+        1,
+    );
     let context = node("context-operation", NodeKind::Context);
 
     let mut assumption = node("assumption-weather-profile", NodeKind::Assumption);
@@ -202,7 +207,11 @@ fn positive_case() -> (Vec<AssuranceNode>, Vec<AssuranceEdge>) {
             "hazard-collision",
             EdgeKind::Mitigates,
         ),
-        edge("context-operation", "hazard-collision", EdgeKind::Contextualizes),
+        edge(
+            "context-operation",
+            "hazard-collision",
+            EdgeKind::Contextualizes,
+        ),
         edge(
             "hazard-collision",
             "authority-decision",
@@ -246,7 +255,10 @@ fn missing_root_strategy_blocks_review_readiness() {
     edges.retain(|item| !(item.from_node_id == "root" && item.kind == EdgeKind::Decomposes));
     let result = evaluate(&nodes, &edges).unwrap();
     assert_eq!(result.status, AssuranceStatus::IncompleteArgument);
-    assert!(blocker(&result, BlockerReason::MissingDecompositionStrategy));
+    assert!(blocker(
+        &result,
+        BlockerReason::MissingDecompositionStrategy
+    ));
 }
 
 #[test]
@@ -304,7 +316,8 @@ fn mitigation_without_effectiveness_evidence_is_blocked() {
 #[test]
 fn unsupported_mitigation_claim_is_blocked() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "mitigation-conflict-screen")
         .unwrap()
         .mitigation_state = Some(ClaimState::Unsupported);
@@ -315,7 +328,8 @@ fn unsupported_mitigation_claim_is_blocked() {
 #[test]
 fn open_defeater_blocks_even_when_other_claims_are_positive() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "defeater-sensor-bias")
         .unwrap()
         .defeater
@@ -338,7 +352,8 @@ fn resolved_defeater_without_qualified_discharge_is_blocked() {
 #[test]
 fn unknown_assumption_blocks_review_readiness() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "assumption-weather-profile")
         .unwrap()
         .assumption
@@ -352,7 +367,8 @@ fn unknown_assumption_blocks_review_readiness() {
 #[test]
 fn historical_evidence_cannot_be_used_as_current_support() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "evidence-model-validation")
         .unwrap()
         .evidence
@@ -370,7 +386,8 @@ fn historical_evidence_cannot_be_used_as_current_support() {
 #[test]
 fn requalification_required_evidence_cannot_remain_positive() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "evidence-model-validation")
         .unwrap()
         .evidence
@@ -439,7 +456,8 @@ fn unknown_evidence_source_is_fail_closed() {
 #[test]
 fn evidence_from_different_aircraft_scope_is_rejected() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "evidence-model-validation")
         .unwrap()
         .scope
@@ -453,7 +471,8 @@ fn evidence_from_different_aircraft_scope_is_rejected() {
 #[test]
 fn evidence_cutoff_must_match_the_exact_case_cutoffs() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "evidence-model-validation")
         .unwrap()
         .evidence
@@ -469,7 +488,8 @@ fn evidence_cutoff_must_match_the_exact_case_cutoffs() {
 #[test]
 fn duplicate_correlation_group_does_not_count_as_independent_evidence() {
     let (mut nodes, mut edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "claim-model-envelope")
         .unwrap()
         .claim
@@ -507,7 +527,8 @@ fn duplicate_correlation_group_does_not_count_as_independent_evidence() {
 #[test]
 fn evidence_with_unknown_correlation_does_not_add_independence_credit() {
     let (mut nodes, mut edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "claim-model-envelope")
         .unwrap()
         .claim
@@ -547,7 +568,8 @@ fn missing_external_authority_decision_is_not_inferred() {
 #[test]
 fn pending_authority_decision_blocks_review_ready() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.kind == NodeKind::AuthorityDecision)
         .unwrap()
         .authority_decision
@@ -565,7 +587,8 @@ fn pending_authority_decision_blocks_review_ready() {
 #[test]
 fn rejected_authority_decision_is_not_accepted_as_risk_approval() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.kind == NodeKind::AuthorityDecision)
         .unwrap()
         .authority_decision
@@ -586,7 +609,8 @@ fn rejected_authority_decision_is_not_accepted_as_risk_approval() {
 #[test]
 fn authority_decision_recorded_after_knowledge_cutoff_is_not_used() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.kind == NodeKind::AuthorityDecision)
         .unwrap()
         .authority_decision
@@ -607,7 +631,8 @@ fn authority_decision_recorded_after_knowledge_cutoff_is_not_used() {
 #[test]
 fn accepted_assumption_must_reference_a_current_policy_pinned_authority_decision() {
     let (mut nodes, mut edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "assumption-weather-profile")
         .unwrap()
         .assumption
@@ -626,14 +651,16 @@ fn accepted_assumption_must_reference_a_current_policy_pinned_authority_decision
 #[test]
 fn accepted_assumption_cannot_rely_on_decision_not_yet_known() {
     let (mut nodes, mut edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "assumption-weather-profile")
         .unwrap()
         .assumption
         .as_mut()
         .unwrap()
         .state = AssumptionState::AcceptedByAuthority;
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.kind == NodeKind::AuthorityDecision)
         .unwrap()
         .authority_decision
@@ -646,10 +673,7 @@ fn accepted_assumption_cannot_rely_on_decision_not_yet_known() {
         EdgeKind::RequiresDecision,
     ));
     let result = evaluate(&nodes, &edges).unwrap();
-    assert!(blocker(
-        &result,
-        BlockerReason::AssumptionWithoutSupport
-    ));
+    assert!(blocker(&result, BlockerReason::AssumptionWithoutSupport));
     assert!(blocker(
         &result,
         BlockerReason::AuthorityDecisionOutstanding
@@ -670,10 +694,7 @@ fn duplicate_node_identity_is_rejected() {
 fn missing_edge_endpoint_is_rejected() {
     let (nodes, mut edges) = positive_case();
     edges.push(edge("missing-node", "root", EdgeKind::Contextualizes));
-    assert_eq!(
-        evaluate(&nodes, &edges),
-        Err(EvaluationError::MissingNode)
-    );
+    assert_eq!(evaluate(&nodes, &edges), Err(EvaluationError::MissingNode));
 }
 
 #[test]
@@ -684,20 +705,14 @@ fn decomposes_cycle_is_rejected() {
         "strategy",
         EdgeKind::Decomposes,
     ));
-    assert_eq!(
-        evaluate(&nodes, &edges),
-        Err(EvaluationError::GraphCycle)
-    );
+    assert_eq!(evaluate(&nodes, &edges), Err(EvaluationError::GraphCycle));
 }
 
 #[test]
 fn disconnected_argument_node_is_rejected() {
     let (mut nodes, edges) = positive_case();
     nodes.push(node("orphan-context", NodeKind::Context));
-    assert_eq!(
-        evaluate(&nodes, &edges),
-        Err(EvaluationError::OrphanNode)
-    );
+    assert_eq!(evaluate(&nodes, &edges), Err(EvaluationError::OrphanNode));
 }
 
 #[test]
@@ -708,13 +723,17 @@ fn input_node_and_edge_permutation_preserves_exact_result() {
     let mut permuted_edges = edges;
     permuted_nodes.reverse();
     permuted_edges.reverse();
-    assert_eq!(evaluate(&permuted_nodes, &permuted_edges).unwrap(), expected);
+    assert_eq!(
+        evaluate(&permuted_nodes, &permuted_edges).unwrap(),
+        expected
+    );
 }
 
 #[test]
 fn a_supported_claim_with_a_contradicted_state_is_still_blocked() {
     let (mut nodes, edges) = positive_case();
-    nodes.iter_mut()
+    nodes
+        .iter_mut()
         .find(|item| item.node_id == "claim-model-envelope")
         .unwrap()
         .claim
@@ -739,7 +758,6 @@ fn unknown_or_unbounded_case_scope_is_rejected_before_graph_evaluation() {
         Err(EvaluationError::InvalidScope)
     );
 }
-
 
 #[test]
 fn node_validity_must_cover_the_entire_operation_window() {
@@ -859,7 +877,10 @@ fn unknown_assumption_is_indeterminate_not_merely_incomplete() {
         .as_mut()
         .unwrap()
         .state = AssumptionState::Unknown;
-    assert_eq!(evaluate(&nodes, &edges).unwrap().status, AssuranceStatus::Indeterminate);
+    assert_eq!(
+        evaluate(&nodes, &edges).unwrap().status,
+        AssuranceStatus::Indeterminate
+    );
 }
 
 #[test]
@@ -870,7 +891,10 @@ fn indeterminate_mitigation_does_not_get_collapsed_to_unsupported() {
         .find(|item| item.node_id == "mitigation-conflict-screen")
         .unwrap()
         .mitigation_state = Some(ClaimState::Indeterminate);
-    assert_eq!(evaluate(&nodes, &edges).unwrap().status, AssuranceStatus::Indeterminate);
+    assert_eq!(
+        evaluate(&nodes, &edges).unwrap().status,
+        AssuranceStatus::Indeterminate
+    );
 }
 
 #[test]
