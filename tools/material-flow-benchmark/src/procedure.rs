@@ -8,7 +8,7 @@
 //! execute a robot, or attest task success. "Ready" means structurally ready
 //! for independent external review/execution, never self-authorized.
 
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
