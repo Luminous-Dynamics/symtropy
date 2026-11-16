@@ -54,8 +54,11 @@ struct Fit {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PolicyResult {
     pub policy_id: &'static str,
+    pub source_reference_contacts: usize,
     pub target_reference_contacts: usize,
-    pub elapsed_fixture_time_ms: u64,
+    pub source_reference_cost_ms: u64,
+    pub target_reference_cost_ms: u64,
+    pub total_estimated_fixture_cost_ms: u64,
     pub rmse_n: f64,
     pub p95_absolute_error_n: f64,
     pub worst_absolute_error_n: f64,
@@ -67,7 +70,8 @@ pub struct PolicyResult {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BenchmarkReport {
     pub seed: u64,
-    pub candidate_pool_size: usize,
+    pub source_candidate_pool_size: usize,
+    pub target_candidate_pool_size: usize,
     pub heldout_case_count: usize,
     pub target_contact_budget: usize,
     pub results: Vec<PolicyResult>,
@@ -430,8 +434,8 @@ fn select_maximin(candidates: &[Candidate]) -> Result<Vec<usize>, String> {
             let next = candidates
                 .iter()
                 .enumerate()
-                .filter(|(_, candidate)| {
-                    candidate.stratum == stratum && !group_selected.contains(&candidate.id)
+                .filter(|(index, candidate)| {
+                    candidate.stratum == stratum && !group_selected.contains(index)
                 })
                 .max_by(|(_, left), (_, right)| {
                     let left_distance = group_selected
@@ -537,13 +541,18 @@ fn source_prior(
 
 fn evaluate(
     policy_id: &'static str,
-    training_candidates: &[Candidate],
-    selected: &[usize],
+    target_candidates: &[Candidate],
+    target_selected: &[usize],
+    source_reference_contacts: usize,
+    source_reference_cost_ms: u64,
     fit: &Fit,
     heldout: &[Candidate],
 ) -> Result<PolicyResult, String> {
-    if selected.len() > training_candidates.len() {
-        return Err("policy selected more contacts than candidate pool".to_owned());
+    if target_selected.len() > target_candidates.len() {
+        return Err("policy selected more target contacts than candidate pool".to_owned());
+    }
+    if heldout.is_empty() {
+        return Err("held-out evaluation set must be nonempty".to_owned());
     }
 
     let mut errors = Vec::with_capacity(heldout.len());
@@ -575,15 +584,24 @@ fn evaluate(
     let p95 = ordered[percentile_index];
     let coverage = covered as f64 / count;
     let mean_width = interval_widths.iter().sum::<f64>() / count;
-    let elapsed = selected.iter().try_fold(0_u64, |total, index| {
-        total.checked_add(training_candidates[*index].cost_ms)
-            .ok_or_else(|| "fixture-time accumulation overflow".to_owned())
+    let target_reference_cost_ms = target_selected.iter().try_fold(0_u64, |total, index| {
+        let candidate = target_candidates
+            .get(*index)
+            .ok_or_else(|| "target selection index is out of bounds".to_owned())?;
+        total.checked_add(candidate.cost_ms)
+            .ok_or_else(|| "target synthetic cost accumulation overflow".to_owned())
     })?;
+    let total_estimated_fixture_cost_ms = source_reference_cost_ms
+        .checked_add(target_reference_cost_ms)
+        .ok_or_else(|| "total synthetic cost accumulation overflow".to_owned())?;
 
     Ok(PolicyResult {
         policy_id,
-        target_reference_contacts: selected.len(),
-        elapsed_fixture_time_ms: elapsed,
+        source_reference_contacts,
+        target_reference_contacts: target_selected.len(),
+        source_reference_cost_ms,
+        target_reference_cost_ms,
+        total_estimated_fixture_cost_ms,
         rmse_n: rmse,
         p95_absolute_error_n: p95,
         worst_absolute_error_n: worst,
@@ -593,18 +611,27 @@ fn evaluate(
     })
 }
 
+fn candidate_cost_sum(candidates: &[Candidate]) -> Result<u64, String> {
+    candidates.iter().try_fold(0_u64, |total, candidate| {
+        total.checked_add(candidate.cost_ms)
+            .ok_or_else(|| "source synthetic cost accumulation overflow".to_owned())
+    })
+}
+
 fn evaluate_source_transfer(
     source_candidates: &[Candidate],
     heldout: &[Candidate],
 ) -> Result<PolicyResult, String> {
     let selected: Vec<_> = (0..source_candidates.len()).collect();
     let fit = fit_model(source_candidates, &selected, None, 0.0)?;
-    // Evaluation is on target-held-out observations; source data are not
-    // relabelled as target calibration contacts.
+    // Source reference contacts are reported separately. They never count as
+    // target-device calibration contacts and never inherit target identity.
     evaluate(
         "transfer_only_source_model",
-        source_candidates,
-        &selected,
+        &[],
+        &[],
+        source_candidates.len(),
+        candidate_cost_sum(source_candidates)?,
         &fit,
         heldout,
     )
@@ -637,6 +664,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "target_full_grid_reference",
         &target_candidates,
         &all_target,
+        0,
+        0,
         &full_fit,
         &heldout,
     )?);
@@ -646,6 +675,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "uniform_stratified",
         &target_candidates,
         &uniform,
+        0,
+        0,
         &uniform_fit,
         &heldout,
     )?);
@@ -655,6 +686,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "random_stratified",
         &target_candidates,
         &random,
+        0,
+        0,
         &random_fit,
         &heldout,
     )?);
@@ -664,6 +697,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "maximin_stratified",
         &target_candidates,
         &maximin,
+        0,
+        0,
         &maximin_fit,
         &heldout,
     )?);
@@ -673,6 +708,8 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "d_optimal_stratified",
         &target_candidates,
         &d_optimal,
+        0,
+        0,
         &d_optimal_fit,
         &heldout,
     )?);
@@ -690,13 +727,16 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         "transfer_plus_d_optimal_target_adaptation",
         &target_candidates,
         &d_optimal,
+        source_candidates.len(),
+        candidate_cost_sum(&source_candidates)?,
         &transfer_active_fit,
         &heldout,
     )?);
 
     Ok(BenchmarkReport {
         seed,
-        candidate_pool_size: target_candidates.len(),
+        source_candidate_pool_size: source_candidates.len(),
+        target_candidate_pool_size: target_candidates.len(),
         heldout_case_count: heldout.len(),
         target_contact_budget: TARGET_BUDGET,
         results,
@@ -756,19 +796,28 @@ mod tests {
     #[test]
     fn benchmark_reports_separate_model_transfer_and_target_adaptation_arms() {
         let report = run_active_calibration_benchmark(20261116).expect("benchmark runs");
-        assert_eq!(report.candidate_pool_size, 72);
+        assert_eq!(report.source_candidate_pool_size, 72);
+        assert_eq!(report.target_candidate_pool_size, 72);
         assert_eq!(report.heldout_case_count, 60);
         assert_eq!(report.target_contact_budget, 16);
         assert_eq!(report.results.len(), 7);
+        assert_eq!(report.results[0].source_reference_contacts, 0);
         assert_eq!(report.results[0].target_reference_contacts, 72);
         assert_eq!(report.results[1].target_reference_contacts, 16);
         assert_eq!(report.results[5].policy_id, "transfer_only_source_model");
-        assert_eq!(report.results[5].target_reference_contacts, 72);
+        assert_eq!(report.results[5].source_reference_contacts, 72);
+        assert_eq!(report.results[5].target_reference_contacts, 0);
+        assert_eq!(report.results[6].source_reference_contacts, 72);
         assert_eq!(
             report.results[6].policy_id,
             "transfer_plus_d_optimal_target_adaptation"
         );
         assert_eq!(report.results[6].target_reference_contacts, 16);
+        assert_eq!(
+            report.results[6].total_estimated_fixture_cost_ms,
+            report.results[6].source_reference_cost_ms
+                + report.results[6].target_reference_cost_ms
+        );
         for result in &report.results {
             assert!(result.rmse_n.is_finite());
             assert!(result.p95_absolute_error_n.is_finite());
