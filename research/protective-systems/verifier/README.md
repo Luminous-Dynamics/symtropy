@@ -249,3 +249,27 @@ The actual implementation references are pinned to a public pyIncore commit:
 - https://github.com/IN-CORE/pyincore/blob/540b3cc568643ff788479ffd4004853d059d7067/tests/data/dataset_metadata.json
 
 The current fixture is still synthetic and no IN-CORE endpoint is called.
+
+
+## E2 metadata-only archive intake
+
+The `protective-model-archive-intake` binary performs preflight inspection of
+a small frozen ZIP fixture. It does not extract or decompress members. It
+checks EOCD and central-directory bounds, local/central header agreement,
+member path metadata, flags, methods, symlink/special-file attributes, duplicate
+paths and the frozen synthetic resource policy.
+
+From the repository root:
+
+```sh
+rustfmt --edition 2024 --check research/protective-systems/verifier/src/bin/protective_model_archive_intake.rs
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-archive-intake
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-archive-intake
+```
+
+The frozen policy is marked
+`SYNTHETIC_CONFORMANCE_ONLY_NOT_FOR_PRODUCTION`. Its limits are solely for
+known-answer tests, not production defaults. The report disposition is
+`METADATA_ONLY_CONTENT_NOT_VERIFIED`: no member is decompressed, CRC-checked
+against its uncompressed content, extracted or executed. A successful report
+means only that the bounded v0.1 metadata profile passed.
