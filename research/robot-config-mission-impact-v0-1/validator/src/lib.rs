@@ -345,6 +345,32 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
             }
         }
 
+        let target_trace = array_at(case, &["target_trace"]);
+        if let (Some(rows), Some(events)) = (stage_status, target_trace) {
+            let stage_dispositions = rows
+                .iter()
+                .filter_map(|row| {
+                    Some((
+                        row.get(0)?.as_str()?,
+                        row.get(1)?.as_str()?,
+                    ))
+                })
+                .collect::<std::collections::BTreeMap<_, _>>();
+            for event in events {
+                if let Some(stage_id) = event.get("stage_id").and_then(Value::as_str) {
+                    if matches!(
+                        stage_dispositions.get(stage_id),
+                        Some(&"not_reached") | Some(&"not_run")
+                    ) {
+                        let event_id = string_at(event, &["event_id"]).unwrap_or("unknown_event");
+                        errors.push(format!(
+                            "event_emitted_by_unreached_stage:{pair_id}:{stage_id}:{event_id}"
+                        ));
+                    }
+                }
+            }
+        }
+
         let divergence = disposition.get("first_observed_divergence_stage");
         let attribution = string_at(disposition, &["attribution_status"]);
         if divergence.is_some_and(Value::is_null) {
@@ -487,6 +513,33 @@ mod tests {
             )
             .iter()
             .any(|error| error.starts_with("pair_id_duplicate:"))
+        );
+    }
+
+    #[test]
+    fn event_cannot_be_emitted_by_a_stage_marked_not_reached() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        let mut oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        let entry = oracle["dispositions"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|entry| entry["pair_id"] == "MIP-002")
+            .unwrap();
+        let stage_row = entry["target_stage_status"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|row| row[0] == "S06")
+            .unwrap();
+        stage_row[1] = Value::String("not_reached".to_owned());
+        assert!(
+            cross_file_invariants(&stage, &corpus, &oracle)
+                .iter()
+                .any(|error| error.starts_with("event_emitted_by_unreached_stage:MIP-002:S06:"))
         );
     }
 
