@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule,
+    RobustIntervalBinding, create_robust_interval_certificate, replay_robust_interval_certificate,
     CapsuleRelativeUncertainty, IntervalVerificationStatus, IntervalVerifierConfig,
     NormalizedTimeWindow, Vec3, chord_collision, co_translating_capsule_adaptive_query,
     co_translating_capsule_adaptive_query_with_certificate,
@@ -671,4 +672,64 @@ fn main() {
         )
         .expect("valid guaranteed-contact uncertainty profile");
     });
+    let evidence_binding = RobustIntervalBinding {
+        site_epoch: "bench-site-epoch".into(),
+        target_frame_id: "bench-frame".into(),
+        design_revision_sha256: "a".repeat(64),
+        moving_model_sha256: "b".repeat(64),
+        obstacle_model_sha256: "c".repeat(64),
+        uncertainty_profile_sha256: "d".repeat(64),
+        clock_domain_id: "bench-monotonic-clock".into(),
+        calibration_ref: "bench://calibration".into(),
+        localization_tracking_ref: "bench://localization-tracking".into(),
+        controller_profile_ref: "bench://controller".into(),
+        origin_relative_evidence_ref: "bench://origin-bound".into(),
+        relative_translation_evidence_ref: "bench://translation-bound".into(),
+        moving_axis_evidence_ref: "bench://moving-axis-bound".into(),
+        obstacle_axis_evidence_ref: "bench://obstacle-axis-bound".into(),
+    };
+    let evidence_uncertainty = CapsuleRelativeUncertainty {
+        origin_relative_mm: Vec3::new(0.25, 0.1, 0.1),
+        ..CapsuleRelativeUncertainty::zero()
+    };
+    let robust_certificate = create_robust_interval_certificate(
+        evidence_binding,
+        robust_moving,
+        Vec3::new(0.0, 0.0, 0.0),
+        robust_obstacle,
+        Vec3::new(0.0, 0.0, 0.0),
+        evidence_uncertainty,
+        robust_window,
+        robust_config,
+    )
+    .expect("valid source-bound robust interval certificate");
+    println!(
+        "robust-evidence-certificate,status,{:?}",
+        robust_certificate.receipt.status
+    );
+    println!(
+        "robust-evidence-certificate,canonical_bytes,{}",
+        robust_certificate.canonical_bytes.len()
+    );
+    measure_robust("robust-evidence-certificate-generation", || {
+        create_robust_interval_certificate(
+            black_box(robust_certificate.binding.clone()),
+            black_box(robust_moving),
+            black_box(Vec3::new(0.0, 0.0, 0.0)),
+            black_box(robust_obstacle),
+            black_box(Vec3::new(0.0, 0.0, 0.0)),
+            black_box(evidence_uncertainty),
+            robust_window,
+            robust_config,
+        )
+        .expect("valid source-bound robust interval certificate");
+    });
+    measure_robust("robust-evidence-certificate-replay", || {
+        replay_robust_interval_certificate(black_box(&robust_certificate))
+            .expect("source-bound robust interval certificate replays");
+    });
+    measure_robust("robust-evidence-canonical-encoding", || {
+        black_box(robust_certificate.encode_canonical());
+    });
+
 }
