@@ -37,3 +37,11 @@ orphan-node|disconnected-component|REJECT
 node-edge-permutation|permute-input-order|SAME_RESULT
 contradicted-claim|mark-claim-contradicted|BLOCKED_BY_UNSUPPORTED_OR_STALE_EVIDENCE
 hazard-not-linked-to-claim-or-strategy|remove-addresses-hazard-edge|INCOMPLETE_ARGUMENT
+wrong-purpose-model-evidence|track-r-performance-as-model-credibility|MISSING_REQUIRED_EVIDENCE_PURPOSE
+wrong-purpose-mitigation-evidence|track-t-model-as-mitigation-effectiveness|MISSING_REQUIRED_EVIDENCE_PURPOSE
+source-purpose-owner-mismatch|track-t-model-source-claims-performance|REJECT
+missing-claim-evidence-policy|remove-claim-purpose-requirement|INCOMPLETE_ARGUMENT
+missing-mitigation-evidence-policy|remove-mitigation-purpose-requirement|REJECT
+missing-evidence-policy-target|required-claim-absent|INCOMPLETE_ARGUMENT
+duplicate-policy-evidence-purpose|duplicate-purpose|REJECT
+unrelated-evidence-purpose-no-independence-credit|extra-nonrequired-purpose|NO_INDEPENDENCE_INCREASE
