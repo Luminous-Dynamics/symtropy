@@ -588,7 +588,7 @@ mod tests {
         );
         let wrong_calibration = receipt(20, ObservationSubject::FluorescenceRoi, None);
         assert_eq!(
-            item.validate_against(&graph(), &[source.clone()]),
+            item.validate_against(&graph(), std::slice::from_ref(&source)),
             Err(RamanEvidenceError::MissingCalibrationReceipt(
                 ObservationEvidenceId(20)
             ))
