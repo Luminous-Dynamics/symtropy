@@ -61,28 +61,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
         },
         {
           "event_id": "MIP-001-A-2",
           "event_time_tick": 4,
           "event_type": "scan_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-A-2",
+          "stage_id": "S02",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
+          "arrival_time_tick": 6,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
         },
         {
           "event_id": "MIP-001-A-3",
           "event_time_tick": 6,
           "event_type": "frame_registration_within_reference",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-A-3",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
         },
         {
           "event_id": "MIP-001-A-4",
           "event_time_tick": 12,
           "event_type": "mission_output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/A",
+          "arrival_time_tick": 14,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/A"
         }
       ],
       "target_trace": [
@@ -91,35 +111,60 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
         },
         {
           "event_id": "MIP-001-B-2",
           "event_time_tick": 4,
           "event_type": "scan_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-B-2",
+          "stage_id": "S02",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
+          "arrival_time_tick": 6,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
         },
         {
           "event_id": "MIP-001-B-3",
           "event_time_tick": 6,
           "event_type": "frame_registration_residual_exceeds_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-B-3",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
         },
         {
           "event_id": "MIP-001-B-4",
           "event_time_tick": 8,
           "event_type": "localization_update_rejected",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-B-4",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
+          "arrival_time_tick": 10,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
         },
         {
           "event_id": "MIP-001-B-5",
           "event_time_tick": 12,
           "event_type": "mission_output_held",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-001-B-5"
+          "raw_artifact_ref": "fixture://artifact/MIP-001-B-5",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-001/B",
+          "arrival_time_tick": 14,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-001",
+          "clock_mapping_ref": "fixture://clock-map/MIP-001/B"
         }
       ]
     },
@@ -179,28 +224,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
         },
         {
           "event_id": "MIP-002-A-2",
           "event_time_tick": 5,
           "event_type": "tool_identity_and_tcp_match",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-A-2",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
+          "arrival_time_tick": 7,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
         },
         {
           "event_id": "MIP-002-A-3",
           "event_time_tick": 10,
           "event_type": "operation_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
+          "arrival_time_tick": 12,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
         },
         {
           "event_id": "MIP-002-A-4",
           "event_time_tick": 14,
           "event_type": "quality_within_acceptance",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/A",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/A"
         }
       ],
       "target_trace": [
@@ -209,35 +274,60 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
         },
         {
           "event_id": "MIP-002-B-2",
           "event_time_tick": 5,
           "event_type": "tool_identity_read",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-B-2",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
+          "arrival_time_tick": 7,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
         },
         {
           "event_id": "MIP-002-B-3",
           "event_time_tick": 7,
           "event_type": "tcp_residual_exceeds_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-B-3",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
+          "arrival_time_tick": 9,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
         },
         {
           "event_id": "MIP-002-B-4",
           "event_time_tick": 10,
           "event_type": "operation_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-B-4",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
+          "arrival_time_tick": 12,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
         },
         {
           "event_id": "MIP-002-B-5",
           "event_time_tick": 14,
           "event_type": "quality_outside_acceptance",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-002-B-5"
+          "raw_artifact_ref": "fixture://artifact/MIP-002-B-5",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-002/B",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-002",
+          "clock_mapping_ref": "fixture://clock-map/MIP-002/B"
         }
       ]
     },
@@ -297,28 +387,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
         },
         {
           "event_id": "MIP-003-A-2",
           "event_time_tick": 3,
           "event_type": "energy_reference_valid",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-A-2",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
+          "arrival_time_tick": 5,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
         },
         {
           "event_id": "MIP-003-A-3",
           "event_time_tick": 10,
           "event_type": "mission_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
+          "arrival_time_tick": 12,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
         },
         {
           "event_id": "MIP-003-A-4",
           "event_time_tick": 14,
           "event_type": "return_reserve_within_profile",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-A-4",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/A",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/A"
         }
       ],
       "target_trace": [
@@ -327,35 +437,60 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
         },
         {
           "event_id": "MIP-003-B-2",
           "event_time_tick": 3,
           "event_type": "battery_identity_observed",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-B-2",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
+          "arrival_time_tick": 5,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
         },
         {
           "event_id": "MIP-003-B-3",
           "event_time_tick": 10,
           "event_type": "energy_measurement_below_required_reserve",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-B-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
+          "arrival_time_tick": 12,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
         },
         {
           "event_id": "MIP-003-B-4",
           "event_time_tick": 11,
           "event_type": "controlled_safe_hold_recorded",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-B-4",
+          "stage_id": "S09",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
+          "arrival_time_tick": 13,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
         },
         {
           "event_id": "MIP-003-B-5",
           "event_time_tick": 14,
           "event_type": "mission_outcome_unresolved",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-003-B-5"
+          "raw_artifact_ref": "fixture://artifact/MIP-003-B-5",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-003/B",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-003",
+          "clock_mapping_ref": "fixture://clock-map/MIP-003/B"
         }
       ]
     },
@@ -410,28 +545,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
         },
         {
           "event_id": "MIP-004-A-2",
           "event_time_tick": 6,
           "event_type": "navigation_route_completed",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-A-2",
+          "stage_id": "S04",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
         },
         {
           "event_id": "MIP-004-A-3",
           "event_time_tick": 8,
           "event_type": "base_pose_within_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-A-3",
+          "stage_id": "S05",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
+          "arrival_time_tick": 10,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
         },
         {
           "event_id": "MIP-004-A-4",
           "event_time_tick": 15,
           "event_type": "mission_output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/A",
+          "arrival_time_tick": 17,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/A"
         }
       ],
       "target_trace": [
@@ -440,35 +595,60 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
         },
         {
           "event_id": "MIP-004-B-2",
           "event_time_tick": 6,
           "event_type": "navigation_route_completed_with_slip_events",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-B-2",
+          "stage_id": "S04",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
         },
         {
           "event_id": "MIP-004-B-3",
           "event_time_tick": 8,
           "event_type": "base_pose_residual_exceeds_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-B-3",
+          "stage_id": "S05",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
+          "arrival_time_tick": 10,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
         },
         {
           "event_id": "MIP-004-B-4",
           "event_time_tick": 9,
           "event_type": "repositioning_attempted",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-B-4",
+          "stage_id": "S09",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
+          "arrival_time_tick": 11,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
         },
         {
           "event_id": "MIP-004-B-5",
           "event_time_tick": 15,
           "event_type": "mission_output_held",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-004-B-5"
+          "raw_artifact_ref": "fixture://artifact/MIP-004-B-5",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-004/B",
+          "arrival_time_tick": 17,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-004",
+          "clock_mapping_ref": "fixture://clock-map/MIP-004/B"
         }
       ]
     },
@@ -528,28 +708,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
+          "arrival_time_tick": 101,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-A-2",
           "event_time_tick": 5,
           "event_type": "sensor_alignment_within_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-A-2",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
+          "arrival_time_tick": 105,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-A-3",
           "event_time_tick": 9,
           "event_type": "operation_event_order_reconciled",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
+          "arrival_time_tick": 109,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-A-4",
           "event_time_tick": 13,
           "event_type": "mission_output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/A",
+          "arrival_time_tick": 113,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         }
       ],
       "target_trace": [
@@ -558,35 +758,60 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
+          "arrival_time_tick": 101,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-B-2",
           "event_time_tick": 5,
           "event_type": "sensor_alignment_observation_present",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-B-2",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
+          "arrival_time_tick": 105,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-B-3",
           "event_time_tick": 9,
           "event_type": "event_time_arrival_time_conflict",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-B-3",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
+          "arrival_time_tick": 109,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-B-4",
           "event_time_tick": 10,
           "event_type": "temporal_reconciliation_unknown",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-B-4",
+          "stage_id": "S03",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
+          "arrival_time_tick": 110,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         },
         {
           "event_id": "MIP-005-B-5",
           "event_time_tick": 13,
           "event_type": "mission_output_unresolved",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-005-B-5"
+          "raw_artifact_ref": "fixture://artifact/MIP-005-B-5",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-005/B",
+          "arrival_time_tick": 113,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-005",
+          "clock_mapping_ref": null
         }
       ]
     },
@@ -641,28 +866,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
         },
         {
           "event_id": "MIP-006-A-2",
           "event_time_tick": 6,
           "event_type": "base_pose_stability_within_profile",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-A-2",
+          "stage_id": "S05",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
         },
         {
           "event_id": "MIP-006-A-3",
           "event_time_tick": 11,
           "event_type": "operation_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
+          "arrival_time_tick": 13,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
         },
         {
           "event_id": "MIP-006-A-4",
           "event_time_tick": 15,
           "event_type": "output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/A",
+          "arrival_time_tick": 17,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/A"
         }
       ],
       "target_trace": [
@@ -671,28 +916,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
         },
         {
           "event_id": "MIP-006-B-2",
           "event_time_tick": 6,
           "event_type": "base_pose_margin_reduced",
           "source_class": "referee_measurement",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-B-2",
+          "stage_id": "S05",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
         },
         {
           "event_id": "MIP-006-B-3",
           "event_time_tick": 11,
           "event_type": "operation_complete_with_intervention",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-B-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
+          "arrival_time_tick": 13,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
         },
         {
           "event_id": "MIP-006-B-4",
           "event_time_tick": 15,
           "event_type": "output_accepted_after_reinspection",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-006-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-006-B-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-006/B",
+          "arrival_time_tick": 17,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-006",
+          "clock_mapping_ref": "fixture://clock-map/MIP-006/B"
         }
       ]
     },
@@ -752,28 +1017,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
         },
         {
           "event_id": "MIP-007-A-2",
           "event_time_tick": 4,
           "event_type": "commissioning_profile_current",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-A-2",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
+          "arrival_time_tick": 6,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
         },
         {
           "event_id": "MIP-007-A-3",
           "event_time_tick": 9,
           "event_type": "safeguarded_task_completed",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
+          "arrival_time_tick": 11,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
         },
         {
           "event_id": "MIP-007-A-4",
           "event_time_tick": 14,
           "event_type": "output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/A",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/A"
         }
       ],
       "target_trace": [
@@ -782,28 +1067,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
         },
         {
           "event_id": "MIP-007-B-2",
           "event_time_tick": 4,
           "event_type": "safety_chain_revision_detected",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-B-2",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
+          "arrival_time_tick": 6,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
         },
         {
           "event_id": "MIP-007-B-3",
           "event_time_tick": 5,
           "event_type": "required_commissioning_evidence_absent",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-B-3",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
+          "arrival_time_tick": 7,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
         },
         {
           "event_id": "MIP-007-B-4",
           "event_time_tick": 6,
           "event_type": "controlled_hold_disposition",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-007-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-007-B-4",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-007/B",
+          "arrival_time_tick": 8,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-007",
+          "clock_mapping_ref": "fixture://clock-map/MIP-007/B"
         }
       ]
     },
@@ -858,28 +1163,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-A-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-A-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
         },
         {
           "event_id": "MIP-008-A-2",
           "event_time_tick": 5,
           "event_type": "tool_identity_and_tcp_match",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-A-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-A-2",
+          "stage_id": "S06",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
+          "arrival_time_tick": 7,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
         },
         {
           "event_id": "MIP-008-A-3",
           "event_time_tick": 10,
           "event_type": "operation_complete",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-A-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-A-3",
+          "stage_id": "S07",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
+          "arrival_time_tick": 12,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
         },
         {
           "event_id": "MIP-008-A-4",
           "event_time_tick": 14,
           "event_type": "output_accepted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-A-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-A-4",
+          "stage_id": "S08",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/A",
+          "arrival_time_tick": 16,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/A"
         }
       ],
       "target_trace": [
@@ -888,28 +1213,48 @@
           "event_time_tick": 1,
           "event_type": "task_contract_admitted",
           "source_class": "task_system",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-B-1"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-B-1",
+          "stage_id": "S01",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
+          "arrival_time_tick": 3,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
         },
         {
           "event_id": "MIP-008-B-2",
           "event_time_tick": 2,
           "event_type": "module_identity_unresolved",
           "source_class": "robot_telemetry",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-B-2"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-B-2",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
+          "arrival_time_tick": 4,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
         },
         {
           "event_id": "MIP-008-B-3",
           "event_time_tick": 3,
           "event_type": "dependency_scope_incomplete",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-B-3"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-B-3",
+          "stage_id": null,
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
+          "arrival_time_tick": 5,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
         },
         {
           "event_id": "MIP-008-B-4",
           "event_time_tick": 4,
           "event_type": "candidate_execution_not_admitted",
           "source_class": "independent_referee",
-          "raw_artifact_ref": "fixture://artifact/MIP-008-B-4"
+          "raw_artifact_ref": "fixture://artifact/MIP-008-B-4",
+          "stage_id": "S09",
+          "event_time_clock_domain_ref": "fixture://clock/robot/MIP-008/B",
+          "arrival_time_tick": 6,
+          "arrival_time_clock_domain_ref": "fixture://clock/receiver/MIP-008",
+          "clock_mapping_ref": "fixture://clock-map/MIP-008/B"
         }
       ]
     }
