@@ -69,8 +69,7 @@ fn add_gate_evidence_receipt(
     receipt_id: &str,
     payload_sha256: String,
 ) {
-    let receipt =
-        gate_evidence_receipt(candidate, frozen_policy, role, receipt_id, payload_sha256);
+    let receipt = gate_evidence_receipt(candidate, frozen_policy, role, receipt_id, payload_sha256);
     candidate.gate_evidence_receipts.push(receipt);
 }
 
@@ -532,10 +531,7 @@ fn model_discrimination_can_compare_different_outputs_under_common_observables()
     alternative.semantic_equivalence = SemanticEquivalence::NotRequired;
     alternative.semantic_equivalence_receipt_sha256 = None;
     let result = select_experiments(&[alternative], &policy()).unwrap();
-    assert_eq!(
-        result.pareto_front[0].candidate_id,
-        "different-model-forms"
-    );
+    assert_eq!(result.pareto_front[0].candidate_id, "different-model-forms");
 }
 
 #[test]
@@ -1083,13 +1079,14 @@ fn pair_count_dominance_is_monotonic_only_above_frozen_separation_floor() {
     }
 }
 
-
 #[test]
 fn gate_evidence_receipt_is_bound_to_exact_experiment_design() {
     let mut candidate = candidate("receipt-scope-splice");
     candidate.gate_evidence_receipts[0].design_sha256 = digest('9');
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "receipt-scope-splice").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "receipt-scope-splice").contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
 
 #[test]
@@ -1097,7 +1094,9 @@ fn gate_evidence_receipt_is_bound_to_frozen_policy_manifest() {
     let mut candidate = candidate("receipt-policy-splice");
     candidate.gate_evidence_receipts[0].policy_sha256 = digest('9');
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "receipt-policy-splice").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "receipt-policy-splice").contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
 
 #[test]
@@ -1106,7 +1105,10 @@ fn duplicate_gate_receipt_identifier_is_rejected() {
     let duplicate = candidate.gate_evidence_receipts[0].clone();
     candidate.gate_evidence_receipts.push(duplicate);
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "duplicate-gate-receipt").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "duplicate-gate-receipt")
+            .contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
 
 #[test]
@@ -1116,15 +1118,22 @@ fn duplicate_gate_receipt_role_is_rejected() {
     duplicate.receipt_id = "second-safety-receipt".into();
     candidate.gate_evidence_receipts.push(duplicate);
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "duplicate-gate-role").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "duplicate-gate-role").contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
 
 #[test]
 fn missing_structured_gate_receipt_cannot_be_replaced_by_a_digest_string() {
     let mut candidate = candidate("missing-structured-receipt");
-    candidate.gate_evidence_receipts.retain(|receipt| receipt.role != GateEvidenceRole::Safety);
+    candidate
+        .gate_evidence_receipts
+        .retain(|receipt| receipt.role != GateEvidenceRole::Safety);
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "missing-structured-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+    assert!(
+        reason(&result, "missing-structured-receipt")
+            .contains(&RejectionReason::MissingEvidenceReceipt)
+    );
 }
 
 #[test]
@@ -1132,5 +1141,7 @@ fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
     let mut candidate = candidate("gate-payload-splice");
     candidate.gate_evidence_receipts[0].payload_sha256 = digest('9');
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "gate-payload-splice").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "gate-payload-splice").contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
