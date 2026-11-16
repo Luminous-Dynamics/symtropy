@@ -1040,7 +1040,6 @@ fn future_recorded_coverage_duplicate_does_not_poison_earlier_knowledge_snapshot
     assert_eq!(later, Err(EvaluationError::DuplicateCoverage));
 }
 
-
 #[test]
 fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
     let events = vec![
