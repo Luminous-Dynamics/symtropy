@@ -515,7 +515,6 @@ fn validate_envelope(
                         let file_id = required_text(descriptor, "id", &artifact_path)?;
                         let filename = required_text(descriptor, "filename", &artifact_path)?;
                         let mime_type = required_text(descriptor, "mimeType", &artifact_path)?;
-                        required_text(descriptor, "dataURL", &artifact_path)?;
                         let md5sum = required_text(descriptor, "md5sum", &artifact_path)?;
                         if md5sum.len() != 32
                             || !md5sum.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
