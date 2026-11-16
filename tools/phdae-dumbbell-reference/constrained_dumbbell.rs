@@ -152,6 +152,54 @@ fn rotate(a: Vec2, angle: f64) -> Vec2 {
     [cos * a[0] - sin * a[1], sin * a[0] + cos * a[1]]
 }
 
+fn reflect(a: Vec2) -> Vec2 {
+    [a[0], -a[1]]
+}
+
+fn rotate_state(state: State, angle: f64) -> State {
+    State {
+        q1: rotate(state.q1, angle),
+        q2: rotate(state.q2, angle),
+        v1: rotate(state.v1, angle),
+        v2: rotate(state.v2, angle),
+    }
+}
+
+fn reflect_state(state: State) -> State {
+    State {
+        q1: reflect(state.q1),
+        q2: reflect(state.q2),
+        v1: reflect(state.v1),
+        v2: reflect(state.v2),
+    }
+}
+
+fn o2_state(state: State, angle: f64, reflected_component: bool) -> State {
+    let state = if reflected_component {
+        reflect_state(state)
+    } else {
+        state
+    };
+    rotate_state(state, angle)
+}
+
+fn o2_vector(vector: Vec2, angle: f64, reflected_component: bool) -> Vec2 {
+    let vector = if reflected_component {
+        reflect(vector)
+    } else {
+        vector
+    };
+    rotate(vector, angle)
+}
+
+fn state_error(a: State, b: State) -> f64 {
+    (norm(sub(a.q1, b.q1)).powi(2)
+        + norm(sub(a.q2, b.q2)).powi(2)
+        + norm(sub(a.v1, b.v1)).powi(2)
+        + norm(sub(a.v2, b.v2)).powi(2))
+    .sqrt()
+}
+
 impl ConstrainedDumbbell {
     pub fn new(mass1: f64, mass2: f64, length: f64) -> Result<Self, Error> {
         if !mass1.is_finite() || !mass2.is_finite() || !length.is_finite() {
@@ -636,23 +684,6 @@ mod tests {
         }
     }
 
-    fn rotate_state(state: State, angle: f64) -> State {
-        State {
-            q1: rotate(state.q1, angle),
-            q2: rotate(state.q2, angle),
-            v1: rotate(state.v1, angle),
-            v2: rotate(state.v2, angle),
-        }
-    }
-
-    fn state_error(a: State, b: State) -> f64 {
-        (norm(sub(a.q1, b.q1)).powi(2)
-            + norm(sub(a.q2, b.q2)).powi(2)
-            + norm(sub(a.v1, b.v1)).powi(2)
-            + norm(sub(a.v2, b.v2)).powi(2))
-        .sqrt()
-    }
-
     fn advance(
         model: &ConstrainedDumbbell,
         mut state: State,
@@ -901,37 +932,6 @@ mod tests {
         assert!(receipt.conserves_linear_momentum_within(2.0e-12));
         assert!(receipt.conserves_angular_momentum_within(2.0e-12));
         assert!(receipt.constraint_reaction_work.abs() < 1.0e-12);
-    }
-
-    fn reflect(vector: Vec2) -> Vec2 {
-        [vector[0], -vector[1]]
-    }
-
-    fn reflect_state(state: State) -> State {
-        State {
-            q1: reflect(state.q1),
-            q2: reflect(state.q2),
-            v1: reflect(state.v1),
-            v2: reflect(state.v2),
-        }
-    }
-
-    fn o2_state(state: State, angle: f64, reflected_component: bool) -> State {
-        let state = if reflected_component {
-            reflect_state(state)
-        } else {
-            state
-        };
-        rotate_state(state, angle)
-    }
-
-    fn o2_vector(vector: Vec2, angle: f64, reflected_component: bool) -> Vec2 {
-        let vector = if reflected_component {
-            reflect(vector)
-        } else {
-            vector
-        };
-        rotate(vector, angle)
     }
 
     #[test]
