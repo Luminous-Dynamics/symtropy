@@ -130,7 +130,7 @@ pub enum NetworkClaimLevel {
 pub enum CytoplasmicFlowEvidence {
     NotEvaluated,
     NotSupported,
-    PlantToPlantFlowSupported,
+    CytoplasmicFlowStreamObserved,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -146,7 +146,7 @@ impl CytoplasmicFlowReceipt {
             return Err(NetworkEvidenceError::MissingFlowReasonCode);
         }
         match self.outcome {
-            CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+            CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
             | CytoplasmicFlowEvidence::NotSupported => {
                 if self.observation.is_none() {
                     return Err(NetworkEvidenceError::MissingFlowReceipt);
@@ -254,7 +254,7 @@ impl NetworkEvidenceAssessment {
                 .iter()
                 .find(|receipt| receipt.id == flow_id)
                 .expect("referenced flow receipt was resolved above");
-            if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+            if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
                 && flow_receipt.subject
                     != crate::observation_evidence::ObservationSubject::CytoplasmicFlowStream
             {
@@ -278,7 +278,7 @@ impl NetworkEvidenceAssessment {
         let link_is_supported = self.shared_fungal_link.outcome == EvidenceOutcome::Pass
             && criterion(NetworkCriterion::AtLeastTwoPlantUnits) == EvidenceOutcome::Pass;
 
-        if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+        if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
             && !link_is_supported
         {
             return Err(NetworkEvidenceError::FlowWithoutSharedNetwork);
@@ -426,7 +426,7 @@ impl fmt::Display for NetworkEvidenceError {
                 write!(f, "shared fungal link requires a stable reason code")
             }
             Self::MissingFlowReceipt => {
-                write!(f, "plant-to-plant flow result requires a source receipt")
+                write!(f, "cytoplasmic-flow stream result requires a source receipt")
             }
             Self::FlowReceiptSubjectMismatch(id) => {
                 write!(
@@ -437,7 +437,7 @@ impl fmt::Display for NetworkEvidenceError {
             }
             Self::FlowWithoutSharedNetwork => write!(
                 f,
-                "plant-to-plant flow requires a supported shared fungal link"
+                "cytoplasmic-flow observation requires a supported shared fungal link"
             ),
             Self::UnexpectedFlowReceipt => {
                 write!(f, "unevaluated flow result must not carry a receipt")
@@ -595,26 +595,26 @@ mod tests {
     }
 
     #[test]
-    fn separately_supported_plant_to_plant_flow_is_retained_as_a_distinct_axis() {
+    fn observed_flow_stream_is_retained_as_a_distinct_axis() {
         let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
         assessment.cytoplasmic_flow = CytoplasmicFlowReceipt {
-            outcome: CytoplasmicFlowEvidence::PlantToPlantFlowSupported,
+            outcome: CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved,
             observation: Some(ObservationEvidenceId(101)),
-            reason_code: "continuous_stream_traced_across_link".to_owned(),
+            reason_code: "cytoplasmic_stream_observed_on_segment".to_owned(),
         };
         let result = assessment.classify().unwrap();
         assert_eq!(
             result.cytoplasmic_flow,
-            CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+            CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
         );
     }
 
     #[test]
-    fn plant_to_plant_flow_cannot_be_claimed_without_a_shared_fungal_link() {
+    fn flow_stream_cannot_be_claimed_without_a_shared_fungal_link() {
         let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
         assessment.shared_fungal_link.outcome = EvidenceOutcome::Fail;
         assessment.cytoplasmic_flow = CytoplasmicFlowReceipt {
-            outcome: CytoplasmicFlowEvidence::PlantToPlantFlowSupported,
+            outcome: CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved,
             observation: Some(ObservationEvidenceId(101)),
             reason_code: "flow_measurement_without_link".to_owned(),
         };
@@ -672,12 +672,12 @@ mod tests {
     }
 
     #[test]
-    fn plant_to_plant_flow_receipt_must_be_typed_as_flow_stream() {
+    fn flow_receipt_must_be_typed_as_flow_stream() {
         let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
         assessment.cytoplasmic_flow = CytoplasmicFlowReceipt {
-            outcome: CytoplasmicFlowEvidence::PlantToPlantFlowSupported,
+            outcome: CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved,
             observation: Some(ObservationEvidenceId(101)),
-            reason_code: "flow_path_claim".to_owned(),
+            reason_code: "local_flow_stream_observation".to_owned(),
         };
         let mut receipts = vec![
             receipt(90),
