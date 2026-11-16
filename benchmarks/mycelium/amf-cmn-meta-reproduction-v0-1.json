@@ -1,0 +1,71 @@
+{
+  "schema_version": "myco.cmn_meta_reproduction.v0.1",
+  "suite_id": "AMF-CMN-META-REPRO-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5600",
+  "paper_doi": "10.1111/1365-2435.70125",
+  "paper_first_published": "2025-08-20",
+  "data_doi": "10.6084/m9.figshare.29416427",
+  "data_version": null,
+  "rights_status": "figshare_file_level_terms_pending",
+  "screen_flow": {
+    "screened_articles": 833,
+    "eligible_network_articles": 31,
+    "cmn_hyphal_continuity_articles": 7
+  },
+  "analysis": {
+    "response_variables": 15,
+    "effect_types": [
+      "network",
+      "CMN_with_hyphal_continuity",
+      "mycorrhiza",
+      "root"
+    ],
+    "dataset_levels": [
+      "plant_unit",
+      "growth_unit"
+    ],
+    "primary_effect_size": "natural_log_response_ratio",
+    "model_family": "multilevel_mixed_effects_meta_analysis",
+    "dependencies": [
+      "plant_species_phylogeny",
+      "plant_unit_nested_in_growth_unit",
+      "effect_size_id",
+      "study_id",
+      "author_id_where_applicable"
+    ]
+  },
+  "reported_robustness": {
+    "plant_unit_network_effect_neutral_variables": 11,
+    "plant_unit_network_effect_total_variables": 15,
+    "growth_unit_level": "significant effects from plant-unit analysis were not reproduced; most outcomes neutral",
+    "cmn_hyphal_continuity": "neutral outcomes across all variables in plant- and growth-unit analyses"
+  },
+  "imputation_and_bias_audit": [
+    "two studies used median imputation for missing variance",
+    "missing sample size used n=3",
+    "root-colonization control values of zero replaced with mean 1 and SD 0.1 for lnRR calculation",
+    "display-item digitization with metaDigitise when raw values unavailable",
+    "study-level dependence and phylogenetic dependence represented where applicable"
+  ],
+  "proposed_targets_not_results": {
+    "reproduction": "match effect sizes, 95 percent confidence intervals and prediction intervals to published rounding",
+    "validation": "leave-study-out model and interval calibration",
+    "neutrality": "neutral / negative / context-dependent effects are valid outcomes; no positive-result target"
+  },
+  "claim_ladder": [
+    "fungal identity and shared genet",
+    "plant colonization and root separation",
+    "hyphal linking treatment intact vs severed",
+    "continuous hyphal pathway and soil pathway exclusion",
+    "cytoplasmic flow evidence",
+    "isotope/tracer material transfer with alternative pathway controls",
+    "recipient plant uptake/response",
+    "soil/ecosystem process response"
+  ],
+  "claim_boundaries": [
+    "CMN network topology does not automatically establish direct transfer",
+    "hyphal continuity does not by itself prove measured cytoplasmic flow",
+    "tracer movement does not establish recipient benefit",
+    "network infrastructure density and plant-effect meta-analysis are separate endpoints"
+  ]
+}
