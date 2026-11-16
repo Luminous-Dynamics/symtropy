@@ -6,7 +6,7 @@
 //! by longest-path propagation. It reports EXACT only when the complete search
 //! finishes within the public bounds below.
 
-use super::FlexibleInstance;
+use super::{FlexibleInstance, MAX_MACHINES};
 use std::collections::{BTreeSet, VecDeque};
 
 pub const MAX_EXACT_OPERATIONS: usize = 9;
@@ -17,6 +17,7 @@ pub const MAX_MACHINE_ORDER_COMBINATIONS: u64 = 500_000;
 pub enum ExactStatus {
     Exact,
     Inconclusive,
+    InvalidInput,
     NoFeasibleSchedule,
 }
 
@@ -359,6 +360,64 @@ fn enumerate_assignments(
     true
 }
 
+fn instance_is_valid(instance: &FlexibleInstance) -> bool {
+    if instance.machine_count == 0
+        || instance.machine_count > MAX_MACHINES
+        || instance.operations.is_empty()
+    {
+        return false;
+    }
+
+    for (expected_id, operation) in instance.operations.iter().enumerate() {
+        if operation.id != expected_id || operation.alternatives.is_empty() {
+            return false;
+        }
+        let mut machines = BTreeSet::new();
+        for alternative in &operation.alternatives {
+            if alternative.machine_id >= instance.machine_count
+                || alternative.processing_ticks == 0
+                || !machines.insert(alternative.machine_id)
+            {
+                return false;
+            }
+        }
+    }
+
+    let operation_count = instance.operations.len();
+    let mut outgoing = vec![Vec::<usize>::new(); operation_count];
+    let mut indegree = vec![0usize; operation_count];
+    let mut edges = BTreeSet::new();
+    for edge in &instance.precedences {
+        if edge.before >= operation_count
+            || edge.after >= operation_count
+            || edge.before == edge.after
+            || !edges.insert((edge.before, edge.after))
+        {
+            return false;
+        }
+        outgoing[edge.before].push(edge.after);
+        indegree[edge.after] += 1;
+    }
+
+    let mut ready = VecDeque::new();
+    for (operation_id, degree) in indegree.iter().enumerate() {
+        if *degree == 0 {
+            ready.push_back(operation_id);
+        }
+    }
+    let mut visited = 0usize;
+    while let Some(operation_id) = ready.pop_front() {
+        visited += 1;
+        for successor in &outgoing[operation_id] {
+            indegree[*successor] -= 1;
+            if indegree[*successor] == 0 {
+                ready.push_back(*successor);
+            }
+        }
+    }
+    visited == operation_count
+}
+
 fn duration_envelope_fits(instance: &FlexibleInstance) -> bool {
     instance
         .operations
@@ -378,6 +437,15 @@ fn duration_envelope_fits(instance: &FlexibleInstance) -> bool {
 /// and machine-order enumeration. A search exceeding its declared envelope is
 /// INCONCLUSIVE, never silently truncated and never reported as optimal.
 pub fn solve_exact(instance: &FlexibleInstance) -> ExactResult {
+    if !instance_is_valid(instance) {
+        return ExactResult {
+            status: ExactStatus::InvalidInput,
+            optimality_proven: false,
+            inconclusive_reason: None,
+            schedule: None,
+            stats: SearchStats::default(),
+        };
+    }
     if !duration_envelope_fits(instance) {
         return ExactResult {
             status: ExactStatus::Inconclusive,
@@ -674,6 +742,30 @@ mod tests {
         let mut invalid_instance = valid_instance;
         invalid_instance.precedences[0].after = usize::MAX;
         assert!(!verify_schedule(&invalid_instance, &schedule));
+    }
+
+    #[test]
+    fn malformed_precedence_input_is_rejected_before_search() {
+        let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        instance.precedences[0].after = usize::MAX;
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::InvalidInput);
+        assert!(!result.optimality_proven);
+        assert_eq!(result.stats, SearchStats::default());
+        assert!(result.schedule.is_none());
+    }
+
+    #[test]
+    fn precedence_cycle_is_invalid_input_not_a_search_result() {
+        let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        instance.precedences.push(crate::Precedence {
+            before: 1,
+            after: 0,
+            job_id: Some(0),
+        });
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::InvalidInput);
+        assert_eq!(result.stats, SearchStats::default());
     }
 
     #[test]
