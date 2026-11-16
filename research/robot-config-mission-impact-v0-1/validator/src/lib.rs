@@ -1324,6 +1324,16 @@ mod tests {
     }
 
     #[test]
+    fn safety_critical_stage_advances_only_with_current_independent_referee_evidence() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][16]),
+            ("advance", "POSTCONDITION_VERIFIED")
+        );
+    }
+
+    #[test]
     fn stage_transition_oracle_coverage_is_exact() {
         let base = repository_root().join("research/robot-config-mission-impact-v0-1");
         let stages = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
