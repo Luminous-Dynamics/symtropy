@@ -704,8 +704,10 @@ fn edge_type_valid(edge: &AssuranceEdge, nodes: &BTreeMap<&str, &AssuranceNode>)
                 )
         }
         EdgeKind::AddressesHazard => {
-            matches!(from.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy)
-                && to.kind == NodeKind::Hazard
+            matches!(
+                from.kind,
+                NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy
+            ) && to.kind == NodeKind::Hazard
         }
         EdgeKind::Mitigates => from.kind == NodeKind::Mitigation && to.kind == NodeKind::Hazard,
         EdgeKind::Discharges => from.kind == NodeKind::Evidence && to.kind == NodeKind::Defeater,
@@ -1029,7 +1031,10 @@ pub fn evaluate_assurance_case(
             edge.to_node_id == hazard.node_id
                 && edge.kind == EdgeKind::AddressesHazard
                 && by_id.get(edge.from_node_id.as_str()).is_some_and(|node| {
-                    matches!(node.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy)
+                    matches!(
+                        node.kind,
+                        NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy
+                    )
                 })
         });
         if !has_argument_link {
