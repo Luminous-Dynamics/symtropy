@@ -785,11 +785,106 @@ mod tests {
 
     const SCENARIO: &str = include_str!("../fixtures/nominal-stationary-carrier.json");
     const PROCEDURE: &str = include_str!("../fixtures/nominal-receiving-procedure.json");
+    const EVIDENCE: &str = include_str!("../fixtures/nominal-receiving-evidence.json");
 
     fn fixture() -> (ScenarioManifest, ProcedureGraph) {
         let scenario = serde_json::from_str(SCENARIO).expect("scenario fixture");
         let procedure = serde_json::from_str(PROCEDURE).expect("procedure fixture");
         (scenario, procedure)
+    }
+
+    fn evidence_fixture() -> ProcedureEvidenceBundle {
+        serde_json::from_str(EVIDENCE).expect("procedure evidence fixture")
+    }
+
+    #[test]
+    fn nominal_evidence_envelopes_are_admitted_without_claiming_authenticity_or_authority() {
+        let (scenario, procedure) = fixture();
+        let report = procedure
+            .admit_evidence(&scenario, &evidence_fixture())
+            .expect("well-formed receipt bundle");
+        assert_eq!(report.admitted_receipt_count, 14);
+        assert_eq!(report.admitted_kinds.len(), 14);
+        assert!(report.evidence_envelopes_structurally_admitted);
+        assert!(!report.cryptographic_authentication_verified);
+        assert!(!report.sensor_truth_established);
+        assert!(!report.motion_authority_granted);
+        assert!(!report.physical_command_emitted);
+        assert!(!report.task_success_attested);
+    }
+
+    #[test]
+    fn evidence_admission_rejects_expired_receipt() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        let receipt = bundle
+            .receipts
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKind::TemperatureObservation)
+            .expect("temperature receipt");
+        receipt.observed_at_unix_ms = scenario.started_at_unix_ms - 1_000;
+        receipt.expires_at_unix_ms = scenario.started_at_unix_ms - 100;
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_wrong_issuer_role() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        let receipt = bundle
+            .receipts
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKind::AuthorizationReceipt)
+            .expect("authorization receipt");
+        receipt.issuer_actor_id = "courier-01".into();
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_source_and_configuration_mismatch() {
+        let (scenario, procedure) = fixture();
+        let mut source_mismatch = evidence_fixture();
+        source_mismatch.receipts[0].source_commit = "0000000000000000000000000000000000000000".into();
+        assert!(procedure.admit_evidence(&scenario, &source_mismatch).is_err());
+
+        let mut config_mismatch = evidence_fixture();
+        config_mismatch.receipts[0].configuration_digest = format!("sha256:{}", "f".repeat(64));
+        assert!(procedure.admit_evidence(&scenario, &config_mismatch).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_missing_receipt() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        bundle.receipts.pop();
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_duplicate_identity_and_kind() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        let mut duplicate = bundle.receipts[0].clone();
+        duplicate.evidence_id = bundle.receipts[1].evidence_id.clone();
+        bundle.receipts.push(duplicate);
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_subject_mismatch_and_malformed_digest() {
+        let (scenario, procedure) = fixture();
+        let mut wrong_subject = evidence_fixture();
+        let receipt = wrong_subject
+            .receipts
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKind::ContainerFitObservation)
+            .expect("container-fit receipt");
+        receipt.subject_id = "package-01".into();
+        assert!(procedure.admit_evidence(&scenario, &wrong_subject).is_err());
+
+        let mut malformed_digest = evidence_fixture();
+        malformed_digest.receipts[0].digest = "sha256:XYZ".into();
+        assert!(procedure.admit_evidence(&scenario, &malformed_digest).is_err());
     }
 
     #[test]
