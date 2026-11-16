@@ -479,10 +479,9 @@
       "candidate_sequence": [
         "M01-SOURCE-SELECTOR",
         "M02-COARSE-SCREEN",
-        "M03-EQUALIZATION",
-        "M04-PASSIVE-MEDIA_OR_M05_UF_OR_M06_OZONE-GAC"
+        "M03-EQUALIZATION"
       ],
-      "selection": "challenge_population_only_no_reuse_credit_until_profile_and_train_qualified"
+      "selection": "challenge_population_only_no_reuse_credit; downstream process not selected before batch characterization and separate qualification"
     },
     {
       "id": "TRAIN-D-NATURE-BASED",
