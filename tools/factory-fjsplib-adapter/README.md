@@ -31,7 +31,7 @@ A deterministic FNV-1a 64-bit canonical fingerprint is emitted for reproducibili
     cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fjsp
     cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fajsp
 
-The tests use the official FJSPLib fattahi1 example in both text formats. They check one-based versus zero-based normalization and that the FJSP route structure and FAJSP precedence graph carry the same operation/machine/duration semantics.
+The Rust tests use the official FJSPLib fattahi1 example in both text formats. Focused CI additionally imports a frozen, stratified 8-file Fattahi smoke set: fattahi1, fattahi5, fattahi10 and fattahi20 in both FJSP and FAJSP representations. The samples span multiple instance sizes but are not the full FJSPLib corpus. They check one-based versus zero-based normalization and that the FJSP route structure and FAJSP precedence graph carry the same operation/machine/duration semantics for the paired Fattahi1 example.
 
 ## Exact upstream fixture provenance and reference bound
 
