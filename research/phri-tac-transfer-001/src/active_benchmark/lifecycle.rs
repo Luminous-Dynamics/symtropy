@@ -236,6 +236,7 @@ impl LifecycleSnapshot {
                 next.identity.mounting_revision = mounting_revision.clone();
                 next.identity.geometry_digest = geometry_digest.clone();
                 next.surface_condition = SurfaceCondition::ConditionUnknown;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::ElectronicsRevisionChanged {
@@ -247,6 +248,7 @@ impl LifecycleSnapshot {
                 }
                 next.identity.electronics_revision = electronics_revision.clone();
                 next.surface_condition = SurfaceCondition::ConditionUnknown;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::FirmwareUpdated { firmware_revision } => {
@@ -264,6 +266,7 @@ impl LifecycleSnapshot {
                 }
                 next.identity.geometry_digest = geometry_digest.clone();
                 next.surface_condition = SurfaceCondition::ConditionUnknown;
+                next.surface_condition_receipt_id = None;
                 next.bump_generation()?;
             }
             LifecycleChange::ContaminationDetected => {
@@ -630,7 +633,7 @@ mod tests {
 
     #[test]
     fn remount_or_geometry_change_invalidates_previous_calibration() {
-        let original = snapshot();
+        let original = qualified_snapshot();
         let calibration = passport(&original);
         let current = original
             .apply(&event(
@@ -655,7 +658,7 @@ mod tests {
 
     #[test]
     fn firmware_and_electronics_changes_invalidate_previous_calibration() {
-        let original = snapshot();
+        let original = qualified_snapshot();
         let calibration = passport(&original);
         let current = original
             .apply(&event(
@@ -688,7 +691,7 @@ mod tests {
 
     #[test]
     fn verified_cleaning_does_not_reinstate_a_superseded_calibration() {
-        let original = snapshot();
+        let original = qualified_snapshot();
         let calibration = passport(&original);
         let contaminated = original
             .apply(&event(
@@ -749,7 +752,7 @@ mod tests {
 
     #[test]
     fn damage_requires_maintenance_even_when_identity_is_unchanged() {
-        let current = snapshot()
+        let current = qualified_snapshot()
             .apply(&event(
                 "event-damage-01",
                 2,
@@ -764,7 +767,7 @@ mod tests {
 
     #[test]
     fn contact_cycle_budget_and_temperature_envelope_are_enforced() {
-        let original = snapshot();
+        let original = qualified_snapshot();
         let calibration = passport(&original);
         let cycles = original
             .apply(&event(
@@ -783,7 +786,7 @@ mod tests {
         let hot = original
             .apply(&event(
                 "event-temperature-01",
-                1,
+                2,
                 LifecycleChange::TemperatureObserved {
                     temperature_c: 45.0,
                 },
