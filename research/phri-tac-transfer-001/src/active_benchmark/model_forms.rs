@@ -9,12 +9,10 @@
 use super::*;
 
 const TAXEL_COUNT: usize = 113;
-const FULL_FORCE_GRID_N: [f64; 11] =
-    [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
+const FULL_FORCE_GRID_N: [f64; 11] = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0];
 const SPARSE_SIX_INDICES: [usize; 6] = [0, 2, 4, 6, 8, 10];
 const SPARSE_FOUR_INDICES: [usize; 4] = [0, 3, 7, 10];
-const HELDOUT_FORCE_N: [f64; 10] =
-    [0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75];
+const HELDOUT_FORCE_N: [f64; 10] = [0.25, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct TaxelProfile {
@@ -108,8 +106,7 @@ fn observations_for_taxel(
             let voltage_v = voltage_for_force(profile, *force_n)
                 + deterministic_unit(seed, taxel_id, force_index) * 0.00015;
             let reference_force_n = *force_n
-                + deterministic_unit(seed ^ 0xA076_1D64_78BD_642F, taxel_id, force_index)
-                    * 0.0015;
+                + deterministic_unit(seed ^ 0xA076_1D64_78BD_642F, taxel_id, force_index) * 0.0015;
             CalibrationObservation {
                 taxel_id,
                 force_setpoint_n: *force_n,
@@ -240,18 +237,13 @@ fn selected_force_setpoints(indices: &[usize]) -> Result<Vec<f64>, String> {
         .collect()
 }
 
-fn heldout_predictions(
-    taxel_id: usize,
-    profile: TaxelProfile,
-    seed: u64,
-) -> Vec<(f64, f64)> {
+fn heldout_predictions(taxel_id: usize, profile: TaxelProfile, seed: u64) -> Vec<(f64, f64)> {
     HELDOUT_FORCE_N
         .iter()
         .enumerate()
         .map(|(index, force_n)| {
             let voltage_v = voltage_for_force(profile, *force_n)
-                + deterministic_unit(seed ^ 0xE703_7ED1_A0B4_28DB, taxel_id, index)
-                    * 0.00015;
+                + deterministic_unit(seed ^ 0xE703_7ED1_A0B4_28DB, taxel_id, index) * 0.00015;
             (*force_n, voltage_v)
         })
         .collect()
@@ -262,8 +254,11 @@ fn summarize_errors(
     contacts_per_taxel: usize,
     taxel_errors: &[(usize, Vec<f64>)],
 ) -> Result<ModelFormSummary, String> {
-    if taxel_errors.len() != TAXEL_COUNT || taxel_errors.iter().any(|(_, errors)| errors.is_empty()) {
-        return Err("model-form scorecard requires one nonempty held-out error vector per taxel".to_owned());
+    if taxel_errors.len() != TAXEL_COUNT || taxel_errors.iter().any(|(_, errors)| errors.is_empty())
+    {
+        return Err(
+            "model-form scorecard requires one nonempty held-out error vector per taxel".to_owned(),
+        );
     }
     let mut taxel_rmse = Vec::with_capacity(TAXEL_COUNT);
     let mut all_squared = 0.0;
@@ -317,10 +312,7 @@ fn score_per_taxel_rational(
     summarize_errors(model_id, setpoints.len(), &taxel_errors)
 }
 
-fn score_shared_rational(
-    seed: u64,
-    force_indices: &[usize],
-) -> Result<ModelFormSummary, String> {
+fn score_shared_rational(seed: u64, force_indices: &[usize]) -> Result<ModelFormSummary, String> {
     let setpoints = selected_force_setpoints(force_indices)?;
     let mut pooled_training = Vec::with_capacity(TAXEL_COUNT * setpoints.len());
     for taxel_id in 0..TAXEL_COUNT {
@@ -341,13 +333,14 @@ fn score_shared_rational(
             .collect();
         taxel_errors.push((taxel_id, errors));
     }
-    summarize_errors("shared_rational_6_per_taxel", setpoints.len(), &taxel_errors)
+    summarize_errors(
+        "shared_rational_6_per_taxel",
+        setpoints.len(),
+        &taxel_errors,
+    )
 }
 
-fn score_per_taxel_affine(
-    seed: u64,
-    force_indices: &[usize],
-) -> Result<ModelFormSummary, String> {
+fn score_per_taxel_affine(seed: u64, force_indices: &[usize]) -> Result<ModelFormSummary, String> {
     let setpoints = selected_force_setpoints(force_indices)?;
     let mut taxel_errors = Vec::with_capacity(TAXEL_COUNT);
     for taxel_id in 0..TAXEL_COUNT {
