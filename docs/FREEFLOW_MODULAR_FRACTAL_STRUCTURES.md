@@ -388,3 +388,76 @@ Do not describe a generated geometry or a linear truss solve as flight-qualified
 8. Only then explore robotic assembly and non-pressurized habitat mockups.
 
 **Revised principle:** the unit of design is not only the cell or the overall shape. It is the entire qualified chain from module geometry through interfaces, assembly, inspection, repair, occupant use and lifecycle evidence.
+
+
+
+## Industry landscape and competitive boundary — verified 2026-11-16
+
+The field is not empty. Several commercial tools already provide powerful lattice and generative-design workflows. FFMFS should not be positioned as a replacement for all conventional CAD/CAE or as a generic "better lattice generator."
+
+| Industry / programme | Publicly described capability | What FFMFS must add to be differentiated |
+|---|---|---|
+| nTop | Implicit modeling, graph/TPMS/custom/stochastic lattices, multi-objective topology optimization, structural and thermal FEA, CAD/CAE/AM exports | Explicit field-assembly module grammar, connector and service interfaces, robotic installation/removal, tolerance/inspection lifecycle and occupant-authored habitat layers |
+| Autodesk Fusion Generative Design | Generates multiple editable outcomes from geometry, performance and manufacturing constraints; includes additive, milling, 2-axis cutting and casting methods | Persistent reusable connector/module grammar, assembly sequence and interface fit contracts, as-built evidence and maintenance/reconfiguration |
+| Altair Inspire | Structural topology/topography/gauge optimization, FEA, motion and additive-manufacturing analysis | Multi-module system-level design, robotic modular assembly, service isolation, replacement and evidence-linked design evolution |
+| Materialise 3-matic / Magics Lattice | Mesh-level design modification, lattice/conformal structures, process preparation and lattice-based weight/stiffness tuning | Cross-scale structural grammar where each module is individually addressable, inspectable, replaceable and linked to its lifecycle record |
+| NASA ARMADAS | Builder robots and reusable voxels for autonomous assembly of habitats, arrays and other functional structures | Compare assembly accuracy, payload/part economy, topology flexibility, connection qualification, human experience and repair/reconfiguration; do not claim robotic assembly is novel by itself |
+| NASA/JPL modular truss work | Self-aligning deployable modules, structural/power interconnects, supervised robotic assembly of larger truss structures | Demonstrate a measurable advantage in module/interface grammar, assembly operations, load-transfer behavior, service integration or lifecycle evidence |
+
+Public capability references:
+- nTop modeling: https://www.ntop.com/software/capabilities/modeling/
+- nTop integrations / lattice, topology optimization, FEA and export: https://www.ntop.com/software/capabilities/integrations/
+- Autodesk Fusion generative design: https://help.autodesk.com/view/fusion360/ENU/?contextId=GD-F360-GENERATIVE-DESIGN
+- Autodesk manufacturing-method constraints: https://help.autodesk.com/view/fusion360/ENU/?contextId=GD-DIE-CASTING
+- Altair Inspire: https://help.altair.com/inspire/en_us/topics/inspire/get_started/introduction_inspire_c.htm
+- Materialise 3-matic: https://www.materialise.com/en/industrial/software/3-matic
+- Materialise Magics Lattice: https://www.materialise.com/en/industrial/software/lattice
+- NASA ARMADAS: https://www.nasa.gov/automated-reconfigurable-mission-adaptive-digital-assembly-systems-armadas/
+- JPL robotic modular truss: https://robotics.jpl.nasa.gov/what-we-do/research-tasks/risk-reduction-for-robotic-in-space-telescope-assembly-concept/
+
+### The differentiated research hypothesis
+
+FFMFS should be evaluated as a **reusable structural operating grammar**, not only as generative geometry. The unit of comparison is:
+
+1. a module family with stable identity and bounded geometric variants;
+2. a connector/interface contract with fit, load transfer, alignment and service ports;
+3. a build/assembly sequence with robot-access and inspection constraints;
+4. an as-built record linked to feedstock, manufacturing process, metrology and test evidence;
+5. a repair/replacement/reconfiguration path;
+6. an occupant-controlled expressive layer that does not silently mutate qualified primary structure or obstruct accessibility and egress.
+
+Generic CAD/CAE tools may be used as geometry generators and high-fidelity evaluators. FFMFS should focus on interoperability and evidence, not on rebuilding every commercial feature.
+
+### Matched competition protocol
+
+For each task, freeze the same:
+- envelope and attachment/support conditions;
+- materials, manufacturing process, minimum feature size and tolerances;
+- load cases, safety margins and service-life assumptions;
+- connector family/port constraints and robot capability;
+- compute budget, solver fidelity and optimization evaluations;
+- accessibility, egress, service-access and occupant-use requirements.
+
+Report:
+- feasible designs found per evaluation budget;
+- hypervolume and coverage of the non-dominated Pareto set;
+- mass, stiffness, buckling, fatigue and damage metrics where independently qualified;
+- unique part count, connector count, assembly steps and robot/tool changes;
+- fit/tolerance failures, inaccessible inspection areas and material-removal obstructions;
+- as-built deviation, defect/NDE coverage and prediction-to-test error;
+- disassembly, replacement and reuse time;
+- occupant-rated agency, privacy choice, comfort, accessibility and spatial diversity.
+
+A design only wins when it improves an objective that matters while remaining feasible on the others. Do not use a larger Pareto hypervolume from an incomparable scaling or objective set as proof of superiority.
+
+### What "better than SOTA" should mean here
+
+The first defensible win is not a universal strength-to-weight record. It is a demonstrated combination of:
+- equal or better structural response at matched material and load;
+- fewer unique part and connector families;
+- lower assembly, inspection or replacement effort;
+- preserved repairability under local damage;
+- broader user-configurable spatial expression without changing the qualified load path;
+- full traceability from design intent to as-built and tested module.
+
+If the result does not beat strong commercial and academic baselines on at least one preregistered, practically meaningful dimension without sacrificing the rest of the Pareto trade space, we should report that honestly and keep the simpler approach.
