@@ -168,6 +168,8 @@ For each track report:
 
 For the paper-faithful TSFM comparison, reproduce the fixed-token, anti-aliased bandwidth-reduction design and FSI/FDI/CDI definitions from the preprint. Separately add an event-native challenge with genuinely irregular capture times and explicit timestamps. Do not conflate bandwidth reduction, random dropout, irregular sampling and changed context duration: they are different perturbations.
 
+A deterministic known-truth fixture is available at [HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json](HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json). It defines four signal components, including two task-band components, and six rates (20, 8, 2, 0.8, 0.28 and 0.08 Hz). Under its ideal low-pass reference, task-band information retention is 1.0 down through 0.8 Hz, 25/34 (approximately 0.7353) at 0.28 Hz, and 0 at 0.08 Hz. These are analytically derived values for a synthetic fixture, not measured human sensor properties. The fixed-token implementation must pin a realizable filter and separately report its deviation from the ideal reference.
+
 ### Cross-device and cross-dataset activity-recognition SOTA
 
 AICOS-HAR's October 2026 data descriptor highlights fragmentation across protocols, devices, placements and labels, and releases 21 parsers for integrating public HAR datasets. Its own data include 106 participants, 87 smartphones and 17 wearable devices. This enables participant-held-out, leave-one-device-out and cross-dataset tests, but the AICOS-HAR dataset itself is listed as CC BY-NC-ND 4.0 in the NLM Dataset Catalog: do not assume commercial use or redistribution of derivatives is permitted. Sources: https://www.nature.com/articles/s41597-026-08470-y and https://datasetcatalog.nlm.nih.gov/dataset?q=0003181855.
