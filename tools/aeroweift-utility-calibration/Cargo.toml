@@ -1,0 +1,15 @@
+[package]
+name = "aeroweift-utility-calibration"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+description = "Calibration and held-out decision-regret oracle for AeroWeft utility estimates"
+
+[dependencies]
+aeroweift-experiment-design = { path = "../aeroweift-experiment-design" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
