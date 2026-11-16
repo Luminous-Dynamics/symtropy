@@ -45,17 +45,42 @@ pub enum TetrahedralError {
     InvalidFaceAreaMinimum,
     InvalidPortBudget,
     InvalidPortSeparation,
-    NodeBudgetExceeded { required: usize, maximum: usize },
+    NodeBudgetExceeded {
+        required: usize,
+        maximum: usize,
+    },
     ArithmeticOverflow,
     NonFiniteGeometry,
-    DegenerateFace { cell_id: u32, area_bits: u64 },
-    DegenerateCell { cell_id: u32 },
-    InvalidAttachment { cell_id: u32 },
-    DuplicateMember { a: u32, b: u32 },
-    InvalidMember { member_id: u32 },
-    Disconnected { components: usize },
-    PortBudgetExceeded { node_id: u32, required: usize, maximum: usize },
-    PortsTooClose { node_id: u32, angle_rad: f64, minimum_rad: f64 },
+    DegenerateFace {
+        cell_id: u32,
+        area_bits: u64,
+    },
+    DegenerateCell {
+        cell_id: u32,
+    },
+    InvalidAttachment {
+        cell_id: u32,
+    },
+    DuplicateMember {
+        a: u32,
+        b: u32,
+    },
+    InvalidMember {
+        member_id: u32,
+    },
+    Disconnected {
+        components: usize,
+    },
+    PortBudgetExceeded {
+        node_id: u32,
+        required: usize,
+        maximum: usize,
+    },
+    PortsTooClose {
+        node_id: u32,
+        angle_rad: f64,
+        minimum_rad: f64,
+    },
     InvalidGraph(&'static str),
 }
 
@@ -64,25 +89,58 @@ impl fmt::Display for TetrahedralError {
         match self {
             Self::InvalidDepth => write!(f, "tetrahedral depth must be in 1..=8"),
             Self::InvalidEdgeLength => write!(f, "root edge length must be finite and positive"),
-            Self::InvalidMemberMinimum => write!(f, "minimum member length must be finite and positive"),
-            Self::InvalidFaceAreaMinimum => write!(f, "minimum face area must be finite and positive"),
+            Self::InvalidMemberMinimum => {
+                write!(f, "minimum member length must be finite and positive")
+            }
+            Self::InvalidFaceAreaMinimum => {
+                write!(f, "minimum face area must be finite and positive")
+            }
             Self::InvalidPortBudget => write!(f, "maximum ports per node must be at least 3"),
-            Self::InvalidPortSeparation => write!(f, "minimum port separation must be finite and in [0, pi]"),
-            Self::NodeBudgetExceeded { required, maximum } =>
-                write!(f, "node budget exceeded: required {required}, maximum {maximum}"),
+            Self::InvalidPortSeparation => {
+                write!(f, "minimum port separation must be finite and in [0, pi]")
+            }
+            Self::NodeBudgetExceeded { required, maximum } => write!(
+                f,
+                "node budget exceeded: required {required}, maximum {maximum}"
+            ),
             Self::ArithmeticOverflow => write!(f, "tetrahedral count arithmetic overflow"),
             Self::NonFiniteGeometry => write!(f, "tetrahedral geometry contains non-finite values"),
-            Self::DegenerateFace { cell_id, area_bits } =>
-                write!(f, "cell {cell_id} has a degenerate attachment face (area bits {area_bits})"),
-            Self::DegenerateCell { cell_id } => write!(f, "cell {cell_id} has zero or invalid volume"),
-            Self::InvalidAttachment { cell_id } => write!(f, "cell {cell_id} does not attach through its parent's triangular face"),
-            Self::DuplicateMember { a, b } => write!(f, "duplicate member between nodes {a} and {b}"),
-            Self::InvalidMember { member_id } => write!(f, "member {member_id} has invalid endpoints or length"),
-            Self::Disconnected { components } => write!(f, "assembly is disconnected: {components} components"),
-            Self::PortBudgetExceeded { node_id, required, maximum } =>
-                write!(f, "node {node_id} requires {required} ports, maximum is {maximum}"),
-            Self::PortsTooClose { node_id, angle_rad, minimum_rad } =>
-                write!(f, "node {node_id} has port angle {angle_rad} below minimum {minimum_rad}"),
+            Self::DegenerateFace { cell_id, area_bits } => write!(
+                f,
+                "cell {cell_id} has a degenerate attachment face (area bits {area_bits})"
+            ),
+            Self::DegenerateCell { cell_id } => {
+                write!(f, "cell {cell_id} has zero or invalid volume")
+            }
+            Self::InvalidAttachment { cell_id } => write!(
+                f,
+                "cell {cell_id} does not attach through its parent's triangular face"
+            ),
+            Self::DuplicateMember { a, b } => {
+                write!(f, "duplicate member between nodes {a} and {b}")
+            }
+            Self::InvalidMember { member_id } => {
+                write!(f, "member {member_id} has invalid endpoints or length")
+            }
+            Self::Disconnected { components } => {
+                write!(f, "assembly is disconnected: {components} components")
+            }
+            Self::PortBudgetExceeded {
+                node_id,
+                required,
+                maximum,
+            } => write!(
+                f,
+                "node {node_id} requires {required} ports, maximum is {maximum}"
+            ),
+            Self::PortsTooClose {
+                node_id,
+                angle_rad,
+                minimum_rad,
+            } => write!(
+                f,
+                "node {node_id} has port angle {angle_rad} below minimum {minimum_rad}"
+            ),
             Self::InvalidGraph(message) => write!(f, "invalid tetrahedral graph: {message}"),
         }
     }
@@ -306,10 +364,10 @@ impl TetrahedralAssembly {
                     return Err(TetrahedralError::NonFiniteGeometry);
                 }
 
-                let apex_id = u32::try_from(nodes.len())
-                    .map_err(|_| TetrahedralError::ArithmeticOverflow)?;
-                let cell_id = u32::try_from(cells.len())
-                    .map_err(|_| TetrahedralError::ArithmeticOverflow)?;
+                let apex_id =
+                    u32::try_from(nodes.len()).map_err(|_| TetrahedralError::ArithmeticOverflow)?;
+                let cell_id =
+                    u32::try_from(cells.len()).map_err(|_| TetrahedralError::ArithmeticOverflow)?;
 
                 nodes.push(TetraNode {
                     id: apex_id,
@@ -384,7 +442,9 @@ impl TetrahedralAssembly {
             || self.members.len() != self.config.expected_member_count()?
             || self.cells.len() != self.config.expected_cell_count()?
         {
-            return Err(TetrahedralError::InvalidGraph("counts do not match the declared grammar"));
+            return Err(TetrahedralError::InvalidGraph(
+                "counts do not match the declared grammar",
+            ));
         }
 
         let mut bounds_min = Vec3::new(f64::INFINITY, f64::INFINITY, f64::INFINITY);
@@ -414,7 +474,9 @@ impl TetrahedralAssembly {
                 || member.to as usize >= self.nodes.len()
                 || member.from == member.to
             {
-                return Err(TetrahedralError::InvalidMember { member_id: member.id });
+                return Err(TetrahedralError::InvalidMember {
+                    member_id: member.id,
+                });
             }
             let key = if member.from < member.to {
                 (member.from, member.to)
@@ -431,7 +493,9 @@ impl TetrahedralAssembly {
                 || length < self.config.min_member_length_m
                 || (length - self.config.root_edge_length_m).abs() > edge_tolerance
             {
-                return Err(TetrahedralError::InvalidMember { member_id: member.id });
+                return Err(TetrahedralError::InvalidMember {
+                    member_id: member.id,
+                });
             }
             total_length += length;
             minimum_length = minimum_length.min(length);
@@ -444,12 +508,16 @@ impl TetrahedralAssembly {
         let mut min_cell_volume = f64::INFINITY;
         for (index, cell) in self.cells.iter().enumerate() {
             if cell.id as usize != index {
-                return Err(TetrahedralError::InvalidGraph("cell IDs are not contiguous"));
+                return Err(TetrahedralError::InvalidGraph(
+                    "cell IDs are not contiguous",
+                ));
             }
             let mut unique = HashSet::with_capacity(4);
             for vertex in cell.vertices {
                 if vertex as usize >= self.nodes.len() || !unique.insert(vertex) {
-                    return Err(TetrahedralError::InvalidGraph("cell has repeated or unknown vertex"));
+                    return Err(TetrahedralError::InvalidGraph(
+                        "cell has repeated or unknown vertex",
+                    ));
                 }
             }
 
@@ -474,24 +542,33 @@ impl TetrahedralAssembly {
             min_face_area = min_face_area.min(face_area);
 
             // Every tetrahedron must have all six edges represented.
-            for (u, v) in [
-                (a, b), (a, c), (a, d), (b, c), (b, d), (c, d),
-            ] {
+            for (u, v) in [(a, b), (a, c), (a, d), (b, c), (b, d), (c, d)] {
                 let key = if u < v { (u, v) } else { (v, u) };
                 if !seen.contains(&key) {
-                    return Err(TetrahedralError::InvalidGraph("tetrahedral cell edge is missing"));
+                    return Err(TetrahedralError::InvalidGraph(
+                        "tetrahedral cell edge is missing",
+                    ));
                 }
             }
 
-            match (cell.parent_cell, cell.attachment_face, cell.attachment_interface) {
+            match (
+                cell.parent_cell,
+                cell.attachment_face,
+                cell.attachment_interface,
+            ) {
                 (None, None, None) if cell.id == 0 => {}
-                (Some(parent), Some(face), Some(TetraAttachmentInterface::TriangularThreePointV1))
-                    if parent < cell.id =>
-                {
-                    let parent_cell = self.cells
+                (
+                    Some(parent),
+                    Some(face),
+                    Some(TetraAttachmentInterface::TriangularThreePointV1),
+                ) if parent < cell.id => {
+                    let parent_cell = self
+                        .cells
                         .get(parent as usize)
                         .ok_or(TetrahedralError::InvalidAttachment { cell_id: cell.id })?;
-                    if !face.iter().all(|vertex| parent_cell.vertices.contains(vertex))
+                    if !face
+                        .iter()
+                        .all(|vertex| parent_cell.vertices.contains(vertex))
                         || !face.iter().all(|vertex| cell.vertices.contains(vertex))
                     {
                         return Err(TetrahedralError::InvalidAttachment { cell_id: cell.id });
@@ -571,10 +648,14 @@ impl TetrahedralAssembly {
         if !total_length.is_finite() || !min_face_area.is_finite() || !min_cell_volume.is_finite() {
             return Err(TetrahedralError::NonFiniteGeometry);
         }
-        let cycle_rank = self.members.len()
+        let cycle_rank = self
+            .members
+            .len()
             .checked_sub(self.nodes.len())
             .and_then(|count| count.checked_add(components))
-            .ok_or(TetrahedralError::InvalidGraph("invalid edge/node/component counts"))?;
+            .ok_or(TetrahedralError::InvalidGraph(
+                "invalid edge/node/component counts",
+            ))?;
 
         Ok(TetrahedralMetrics {
             node_count: self.nodes.len(),
@@ -615,7 +696,10 @@ impl TetrahedralAssembly {
             mix(&mut hash, &value.to_bits().to_le_bytes());
         }
         mix(&mut hash, &(self.config.max_nodes as u64).to_le_bytes());
-        mix(&mut hash, &(self.config.max_ports_per_node as u64).to_le_bytes());
+        mix(
+            &mut hash,
+            &(self.config.max_ports_per_node as u64).to_le_bytes(),
+        );
         for node in &self.nodes {
             mix(&mut hash, &node.id.to_le_bytes());
             mix(&mut hash, &[node.generation]);
@@ -634,7 +718,10 @@ impl TetrahedralAssembly {
                 mix(&mut hash, &vertex.to_le_bytes());
             }
             mix(&mut hash, &[cell.generation]);
-            mix(&mut hash, &cell.parent_cell.unwrap_or(u32::MAX).to_le_bytes());
+            mix(
+                &mut hash,
+                &cell.parent_cell.unwrap_or(u32::MAX).to_le_bytes(),
+            );
             if let Some(face) = cell.attachment_face {
                 for vertex in face {
                     mix(&mut hash, &vertex.to_le_bytes());
@@ -696,9 +783,7 @@ mod tests {
         for cell in &assembly.cells {
             let [a, b, c, d] = cell.vertices;
             let points = [a, b, c, d].map(|id| assembly.nodes[id as usize].position);
-            for (left, right) in [
-                (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3),
-            ] {
+            for (left, right) in [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)] {
                 assert!((points[left].distance(points[right]) - edge).abs() < 1e-8);
             }
             if let Some(parent_id) = cell.parent_cell {
@@ -753,6 +838,9 @@ mod tests {
             min_port_separation_rad: f64::NAN,
             ..TetrahedralConfig::default()
         };
-        assert_eq!(config.validate(), Err(TetrahedralError::InvalidPortSeparation));
+        assert_eq!(
+            config.validate(),
+            Err(TetrahedralError::InvalidPortSeparation)
+        );
     }
 }
