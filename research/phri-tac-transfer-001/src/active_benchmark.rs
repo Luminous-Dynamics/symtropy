@@ -17,6 +17,8 @@ const STRATA: usize = 4;
 const CONTACTS_PER_STRATUM: usize = 4;
 const TARGET_BUDGET: usize = STRATA * CONTACTS_PER_STRATUM;
 const RIDGE: f64 = 1.0e-8;
+/// Synthetic-only primary/check reference agreement threshold; not a hardware tolerance.
+pub const SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N: f64 = 0.02;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Candidate {
