@@ -449,7 +449,14 @@ fn collect_adaptive_candidate_windows(
     }
 
     stats.candidate_window_count = candidates.len() as u32;
-    stats.candidate_time_fraction = candidates.iter().map(|window| window.width()).sum();
+    let candidate_time_fraction = candidates.iter().map(|window| window.width()).sum::<f64>();
+    // Rust's floating Sum identity can be negative zero for an empty iterator.
+    // Normalize it so receipts have one canonical representation for no candidates.
+    stats.candidate_time_fraction = if candidate_time_fraction == 0.0 {
+        0.0
+    } else {
+        candidate_time_fraction
+    };
     if !stats.candidate_time_fraction.is_finite() || stats.candidate_time_fraction > 1.0 + 1.0e-12 {
         return Err(TranslationCcdError::NumericalOverflow);
     }
@@ -635,6 +642,7 @@ mod tests {
         assert_eq!(report.stats.pruned_intervals, 2);
         assert_eq!(report.stats.exact_narrow_phase_calls, 0);
         assert_eq!(report.stats.candidate_time_fraction, 0.0);
+        assert!(!report.stats.candidate_time_fraction.is_sign_negative());
     }
 
     #[test]
