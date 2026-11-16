@@ -189,7 +189,10 @@ impl fmt::Display for EvidenceReceiptError {
             Self::EmptyReviewerKey => write!(f, "human reviewer key cannot be empty"),
             Self::EmptyReviewReason => write!(f, "human review reason code cannot be empty"),
             Self::InsufficientIndependentReviewers => {
-                write!(f, "independent adjudication requires at least two reviewers")
+                write!(
+                    f,
+                    "independent adjudication requires at least two reviewers"
+                )
             }
             Self::DuplicateReviewerKey => {
                 write!(f, "independent adjudication reviewer keys must be distinct")
@@ -431,7 +434,8 @@ impl ObservationEvidenceReceipt {
                 reviewers.sort_unstable();
                 push_u32(
                     &mut out,
-                    u32::try_from(reviewers.len()).map_err(|_| EvidenceReceiptError::StringTooLong)?,
+                    u32::try_from(reviewers.len())
+                        .map_err(|_| EvidenceReceiptError::StringTooLong)?,
                 );
                 for reviewer in reviewers {
                     push_string(&mut out, reviewer)?;
@@ -482,7 +486,11 @@ fn push_u64(out: &mut Vec<u8>, value: u64) {
 }
 
 fn push_f64(out: &mut Vec<u8>, value: f64) {
-    let bits = if value == 0.0 { 0.0_f64.to_bits() } else { value.to_bits() };
+    let bits = if value == 0.0 {
+        0.0_f64.to_bits()
+    } else {
+        value.to_bits()
+    };
     push_u64(out, bits);
 }
 
@@ -759,27 +767,25 @@ mod tests {
     #[test]
     fn independent_adjudication_requires_two_distinct_reviewers() {
         let mut item = receipt();
-        item.disposition = EvidenceDisposition::IndependentlyAdjudicated(
-            IndependentAdjudicationReceipt {
+        item.disposition =
+            EvidenceDisposition::IndependentlyAdjudicated(IndependentAdjudicationReceipt {
                 reviewer_keys: vec!["reviewer-a".to_owned()],
                 decision: HumanDecision::Confirmed,
                 reason_code: "continuity_confirmed".to_owned(),
                 reviewed_at_unix_ms: 2,
-            },
-        );
+            });
         assert_eq!(
             item.validate(),
             Err(EvidenceReceiptError::InsufficientIndependentReviewers)
         );
 
-        item.disposition = EvidenceDisposition::IndependentlyAdjudicated(
-            IndependentAdjudicationReceipt {
+        item.disposition =
+            EvidenceDisposition::IndependentlyAdjudicated(IndependentAdjudicationReceipt {
                 reviewer_keys: vec!["reviewer-a".to_owned(), "reviewer-a".to_owned()],
                 decision: HumanDecision::Confirmed,
                 reason_code: "continuity_confirmed".to_owned(),
                 reviewed_at_unix_ms: 2,
-            },
-        );
+            });
         assert_eq!(
             item.validate(),
             Err(EvidenceReceiptError::DuplicateReviewerKey)
@@ -789,23 +795,21 @@ mod tests {
     #[test]
     fn independent_adjudication_serialization_is_panel_order_independent() {
         let mut first = receipt();
-        first.disposition = EvidenceDisposition::IndependentlyAdjudicated(
-            IndependentAdjudicationReceipt {
+        first.disposition =
+            EvidenceDisposition::IndependentlyAdjudicated(IndependentAdjudicationReceipt {
                 reviewer_keys: vec!["reviewer-a".to_owned(), "reviewer-b".to_owned()],
                 decision: HumanDecision::Confirmed,
                 reason_code: "continuity_confirmed".to_owned(),
                 reviewed_at_unix_ms: 2,
-            },
-        );
+            });
         let mut second = first.clone();
-        second.disposition = EvidenceDisposition::IndependentlyAdjudicated(
-            IndependentAdjudicationReceipt {
+        second.disposition =
+            EvidenceDisposition::IndependentlyAdjudicated(IndependentAdjudicationReceipt {
                 reviewer_keys: vec!["reviewer-b".to_owned(), "reviewer-a".to_owned()],
                 decision: HumanDecision::Confirmed,
                 reason_code: "continuity_confirmed".to_owned(),
                 reviewed_at_unix_ms: 2,
-            },
-        );
+            });
         assert_eq!(
             first.canonical_bytes().unwrap(),
             second.canonical_bytes().unwrap()
