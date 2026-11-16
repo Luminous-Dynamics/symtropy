@@ -349,3 +349,16 @@ cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Ca
 ```
 
 Identical profile bytes, generator version, root seed and count must reproduce the exact canonical manifest digest across supported operating systems. The CI job also exports the lockfile and generated manifest separately for independent comparison.
+
+
+## 18. Commercial robotics comparison: fair baselines before superiority claims
+
+The companion `commercial-benchmark-crosswalk-v0.1.md` records the current published product and field-trial conditions for Dusty FieldPrinter 2, HP SitePrint and Built Robotics RPD35/RPS25. It separates vendor-declared test conditions from common-referee comparison and from boundary/degradation tests. It also aligns the programme with current NIST mobility/performance measurement work, AMRA-201:2026 and VDA 5050 v3.0.
+
+The key lesson is that a commercial robot's performance is a system: survey/control, CAD/VDC preparation, tracker/total-station setup, software, batteries, consumables, inspection, service and operator workflow all matter. A millimetre tolerance or nominal motor speed does not measure accepted output per workflow crew-hour.
+
+The comparison is not a claim that Luminous outperforms any named product. No Luminous physical robot has been tested against these vendors in this tranche. The first physical campaign must use a task-specific functional unit, independent referee and both:
+- reproduction of each product's declared conditions, where feasible; and
+- a common-referee matched track under conditions valid for both systems.
+
+Do not force a competitor outside its declared envelope to manufacture an apparent Luminous win. Report operating-envelope applicability and abstention separately from performance.
