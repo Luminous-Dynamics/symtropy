@@ -128,7 +128,7 @@ Use identical candidate designs, prior/ambiguity assumptions, available data, au
 - robust/minimax experimental design and distributionally robust design;
 - sequential OED / active learning with finite-horizon lookahead and model discrimination;
 - multi-fidelity EIG and budgeted multi-fidelity escalation;
-- batch active learning for reliability-based model validation and model-discrepancy active learning;
+- batch active learning for reliability-based model validation and model-discrepancy active learning, including the August 2026 mean-/quantile-misclassification acquisition functions and constrained qMC-Prob batch acquisition of Lämmle et al.;
 - the multi-fidelity admission/escalation lane in #4487.
 
 Recent specific comparators:
@@ -136,6 +136,7 @@ Recent specific comparators:
 - Go, Qian and Yoon, *Goal-driven Bayesian Optimal Experimental Design for Robust Decision-Making Under Model Uncertainty* (25 May 2026), which targets the downstream decision and model uncertainty rather than maximizing parameter information alone.
 - Zhong et al., *Goal-Oriented Bayesian Optimal Experimental Design for Nonlinear Models Using Markov Chain Monte Carlo*, SIAM/ASA Journal on Uncertainty Quantification 14(1), March 2026.
 - Barlas, Sloman and Kaski, *Robust Experimental Design via Generalised Bayesian Inference* (10 November 2025), introducing Gibbs expected information gain for resilience to outliers and incorrect noise likelihoods.
+- Lämmle et al., *Batch active learning for reliability-based model validation*, Reliability Engineering & System Safety 112631 (August 2026; DOI 10.1016/j.ress.2026.112631): two mean-/quantile-based misclassification acquisition functions, constrained batch qMC-Prob, and a stopping criterion based on misclassification probability. It is a direct Track W calibration/stopping comparator; Track V is a separate admissibility and Pareto-selection layer.
 
 Report:
 - decision-relevant uncertainty reduction per each separate cost dimension;
@@ -168,8 +169,6 @@ The selector implemented in this crate is not yet an OED optimizer and does not 
 - NASA-STD-7009B: requires validation-domain records and assessment of empirical data acquisition/processing with the same rigor as the model validation; intended-use acceptance criteria are set by the programme/project and approved by delegated technical authority.
 - NASA-HDBK-7009B (3 February 2026) is the companion implementation handbook, not a separate technical standard or a replacement for discipline-specific acceptance criteria.
 - NIST AMS 100-85 (5 October 2026) harmonizes ASME VVUQ with JCGM metrology and proposes risk-scaled credibility assessment based on model influence and decision consequence.
-- NIST AMS 100-85 (5 October 2026): harmonizes ASME VVUQ with JCGM metrology and argues that credibility effort should scale with model influence and decision consequence.
-- NASA-HDBK-7009B (2026-02-03): current implementation guidance accompanying NASA-STD-7009B.
 - AIAA R-154-2021: model-based reduction of flight testing and six engineering tasks.
 - ASTM F3705-25 / F3442-26: DAA test and performance comparison only for matched operating assumptions.
 - NASA NESC-RP-23-01853: cross-simulation comparison under common inputs can contribute to validation, while remaining distinct from empirical flight validation.
