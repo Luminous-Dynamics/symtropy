@@ -10,7 +10,7 @@ on:
       - ".github/workflows/aeroweift-model-requalification-oracle.yml"
   push:
     branches:
-      - "research/aeroweFt-model-evidence-requalification-001"
+      - "research/aeroweFt-model-evidence-requalification-*"
     paths:
       - "tools/aeroweift-model-requalification/**"
       - "docs/research/aviation/AEROWEFT_MODEL_EVIDENCE_REQUALIFICATION_001.md"
