@@ -55,6 +55,7 @@ struct SourceReceipt {
     provider: String,
     native_profile: String,
     source_identity: String,
+    source_path: String,
     source_byte_length: u64,
     source_sha256: String,
     retrieval_mode: String,
@@ -226,12 +227,14 @@ fn receipt(
     provider: &str,
     profile: &str,
     identity: &str,
+    source_path: &str,
     bytes: &[u8],
 ) -> SourceReceipt {
     SourceReceipt {
         provider: provider.to_owned(),
         native_profile: profile.to_owned(),
         source_identity: identity.to_owned(),
+        source_path: source_path.to_owned(),
         source_byte_length: bytes.len() as u64,
         source_sha256: hash(bytes),
         retrieval_mode: "SYNTHETIC_STATIC_FIXTURE".to_owned(),
@@ -370,8 +373,12 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         preserved_unmapped_attributes: Value::Object(preserved_unmapped_attributes.clone()),
     };
     let mut decisions = vec![
-        decision("DATACITE", "/data/id", Some("/native_view/doi"), MappingClass::ExactNative, None, "DOI identity preserved as native text; registration/resolution is not asserted."),
+        decision("DATACITE", "/data/id+/data/attributes/doi", Some("/native_view/doi"), MappingClass::ExactNative, None, "JSON:API id and DataCite doi are required to agree; registration/resolution is not asserted."),
         decision("DATACITE", "/data/attributes/titles/0/title", Some("/native_view/title"), MappingClass::ExactNative, None, "Title value copied without semantic reinterpretation."),
+        decision("DATACITE", "/data/attributes/creators", Some("/native_view/creators"), MappingClass::ExactNative, None, "Creator name and name type remain provider-native values."),
+        decision("DATACITE", "/data/attributes/publisher", Some("/native_view/publisher"), MappingClass::ExactNative, None, "Publisher string is preserved as supplied."),
+        decision("DATACITE", "/data/attributes/publicationYear", Some("/native_view/publication_year"), MappingClass::ExactNative, None, "Publication year remains an integer year."),
+        decision("DATACITE", "/data/attributes/types/resourceTypeGeneral", Some("/native_view/resource_type_general"), MappingClass::ExactNative, None, "DataCite controlled resource type remains separate from OGC record type."),
         decision("DATACITE", "/data/attributes/relatedIdentifiers", Some("/native_view/related_identifiers"), MappingClass::ExactNative, None, "Identifier type, value, relation type and relationTypeInformation remain distinct."),
         decision("DATACITE", "/data/attributes/rightsList", Some("/native_view/rights"), MappingClass::ExactNative, None, "Rights statement, URI null/unknown and language are preserved; no license grant is inferred."),
         decision("DATACITE", "/data/attributes/schemaVersion", Some("/native_view/schema_version_uri"), MappingClass::ExactNative, None, "Generic kernel-4 URI is retained; the 4.7 minor-version profile remains separate metadata."),
@@ -498,10 +505,18 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
     let decisions = vec![
         decision("OGC_API_RECORDS", "/id", Some("/native_view/record_id"), MappingClass::ExactNative, None, "Server-assigned catalog record identity remains a record ID, not a DOI or payload digest."),
         decision("OGC_API_RECORDS", "/conformsTo", Some("/native_view/conforms_to"), MappingClass::ExactNative, None, "Selected conformance classes remain explicit rather than being inferred from content."),
+        decision("OGC_API_RECORDS", "/properties/type", Some("/native_view/record_type"), MappingClass::ExactNative, None, "Catalog record type is distinct from DataCite resourceTypeGeneral."),
         decision("OGC_API_RECORDS", "/properties/title", Some("/native_view/title"), MappingClass::ExactNative, None, "Catalog title preserved as supplied."),
+        decision("OGC_API_RECORDS", "/properties/description", Some("/native_view/description"), MappingClass::ExactNative, None, "Catalog description is preserved as descriptive text, not payload content."),
+        decision("OGC_API_RECORDS", "/properties/created", Some("/native_view/created"), MappingClass::ExactNative, None, "Record creation timestamp preserved without timezone normalization."),
+        decision("OGC_API_RECORDS", "/properties/updated", Some("/native_view/updated"), MappingClass::ExactNative, None, "Record update timestamp preserved without timezone normalization."),
+        decision("OGC_API_RECORDS", "/properties/language", Some("/native_view/language"), MappingClass::ExactNative, None, "Primary metadata language is preserved."),
+        decision("OGC_API_RECORDS", "/properties/languages", Some("/native_view/languages"), MappingClass::ExactNative, None, "Additional metadata languages remain a list."),
+        decision("OGC_API_RECORDS", "/properties/keywords", Some("/native_view/keywords"), MappingClass::ExactNative, None, "Catalog keywords remain a list of terms."),
         decision("OGC_API_RECORDS", "/geometry", Some("/native_view/geometry"), MappingClass::ExactNative, None, "GeoJSON geometry remains a geometry object; it is not converted into a dataset payload."),
         decision("OGC_API_RECORDS", "/extent/spatial/bbox", Some("/native_view/spatial_extent/bbox"), MappingClass::NormalizedEquivalent, Some("E4-OGC-NUMERIC-BBOX-001"), "Numeric coordinates are represented as f64 values; CRS URI is preserved unchanged and no reprojection occurs."),
         decision("OGC_API_RECORDS", "/extent/spatial/crs", Some("/native_view/spatial_extent/crs_uri"), MappingClass::ExactNative, None, "CRS declaration remains an explicit URI, not an inferred coordinate system."),
+        decision("OGC_API_RECORDS", "/links", Some("/native_view/links"), MappingClass::ExactNative, None, "Self, collection and profile links retain their native relations and targets."),
         decision("OGC_API_RECORDS", "/properties/e3Extension", Some("/native_view/preserved_property_extensions"), MappingClass::PreservedRawOnly, None, "Foreign property extension remains native JSON and is not flattened."),
     ];
     for key in ["themes", "contacts", "providers"] {
@@ -622,6 +637,15 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
     let decisions = vec![
         decision("OPENLINEAGE", "/events/0/run/runId", Some("/native_view/run_id"), MappingClass::ExactNative, None, "Run ID identifies the synthetic E3 adapter-test execution only."),
         decision("OPENLINEAGE", "/events/0/job", Some("/native_view/job_namespace+job_name"), MappingClass::ExactNative, None, "Job namespace and name stay distinct from a dataset or DOI."),
+        decision("OPENLINEAGE", "/events/0/producer", Some("/native_view/producer_uri"), MappingClass::ExactNative, None, "Producer URI is kept distinct from the job and run identities."),
+        decision("OPENLINEAGE", "/events/0/schemaURL", Some("/native_view/run_event_schema_url"), MappingClass::ExactNative, None, "Exact OpenLineage schema URL is retained."),
+        decision("OPENLINEAGE", "/events/0/eventTime", Some("/native_view/start_event_time"), MappingClass::ExactNative, None, "START observation timestamp remains the exact source string."),
+        decision("OPENLINEAGE", "/events/1/eventTime", Some("/native_view/terminal_event_time"), MappingClass::ExactNative, None, "Terminal observation timestamp remains the exact source string."),
+        decision("OPENLINEAGE", "/events/0/inputs", Some("/native_view/inputs"), MappingClass::ExactNative, None, "Input dataset namespace and name remain distinct values."),
+        decision("OPENLINEAGE", "/events/0/outputs", Some("/native_view/outputs"), MappingClass::ExactNative, None, "Output dataset namespace and name remain distinct values."),
+        decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceE1AnalysisId", Some("/native_view/source_e1_analysis_id"), MappingClass::ExactNative, None, "E1 analysis identity is cross-checked against the exact E1 context receipt."),
+        decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceE1ExecutionStatus", Some("/native_view/source_e1_execution_status"), MappingClass::ExactNative, None, "E1 NOT_EXECUTED status is retained and is not converted into an E3 run state."),
+        decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceBinding", Some("/native_view/source_e1_relationship"), MappingClass::ExactNative, None, "Context-only relationship remains explicit."),
         decision("OPENLINEAGE", "/events/0/eventType+/events/1/eventType", Some("/native_view/terminal_event_type"), MappingClass::Derived, Some(TERMINAL_RULE), "Terminal state is derived from the observed event pair; it is not predicted and does not describe the E1 model run."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context", Some("/native_view/preserved_run_facets"), MappingClass::PreservedRawOnly, None, "Custom facet is retained as native facet JSON, including E1 NOT_EXECUTED context-only assertion."),
     ];
@@ -698,18 +722,21 @@ fn build_envelope_with_source_bytes(
                 "DATACITE",
                 "DataCite REST JSON:API / Metadata Schema 4.7 selected field profile",
                 &datacite_identity,
+                "datacite/doi-response.json",
                 source_bytes[0],
             ),
             receipt(
                 "OGC_API_RECORDS",
                 "OGC API - Records Part 1 Core 1.0 GeoJSON",
                 &ogc_identity,
+                "ogc/record-feature.json",
                 source_bytes[1],
             ),
             receipt(
                 "OPENLINEAGE",
                 "OpenLineage RunEvent 2.0.2",
                 &lineage_identity,
+                "openlineage/e3-run-events.json",
                 source_bytes[2],
             ),
         ],
@@ -818,7 +845,7 @@ mod tests {
         assert!(report.source_bytes_retained);
         assert_eq!(report.provider_count, 3);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_METADATA_ONLY");
-        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&12));
+        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&33));
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
         assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&10));
@@ -1140,6 +1167,7 @@ mod tests {
                 .expect("source receipt");
             assert_eq!(receipt.source_byte_length, bytes.len() as u64);
             assert_eq!(receipt.source_sha256, hash(bytes));
+            assert!(!receipt.source_path.is_empty());
         }
         assert!(roundtrip(&report).expect("report roundtrip"));
     }
