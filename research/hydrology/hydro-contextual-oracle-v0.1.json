@@ -510,6 +510,79 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-brier-skill-score-positive",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "PAIRED_BRIER_SKILL_AGAINST_DECLARED_REFERENCE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "sample_count": 5,
+        "event_count": 3,
+        "observed_event_frequency": 0.6,
+        "mean_forecast_probability": 0.51,
+        "mean_reference_probability": 0.6,
+        "brier_score": 0.0575,
+        "reference_brier_score": 0.24,
+        "brier_skill_score": 0.7604166666666666,
+        "skill_warning": "Always report raw forecast and reference Brier scores, event frequency, sample count and uncertainty. Brier skill can be difficult to interpret for rare events and must not be reported without its reference definition and event population."
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-score-negative",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "PAIRED_BRIER_SKILL_AGAINST_DECLARED_REFERENCE",
+        "event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "sample_count": 4,
+        "event_count": 2,
+        "observed_event_frequency": 0.5,
+        "mean_forecast_probability": 0.525,
+        "mean_reference_probability": 0.5,
+        "brier_score": 0.7675,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": -2.07,
+        "skill_warning": "Always report raw forecast and reference Brier scores, event frequency, sample count and uncertainty. Brier skill can be difficult to interpret for rare events and must not be reported without its reference definition and event population."
+      }
+    },
+    {
+      "case_id": "HC-T0-035-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "event_definition_id": "daily_flow_exceeds_2_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_2_m3_s",
+        "sample_count": 2,
+        "event_count": 1,
+        "observed_event_frequency": 0.5,
+        "mean_forecast_probability": 0.1,
+        "mean_reference_probability": 0.5,
+        "brier_score": 0.32,
+        "reference_brier_score": 0,
+        "brier_skill_score": null,
+        "skill_warning": "Always report raw forecast and reference Brier scores, event frequency, sample count and uncertainty. Brier skill can be difficult to interpret for rare events and must not be reported without its reference definition and event population."
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-event-definition-mismatch",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "reason": "REFERENCE_EVENT_DEFINITION_MISMATCH",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "sample_count": null,
+        "event_count": null,
+        "observed_event_frequency": null,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null
+      }
     }
   ]
 }
