@@ -1,0 +1,680 @@
+{
+  "schema_version": "robot-sensor-condition-state-corpus-v0.1",
+  "benchmark_id": "ROBOT-SENSOR-CONDITION-STATE-001",
+  "visibility": "public_synthetic_development",
+  "policy_id": "sensor-condition-evidence-policy-v0.1",
+  "cases": [
+    {
+      "case_id": "SCS-001",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "none",
+        "exposure_state": "stable",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-002",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "accumulating",
+        "severity_band": "low",
+        "aperture_impact": "localized",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "degraded",
+        "modality_quality": "degraded_within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-003",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "water_droplet",
+        "exposure_state": "accumulating",
+        "severity_band": "severe",
+        "aperture_impact": "obscured",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "fault",
+        "modality_quality": "outside_profile",
+        "cross_modal_consistency": "disagreement",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "fail",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-004",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "oil_film",
+        "exposure_state": "unknown",
+        "severity_band": "unknown",
+        "aperture_impact": "unknown",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "unknown",
+        "modality_quality": "unknown",
+        "cross_modal_consistency": "unknown",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "unknown",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-005",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "lidar",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "accumulating",
+        "severity_band": "moderate",
+        "aperture_impact": "sector_occluded",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "outside_profile",
+        "cross_modal_consistency": "disagreement",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "fail",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-006",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "cement_slurry",
+        "exposure_state": "accumulating",
+        "severity_band": "severe",
+        "aperture_impact": "obscured",
+        "common_cause_event_ref": "fixture://exposure/CROSS-MODAL-01"
+      },
+      "diagnostics": {
+        "self_diagnostic": "degraded",
+        "modality_quality": "outside_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": true
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "unknown",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-007",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "none",
+        "exposure_state": "stable",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "fail",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-008",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "cleaned_unverified",
+        "severity_band": "unknown",
+        "aperture_impact": "unknown",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "completed",
+        "maintenance_event_ref": "fixture://maintenance/CLEAN-08",
+        "post_clean_reference_state": "absent"
+      },
+      "reference_check": {
+        "status": "absent",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-009",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "expired",
+        "calibration_ref": "fixture://calibration/CAM-01/expired"
+      },
+      "condition": {
+        "contaminant_family": "water_droplet",
+        "exposure_state": "cleaned_unverified",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "completed",
+        "maintenance_event_ref": "fixture://maintenance/CLEAN-09",
+        "post_clean_reference_state": "pass"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-010",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-02",
+        "mount_revision": "MNT-B",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "missing",
+        "calibration_ref": null
+      },
+      "condition": {
+        "contaminant_family": "none",
+        "exposure_state": "stable",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-011",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "lidar",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "none",
+        "exposure_state": "stable",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": null,
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-012",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "cleaned_verified",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "completed",
+        "maintenance_event_ref": "fixture://maintenance/CLEAN-12",
+        "post_clean_reference_state": "pass"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-013",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "lidar",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "none",
+        "exposure_state": "stable",
+        "severity_band": "none",
+        "aperture_impact": "none",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "healthy",
+        "modality_quality": "within_profile",
+        "cross_modal_consistency": "disagreement",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "fail",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-014",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "accumulating",
+        "severity_band": "moderate",
+        "aperture_impact": "localized",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "degraded",
+        "modality_quality": "degraded_within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "operator_inspection",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-015",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "robot_self_diagnostic",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "dust",
+        "exposure_state": "accumulating",
+        "severity_band": "low",
+        "aperture_impact": "localized",
+        "common_cause_event_ref": null
+      },
+      "diagnostics": {
+        "self_diagnostic": "degraded",
+        "modality_quality": "degraded_within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "robot_self_diagnostic",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    },
+    {
+      "case_id": "SCS-016",
+      "description": "public synthetic sensor condition challenge",
+      "required_verifier_class": "reference_artifact",
+      "sensor": {
+        "sensor_id": "SENSOR-01",
+        "modality": "camera",
+        "serial": "CAM-01",
+        "mount_revision": "MNT-A",
+        "configuration_revision": "CFG-B",
+        "calibration_status": "current",
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
+      },
+      "condition": {
+        "contaminant_family": "mud",
+        "exposure_state": "accumulating",
+        "severity_band": "moderate",
+        "aperture_impact": "localized",
+        "common_cause_event_ref": "fixture://exposure/CROSS-MODAL-02"
+      },
+      "diagnostics": {
+        "self_diagnostic": "degraded",
+        "modality_quality": "degraded_within_profile",
+        "cross_modal_consistency": "consistent",
+        "cross_modal_independence_asserted": false
+      },
+      "intervention": {
+        "cleaning_state": "not_performed",
+        "maintenance_event_ref": null,
+        "post_clean_reference_state": "not_applicable"
+      },
+      "reference_check": {
+        "status": "pass",
+        "verifier_class": "reference_artifact",
+        "checked_sensor_serial": "CAM-01",
+        "checked_mount_revision": "MNT-A",
+        "checked_configuration_revision": "CFG-B",
+        "profile_ref": "fixture://sensor-profile/v0.1",
+        "raw_artifact_ref": "fixture://sensor-reference/raw",
+        "calibration_ref": "CAL-01"
+      }
+    }
+  ]
+}
