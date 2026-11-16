@@ -145,3 +145,24 @@ These external reports are valuable baselines, but they do not share a single fr
 **Tier 2 — diverse household garments**: shirts, trousers, jeans, blouses, knits, mixed piles/baskets, sizes, colours and textures. Proposed first target: >=99.5% accepted success in the frozen support envelope, <=2x skilled-human median time, and zero per-home adaptation on the held-out-home test. Stretch: >=99.9% and <=1x human P50, with broader transfer. This targets beyond the vendor-reported ACT-2 99.1% aggregate result; large enough sample sizes and confidence intervals are required to distinguish small percentage-point improvements.
 
 Do not pool Tier 1 and Tier 2 or use a towel result to claim household garment competence. Both tiers require identical garment cohorts and task definitions for robot/human comparison; preserve failures/timeouts, interventions, rework, damage, energy and availability.
+
+## 4A. Current robotics frontier and two-tier benchmark
+
+Epoch AI's February 2026 review identifies stronger commercial evidence than a household folding demo alone:
+
+- **DYNA-1 standardized textiles:** Epoch reports a 24-hour continuous run folding 850+ napkins at roughly 60% of human speed, 99.4% success and zero interventions. It also reports a Monster Laundry commercial deployment folding 200,000+ towels across 10 clients in three months with 99% quality acceptance. DYNA shirt folding is reported around 40 shirts/hour. Epoch explicitly limits the commercial evidence to relatively uniform items, not the full household clothing range.
+- **Sunday Robotics ACT-2 mixed household garments:** its July 2026 preview reports 99.1% zero-shot success over 785 attempts across nine garment types and unseen home environments, using one checkpoint and zero per-home adaptation. The vendor describes two-stage annotation and a fixed five-star quality rubric.
+- **Physical Intelligence demonstrations:** Epoch cites 95% success for T-shirts/shorts and 75% for jeans in separate demonstrations.
+
+References:
+- Epoch AI: https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026
+- DYNA Robotics: https://www.dyna.co/
+- Sunday ACT-2 preview: https://www.sunday.ai/blog/act-2-preview
+
+These reports are valuable external baselines, but do not share one frozen garment set, scoring rubric, timing protocol or independent test facility. Do not combine their percentages into one leaderboard.
+
+**Tier 1 — standardized commercial textiles:** napkins, towels, hospitality and workwear items with repeatable shapes, sizes and material classes. Proposed first target: >=99.5% accepted quality, >=0.8x skilled-human throughput, <=0.5 interventions per 100 items and zero lost/damaged textiles in the frozen challenge. Stretch: human-throughput parity or better with equal quality and service-life gates. This targets above DYNA's reported 99.4% / ~0.6x napkin baseline, with independent matched human controls required.
+
+**Tier 2 — diverse household garments:** shirts, trousers, jeans, blouses, knits, mixed piles/baskets, sizes, colours and textures. Proposed first target: >=99.5% accepted success in the frozen support envelope, <=2x skilled-human median time and zero per-home adaptation on the held-out-home test. Stretch: >=99.9% and <=1x human P50, with broader transfer. This targets beyond ACT-2's vendor-reported 99.1% aggregate result; sample size and confidence intervals must support any small percentage-point improvement.
+
+Do not pool Tier 1 and Tier 2 or use towel-folding evidence to claim household garment competence. Both tiers require identical garment cohorts and task definitions for robot/human comparisons, with failures/timeouts, interventions, rework, damage, energy and availability retained.
