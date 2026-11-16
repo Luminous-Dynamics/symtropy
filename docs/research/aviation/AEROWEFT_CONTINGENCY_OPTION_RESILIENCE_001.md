@@ -87,7 +87,7 @@ Every option names its critical dependency/failure domains. Any dependency known
 
 A profile may explicitly exempt unavoidable common platform dependencies from the option-diversity calculation. These exemptions never exempt the dependency from failed-domain rejection.
 
-The evaluator constructs a deterministic greedy witness of pairwise-independent admissible options. This is a **proven lower bound**, not a maximum independent set. Finding two disjoint options proves at least two; failing to find a sufficiently large witness does not prove a larger set is impossible.
+For up to the policy cap of 24 admissible options, the evaluator constructs an exact maximum pairwise-independent set using a deterministic branch-and-bound solver and lexicographic tie-breaking. Above the cap it returns a deterministic greedy witness, marks it non-exact and preserves only the lower-bound claim. Empty dependency sets after common-mode exemptions are never treated as independent.
 
 Consequently:
 - a witness meeting the required count can establish COVERED_WITH_REQUIRED_DIVERSITY;
@@ -126,7 +126,7 @@ The Rust suite includes:
 - partial/unknown option inventory and empty complete inventory;
 - mixed known failure plus unknown candidate;
 - explicit common-platform diversity exemption while preserving failed-domain rejection;
-- required diversity greater than the proven witness;
+- required diversity greater than the exact maximum or deterministic lower-bound witness;
 - option permutation invariance;
 - a greedy-order trap where a first-fit witness finds one option but the exact solver finds the two-option independent set;
 - options whose only dependencies are exempt common platform domains do not count as independent;
@@ -180,3 +180,6 @@ References:
 ## Claim ceiling
 
 A passing result proves only that supplied synthetic option/evidence declarations satisfy a frozen recoverability policy. It does not prove physical maneuverability, actual aircraft energy, real separation, ground-risk safety, route feasibility in an unmodeled environment, operational authorization, flight safety, certification or permission to execute a contingency.
+
+
+The current synthetic-first suite has **50 Rust test definitions**. The exact diversity solver is tested against a greedy-order trap, exempt-only dependencies, lexicographic ties, above-cap abstention and policy-cap rejection. All fixtures remain synthetic; the exact solver establishes graph-theoretic dependency diversity under supplied inventories, not physical independence or operational safety.
