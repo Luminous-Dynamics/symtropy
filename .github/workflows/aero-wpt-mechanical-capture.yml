@@ -1,0 +1,38 @@
+name: Aero WPT Mechanical Capture Envelope
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "research/aero-wpt-mechanical-capture-v0/**"
+      - "tools/aero-wpt-mechanical-capture/**"
+      - ".github/workflows/aero-wpt-mechanical-capture.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/aero-wpt-mechanical-capture-v0/**"
+      - "tools/aero-wpt-mechanical-capture/**"
+      - ".github/workflows/aero-wpt-mechanical-capture.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (cross-platform)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test capture-envelope validator
+        run: cargo test --locked --manifest-path tools/aero-wpt-mechanical-capture/Cargo.toml
+      - name: Evaluate complete capture map
+        run: cargo run --locked --manifest-path tools/aero-wpt-mechanical-capture/Cargo.toml -- research/aero-wpt-mechanical-capture-v0/complete-capture.tsv
+      - name: Evaluate mixed capture envelope
+        run: cargo run --locked --manifest-path tools/aero-wpt-mechanical-capture/Cargo.toml -- research/aero-wpt-mechanical-capture-v0/mixed-capture.tsv
+      - name: Evaluate out-of-domain negative control
+        run: cargo run --locked --manifest-path tools/aero-wpt-mechanical-capture/Cargo.toml -- research/aero-wpt-mechanical-capture-v0/out-of-domain.tsv
