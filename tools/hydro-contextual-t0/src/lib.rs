@@ -850,7 +850,24 @@ fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
     let observed = number(input, "observed")?;
     let model_members = numeric_array(input, "model_members")?;
     let reference_members = numeric_array(input, "reference_members")?;
+    let model_forecast_id = text(input, "model_forecast_id")?;
+    let reference_forecast_id = text(input, "reference_forecast_id")?;
+    let verification_population_id = text(input, "verification_population_id")?;
+    let lead_time_hours = number(input, "lead_time_hours")?;
     let tolerance = number(input, "denominator_tolerance")?;
+    if model_forecast_id == reference_forecast_id || lead_time_hours < 0.0 {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "INVALID_FORECAST_REFERENCE_IDENTITY_OR_LEAD",
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
+            "model_crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
     if tolerance < 0.0 {
         return Err("denominator_tolerance must be non-negative".to_owned());
     }
@@ -863,6 +880,10 @@ fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
             "reason": "NEGATIVE_STREAMFLOW_VALUE",
             "model_member_count": model_members.len(),
             "reference_member_count": reference_members.len(),
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
             "observed": observed,
             "model_crps": null,
             "reference_crps": null,
@@ -890,6 +911,10 @@ fn ensemble_crps_skill(input: &Value) -> Result<Value, String> {
             "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
             "model_member_count": model_members.len(),
             "reference_member_count": reference_members.len(),
+            "model_forecast_id": model_forecast_id,
+            "reference_forecast_id": reference_forecast_id,
+            "verification_population_id": verification_population_id,
+            "lead_time_hours": lead_time_hours,
             "observed": observed,
             "model_crps": model_crps,
             "reference_crps": reference_crps,
