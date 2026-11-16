@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-stage-catalog:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 stage catalog v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "stages"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-stage-catalog-v0.1"
+    },
+    "stages": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stage_id",
+          "name",
+          "description",
+          "order"
+        ],
+        "properties": {
+          "stage_id": {
+            "type": "string",
+            "pattern": "^S[0-9]{2}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}
