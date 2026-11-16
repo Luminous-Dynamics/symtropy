@@ -1498,7 +1498,6 @@ fn model_family_pair_sampling_unit_must_match_distinct_qualified_group_pairs() {
     );
 }
 
-
 #[test]
 fn gate_receipt_must_match_policy_pinned_issuer_namespace() {
     let frozen = policy();
@@ -1510,7 +1509,9 @@ fn gate_receipt_must_match_policy_pinned_issuer_namespace() {
         .unwrap();
     receipt.issuer_id = "untrusted-arbitrary-issuer".into();
     let result = select_experiments(&[candidate], &frozen).unwrap();
-    assert!(reason(&result, "wrong-gate-issuer").contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "wrong-gate-issuer").contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
 
 #[test]
@@ -1518,14 +1519,22 @@ fn gate_receipt_payload_must_have_exact_candidate_reference() {
     let mut candidate = candidate("missing-gate-reference");
     candidate.safety_gate_receipt_sha256 = None;
     let result = select_experiments(&[candidate], &policy()).unwrap();
-    assert!(reason(&result, "missing-gate-reference").contains(&RejectionReason::InvalidEvidenceBinding));
-    assert!(reason(&result, "missing-gate-reference").contains(&RejectionReason::MissingEvidenceReceipt));
+    assert!(
+        reason(&result, "missing-gate-reference")
+            .contains(&RejectionReason::InvalidEvidenceBinding)
+    );
+    assert!(
+        reason(&result, "missing-gate-reference")
+            .contains(&RejectionReason::MissingEvidenceReceipt)
+    );
 }
 
 #[test]
 fn policy_must_pin_all_five_gate_issuer_namespaces() {
     let mut frozen = policy();
-    frozen.expected_gate_issuer_ids.remove(&GateEvidenceRole::Envelope);
+    frozen
+        .expected_gate_issuer_ids
+        .remove(&GateEvidenceRole::Envelope);
     assert_eq!(
         select_experiments(&[candidate("missing-issuer-policy")], &frozen),
         Err(aeroweift_experiment_design::DesignError::InvalidPolicy)
