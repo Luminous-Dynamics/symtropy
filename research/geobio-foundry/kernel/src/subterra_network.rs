@@ -640,7 +640,7 @@ mod tests {
         ]);
 
         assert!(graph.validate().unwrap_err().contains(
-            &NetworkError::DemonstratedTraversalWithoutConfirmedConnection(
+            &NetworkError::ContradictedConnectionMarkedTraversable(
                 "contradicted-edge".to_string()
             )
         ));
