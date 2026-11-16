@@ -21,6 +21,8 @@ The follow-on capsule module represents a stationary capsule as a finite 3D cent
 
 This is not a rotating capsule, an articulated link sweep or a general mesh CCD implementation.
 
+The translating-capsule child adds bounded continuous distance for a rigid capsule translated linearly without rotation against a stationary capsule. It minimizes the squared distance over translation time and both finite centerline parameters in the unit cube by enumerating the 27 active/free states of the convex quadratic. It returns the closest time and both closest-axis parameters. Exactly singular free faces are covered by their lower-dimensional boundaries. A nonzero free-face pivot below the relative conditioning threshold (1e-12 of the largest matrix coefficient) returns `NumericallyUnresolved`; callers must not convert that result into a clear verdict. Endpoint-only and swept-AABB baselines remain separate methods. This is not rotating-capsule CCD or articulated-link kinematics; see [#5395](https://github.com/Luminous-Dynamics/symtropy/issues/5395).
+
 ## Current synthetic corpus
 
 The machine-readable fixture contains 12 explicit geometry cases with path endpoints/arc parameters, body and obstacle radii, all seven per-axis margin channels, expected analytic/endpoints/chord/physical/stopping/coordination outcomes, primitive-manifest completeness, and six controlled mutations. All current cases are development cases; there is no claim of a statistically sufficient held-out corpus yet. See schema/oracle-corpus-v0.1.schema.json. Adapter results use schema/adapter-result-v0.1.schema.json.
@@ -34,9 +36,10 @@ The Rust unit suite includes:
 - separation of physical collision from stopping/policy overlap;
 - uncertainty monotonicity;
 - uniform-scale collision invariance;
-- capsule transverse hit, parallel near miss, exact tangency, skew/parallel/collinear/degenerate segments, endpoint clamping, broad-phase false positive, and capsule rigid-transform/scale invariance.
+- capsule transverse hit, parallel near miss, exact tangency, skew/parallel/collinear/degenerate segments, endpoint clamping, broad-phase false positive, and capsule rigid-transform/scale invariance;
+- translating-capsule contact between clear endpoints, separated parallel axes, exact tangency, skew 3D axes, zero translation, degenerate axes, endpoint-clamped optimum, AABB false positive, rigid-transform/scale invariance, invalid input and deterministic generated one-sided sampling controls.
 
-All values are synthetic and expressed in millimetres. The upper semicircle is planar, has a fixed z coordinate and covers exactly 180 degrees. The linear reference is piecewise straight. The sphere oracle does not prove general articulated-robot containment or arbitrary mesh swept volumes. The capsule extension covers moving sphere versus stationary capsule only.
+All values are synthetic and expressed in millimetres. The upper semicircle is planar, has a fixed z coordinate and covers exactly 180 degrees. The linear reference is piecewise straight. The sphere oracle does not prove general articulated-robot containment or arbitrary mesh swept volumes. The capsule extension covers moving sphere versus stationary capsule and fixed-orientation linearly translating capsule versus stationary capsule. It does not cover rotation, articulated motion or general mesh CCD.
 
 ## Industry differential adapters
 
@@ -59,3 +62,19 @@ See docs/differential-adapter-contract.md.
 ## Claim ceiling
 
 Passing tests establish only the implemented mathematics for the declared line and planar semicircle families and the adapter's tested structural behavior. They do not establish arbitrary continuous collision detection, physical robot model accuracy, localization/tracking/stopping truth, safe separation, construction productivity, standards conformity or vendor interoperability.
+
+## Co-translating capsule CCD
+
+The co-translation extension handles two rigid fixed-orientation capsules that each translate linearly over one shared normalized time interval. It reduces the pair to relative translation `moving_delta - obstacle_delta` and reuses the three-variable convex active-set oracle. Closest points are reconstructed in world coordinates.
+
+It separates synchronized continuous narrow-phase distance/contact, endpoint-only synchronized baseline, and union-of-swept-AABBs broad-phase candidate (which may overlap even when the bodies never meet at the same common time).
+
+Tests cover head-on mid-interval contact with clear endpoints, equal-velocity co-motion, unequal same-direction velocities, tangency, swept-AABB false positive, skew 3D axes, swapping symmetry, rigid transforms, scaling, invalid inputs and deterministic dense-sampling sanity checks.
+
+This is not arbitrary continuous-to-continuous collision checking: both bodies must retain fixed orientation and share the same time parameter. Rotation, joint-space interpolation, articulated robots, deformable geometry, asynchronous clocks and physical safety are outside this API. See [#5453](https://github.com/Luminous-Dynamics/symtropy/issues/5453).
+
+### Time-coherent broad phase
+
+For two translating capsules, the full swept-AABB union ignores whether the bodies occupy overlapping coordinates at the same time. The new dyadic time-sliced candidate query partitions the shared normalized interval and computes a conservative swept AABB for each body within each slab. It returns the number of candidate slabs, not a collision verdict. Narrow phase remains mandatory for positive candidates.
+
+The construction invariant is one-sided: if the exact synchronized continuous narrow phase reports contact, at least one slab must remain a candidate for any positive subdivision count. For nested 1, 2, 4, 8, ... refinements, candidate time fraction is non-increasing; raw candidate slab count may increase when parent slabs split. More subdivisions tighten broad-phase selectivity but cost more tests; benchmark both cost and candidate reduction. This is still an AABB broad phase, not a safety guarantee or exact dynamic collision result.
