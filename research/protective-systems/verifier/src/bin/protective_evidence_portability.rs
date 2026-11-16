@@ -240,7 +240,9 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         "RO-Crate root.publisher",
     )? != "#synthetic-provider"
     {
-        return Err("RO-Crate root.publisher must reference the declared synthetic provider".to_owned());
+        return Err(
+            "RO-Crate root.publisher must reference the declared synthetic provider".to_owned(),
+        );
     }
     require_type(
         crate_entities
@@ -266,7 +268,9 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         }
     }
     if part_ids != expected_parts {
-        return Err("RO-Crate root.hasPart does not exactly match the frozen artifact inventory".to_owned());
+        return Err(
+            "RO-Crate root.hasPart does not exactly match the frozen artifact inventory".to_owned(),
+        );
     }
     let file_ids: BTreeSet<String> = crate_entities
         .iter()
@@ -274,7 +278,10 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .map(|(id, _)| id.clone())
         .collect();
     if file_ids != expected_parts {
-        return Err("RO-Crate File entity inventory does not exactly match the root data entity inventory".to_owned());
+        return Err(
+            "RO-Crate File entity inventory does not exactly match the root data entity inventory"
+                .to_owned(),
+        );
     }
 
     let mut verified_artifacts = 0usize;
@@ -348,7 +355,10 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
 
     let prov_entities = unique_graph(&prov_root, "PROV-O")?;
     if prov_entities.len() != 6 {
-        return Err(format!("E2 sparse fixture requires six PROV nodes, found {}", prov_entities.len()));
+        return Err(format!(
+            "E2 sparse fixture requires six PROV nodes, found {}",
+            prov_entities.len()
+        ));
     }
 
     let activity = prov_entities
@@ -413,11 +423,15 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
     if reference_id(
         prov_entities[OUTPUT_WATER]
             .get("prov:wasDerivedFrom")
-            .ok_or_else(|| "water-service output lacks its one provider-declared derivation".to_owned())?,
+            .ok_or_else(|| {
+                "water-service output lacks its one provider-declared derivation".to_owned()
+            })?,
         "output-water.prov:wasDerivedFrom",
     )? != INPUT_WATER
     {
-        return Err("water-service output derivation differs from the sparse provider declaration".to_owned());
+        return Err(
+            "water-service output derivation differs from the sparse provider declaration".to_owned(),
+        );
     }
     if prov_entities[OUTPUT_CLINIC].get("prov:wasDerivedFrom").is_some() {
         return Err("clinic-access output must not gain an undeclared derivation edge".to_owned());
@@ -427,7 +441,9 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .filter(|entity| entity.get("prov:wasDerivedFrom").is_some())
         .count();
     if derivation_count != 1 {
-        return Err(format!("exactly one provider-declared derivation is allowed, found {derivation_count}"));
+        return Err(format!(
+            "exactly one provider-declared derivation is allowed, found {derivation_count}"
+        ));
     }
 
     let generation_edge_count = prov_entities
@@ -453,7 +469,9 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .filter(|value| entity_type(value) == Some("prov:Agent"))
         .count();
     if entity_count != 4 || activity_count != 1 || agent_count != 1 {
-        return Err("PROV-O node-type inventory differs from the E2 sparse graph contract".to_owned());
+        return Err(
+            "PROV-O node-type inventory differs from the E2 sparse graph contract".to_owned(),
+        );
     }
 
     Ok(GateReport {
