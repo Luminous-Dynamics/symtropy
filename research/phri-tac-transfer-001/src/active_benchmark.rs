@@ -28,6 +28,9 @@ pub const SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N: [f64; 6] = [0.0, 2.0, 4.0, 6.0, 
 pub const SYNTHETIC_EXPECTED_CONDITION_COUNT: usize = 12;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
+type ConditionKey = (u64, u64, u64);
+type ConditionGroup<'a> = (ConditionKey, Vec<&'a Candidate>);
+
 pub struct ResponseObservabilityReport {
     pub accepted: bool,
     pub condition_count: usize,
@@ -49,7 +52,7 @@ pub struct ResponseObservabilityReport {
 ///
 /// This synthetic guard is not a general observability proof and must not be
 /// presented as a calibrated force-range certificate.
-pub fn response_observability_check(
+fn response_observability_check(
     candidates: &[Candidate],
     required_force_setpoints_n: &[f64],
     raw_response_resolution: f64,
@@ -64,7 +67,7 @@ pub fn response_observability_check(
         return Err("observability check requires candidates, an increasing finite force manifest and a finite nonnegative response resolution".to_owned());
     }
 
-    let mut conditions: Vec<((u64, u64, u64), Vec<&Candidate>)> = Vec::new();
+    let mut conditions: Vec<ConditionGroup<'_>> = Vec::new();
     let mut maximum_force = f64::NEG_INFINITY;
     for candidate in candidates {
         if !candidate.force_setpoint_n.is_finite()
