@@ -48,8 +48,9 @@ The implication is not “build one giant Symtropy solver.” It is “make the 
 | Energy system twin | Symtropy #3400 | Consume the system-level traces and service boundary |
 | GIC and transformer dynamic response | Symtropy #4461 / #4528 | Preserve their quasi-DC and transformer-specific validity boundaries |
 | Network import / DC flow / OPF | Sol-Atlas #871 / #874 / #876 / #882 / #888 / #891 / #900 | Consume exact source-bound network evidence; static network results do not qualify dynamic response |
+| Grid electrical equipment manufacturing | Symthaea #5968 GRID-MFG-000 | Qualify conductor, insulation, core/winding, transformer, panel, inspection, repair and remanufacturing evidence; not grid-control authority |
 | Search and experiment choice | Symthaea #10119 / #10143 / #10151 and relevant research owners | Generate candidate studies and rank experiments; never self-certify |
-| Provenance / authorization | Mycelix identity, supply-chain and manufacturing owners | Bind source, material, asset and review provenance; signatures are not proof of physical truth |
+| Provenance / authorization | Mycelix #5149 construction provenance/approval, #5228 process-run evidence, #6052 battery passport lineage, plus identity/trust owners | Bind source, material, asset, calibration and review provenance; signatures are not proof of physical truth |
 
 The public Symtropy mainline remains centered on the N-dimensional rigid-body core and existing EM/physics owners. A separate `symtropy-energy-systems` crate is proposed in draft PR #3401, with compatibility and ServiceGraph work stacked in draft PRs #5182 and #5188; those branches are not yet merged into mainline. This proposal composes with that crate and its typed ports rather than creating a competing power crate. Keep electrical-network and specialist field solvers outside the rigid-body core.
 
