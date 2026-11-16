@@ -224,7 +224,9 @@ fn complete_energy_kwh(
         || energy.meter_mode != "non_overlapping_grid_side_meters"
         || energy.meter_calibration_status != "synthetic_declared"
     {
-        blocked.push("grid-side energy boundary, meter mode or calibration status is incomplete".to_owned());
+        blocked.push(
+            "grid-side energy boundary, meter mode or calibration status is incomplete".to_owned(),
+        );
         return None;
     }
     if energy.meters.is_empty() || energy.required_roles.is_empty() {
@@ -241,7 +243,8 @@ fn complete_energy_kwh(
             || !non_empty(&meter.role)
             || !roles.insert(meter.role.as_str())
         {
-            rejected.push("energy meter identity or subsystem role is empty or duplicated".to_owned());
+            rejected
+                .push("energy meter identity or subsystem role is empty or duplicated".to_owned());
         }
         if !valid_nonnegative(meter.energy_kwh) {
             rejected.push("energy meter reading is non-finite or negative".to_owned());
@@ -251,11 +254,18 @@ fn complete_energy_kwh(
     }
 
     let mut required = BTreeSet::new();
-    if energy.required_roles.iter().any(|role| !non_empty(role) || !required.insert(role.as_str())) {
+    if energy
+        .required_roles
+        .iter()
+        .any(|role| !non_empty(role) || !required.insert(role.as_str()))
+    {
         rejected.push("required energy roles are empty or duplicated".to_owned());
     }
     if required != roles {
-        blocked.push("grid energy boundary does not contain exactly one meter for every required role".to_owned());
+        blocked.push(
+            "grid energy boundary does not contain exactly one meter for every required role"
+                .to_owned(),
+        );
     }
     if !total.is_finite() || total <= 0.0 {
         rejected.push("total grid energy must be finite and positive".to_owned());
@@ -281,7 +291,9 @@ fn validate_dynamic_service(
         {
             rejected.push("diagnostic/proxy response cannot be promoted to accepted-H2 customer delivery response".to_owned());
         } else {
-            blocked.push("dynamic response is not measured at the accepted-H2 customer boundary".to_owned());
+            blocked.push(
+                "dynamic response is not measured at the accepted-H2 customer boundary".to_owned(),
+            );
         }
         return None;
     }
@@ -291,7 +303,10 @@ fn validate_dynamic_service(
         dynamic.product_flow_measurement_ref.as_deref(),
         dynamic.customer_boundary_ref.as_deref(),
     ];
-    if refs.iter().any(|value| value.is_none_or(|item| !non_empty(item))) {
+    if refs
+        .iter()
+        .any(|value| value.is_none_or(|item| !non_empty(item)))
+    {
         blocked.push("dynamic response lacks synchronized clock, product-flow measurement or customer-boundary identity".to_owned());
     }
 
@@ -306,7 +321,10 @@ fn validate_dynamic_service(
         dynamic.customer_delivery_settled_ms,
     ];
     if raw_times.iter().any(Option::is_none) {
-        blocked.push("dynamic response is missing one or more command-to-customer event timestamps".to_owned());
+        blocked.push(
+            "dynamic response is missing one or more command-to-customer event timestamps"
+                .to_owned(),
+        );
         return None;
     }
     let times: Vec<f64> = raw_times.into_iter().flatten().collect();
@@ -334,16 +352,23 @@ fn validate_dynamic_service(
                 && offspec >= 0.0 =>
         {
             if purity < product.minimum_transient_purity_fraction {
-                rejected.push("transient H2 purity falls below the accepted service contract".to_owned());
+                rejected.push(
+                    "transient H2 purity falls below the accepted service contract".to_owned(),
+                );
             }
             if overshoot > product.maximum_flow_overshoot_fraction {
-                rejected.push("customer-boundary H2 flow overshoot exceeds product contract".to_owned());
+                rejected.push(
+                    "customer-boundary H2 flow overshoot exceeds product contract".to_owned(),
+                );
             }
             if offspec > product.maximum_offspec_duration_ms {
                 rejected.push("off-spec H2 duration exceeds product contract".to_owned());
             }
         }
-        _ => blocked.push("dynamic response lacks valid transient purity, flow overshoot or off-spec duration".to_owned()),
+        _ => blocked.push(
+            "dynamic response lacks valid transient purity, flow overshoot or off-spec duration"
+                .to_owned(),
+        ),
     }
 
     Some(times[7] - times[0])
@@ -382,7 +407,8 @@ fn evaluate_scenario(
         rejected.push("this evaluator accepts synthetic scenarios only".to_owned());
     }
     if scenario.product.contract_id != scenario.product_contract_id {
-        rejected.push("scenario product-contract identity does not match product record".to_owned());
+        rejected
+            .push("scenario product-contract identity does not match product record".to_owned());
     }
 
     match (
@@ -393,52 +419,71 @@ fn evaluate_scenario(
         (Some(case_id), Some(point_id)) => {
             if let Some(source) = source_registry.get(case_id) {
                 if source.route_id != scenario.route_id {
-                    rejected.push("source case route identity does not match scenario route".to_owned());
+                    rejected.push(
+                        "source case route identity does not match scenario route".to_owned(),
+                    );
                 }
-                if !source.allowed_operating_point_ids.iter().any(|value| value == point_id) {
-                    rejected.push("source operating-point identity is not registered for source case".to_owned());
+                if !source
+                    .allowed_operating_point_ids
+                    .iter()
+                    .any(|value| value == point_id)
+                {
+                    rejected.push(
+                        "source operating-point identity is not registered for source case"
+                            .to_owned(),
+                    );
                 }
             } else {
                 rejected.push("scenario references an unknown source case".to_owned());
             }
         }
-        _ => blocked.push("source case and source operating-point identities must be supplied together".to_owned()),
+        _ => blocked.push(
+            "source case and source operating-point identities must be supplied together"
+                .to_owned(),
+        ),
     }
 
-    if scenario.feed.unknown_streams.iter().any(|value| !non_empty(value))
-        || !scenario.feed.unknown_streams.is_empty()
-        || scenario.feed.nh3_input_mass_g.is_none()
-        || scenario.feed.nh3_reacted_mass_g.is_none()
-        || scenario.feed.nh3_recovered_mass_g.is_none()
-        || scenario.feed.nh3_purge_mass_g.is_none()
-        || scenario.feed.nh3_slip_mass_g.is_none()
-    {
+    if !scenario.feed.unknown_streams.is_empty() {
         blocked.push("NH3 feed, reacted, recovered, purge or slip stream is unknown".to_owned());
     } else if !scenario.feed.tolerance_g.is_finite() || scenario.feed.tolerance_g < 0.0 {
         rejected.push("NH3 balance tolerance is invalid".to_owned());
     } else {
-        let input = scenario.feed.nh3_input_mass_g.unwrap();
-        let reacted = scenario.feed.nh3_reacted_mass_g.unwrap();
-        let recovered = scenario.feed.nh3_recovered_mass_g.unwrap();
-        let purge = scenario.feed.nh3_purge_mass_g.unwrap();
-        let slip = scenario.feed.nh3_slip_mass_g.unwrap();
-        if [input, reacted, recovered, purge, slip].iter().any(|value| !valid_nonnegative(*value)) || input <= 0.0 {
-            rejected.push("NH3 ledger contains non-finite/negative mass or zero feed".to_owned());
-        } else {
-            let residual = input - reacted - recovered - purge - slip;
-            nh3_balance_residual_g = Some(residual);
-            if residual.abs() > scenario.feed.tolerance_g {
-                rejected.push("NH3 feed/reaction/recovery/purge/slip balance does not close".to_owned());
-            }
-            if let Some(reported) = scenario.feed.reported_conversion_fraction {
-                let actual = reacted / input;
-                if !reported.is_finite()
-                    || !(0.0..=1.0).contains(&reported)
-                    || !close_enough(actual, reported, 1.0e-6)
+        match (
+            scenario.feed.nh3_input_mass_g,
+            scenario.feed.nh3_reacted_mass_g,
+            scenario.feed.nh3_recovered_mass_g,
+            scenario.feed.nh3_purge_mass_g,
+            scenario.feed.nh3_slip_mass_g,
+        ) {
+            (Some(input), Some(reacted), Some(recovered), Some(purge), Some(slip)) => {
+                if [input, reacted, recovered, purge, slip]
+                    .iter()
+                    .any(|value| !valid_nonnegative(*value))
+                    || input <= 0.0
                 {
-                    rejected.push("reported NH3 conversion does not match feed ledger".to_owned());
+                    rejected.push("NH3 ledger contains non-finite/negative mass or zero feed".to_owned());
+                } else {
+                    let residual = input - reacted - recovered - purge - slip;
+                    nh3_balance_residual_g = Some(residual);
+                    if residual.abs() > scenario.feed.tolerance_g {
+                        rejected.push(
+                            "NH3 feed/reaction/recovery/purge/slip balance does not close".to_owned(),
+                        );
+                    }
+                    if let Some(reported) = scenario.feed.reported_conversion_fraction {
+                        let actual = reacted / input;
+                        if !reported.is_finite()
+                            || !(0.0..=1.0).contains(&reported)
+                            || !close_enough(actual, reported, 1.0e-6)
+                        {
+                            rejected.push("reported NH3 conversion does not match feed ledger".to_owned());
+                        }
+                    }
                 }
             }
+            _ => blocked.push(
+                "NH3 feed, reacted, recovered, purge or slip stream is unknown".to_owned(),
+            ),
         }
     }
 
@@ -460,7 +505,10 @@ fn evaluate_scenario(
             if !close_enough(h2, expected_h2, scenario.feed.tolerance_g)
                 || !close_enough(n2, expected_n2, scenario.feed.tolerance_g)
             {
-                rejected.push("reported H2/N2 generation does not match NH3 decomposition stoichiometry".to_owned());
+                rejected.push(
+                    "reported H2/N2 generation does not match NH3 decomposition stoichiometry"
+                        .to_owned(),
+                );
             }
         }
         _ => blocked.push("reaction H2 or N2 generation is unknown".to_owned()),
@@ -473,15 +521,20 @@ fn evaluate_scenario(
         scenario.separation.h2_unrecovered_mass_g,
     ) {
         (Some(generated), Some(accepted), Some(rejected_h2), Some(unrecovered))
-            if [generated, accepted, rejected_h2, unrecovered].iter().all(|value| valid_nonnegative(*value)) =>
+            if [generated, accepted, rejected_h2, unrecovered]
+                .iter()
+                .all(|value| valid_nonnegative(*value)) =>
         {
             let residual = generated - accepted - rejected_h2 - unrecovered;
             h2_separation_residual_g = Some(residual);
             if residual.abs() > scenario.separation.tolerance_g {
-                rejected.push("H2 generation/separation/rejection/loss balance does not close".to_owned());
+                rejected.push(
+                    "H2 generation/separation/rejection/loss balance does not close".to_owned(),
+                );
             }
         }
-        _ => blocked.push("H2 generated, accepted, rejected or unrecovered stream is unknown".to_owned()),
+        _ => blocked
+            .push("H2 generated, accepted, rejected or unrecovered stream is unknown".to_owned()),
     }
 
     match (
@@ -490,7 +543,9 @@ fn evaluate_scenario(
         scenario.separation.n2_purge_mass_g,
     ) {
         (Some(generated), Some(recovered), Some(purge))
-            if [generated, recovered, purge].iter().all(|value| valid_nonnegative(*value)) =>
+            if [generated, recovered, purge]
+                .iter()
+                .all(|value| valid_nonnegative(*value)) =>
         {
             let residual = generated - recovered - purge;
             n2_separation_residual_g = Some(residual);
@@ -506,7 +561,9 @@ fn evaluate_scenario(
 
     let total_energy_kwh = complete_energy_kwh(&scenario.energy, &mut blocked, &mut rejected);
     if scenario.energy.boundary_id != scenario.energy_boundary_id {
-        rejected.push("scenario energy-boundary identity does not match energy meter ledger".to_owned());
+        rejected.push(
+            "scenario energy-boundary identity does not match energy meter ledger".to_owned(),
+        );
     }
 
     match (
@@ -561,9 +618,17 @@ fn evaluate_scenario(
     if scenario.dynamic_service_claimed {
         match &scenario.dynamic_service {
             Some(dynamic) => {
-                customer_delivery_settling_ms = validate_dynamic_service(dynamic, &scenario.product, &mut blocked, &mut rejected);
+                customer_delivery_settling_ms = validate_dynamic_service(
+                    dynamic,
+                    &scenario.product,
+                    &mut blocked,
+                    &mut rejected,
+                );
             }
-            None => blocked.push("dynamic accepted-H2 service is claimed without customer-boundary event trace".to_owned()),
+            None => blocked.push(
+                "dynamic accepted-H2 service is claimed without customer-boundary event trace"
+                    .to_owned(),
+            ),
         }
     }
 
@@ -631,9 +696,15 @@ fn evaluate_comparison(
             id: comparison.id.clone(),
             disposition: "NOT_COMPARABLE".to_owned(),
             expected_disposition: comparison.expected_disposition.clone(),
-            reasons: vec!["feed, accepted-product, grid-energy or duty-cycle contracts differ".to_owned()],
-            candidate_specific_energy_kwh_per_kg: candidate.result.accepted_h2_specific_energy_kwh_per_kg,
-            reference_specific_energy_kwh_per_kg: reference.result.accepted_h2_specific_energy_kwh_per_kg,
+            reasons: vec![
+                "feed, accepted-product, grid-energy or duty-cycle contracts differ".to_owned(),
+            ],
+            candidate_specific_energy_kwh_per_kg: candidate
+                .result
+                .accepted_h2_specific_energy_kwh_per_kg,
+            reference_specific_energy_kwh_per_kg: reference
+                .result
+                .accepted_h2_specific_energy_kwh_per_kg,
             candidate_vs_reference_energy_delta_fraction: None,
         };
     }
@@ -645,15 +716,21 @@ fn evaluate_comparison(
             disposition: "BLOCKED".to_owned(),
             expected_disposition: comparison.expected_disposition.clone(),
             reasons: vec!["both scenarios must independently pass before comparison".to_owned()],
-            candidate_specific_energy_kwh_per_kg: candidate.result.accepted_h2_specific_energy_kwh_per_kg,
-            reference_specific_energy_kwh_per_kg: reference.result.accepted_h2_specific_energy_kwh_per_kg,
+            candidate_specific_energy_kwh_per_kg: candidate
+                .result
+                .accepted_h2_specific_energy_kwh_per_kg,
+            reference_specific_energy_kwh_per_kg: reference
+                .result
+                .accepted_h2_specific_energy_kwh_per_kg,
             candidate_vs_reference_energy_delta_fraction: None,
         };
     }
     let candidate_energy = candidate.result.accepted_h2_specific_energy_kwh_per_kg;
     let reference_energy = reference.result.accepted_h2_specific_energy_kwh_per_kg;
     let delta = match (candidate_energy, reference_energy) {
-        (Some(candidate_value), Some(reference_value)) if reference_value > 0.0 => Some(candidate_value / reference_value - 1.0),
+        (Some(candidate_value), Some(reference_value)) if reference_value > 0.0 => {
+            Some(candidate_value / reference_value - 1.0)
+        }
         _ => None,
     };
     ComparisonResult {
@@ -668,18 +745,31 @@ fn evaluate_comparison(
 }
 
 pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
-    let manifest: Manifest = serde_json::from_str(source).map_err(|error| format!("invalid manifest: {error}"))?;
+    let manifest: Manifest =
+        serde_json::from_str(source).map_err(|error| format!("invalid manifest: {error}"))?;
     if manifest.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema version: {}", manifest.schema_version));
+        return Err(format!(
+            "unsupported schema version: {}",
+            manifest.schema_version
+        ));
     }
     if manifest.benchmark_id != BENCHMARK_ID {
-        return Err(format!("unexpected benchmark ID: {}", manifest.benchmark_id));
+        return Err(format!(
+            "unexpected benchmark ID: {}",
+            manifest.benchmark_id
+        ));
     }
     if !non_empty(&manifest.frozen_at) {
         return Err("manifest frozen_at is empty".to_owned());
     }
-    if manifest.evidence_class != "synthetic" || manifest.physical_measurements || manifest.luminous_measurements {
-        return Err("evaluator accepts synthetic-only fixtures and refuses physical/Luminous claims".to_owned());
+    if manifest.evidence_class != "synthetic"
+        || manifest.physical_measurements
+        || manifest.luminous_measurements
+    {
+        return Err(
+            "evaluator accepts synthetic-only fixtures and refuses physical/Luminous claims"
+                .to_owned(),
+        );
     }
     if manifest.scenarios.is_empty() {
         return Err("manifest contains no scenarios".to_owned());
@@ -694,13 +784,22 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
             || source.allowed_operating_point_ids.is_empty()
             || source.luminous_reproduction
         {
-            return Err("route source registry contains incomplete identity or unsupported claim ceiling".to_owned());
+            return Err(
+                "route source registry contains incomplete identity or unsupported claim ceiling"
+                    .to_owned(),
+            );
         }
         let point_ids: BTreeSet<_> = source.allowed_operating_point_ids.iter().collect();
         if point_ids.len() != source.allowed_operating_point_ids.len() {
-            return Err(format!("source {} has duplicate operating-point IDs", source.source_case_id));
+            return Err(format!(
+                "source {} has duplicate operating-point IDs",
+                source.source_case_id
+            ));
         }
-        if source_registry.insert(source.source_case_id.as_str(), source).is_some() {
+        if source_registry
+            .insert(source.source_case_id.as_str(), source)
+            .is_some()
+        {
             return Err("route source registry contains duplicate source-case IDs".to_owned());
         }
     }
@@ -710,8 +809,14 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
         if !non_empty(&scenario.id) || !scenario_ids.insert(scenario.id.as_str()) {
             return Err("scenario IDs must be non-empty and unique".to_owned());
         }
-        if !matches!(scenario.expected_disposition.as_str(), "SYNTHETIC_ACCOUNTING_PASS" | "BLOCKED" | "REJECTED") {
-            return Err(format!("scenario {} has unsupported expected disposition", scenario.id));
+        if !matches!(
+            scenario.expected_disposition.as_str(),
+            "SYNTHETIC_ACCOUNTING_PASS" | "BLOCKED" | "REJECTED"
+        ) {
+            return Err(format!(
+                "scenario {} has unsupported expected disposition",
+                scenario.id
+            ));
         }
     }
     let mut comparison_ids = BTreeSet::new();
@@ -719,22 +824,39 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
         if !non_empty(&comparison.id) || !comparison_ids.insert(comparison.id.as_str()) {
             return Err("comparison IDs must be non-empty and unique".to_owned());
         }
-        if !matches!(comparison.expected_disposition.as_str(), "SYNTHETIC_COMPARABLE_ACCOUNTING_ONLY" | "NOT_COMPARABLE" | "BLOCKED") {
-            return Err(format!("comparison {} has unsupported expected disposition", comparison.id));
+        if !matches!(
+            comparison.expected_disposition.as_str(),
+            "SYNTHETIC_COMPARABLE_ACCOUNTING_ONLY" | "NOT_COMPARABLE" | "BLOCKED"
+        ) {
+            return Err(format!(
+                "comparison {} has unsupported expected disposition",
+                comparison.id
+            ));
         }
     }
 
-    let internal: Vec<InternalScenario> = manifest.scenarios.iter()
+    let internal: Vec<InternalScenario> = manifest
+        .scenarios
+        .iter()
         .map(|scenario| evaluate_scenario(scenario, &source_registry))
         .collect();
-    let scenario_expectations_matched = internal.iter()
-        .filter(|value| value.result.disposition == value.result.expected_disposition).count();
-    let scenario_map: BTreeMap<&str, &InternalScenario> = internal.iter()
-        .map(|value| (value.result.id.as_str(), value)).collect();
-    let comparisons: Vec<ComparisonResult> = manifest.comparisons.iter()
-        .map(|comparison| evaluate_comparison(comparison, &scenario_map)).collect();
-    let comparison_expectations_matched = comparisons.iter()
-        .filter(|value| value.disposition == value.expected_disposition).count();
+    let scenario_expectations_matched = internal
+        .iter()
+        .filter(|value| value.result.disposition == value.result.expected_disposition)
+        .count();
+    let scenario_map: BTreeMap<&str, &InternalScenario> = internal
+        .iter()
+        .map(|value| (value.result.id.as_str(), value))
+        .collect();
+    let comparisons: Vec<ComparisonResult> = manifest
+        .comparisons
+        .iter()
+        .map(|comparison| evaluate_comparison(comparison, &scenario_map))
+        .collect();
+    let comparison_expectations_matched = comparisons
+        .iter()
+        .filter(|value| value.disposition == value.expected_disposition)
+        .count();
 
     let scenario_count = internal.len();
     let comparison_count = comparisons.len();
@@ -764,11 +886,19 @@ mod tests {
     }
 
     fn scenario_for<'a>(report: &'a AuditReport, id: &str) -> &'a ScenarioResult {
-        report.scenarios.iter().find(|value| value.id == id).expect("scenario exists")
+        report
+            .scenarios
+            .iter()
+            .find(|value| value.id == id)
+            .expect("scenario exists")
     }
 
     fn comparison_for<'a>(report: &'a AuditReport, id: &str) -> &'a ComparisonResult {
-        report.comparisons.iter().find(|value| value.id == id).expect("comparison exists")
+        report
+            .comparisons
+            .iter()
+            .find(|value| value.id == id)
+            .expect("comparison exists")
     }
 
     #[test]
@@ -800,7 +930,11 @@ mod tests {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
         let result = comparison_for(&report, "synthetic-plasma-vs-electrochemical");
         assert_eq!(result.disposition, "SYNTHETIC_COMPARABLE_ACCOUNTING_ONLY");
-        assert!(result.candidate_vs_reference_energy_delta_fraction.is_some());
+        assert!(
+            result
+                .candidate_vs_reference_energy_delta_fraction
+                .is_some()
+        );
     }
 
     #[test]
@@ -814,37 +948,55 @@ mod tests {
     #[test]
     fn incomplete_energy_boundary_blocks_route_accounting() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "blocked-missing-compression-meter").disposition, "BLOCKED");
+        assert_eq!(
+            scenario_for(&report, "blocked-missing-compression-meter").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn under_spec_h2_product_is_rejected() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "rejected-under-spec-h2-product").disposition, "REJECTED");
+        assert_eq!(
+            scenario_for(&report, "rejected-under-spec-h2-product").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn unknown_recycle_stream_blocks_claim() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "blocked-unknown-nh3-recycle-stream").disposition, "BLOCKED");
+        assert_eq!(
+            scenario_for(&report, "blocked-unknown-nh3-recycle-stream").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn source_operating_point_cross_pairing_is_rejected() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "rejected-cross-paired-source-operating-point").disposition, "REJECTED");
+        assert_eq!(
+            scenario_for(&report, "rejected-cross-paired-source-operating-point").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn stoichiometric_h2_overclaim_is_rejected() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "rejected-stoichiometric-h2-overclaim").disposition, "REJECTED");
+        assert_eq!(
+            scenario_for(&report, "rejected-stoichiometric-h2-overclaim").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn diagnostic_proxy_cannot_be_promoted_to_customer_service() {
         let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
-        assert_eq!(scenario_for(&report, "rejected-diagnostic-proxy-promotion").disposition, "REJECTED");
+        assert_eq!(
+            scenario_for(&report, "rejected-diagnostic-proxy-promotion").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
@@ -852,7 +1004,10 @@ mod tests {
         let mut value = fixture_value();
         value["scenarios"][0]["product"]["calibration_ref"] = json!(null);
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
-        assert_eq!(scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition, "BLOCKED");
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
@@ -882,6 +1037,9 @@ mod tests {
         let mut value = fixture_value();
         value["scenarios"][0]["dynamic_service"]["customer_accepted_h2_ms"] = json!(null);
         let report = audit_manifest_json(&value.to_string()).expect("mutated manifest parses");
-        assert_eq!(scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition, "BLOCKED");
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "BLOCKED"
+        );
     }
 }
