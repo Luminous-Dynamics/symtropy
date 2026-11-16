@@ -580,6 +580,8 @@ pub struct AssuranceResult {
     pub outstanding_authority_roles: Vec<String>,
     /// Number of unique declared correlation groups supporting each claim.
     pub independent_evidence_groups_by_claim: Vec<(String, usize)>,
+    /// Number of unique declared correlation groups supporting each mitigation.
+    pub independent_evidence_groups_by_mitigation: Vec<(String, usize)>,
     /// Explicit statement of the claim ceiling.
     pub permission_granted: bool,
 }
@@ -1068,6 +1070,7 @@ pub fn evaluate_assurance_case(
 
     let mut blockers = BTreeSet::new();
     let mut groups_by_claim = Vec::new();
+    let mut groups_by_mitigation = Vec::new();
 
     for requirement in &policy.required_claim_evidence {
         if !by_id
@@ -1380,10 +1383,12 @@ pub fn evaluate_assurance_case(
                         .as_deref()
                 })
                 .collect();
+            let evidence_group_count = independent_groups.len();
+            groups_by_mitigation.push((mitigation.node_id.clone(), evidence_group_count));
             let required_groups = requirement
                 .map(|item| item.minimum_independent_evidence_groups)
                 .unwrap_or(usize::MAX);
-            if independent_groups.len() < required_groups {
+            if evidence_group_count < required_groups {
                 add_blocker(
                     &mut blockers,
                     &mitigation.node_id,
@@ -1654,6 +1659,7 @@ pub fn evaluate_assurance_case(
         .collect();
     outstanding_authority_roles.sort_unstable();
     groups_by_claim.sort_by(|left, right| left.0.cmp(&right.0));
+    groups_by_mitigation.sort_by(|left, right| left.0.cmp(&right.0));
 
     Ok(AssuranceResult {
         status,
@@ -1664,6 +1670,7 @@ pub fn evaluate_assurance_case(
         blockers,
         outstanding_authority_roles,
         independent_evidence_groups_by_claim: groups_by_claim,
+        independent_evidence_groups_by_mitigation: groups_by_mitigation,
         permission_granted: false,
     })
 }
