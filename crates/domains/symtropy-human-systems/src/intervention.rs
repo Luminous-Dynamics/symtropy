@@ -285,7 +285,8 @@ impl InterventionEventScenario {
             .cloned()
             .collect();
         delivery_receipts.sort_by(|left, right| {
-            left.received_at_seconds.total_cmp(&right.received_at_seconds)
+            left.received_at_seconds
+                .total_cmp(&right.received_at_seconds)
         });
 
         let mut exposure_observations: Vec<_> = self
@@ -293,9 +294,7 @@ impl InterventionEventScenario {
             .exposure_observations
             .iter()
             .chain(self.future_exposure_observations.iter())
-            .filter(|observation| {
-                observation.available_at_seconds <= decision_cutoff_seconds
-            })
+            .filter(|observation| observation.available_at_seconds <= decision_cutoff_seconds)
             .cloned()
             .collect();
         exposure_observations.sort_by(|left, right| {
@@ -588,10 +587,7 @@ mod tests {
             scenario.candidate.delivery_receipts[0].reported_outcome,
             TrueDeliveryOutcome::Delivered
         );
-        assert_eq!(
-            scenario.candidate.exposure_observations[0].value,
-            Some(0.0)
-        );
+        assert_eq!(scenario.candidate.exposure_observations[0].value, Some(0.0));
     }
 
     #[test]
