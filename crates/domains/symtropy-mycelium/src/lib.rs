@@ -107,6 +107,10 @@ impl MyceliumWorld {
             "field heights differ"
         );
 
+        // The field layers are not mutated until all deltas are applied below.
+        // Cache the global nutrient peak once instead of rescanning the whole
+        // grid for every biomass-bearing cell.
+        let nutrient_peak = self.strongest_nutrient_cell();
         for y in 0..self.fields.height() {
             for x in 0..self.fields.width() {
                 let biomass = self.fields.get(FieldLayer::Biomass, x, y);
@@ -254,7 +258,6 @@ impl MyceliumWorld {
                     continue;
                 }
 
-                let nutrient_peak = self.strongest_nutrient_cell();
                 let Some(target) = self.best_growth_neighbor(x, y, nutrient_peak) else {
                     continue;
                 };
@@ -443,27 +446,39 @@ impl MyceliumWorld {
         best
     }
 
-    fn neighbors(&self, x: usize, y: usize) -> Vec<(usize, usize)> {
-        let mut out = Vec::with_capacity(4);
-        if x > 0 {
-            out.push((x - 1, y));
-        }
-        if x + 1 < self.fields.width() {
-            out.push((x + 1, y));
-        }
-        if y > 0 {
-            out.push((x, y - 1));
-        }
-        if y + 1 < self.fields.height() {
-            out.push((x, y + 1));
-        }
-        out
+    fn neighbors(&self, x: usize, y: usize) -> impl Iterator<Item = (usize, usize)> {
+        let left = if x > 0 { Some((x - 1, y)) } else { None };
+        let right = (x + 1 < self.fields.width()).then_some((x + 1, y));
+        let up = if y > 0 { Some((x, y - 1)) } else { None };
+        let down = (y + 1 < self.fields.height()).then_some((x, y + 1));
+        [left, right, up, down].into_iter().flatten()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn neighbor_iteration_preserves_order_without_heap_collection() {
+        let world = MyceliumWorld::new(3, 3, (1, 1));
+        assert_eq!(
+            world.neighbors(1, 1).collect::<Vec<_>>(),
+            vec![(0, 1), (2, 1), (1, 0), (1, 2)]
+        );
+        assert_eq!(
+            world.neighbors(0, 0).collect::<Vec<_>>(),
+            vec![(1, 0), (0, 1)]
+        );
+    }
+
+    #[test]
+    fn strongest_nutrient_peak_is_stable_before_deferred_field_updates() {
+        let mut world = MyceliumWorld::new(4, 3, (0, 1));
+        world.add_dead_biomass(3, 2, 10.0);
+        world.add_dead_biomass(1, 0, 10.0);
+        assert_eq!(world.strongest_nutrient_cell(), Some((1, 0)));
+    }
 
     #[test]
     fn growth_follows_nutrient_gradient() {
