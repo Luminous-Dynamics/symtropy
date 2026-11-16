@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-distribution:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 development distribution profile v0.1",
+  "description": "Closed synthetic development profile. Its named coupled bundles are symbolic and are not physically qualified.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "generator_id",
+    "visibility",
+    "allocation_method",
+    "bundle_selection_method",
+    "seed_policy",
+    "coherence_policy",
+    "strata",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-distribution-v0.1"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generator_id": {
+      "const": "robot-stochastic-challenge-generator/0.1"
+    },
+    "visibility": {
+      "const": "public_synthetic_development"
+    },
+    "allocation_method": {
+      "const": "largest_remainder_then_seeded_shuffle"
+    },
+    "bundle_selection_method": {
+      "const": "uniform_within_stratum_atomic_bundle"
+    },
+    "seed_policy": {
+      "const": "public_development_only_not_cryptographic"
+    },
+    "coherence_policy": {
+      "const": "atomic_named_profile_bundle_not_independent_axis_sampling"
+    },
+    "strata": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stratum_id",
+          "mutation_family",
+          "weight",
+          "changed_component_ids",
+          "coherence_group",
+          "bundles"
+        ],
+        "properties": {
+          "stratum_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mutation_family": {
+            "enum": [
+              "camera_serial_replacement",
+              "tool_geometry_changed",
+              "payload_com_changed",
+              "battery_health_unmeasured",
+              "drive_module_changed",
+              "timebase_replaced",
+              "safety_chain_revision",
+              "unknown_module_incomplete_scope"
+            ]
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "changed_component_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "coherence_group": {
+            "enum": [
+              "sensor_mount_calibration",
+              "tool_geometry_tcp",
+              "payload_mass_com_inertia",
+              "battery_capacity_power_thermal",
+              "drive_surface_slip",
+              "clock_timebase_latency",
+              "safety_chain_revision",
+              "unknown_dependency_scope"
+            ]
+          },
+          "bundles": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "bundle_id",
+                "task_profile",
+                "site_profile",
+                "odd_profile",
+                "severity",
+                "factor_profile_ref"
+              ],
+              "properties": {
+                "bundle_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "task_profile": {
+                  "enum": [
+                    "survey_inspection",
+                    "non_load_bearing_layout"
+                  ]
+                },
+                "site_profile": {
+                  "enum": [
+                    "indoor_flat_concrete",
+                    "outdoor_compacted",
+                    "mixed_surface_observed"
+                  ]
+                },
+                "odd_profile": {
+                  "enum": [
+                    "controlled_visibility",
+                    "constrained_visibility",
+                    "construction_visibility",
+                    "construction_flat_site",
+                    "constrained_workspace",
+                    "construction_variable_surface",
+                    "synchronized_multimodal",
+                    "guarded_commissioning",
+                    "unresolved_scope"
+                  ]
+                },
+                "severity": {
+                  "enum": [
+                    "nominal",
+                    "boundary",
+                    "perturbed",
+                    "out_of_envelope",
+                    "unknown"
+                  ]
+                },
+                "factor_profile_ref": {
+                  "type": "string",
+                  "pattern": "^fixture://factor-profile/[a-z0-9/-]+$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
