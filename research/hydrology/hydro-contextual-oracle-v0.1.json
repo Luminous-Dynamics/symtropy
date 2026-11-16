@@ -510,6 +510,77 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-score",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "forecast_crps": 0.6666666666666666,
+        "reference_crps": 1.7777777777777777,
+        "crps_skill_score": 0.625
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-score",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BSS_AGAINST_MATCHED_REFERENCE_PROBABILITY",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.8,
+        "reference_probability": 0.4,
+        "observed_event": 1,
+        "brier_score": 0.04,
+        "reference_brier_score": 0.36,
+        "brier_skill_score": 0.8888888888888888
+      }
+    },
+    {
+      "case_id": "HC-T0-035-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "forecast_member_count": 3,
+        "reference_member_count": 2,
+        "forecast_crps": 0.6666666666666666,
+        "reference_crps": 0,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-event-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-037-brier-skill-reference-probability-reject",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.8,
+        "reference_probability": 1.5,
+        "observed_event": 1,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null
+      }
     }
   ]
 }
