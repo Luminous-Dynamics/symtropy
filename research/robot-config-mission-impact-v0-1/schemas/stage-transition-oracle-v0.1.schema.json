@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-mission-stage-transition-oracle:v0.1",
+  "title": "ROBOT-MISSION-IMPACT-001 stage transition development oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "note",
+    "dispositions",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-mission-stage-transition-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_development_oracle_not_hidden_holdout"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "expected_disposition",
+          "reason_code"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^MST-[0-9]{3}$"
+          },
+          "expected_disposition": {
+            "enum": [
+              "advance",
+              "held",
+              "failed",
+              "skipped_by_policy"
+            ]
+          },
+          "reason_code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*$"
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
