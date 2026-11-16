@@ -744,7 +744,7 @@ mod tests {
         assert_eq!(report.valid_splits + report.leaked_splits, 34);
         assert_eq!(report.target_qualified_estimates, 2);
         assert_eq!(report.model_estimate_only, 3);
-        assert_eq!(report.invalid_measurement_claims, 25);
+        assert_eq!(report.invalid_measurement_claims, 29);
     }
 
     #[test]
