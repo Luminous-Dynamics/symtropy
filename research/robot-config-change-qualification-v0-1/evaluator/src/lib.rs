@@ -654,6 +654,7 @@ pub fn evaluate_against_oracle(corpus: &Value, oracle: &Value) -> Result<Value, 
     let mut actual = BTreeMap::new();
     let mut disposition_counts: BTreeMap<String, u64> = BTreeMap::new();
     let mut critical_changed_dependency_preserved = 0_u64;
+    let mut critical_false_preservation = 0_u64;
     let mut incomplete_case_claims = 0_u64;
     let mut agreement_count = 0_u64;
 
@@ -704,6 +705,11 @@ pub fn evaluate_against_oracle(corpus: &Value, oracle: &Value) -> Result<Value, 
                 )
             {
                 critical_changed_dependency_preserved += 1;
+                let witness_justified = disposition == "PreservedByQualifiedEquivalence"
+                    && witness_admitted(case, family, claim_id);
+                if !witness_justified {
+                    critical_false_preservation += 1;
+                }
             }
             claim_results.push(result);
         }
@@ -779,6 +785,7 @@ pub fn evaluate_against_oracle(corpus: &Value, oracle: &Value) -> Result<Value, 
             "claim_result_count": actual.len(),
             "disposition_counts": disposition_counts,
             "safety_critical_changed_dependency_preserved_count": critical_changed_dependency_preserved,
+            "safety_critical_changed_dependency_false_preservation_count": critical_false_preservation,
             "incomplete_dependency_claim_count": incomplete_case_claims
         },
         "cases": results,
@@ -916,6 +923,10 @@ mod tests {
         assert_eq!(result["summary"]["claim_result_count"], 51);
         assert_eq!(
             result["summary"]["safety_critical_changed_dependency_preserved_count"],
+            5
+        );
+        assert_eq!(
+            result["summary"]["safety_critical_changed_dependency_false_preservation_count"],
             0
         );
         assert_eq!(result["summary"]["incomplete_dependency_claim_count"], 4);
