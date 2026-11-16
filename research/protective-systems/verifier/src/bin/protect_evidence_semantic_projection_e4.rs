@@ -8,7 +8,7 @@
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::process;
@@ -96,6 +96,7 @@ struct DataCiteView {
     related_identifiers: Vec<DataCiteRelatedIdentifier>,
     rights: Vec<DataCiteRights>,
     preserved_json_api_meta: Value,
+    preserved_unmapped_attributes: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -126,6 +127,7 @@ struct OgcRecordView {
     spatial_extent: OgcSpatialExtent,
     links: Vec<OgcLink>,
     preserved_property_extensions: Value,
+    preserved_unmapped_properties: Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -147,6 +149,7 @@ struct OpenLineageRunView {
     inputs: Vec<OpenLineageDataset>,
     outputs: Vec<OpenLineageDataset>,
     preserved_run_facets: Vec<Value>,
+    preserved_native_events: Vec<Value>,
     source_e1_analysis_id: String,
     source_e1_execution_status: String,
     source_e1_relationship: String,
@@ -312,6 +315,26 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let consumed_attributes = [
+        "doi",
+        "schemaVersion",
+        "types",
+        "creators",
+        "titles",
+        "publisher",
+        "publicationYear",
+        "relatedIdentifiers",
+        "rightsList",
+    ];
+    let mut preserved_unmapped_attributes = Map::new();
+    for (key, item) in attrs
+        .as_object()
+        .ok_or_else(|| "DataCite attributes must be an object".to_owned())?
+    {
+        if !consumed_attributes.contains(&key.as_str()) {
+            preserved_unmapped_attributes.insert(key.clone(), item.clone());
+        }
+    }
     let title = attrs
         .get("titles")
         .and_then(Value::as_array)
@@ -336,6 +359,7 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         related_identifiers,
         rights,
         preserved_json_api_meta: value.get("meta").cloned().unwrap_or(Value::Null),
+        preserved_unmapped_attributes: Value::Object(preserved_unmapped_attributes.clone()),
     };
     let decisions = vec![
         decision("DATACITE", "/data/id", Some("/native_view/doi"), MappingClass::ExactNative, None, "DOI identity preserved as native text; registration/resolution is not asserted."),
@@ -345,6 +369,32 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         decision("DATACITE", "/data/attributes/schemaVersion", Some("/native_view/schema_version_uri"), MappingClass::ExactNative, None, "Generic kernel-4 URI is retained; the 4.7 minor-version profile remains separate metadata."),
         decision("DATACITE", "/meta/e3FixtureExtension", Some("/native_view/preserved_json_api_meta"), MappingClass::PreservedRawOnly, None, "JSON:API extension is preserved as native JSON rather than coerced into a cross-provider field."),
     ];
+    for key in ["identifiers", "subjects", "dates", "language", "descriptions", "url"] {
+        if preserved_unmapped_attributes.contains_key(key) {
+            decisions.push(decision(
+                "DATACITE",
+                &format!("/data/attributes/{key}"),
+                Some("/native_view/preserved_unmapped_attributes"),
+                MappingClass::PreservedRawOnly,
+                None,
+                "Known native DataCite field is retained raw because E4 does not flatten its provider-specific semantics.",
+            ));
+        }
+    }
+    for key in preserved_unmapped_attributes.keys() {
+        if !["identifiers", "subjects", "dates", "language", "descriptions", "url"]
+            .contains(&key.as_str())
+        {
+            decisions.push(decision(
+                "DATACITE",
+                &format!("/data/attributes/{key}"),
+                Some("/native_view/preserved_unmapped_attributes"),
+                MappingClass::UnknownOrUnsupported,
+                None,
+                "Unknown provider field is retained in the source-specific projection and is not silently discarded.",
+            ));
+        }
+    }
     Ok((ProviderNativeView::DataCite(view), decisions))
 }
 
@@ -384,6 +434,26 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let consumed_properties = [
+        "type",
+        "title",
+        "description",
+        "created",
+        "updated",
+        "language",
+        "languages",
+        "keywords",
+        "e3Extension",
+    ];
+    let mut preserved_unmapped_properties = Map::new();
+    for (key, item) in properties
+        .as_object()
+        .ok_or_else(|| "OGC properties must be an object".to_owned())?
+    {
+        if !consumed_properties.contains(&key.as_str()) {
+            preserved_unmapped_properties.insert(key.clone(), item.clone());
+        }
+    }
     let view = OgcRecordView {
         record_id: required_text(value, "id", "OGC Feature")?.to_owned(),
         record_type: required_text(properties, "type", "OGC properties")?.to_owned(),
@@ -410,6 +480,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
             .get("e3Extension")
             .cloned()
             .unwrap_or(Value::Null),
+        preserved_unmapped_properties: Value::Object(preserved_unmapped_properties.clone()),
     };
     let decisions = vec![
         decision("OGC_API_RECORDS", "/id", Some("/native_view/record_id"), MappingClass::ExactNative, None, "Server-assigned catalog record identity remains a record ID, not a DOI or payload digest."),
@@ -419,6 +490,30 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
         decision("OGC_API_RECORDS", "/extent/spatial/crs", Some("/native_view/spatial_extent/crs_uri"), MappingClass::ExactNative, None, "CRS declaration remains an explicit URI, not an inferred coordinate system."),
         decision("OGC_API_RECORDS", "/properties/e3Extension", Some("/native_view/preserved_property_extensions"), MappingClass::PreservedRawOnly, None, "Foreign property extension remains native JSON and is not flattened."),
     ];
+    for key in ["themes", "contacts", "providers"] {
+        if preserved_unmapped_properties.contains_key(key) {
+            decisions.push(decision(
+                "OGC_API_RECORDS",
+                &format!("/properties/{key}"),
+                Some("/native_view/preserved_unmapped_properties"),
+                MappingClass::PreservedRawOnly,
+                None,
+                "Known OGC catalog field is retained raw because this projection does not reinterpret its profile-specific structure.",
+            ));
+        }
+    }
+    for key in preserved_unmapped_properties.keys() {
+        if !["themes", "contacts", "providers"].contains(&key.as_str()) {
+            decisions.push(decision(
+                "OGC_API_RECORDS",
+                &format!("/properties/{key}"),
+                Some("/native_view/preserved_unmapped_properties"),
+                MappingClass::UnknownOrUnsupported,
+                None,
+                "Unknown catalog property is retained in the native projection and is not silently dropped.",
+            ));
+        }
+    }
     Ok((ProviderNativeView::OgcRecords(view), decisions))
 }
 
@@ -479,6 +574,7 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         inputs,
         outputs,
         preserved_run_facets: vec![start_facet.clone(), terminal_facet.clone()],
+        preserved_native_events: events.to_vec(),
         source_e1_analysis_id: required_text(&start_facet, "sourceE1AnalysisId", "OpenLineage facet")?
             .to_owned(),
         source_e1_execution_status: required_text(
@@ -502,6 +598,24 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         decision("OPENLINEAGE", "/events/0/eventType+/events/1/eventType", Some("/native_view/terminal_event_type"), MappingClass::Derived, Some(TERMINAL_RULE), "Terminal state is derived from the observed event pair; it is not predicted and does not describe the E1 model run."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context", Some("/native_view/preserved_run_facets"), MappingClass::PreservedRawOnly, None, "Custom facet is retained as native facet JSON, including E1 NOT_EXECUTED context-only assertion."),
     ];
+    for (index, event) in events.iter().enumerate() {
+        if let Some(facets) = event
+            .get("run")
+            .and_then(|run| run.get("facets"))
+            .and_then(Value::as_object)
+        {
+            for key in facets.keys().filter(|key| key.as_str() != "e3_evidence_context") {
+                decisions.push(decision(
+                    "OPENLINEAGE",
+                    &format!("/events/{index}/run/facets/{key}"),
+                    Some("/native_view/preserved_native_events"),
+                    MappingClass::UnknownOrUnsupported,
+                    None,
+                    "Unknown RunFacet is retained in the native event snapshot and not assigned guessed cross-provider semantics.",
+                ));
+            }
+        }
+    }
     Ok((ProviderNativeView::OpenLineage(view), decisions))
 }
 
