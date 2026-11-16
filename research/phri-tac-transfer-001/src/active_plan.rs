@@ -91,12 +91,22 @@ pub struct CalibrationPlan {
 
 const POLICY_ID: &str = "coverage_then_information_gain_per_cost_v0_1";
 
+fn is_hex_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
 fn candidate_exclusion_reason(
     candidate: &CalibrationCandidate,
     request: &CalibrationPlanRequest,
 ) -> Option<&'static str> {
     if candidate.target_unit_id != request.target_unit_id {
         return Some("TARGET_UNIT_MISMATCH");
+    }
+    if !is_hex_sha256(&candidate.target_profile_digest) {
+        return Some("INVALID_TARGET_PROFILE_DIGEST");
     }
     if candidate.target_profile_digest != request.target_profile_digest {
         return Some("TARGET_PROFILE_MISMATCH");
@@ -162,7 +172,7 @@ pub fn plan_calibration(
     request: &CalibrationPlanRequest,
 ) -> Result<CalibrationPlan, String> {
     if request.target_unit_id.is_empty()
-        || request.target_profile_digest.is_empty()
+        || !is_hex_sha256(&request.target_profile_digest)
         || request.phantom_id.is_empty()
         || request.phantom_revision.is_empty()
     {
@@ -341,7 +351,7 @@ mod tests {
         CalibrationCandidate {
             candidate_id: id.to_owned(),
             target_unit_id: "target-01".to_owned(),
-            target_profile_digest: "target-profile-v1".to_owned(),
+            target_profile_digest: "a".repeat(64),
             phantom_id: "phantom-01".to_owned(),
             phantom_revision: "phantom-rev-1".to_owned(),
             reference_calibration_id: "ref-cal-01".to_owned(),
@@ -357,7 +367,7 @@ mod tests {
     fn request(candidates: Vec<CalibrationCandidate>) -> CalibrationPlanRequest {
         CalibrationPlanRequest {
             target_unit_id: "target-01".to_owned(),
-            target_profile_digest: "target-profile-v1".to_owned(),
+            target_profile_digest: "a".repeat(64),
             phantom_id: "phantom-01".to_owned(),
             phantom_revision: "phantom-rev-1".to_owned(),
             budget_ms: 10,
@@ -426,7 +436,7 @@ mod tests {
         let mut wrong_unit = candidate("wrong-unit", "low-force", 10.0, 1);
         wrong_unit.target_unit_id = "other-target".to_owned();
         let mut wrong_profile = candidate("wrong-profile", "high-force", 10.0, 1);
-        wrong_profile.target_profile_digest = "other-profile".to_owned();
+        wrong_profile.target_profile_digest = "b".repeat(64);
 
         let plan = plan_calibration(&request(vec![wrong_unit, wrong_profile]))
             .expect("valid request with exclusions");
@@ -472,6 +482,16 @@ mod tests {
 
         assert_eq!(first.selected_candidate_ids, second.selected_candidate_ids);
         assert_eq!(first.selected_candidate_ids[0], "a-candidate");
+    }
+
+    #[test]
+    fn malformed_profile_digest_is_rejected_before_selection() {
+        let mut req = request(vec![
+            candidate("low-a", "low-force", 1.0, 1),
+            candidate("high-a", "high-force", 1.0, 1),
+        ]);
+        req.target_profile_digest = "not-a-digest".to_owned();
+        assert!(plan_calibration(&req).is_err());
     }
 
     #[test]
