@@ -163,6 +163,12 @@ fn unique_ids(values: &[u32]) -> Result<BTreeSet<u32>, EvaluationError> {
 
 fn validate_episode(episode: &Episode) -> Result<BTreeMap<u32, CommitmentState>, EvaluationError> {
     require_nonempty(&episode.episode_id, "episode_id")?;
+    if episode.operations.is_empty() {
+        return Err(EvaluationError::EmptyIdentity("operations"));
+    }
+    if episode.impact.affected_operation_ids.is_empty() {
+        return Err(EvaluationError::EmptyIdentity("impact.affected_operation_ids"));
+    }
     require_nonempty(&episode.impact.receipt_id, "impact.receipt_id")?;
     require_nonempty(&episode.inspection.receipt_id, "inspection.receipt_id")?;
     require_nonempty(&episode.inspection.test_id, "inspection.test_id")?;
@@ -487,6 +493,44 @@ mod tests {
         assert_eq!(
             evaluate_scope(&episode(), &candidate),
             Err(EvaluationError::ImpactReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn unknown_applicability_blocks_repair_admission() {
+        let mut source = episode();
+        source.inspection.applicability_status = GateStatus::Unknown;
+        let result = evaluate_scope(&source, &proposal()).unwrap();
+        assert_eq!(result.status, EvaluationStatus::Blocked);
+        assert_eq!(result.block_reason, Some(BlockReason::ApplicabilityUnknown));
+    }
+
+    #[test]
+    fn blocked_test_outcome_blocks_repair_admission() {
+        let mut source = episode();
+        source.inspection.outcome_status = GateStatus::Block;
+        let result = evaluate_scope(&source, &proposal()).unwrap();
+        assert_eq!(result.status, EvaluationStatus::Blocked);
+        assert_eq!(result.block_reason, Some(BlockReason::OutcomeBlocked));
+    }
+
+    #[test]
+    fn duplicate_release_ids_are_invalid_input() {
+        let mut candidate = proposal();
+        candidate.release_operation_ids = vec![2, 2, 3];
+        assert_eq!(
+            evaluate_scope(&episode(), &candidate),
+            Err(EvaluationError::DuplicateReleaseOperation(2))
+        );
+    }
+
+    #[test]
+    fn diagnosis_receipt_mismatch_is_invalid_input() {
+        let mut candidate = proposal();
+        candidate.diagnosis_receipt_id = "OTHER-INSPECTION".to_owned();
+        assert_eq!(
+            evaluate_scope(&episode(), &candidate),
+            Err(EvaluationError::InspectionReceiptMismatch)
         );
     }
 
