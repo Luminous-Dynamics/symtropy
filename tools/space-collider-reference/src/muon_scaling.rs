@@ -500,8 +500,8 @@ mod tests {
         let radius = energy / (0.299_792_458 * field);
         let fill = 2.0 * std::f64::consts::PI * radius / circumference;
         let value = calculate_scenario(circumference, field, fill, 1.8e12, 5.0).expect("valid ref");
-        close(value.particle_decay_turns, 2_734.0613, 0.01);
-        close(value.luminosity_decay_turns, 1_367.03065, 0.01);
+        close(value.particle_decay_turns, 2_734.061_3, 0.01);
+        close(value.luminosity_decay_turns, 1_367.030_65, 0.01);
         close(value.injection_power_per_beam_w / 1.0e6, 7.2, 0.01);
         close(value.synchrotron_loss_per_turn_mev, 25.4, 0.1);
     }
@@ -523,7 +523,7 @@ mod tests {
         let fill = 2.0 * std::f64::consts::PI * radius / circumference;
         let value = calculate_scenario(11_000_000.0, 14.0, fill, 1.8e12, 5.0)
             .expect("valid fixed field lunar ring");
-        close(value.particle_decay_turns, 2_734.0613, 0.01);
+        close(value.particle_decay_turns, 2_734.061_3, 0.01);
         close(value.beam_energy_gev / 1.0e6, 4.8245614, 1.0e-5);
         close(value.synchrotron_loss_fraction_per_turn, 4.730118, 1.0e-5);
         assert_eq!(
@@ -532,7 +532,6 @@ mod tests {
         );
     }
 
-    #[test]
     #[test]
     fn fixed_field_decay_energy_flow_per_ring_meter_is_invariant_in_the_simple_repetition_model() {
         let radius = 5_000.0 / (0.299_792_458 * 14.0);
@@ -557,6 +556,7 @@ mod tests {
         assert!(electron_chi > 1.0);
     }
 
+    #[test]
     fn fixed_field_loss_grows_with_square_of_circumference() {
         let c0 = 11_400.0;
         let radius = 5_000.0 / (0.299_792_458 * 14.0);
