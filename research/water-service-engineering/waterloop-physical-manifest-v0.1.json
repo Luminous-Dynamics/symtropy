@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 34,
+  "case_count": 50,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -38,7 +38,23 @@
     "WL-T0-031-economics-income-unavailable",
     "WL-T0-032-economics-use-profile-mismatch",
     "WL-T0-033-economics-low-cost-service-floor-failure",
-    "WL-T0-034-economics-tariff-billing-period-mismatch"
+    "WL-T0-034-economics-tariff-billing-period-mismatch",
+    "WL-T0-035-modular-bathroom-source-accepted",
+    "WL-T0-036-excluded-kitchen-source-reject",
+    "WL-T0-037-excluded-blackwater-source-reject",
+    "WL-T0-038-excluded-nappy-source-reject",
+    "WL-T0-039-mixed-laundry-source-unadmitted",
+    "WL-T0-040-potable-nonpotable-cross-connection-reject",
+    "WL-T0-041-stale-batch-quality-abstains",
+    "WL-T0-042-quality-use-profile-mismatch-not-comparable",
+    "WL-T0-043-bypass-to-product-outlet-reject",
+    "WL-T0-044-reject-route-missing-reject",
+    "WL-T0-045-metrology-not-admitted-abstains",
+    "WL-T0-046-product-hold-module-missing-reject",
+    "WL-T0-047-separately-admitted-laundry-source",
+    "WL-T0-048-separate-rainwater-source",
+    "WL-T0-049-potable-makeup-without-protection-reject",
+    "WL-T0-050-potable-makeup-with-approved-protection"
   ],
   "families": [
     "volume_closure",
@@ -48,7 +64,8 @@
     "service_floor",
     "leak_metrics",
     "service_continuity",
-    "household_economics"
+    "household_economics",
+    "modular_architecture"
   ],
   "rules": [
     "All values are synthetic known-answer vectors; this manifest grants no physical qualification.",
@@ -71,6 +88,13 @@
     "An architecture that does not meet the declared essential service floor is not eligible for economic preference even when its arithmetic cost is lower.",
     "Affordability burden is reported only from resident-authorised disposable-income evidence; no universal threshold or credit decision is created.",
     "Cost-period days and versioned utility tariff billing-period days must match exactly within the declared numeric tolerance; mismatched bills are Indeterminate and cannot be used for household savings or cost-comparison eligibility.",
-    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden."
+    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden.",
+    "The modular-architecture T0 evaluator admits only bathroom light greywater, separately characterized laundry greywater and separately collected roof rainwater as source classes for this v0.1 bench configuration corpus. Kitchen, blackwater, nappy-wash and unknown sources reject.",
+    "Multiple source classes may not be co-mixed without an explicitly admitted mixed-feed profile; a source label alone does not characterize the feed.",
+    "A valid bench configuration requires source isolation (P0), a validated final disinfection module (P6), batch hold/release (P7), non-potable distribution (P8), at least one declared treatment barrier (P2/P3/P4/P5), and complete module interfaces.",
+    "A batch-specific quality assessment must be current and match the exact intended-use profile; metrology and process-feed envelope evidence must be admitted.",
+    "Any declared potable/non-potable cross-connection rejects. Potable makeup is accepted only when both backflow protection and local authority review are admitted.",
+    "All reject, overflow and failure-bypass routes must lead to sewer or approved reject containment and be isolated from the product outlet.",
+    "Even a BENCH_CONFIGURATION_ADMITTED result is synthetic configuration evidence only; product_release_authorized and occupied_installation_authorized remain false."
   ]
 }
