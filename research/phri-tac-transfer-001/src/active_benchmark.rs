@@ -10,6 +10,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod adversarial;
+
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
 const CONTACTS_PER_STRATUM: usize = 4;
