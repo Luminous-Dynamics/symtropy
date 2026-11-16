@@ -83,3 +83,25 @@ Sources:
 - PDG 2025 accelerator physics and collider review: https://pdg.lbl.gov/2025/reviews/rpp2025-rev-accel-phys-colliders.pdf
 
 The Rust evaluator intentionally keeps total-cross-section interactions, inelastic process pile-up and detector-accepted events distinct. No unprovided inelastic cross section or detector acceptance is silently supplied.
+
+
+### Stored beam energy: a first-order machine-protection constraint
+
+The same Rust evaluator now calculates stored energy by two independent routes:
+- bunch population × particles per bunch × per-beam particle energy;
+- reported beam current × per-beam particle energy / revolution frequency.
+
+For the lunar CCM source values, the bunch route gives approximately:
+- **134.583 TJ per beam**;
+- **269.166 TJ for both counter-rotating beams**.
+
+The rounded 0.5 A current route gives a value about 4.6% lower, consistent with the source's rounded current. The evaluator reports this residual rather than silently forcing the current to match the bunch-derived value.
+
+Against the FCC-hh CDR reference of about 8.4 GJ per beam, the CCM first-order value is about **16,022 times larger**. This comparison is a machine-protection red flag, not a claim that the two designs have equivalent dump arrangements. It must lead to a credible beam abort, extraction, dilution, dump core, window, shielding, cooling, repeated-abort and common-cause fault analysis. No generic absorber or uniform energy-density estimate can be treated as a qualified dump design.
+
+The current tool reports the arithmetic only; actual particle-shower energy deposition, thermal shock, activation, radiation shielding and mechanical survivability must come from pinned specialist tools and exact dump geometry/material/source terms (for example FLUKA or Geant4 plus qualified structural/thermal analysis).
+
+References:
+- Lunar CCM source beam parameters: https://arxiv.org/html/2106.02048v3
+- FCC-hh 2025 CDR, stored energy per beam: https://doi.org/10.23731/CYRM-2025-006
+- Follow-on research owner: [SPACE-COLLIDER-STORED-ENERGY-DUMP-001 #5572](https://github.com/Luminous-Dynamics/symtropy/issues/5572)
