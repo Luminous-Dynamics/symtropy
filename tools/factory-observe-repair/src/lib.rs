@@ -167,14 +167,22 @@ fn validate_episode(episode: &Episode) -> Result<BTreeMap<u32, CommitmentState>,
         return Err(EvaluationError::EmptyIdentity("operations"));
     }
     if episode.impact.affected_operation_ids.is_empty() {
-        return Err(EvaluationError::EmptyIdentity("impact.affected_operation_ids"));
+        return Err(EvaluationError::EmptyIdentity(
+            "impact.affected_operation_ids",
+        ));
     }
     require_nonempty(&episode.impact.receipt_id, "impact.receipt_id")?;
     require_nonempty(&episode.inspection.receipt_id, "inspection.receipt_id")?;
     require_nonempty(&episode.inspection.test_id, "inspection.test_id")?;
     require_nonempty(&episode.inspection.outcome_id, "inspection.outcome_id")?;
-    require_nonempty(&episode.inspection.measurement_source_group, "measurement_source_group")?;
-    require_nonempty(&episode.inspection.baseline_source_group, "baseline_source_group")?;
+    require_nonempty(
+        &episode.inspection.measurement_source_group,
+        "measurement_source_group",
+    )?;
+    require_nonempty(
+        &episode.inspection.baseline_source_group,
+        "baseline_source_group",
+    )?;
 
     if episode.impact.claim_ids.is_empty() {
         return Err(EvaluationError::EmptyIdentity("impact.claim_ids"));
@@ -189,8 +197,13 @@ fn validate_episode(episode: &Episode) -> Result<BTreeMap<u32, CommitmentState>,
 
     let mut operations = BTreeMap::new();
     for operation in &episode.operations {
-        if operations.insert(operation.operation_id, operation.state).is_some() {
-            return Err(EvaluationError::DuplicateOperationId(operation.operation_id));
+        if operations
+            .insert(operation.operation_id, operation.state)
+            .is_some()
+        {
+            return Err(EvaluationError::DuplicateOperationId(
+                operation.operation_id,
+            ));
         }
     }
 
@@ -242,21 +255,31 @@ pub fn evaluate_scope(
         return Err(EvaluationError::InspectionReceiptMismatch);
     }
 
-    let release_ids = unique_ids(&proposal.release_operation_ids)
-        .map_err(|error| match error {
-            EvaluationError::DuplicateAffectedOperation(id) => EvaluationError::DuplicateReleaseOperation(id),
-            other => other,
-        })?;
-    let containment_ids = unique_ids(&proposal.containment_operation_ids)
-        .map_err(|error| match error {
-            EvaluationError::DuplicateAffectedOperation(id) => EvaluationError::DuplicateContainmentOperation(id),
+    let release_ids = unique_ids(&proposal.release_operation_ids).map_err(|error| match error {
+        EvaluationError::DuplicateAffectedOperation(id) => {
+            EvaluationError::DuplicateReleaseOperation(id)
+        }
+        other => other,
+    })?;
+    let containment_ids =
+        unique_ids(&proposal.containment_operation_ids).map_err(|error| match error {
+            EvaluationError::DuplicateAffectedOperation(id) => {
+                EvaluationError::DuplicateContainmentOperation(id)
+            }
             other => other,
         })?;
     for operation_id in release_ids.intersection(&containment_ids) {
-        return Err(EvaluationError::OperationBothReleasedAndContained(*operation_id));
+        return Err(EvaluationError::OperationBothReleasedAndContained(
+            *operation_id,
+        ));
     }
 
-    let affected: BTreeSet<u32> = episode.impact.affected_operation_ids.iter().copied().collect();
+    let affected: BTreeSet<u32> = episode
+        .impact
+        .affected_operation_ids
+        .iter()
+        .copied()
+        .collect();
     let mut false_preserved = 0usize;
     let mut unnecessary_released = 0usize;
     let mut affected_frozen = 0usize;
@@ -324,9 +347,8 @@ pub fn evaluate_scope(
     } else {
         EvaluationStatus::Eligible
     };
-    let block_reason = evidence_block(&episode.inspection).or_else(|| {
-        (false_preserved > 0).then_some(BlockReason::RepairScopeIncomplete)
-    });
+    let block_reason = evidence_block(&episode.inspection)
+        .or_else(|| (false_preserved > 0).then_some(BlockReason::RepairScopeIncomplete));
 
     Ok(ScopeEvaluation {
         status,
@@ -354,13 +376,34 @@ mod tests {
         Episode {
             episode_id: "PUMP-VALVE-REPAIR-01".to_owned(),
             operations: vec![
-                OperationCommitment { operation_id: 0, state: CommitmentState::Completed },
-                OperationCommitment { operation_id: 1, state: CommitmentState::InFlight },
-                OperationCommitment { operation_id: 2, state: CommitmentState::Planned },
-                OperationCommitment { operation_id: 3, state: CommitmentState::Planned },
-                OperationCommitment { operation_id: 4, state: CommitmentState::Planned },
-                OperationCommitment { operation_id: 5, state: CommitmentState::Planned },
-                OperationCommitment { operation_id: 6, state: CommitmentState::Planned },
+                OperationCommitment {
+                    operation_id: 0,
+                    state: CommitmentState::Completed,
+                },
+                OperationCommitment {
+                    operation_id: 1,
+                    state: CommitmentState::InFlight,
+                },
+                OperationCommitment {
+                    operation_id: 2,
+                    state: CommitmentState::Planned,
+                },
+                OperationCommitment {
+                    operation_id: 3,
+                    state: CommitmentState::Planned,
+                },
+                OperationCommitment {
+                    operation_id: 4,
+                    state: CommitmentState::Planned,
+                },
+                OperationCommitment {
+                    operation_id: 5,
+                    state: CommitmentState::Planned,
+                },
+                OperationCommitment {
+                    operation_id: 6,
+                    state: CommitmentState::Planned,
+                },
             ],
             impact: ImpactClosure {
                 receipt_id: "IMPACT-CLOSURE-01".to_owned(),
@@ -420,7 +463,10 @@ mod tests {
         candidate.release_operation_ids = vec![2];
         let result = evaluate_scope(&episode(), &candidate).unwrap();
         assert_eq!(result.status, EvaluationStatus::Blocked);
-        assert_eq!(result.block_reason, Some(BlockReason::RepairScopeIncomplete));
+        assert_eq!(
+            result.block_reason,
+            Some(BlockReason::RepairScopeIncomplete)
+        );
         assert_eq!(result.metrics.false_preserved_affected_operations, 1);
     }
 
@@ -460,10 +506,14 @@ mod tests {
     #[test]
     fn non_independent_observation_origin_blocks_evidence_use() {
         let mut source = episode();
-        source.inspection.measurement_source_group = source.inspection.baseline_source_group.clone();
+        source.inspection.measurement_source_group =
+            source.inspection.baseline_source_group.clone();
         let result = evaluate_scope(&source, &proposal()).unwrap();
         assert_eq!(result.status, EvaluationStatus::Blocked);
-        assert_eq!(result.block_reason, Some(BlockReason::CorrelatedObservationOrigin));
+        assert_eq!(
+            result.block_reason,
+            Some(BlockReason::CorrelatedObservationOrigin)
+        );
     }
 
     #[test]
