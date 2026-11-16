@@ -187,7 +187,9 @@ pub enum SemanticViolation {
     EngineeringClaimMissingEvidence,
     QualifiedPressurizedUseWithoutSurvey,
     AuthorizedActivityWithoutProtectionAuthorization,
+    NonEarthActivityWithoutNamedAuthorizationCase,
     AuthorizedActivityWithoutBasis,
+    ConnectivityClaimMissingEvidence,
     IcyBodyBiologicalActivityWithoutNamedReview,
     IcyBodySamplingWithoutNamedReview,
     RestrictedSiteHasAuthorizedActivity,
@@ -264,6 +266,12 @@ pub fn validate_site_evidence(
         .is_some_and(|extent| !extent.is_finite() || extent < 0.0)
     {
         violations.push(SemanticViolation::InvalidConnectivityExtent);
+    }
+
+    if record.connectivity.state == ConnectivityState::GeophysicallySupported
+        && !has_refs(&record.connectivity.evidence_refs)
+    {
+        violations.push(SemanticViolation::ConnectivityClaimMissingEvidence);
     }
 
     if record.connectivity.state == ConnectivityState::DirectlyObservedConnected {
@@ -373,12 +381,23 @@ pub fn validate_site_evidence(
     let any_activity_authorized = sampling_authorized || biology_authorized;
 
     if any_activity_authorized
+        && record.body != SiteBody::Earth
         && preservation.planetary_protection_state
             != PlanetaryProtectionState::AuthorizedForDeclaredActivity
     {
         violations.push(
             SemanticViolation::AuthorizedActivityWithoutProtectionAuthorization,
         );
+    }
+
+    if any_activity_authorized
+        && record.body != SiteBody::Earth
+        && !preservation
+            .authorization_case_ref
+            .as_deref()
+            .is_some_and(nonempty)
+    {
+        violations.push(SemanticViolation::NonEarthActivityWithoutNamedAuthorizationCase);
     }
 
     if any_activity_authorized && !has_refs(&preservation.basis_refs) {
@@ -474,6 +493,41 @@ mod tests {
     #[test]
     fn candidate_with_unknown_connectivity_and_access_is_valid() {
         assert!(validate_site_evidence(&valid_candidate()).is_ok());
+    }
+
+    #[test]
+    fn geophysically_supported_connectivity_requires_observation_references() {
+        let mut record = valid_candidate();
+        record.connectivity.state = ConnectivityState::GeophysicallySupported;
+        assert!(validate_site_evidence(&record)
+            .unwrap_err()
+            .contains(&SemanticViolation::ConnectivityClaimMissingEvidence));
+    }
+
+    #[test]
+    fn earth_not_applicable_planetary_protection_does_not_trigger_planetary_gate() {
+        let mut record = valid_candidate();
+        record.body = SiteBody::Earth;
+        record.preservation.planetary_protection_state = PlanetaryProtectionState::NotApplicable;
+        record.preservation.sampling_permission =
+            ActivityPermission::AuthorizedForDeclaredActivity;
+        record.preservation.basis_refs = vec!["land-manager-permit-record".to_string()];
+        assert!(validate_site_evidence(&record).is_ok());
+    }
+
+    #[test]
+    fn non_earth_authorized_sampling_requires_named_authorization_case() {
+        let mut record = valid_candidate();
+        record.preservation.planetary_protection_state =
+            PlanetaryProtectionState::AuthorizedForDeclaredActivity;
+        record.preservation.sampling_permission =
+            ActivityPermission::AuthorizedForDeclaredActivity;
+        record.preservation.basis_refs = vec!["review-basis".to_string()];
+        record.preservation.authorization_case_ref = None;
+
+        assert!(validate_site_evidence(&record)
+            .unwrap_err()
+            .contains(&SemanticViolation::NonEarthActivityWithoutNamedAuthorizationCase));
     }
 
     #[test]
