@@ -89,7 +89,6 @@ jobs:
 
   factory-observe-repair:
     name: Factory Observe Repair Scope Evaluator
-    if: ${{ hashFiles('tools/factory-observe-repair/Cargo.toml') != '' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
