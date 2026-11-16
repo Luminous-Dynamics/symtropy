@@ -20,10 +20,13 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout exact commit
+      - name: Checkout exact PR head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Record exact checked-out source commit
+        run: echo "O2_SOURCE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Install pinned Rust toolchain
         run: |
@@ -77,7 +80,7 @@ jobs:
 
           report = json.loads(Path("/tmp/o2-step-equivariance.json").read_text())
           assert report["schema_version"] == "luminous.phys_full_group_step_equivariance_result.v0.1"
-          assert report["source_commit"] == os.environ["GITHUB_SHA"]
+          assert report["source_commit"] == os.environ["O2_SOURCE_COMMIT"]
           assert report["fixture_sha256"] == os.environ["O2_FIXTURE_SHA256"]
           assert report["rotation_samples"] == 32
           assert report["component_samples"] == 2
@@ -104,7 +107,7 @@ jobs:
       - name: Upload deterministic and O2 equivariance evidence
         uses: actions/upload-artifact@v4
         with:
-          name: phdae-dumbbell-o2-step-equivariance-${{ github.sha }}
+          name: phdae-dumbbell-o2-step-equivariance-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             /tmp/dumbbell-a.csv
             /tmp/o2-step-equivariance.json
