@@ -172,16 +172,49 @@ A deterministic known-truth fixture is available at [HUMAN_SAMPLING_RATE_FIXTURE
 
 ### Cross-device and cross-dataset activity-recognition SOTA
 
-AICOS-HAR's October 2026 data descriptor highlights fragmentation across protocols, devices, placements and labels, and releases 21 parsers for integrating public HAR datasets. Its own data include 106 participants, 87 smartphones and 17 wearable devices. This enables participant-held-out, leave-one-device-out and cross-dataset tests, but the AICOS-HAR dataset itself is listed as CC BY-NC-ND 4.0 in the NLM Dataset Catalog: do not assume commercial use or redistribution of derivatives is permitted. Sources: https://www.nature.com/articles/s41597-026-08470-y and https://datasetcatalog.nlm.nih.gov/dataset?q=0003181855.
+The newest directly relevant comparison is **HARENA v2** (arXiv:2606.13194v2, revised 9 November 2026), a living benchmark for sensor-based activity recognition on resource-constrained edge devices. Its initial suite evaluates 16 neural architectures and three classical baselines on 29 datasets. It measures unseen-subject performance and deployment cost across smartphone, smartwatch and microcontroller targets. Its results are highly instructive: CNN-HAR, the oldest deep model in the suite, leads aggregate mean macro-F1; eight architectures lie within 2.5 macro-F1 points, while deployment costs differ by orders of magnitude. On unseen subjects, performance falls by a median 15 points—around three times the typical spread between architectures. The authors identify generalization and adaptation, rather than another modest in-dataset architecture gain, as the more promising frontier. This is an arXiv benchmark paper, not a human-physiology benchmark.
 
-A November 2026 IEEE Transactions on Mobile Computing paper, *Learning From Decoupled Sensor Axes*, reports a decouple-and-ensemble adaptation method evaluated across 20 source-target dataset pairs, with best accuracy in 18 scenarios and reported improvements of 9.15–10.63% over the compared SOTA methods across four source datasets. Treat this as a published comparator to reproduce—not as a transferable guaranteed gain. Match label sets, axes, placement, device domains, adaptation data access and target-label budget. Source: https://doi.org/10.1109/TMC.2026.3723993.
+Sources:
+- HARENA v2: https://arxiv.org/abs/2606.13194
+- Maintained benchmark code: https://github.com/teco-kit/whar-arena
+- WHAR datasets and model interfaces: https://github.com/teco-kit/whar-datasets and https://github.com/teco-kit/whar-models
 
-For our own cross-device lane:
-- use participant-, device-, placement- and source-dataset-held-out partitions;
-- include source-only, unsupervised adaptation, few-shot adaptation and fully supervised target-domain ceilings as separate tracks;
-- compare joint-axis encoders with decoupled-axis and confidence-weighted ensemble baselines;
-- report balanced accuracy, macro-F1, per-class calibration, worst-domain and lower-quantile performance, abstention, and adaptation-data/compute budgets;
-- keep activity recognition as a sensor-transfer task, not evidence of physiological or cognitive fidelity.
+A strong pretrained activity-recognition baseline is **HART** (IEEE FMSys 2026). It is a lightweight TSPulse-derived HAR foundation model pretrained on 26 public HAR datasets—approximately 0.46 billion standardized IMU points—and evaluated with leave-one-subject-out. Its public repository reports 14 evaluation datasets (eight in-distribution and six fully held-out OOD). The paper reports aggregate macro-F1 of 0.6803 ID and 0.5656 OOD, compared with TinyHAR's 0.6428 ID and 0.5683 OOD in that particular comparison. This makes HART an essential baseline, but its OOD results also show why we must report the entire per-dataset profile rather than declare a universal winner from one aggregate score.
+
+Sources:
+- IEEE paper, DOI 10.1109/FMSys72110.2026.00021: https://ieeexplore.ieee.org/abstract/document/11643647
+- Official code/checkpoint/evaluation artifacts: https://github.com/EdgeIntelligenceLab/HART
+
+For multimodal physiology-oriented wearable representations, add **NormWear** as a distinct comparator, not as a HAR classifier baseline. Its 2026 ACM Transactions on Computing for Healthcare publication evaluates PPG, ECG, EEG, GSR and IMU representations over 11 public datasets and 18 applications, with zero-shot, partial-shot and full-shot settings and a text-aligned representation path. This provides a useful foundation-model comparison for physiological sensor representation, but does not establish clinical validity or justify using any one of its labels as physiological ground truth.
+
+Sources:
+- ACM DOI 10.1145/3803808: https://doi.org/10.1145/3803808
+- Official implementation and checkpoints: https://github.com/Mobile-Sensing-and-UbiComp-Laboratory/NormWear
+
+AICOS-HAR (October 2026) provides a complementary cross-device / placement-transfer test: 5,231 acquisitions, 101.4 hours, 106 participants, 87 smartphones and 17 wearable devices, with 21 parsers for compatible public HAR datasets. The dataset descriptor is explicit that these data record healthy participants in a controlled environment. It is not a naturalistic, all-population, physiological-state or cognition dataset. The NLM Dataset Catalog lists CC BY-NC-ND 4.0; keep it in a rights-restricted non-commercial evaluation lane and do not assume derivatives can be redistributed or used commercially.
+
+Sources:
+- Dataset descriptor: https://www.nature.com/articles/s41597-026-08470-y
+- Zenodo version 1: https://doi.org/10.5281/zenodo.19452049
+- NLM rights record: https://datasetcatalog.nlm.nih.gov/dataset?q=0003181855
+
+A November 2026 IEEE Transactions on Mobile Computing paper, *Learning From Decoupled Sensor Axes*, reports evaluation across 20 source-target transfer pairs, with best accuracy in 18 scenarios and 9.15–10.63% gains over compared SOTA methods across four source datasets. Treat this as another paper-specific comparator to reproduce, not as a guaranteed gain on AICOS-HAR or another benchmark.
+
+Source: https://doi.org/10.1109/TMC.2026.3723993.
+
+#### What HARENA changes in our strategy
+
+Do not set "beat HARENA macro-F1" as the only target. Instead:
+
+1. **Reproduce HARENA v2 first.** Match its 29-dataset preprocessing, subject splits, model versions, labels and metrics. Preserve its reported per-dataset results as the external ledger.
+2. **Add device/placement transfer as a separate axis.** Leave-subject-out is necessary but not sufficient; add leave-device-out, leave-placement-out, leave-source-dataset-out and time/regime-held-out tests.
+3. **Measure the actual target hardware.** HARENA finds resource rankings change between phone, watch and MCU. Add p50/p95/p99 latency, peak RAM, flash/model size, energy per complete sensing-and-inference event, wake cost and transmission cost. A laptop inference score is not an edge qualification.
+4. **Test adaptation as a budgeted capability.** Compare zero-shot, unsupervised adaptation, fixed few-shot labels and supervised target-domain ceilings separately. Account for labels, calibration samples, compute and wall time used by adaptation.
+5. **Stress the observation process.** Add sensor rate reduction, anti-aliased bandwidth loss, MCAR/MAR/MNAR missingness, clock drift, packet delay, placement change and correlated outages. Do not merge these perturbations.
+6. **Report robustness and abstention.** In addition to macro-F1, report balanced accuracy, per-class precision/recall/specificity, calibration, worst-domain and lower-quantile performance, selective risk, abstention, recovery after shift and false alarm exposure.
+7. **Separate activity recognition from physiology.** HART/HARENA are activity-sensing baselines. NormWear has physiology-related representation tasks. Neither is a benchmark of human cognition, psychiatric state, clinical response or whole-human simulation.
+
+Our competitive claim should be a Pareto claim across generalization, calibration, abstention, sensing burden and hardware cost—not a claim of universal architectural superiority.
 
 ### Metrics (report independently)
 
