@@ -983,7 +983,11 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     let heldout = heldout_target_pool(seed);
     let target_candidates = &target_domain.candidates;
     let response_observability =
-        response_observability_check(target_candidates, SYNTHETIC_RESPONSE_RESOLUTION)?;
+        response_observability_check(
+        target_candidates,
+        &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+        SYNTHETIC_RESPONSE_RESOLUTION,
+    )?;
     if !response_observability.accepted {
         return Err("target response observability gate failed before policy selection".to_owned());
     }
@@ -1359,6 +1363,7 @@ mod tests {
         }
         let report = response_observability_check(
             &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
             SYNTHETIC_RESPONSE_RESOLUTION,
         )
         .expect("saturation observability report");
@@ -1366,6 +1371,23 @@ mod tests {
         assert!(report.flatline_transition_count > 0);
         assert!(report.affected_condition_count > 0);
         assert!(report.first_flatline_start_force_n.is_some());
+    }
+
+    #[test]
+    fn missing_declared_force_range_is_incomplete_observability_evidence() {
+        let mut domain = target_candidate_pool(20261116);
+        domain
+            .candidates
+            .retain(|candidate| candidate.force_setpoint_n <= 6.0);
+        let report = response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("incomplete force-range report");
+        assert!(!report.accepted);
+        assert_eq!(report.incomplete_condition_count, 12);
+        assert_eq!(report.maximum_observed_force_setpoint_n, 6.0);
     }
 
     #[test]
