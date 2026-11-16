@@ -576,6 +576,7 @@ mod tests {
             "schemas/stage-catalog-v0.1.schema.json",
             "schemas/mission-pair-corpus-v0.1.schema.json",
             "schemas/development-oracle-v0.1.schema.json",
+            "schemas/event-type-catalog-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
