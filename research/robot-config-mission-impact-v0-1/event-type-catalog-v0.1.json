@@ -1,0 +1,407 @@
+{
+  "schema_version": "robot-config-mission-event-type-catalog-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-MISSION-IMPACT-001",
+  "visibility": "public_synthetic_development",
+  "events": [
+    {
+      "event_type": "base_pose_margin_reduced",
+      "stage_id": "S05",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "base pose margin reduced event in the synthetic mission trace."
+    },
+    {
+      "event_type": "base_pose_residual_exceeds_profile",
+      "stage_id": "S05",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "base pose residual exceeds profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "base_pose_stability_within_profile",
+      "stage_id": "S05",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "base pose stability within profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "base_pose_within_profile",
+      "stage_id": "S05",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "base pose within profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "battery_identity_observed",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "precondition_record",
+      "meaning": "battery identity observed event in the synthetic mission trace."
+    },
+    {
+      "event_type": "candidate_execution_not_admitted",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "mission_or_precondition_record",
+      "meaning": "candidate execution not admitted event in the synthetic mission trace."
+    },
+    {
+      "event_type": "commissioning_profile_current",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "precondition_record",
+      "meaning": "commissioning profile current event in the synthetic mission trace."
+    },
+    {
+      "event_type": "controlled_hold_disposition",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "mission_or_precondition_record",
+      "meaning": "controlled hold disposition event in the synthetic mission trace."
+    },
+    {
+      "event_type": "controlled_safe_hold_recorded",
+      "stage_id": "S09",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "controlled safe hold recorded event in the synthetic mission trace."
+    },
+    {
+      "event_type": "dependency_scope_incomplete",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "mission_or_precondition_record",
+      "meaning": "dependency scope incomplete event in the synthetic mission trace."
+    },
+    {
+      "event_type": "energy_measurement_below_required_reserve",
+      "stage_id": "S07",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "energy measurement below required reserve event in the synthetic mission trace."
+    },
+    {
+      "event_type": "energy_reference_valid",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "precondition_record",
+      "meaning": "energy reference valid event in the synthetic mission trace."
+    },
+    {
+      "event_type": "event_time_arrival_time_conflict",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "event time arrival time conflict event in the synthetic mission trace."
+    },
+    {
+      "event_type": "frame_registration_residual_exceeds_profile",
+      "stage_id": "S03",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "frame registration residual exceeds profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "frame_registration_within_reference",
+      "stage_id": "S03",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "frame registration within reference event in the synthetic mission trace."
+    },
+    {
+      "event_type": "localization_update_rejected",
+      "stage_id": "S03",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "localization update rejected event in the synthetic mission trace."
+    },
+    {
+      "event_type": "mission_complete",
+      "stage_id": "S07",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "mission complete event in the synthetic mission trace."
+    },
+    {
+      "event_type": "mission_outcome_unresolved",
+      "stage_id": "S10",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "mission outcome unresolved event in the synthetic mission trace."
+    },
+    {
+      "event_type": "mission_output_accepted",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "mission output accepted event in the synthetic mission trace."
+    },
+    {
+      "event_type": "mission_output_held",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "mission_or_precondition_record",
+      "meaning": "mission output held event in the synthetic mission trace."
+    },
+    {
+      "event_type": "mission_output_unresolved",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "mission output unresolved event in the synthetic mission trace."
+    },
+    {
+      "event_type": "module_identity_unresolved",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "mission_or_precondition_record",
+      "meaning": "module identity unresolved event in the synthetic mission trace."
+    },
+    {
+      "event_type": "navigation_route_completed",
+      "stage_id": "S04",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "navigation route completed event in the synthetic mission trace."
+    },
+    {
+      "event_type": "navigation_route_completed_with_slip_events",
+      "stage_id": "S04",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "navigation route completed with slip events event in the synthetic mission trace."
+    },
+    {
+      "event_type": "operation_complete",
+      "stage_id": "S07",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "operation complete event in the synthetic mission trace."
+    },
+    {
+      "event_type": "operation_complete_with_intervention",
+      "stage_id": "S07",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "operation complete with intervention event in the synthetic mission trace."
+    },
+    {
+      "event_type": "operation_event_order_reconciled",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "operation event order reconciled event in the synthetic mission trace."
+    },
+    {
+      "event_type": "output_accepted",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "output accepted event in the synthetic mission trace."
+    },
+    {
+      "event_type": "output_accepted_after_reinspection",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "output accepted after reinspection event in the synthetic mission trace."
+    },
+    {
+      "event_type": "quality_outside_acceptance",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "quality outside acceptance event in the synthetic mission trace."
+    },
+    {
+      "event_type": "quality_within_acceptance",
+      "stage_id": "S08",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "quality within acceptance event in the synthetic mission trace."
+    },
+    {
+      "event_type": "repositioning_attempted",
+      "stage_id": "S09",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "repositioning attempted event in the synthetic mission trace."
+    },
+    {
+      "event_type": "required_commissioning_evidence_absent",
+      "stage_id": "S06",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "required commissioning evidence absent event in the synthetic mission trace."
+    },
+    {
+      "event_type": "return_reserve_within_profile",
+      "stage_id": null,
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "precondition_record",
+      "meaning": "return reserve within profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "safeguarded_task_completed",
+      "stage_id": "S07",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "safeguarded task completed event in the synthetic mission trace."
+    },
+    {
+      "event_type": "safety_chain_revision_detected",
+      "stage_id": "S06",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "safety chain revision detected event in the synthetic mission trace."
+    },
+    {
+      "event_type": "scan_complete",
+      "stage_id": "S02",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "scan complete event in the synthetic mission trace."
+    },
+    {
+      "event_type": "sensor_alignment_observation_present",
+      "stage_id": "S03",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "sensor alignment observation present event in the synthetic mission trace."
+    },
+    {
+      "event_type": "sensor_alignment_within_profile",
+      "stage_id": "S03",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "sensor alignment within profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "task_contract_admitted",
+      "stage_id": "S01",
+      "allowed_source_classes": [
+        "task_system"
+      ],
+      "role": "stage_observation",
+      "meaning": "task contract admitted event in the synthetic mission trace."
+    },
+    {
+      "event_type": "tcp_residual_exceeds_profile",
+      "stage_id": "S06",
+      "allowed_source_classes": [
+        "referee_measurement"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "tcp residual exceeds profile event in the synthetic mission trace."
+    },
+    {
+      "event_type": "temporal_reconciliation_unknown",
+      "stage_id": "S10",
+      "allowed_source_classes": [
+        "independent_referee"
+      ],
+      "role": "stage_verdict_or_measurement",
+      "meaning": "temporal reconciliation unknown event in the synthetic mission trace."
+    },
+    {
+      "event_type": "tool_identity_and_tcp_match",
+      "stage_id": "S06",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "tool identity and tcp match event in the synthetic mission trace."
+    },
+    {
+      "event_type": "tool_identity_read",
+      "stage_id": "S06",
+      "allowed_source_classes": [
+        "robot_telemetry"
+      ],
+      "role": "stage_observation",
+      "meaning": "tool identity read event in the synthetic mission trace."
+    }
+  ],
+  "nonclaims": [
+    "Event semantics are limited to the public synthetic fixtures.",
+    "The catalog is not a universal robotics event ontology or causal taxonomy."
+  ]
+}
