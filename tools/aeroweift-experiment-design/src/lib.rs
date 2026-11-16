@@ -152,6 +152,83 @@ pub struct HypothesisContrast {
     pub contrast_estimate_sha256: String,
 }
 
+/// Independent sampling unit used to estimate the candidate's utility vector.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EstimateSampleUnit {
+    /// Distinct controlled flights.
+    Flight,
+    /// Distinct encounter events.
+    Encounter,
+    /// Distinct trajectory segments.
+    TrajectorySegment,
+    /// Distinct independently measured experiment windows.
+    MeasurementWindow,
+    /// Distinct independent model-family contrasts.
+    ModelFamilyPair,
+}
+
+/// Scope-bound owner receipt for the expected-utility estimates used in selection.
+///
+/// The payload digest, signer identity and issuer authority are not verified by this
+/// crate. Track Q / Mycelix must authenticate the actual receipt before operational use.
+#[derive(Clone, Debug, PartialEq)]
+pub struct UtilityEstimateReceipt {
+    /// Stable receipt identifier.
+    pub receipt_id: String,
+    /// Digest of the exact receipt payload.
+    pub payload_sha256: String,
+    /// Owner namespace that issued the estimate receipt; not authenticated here.
+    pub issuer_id: String,
+    /// Exact candidate identity; prevents receipt replay across candidate alternatives.
+    pub candidate_id: String,
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
+    /// Exact decision/question identity.
+    pub decision_question_id: String,
+    /// Exact experiment design digest.
+    pub design_sha256: String,
+    /// Exact scenario/initial-condition manifest digest.
+    pub scenario_manifest_sha256: String,
+    /// Exact measurement/reference protocol digest.
+    pub measurement_plan_sha256: String,
+    /// Exact decision boundary or loss-function profile being optimized.
+    pub decision_boundary_sha256: String,
+    /// Exact candidate hypothesis-set manifest.
+    pub hypothesis_manifest_sha256: String,
+    /// Exact robust/model-ambiguity set used for worst-case estimation.
+    pub robust_uncertainty_set_sha256: String,
+    /// Exact adaptive-development dataset manifest used by the estimator.
+    pub adaptive_data_manifest_sha256: String,
+    /// Exact estimator build digest.
+    pub estimator_build_sha256: String,
+    /// Exact estimate-method digest.
+    pub estimate_method_sha256: String,
+    /// Confidence level for all conservative estimate bounds in this receipt.
+    pub confidence_level: f64,
+    /// Independent sampling unit represented by the estimate denominator.
+    pub sample_unit: EstimateSampleUnit,
+    /// Number of independent units, not raw correlated rows.
+    pub independent_unit_count: u64,
+    /// Exact hypothesis variants included in the estimator's model comparison.
+    pub hypothesis_groups: Vec<HypothesisGroup>,
+    /// Exact pairwise model contrasts included in the estimator's model comparison.
+    pub hypothesis_contrasts: Vec<HypothesisContrast>,
+    /// Conservative lower bound on decision-relevant predictive uncertainty reduction.
+    pub expected_uncertainty_reduction: f64,
+    /// Conservative lower bound on discrimination among the declared model hypotheses.
+    pub expected_model_discrimination: f64,
+    /// Conservative lower bound under the frozen robust uncertainty set.
+    pub worst_case_robust_reduction: f64,
+    /// Conservative lower bound on decision relevance.
+    pub decision_relevance: f64,
+    /// Upper bound on probability the result is uninformative.
+    pub probability_uninformative: f64,
+}
+
 /// Candidate test/experiment and its expected decision-relevant utility vector.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExperimentCandidate {
@@ -169,6 +246,16 @@ pub struct ExperimentCandidate {
     pub scenario_manifest_sha256: String,
     /// Exact measurement/reference protocol digest.
     pub measurement_plan_sha256: String,
+    /// Exact decision boundary or loss-function profile being optimized.
+    pub decision_boundary_sha256: String,
+    /// Exact candidate hypothesis-set manifest.
+    pub hypothesis_manifest_sha256: String,
+    /// Exact robust/model-ambiguity set used for worst-case estimation.
+    pub robust_uncertainty_set_sha256: String,
+    /// Exact adaptive-development dataset manifest used by the estimator.
+    pub adaptive_data_manifest_sha256: String,
+    /// Structured estimate receipt binding every utility value to this exact candidate.
+    pub utility_estimate_receipt: Option<UtilityEstimateReceipt>,
     /// Engineering decision/question this experiment is intended to resolve.
     pub decision_question_id: String,
     /// Type of epistemic objective.
@@ -281,6 +368,18 @@ pub struct ExperimentDesignPolicy {
     pub model_scope_sha256: String,
     /// Exact intended-use/risk profile digest.
     pub intended_use_profile_sha256: String,
+    /// Exact decision boundary or loss-function profile required for this campaign.
+    pub decision_boundary_sha256: String,
+    /// Exact candidate hypothesis-set manifest required for this campaign.
+    pub hypothesis_manifest_sha256: String,
+    /// Exact robust/model-ambiguity set required for this campaign.
+    pub robust_uncertainty_set_sha256: String,
+    /// Exact adaptive-development dataset manifest required for this campaign.
+    pub adaptive_data_manifest_sha256: String,
+    /// Minimum independent sampling units required for utility estimates.
+    pub minimum_estimate_independent_units: u64,
+    /// Independent sampling unit required by the frozen estimator policy.
+    pub required_estimate_sample_unit: EstimateSampleUnit,
     /// Stable question identity.
     pub decision_question_id: String,
     /// Objective to be resolved.
@@ -344,6 +443,12 @@ pub enum RejectionReason {
     InvalidEvidenceBinding,
     /// Estimator build or confidence method differs from the frozen policy.
     ConfidenceContractMismatch,
+    /// No structured scope-bound utility-estimate receipt was supplied.
+    MissingUtilityEstimateReceipt,
+    /// Utility-estimate receipt was replayed, malformed or bound to another experiment.
+    InvalidUtilityEstimateReceipt,
+    /// Utility estimate was derived from too few independent samples.
+    InsufficientEstimateSamples,
     /// Decision relevance is below the frozen policy threshold.
     InsufficientDecisionRelevance,
     /// Robust uncertainty reduction is below the frozen policy threshold.
