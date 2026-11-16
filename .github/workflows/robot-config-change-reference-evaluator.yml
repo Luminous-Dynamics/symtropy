@@ -1,0 +1,60 @@
+name: Robot Configuration Change Reference Evaluator
+
+on:
+  push:
+    branches:
+      - research/robot-config-change-qualification-v0-1
+      - research/robot-config-change-reference-evaluator-v0-1
+    paths:
+      - "research/robot-config-change-qualification-v0-1/**"
+      - ".github/workflows/robot-config-change-reference-evaluator.yml"
+  pull_request:
+    branches:
+      - main
+      - research/robot-config-change-qualification-v0-1
+    paths:
+      - "research/robot-config-change-qualification-v0-1/**"
+      - ".github/workflows/robot-config-change-reference-evaluator.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: robot-config-change-reference-evaluator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: RCQ reference evaluator (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Resolve lockfile for review artifact
+        run: cargo generate-lockfile --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --all -- --check
+      - name: Run schema, invariant and oracle tests
+        run: cargo test --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked --all-targets
+      - name: Validate the public development corpus
+        run: cargo run --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked -- validate
+      - name: Export deterministic evaluated result
+        run: cargo run --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked -- evaluate --output target/rcq-development-result.json
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Export lockfile and result for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: rcq-reference-evaluator-${{ matrix.os }}
+          path: |
+            research/robot-config-change-qualification-v0-1/evaluator/Cargo.lock
+            research/robot-config-change-qualification-v0-1/evaluator/target/rcq-development-result.json
+          if-no-files-found: error
+          retention-days: 7
