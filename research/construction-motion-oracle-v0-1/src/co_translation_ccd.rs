@@ -686,7 +686,7 @@ mod tests {
 
     #[test]
     fn adaptive_no_contact_requires_every_candidate_leaf_to_be_clear() {
-        let moving = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.25);
+        let moving = capsule(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 0.25);
         let obstacle = capsule(p(0.0, 0.45, 0.45), p(1_000.0, 0.450_5, 0.45), 0.25);
         let report = co_translating_capsule_adaptive_query(
             moving,
