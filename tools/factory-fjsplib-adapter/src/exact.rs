@@ -6,7 +6,7 @@
 //! by longest-path propagation. It reports EXACT only when the complete search
 //! finishes within the public bounds below.
 
-use super::{FlexibleInstance, MAX_MACHINES};
+use super::{FlexibleInstance, MAX_MACHINES, MAX_OPERATIONS};
 use std::collections::{BTreeSet, VecDeque};
 
 pub const MAX_EXACT_OPERATIONS: usize = 9;
@@ -364,6 +364,7 @@ fn instance_is_valid(instance: &FlexibleInstance) -> bool {
     if instance.machine_count == 0
         || instance.machine_count > MAX_MACHINES
         || instance.operations.is_empty()
+        || instance.operations.len() > MAX_OPERATIONS
     {
         return false;
     }
@@ -541,6 +542,9 @@ pub fn solve_exact(instance: &FlexibleInstance) -> ExactResult {
 /// machine membership, precedence, machine order/no-overlap, timestamps and
 /// makespan against the supplied normalized instance.
 pub fn verify_schedule(instance: &FlexibleInstance, schedule: &FlexibleSchedule) -> bool {
+    if !instance_is_valid(instance) {
+        return false;
+    }
     if schedule.operations.len() != instance.operations.len()
         || schedule.selected_machines.len() != instance.operations.len()
         || schedule.machine_orders.len() != instance.machine_count
@@ -760,6 +764,52 @@ mod tests {
         let result = solve_exact(&instance);
         assert_eq!(result.status, ExactStatus::InvalidInput);
         assert_eq!(result.stats, SearchStats::default());
+    }
+
+    #[test]
+    fn certificate_verifier_rejects_empty_or_oversized_instance() {
+        let empty = FlexibleInstance {
+            parser_version: crate::PARSER_VERSION,
+            source: crate::FJSPLIB_SOURCE,
+            source_format: crate::SourceFormat::Fjsp,
+            instance_id: "empty".to_owned(),
+            source_family: None,
+            machine_count: 1,
+            declared_job_count: Some(0),
+            average_flexibility: None,
+            operations: Vec::new(),
+            precedences: Vec::new(),
+            canonical_fingerprint_fnv1a64: "synthetic".to_owned(),
+        };
+        let schedule = FlexibleSchedule {
+            makespan: 0,
+            selected_machines: Vec::new(),
+            machine_orders: vec![MachineOrder {
+                machine_id: 0,
+                operation_ids: Vec::new(),
+            }],
+            operations: Vec::new(),
+        };
+        assert!(!verify_schedule(&empty, &schedule));
+    }
+
+    #[test]
+    fn exact_result_is_deterministic_across_repeated_runs() {
+        let instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        assert_eq!(solve_exact(&instance), solve_exact(&instance));
+    }
+
+    #[test]
+    fn alternative_input_order_does_not_change_optimum_or_tie_break() {
+        let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
+        let baseline = solve_exact(&instance);
+        for operation in &mut instance.operations {
+            operation.alternatives.reverse();
+        }
+        let reordered = solve_exact(&instance);
+        assert_eq!(baseline.status, reordered.status);
+        assert_eq!(baseline.schedule, reordered.schedule);
+        assert_eq!(baseline.stats, reordered.stats);
     }
 
     #[test]
