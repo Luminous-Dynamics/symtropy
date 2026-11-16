@@ -401,19 +401,23 @@ mod tests {
     fn tampering_with_geometry_or_uncertainty_is_rejected() {
         let mut geometry_tamper = create();
         geometry_tamper.obstacle.start.x += 0.25;
-        assert_eq!(
+        assert!(matches!(
             replay_robust_interval_certificate(&geometry_tamper),
-            Err(RobustCertificateError::ReceiptMismatch)
-                .or_else(|_| Err(RobustCertificateError::CanonicalBytesMismatch))
-        );
+            Err(
+                RobustCertificateError::ReceiptMismatch
+                    | RobustCertificateError::CanonicalBytesMismatch
+            )
+        ));
 
         let mut uncertainty_tamper = create();
         uncertainty_tamper.uncertainty.origin_relative_mm.x = 0.1;
-        assert_eq!(
+        assert!(matches!(
             replay_robust_interval_certificate(&uncertainty_tamper),
-            Err(RobustCertificateError::ReceiptMismatch)
-                .or_else(|_| Err(RobustCertificateError::CanonicalBytesMismatch))
-        );
+            Err(
+                RobustCertificateError::ReceiptMismatch
+                    | RobustCertificateError::CanonicalBytesMismatch
+            )
+        ));
     }
 
     #[test]
@@ -438,15 +442,16 @@ mod tests {
         let mut certificate = create();
         certificate.config.maximum_nodes = 1;
         certificate.config.maximum_depth = 0;
+        certificate.uncertainty = CapsuleRelativeUncertainty {
+            origin_relative_mm: p(4.0, 0.0, 0.0),
+            ..CapsuleRelativeUncertainty::zero()
+        };
         certificate.receipt = verify_capsule_interval_no_contact_with_uncertainty(
             certificate.moving,
             certificate.moving_translation,
             certificate.obstacle,
             certificate.obstacle_translation,
-            CapsuleRelativeUncertainty {
-                origin_relative_mm: p(4.0, 0.0, 0.0),
-                ..CapsuleRelativeUncertainty::zero()
-            },
+            certificate.uncertainty,
             certificate.window,
             certificate.config,
         )
