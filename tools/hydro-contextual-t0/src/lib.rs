@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 40;
+pub const CASE_COUNT: usize = 41;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1310,7 +1310,7 @@ mod tests {
     }
 
     #[test]
-    fn all_forty_cases_match_separate_oracle() {
+    fn all_forty_one_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1447,22 +1447,32 @@ mod tests {
     }
 
 
+
     #[test]
-    fn crps_skill_uses_matched_reference_ensemble() {
-        let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPSS");
-        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.625).abs() < 1.0e-12);
+    fn crps_skill_uses_mean_scores_over_identical_sample_ids() {
+        let out = compute_case(&fixture("inputs")["cases"][32]).expect("batch CRPSS");
+        assert_eq!(out["sample_count"], 3);
+        assert!((out["forecast_mean_crps"].as_f64().expect("forecast CRPS") - (4.0 / 9.0)).abs() < 1.0e-12);
+        assert!((out["reference_mean_crps"].as_f64().expect("reference CRPS") - (34.0 / 27.0)).abs() < 1.0e-12);
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - (11.0 / 17.0)).abs() < 1.0e-12);
+        assert_eq!(out["sample_set_sha256"], "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15");
     }
 
     #[test]
-    fn brier_skill_uses_matched_reference_event() {
-        let out = compute_case(&fixture("inputs")["cases"][33]).expect("BSS");
-        assert!((out["brier_skill_score"].as_f64().expect("BSS") - (8.0 / 9.0)).abs() < 1.0e-12);
+    fn brier_skill_uses_mean_scores_over_identical_sample_ids() {
+        let out = compute_case(&fixture("inputs")["cases"][33]).expect("batch BSS");
+        assert_eq!(out["sample_count"], 4);
+        assert!((out["brier_score"].as_f64().expect("forecast Brier") - 0.1).abs() < 1.0e-12);
+        assert!((out["reference_brier_score"].as_f64().expect("reference Brier") - 0.305).abs() < 1.0e-12);
+        assert!((out["brier_skill_score"].as_f64().expect("BSS") - (41.0 / 61.0)).abs() < 1.0e-12);
+        assert_eq!(out["sample_set_sha256"], "1ada57b156cc7fffcaaae57b13a71ac51c1160f9de8cb330cdbe544fe96c2226");
     }
 
     #[test]
-    fn zero_reference_crps_makes_crps_skill_undefined() {
-        let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference CRPS");
+    fn zero_reference_mean_crps_makes_crps_skill_undefined() {
+        let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference mean CRPS");
         assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["reference_mean_crps"], 0.0);
         assert_eq!(out["crps_skill_score"], Value::Null);
     }
 
@@ -1482,7 +1492,6 @@ mod tests {
         assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
-
     #[test]
     fn crps_skill_rejects_mismatched_lead_time() {
         let out = compute_case(&fixture("inputs")["cases"][37]).expect("lead-time mismatch");
@@ -1499,13 +1508,21 @@ mod tests {
         assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
+    #[test]
+    fn zero_reference_mean_brier_makes_brier_skill_undefined() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("zero reference mean Brier");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["reference_brier_score"], 0.0);
+        assert_eq!(out["brier_skill_score"], Value::Null);
+    }
 
     #[test]
-    fn zero_reference_brier_makes_brier_skill_undefined() {
-        let out = compute_case(&fixture("inputs")["cases"][39]).expect("zero reference Brier");
-        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
-        assert_eq!(out["brier_skill_score"], Value::Null);
-        assert_eq!(out["reference_forecast_id"], "B0-seasonal-climatology-v1");
+    fn skill_scores_reject_different_ordered_sample_ids() {
+        let out = compute_case(&fixture("inputs")["cases"][40]).expect("sample ID mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_SAMPLE_IDS_DIFFER");
+        assert_eq!(out["crps_skill_score"], Value::Null);
+        assert_eq!(out["sample_set_sha256"], Value::Null);
     }
 
     #[test]
