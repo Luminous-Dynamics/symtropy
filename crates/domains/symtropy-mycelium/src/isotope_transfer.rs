@@ -145,7 +145,10 @@ impl IsotopeTracerObservation {
             .validate()
             .map_err(IsotopeTransferError::TemporalAlignment)?;
         match (self.compartment, self.phase) {
-            (TracerCompartment::ReceiverPlant, TracerPhase::PreLabelBaseline) => {}
+            (
+                TracerCompartment::DonorPlant | TracerCompartment::ReceiverPlant,
+                TracerPhase::PreLabelBaseline,
+            ) => {}
             (_, TracerPhase::PostLabel) => {}
             (_, TracerPhase::PreLabelBaseline) => {
                 return Err(IsotopeTransferError::InvalidSampleRole(self.evidence));
@@ -377,10 +380,12 @@ pub struct IsotopeTransferExperiment {
 #[derive(Debug, Clone, Copy)]
 struct ArmSamples<'a> {
     baseline: &'a IsotopeTracerObservation,
+    donor_baseline: &'a IsotopeTracerObservation,
     donor: &'a IsotopeTracerObservation,
     bridge: Option<&'a IsotopeTracerObservation>,
     receiver: &'a IsotopeTracerObservation,
     baseline_time: AlignedExperimentTimestamp,
+    donor_baseline_time: AlignedExperimentTimestamp,
     donor_time: AlignedExperimentTimestamp,
     bridge_time: Option<AlignedExperimentTimestamp>,
     receiver_time: AlignedExperimentTimestamp,
@@ -547,7 +552,7 @@ impl IsotopeTransferExperiment {
                 &aligned_by_id,
                 true,
             )?;
-            let intact_donor_excess = excess_bounds(intact.donor, intact.baseline);
+            let intact_donor_excess = excess_bounds(intact.donor, intact.donor_baseline);
             let intact_bridge = intact
                 .bridge
                 .expect("intact arm validation requires a fungal bridge sample");
@@ -565,8 +570,11 @@ impl IsotopeTransferExperiment {
                     false,
                 )?;
                 let control_excess = excess_bounds(samples.receiver, samples.baseline);
-                let control_order = Self::order_is_confirmed_pair(
+                let control_order = Self::baselines_precede_donor(
+                    samples.donor_baseline_time,
                     samples.baseline_time,
+                    samples.donor_time,
+                )? && Self::order_is_confirmed_pair(
                     samples.donor_time,
                     samples.receiver_time,
                 )?;
@@ -579,10 +587,10 @@ impl IsotopeTransferExperiment {
                 });
             }
 
-            let baseline_donor_order = Self::order_is_confirmed_pair(
+            let baseline_donor_order = Self::baselines_precede_donor(
+                intact.donor_baseline_time,
                 intact.baseline_time,
                 intact.donor_time,
-                intact.receiver_time,
             )?;
             let donor_bridge_receiver_order_confirmed = baseline_donor_order
                 && Self::order_is_confirmed(
@@ -739,6 +747,10 @@ impl IsotopeTransferExperiment {
             TracerCompartment::ReceiverPlant,
             TracerPhase::PreLabelBaseline,
         )?;
+        let donor_baseline = get(
+            TracerCompartment::DonorPlant,
+            TracerPhase::PreLabelBaseline,
+        )?;
         let donor = get(TracerCompartment::DonorPlant, TracerPhase::PostLabel)?;
         let receiver = get(TracerCompartment::ReceiverPlant, TracerPhase::PostLabel)?;
         let bridge = if require_bridge {
@@ -758,6 +770,7 @@ impl IsotopeTransferExperiment {
         let expected_replicate = baseline.replicate;
         if [
             Some(baseline),
+            Some(donor_baseline),
             Some(donor),
             bridge,
             Some(receiver),
@@ -790,10 +803,12 @@ impl IsotopeTransferExperiment {
 
         Ok(ArmSamples {
             baseline,
+            donor_baseline,
             donor,
             bridge,
             receiver,
             baseline_time: time(baseline)?,
+            donor_baseline_time: time(donor_baseline)?,
             donor_time: time(donor)?,
             bridge_time: match bridge {
                 Some(sample) => Some(time(sample)?),
@@ -803,19 +818,29 @@ impl IsotopeTransferExperiment {
         })
     }
 
+    fn baselines_precede_donor(
+        donor_baseline: AlignedExperimentTimestamp,
+        receiver_baseline: AlignedExperimentTimestamp,
+        donor: AlignedExperimentTimestamp,
+    ) -> Result<bool, IsotopeTransferError> {
+        let donor_baseline_before_label =
+            ExperimentTimeAligner::compare(donor_baseline, donor)
+                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let receiver_baseline_before_label =
+            ExperimentTimeAligner::compare(receiver_baseline, donor)
+                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        Ok(donor_baseline_before_label == TemporalOrdering::FirstBeforeSecond
+            && receiver_baseline_before_label == TemporalOrdering::FirstBeforeSecond)
+    }
+
     fn order_is_confirmed_pair(
-        baseline: AlignedExperimentTimestamp,
         donor: AlignedExperimentTimestamp,
         receiver: AlignedExperimentTimestamp,
     ) -> Result<bool, IsotopeTransferError> {
-        let baseline_before_donor =
-            ExperimentTimeAligner::compare(baseline, donor)
-                .map_err(IsotopeTransferError::TemporalAlignment)?;
         let donor_before_receiver =
             ExperimentTimeAligner::compare(donor, receiver)
                 .map_err(IsotopeTransferError::TemporalAlignment)?;
-        Ok(baseline_before_donor == TemporalOrdering::FirstBeforeSecond
-            && donor_before_receiver == TemporalOrdering::FirstBeforeSecond)
+        Ok(donor_before_receiver == TemporalOrdering::FirstBeforeSecond)
     }
 
     fn order_is_confirmed(
@@ -1045,6 +1070,12 @@ mod tests {
                     TracerPhase::PreLabelBaseline,
                     0.010,
                     0.0,
+                );
+                push(
+                    TracerCompartment::DonorPlant,
+                    TracerPhase::PreLabelBaseline,
+                    0.010,
+                    0.25,
                 );
                 push(
                     TracerCompartment::DonorPlant,
