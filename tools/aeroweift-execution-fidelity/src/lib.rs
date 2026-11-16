@@ -595,16 +595,16 @@ fn validate_record(record: &ExecutionRecord) -> Result<(), ExecutionError> {
             segment.source_sequence,
         );
         if sequences
-            .insert(
-                sequence_key,
-                (segment.segment_id.as_str(), segment.window),
-            )
+            .insert(sequence_key, (segment.segment_id.as_str(), segment.window))
             .is_some()
         {
             return Err(ExecutionError::ForkedSegmentSequence);
         }
         by_stream
-            .entry((segment.source_id.as_str(), segment.source_stream_id.as_str()))
+            .entry((
+                segment.source_id.as_str(),
+                segment.source_stream_id.as_str(),
+            ))
             .or_default()
             .push(segment);
     }
@@ -734,8 +734,7 @@ fn assess_window(
     let mut accepted: Vec<&DataSegment> = Vec::new();
     let mut raw_manifests = BTreeSet::new();
     for segment in matching_stream {
-        if segment.window.start < expected.window.start
-            || segment.window.end > expected.window.end
+        if segment.window.start < expected.window.start || segment.window.end > expected.window.end
         {
             // A segment may not straddle a planned window boundary: its sample
             // count cannot safely be apportioned to the in-scope portion.
@@ -806,9 +805,7 @@ pub fn evaluate_execution(
 ) -> Result<ExecutionAssessment, ExecutionError> {
     validate_plan(plan)?;
     validate_record(record)?;
-    if !is_sha256(&policy.policy_sha256)
-        || !is_sha256(&policy.required_capture_build_sha256)
-    {
+    if !is_sha256(&policy.policy_sha256) || !is_sha256(&policy.required_capture_build_sha256) {
         return Err(ExecutionError::InvalidPolicy);
     }
 
@@ -877,7 +874,10 @@ pub fn evaluate_execution(
 
     let mut all_segments_valid = BTreeSet::new();
     for expected in &plan.expected_data_windows {
-        all_segments_valid.insert((expected.source_id.as_str(), expected.source_stream_id.as_str()));
+        all_segments_valid.insert((
+            expected.source_id.as_str(),
+            expected.source_stream_id.as_str(),
+        ));
     }
     for segment in &record.segments {
         if !all_segments_valid.contains(&(
@@ -891,14 +891,7 @@ pub fn evaluate_execution(
     let mut window_coverage: Vec<WindowCoverage> = plan
         .expected_data_windows
         .iter()
-        .map(|expected| {
-            assess_window(
-                expected,
-                &record.segments,
-                record,
-                &mut mismatches,
-            )
-        })
+        .map(|expected| assess_window(expected, &record.segments, record, &mut mismatches))
         .collect();
     window_coverage.sort_by(|left, right| left.window_id.cmp(&right.window_id));
 
