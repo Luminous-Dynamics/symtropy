@@ -423,8 +423,18 @@ mod tests {
     fn the_same_source_cannot_change_value_or_common_cause_identity() {
         let report = adjudicate_receiver_presence(
             &[
-                observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present),
-                observation("evt-2", "sensor-1", Some("sensor-b"), PresenceReading::Present),
+                observation(
+                    "evt-1",
+                    "sensor-1",
+                    Some("sensor-a"),
+                    PresenceReading::Present,
+                ),
+                observation(
+                    "evt-2",
+                    "sensor-1",
+                    Some("sensor-b"),
+                    PresenceReading::Present,
+                ),
             ],
             &policy(),
         )
