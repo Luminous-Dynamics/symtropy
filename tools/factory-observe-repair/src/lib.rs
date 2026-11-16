@@ -262,7 +262,7 @@ pub fn evaluate_scope(
             }
             other => other,
         })?;
-    for operation_id in release_ids.intersection(&containment_ids) {
+    if let Some(operation_id) = release_ids.intersection(&containment_ids).next() {
         return Err(EvaluationError::OperationBothReleasedAndContained(
             *operation_id,
         ));
@@ -334,14 +334,13 @@ pub fn evaluate_scope(
         }
     }
 
-    let status = if false_preserved > 0 {
-        EvaluationStatus::Blocked
-    } else if evidence_block(&episode.inspection).is_some() {
+    let evidence_block_reason = evidence_block(&episode.inspection);
+    let status = if false_preserved > 0 || evidence_block_reason.is_some() {
         EvaluationStatus::Blocked
     } else {
         EvaluationStatus::Eligible
     };
-    let block_reason = evidence_block(&episode.inspection)
+    let block_reason = evidence_block_reason
         .or_else(|| (false_preserved > 0).then_some(BlockReason::RepairScopeIncomplete));
 
     Ok(ScopeEvaluation {
