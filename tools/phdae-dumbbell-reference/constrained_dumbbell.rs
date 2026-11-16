@@ -937,9 +937,29 @@ mod tests {
     #[test]
     fn reflection_component_conjugates_the_connected_rotation_generator() {
         // J = [[0,-1],[1,0]], F = diag(1,-1), F^-1 = F^T = F.
-        // The split O(2) relation is F J F^-1 = -J.
-        let conjugated = [[0.0, 1.0], [-1.0, 0.0]];
-        let negative_generator = [[0.0, 1.0], [-1.0, 0.0]];
+        // Compute F J F^-1 directly; it must equal -J.
+        let reflection = [[1.0, 0.0], [0.0, -1.0]];
+        let generator = [[0.0, -1.0], [1.0, 0.0]];
+        let mut left_product = [[0.0; 2]; 2];
+        let mut conjugated = [[0.0; 2]; 2];
+        for row in 0..2 {
+            for column in 0..2 {
+                for inner in 0..2 {
+                    left_product[row][column] += reflection[row][inner] * generator[inner][column];
+                }
+            }
+        }
+        for row in 0..2 {
+            for column in 0..2 {
+                for inner in 0..2 {
+                    conjugated[row][column] += left_product[row][inner] * reflection[inner][column];
+                }
+            }
+        }
+        let negative_generator = [
+            [-generator[0][0], -generator[0][1]],
+            [-generator[1][0], -generator[1][1]],
+        ];
         assert_eq!(conjugated, negative_generator);
 
         let angle = 0.731_f64;
