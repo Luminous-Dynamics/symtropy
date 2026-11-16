@@ -480,7 +480,12 @@
     "No preferred catchment or station is selected by this matrix.",
     "DWS RQIS/WMS index metadata lists A2H044 chemistry site A21-90189 with 1,649 indexed observations from 1971-12-06 to 2018-05-21; A2H047 site A21-90191 with 639 from 1971-12-06 to 2018-06-05; A2H042 site A21-90187 with 952 from 1971-12-06 to 1997-10-13. These are index metadata, not acquired raw sample records.",
     "A 2016 DWS national monitoring-network review says A2H023 may be redundant if A2H044 can be upgraded and return flow measured at N21; it describes A2H047 as a small urban catchment. Treat this as historical design context, not verified present-day station status or an installed return-flow measurement.",
-    "Any urban Jukskei runoff benchmark should separately admit wastewater return flows and other transfers/abstractions; absent anthropogenic flux records must trigger abstention/downgrade under hydro-contextual evaluator control HC-T0-013."
+    "Any urban Jukskei runoff benchmark should separately admit wastewater return flows and other transfers/abstractions; absent anthropogenic flux records must trigger abstention/downgrade under hydro-contextual evaluator control HC-T0-013.",
+    "DWS indexed live page for A2H047 lists A2H047_GapsReport.xlsx, A2H047_RatingExceeded.xlsx, A2H047pk.csv, A2H047yrpk.csv and A2H047_Flood_Hydrographs.xlsx. Direct retrieval returned 403 in this pass; this is a discoverable acquisition path, not an acquired or inspected file.",
+    "DWS indexed A2H047 page states primary queries are limited to 7,000 records or one year and daily queries to 20 years; acquire in multiple pinned windows and preserve each request/response.",
+    "CHIRPS v3 Daily SAT uses IMERG Late V07 to partition pentadal CHIRPS v3 totals into daily amounts; do not treat it as statistically independent of the corresponding IMERG product.",
+    "CHIRPS v3 Daily RNL is an ERA5-based reanalysis product and must remain distinct from CHIRPS v3 Daily SAT and ERA5-Land inputs.",
+    "ERA5-Land's ARCO Zarr delivery is an access format for reanalysis; it does not convert the product into observed station data."
   ],
   "candidate_quality_records": [
     {
@@ -566,5 +571,121 @@
       "rights_status": "public_access_terms_not_yet_reviewed",
       "sha256": null
     }
-  ]
+  ],
+  "updated_date": "2026-11-16",
+  "station_page_observations": [
+    {
+      "station_id": "A2H047",
+      "station_name": "Little Jukskei River @ Klipfontein",
+      "source_url": "https://www.dws.gov.za/hydrology/Verified/HyDataSets.aspx?Station=A2H047",
+      "source_observation_method": "DWS indexed station-page content; direct page fetch returned HTTP 403 during this research pass",
+      "indexed_page_records": {
+        "station_type": "A2H047-RIV",
+        "station_label": "Ltl Jukskei @ Klipfo",
+        "sections": [
+          "Quality Codes",
+          "Recorded data and information",
+          "Gaps in data record",
+          "Rating Tables",
+          "Flood Peaks and Hydrographs"
+        ],
+        "downloadable_links_listed": [
+          "A2H047_GapsReport.xlsx",
+          "A2H047_RatingExceeded.xlsx",
+          "A2H047pk.csv",
+          "A2H047yrpk.csv",
+          "A2H047_Flood_Hydrographs.xlsx"
+        ],
+        "rating_table_section_date_as_indexed": "1971-07-21"
+      },
+      "query_limits_as_listed": {
+        "primary_data": "maximum 7,000 records or 1 year per query",
+        "daily_data": "maximum 20 years per query",
+        "full_record_strategy": "multiple period-scoped queries; keep every query and native response identity"
+      },
+      "status": "candidate_only_not_admitted",
+      "acquisition_status": "not_acquired",
+      "byte_hashes": null,
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "interpretation_limits": [
+        "The listed A2H047_RatingExceeded.xlsx is an exceedance information file; do not treat it as the complete rating table.",
+        "The live page's Recorded data table is not a proof that a discharge series is continuous, audited, or in a particular quality class.",
+        "No level-to-flow conversion is admitted without the correct station, datum and rating table revision/effective interval.",
+        "The direct page was not retrievable in this pass; the indexed search result is a locator, not the file bytes."
+      ],
+      "next_action": "Acquire exact primary/daily series, gap report, quality codes, rating-table history and exceedance file under DWS terms; hash every byte and preserve query windows."
+    }
+  ],
+  "versioned_forcing_products": [
+    {
+      "product_id": "CHIRPS-V3-DAILY-SAT",
+      "provider": "Climate Hazards Center / UCSB",
+      "source_url": "https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHC_CHIRPS_V3_DAILY_SAT",
+      "version": "CHIRPS v3 daily satellite (IMERG-based)",
+      "declared_period": "1981-01-01 to 2026-10-31 in indexed Earth Engine catalogue on 16 November 2026",
+      "cadence": "daily",
+      "nominal_grid": "0.05 degree; approximately 5.6 km",
+      "method_note": "Daily amounts use NASA IMERG Late V07 daily data to partition pentadal CHIRPS v3 totals.",
+      "status": "candidate_only_not_admitted",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "nonclaims": [
+        "Not a point rain gauge.",
+        "Not independent of IMERG Late V07 daily input.",
+        "Do not combine with GPM IMERG as an independent forcing in an ensemble without dependency disclosure."
+      ]
+    },
+    {
+      "product_id": "CHIRPS-V3-DAILY-RNL",
+      "provider": "Climate Hazards Center / UCSB",
+      "source_url": "https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHC_CHIRPS_V3_DAILY_RNL",
+      "version": "CHIRPS v3 daily reanalysis (ERA5-based)",
+      "declared_period": "1981-01-01 to 2026-07-31 in indexed Earth Engine catalogue on 16 November 2026",
+      "cadence": "daily",
+      "nominal_grid": "0.05 degree; approximately 5.6 km",
+      "method_note": "Reanalysis-based daily product; keep separate from the satellite/IMERG-based daily product.",
+      "status": "candidate_only_not_admitted",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "nonclaims": [
+        "Not station observation.",
+        "Not interchangeable with CHIRPS v3 daily satellite product.",
+        "Do not treat as an independent reference if another model uses the same ERA5 meteorological inputs."
+      ]
+    },
+    {
+      "product_id": "ERA5-LAND-HOURLY-ARCO",
+      "provider": "Copernicus Climate Change Service / ECMWF",
+      "source_url": "https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land-timeseries",
+      "version": "ERA5-Land hourly reanalysis; ARCO Zarr access route",
+      "declared_period": "1950 onward; exact last available timestamp must be captured at acquisition",
+      "cadence": "hourly",
+      "nominal_grid": "approximately 9 km",
+      "method_note": "Cloud-optimised Zarr supports long time periods for selected areas; the product remains a land-surface reanalysis, not direct station observation.",
+      "status": "candidate_only_not_admitted",
+      "acquisition_status": "not_acquired",
+      "rights_status": "CDS terms and account/API access must be reviewed",
+      "sha256": null,
+      "nonclaims": [
+        "Reanalysis is not ground truth.",
+        "ERA5-Land hourly is distinct from ERA5 atmospheric reanalysis.",
+        "Pin variable, units, accumulation window, timestamp semantics and product revision."
+      ]
+    }
+  ],
+  "station_acquisition_protocol": {
+    "station_priority": "A2H047 is a small urban Little Jukskei catchment candidate; A2H044 is a larger Jukskei comparison. They are different spatial scales and must not be treated as interchangeable.",
+    "a2h047_sequence": [
+      "Acquire station metadata and query native series separately for each parameter.",
+      "Acquire and inspect A2H047_GapsReport.xlsx; preserve DWS quality/missingness codes.",
+      "Acquire A2H047_RatingExceeded.xlsx and determine exactly what it contains; separately obtain full rating-table revisions and effective dates.",
+      "Acquire primary data in period chunks no larger than one year/7,000 records; acquire daily series in chunks no longer than 20 years.",
+      "Acquire A2H047pk.csv, A2H047yrpk.csv and A2H047_Flood_Hydrographs.xlsx as distinct event/peak products, not a substitute for the continuous daily record.",
+      "Verify datum, station coordinates, rating-table changes, above-rating handling, provisional/audited status and legal data terms before deriving discharge.",
+      "Compute byte hashes, retain original raw exports and query parameters, and only then issue a source admission decision."
+    ],
+    "status": "protocol_only_no_data_bytes_acquired"
+  }
 }
