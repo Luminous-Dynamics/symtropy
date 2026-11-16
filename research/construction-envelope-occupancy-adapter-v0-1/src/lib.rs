@@ -598,7 +598,12 @@ mod tests {
             &first_report,
             first_slice,
             binding(&first_report.context),
-            reservation_with_uncertainty(&first_report.context, first_slice, "reservation-1-zero", 0),
+            reservation_with_uncertainty(
+                &first_report.context,
+                first_slice,
+                "reservation-1-zero",
+                0,
+            ),
             "occupancy-1-zero",
             OccupancyKind::RobotOperatingEnvelope,
         )
@@ -607,7 +612,12 @@ mod tests {
             &second_report,
             second_slice,
             binding(&second_report.context),
-            reservation_with_uncertainty(&second_report.context, second_slice, "reservation-2-zero", 0),
+            reservation_with_uncertainty(
+                &second_report.context,
+                second_slice,
+                "reservation-2-zero",
+                0,
+            ),
             "occupancy-2-zero",
             OccupancyKind::RobotOperatingEnvelope,
         )
@@ -618,7 +628,12 @@ mod tests {
         )
         .unwrap();
         zero_book.insert(first_zero.occupancy).unwrap();
-        assert!(zero_book.conflicts_for(&second_zero.occupancy).unwrap().is_empty());
+        assert!(
+            zero_book
+                .conflicts_for(&second_zero.occupancy)
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -631,12 +646,7 @@ mod tests {
             &source,
             slice,
             binding(&source.context),
-            reservation_with_uncertainty(
-                &source.context,
-                slice,
-                "reservation-overflow",
-                u64::MAX,
-            ),
+            reservation_with_uncertainty(&source.context, slice, "reservation-overflow", u64::MAX),
             "occupancy-overflow",
             OccupancyKind::RobotOperatingEnvelope,
         )
