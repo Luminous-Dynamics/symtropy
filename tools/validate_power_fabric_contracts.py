@@ -6,6 +6,7 @@ schemas, fixtures and explicit fail-closed structural invariants are consistent.
 """
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 import sys
@@ -148,6 +149,47 @@ def check_receipt(profile: dict[str, Any], receipt: dict[str, Any]) -> None:
             raise SystemExit("not_evaluable receipt must not contain only passing outputs")
 
 
+def expect_rejection(label: str, operation: Any) -> None:
+    try:
+        operation()
+    except SystemExit:
+        print(f"PASS negative control: {label}")
+        return
+    raise SystemExit(f"negative control was incorrectly accepted: {label}")
+
+
+def check_negative_mutations(profile: dict[str, Any], receipt: dict[str, Any]) -> None:
+    admitted_with_unknowns = copy.deepcopy(profile)
+    admitted_with_unknowns["record_status"] = "admitted"
+    expect_rejection("unknown asset/model/envelope cannot be admitted", lambda: check_profile(admitted_with_unknowns))
+
+    complete_without_evidence = copy.deepcopy(receipt)
+    complete_without_evidence["overall_disposition"] = "complete_pass"
+    expect_rejection("complete_pass cannot be synthesized from a not_evaluable profile", lambda: check_receipt(profile, complete_without_evidence))
+
+    duplicate_output = copy.deepcopy(receipt)
+    duplicate_output["output_results"].append(copy.deepcopy(duplicate_output["output_results"][0]))
+    expect_rejection("duplicate output identity is rejected", lambda: check_receipt(profile, duplicate_output))
+
+    wrong_unit = copy.deepcopy(receipt)
+    wrong_unit["output_results"][0]["unit"] = "MW"
+    expect_rejection("receipt output unit cannot diverge from profile", lambda: check_receipt(profile, wrong_unit))
+
+    false_control = copy.deepcopy(receipt)
+    false_control["negative_controls"][0]["status"] = "pass"
+    false_control["negative_controls"][0]["observed_disposition"] = "replan"
+    expect_rejection("negative control cannot pass with the wrong disposition", lambda: check_receipt(profile, false_control))
+
+    forged_residual = copy.deepcopy(receipt)
+    forged = forged_residual["output_results"][0]
+    forged.update({"status": "pass", "observed": 1.0, "reference": 0.0, "absolute_error": 0.5, "tolerance": 1.0})
+    expect_rejection("reported residual must equal the independently recomputed residual", lambda: check_receipt(profile, forged_residual))
+
+    wrong_profile = copy.deepcopy(receipt)
+    wrong_profile["profile_id"] = "different-profile"
+    expect_rejection("receipt must bind the exact profile identity", lambda: check_receipt(profile, wrong_profile))
+
+
 def main() -> int:
     profile = validate_schema(PROFILE_SCHEMA_PATH, PROFILE_FIXTURE_PATH)
     receipt = validate_schema(RECEIPT_SCHEMA_PATH, RECEIPT_FIXTURE_PATH)
@@ -155,6 +197,7 @@ def main() -> int:
     check_receipt(profile, receipt)
     if receipt["overall_disposition"] != "not_evaluable":
         raise SystemExit("the authored synthetic receipt must remain not_evaluable")
+    check_negative_mutations(profile, receipt)
     print("PASS: cross-record and fail-closed fixture invariants")
     print("Claim ceiling: schema/fixture consistency only; no physical validation is asserted.")
     return 0
