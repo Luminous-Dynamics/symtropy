@@ -183,6 +183,13 @@ impl FieldHyphalDensityObservation {
     }
 }
 
+/// Deterministic assignment of complete studies to one validation fold.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StudyFoldAssignment {
+    pub fold_index: usize,
+    pub studies: Vec<FieldStudyId>,
+}
+
 /// Validated field-sample collection with stable study and source-row
 /// identities. It prevents repeated records from being silently treated as
 /// independent samples and provides a study key for leakage-safe holdouts.
@@ -234,6 +241,36 @@ impl FieldObservationCatalog {
 
     pub fn studies(&self) -> impl Iterator<Item = FieldStudyId> + '_ {
         self.studies.iter().copied()
+    }
+
+    /// Assign each complete study to exactly one fold.
+    ///
+    /// Studies are sorted by their stable IDs and distributed round-robin,
+    /// producing deterministic and approximately balanced fold sizes.
+    /// A caller forms training/validation rows by study membership; no sample
+    /// from one study can appear in two folds. This is not a spatial-block
+    /// split, which requires a separately declared geographic partition.
+    pub fn grouped_study_folds(
+        &self,
+        fold_count: usize,
+    ) -> Result<Vec<StudyFoldAssignment>, SpatialFieldError> {
+        if fold_count < 2 || fold_count > self.studies.len() {
+            return Err(SpatialFieldError::InvalidStudyFoldCount {
+                requested: fold_count,
+                available_studies: self.studies.len(),
+            });
+        }
+
+        let mut folds: Vec<StudyFoldAssignment> = (0..fold_count)
+            .map(|fold_index| StudyFoldAssignment {
+                fold_index,
+                studies: Vec::new(),
+            })
+            .collect();
+        for (index, study) in self.studies.iter().copied().enumerate() {
+            folds[index % fold_count].studies.push(study);
+        }
+        Ok(folds)
     }
 
     /// Only rows with both a valid coordinate and a known sampling-depth
@@ -386,6 +423,10 @@ pub enum SpatialFieldError {
         study: FieldStudyId,
         source_record_key: String,
     },
+    InvalidStudyFoldCount {
+        requested: usize,
+        available_studies: usize,
+    },
     InvalidRasterCellGeometry,
     InvalidPredictedDensity,
     InvalidPredictionUncertainty,
@@ -448,6 +489,14 @@ impl fmt::Display for SpatialFieldError {
                     source_record_key, study
                 )
             }
+            Self::InvalidStudyFoldCount {
+                requested,
+                available_studies,
+            } => write!(
+                f,
+                "study fold count {} must be between 2 and the number of studies ({})",
+                requested, available_studies
+            ),
             Self::InvalidRasterCellGeometry => {
                 write!(
                     f,
@@ -666,6 +715,83 @@ mod tests {
         );
         assert_eq!(catalog.spatially_supported_rows().count(), 1);
         assert!(catalog.observation(FieldSampleId(2)).is_some());
+    }
+
+    #[test]
+    fn grouped_study_folds_keep_all_samples_from_a_study_together() {
+        let mut rows = Vec::new();
+        for study in 1..=6 {
+            for sample in 0..3 {
+                let mut item = observation();
+                item.id = FieldSampleId(study * 10 + sample);
+                item.study = FieldStudyId(study);
+                item.source_record_key = format!("study-{study}-core-{sample}");
+                rows.push(item);
+            }
+        }
+        let catalog = FieldObservationCatalog::new(rows).unwrap();
+        let folds = catalog.grouped_study_folds(3).unwrap();
+        assert_eq!(folds.len(), 3);
+
+        let mut seen = BTreeSet::new();
+        for fold in &folds {
+            for study in &fold.studies {
+                assert!(seen.insert(*study), "study assigned to more than one fold");
+                assert_eq!(fold.studies.iter().filter(|item| *item == study).count(), 1);
+            }
+        }
+        assert_eq!(seen, (1..=6).map(FieldStudyId).collect());
+        assert!(folds.iter().all(|fold| fold.studies.len() == 2));
+    }
+
+    #[test]
+    fn grouped_study_folds_are_independent_of_row_insertion_order() {
+        let make_catalog = |reverse: bool| {
+            let mut rows = Vec::new();
+            for study in 1..=5 {
+                let mut item = observation();
+                item.id = FieldSampleId(study);
+                item.study = FieldStudyId(study);
+                item.source_record_key = format!("study-{study}-core-1");
+                rows.push(item);
+            }
+            if reverse {
+                rows.reverse();
+            }
+            FieldObservationCatalog::new(rows).unwrap()
+        };
+
+        assert_eq!(
+            make_catalog(false).grouped_study_folds(2).unwrap(),
+            make_catalog(true).grouped_study_folds(2).unwrap()
+        );
+    }
+
+    #[test]
+    fn grouped_study_folds_reject_impossible_fold_counts() {
+        let catalog = FieldObservationCatalog::new(vec![observation()]).unwrap();
+        assert_eq!(
+            catalog.grouped_study_folds(2),
+            Err(SpatialFieldError::InvalidStudyFoldCount {
+                requested: 2,
+                available_studies: 1
+            })
+        );
+
+        let mut rows = vec![observation()];
+        let mut second = observation();
+        second.id = FieldSampleId(2);
+        second.study = FieldStudyId(11);
+        second.source_record_key = "study-11-core-1".to_string();
+        rows.push(second);
+        let catalog = FieldObservationCatalog::new(rows).unwrap();
+        assert_eq!(
+            catalog.grouped_study_folds(3),
+            Err(SpatialFieldError::InvalidStudyFoldCount {
+                requested: 3,
+                available_studies: 2
+            })
+        );
     }
 
     #[test]
