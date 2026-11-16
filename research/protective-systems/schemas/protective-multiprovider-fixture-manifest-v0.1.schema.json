@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/protective-multiprovider-fixture-manifest-v0.1.schema.json",
+  "title": "Protective Systems E3 Multi-provider Fixture Manifest",
+  "description": "Synthetic-only manifest pinning native DataCite, OGC API - Records and OpenLineage source fixture bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "source_e1_context",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "protective-multiprovider-fixture-manifest/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+    },
+    "source_e1_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_id",
+        "execution_status",
+        "relationship"
+      ],
+      "properties": {
+        "analysis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_status": {
+          "const": "NOT_EXECUTED"
+        },
+        "relationship": {
+          "const": "CONTEXT_ONLY_NOT_A_RUN"
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "relative_path",
+          "native_profile",
+          "source_identity",
+          "retrieval_mode",
+          "rights_status",
+          "permitted_use",
+          "claim_ceiling",
+          "byte_length",
+          "sha256"
+        ],
+        "properties": {
+          "provider": {
+            "enum": [
+              "DATACITE",
+              "OGC_API_RECORDS",
+              "OPENLINEAGE"
+            ]
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_profile": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_identity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "retrieval_mode": {
+            "const": "SYNTHETIC_STATIC_FIXTURE"
+          },
+          "rights_status": {
+            "const": "SYNTHETIC_OPEN_FIXTURE"
+          },
+          "permitted_use": {
+            "const": "SYNTHETIC_TEST_ONLY"
+          },
+          "claim_ceiling": {
+            "const": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
