@@ -119,10 +119,23 @@ The first ambition should not be to beat Dusty's 1.6 mm, HP's condition-specific
 
 ## Standards and measurement-science alignment
 
+### Performance measurement and interoperability
+
 - NIST's Performance Assessment Framework already composes perception, mobility, dexterity and safety component measurements into system-level task performance: https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems
 - NIST's Mobility Performance programme develops measurement science and test methods for dynamic mobile systems, including slippage, uneven floors, obstacles, vibration, dynamic loads and delocalization: https://www.nist.gov/programs-projects/mobility-performance-robotic-systems
-- AMRA-201:2026 provides general requirements and test methods for mobile robots on solid travel surfaces, including wheeled, tracked and legged embodiments: https://amr-alliance.org/amra-201/
-- VDA 5050 v3.0 supports cross-vendor fleet communication and zone/path-sharing for more autonomous mobile robots; it does not qualify physical capability or safety: https://www.vda.de/en/press/press-releases/2026/260421_PM_VDA_5050_EN
+- AMRA-201:2026 provides general requirements and test methods for mobile robots on solid travel surfaces, including wheeled, tracked and legged embodiments. Its scope is a baseline for performance/specification methods, not a complete construction-site safety certification: https://amr-alliance.org/amra-201/
+- VDA 5050 v3.0 supports cross-vendor fleet communication, zones and planned/intermediate path sharing for freely navigating mobile robots. It is an interoperability interface, not a physical capability test or functional-safety authorization: https://www.vda.de/en/press/press-releases/2026/260421_PM_VDA_5050_EN
+
+### Safety-standard applicability for a mobile workcell
+
+Do not infer full-system conformity by simply listing multiple standards. Determine applicability by the exact product definition, intended use, operating domain, jurisdiction, integration and hazards.
+
+- **ISO 10218-1:2025** covers industrial robots as products/partly completed machinery. ISO's published scope explicitly excludes mobility hazards when robots/manipulators are fixed to or part of driverless industrial trucks or mobile platforms. The manipulator's product-level requirements therefore do not complete the mobile platform's safety assessment: https://www.iso.org/standard/73933.html
+- **ISO 10218-2:2025** addresses integration of industrial robot applications and robot cells, including design, integration, commissioning, operation and maintenance. It should be considered for the arm/tool/application integration, subject to its scope and exclusions: https://www.iso.org/standard/73934.html
+- **ISO 3691-4:2023** specifies safety requirements and verification for driverless industrial trucks and systems, and its examples include AGVs and AMRs. It is relevant where the mobile base meets the driverless industrial-truck definition and use conditions; it does not replace the robot application/tool/process hazard assessment: https://www.iso.org/standard/83545.html
+- **Revision watch:** ISO/DIS 3691-4 (third edition) is under development. The ISO page shows the DIS ballot closed on 10 September 2026 and progression toward FDIS; it is not yet a published replacement as of 16 November 2026. Do not describe the draft as the current published standard: https://www.iso.org/standard/88615.html
+
+For the reference workcell, prepare separate applicability/risk analyses for the mobile base, manipulator, end-effector/process, and integrated mobile-manipulator system. The integration assessment must address coupled hazards such as stability under arm extension and payload, traction/braking and stopping, protective fields during arm motion, E-stop and safety I/O chains, loss of localization, human access, tool change, power isolation and degraded communications. Construction-site conditions (uneven or changing surfaces, drop-offs, dust, weather, material handling, bystanders and changing exclusion zones) require an explicit task/site/ODD assessment. None of the cited standards by itself establishes that this particular workcell is safe or legally authorized.
 
 Use these methods and interfaces rather than claim to replace them. This benchmark's distinct contribution is the evidence-preserving join across configuration change, complete-mission diagnostics, independent accepted output, lifecycle and requalification.
 
