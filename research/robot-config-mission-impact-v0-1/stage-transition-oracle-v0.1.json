@@ -83,6 +83,11 @@
       "case_id": "MST-016",
       "expected_disposition": "held",
       "reason_code": "POSTCONDITION_UNKNOWN"
+    },
+    {
+      "case_id": "MST-017",
+      "expected_disposition": "advance",
+      "reason_code": "POSTCONDITION_VERIFIED"
     }
   ],
   "nonclaims": [
