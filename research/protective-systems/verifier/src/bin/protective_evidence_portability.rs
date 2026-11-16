@@ -200,12 +200,68 @@ fn validate_claim_and_rights(value: &Value, path: &str) -> Result<(), String> {
 }
 
 fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, String> {
+    validate_crate_with_binding(crate_text, prov_text, E2_BINDING)
+}
+
+fn validate_crate_with_binding(
+    crate_text: &str,
+    prov_text: &str,
+    binding_text: &str,
+) -> Result<GateReport, String> {
     let crate_root: Value = serde_json::from_str(crate_text)
         .map_err(|error| format!("RO-Crate JSON invalid: {error}"))?;
     let prov_root: Value = serde_json::from_str(prov_text)
         .map_err(|error| format!("PROV-O JSON-LD invalid: {error}"))?;
     let e1: Value = serde_json::from_str(E1_ENVELOPE)
         .map_err(|error| format!("E1 envelope JSON invalid: {error}"))?;
+    if E1_ENVELOPE.as_bytes() != E1_SOURCE_ENVELOPE_BYTES {
+        return Err("packaged E1 envelope bytes differ from the original E1 fixture".to_owned());
+    }
+    let binding_root: Value = serde_json::from_str(binding_text)
+        .map_err(|error| format!("E2 evidence binding JSON invalid: {error}"))?;
+    if required_text(&binding_root, "schema_version", "E2 binding")?
+        != "protect-evidence-binding/0.1"
+        || required_text(&binding_root, "evidence_class", "E2 binding")? != "synthetic"
+    {
+        return Err("E2 evidence binding must be the frozen synthetic binding schema".to_owned());
+    }
+    let source_envelope = binding_root
+        .get("source_envelope")
+        .ok_or_else(|| "E2 binding.source_envelope is required".to_owned())?;
+    if required_text(source_envelope, "relative_path", "E2 binding.source_envelope")?
+        != "evidence/protective-model-evidence-envelope-v0.1.json"
+    {
+        return Err("E2 binding must identify the E1 envelope packaged in the crate".to_owned());
+    }
+    let source_envelope_length = source_envelope
+        .get("byte_length")
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "E2 binding source envelope byte_length is invalid".to_owned())?;
+    if source_envelope_length != E1_ENVELOPE_SOURCE_BYTES.len() as u64 {
+        return Err("E2 binding source envelope byte_length differs from the E1 envelope".to_owned());
+    }
+    let source_envelope_sha256 = format!("{:x}", Sha256::digest(E1_ENVELOPE_SOURCE_BYTES));
+    if required_text(source_envelope, "sha256", "E2 binding.source_envelope")?
+        != source_envelope_sha256
+    {
+        return Err("E2 binding source envelope SHA-256 differs from the E1 envelope".to_owned());
+    }
+
+    let e1_analysis = e1
+        .get("analysis")
+        .ok_or_else(|| "E1 envelope analysis is required".to_owned())?;
+    let e1_analysis_id = required_text(e1_analysis, "analysis_id", "E1 analysis")?;
+    let e1_execution_status = required_text(e1_analysis, "execution_status", "E1 analysis")?;
+    let binding_analysis = binding_root
+        .get("analysis")
+        .ok_or_else(|| "E2 binding.analysis is required".to_owned())?;
+    if required_text(binding_analysis, "analysis_id", "E2 binding.analysis")?
+        != e1_analysis_id
+        || required_text(binding_analysis, "execution_status", "E2 binding.analysis")?
+            != e1_execution_status
+    {
+        return Err("E2 binding analysis identity/status differs from the E1 envelope".to_owned());
+    }
 
     let contexts = crate_root
         .get("@context")
@@ -329,6 +385,116 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         verified_artifacts += 1;
     }
 
+    let e1_datasets_array = e1
+        .get("datasets")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "E1 envelope datasets must be an array".to_owned())?;
+    let mut e1_dataset_bindings: BTreeMap<String, (String, BTreeSet<String>)> =
+        BTreeMap::new();
+    for (index, dataset) in e1_datasets_array.iter().enumerate() {
+        let path = format!("E1 datasets[{index}]");
+        let dataset_id = required_text(dataset, "dataset_id", &path)?.to_owned();
+        let direction = required_text(dataset, "direction", &path)?.to_owned();
+        let artifacts = dataset
+            .get("artifacts")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{path}.artifacts must be an array"))?;
+        let artifact_paths: BTreeSet<String> = artifacts
+            .iter()
+            .map(|artifact| {
+                required_text(artifact, "relative_path", &format!("{path}.artifact"))
+                    .map(str::to_owned)
+            })
+            .collect::<Result<_, _>>()?;
+        if artifact_paths.len() != artifacts.len()
+            || e1_dataset_bindings
+                .insert(dataset_id.clone(), (direction, artifact_paths))
+                .is_some()
+        {
+            return Err(format!("{path} has duplicate dataset or artifact identities"));
+        }
+    }
+
+    let bindings = binding_root
+        .get("bindings")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == 4)
+        .ok_or_else(|| "E2 binding must contain exactly four PROV entity bindings".to_owned())?;
+    let mut entity_bindings: BTreeMap<String, (String, String, String)> = BTreeMap::new();
+    let mut dataset_binding_ids = BTreeSet::new();
+    let mut e1_binding_count = 0usize;
+    let mut synthetic_control_count = 0usize;
+    for (index, binding) in bindings.iter().enumerate() {
+        let path = format!("E2 binding.bindings[{index}]");
+        let entity_id = required_text(binding, "prov_entity_id", &path)?.to_owned();
+        let dataset_id = required_text(binding, "dataset_id", &path)?.to_owned();
+        let direction = required_text(binding, "direction", &path)?.to_owned();
+        let binding_status = required_text(binding, "binding_status", &path)?.to_owned();
+        let source = required_text(binding, "source", &path)?.to_owned();
+        if !["INPUT", "OUTPUT"].contains(&direction.as_str())
+            || !dataset_binding_ids.insert(dataset_id.clone())
+        {
+            return Err(format!("{path} has an unsupported direction or duplicate dataset ID"));
+        }
+        let artifact_paths_array = binding
+            .get("artifact_paths")
+            .and_then(Value::as_array)
+            .ok_or_else(|| format!("{path}.artifact_paths must be an array"))?;
+        let artifact_paths: BTreeSet<String> = artifact_paths_array
+            .iter()
+            .map(|item| {
+                item.as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| format!("{path}.artifact_paths entries must be text"))
+            })
+            .collect::<Result<_, _>>()?;
+        if artifact_paths.len() != artifact_paths_array.len() {
+            return Err(format!("{path}.artifact_paths contains duplicate entries"));
+        }
+        match binding_status.as_str() {
+            "E1_ENVELOPE_DATASET" => {
+                if source != "E1_ENVELOPE" {
+                    return Err(format!("{path}: E1 dataset binding must cite E1_ENVELOPE"));
+                }
+                let (expected_direction, expected_paths) = e1_dataset_bindings
+                    .get(&dataset_id)
+                    .ok_or_else(|| format!("{path}: dataset ID does not exist in the E1 envelope"))?;
+                if expected_direction != &direction || expected_paths != &artifact_paths {
+                    return Err(format!("{path}: E1 dataset direction/artifact paths differ from the envelope"));
+                }
+                e1_binding_count += 1;
+            }
+            "SYNTHETIC_CONTROL_ONLY" => {
+                if source != "E2_FIXTURE"
+                    || !artifact_paths.is_empty()
+                    || e1_dataset_bindings.contains_key(&dataset_id)
+                {
+                    return Err(format!("{path}: synthetic control cannot claim E1/provider artifacts"));
+                }
+                synthetic_control_count += 1;
+            }
+            other => return Err(format!("{path}.binding_status is unsupported: {other}")),
+        }
+        if entity_bindings
+            .insert(entity_id.clone(), (dataset_id, direction, binding_status))
+            .is_some()
+        {
+            return Err(format!("{path} duplicates PROV entity binding {entity_id}"));
+        }
+    }
+    let expected_bound_entities = BTreeSet::from([
+        INPUT_WATER.to_owned(),
+        INPUT_POWER.to_owned(),
+        OUTPUT_WATER.to_owned(),
+        OUTPUT_CLINIC.to_owned(),
+    ]);
+    if entity_bindings.keys().cloned().collect::<BTreeSet<_>>() != expected_bound_entities
+        || e1_binding_count != e1_datasets_array.len()
+        || synthetic_control_count != 2
+    {
+        return Err("E2 entity binding inventory must map both E1 datasets and two synthetic controls".to_owned());
+    }
+
     let e1_artifacts: BTreeMap<String, (u64, String)> = e1
         .get("datasets")
         .and_then(Value::as_array)
@@ -367,12 +533,8 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
     if prov_context.get("prov").and_then(Value::as_str) != Some(PROV_NS) {
         return Err("PROV-O context must bind prov to the W3C PROV namespace".to_owned());
     }
-    let prov_context = prov_root
-        .get("@context")
-        .and_then(Value::as_object)
-        .ok_or_else(|| "PROV-O @context must be an object".to_owned())?;
-    if prov_context.get("prov").and_then(Value::as_str) != Some(PROV_NS) {
-        return Err("PROV-O context must bind prov to the W3C PROV namespace".to_owned());
+    if prov_context.get("schema").and_then(Value::as_str) != Some(SCHEMA_NS) {
+        return Err("PROV-O context must bind schema to schema.org".to_owned());
     }
     if prov_context.get("ex").and_then(Value::as_str) != Some(E2_NS) {
         return Err("PROV-O context must bind ex to the E2 fixture namespace".to_owned());
@@ -390,6 +552,11 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .get(ACTIVITY)
         .ok_or_else(|| "PROV-O analysis Activity is missing".to_owned())?;
     require_type(activity, "prov:Activity", "PROV-O analysis")?;
+    if required_text(activity, "ex:analysisId", "PROV-O analysis")? != e1_analysis_id
+        || required_text(activity, "ex:executionStatus", "PROV-O analysis")? != e1_execution_status
+    {
+        return Err("PROV-O activity identity/status differs from the E1 evidence envelope".to_owned());
+    }
     let agent = prov_entities
         .get(AGENT)
         .ok_or_else(|| "PROV-O Agent is missing".to_owned())?;
@@ -418,6 +585,21 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
             .is_some_and(Value::is_array)
     {
         return Err("PROV-O activity must have exactly one declared associated Agent".to_owned());
+    }
+
+    for id in [INPUT_WATER, INPUT_POWER, OUTPUT_WATER, OUTPUT_CLINIC] {
+        let entity = prov_entities
+            .get(id)
+            .ok_or_else(|| format!("PROV-O bound Entity is missing: {id}"))?;
+        let (dataset_id, direction, binding_status) = entity_bindings
+            .get(id)
+            .ok_or_else(|| format!("E2 binding is missing PROV entity {id}"))?;
+        if required_text(entity, "ex:datasetId", id)? != dataset_id
+            || required_text(entity, "ex:datasetDirection", id)? != direction
+            || required_text(entity, "ex:bindingStatus", id)? != binding_status
+        {
+            return Err(format!("{id}: PROV entity binding differs from the E2 binding manifest"));
+        }
     }
 
     for id in [INPUT_WATER, INPUT_POWER] {
@@ -510,6 +692,10 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         used_input_count: used_ids.len(),
         generated_output_count: 2,
         declared_derivation_count: derivation_count,
+        evidence_binding_count: entity_bindings.len(),
+        e1_dataset_binding_count: e1_binding_count,
+        synthetic_control_binding_count: synthetic_control_count,
+        source_envelope_sha256,
         verified_artifact_count: verified_artifacts,
         crate_metadata_sha256: format!("{:x}", Sha256::digest(crate_text.as_bytes())),
         provenance_graph_sha256: format!("{:x}", Sha256::digest(prov_text.as_bytes())),
