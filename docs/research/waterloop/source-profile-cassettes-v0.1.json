@@ -1,0 +1,269 @@
+{
+  "schema_version": "waterloop-source-profile-cassettes-v0.1",
+  "status": "research_architecture_not_released_for_construction",
+  "evidence_class": "literature_context_and_unqualified_design_candidates",
+  "claim_ceiling": "source_segregation_module_interfaces_candidate_processes_and_test_protocol_only",
+  "parent_issue": 5335,
+  "work_package_issue": 5671,
+  "source_profiles": [
+    {
+      "id": "bathroom_light_greywater_v0",
+      "status": "primary_characterisation_candidate",
+      "source_boundary": [
+        "shower",
+        "bath",
+        "hand_basin"
+      ],
+      "mixing_policy": "separate_source_batch",
+      "test_route": "contained_unoccupied_test_cell",
+      "initial_product_use": "none_quality_admission_required",
+      "excluded": [
+        "kitchen",
+        "laundry",
+        "toilet",
+        "urinal",
+        "nappy_or_faeces_soiled_wash",
+        "chemical_cleaning",
+        "paint_or_vehicle_wash"
+      ],
+      "characterisation": [
+        "flow_volume_time",
+        "temperature",
+        "pH",
+        "conductivity",
+        "turbidity",
+        "COD",
+        "TSS",
+        "surfactant_indicator",
+        "microbiological_indicators"
+      ],
+      "notes": "Candidate profile only; no numeric feed acceptance limits are set until local batches and analytical methods are admitted."
+    },
+    {
+      "id": "laundry_greywater_challenge_v0",
+      "status": "separate_challenge_only",
+      "source_boundary": [
+        "laundry_discharge"
+      ],
+      "mixing_policy": "never_mix_with_bathroom_baseline_without_separate_review",
+      "characterisation": [
+        "flow_volume_time",
+        "temperature",
+        "pH",
+        "conductivity",
+        "turbidity",
+        "COD",
+        "TSS",
+        "anionic_surfactant_method",
+        "sodium",
+        "boron",
+        "microbiological_indicators"
+      ],
+      "notes": "Literature identifies surfactants, sodium and boron as important laundry-related treatment/irrigation concerns; this stream is not accepted by the initial baseline."
+    },
+    {
+      "id": "kitchen_greywater_v0",
+      "status": "rejected_from_v0",
+      "source_boundary": [
+        "kitchen_sink",
+        "dishwasher"
+      ],
+      "characterisation": [
+        "not_in_v0"
+      ],
+      "notes": "Higher grease/food-solid and organic loading require a separately designed profile."
+    },
+    {
+      "id": "blackwater_v0",
+      "status": "rejected_from_v0",
+      "source_boundary": [
+        "toilet",
+        "urinal"
+      ],
+      "characterisation": [
+        "not_in_v0"
+      ],
+      "notes": "Separate sanitation feedstock; use Symtropy #4902."
+    },
+    {
+      "id": "unknown_mixed_high_risk_v0",
+      "status": "reject_or_quarantine",
+      "source_boundary": [
+        "unknown",
+        "mixed",
+        "nappy_or_faeces_soiled_wash",
+        "chemical_cleaning",
+        "paint",
+        "vehicle_or_machinery_wash",
+        "hair_dye"
+      ],
+      "characterisation": [
+        "source_identity_and_risk_review_required"
+      ],
+      "notes": "No V0 feed acceptance."
+    }
+  ],
+  "candidate_trains": [
+    {
+      "id": "train_a_membrane_uf_uv_v0",
+      "status": "candidate_not_selected",
+      "stages": [
+        "coarse_screen",
+        "equalisation_settling",
+        "slow_sand_or_validated_prefilter",
+        "ultrafiltration",
+        "terminal_uv"
+      ],
+      "critical_evidence": [
+        "flow",
+        "stage_pressure",
+        "differential_pressure",
+        "membrane_tmp",
+        "membrane_flux",
+        "membrane_integrity_verification",
+        "UVT",
+        "UV_intensity",
+        "validated_uv_dose_flow_relation",
+        "independent_product_sample"
+      ],
+      "residuals": [
+        "settled_solids",
+        "backwash",
+        "membrane_reject",
+        "cleaning_waste"
+      ],
+      "risks": [
+        "membrane_fouling",
+        "integrity_failure",
+        "uv_under_dose",
+        "uv_transmittance_excursion",
+        "post_uv_storage_regrowth"
+      ]
+    },
+    {
+      "id": "train_b_ozone_gac_uv_v0",
+      "status": "candidate_test_skid_only_not_selected",
+      "stages": [
+        "coarse_screen",
+        "equalisation_settling",
+        "contained_ozone_contact",
+        "off_gas_destruction",
+        "granular_activated_carbon",
+        "terminal_uv"
+      ],
+      "critical_evidence": [
+        "flow",
+        "ozone_process_measurements",
+        "off_gas_monitoring",
+        "off_gas_destruction_state",
+        "GAC_lot_and_operating_hours",
+        "target_analyte_breakthrough_method",
+        "UVT",
+        "UV_intensity",
+        "validated_uv_dose_flow_relation",
+        "independent_product_sample"
+      ],
+      "residuals": [
+        "settled_solids",
+        "sludge",
+        "spent_carbon",
+        "purge",
+        "cleaning_waste"
+      ],
+      "risks": [
+        "ozone_exposure",
+        "by_products",
+        "GAC_breakthrough",
+        "uv_under_dose"
+      ]
+    },
+    {
+      "id": "train_c_nature_based_comparator_v0",
+      "status": "comparator_only_not_selected",
+      "stages": [
+        "source_specific_pretreatment",
+        "planted_or_media_bed",
+        "validated_terminal_barrier_if_required"
+      ],
+      "critical_evidence": [
+        "hydraulic_loading",
+        "residence_time",
+        "seasonal_performance",
+        "sample_results",
+        "vector_management",
+        "operator_work"
+      ],
+      "residuals": [
+        "screenings",
+        "sludge_or_media_replacement"
+      ],
+      "risks": [
+        "land_footprint",
+        "hydraulic_short_circuit",
+        "seasonal_instability",
+        "microbial_barrier"
+      ]
+    }
+  ],
+  "module_interfaces": [
+    "mechanical_mounting_and_wetted_material_compatibility",
+    "inlet_outlet_and_isolation",
+    "declared_flow_pressure_temperature_envelope",
+    "drain_down_and_contained_bypass",
+    "sample_ports_with_batch_identity",
+    "flow_pressure_differential_pressure_measurement",
+    "power_auxiliary_energy_boundary",
+    "residual_backwash_purge_and_cleaning_outlet",
+    "media_membrane_lot_serial_and_operating_hours",
+    "service_access_and_changeout",
+    "configuration_revision_and_return_to_service_receipt"
+  ],
+  "fail_closed_conditions": [
+    "source_rejected_unknown_or_outside_admitted_feed_envelope",
+    "critical_process_variable_outside_admitted_operating_envelope",
+    "membrane_integrity_or_other_process_verification_missing_or_failed",
+    "quality_sample_missing_expired_invalid_or_not_admitted_for_intended_use",
+    "cassette_identity_unknown_or_outside_validated_service_limit",
+    "required_power_unavailable",
+    "critical_telemetry_stale_or_contradictory"
+  ],
+  "safe_state": {
+    "product_use_outlet": "ISOLATED",
+    "process_flow": "CONTAINED_QUARANTINE_OR_RESIDUAL_PATH",
+    "reset": "INSPECTION_AND_AUTHORISED_MANUAL_RESET",
+    "return_to_service": "REPEAT_RELEVANT_PROCESS_VERIFICATION_AND_QUALITY_ADMISSION",
+    "autonomous_dosing": false,
+    "remote_actuation": false,
+    "municipal_connection": false,
+    "occupied_use": false,
+    "potable_use": false
+  },
+  "comparison_metrics": [
+    "quality_admitted_useful_water_recovery",
+    "analyte_specific_concentration_and_mass_load_change",
+    "microbiological_indicator_and_validated_barrier_performance",
+    "kWh_per_verified_useful_m3_including_auxiliary_and_standby",
+    "residual_volume_and_composition_per_useful_m3",
+    "membrane_flux_TMP_fouling_and_cleaning_frequency",
+    "media_consumption_and_breakthrough_interval",
+    "availability_downtime_failure_and_abstention_rate",
+    "operator_labour_maintenance_and_changeout_time",
+    "lifecycle_cost_per_verified_useful_m3"
+  ],
+  "release_gates": [
+    "source_batch_characterisation_and_method_admission",
+    "module_interface_and_P_and_ID_review",
+    "local_plumbing_electrical_building_and_safety_review",
+    "matched_train_tests_with_independent_analytical_results",
+    "water_and_contaminant_mass_balance_with_uncertainty",
+    "fail_safe_negative_controls_and_repeatable_return_to_service",
+    "first_article_manufacturing_review"
+  ],
+  "nonclaims": [
+    "no treatment train is selected or qualified",
+    "no microbiological or potable safety claim",
+    "no occupied use or household installation",
+    "no municipal approval or discharge authorization",
+    "no procurement or manufacturing release"
+  ]
+}
