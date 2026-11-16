@@ -136,6 +136,13 @@ fn generate(args: &[String]) -> Result<(), String> {
             manifest_errors.join(",")
         ));
     }
+    let replay_errors = generator::manifest_invariants(&manifest, &profile);
+    if !replay_errors.is_empty() {
+        return Err(format!(
+            "generated_manifest_replay_invalid:{}",
+            replay_errors.join(",")
+        ));
+    }
 
     let mut bytes = serde_json::to_vec_pretty(&manifest)
         .map_err(|error| format!("manifest_serialize:{error}"))?;
