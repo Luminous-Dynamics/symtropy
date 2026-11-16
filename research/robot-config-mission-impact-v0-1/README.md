@@ -35,7 +35,7 @@ The benchmark combines:
 - `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
 - `schemas/mission-outcome-metrics-v0.1.schema.json`: closed Draft 2020-12 schema for synthetic per-pair outcome measurements.
 - `schemas/owner-crosswalk-v0.1.schema.json`: closed Draft 2020-12 schema for owner references and conservative family-level case mappings.
-- `stage-transition-challenges-v0.1.json`: 17 public synthetic stage-evidence challenges covering command-only completion, self-report, qualified observations, critical referee requirements, stale configuration/frame/calibration/clock evidence, interruption/resume, replay, conflict and safe hold.
+- `stage-transition-challenges-v0.1.json`: 18 public synthetic stage-evidence challenges covering command-only completion, self-report, qualified observations, critical referee requirements, stale configuration/frame/calibration/clock evidence, interruption/resume, replay, conflict and safe hold.
 - `stage-transition-oracle-v0.1.json` and closed schemas: separate public development dispositions for the finite evidence-gated stage-transition policy.
 - `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and cross-file corpus/oracle/event-to-stage/source/outcome/owner-crosswalk invariants; it also contains the deterministic public-development challenge generator and CLI. It validates the finite stage-transition policy and its public development oracle; it does not control a robot, score physical performance or determine qualification.
 - `.github/workflows/robot-config-mission-impact-validation.yml`: focused Ubuntu/Windows/macOS schema, fixture, format, Clippy and CLI workflow.
