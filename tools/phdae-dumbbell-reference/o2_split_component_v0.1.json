@@ -1,0 +1,55 @@
+{
+  "schema_version": "luminous.phys_full_group_step_equivariance.v0.1",
+  "fixture_id": "planar-dumbbell-o2-split-component-v0.1",
+  "model": {
+    "kind": "two-point-mass-fixed-link-pHDAE",
+    "source_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/3120",
+    "masses": [1.3, 2.1],
+    "link_length": 1.2,
+    "timestep_seconds": 0.05,
+    "solver_profile": {
+      "relative_tolerance": 1e-13,
+      "max_iterations": 32,
+      "max_backtracks": 24
+    }
+  },
+  "full_group": {
+    "name": "O(2)",
+    "extension": "SO(2) semidirect C2",
+    "connected_generator": [[0, -1], [1, 0]],
+    "finite_component_group": {
+      "name": "C2",
+      "multiplication": [[0, 1], [1, 0]],
+      "identity": 0,
+      "reflection": [[1, 0], [0, -1]]
+    },
+    "adjoint_relation": "F J F^-1 = -J",
+    "element_convention": "R(theta) F^epsilon"
+  },
+  "initial_state": {
+    "q1": [-0.6, 0.2],
+    "q2": [0.6, 0.2],
+    "v1": [0.25, -0.18],
+    "v2": [0.25, 0.62]
+  },
+  "external_forces": {
+    "force1": [0.9, -0.7],
+    "force2": [-0.3, 1.1],
+    "transformation": "force'_i = R(theta) F^epsilon force_i"
+  },
+  "qualification_corpus": {
+    "rotation_sample_count": 32,
+    "angles": "theta_k = 2*pi*k/32, k=0..31",
+    "component_values": [0, 1],
+    "state_step_defect_target": 4e-12,
+    "multiplier_invariance_target": 4e-12,
+    "wrong_force_transform_minimum_defect": 1e-5
+  },
+  "claim_boundary": {
+    "status": "research_fixture",
+    "continuous_angle_coverage": "deterministic sample only; not a formal all-angle proof",
+    "trajectory_claim": false,
+    "contact_or_friction": false,
+    "scientific_search_pruning": false
+  }
+}
