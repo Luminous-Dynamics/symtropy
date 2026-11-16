@@ -87,19 +87,24 @@ use symtropy_human_systems::observation::{generate_scenario, ScenarioId};
 
 let run = generate_scenario(ScenarioId::McarDropout, 0x5EED_2026);
 
-// Only observations should be passed to an estimator.
-// Keep scorer_truth in a separate evaluator/runner boundary.
-let delivered_events = run.observations;
-let hidden_truth = run.scorer_truth;
-assert!(!delivered_events.is_empty());
-assert!(!hidden_truth.is_empty());
+// Pass only this view to the estimator.
+let estimator_input = run.estimator_view;
+
+// Keep the scorer-only view in a separate evaluator/runner boundary.
+let hidden_truth = run.scorer_view;
+assert!(!estimator_input.observations.is_empty());
+assert!(!hidden_truth.truth.is_empty());
 ~~~
 
-The generator uses a small deterministic SplitMix64 PRNG and no external crate dependencies. It is not cryptographic. For fixed scenario and seed it replays deterministically within the same floating-point execution environment. HOBS-09 is returned in availability order; use source-event identity to detect duplicates and capture/availability timestamps to reason about ordering.
+The estimator-facing event deliberately has no sample ordinal, physical capture timestamp, latent state or PRNG seed. Its source-event ID is generated from a separate seeded identity stream; duplicates keep the same source ID while each delivery has a unique delivery ID. Scorer-only identity links map those opaque IDs back to physical event time and truth. This prevents a simple sample-index side channel from bypassing HOBS-07 clock-drift and HOBS-01 irregular-cadence tests. It is still an API boundary, not process isolation: a real benchmark harness must send only the estimator view to the estimator process.
 
-The implementation is a **synthetic software fixture only**. Its latent sinusoid, activity proxy, noise, dropout thresholds, clocks, transport delays and sensor gains are invented test parameters. They do not describe calibrated human physiology, a real wearable, or a clinical population. The distinct scorer-only Rust fields are not a process isolation boundary; a future benchmark runner must keep truth out of the estimator process.
+The generator uses a deterministic SplitMix64 PRNG and no external crate dependencies. It is not cryptographic. Fixed scenario/seed inputs replay deterministically within the same floating-point execution environment. HOBS-09 is returned in availability order; use source-event identity to detect duplicates and capture/availability timestamps to reason about delivery.
 
-The machine-readable scenario specification lives at [research/human-systems/HUMAN_OBSERVATION_SCENARIOS_V0_1.json](../../../research/human-systems/HUMAN_OBSERVATION_SCENARIOS_V0_1.json). The code is a first executable implementation of the core cases, not yet a full interpreter for that JSON file.
+HOBS-02 distinguishes iid MCAR dropout from an independent scheduled outage; the latter is not mislabeled as MCAR. HOBS-03 uses an observed activity-proxy channel for MAR missingness; HOBS-04 deliberately depends on latent target state and is MNAR.
+
+The implementation is a **synthetic software fixture only**. Its latent sinusoid, activity proxy, noise, dropout thresholds, clocks, transport delays and sensor gains are invented test parameters. They do not describe calibrated human physiology, a real wearable, or a clinical population.
+
+The matching machine-readable scenario specification is maintained in [the research protocol PR #5665](https://github.com/Luminous-Dynamics/symtropy/blob/research/human-observation-sim-v0.1/research/human-systems/HUMAN_OBSERVATION_SCENARIOS_V0_1.json). The code is a first executable core, not yet a full interpreter for that JSON file.
 
 Run the isolated crate checks:
 
