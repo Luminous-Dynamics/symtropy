@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/robot-config-change-qualification-v0-1/research/robot-config-change-qualification-v0-1/schemas/development-oracle-v0.1.schema.json",
+  "title": "ROBOT-CONFIG-CHANGE-QUAL-001 public development oracle v0.1",
+  "description": "Closed structural schema for the public development oracle. Structural validity does not establish oracle correctness, independence, admissibility, or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "oracle_independence_note",
+    "dispositions",
+    "oracle_nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-change-development-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-CHANGE-QUAL-001"
+    },
+    "visibility": {
+      "const": "public_development_oracle_not_hidden_holdout"
+    },
+    "oracle_independence_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "claims"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^RCQ-[0-9]{3}$"
+          },
+          "claims": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "PreservedByExactIdentity",
+                    "PreservedByQualifiedEquivalence",
+                    "PreservedByExactRecomputation",
+                    "RequiresApplicabilityReview",
+                    "RequiresBenchReverification",
+                    "RequiresPhysicalReverification",
+                    "RequiresIndependentAdjudication",
+                    "NotPreserved",
+                    "UnknownImpact",
+                    "Unsupported"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]*$"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1
+                }
+              ],
+              "items": false,
+              "minItems": 4,
+              "maxItems": 4
+            }
+          }
+        }
+      }
+    },
+    "oracle_nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  }
+}
