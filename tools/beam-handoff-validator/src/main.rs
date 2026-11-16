@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use beam_handoff_validator::validate_files;
 use serde_json::json;
 use std::path::PathBuf;
