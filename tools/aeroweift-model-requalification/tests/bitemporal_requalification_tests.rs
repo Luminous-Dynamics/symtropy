@@ -14,6 +14,8 @@ fn claim() -> ModelEvidenceClaim {
         validation_package_sha256: digest('a'),
         validated_at_effective: 10,
         recorded_at: 10,
+        effective_time_scale_id: "TAI-NANO-V1".into(),
+        knowledge_time_scale_id: "UTC-LOG-V1".into(),
         dependencies: vec![
             DependencyBinding {
                 kind: DependencyKind::ModelArtifact,
@@ -40,9 +42,11 @@ fn coverage(
         source_id: source.into(),
         effective_from: 0,
         effective_through: 100,
+        effective_time_scale_id: "TAI-NANO-V1".into(),
         recorded_at: 0,
         knowledge_from: 0,
         knowledge_through: 100,
+        knowledge_time_scale_id: "UTC-LOG-V1".into(),
         first_sequence: 1,
         last_sequence: 100,
         completeness,
@@ -89,7 +93,9 @@ macro_rules! event {
             prior_digest: digest($prior),
             successor_digest: digest($successor),
             effective_at: $effective_at,
+            effective_time_scale_id: "TAI-NANO-V1".into(),
             recorded_at: $recorded_at,
+            knowledge_time_scale_id: "UTC-LOG-V1".into(),
             change_class: $class,
             evidence_state: $state,
             event_sha256: digest('e'),
@@ -100,13 +106,17 @@ macro_rules! event {
 fn policy() -> RequalificationPolicy {
     RequalificationPolicy {
         policy_sha256: digest('f'),
+        effective_time_scale_id: "TAI-NANO-V1".into(),
+        knowledge_time_scale_id: "UTC-LOG-V1".into(),
     }
 }
 
 fn cutoff(effective_at: i64, known_at: i64) -> BitemporalCutoff {
     BitemporalCutoff {
         effective_at,
+        effective_time_scale_id: "TAI-NANO-V1".into(),
         known_at,
+        knowledge_time_scale_id: "UTC-LOG-V1".into(),
     }
 }
 
@@ -1077,5 +1087,73 @@ fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
     assert_eq!(
         result.historical_only_dimensions,
         vec![DependencyKind::SensorStack]
+    );
+}
+
+
+#[test]
+fn cutoff_time_scale_must_match_the_frozen_claim_policy() {
+    let mut query = cutoff(50, 50);
+    query.effective_time_scale_id = "GPS-TIME-V1".into();
+    assert_eq!(
+        assess(&claim(), &[], &complete_coverage(), query),
+        Err(EvaluationError::TimeScaleMismatch)
+    );
+}
+
+#[test]
+fn policy_knowledge_time_scale_must_match_the_claim() {
+    let mut frozen = policy();
+    frozen.knowledge_time_scale_id = "LOCAL-LOG-TIME".into();
+    assert_eq!(
+        evaluate_claim(
+            &claim(),
+            &[],
+            &complete_coverage(),
+            cutoff(50, 50),
+            &frozen
+        ),
+        Err(EvaluationError::TimeScaleMismatch)
+    );
+}
+
+#[test]
+fn relevant_event_with_a_different_time_scale_is_rejected() {
+    let mut change = event!(
+        "sensor-wrong-clock-domain",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    change.effective_time_scale_id = "GPS-TIME-V1".into();
+    assert_eq!(
+        assess(&claim(), &[change], &complete_coverage(), cutoff(50, 50)),
+        Err(EvaluationError::TimeScaleMismatch)
+    );
+}
+
+#[test]
+fn relevant_coverage_with_a_different_knowledge_time_scale_is_rejected() {
+    let mut feeds = complete_coverage();
+    feeds[1].knowledge_time_scale_id = "LOCAL-LOG-TIME".into();
+    assert_eq!(
+        assess(&claim(), &[], &feeds, cutoff(50, 50)),
+        Err(EvaluationError::TimeScaleMismatch)
+    );
+}
+
+#[test]
+fn empty_claim_time_scale_is_invalid() {
+    let mut candidate = claim();
+    candidate.knowledge_time_scale_id.clear();
+    assert_eq!(
+        assess(&candidate, &[], &complete_coverage(), cutoff(50, 50)),
+        Err(EvaluationError::InvalidClaim)
     );
 }
