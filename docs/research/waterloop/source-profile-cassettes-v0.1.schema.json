@@ -18,7 +18,8 @@
     "safe_state",
     "comparison_metrics",
     "release_gates",
-    "nonclaims"
+    "nonclaims",
+    "qualification_envelopes"
   ],
   "properties": {
     "schema_version": {
@@ -199,6 +200,216 @@
       "minItems": 5,
       "items": {
         "type": "string"
+      }
+    },
+    "qualification_envelopes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "train_id",
+          "envelope_revision",
+          "qualification_status",
+          "allowed_source_profile_ids",
+          "allowed_intended_use_profile_ids",
+          "feed_envelope",
+          "hydraulic_envelope",
+          "operating_envelope",
+          "process_specific_limits",
+          "critical_barriers",
+          "required_evidence",
+          "release_rule"
+        ],
+        "properties": {
+          "train_id": {
+            "type": "string"
+          },
+          "envelope_revision": {
+            "type": "string"
+          },
+          "qualification_status": {
+            "const": "NOT_QUALIFIED"
+          },
+          "allowed_source_profile_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowed_intended_use_profile_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "feed_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "flow_weighted_quality_limits",
+              "temperature_min_c",
+              "temperature_max_c",
+              "pH_min",
+              "pH_max",
+              "turbidity_max_NTU",
+              "COD_max_mg_L",
+              "TSS_max_mg_L"
+            ],
+            "properties": {
+              "flow_weighted_quality_limits": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "temperature_min_c": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "temperature_max_c": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "pH_min": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "pH_max": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "turbidity_max_NTU": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "COD_max_mg_L": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "TSS_max_mg_L": {
+                "$ref": "#/$defs/unestablished"
+              }
+            }
+          },
+          "hydraulic_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "minimum_flow_L_min",
+              "maximum_flow_L_min",
+              "minimum_inlet_pressure_kPa",
+              "maximum_inlet_pressure_kPa",
+              "maximum_stage_differential_pressure_kPa",
+              "hydraulic_loading_L_m2_day",
+              "residence_time_days"
+            ],
+            "properties": {
+              "minimum_flow_L_min": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "maximum_flow_L_min": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "minimum_inlet_pressure_kPa": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "maximum_inlet_pressure_kPa": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "maximum_stage_differential_pressure_kPa": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "hydraulic_loading_L_m2_day": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "residence_time_days": {
+                "$ref": "#/$defs/unestablished"
+              }
+            }
+          },
+          "operating_envelope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "continuous_duty_hours",
+              "maximum_idle_hours",
+              "maximum_media_or_membrane_hours_before_changeout",
+              "cleaning_interval_hours",
+              "ambient_temperature_min_c",
+              "ambient_temperature_max_c"
+            ],
+            "properties": {
+              "continuous_duty_hours": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "maximum_idle_hours": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "maximum_media_or_membrane_hours_before_changeout": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "cleaning_interval_hours": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "ambient_temperature_min_c": {
+                "$ref": "#/$defs/unestablished"
+              },
+              "ambient_temperature_max_c": {
+                "$ref": "#/$defs/unestablished"
+              }
+            }
+          },
+          "process_specific_limits": {
+            "type": "object"
+          },
+          "critical_barriers": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_evidence": {
+            "type": "array",
+            "minItems": 5,
+            "items": {
+              "type": "string"
+            }
+          },
+          "release_rule": {
+            "const": "NO_PRODUCT_USE_OR_QUALITY_CREDIT_UNTIL_THIS_EXACT_CONFIGURATION_ENVELOPE_IS_ADMITTED"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "unestablished": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "value",
+        "units",
+        "source_evidence_id",
+        "uncertainty",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "const": "NOT_ESTABLISHED"
+        },
+        "value": {
+          "type": "null"
+        },
+        "units": {
+          "type": "null"
+        },
+        "source_evidence_id": {
+          "type": "null"
+        },
+        "uncertainty": {
+          "type": "null"
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     }
   }
