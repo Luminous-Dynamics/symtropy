@@ -183,6 +183,7 @@ pub struct TracerControlContrast {
     pub control_receiver_excess_upper_bound: f64,
     /// Intact receiver lower bound minus this control's upper bound.
     pub intact_minus_control_lower_bound: f64,
+    pub baseline_donor_receiver_order_confirmed: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -564,19 +565,31 @@ impl IsotopeTransferExperiment {
                     false,
                 )?;
                 let control_excess = excess_bounds(samples.receiver, samples.baseline);
+                let control_order = Self::order_is_confirmed_pair(
+                    samples.baseline_time,
+                    samples.donor_time,
+                    samples.receiver_time,
+                )?;
                 control_contrasts.push(TracerControlContrast {
                     intervention: *control,
                     control_receiver_excess_upper_bound: control_excess.upper,
                     intact_minus_control_lower_bound: intact_receiver_excess.lower
                         - control_excess.upper,
+                    baseline_donor_receiver_order_confirmed: control_order,
                 });
             }
 
-            let donor_bridge_receiver_order_confirmed = Self::order_is_confirmed(
+            let baseline_donor_order = Self::order_is_confirmed_pair(
+                intact.baseline_time,
                 intact.donor_time,
-                intact.bridge_time.expect("intact bridge timestamp is present"),
                 intact.receiver_time,
             )?;
+            let donor_bridge_receiver_order_confirmed = baseline_donor_order
+                && Self::order_is_confirmed(
+                    intact.donor_time,
+                    intact.bridge_time.expect("intact bridge timestamp is present"),
+                    intact.receiver_time,
+                )?;
 
             block_reports.push(TracerBlockReport {
                 block: *block_id,
@@ -609,9 +622,13 @@ impl IsotopeTransferExperiment {
         let receiver_enrichment_resolved = block_reports
             .iter()
             .all(|block| block.intact_receiver_excess_lower_bound > 0.0);
-        let temporal_order_resolved = block_reports
-            .iter()
-            .all(|block| block.donor_bridge_receiver_order_confirmed);
+        let temporal_order_resolved = block_reports.iter().all(|block| {
+            block.donor_bridge_receiver_order_confirmed
+                && block
+                    .control_contrasts
+                    .iter()
+                    .all(|control| control.baseline_donor_receiver_order_confirmed)
+        });
         let controls_distinguished = block_reports.iter().all(|block| {
             block
                 .control_contrasts
@@ -786,6 +803,21 @@ impl IsotopeTransferExperiment {
         })
     }
 
+    fn order_is_confirmed_pair(
+        baseline: AlignedExperimentTimestamp,
+        donor: AlignedExperimentTimestamp,
+        receiver: AlignedExperimentTimestamp,
+    ) -> Result<bool, IsotopeTransferError> {
+        let baseline_before_donor =
+            ExperimentTimeAligner::compare(baseline, donor)
+                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let donor_before_receiver =
+            ExperimentTimeAligner::compare(donor, receiver)
+                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        Ok(baseline_before_donor == TemporalOrdering::FirstBeforeSecond
+            && donor_before_receiver == TemporalOrdering::FirstBeforeSecond)
+    }
+
     fn order_is_confirmed(
         donor: AlignedExperimentTimestamp,
         bridge: AlignedExperimentTimestamp,
@@ -949,7 +981,6 @@ mod tests {
             2.0,
         ));
 
-        let all_arms = TracerIntervention::ALL;
         let arm_evidence = all_arms
             .iter()
             .enumerate()
