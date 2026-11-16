@@ -66,8 +66,8 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 61 unit tests (16 resource + 5 pressure + 11 morphometry + 16 evidence semantics + 13 network) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
-| GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
+| Rust source and 61 unit tests (16 resource + 5 pressure + 11 morphometry + 16 evidence semantics + 13 network) | **AUTHORED, NOT EXECUTED** | Root CI workflow did not target the nested research kernel; local authoring environment has no `rustc` or `cargo` |
+| GitHub Actions root-workspace CI at commit `361ef1ace663c6c730aef5ff5f0607f559c4e78b` | **PASS** | Workflow run `43860944890`; Ubuntu, Windows and macOS jobs completed successfully for configured root-workspace formatting, Clippy, Physics Core tests and workspace build. This workflow did not run the nested `research/geobio-foundry/kernel` package. |
 | Cross-field semantic validation | **PARTIALLY IMPLEMENTED** | Typed validator covers core connectivity/access/survey/engineering/preservation dependencies; JSON-to-typed adapter and exhaustive state-combination tests remain outstanding |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
@@ -89,8 +89,9 @@
 2. Add a versioned JSON-to-typed Subterra evidence/network adapter and adversarial fixtures for every semantic rule and route-state combination.
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
-5. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
-6. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
-7. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
+5. Add a dedicated CI lane or explicit nested-workspace verification target for `research/geobio-foundry/kernel`; the successful root-workspace CI run does not execute its 61 research tests.
+6. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
+7. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
+8. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin`, Sol-Atlas site evidence and robotics interfaces.
 
 No production Symtropy crate, root Cargo workspace membership, or runtime dependency was changed in this increment.
