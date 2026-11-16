@@ -551,7 +551,7 @@ mod tests {
         }
     }
 
-    fn graph() -> HyphalGraph {
+    fn graph_with_segment_state(state: HyphalSegmentState) -> HyphalGraph {
         let mut graph = HyphalGraph::new();
         graph
             .add_node(HyphalNode {
@@ -574,10 +574,14 @@ mod tests {
                 to: NodeId(2),
                 length_mm: 1.0,
                 diameter_mm: Some(0.02),
-                state: HyphalSegmentState::Active,
+                state,
             })
             .unwrap();
         graph
+    }
+
+    fn graph() -> HyphalGraph {
+        graph_with_segment_state(HyphalSegmentState::Active)
     }
 
     fn fixture(
@@ -809,10 +813,7 @@ mod tests {
             FilamentDomain::TrueFungus,
             LiquidFilmState::Connected,
         );
-        let mut inactive_graph = graph();
-        inactive_graph
-            .set_segment_state(SegmentId(7), HyphalSegmentState::Inactive)
-            .unwrap();
+        let inactive_graph = graph_with_segment_state(HyphalSegmentState::Inactive);
         assert_eq!(
             network
                 .assess_transit(&inactive_graph, &transit, &receipts)
@@ -908,14 +909,10 @@ mod tests {
 
         let mut invalid = transit;
         invalid.end_time_s = f64::NAN;
-        let (_, valid_transit, valid_receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
+        assert_eq!(
+            network.assess_transit(&graph(), &invalid, &receipts[..3]),
+            Err(HyphalHighwayError::InvalidTransitTime)
         );
-        let _ = invalid;
-        assert!(network
-            .assess_transit(&graph(), &valid_transit, &valid_receipts)
-            .is_ok());
     }
 
     #[test]
