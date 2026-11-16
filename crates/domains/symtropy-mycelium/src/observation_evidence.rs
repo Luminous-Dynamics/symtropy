@@ -83,6 +83,8 @@ pub enum ObservationSubject {
     RamanChemicalMap,
     /// An independently sourced spectral calibration / reference observation.
     RamanCalibrationReference,
+    /// A synchronization pulse/trigger used to align separate acquisition clocks.
+    ClockSynchronization,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -547,6 +549,7 @@ const fn subject_tag(subject: ObservationSubject) -> u8 {
         ObservationSubject::RamanSpectrum => 12,
         ObservationSubject::RamanChemicalMap => 13,
         ObservationSubject::RamanCalibrationReference => 14,
+        ObservationSubject::ClockSynchronization => 15,
     }
 }
 
@@ -758,9 +761,14 @@ mod tests {
             subject_tag(ObservationSubject::RamanCalibrationReference),
             14
         );
+        assert_eq!(subject_tag(ObservationSubject::ClockSynchronization), 15);
         assert_ne!(
             subject_tag(ObservationSubject::LiquidFilmPatch),
             subject_tag(ObservationSubject::BacterialTrajectory)
+        );
+        assert_ne!(
+            subject_tag(ObservationSubject::ClockSynchronization),
+            subject_tag(ObservationSubject::RamanCalibrationReference)
         );
     }
 
