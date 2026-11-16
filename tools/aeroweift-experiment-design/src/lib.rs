@@ -70,7 +70,6 @@ pub enum SemanticEquivalence {
     Rejected,
 }
 
-
 /// Owner evidence role used by an experiment candidate's admissibility gates.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum GateEvidenceRole {
@@ -506,9 +505,7 @@ fn validate_gate_evidence_receipts(
     let mut roles = BTreeSet::new();
 
     for receipt in &candidate.gate_evidence_receipts {
-        if !receipt_ids.insert(receipt.receipt_id.as_str())
-            || !roles.insert(receipt.role)
-        {
+        if !receipt_ids.insert(receipt.receipt_id.as_str()) || !roles.insert(receipt.role) {
             reasons.insert(RejectionReason::InvalidEvidenceBinding);
         }
         if !gate_receipt_matches_scope(receipt, candidate, policy)
@@ -524,7 +521,10 @@ fn validate_gate_evidence_receipts(
             candidate.authorization == AuthorizationState::Authorized,
         ),
         (GateEvidenceRole::Safety, candidate.safety_constraints_clear),
-        (GateEvidenceRole::Envelope, candidate.within_declared_envelope),
+        (
+            GateEvidenceRole::Envelope,
+            candidate.within_declared_envelope,
+        ),
         (
             GateEvidenceRole::IndependentReference,
             candidate.independent_reference_available,
