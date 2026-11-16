@@ -51,6 +51,8 @@ pub struct InspectionEvidence {
     pub baseline_source_group: String,
     /// Independence disposition from the source/evidence owner, not inferred from labels.
     pub independence_status: GateStatus,
+    /// Exact evidence-owner receipt supporting a Pass independence disposition.
+    pub independence_receipt_id: Option<String>,
     pub calibration_status: GateStatus,
     pub applicability_status: GateStatus,
     pub outcome_status: GateStatus,
@@ -84,6 +86,7 @@ pub enum BlockReason {
     OutcomeUnknown,
     CorrelatedObservationOrigin,
     ObservationIndependenceUnknown,
+    IndependenceReceiptMissing,
     RepairScopeIncomplete,
 }
 
@@ -220,7 +223,15 @@ fn evidence_block(inspection: &InspectionEvidence) -> Option<BlockReason> {
     match inspection.independence_status {
         GateStatus::Block => return Some(BlockReason::CorrelatedObservationOrigin),
         GateStatus::Unknown => return Some(BlockReason::ObservationIndependenceUnknown),
-        GateStatus::Pass => {}
+        GateStatus::Pass => {
+            if inspection
+                .independence_receipt_id
+                .as_deref()
+                .is_none_or(str::is_empty)
+            {
+                return Some(BlockReason::IndependenceReceiptMissing);
+            }
+        }
     }
     match inspection.calibration_status {
         GateStatus::Block => return Some(BlockReason::CalibrationBlocked),
@@ -418,6 +429,7 @@ mod tests {
                 measurement_source_group: "INDEPENDENT-TEST-STAND".to_owned(),
                 baseline_source_group: "MACHINE-DASHBOARD".to_owned(),
                 independence_status: GateStatus::Pass,
+                independence_receipt_id: Some("INDEPENDENCE-RECEIPT-01".to_owned()),
                 calibration_status: GateStatus::Pass,
                 applicability_status: GateStatus::Pass,
                 outcome_status: GateStatus::Pass,
@@ -625,6 +637,7 @@ mod tests {
             "applicability_blocked" => Some(BlockReason::ApplicabilityBlocked),
             "correlated" => Some(BlockReason::CorrelatedObservationOrigin),
             "independence_unknown" => Some(BlockReason::ObservationIndependenceUnknown),
+            "independence_receipt_missing" => Some(BlockReason::IndependenceReceiptMissing),
             "outcome_unknown" => Some(BlockReason::OutcomeUnknown),
             "outcome_blocked" => Some(BlockReason::OutcomeBlocked),
             "repair_scope_incomplete" => Some(BlockReason::RepairScopeIncomplete),
@@ -656,6 +669,8 @@ mod tests {
             source.inspection.measurement_source_group = columns[3].to_owned();
             source.inspection.baseline_source_group = columns[4].to_owned();
             source.inspection.independence_status = parse_case_status(columns[5]);
+            source.inspection.independence_receipt_id =
+                (columns[5] == "pass").then(|| format!("independence-evidence-{}", columns[0]));
             source.inspection.calibration_status = parse_case_status(columns[6]);
             source.inspection.applicability_status = parse_case_status(columns[7]);
             source.inspection.outcome_status = parse_case_status(columns[8]);
@@ -714,6 +729,18 @@ mod tests {
         assert_eq!(
             result.block_reason,
             Some(BlockReason::ObservationIndependenceUnknown)
+        );
+    }
+
+    #[test]
+    fn passing_independence_without_owner_receipt_is_blocked() {
+        let mut source = episode();
+        source.inspection.independence_receipt_id = None;
+        let result = evaluate_scope(&source, &proposal()).unwrap();
+        assert_eq!(result.status, EvaluationStatus::Blocked);
+        assert_eq!(
+            result.block_reason,
+            Some(BlockReason::IndependenceReceiptMissing)
         );
     }
 
