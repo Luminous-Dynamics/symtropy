@@ -63,7 +63,11 @@ jobs:
         run: |
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json > mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"declared_freshness_policy_passed": true' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"content_digest_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"cryptographic_authentication_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"issuer_authorization_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"trusted_time_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"sensor_truth_established": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-evidence-admission.json
