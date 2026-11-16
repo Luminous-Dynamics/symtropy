@@ -502,94 +502,98 @@ fn validate_translating_capsule(
     Ok(())
 }
 
+/// Bound one affine coordinate over a normalized time window using
+/// directed outward rounding. Inputs are exact binary f64 values; each
+/// multiplication and addition is widened by one representable value.
+fn affine_coordinate_bounds(
+    origin: f64,
+    translation: f64,
+    t0: f64,
+    t1: f64,
+) -> Result<(f64, f64), TranslationCcdError> {
+    let displacement0 = translation * t0;
+    let displacement1 = translation * t1;
+    if !displacement0.is_finite() || !displacement1.is_finite() {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+
+    let displacement_min = displacement0.next_down().min(displacement1.next_down());
+    let displacement_max = displacement0.next_up().max(displacement1.next_up());
+    let lower = (origin + displacement_min).next_down();
+    let upper = (origin + displacement_max).next_up();
+    if !lower.is_finite() || !upper.is_finite() {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+    Ok((lower, upper))
+}
+
+/// Enclose a capsule translated affinely over [t0,t1]. Each of the two
+/// centerline endpoint coordinates is interval-evaluated; the componentwise
+/// hull of those intervals is expanded by the radius with outward rounding.
 fn slab_swept_bounds(
     capsule: Capsule,
     translation: Vec3,
     t0: f64,
     t1: f64,
 ) -> Result<CapsuleAabb3, TranslationCcdError> {
-    let shift0 = translation.scale(t0);
-    let shift1 = translation.scale(t1);
-    let start0 = capsule.start.add(shift0);
-    let end0 = capsule.end.add(shift0);
-    let start1 = capsule.start.add(shift1);
-    let end1 = capsule.end.add(shift1);
-
-    if !is_finite(start0) || !is_finite(end0) || !is_finite(start1) || !is_finite(end1) {
-        return Err(TranslationCcdError::NumericalOverflow);
+    validate_translating_capsule(capsule, translation)?;
+    if !t0.is_finite() || !t1.is_finite() || t0 < 0.0 || t0 > t1 || t1 > 1.0 {
+        return Err(TranslationCcdError::InvalidTimeWindow);
     }
 
-    let bounds0 = Capsule {
-        start: start0,
-        end: end0,
-        radius_mm: capsule.radius_mm,
+    fn axis_bounds(
+        start: f64,
+        end: f64,
+        delta: f64,
+        radius: f64,
+        t0: f64,
+        t1: f64,
+    ) -> Result<(f64, f64), TranslationCcdError> {
+        let (start_min, start_max) = affine_coordinate_bounds(start, delta, t0, t1)?;
+        let (end_min, end_max) = affine_coordinate_bounds(end, delta, t0, t1)?;
+        let center_min = start_min.min(end_min);
+        let center_max = start_max.max(end_max);
+        let lower = (center_min - radius).next_down();
+        let upper = (center_max + radius).next_up();
+        if !lower.is_finite() || !upper.is_finite() {
+            return Err(TranslationCcdError::NumericalOverflow);
+        }
+        Ok((lower, upper))
     }
-    .aabb();
-    let bounds1 = Capsule {
-        start: start1,
-        end: end1,
-        radius_mm: capsule.radius_mm,
-    }
-    .aabb();
-    let bounds = CapsuleAabb3 {
-        min: Vec3::new(
-            bounds0.min.x.min(bounds1.min.x),
-            bounds0.min.y.min(bounds1.min.y),
-            bounds0.min.z.min(bounds1.min.z),
-        ),
-        max: Vec3::new(
-            bounds0.max.x.max(bounds1.max.x),
-            bounds0.max.y.max(bounds1.max.y),
-            bounds0.max.z.max(bounds1.max.z),
-        ),
-    };
-    if !is_finite(bounds.min) || !is_finite(bounds.max) {
-        return Err(TranslationCcdError::NumericalOverflow);
-    }
-    Ok(bounds)
+
+    let (min_x, max_x) = axis_bounds(
+        capsule.start.x,
+        capsule.end.x,
+        translation.x,
+        capsule.radius_mm,
+        t0,
+        t1,
+    )?;
+    let (min_y, max_y) = axis_bounds(
+        capsule.start.y,
+        capsule.end.y,
+        translation.y,
+        capsule.radius_mm,
+        t0,
+        t1,
+    )?;
+    let (min_z, max_z) = axis_bounds(
+        capsule.start.z,
+        capsule.end.z,
+        translation.z,
+        capsule.radius_mm,
+        t0,
+        t1,
+    )?;
+
+    Ok(CapsuleAabb3 {
+        min: Vec3::new(min_x, min_y, min_z),
+        max: Vec3::new(max_x, max_y, max_z),
+    })
 }
 
 fn swept_bounds(capsule: Capsule, translation: Vec3) -> Result<CapsuleAabb3, TranslationCcdError> {
-    if !is_finite(translation) {
-        return Err(TranslationCcdError::NonFiniteTranslation);
-    }
-
-    if !capsule.radius_mm.is_finite() || capsule.radius_mm < 0.0 {
-        return Err(TranslationCcdError::InvalidRadius);
-    }
-    if !is_finite(capsule.start) || !is_finite(capsule.end) {
-        return Err(TranslationCcdError::NonFiniteCoordinate);
-    }
-
-    let final_start = capsule.start.add(translation);
-    let final_end = capsule.end.add(translation);
-    if !is_finite(final_start) || !is_finite(final_end) {
-        return Err(TranslationCcdError::NumericalOverflow);
-    }
-    let final_capsule = Capsule {
-        start: final_start,
-        end: final_end,
-        radius_mm: capsule.radius_mm,
-    };
-    let initial = capsule.aabb();
-    let final_bounds = final_capsule.aabb();
-    let bounds = CapsuleAabb3 {
-        min: Vec3::new(
-            initial.min.x.min(final_bounds.min.x),
-            initial.min.y.min(final_bounds.min.y),
-            initial.min.z.min(final_bounds.min.z),
-        ),
-        max: Vec3::new(
-            initial.max.x.max(final_bounds.max.x),
-            initial.max.y.max(final_bounds.max.y),
-            initial.max.z.max(final_bounds.max.z),
-        ),
-    };
-
-    if !is_finite(bounds.min) || !is_finite(bounds.max) {
-        return Err(TranslationCcdError::NumericalOverflow);
-    }
-    Ok(bounds)
+    slab_swept_bounds(capsule, translation, 0.0, 1.0)
 }
 
 fn is_finite(point: Vec3) -> bool {
@@ -606,6 +610,67 @@ mod tests {
 
     fn capsule(start: Vec3, end: Vec3, radius_mm: f64) -> Capsule {
         Capsule::new(start, end, radius_mm).unwrap()
+    }
+
+    #[test]
+    fn affine_bounds_expand_outward_at_large_coordinates() {
+        let base = 4_503_599_627_370_496.0_f64; // 2^52
+        let point = capsule(p(base, -base, 0.0), p(base, -base, 0.0), 0.0);
+        let bounds = slab_swept_bounds(point, p(1.0, -1.0, 0.0), 0.0, 0.5).unwrap();
+
+        // The exact real displacement is ±0.5, below one ulp at this magnitude.
+        assert!(bounds.max.x > base);
+        assert!(bounds.min.y < -base);
+        assert!(bounds.min.x <= base);
+        assert!(bounds.max.y >= -base);
+    }
+
+    #[test]
+    fn affine_bounds_expand_outward_for_subnormal_displacements() {
+        let tiny = f64::from_bits(1);
+        let point = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.0);
+        let bounds = slab_swept_bounds(point, p(tiny, -tiny, 0.0), 0.0, 1.0).unwrap();
+
+        assert!(bounds.min.x < 0.0);
+        assert!(bounds.max.x > tiny);
+        assert!(bounds.min.y < -tiny);
+        assert!(bounds.max.y > 0.0);
+    }
+
+    #[test]
+    fn adaptive_query_never_reports_clear_after_bound_overflow() {
+        let moving = capsule(
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            0.0,
+        );
+        let obstacle = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.0);
+        assert_eq!(
+            co_translating_capsule_adaptive_query(
+                moving,
+                p(f64::MAX, 0.0, 0.0),
+                obstacle,
+                p(0.0, 0.0, 0.0),
+                AdaptiveSubdivisionConfig {
+                    maximum_depth: 4,
+                    minimum_window_width: 1.0 / 16.0,
+                },
+            ),
+            Err(TranslationCcdError::NumericalOverflow)
+        );
+    }
+
+    #[test]
+    fn affine_bound_overflow_is_an_error_not_a_pruned_interval() {
+        let point = capsule(
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            p(f64::MAX / 2.0, 0.0, 0.0),
+            0.0,
+        );
+        assert_eq!(
+            slab_swept_bounds(point, p(f64::MAX, 0.0, 0.0), 0.0, 1.0),
+            Err(TranslationCcdError::NumericalOverflow)
+        );
     }
 
     #[test]

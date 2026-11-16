@@ -97,3 +97,17 @@ The adaptive query is benchmarked against the full-interval analytic query and t
 ### Adaptive query input errors
 
 The adaptive API returns typed errors for invalid normalized time windows, maximum depth above 20, and minimum window widths outside (0, 1]. These are input/contract failures, not collision outcomes. The shared `TranslationCcdError` owner exposes them alongside numerical conditioning and overflow errors so callers can distinguish invalid requests from `Unresolved` geometry.
+
+## IEEE-754 outward-rounded capsule bounds
+
+The static capsule AABB rounds each lower face down and each upper face up by one representable value after radius expansion. If static bound arithmetic overflows or a directly constructed capsule contains non-finite coordinates, the result is an unbounded candidate box rather than a false disjoint result.
+
+The space-time broad phase interval-evaluates each affine centerline endpoint coordinate over the exact binary `f64` time endpoints:
+1. Compute endpoint displacement products and widen them with `next_down` / `next_up`.
+2. Add the source coordinate and widen again.
+3. Take the componentwise hull of both endpoint intervals.
+4. Expand by capsule radius with outward rounding.
+
+If an intermediate cannot be represented finitely, the query returns `NumericalOverflow`; an adaptive caller cannot turn the failure into `NoContact`. The model remains limited to finite binary-f64 inputs and the supported affine fixed-orientation capsule geometry. This is an interval-enclosure improvement, not a complete proof of physical model fidelity or a certified arbitrary-precision geometry engine.
+
+The regression suite includes large-coordinate sub-ulp translations, subnormal displacements, static AABB expansion and overflow handling. The benchmark reports static, whole-sweep and one-window AABB costs independently. No performance claim is made until the new exact-head CI run completes.
