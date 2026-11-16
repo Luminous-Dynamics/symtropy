@@ -211,6 +211,15 @@ The learned model never owns a pressure or blade interlock. Loss of sensor confi
 - **Mycelix:** existing lot/provenance/repair evidence and supplier/producer collaboration. No second identity, marketplace or repair ledger.
 - **Sol Atlas:** regional water, energy, climate, supply, logistics and recovery context only when the data are sourced, rights-qualified and spatially/temporally fit for the claim.
 
+### Existing food-conditioning research to reuse
+
+Do not duplicate the plasma / food-conditioning workstream inside the appliance prototype. Compose with:
+- Symtropy [PLASMA-FOOD-QUAL-001 #5658](https://github.com/Luminous-Dynamics/symtropy/issues/5658) for separate cold-atmospheric plasma, plasma-activated media, ingredient-functionalization and direct thermal-plasma hypotheses.
+- Symtropy [PFB-ORACLE-001 #5683](https://github.com/Luminous-Dynamics/symtropy/issues/5683) and its [isolated Rust oracle](https://github.com/Luminous-Dynamics/symtropy/tree/research/plasma-food-qualification-v0-1-20261116/research/plasma-food-oracle) for fail-closed wall-plug energy accounting across reactor, processor-gate, household and gate-to-plate boundaries.
+- Symtropy [PFB-1 system-boundary benchmark](https://github.com/Luminous-Dynamics/symtropy/blob/research/plasma-food-qualification-v0-1-20261116/docs/research/PLASMA_FOOD_SYSTEM_BOUNDARY_BENCHMARK_V0_1.md).
+
+The appliance programme can compare the final accepted food outcome, but must not absorb a plasma generator into a kitchen appliance by assumption. If pretreatment is upstream, report household cook-stage time separately from sequential process time and full system energy per accepted edible output. Reuse PFB-1's existing accounting semantics; never turn missing upstream energy into zero.
+
 ## 10. Execution gates
 
 **G0 — baseline freeze:** exact candidates, purchase availability, task basket, instruments, test recipes, endpoints and comparison protocol.
