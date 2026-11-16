@@ -263,6 +263,10 @@ fn evaluate_family_policy_arms(
 
     let mut results = Vec::with_capacity(7);
 
+    // Diagnostic-only counterfactual: these deliberately bypass the
+    // reference-integrity gate so the benchmark can quantify the damage from
+    // fitting against a biased or unqualified reference. These results never
+    // become qualified measurements.
     let full_fit = fit_model(
         candidates,
         &target.reference_force_observations_n,
@@ -514,6 +518,7 @@ mod tests {
             &domain.reference_force_observations_n,
             &domain.independent_check_reference_force_observations_n,
             SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
         )
         .expect("reference integrity report");
         assert!(!integrity.accepted);
@@ -532,6 +537,25 @@ mod tests {
     }
 
     #[test]
+    fn failed_reference_integrity_blocks_qualified_model_fitting() {
+        let biased = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::ReferenceCommonModeBias,
+        );
+        let selected: Vec<_> = (0..biased.candidates.len()).collect();
+        assert!(fit_qualified_domain(&biased, &selected, None, 0.0).is_err());
+
+        let shared = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::SharedReferenceCommonModeBias,
+        );
+        let selected: Vec<_> = (0..shared.candidates.len()).collect();
+        assert!(fit_qualified_domain(&shared, &selected, None, 0.0).is_err());
+    }
+
+    #[test]
     fn shared_reference_bias_passes_pairwise_agreement_but_remains_unresolved() {
         let domain = family_training_domain(
             20261116,
@@ -544,7 +568,9 @@ mod tests {
             SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
         )
         .expect("pairwise reference check");
-        assert!(integrity.accepted);
+        assert!(integrity.max_abs_disagreement_n <= integrity.tolerance_n);
+        assert!(!integrity.accepted);
+        assert!(!integrity.independent_reference_ancestry_attested);
         assert!(!integrity.agreement_proves_independence);
         assert!(ResponseFamily::SharedReferenceCommonModeBias.has_shared_reference_common_cause());
     }
