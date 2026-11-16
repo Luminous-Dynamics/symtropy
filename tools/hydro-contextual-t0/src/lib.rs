@@ -1514,8 +1514,6 @@ mod tests {
         assert_eq!(out["reason"], "FORECAST_LEAD_TIME_MISMATCH");
     }
 
-
-
     #[test]
     fn probabilistic_skill_rejects_variable_mismatch() {
         let out = compute_case(&fixture("inputs")["cases"][44]).expect("variable mismatch");
