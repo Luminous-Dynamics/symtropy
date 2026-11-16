@@ -43,7 +43,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -85,7 +85,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -127,7 +127,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -169,7 +169,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -211,7 +211,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -253,7 +253,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -295,7 +295,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -337,7 +337,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -379,7 +379,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/expired"
       }
     },
     {
@@ -421,7 +421,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": null
       }
     },
     {
@@ -463,7 +463,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": null,
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -505,7 +505,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -547,7 +547,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -589,7 +589,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -631,7 +631,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     },
     {
@@ -673,7 +673,7 @@
         "checked_configuration_revision": "CFG-B",
         "profile_ref": "fixture://sensor-profile/v0.1",
         "raw_artifact_ref": "fixture://sensor-reference/raw",
-        "calibration_ref": "CAL-01"
+        "calibration_ref": "fixture://calibration/CAM-01/CAL-01"
       }
     }
   ]
