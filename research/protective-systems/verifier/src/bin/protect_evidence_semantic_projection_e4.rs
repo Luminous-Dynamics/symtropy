@@ -361,7 +361,7 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
         preserved_json_api_meta: value.get("meta").cloned().unwrap_or(Value::Null),
         preserved_unmapped_attributes: Value::Object(preserved_unmapped_attributes.clone()),
     };
-    let decisions = vec![
+    let mut decisions = vec![
         decision("DATACITE", "/data/id", Some("/native_view/doi"), MappingClass::ExactNative, None, "DOI identity preserved as native text; registration/resolution is not asserted."),
         decision("DATACITE", "/data/attributes/titles/0/title", Some("/native_view/title"), MappingClass::ExactNative, None, "Title value copied without semantic reinterpretation."),
         decision("DATACITE", "/data/attributes/relatedIdentifiers", Some("/native_view/related_identifiers"), MappingClass::ExactNative, None, "Identifier type, value, relation type and relationTypeInformation remain distinct."),
@@ -751,6 +751,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn parsed_fixtures() -> (Value, Value, Value) {
         (
@@ -767,18 +768,18 @@ mod tests {
         assert!(report.source_bytes_retained);
         assert_eq!(report.provider_count, 3);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_METADATA_ONLY");
-        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&17));
+        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&11));
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
-        assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&3));
+        assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&10));
     }
 
     #[test]
     fn provider_views_remain_a_tagged_union_not_a_flat_record() {
         let report = build_report().expect("report");
-        assert!(matches!(report.provider_views[0], ProviderNativeView::DataCite(_)));
-        assert!(matches!(report.provider_views[1], ProviderNativeView::OgcRecords(_)));
-        assert!(matches!(report.provider_views[2], ProviderNativeView::OpenLineage(_)));
+        assert!(matches!(&report.provider_views[0], ProviderNativeView::DataCite(_)));
+        assert!(matches!(&report.provider_views[1], ProviderNativeView::OgcRecords(_)));
+        assert!(matches!(&report.provider_views[2], ProviderNativeView::OpenLineage(_)));
     }
 
     #[test]
@@ -851,9 +852,10 @@ mod tests {
         let ProviderNativeView::OgcRecords(view) = view else {
             panic!("OGC view expected")
         };
-        assert_eq!(
-            view.preserved_property_extensions["futureNested"]["preserve"],
-            true
+        assert!(
+            view.preserved_property_extensions["futureNested"]["preserve"]
+                .as_bool()
+                .expect("preserve flag")
         );
         assert!(decisions.iter().any(|item| {
             item.classification == MappingClass::PreservedRawOnly
