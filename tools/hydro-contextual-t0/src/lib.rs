@@ -738,6 +738,8 @@ fn empirical_crps(observed: f64, members: &[f64]) -> f64 {
 
 fn crps_skill_score(input: &Value) -> Result<Value, String> {
     let observed = number(input, "observed")?;
+    let forecast_id = text(input, "forecast_id")?;
+    let reference_forecast_id = text(input, "reference_forecast_id")?;
     let target = text(input, "target_definition_id")?;
     let reference_target = text(input, "reference_target_definition_id")?;
     let valid_time = text(input, "valid_time_definition_id")?;
@@ -755,6 +757,8 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     {
         return Ok(json!({
             "probabilistic_disposition": "NOT_COMPARABLE",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
             "target_definition_id": target,
             "reference_target_definition_id": reference_target,
@@ -775,6 +779,8 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "NEGATIVE_STREAMFLOW_VALUE",
             "target_definition_id": target,
             "forecast_member_count": forecast_members.len(),
@@ -789,6 +795,8 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     if reference_crps <= 1.0e-12 {
         return Ok(json!({
             "probabilistic_disposition": "UNDEFINED",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
             "target_definition_id": target,
             "forecast_member_count": forecast_members.len(),
@@ -800,6 +808,8 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     }
     Ok(json!({
         "probabilistic_disposition": "ADMITTED",
+        "forecast_id": forecast_id,
+        "reference_forecast_id": reference_forecast_id,
         "reason": "CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
         "target_definition_id": target,
         "forecast_member_count": forecast_members.len(),
@@ -811,6 +821,8 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
 }
 
 fn brier_skill_score(input: &Value) -> Result<Value, String> {
+    let forecast_id = text(input, "forecast_id")?;
+    let reference_forecast_id = text(input, "reference_forecast_id")?;
     let event_id = text(input, "event_definition_id")?;
     let reference_event_id = text(input, "reference_event_definition_id")?;
     let valid_time = text(input, "valid_time_definition_id")?;
@@ -829,6 +841,8 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     {
         return Ok(json!({
             "probabilistic_disposition": "NOT_COMPARABLE",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
             "event_definition_id": event_id,
             "reference_event_definition_id": reference_event_id,
@@ -848,6 +862,8 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
             "event_definition_id": event_id,
             "forecast_probability": probability,
@@ -861,6 +877,8 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     if observed_event != 0.0 && observed_event != 1.0 {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
             "event_definition_id": event_id,
             "forecast_probability": probability,
@@ -876,6 +894,8 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     if reference_brier <= 1.0e-12 {
         return Ok(json!({
             "probabilistic_disposition": "UNDEFINED",
+            "forecast_id": forecast_id,
+            "reference_forecast_id": reference_forecast_id,
             "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
             "event_definition_id": event_id,
             "forecast_probability": probability,
@@ -888,6 +908,8 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     }
     Ok(json!({
         "probabilistic_disposition": "ADMITTED",
+        "forecast_id": forecast_id,
+        "reference_forecast_id": reference_forecast_id,
         "reason": "BSS_AGAINST_MATCHED_REFERENCE_PROBABILITY",
         "event_definition_id": event_id,
         "forecast_probability": probability,
