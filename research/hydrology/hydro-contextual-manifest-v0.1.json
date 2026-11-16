@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 40,
+  "case_count": 44,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -44,7 +44,11 @@
     "HC-T0-037-crps-skill-zero-reference-undefined",
     "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
     "HC-T0-039-crps-skill-case-identity-mismatch",
-    "HC-T0-040-brier-skill-event-definition-mismatch"
+    "HC-T0-040-brier-skill-event-definition-mismatch",
+    "HC-T0-041-crps-skill-unit-mismatch-not-comparable",
+    "HC-T0-042-crps-skill-aggregation-mismatch-not-comparable",
+    "HC-T0-043-crps-skill-negative-score-not-clipped",
+    "HC-T0-044-brier-skill-negative-score-not-clipped"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -65,7 +69,9 @@
     "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
     "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null.",
     "crps_skill_score": "CRPSS = 1 - mean(CRPS_forecast)/mean(CRPS_reference), evaluated on identical observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined.",
-    "brier_skill_score": "BSS = 1 - mean(BS_forecast)/mean(BS_reference), evaluated for the same versioned binary event, observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined."
+    "brier_skill_score": "BSS = 1 - mean(BS_forecast)/mean(BS_reference), evaluated for the same versioned binary event, observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined.",
+    "crps_skill": "CRPSS = 1 - mean(CRPS_forecast)/mean(CRPS_reference) over exactly the same target cases, catchment/evaluation population and forecast lead. A zero reference CRPS yields Undefined. Do not clip negative skill.",
+    "brier_skill": "BSS = 1 - mean(BS_forecast)/mean(BS_reference) over exactly the same binary event cases, event definition and lead. A zero reference Brier score yields Undefined. Do not clip negative skill."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -95,6 +101,10 @@
     "A zero or near-zero reference score makes the corresponding skill score Undefined, not zero or infinite.",
     "Do not compare a forecast to a reference computed on different catchments, events, observation cases, lead times or threshold definitions.",
     "Each relative skill result names both the candidate forecast and reference forecast (for example, persistence or train-only seasonal climatology); unnamed or implicit references are not accepted.",
-    "Skill comparisons reject different ordered observation-case identities or different versioned binary-event definitions, even when aggregate sample counts match."
+    "Skill comparisons reject different ordered observation-case identities or different versioned binary-event definitions, even when aggregate sample counts match.",
+    "Skill comparisons require exact identity of target case IDs, evaluation population, variable, unit, temporal aggregation, valid-time semantics and forecast lead; binary event comparisons additionally require exact event-definition identity.",
+    "A positive skill score indicates improvement over the chosen reference; zero indicates parity; a negative score is valid evidence that the forecast is worse than the reference and must not be clipped or suppressed.",
+    "Forecast and reference scores must be computed on the same verification cases; do not compare a candidate on an easier subset or a different lead time.",
+    "The reference forecast must be named, frozen and eligible for the same valid-time information set; training-only climatology and persistence are not interchangeable reference populations."
   ]
 }
