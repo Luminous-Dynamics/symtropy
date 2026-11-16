@@ -74,7 +74,10 @@ impl CcmInputs {
             self.synchrotron_power_per_beam_w,
             self.scheduled_physics_days_per_year,
         ];
-        if positive.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        if positive
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+        {
             return Err("all dimensional inputs must be finite and positive".to_owned());
         }
         if !self.availability.is_finite() || !(0.0..=1.0).contains(&self.availability) {
@@ -95,7 +98,9 @@ impl CcmInputs {
             return Err("bunch, particle and interaction-point counts must be integers".to_owned());
         }
         if self.colliding_bunch_pairs_per_ip > self.total_bunches_per_beam {
-            return Err("colliding bunch pairs per IP cannot exceed total stored bunches".to_owned());
+            return Err(
+                "colliding bunch pairs per IP cannot exceed total stored bunches".to_owned(),
+            );
         }
         if self.beam_beam_tune_shift_per_ip >= 1.0 {
             return Err("beam-beam tune shift must be less than one".to_owned());
@@ -142,12 +147,13 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
     let slots_per_turn = nominal_full_fill_slot_rate_hz / revolution_frequency_hz;
     let nominal_fill_fraction = inputs.total_bunches_per_beam / slots_per_turn;
     if nominal_fill_fraction > 1.0 {
-        return Err("stored bunch count exceeds the declared nominal bunch-spacing slots".to_owned());
+        return Err(
+            "stored bunch count exceeds the declared nominal bunch-spacing slots".to_owned(),
+        );
     }
 
     let gamma = inputs.beam_energy_tev * 1_000.0 / PROTON_REST_ENERGY_GEV;
-    let luminosity_scale_m2_s = gamma
-        / (ELEMENTARY_CHARGE_C * PROTON_CLASSICAL_RADIUS_M)
+    let luminosity_scale_m2_s = gamma / (ELEMENTARY_CHARGE_C * PROTON_CLASSICAL_RADIUS_M)
         * inputs.beam_beam_tune_shift_per_ip
         * inputs.geometric_factor
         / inputs.beta_star_m;
@@ -165,8 +171,7 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         / inputs.reported_luminosity_per_ip_cm2_s
         / CM2_PER_MB;
 
-    let total_protons_per_beam =
-        inputs.total_bunches_per_beam * inputs.protons_per_bunch;
+    let total_protons_per_beam = inputs.total_bunches_per_beam * inputs.protons_per_bunch;
     let burnoff_lifetime_s = total_protons_per_beam
         / (inputs.reported_luminosity_per_ip_cm2_s
             * inputs.interaction_points
@@ -246,11 +251,12 @@ fn luminosity_for_tune_shift(
         || tune_shift <= 0.0
         || tune_shift >= 1.0
     {
-        return Err("sensitivity inputs must be finite and physically positive".to_owned());
+        return Err(
+            "sensitivity inputs must be finite and physically positive".to_owned(),
+        );
     }
     let gamma = base.beam_energy_tev * 1_000.0 / PROTON_REST_ENERGY_GEV;
-    let result_m2_s = gamma
-        / (ELEMENTARY_CHARGE_C * PROTON_CLASSICAL_RADIUS_M)
+    let result_m2_s = gamma / (ELEMENTARY_CHARGE_C * PROTON_CLASSICAL_RADIUS_M)
         * (beam_current_a / beta_star_m)
         * tune_shift
         * base.geometric_factor;
@@ -261,22 +267,14 @@ fn luminosity_for_tune_shift(
     Ok(result_cm2_s)
 }
 
-fn render_sensitivity_rows(
-    base: CcmInputs,
-    xis: &[f64],
-    betas: &[f64],
-) -> Result<String, String> {
+fn render_sensitivity_rows(base: CcmInputs, xis: &[f64], betas: &[f64]) -> Result<String, String> {
     let mut output = String::from("{\n    \"beam_beam_tune_shift\": [");
     for (index, xi) in xis.iter().enumerate() {
         if index > 0 {
             output.push(',');
         }
-        let luminosity = luminosity_for_tune_shift(
-            base,
-            base.beam_current_reported_a,
-            base.beta_star_m,
-            *xi,
-        )?;
+        let luminosity =
+            luminosity_for_tune_shift(base, base.beam_current_reported_a, base.beta_star_m, *xi)?;
         output.push_str(&format!(
             "{{\"xi\":{xi:.6},\"luminosity_cm2_s\":{luminosity:.6e}}}"
         ));
@@ -307,15 +305,11 @@ pub fn render_report_json() -> Result<String, String> {
     let fcc_circumference_m = 97_750.0;
     let fcc_revolution_frequency_hz = SPEED_OF_LIGHT_M_S / fcc_circumference_m;
     let fcc_baseline_bunches = 10_600.0;
-    let fcc_baseline_crossing_rate_hz =
-        fcc_baseline_bunches * fcc_revolution_frequency_hz;
+    let fcc_baseline_crossing_rate_hz = fcc_baseline_bunches * fcc_revolution_frequency_hz;
     let fcc_synchrotron_loss_per_turn_tev = (2.4e6 / 0.5) / 1.0e12;
 
-    let sensitivities = render_sensitivity_rows(
-        inputs,
-        &[0.006, 0.01, 0.03, 0.06, 0.08],
-        &[0.25, 0.5, 1.0],
-    )?;
+    let sensitivities =
+        render_sensitivity_rows(inputs, &[0.006, 0.01, 0.03, 0.06, 0.08], &[0.25, 0.5, 1.0])?;
 
     Ok(format!(
         concat!(
@@ -427,7 +421,11 @@ mod tests {
     fn lunar_revolution_and_collision_rates_reproduce_the_source_case() {
         let value = calculate(CcmInputs::published_reference()).expect("valid CCM");
         close(value.revolution_frequency_hz, 27.2538598, 1.0e-6);
-        close(value.collision_crossing_rate_per_ip_hz / 1.0e6, 32.704632, 1.0e-5);
+        close(
+            value.collision_crossing_rate_per_ip_hz / 1.0e6,
+            32.704632,
+            1.0e-5,
+        );
         assert!(value.nominal_fill_fraction > 0.80 && value.nominal_fill_fraction < 0.83);
     }
 
@@ -478,7 +476,11 @@ mod tests {
     fn fcc_reference_reproduces_thousand_hertz_revolution_and_million_hertz_crossing_rates() {
         let revolution_hz = SPEED_OF_LIGHT_M_S / 97_750.0;
         close(revolution_hz, 3_066.930_516_624_041, 1.0e-9);
-        close(revolution_hz * 10_600.0 / 1.0e6, 32.509_463_476_214_834, 1.0e-9);
+        close(
+            revolution_hz * 10_600.0 / 1.0e6,
+            32.509_463_476_214_834,
+            1.0e-9,
+        );
     }
 
     #[test]
