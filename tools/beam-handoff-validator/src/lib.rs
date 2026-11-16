@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
 use csv::{ReaderBuilder, StringRecord};
 use jsonschema::Validator;
 use serde_json::Value;
