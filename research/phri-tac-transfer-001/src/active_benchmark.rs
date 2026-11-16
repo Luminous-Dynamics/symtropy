@@ -1060,11 +1060,7 @@ pub fn run_active_calibration_campaign(
         if bootstrap_seed == 0 {
             bootstrap_seed = 1;
         }
-        let paired_bootstrap = bootstrap_mean_interval(
-            &paired_deltas,
-            bootstrap_seed,
-            2_000,
-        )?;
+        let paired_bootstrap = bootstrap_mean_interval(&paired_deltas, bootstrap_seed, 2_000)?;
 
         campaign_results.push(CampaignPolicyResult {
             policy_id: first.policy_id,
@@ -1190,10 +1186,8 @@ mod tests {
     #[test]
     fn paired_seed_bootstrap_is_deterministic_and_resamples_seed_level_deltas() {
         let samples = [-0.2, -0.1, 0.0, 0.1, 0.2];
-        let first = bootstrap_mean_interval(&samples, 123, 2_000)
-            .expect("bootstrap interval");
-        let replay = bootstrap_mean_interval(&samples, 123, 2_000)
-            .expect("deterministic replay");
+        let first = bootstrap_mean_interval(&samples, 123, 2_000).expect("bootstrap interval");
+        let replay = bootstrap_mean_interval(&samples, 123, 2_000).expect("deterministic replay");
         assert_eq!(first, replay);
         assert!(first.lower_95.is_finite() && first.upper_95.is_finite());
         assert!(first.lower_95 <= first.upper_95);
