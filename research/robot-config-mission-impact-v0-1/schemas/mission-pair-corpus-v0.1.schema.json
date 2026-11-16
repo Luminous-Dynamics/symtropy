@@ -261,7 +261,12 @@
                 "event_time_tick",
                 "event_type",
                 "source_class",
-                "raw_artifact_ref"
+                "raw_artifact_ref",
+                "stage_id",
+                "event_time_clock_domain_ref",
+                "arrival_time_tick",
+                "arrival_time_clock_domain_ref",
+                "clock_mapping_ref"
               ],
               "properties": {
                 "event_id": {
@@ -288,6 +293,40 @@
                 "raw_artifact_ref": {
                   "type": "string",
                   "minLength": 1
+                },
+                "stage_id": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^S[0-9]{2}$"
+                    }
+                  ]
+                },
+                "event_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arrival_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "arrival_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clock_mapping_ref": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
                 }
               }
             }
@@ -303,7 +342,12 @@
                 "event_time_tick",
                 "event_type",
                 "source_class",
-                "raw_artifact_ref"
+                "raw_artifact_ref",
+                "stage_id",
+                "event_time_clock_domain_ref",
+                "arrival_time_tick",
+                "arrival_time_clock_domain_ref",
+                "clock_mapping_ref"
               ],
               "properties": {
                 "event_id": {
@@ -330,6 +374,40 @@
                 "raw_artifact_ref": {
                   "type": "string",
                   "minLength": 1
+                },
+                "stage_id": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "pattern": "^S[0-9]{2}$"
+                    }
+                  ]
+                },
+                "event_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arrival_time_tick": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "arrival_time_clock_domain_ref": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "clock_mapping_ref": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
                 }
               }
             }
