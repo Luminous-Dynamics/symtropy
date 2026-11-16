@@ -301,6 +301,83 @@ pub fn independent_oracle(case: &CaseSnapshot) -> BTreeSet<OracleViolation> {
         .map(|node| (node.node_id.as_str(), node))
         .collect();
 
+    // Keep malformed/ disconnected mutations distinct from semantic counterexamples.
+    let mut edge_keys = BTreeSet::new();
+    if !by_id.contains_key(case.root_claim_id.as_str())
+        || case.nodes.iter().any(|node| node.node_id.trim().is_empty())
+        || by_id.len() != case.nodes.len()
+        || case.edges.iter().any(|edge| {
+            !by_id.contains_key(edge.from_node_id.as_str())
+                || !by_id.contains_key(edge.to_node_id.as_str())
+                || !edge_keys.insert((
+                    edge.from_node_id.as_str(),
+                    edge.to_node_id.as_str(),
+                    edge.kind,
+                ))
+        })
+    {
+        violations.insert(OracleViolation::GraphStructureInvalid);
+    } else {
+        let mut reached = BTreeSet::from([case.root_claim_id.as_str()]);
+        loop {
+            let before = reached.len();
+            for edge in &case.edges {
+                if reached.contains(edge.from_node_id.as_str()) {
+                    reached.insert(edge.to_node_id.as_str());
+                }
+                if reached.contains(edge.to_node_id.as_str()) {
+                    reached.insert(edge.from_node_id.as_str());
+                }
+            }
+            if reached.len() == before {
+                break;
+            }
+        }
+        if reached.len() != case.nodes.len() {
+            violations.insert(OracleViolation::GraphStructureInvalid);
+        }
+
+        let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+        for edge in &case.edges {
+            adjacency
+                .entry(edge.from_node_id.as_str())
+                .or_default()
+                .push(edge.to_node_id.as_str());
+        }
+        let mut colors: BTreeMap<&str, u8> = BTreeMap::new();
+        let mut stack: Vec<(&str, bool)> = vec![(case.root_claim_id.as_str(), false)];
+        while let Some((id, exiting)) = stack.pop() {
+            if exiting {
+                colors.insert(id, 2);
+                continue;
+            }
+            match colors.get(id).copied().unwrap_or(0) {
+                1 => {
+                    violations.insert(OracleViolation::GraphStructureInvalid);
+                    break;
+                }
+                2 => continue,
+                _ => {}
+            }
+            colors.insert(id, 1);
+            stack.push((id, true));
+            if let Some(children) = adjacency.get(id) {
+                for child in children.iter().rev() {
+                    if colors.get(child).copied() == Some(1) {
+                        violations.insert(OracleViolation::GraphStructureInvalid);
+                        break;
+                    }
+                    if colors.get(child).copied() != Some(2) {
+                        stack.push((child, false));
+                    }
+                }
+            }
+            if violations.contains(&OracleViolation::GraphStructureInvalid) {
+                break;
+            }
+        }
+    }
+
     for node in &case.nodes {
         if node.scope != policy.expected_scope {
             violations.insert(OracleViolation::ScopeSplice);
@@ -340,6 +417,9 @@ pub fn independent_oracle(case: &CaseSnapshot) -> BTreeSet<OracleViolation> {
             violations.insert(OracleViolation::RequiredEvidencePurposeMissing);
             continue;
         };
+        if claim.state != ClaimState::Supported {
+            violations.insert(OracleViolation::ClaimNotSupported);
+        }
         let supporting: Vec<&AssuranceNode> = case
             .edges
             .iter()
