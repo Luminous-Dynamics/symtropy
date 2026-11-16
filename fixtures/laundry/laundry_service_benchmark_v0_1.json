@@ -1,0 +1,1056 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "LAUNDRY-SERVICE-BENCH-001",
+  "status": "proposed_no_physical_measurements",
+  "claim_ceiling": "no_physical_performance_or_superiority_claim",
+  "functional_unit": {
+    "id": "kg_accepted_dry_equivalent_textile",
+    "definition": "One kilogram of dry-equivalent textile input delivered through a declared wash, rinse and optional dry process, accepted only when cleaning, rinse residue, textile gentleness and final-moisture requirements for its textile family are met.",
+    "acceptance_conditions": [
+      "cleaning performance meets the frozen acceptance floor",
+      "rinse residue meets the frozen acceptance floor",
+      "textile gentleness and fabric-damage limits are met",
+      "final moisture is within the declared endpoint range when drying is required"
+    ],
+    "separate_views": [
+      "washer_service",
+      "dryer_service",
+      "paired_laundry_service"
+    ]
+  },
+  "control_policy": {
+    "minimum_model_families_per_class": 3,
+    "exact_identity_fields": [
+      "manufacturer",
+      "model",
+      "product_number_or_pnc",
+      "hardware_revision",
+      "market",
+      "rated_capacity",
+      "programme_and_label_method",
+      "purchase_or_access_date"
+    ],
+    "selection_status": "desk_references_only_controls_not_selected",
+    "selected_controls": [],
+    "protocol_status": "draft_pending_control_selection_and_pilot",
+    "sample_size_policy": "Set the number of physical units and repeated cycles after the control-only pilot estimates variance, meter uncertainty, within-unit correlation and the minimum effect of interest. Three model families is a desk-comparison floor, not a statistically adequate sample-size claim."
+  },
+  "baselines": [
+    {
+      "id": "WASHER-AEG-LR9WW80409",
+      "appliance_class": "front_load_washer",
+      "manufacturer_model": "AEG LR9WW80409",
+      "product_number": "914505606",
+      "capacity_kg": 10,
+      "evidence_class": "third_party_label_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_per_100_cycles",
+          "value": 20,
+          "unit": "kWh/100 Eco 40-60 cycles",
+          "method_or_basis": "EU energy label data displayed by EnergyLabelEU",
+          "scope_note": "Not a physical project measurement."
+        },
+        {
+          "id": "water_per_cycle",
+          "value": 50,
+          "unit": "L/cycle",
+          "method_or_basis": "EU energy label data displayed by EnergyLabelEU",
+          "scope_note": "Label programme only."
+        },
+        {
+          "id": "eco_cycle_duration",
+          "value": 235,
+          "unit": "minutes",
+          "method_or_basis": "EnergyLabelEU product record",
+          "scope_note": "Eco 40-60 programme duration."
+        },
+        {
+          "id": "spin_noise",
+          "value": 72,
+          "unit": "dB",
+          "method_or_basis": "EnergyLabelEU label metadata",
+          "scope_note": "Acoustic category and exact measurement conditions must be checked."
+        },
+        {
+          "id": "spin_class",
+          "value": "B",
+          "unit": "class",
+          "method_or_basis": "EU energy label field",
+          "scope_note": "Not a direct residual moisture measurement."
+        },
+        {
+          "id": "residual_moisture",
+          "value": 53.9,
+          "unit": "percent",
+          "method_or_basis": "EnergyLabelEU secondary product metadata",
+          "scope_note": "Verify exact PNC and source fiche before treating as a measured comparator."
+        }
+      ],
+      "source_uri": "https://energielabeleu.com/model/aeg-lr9ww80409-914505606",
+      "scope_note": "Third-party display of EU label data with EPREL cross-reference. The model is a desk baseline, not an acquired/selected test control; verify the exact label fiche and market."
+    },
+    {
+      "id": "DRYER-AEG-TR948V4BC-PNC916900129",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "AEG TR948V4BC",
+      "product_number": "916900129",
+      "capacity_kg": 8,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_per_100_cycles",
+          "value": 73,
+          "unit": "kWh/100 cycles",
+          "method_or_basis": "AEG Ireland product page for PNC 916 900 129",
+          "scope_note": "Product-page energy field; confirm label/programme basis at acquisition."
+        },
+        {
+          "id": "energy_per_cycle",
+          "value": 0.73,
+          "unit": "kWh/cycle",
+          "method_or_basis": "AEG Ireland product page for PNC 916 900 129",
+          "scope_note": "Do not compare with another programme or initial moisture condition."
+        },
+        {
+          "id": "condensation_efficiency",
+          "value": 94,
+          "unit": "percent",
+          "method_or_basis": "AEG Ireland product page for PNC 916 900 129",
+          "scope_note": "Manufacturer-reported attribute."
+        },
+        {
+          "id": "noise",
+          "value": 60,
+          "unit": "dB(A)",
+          "method_or_basis": "AEG Ireland product page for PNC 916 900 129",
+          "scope_note": "Manufacturer-reported attribute."
+        },
+        {
+          "id": "full_load_cycle_duration",
+          "value": 199,
+          "unit": "minutes",
+          "method_or_basis": "AEG Ireland product page, 3 h 19 min",
+          "scope_note": "Programme duration; confirm exact selected programme and label fiche."
+        },
+        {
+          "id": "half_load_cycle_duration",
+          "value": 125,
+          "unit": "minutes",
+          "method_or_basis": "AEG Ireland product page, 2 h 05 min",
+          "scope_note": "Programme duration; confirm exact selected programme and label fiche."
+        }
+      ],
+      "source_uri": "https://www.aeg.ie/laundry/laundry/dryers/heat-pump-dryer/tr948v4bc/",
+      "scope_note": "Manufacturer product-page data for the PNC displayed on that regional listing. Other regions/product-number variants exist; use this PNC only and reconfirm all label details before control selection."
+    },
+    {
+      "id": "WASHER-DEFY-DAW397",
+      "appliance_class": "front_load_washer",
+      "manufacturer_model": "Defy DAW 397",
+      "product_number": "DAW397",
+      "capacity_kg": 10,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++ (-10%)",
+          "unit": "legacy label class",
+          "method_or_basis": "Defy 2025/26 product catalogue and current product page",
+          "scope_note": "Legacy class, not directly comparable with current A-G scale."
+        },
+        {
+          "id": "water_per_cycle",
+          "value": 55,
+          "unit": "L/cycle",
+          "method_or_basis": "Defy 2025/26 product catalogue performance table",
+          "scope_note": "Published catalogue value; verify exact market fiche and programme before physical controls."
+        },
+        {
+          "id": "maximum_spin_speed",
+          "value": 1400,
+          "unit": "rpm",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Maximum rating; not necessarily the actual spin in the reference programme."
+        },
+        {
+          "id": "wash_noise",
+          "value": 54,
+          "unit": "dB",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Wash noise; not spin noise."
+        },
+        {
+          "id": "spin_noise",
+          "value": 76,
+          "unit": "dB",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Acoustic method and rating conditions need matching."
+        },
+        {
+          "id": "motor_warranty",
+          "value": 10,
+          "unit": "years",
+          "method_or_basis": "Current Defy product page",
+          "scope_note": "Motor warranty only; not whole-appliance reliability or service-life evidence."
+        }
+      ],
+      "source_uri": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-397",
+      "scope_note": "Local South African 10 kg washer sourcing lead. Water use and legacy energy class are from Defy 2025/26 catalogue; noise and motor warranty are from current product page. Not selected or measured as a control."
+    },
+    {
+      "id": "WASHER-BOSCH-WGA254ZRZA",
+      "appliance_class": "front_load_washer",
+      "manufacturer_model": "Bosch Series 4 WGA254ZRZA",
+      "product_number": "WGA254ZRZA",
+      "capacity_kg": 10,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "annual_energy",
+          "value": 167,
+          "unit": "kWh/year",
+          "method_or_basis": "Bosch South Africa specification sheet, stated 220 standard cycles/year",
+          "scope_note": "About 0.759 kWh/cycle on declared annual basis; not directly comparable to newer AEG EU label method."
+        },
+        {
+          "id": "annual_water",
+          "value": 11660,
+          "unit": "L/year",
+          "method_or_basis": "Bosch South Africa specification sheet, stated 220 standard cycles/year",
+          "scope_note": "About 53 L/cycle on declared annual basis; verify exact test programme."
+        },
+        {
+          "id": "remaining_moisture",
+          "value": 53,
+          "unit": "percent",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Confirm moisture basis and label methodology before comparing."
+        },
+        {
+          "id": "maximum_spin_speed",
+          "value": 1400,
+          "unit": "rpm",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Maximum rating."
+        },
+        {
+          "id": "spin_noise",
+          "value": 75,
+          "unit": "dB(A)",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Verify method and installation conditions."
+        },
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++",
+          "unit": "legacy label class",
+          "method_or_basis": "Bosch South Africa specification sheet",
+          "scope_note": "Legacy class, not directly comparable to current A-G scale."
+        }
+      ],
+      "source_uri": "https://media3.bsh-group.com/Documents/specsheet/en-ZA/WGA254ZRZA.pdf",
+      "scope_note": "South African Bosch 10 kg reference. Annual usage divided by stated 220 cycles yields desk-normalized per-cycle estimates only. Not a physical control."
+    },
+    {
+      "id": "DRYER-DEFY-DTD323",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "Defy DTD323",
+      "product_number": "7188241440",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A++",
+          "unit": "legacy label class",
+          "method_or_basis": "Defy official product page and fiche under EU Regulation 392/2012",
+          "scope_note": "Legacy rating, not directly comparable with current A-G class."
+        },
+        {
+          "id": "condensation_efficiency",
+          "value": 81,
+          "unit": "percent",
+          "method_or_basis": "Defy official product page and product fiche",
+          "scope_note": "Manufacturer-reported full and half load values."
+        },
+        {
+          "id": "full_load_energy",
+          "value": 2.17,
+          "unit": "kWh/cycle",
+          "method_or_basis": "Defy product fiche under Commission Delegated Regulation (EU) 392/2012",
+          "scope_note": "Older standard cotton cupboard-dry test method; not comparable with AEG current label number without matched test."
+        },
+        {
+          "id": "half_load_energy",
+          "value": 1.16,
+          "unit": "kWh/cycle",
+          "method_or_basis": "Defy product fiche under Commission Delegated Regulation (EU) 392/2012",
+          "scope_note": "Older standard cotton cupboard-dry test method."
+        },
+        {
+          "id": "full_load_duration",
+          "value": 209,
+          "unit": "minutes",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Old label method."
+        },
+        {
+          "id": "half_load_duration",
+          "value": 119,
+          "unit": "minutes",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Old label method."
+        },
+        {
+          "id": "noise",
+          "value": 65,
+          "unit": "dB(A)",
+          "method_or_basis": "Defy product fiche",
+          "scope_note": "Weighted sound-power value under cited old label method."
+        },
+        {
+          "id": "supply",
+          "value": "230-240 V / 50 Hz",
+          "unit": "electrical supply",
+          "method_or_basis": "Defy official product page",
+          "scope_note": "Local electrical rating."
+        }
+      ],
+      "source_uri": "https://www.defy.co.za/products/tumble-dryers/tumble-dryers-heat-pump-dtd323",
+      "scope_note": "Current South African product page identifies a 9 kg heat-pump dryer; published fiche is under EU 392/2012 and uses an older label method. Desk reference only; acquire exact PNC and retest."
+    },
+    {
+      "id": "DRYER-LG-RH90V9JV2N",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "LG RH90V9JV2N",
+      "product_number": "RH90V9JV2N",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++ (-10%)",
+          "unit": "legacy label class",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Legacy class; no comparable kWh/cycle value established from page."
+        },
+        {
+          "id": "heat_pump",
+          "value": "Dual Inverter Heat Pump",
+          "unit": "technology",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Manufacturer product description."
+        },
+        {
+          "id": "condenser_cleaning",
+          "value": "Automatic condenser cleaning",
+          "unit": "feature",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "Service and fouling behaviour must be measured."
+        },
+        {
+          "id": "lint_filtration",
+          "value": "Dual lint filter",
+          "unit": "feature",
+          "method_or_basis": "LG South Africa product page",
+          "scope_note": "No microfiber-capture claim inferred."
+        }
+      ],
+      "source_uri": "https://www.lg.com/za/laundry-care/heat-pump-dryers/rh90v9jv2n/",
+      "scope_note": "South African 9 kg heat-pump dryer sourcing lead. Product page lacks exact kWh/cycle and condensation figures needed for ranking; acquire model-specific compliance label before selection."
+    },
+    {
+      "id": "DRYER-SAMSUNG-DV90T6240LB",
+      "appliance_class": "heat_pump_tumble_dryer",
+      "manufacturer_model": "Samsung DV90T6240LB",
+      "product_number": "DV90T6240LB",
+      "capacity_kg": 9,
+      "evidence_class": "manufacturer_public_data",
+      "status": "desk_reference_not_selected_control",
+      "attributes": [
+        {
+          "id": "energy_efficiency_class",
+          "value": "A+++",
+          "unit": "legacy label class",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Legacy class; do not infer energy values referenced to other model numbers on same page."
+        },
+        {
+          "id": "cycle_duration",
+          "value": 220,
+          "unit": "minutes",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Confirm programme and load basis from exact compliance label."
+        },
+        {
+          "id": "noise",
+          "value": 65,
+          "unit": "dB",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Confirm method and load conditions."
+        },
+        {
+          "id": "dryer_type",
+          "value": "Heat pump",
+          "unit": "technology",
+          "method_or_basis": "Samsung South Africa product page",
+          "scope_note": "Manufacturer specification."
+        }
+      ],
+      "source_uri": "https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/",
+      "scope_note": "South African 9 kg heat-pump dryer sourcing lead. Energy discussion on page names different Samsung models; values from those models are not assigned to this model."
+    }
+  ],
+  "metrics": [
+    {
+      "id": "WASHER-ENERGY",
+      "system_boundary": "washer",
+      "unit": "kWh/100 cycles",
+      "denominator": "100 standardized accepted washer cycles at the declared capacity/programme",
+      "direction": "minimize",
+      "method": "IEC 60456:2024-compatible, calibrated power measurement over frozen load and programme; report measured useful cleaning and rinse output alongside energy.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "First target <=18 kWh/100 cycles versus the 20 kWh/100 desk reference; stretch <=16 kWh/100 cycles.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Cleaning, rinse and fabric-gentleness acceptance must pass.",
+        "Do not compare different programmes or label methods as like-for-like."
+      ]
+    },
+    {
+      "id": "WASHER-WATER",
+      "system_boundary": "washer",
+      "unit": "L/cycle",
+      "denominator": "one accepted standardized washer cycle",
+      "direction": "minimize",
+      "method": "Calibrated inlet flow measurement with water temperature and hardness recorded; include all fill, rinse and refresh stages.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "First target <=45 L/cycle versus the 50 L desk reference; stretch <=42.5 L/cycle.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Cleaning and rinse quality must remain within frozen limits.",
+        "No hidden reduction in rinsing or accepted load mass."
+      ]
+    },
+    {
+      "id": "WASHER-CLEANING",
+      "system_boundary": "washer",
+      "unit": "standardized cleaning performance index",
+      "denominator": "accepted textile test load and declared stain set",
+      "direction": "maximize",
+      "method": "Use the applicable IEC 60456:2024 cleaning-performance method and frozen reference textiles, detergents and analysis.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Non-inferior to the best matched control across the preregistered stain set; margins set before candidate tests.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "A failed cleaning acceptance gate blocks any resource-superiority claim.",
+        "Report stain classes separately; do not average away a critical failure."
+      ]
+    },
+    {
+      "id": "WASHER-RINSE",
+      "system_boundary": "washer",
+      "unit": "LAS residual / rinse performance result per IEC method",
+      "denominator": "accepted standardized textile load",
+      "direction": "minimize",
+      "method": "Apply IEC 60456:2024 LAS rinse-performance method and record rinse settings, detergent, water hardness and uncertainty.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Non-inferior or better than the best matched control under the frozen rinse method.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not trade rinse performance for lower litres or cycle energy.",
+        "Missing rinse evidence is indeterminate, not pass."
+      ]
+    },
+    {
+      "id": "WASHER-GENTLENESS",
+      "system_boundary": "textile_lifecycle",
+      "unit": "IEC gentleness-of-action result plus textile-specific damage vector",
+      "denominator": "declared textile family over repeated wash exposures",
+      "direction": "maximize",
+      "method": "Use IEC 60456:2024 gentleness method and additional repeated-cycle tensile, mass, colour and dimensional-change measurements.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Non-inferior to the best matched control initially; seek >=10% lower measured damage on selected textile families as a later hypothesis.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not generalize one fabric result to all garments.",
+        "Textile degradation is a hard gate, not a weighted penalty."
+      ]
+    },
+    {
+      "id": "WASHER-RESIDUAL-MOISTURE",
+      "system_boundary": "washer",
+      "unit": "percent moisture regain on declared basis",
+      "denominator": "conditioned dry-equivalent textile load at washer exit",
+      "direction": "minimize",
+      "method": "Gravimetric or validated reference moisture method immediately after spin; record textile mix, ambient conditioning and load mass.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Initial target <=50%; stretch <=45% versus 53.9% secondary-dataset reference.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "No fabric damage, vibration, imbalance or safety regression.",
+        "Use same moisture basis and timing for all comparisons."
+      ]
+    },
+    {
+      "id": "WASHER-SPIN-NOISE",
+      "system_boundary": "washer",
+      "unit": "dB(A)",
+      "denominator": "declared spin programme and installation condition",
+      "direction": "minimize",
+      "method": "IEC 60704 series measurement with consistent microphone geometry, installation and load balancing.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Explore <=68 dB(A) against the 72 dB desk reference.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Noise must be measured with equivalent operating cycle and mounting.",
+        "Do not infer noise from motor speed alone."
+      ]
+    },
+    {
+      "id": "WASHER-DETERGENT",
+      "system_boundary": "washer",
+      "unit": "g detergent/kg accepted dry-equivalent textile",
+      "denominator": "accepted wash output",
+      "direction": "minimize",
+      "method": "Gravimetric dose measurement, fixed detergent chemistry/concentration, water hardness and soil challenge.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Minimize dose while meeting cleaning and rinse floors; no numeric dose is frozen before detergent and load selection.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not claim detergent savings from different detergent chemistry.",
+        "Cleaning and rinse gates remain mandatory."
+      ]
+    },
+    {
+      "id": "DRYER-ENERGY",
+      "system_boundary": "dryer",
+      "unit": "kWh/cycle",
+      "denominator": "declared load mass and inlet moisture dried to the same final moisture endpoint",
+      "direction": "minimize",
+      "method": "Calibrated true-energy measurement under IEC 61121-compatible conditions; record inlet moisture, ambient conditions and final moisture.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "First target <=0.62 kWh/cycle; stretch <=0.55 versus the 0.73 kWh/cycle desk reference.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Equal inlet moisture, load and final moisture are required.",
+        "No overdrying or fabric-care regression to achieve the target."
+      ]
+    },
+    {
+      "id": "DRYER-ENERGY-PER-MOISTURE",
+      "system_boundary": "dryer",
+      "unit": "kWh/kg water removed",
+      "denominator": "gravimetrically measured water removed from the load",
+      "direction": "minimize",
+      "method": "Pair calibrated energy measurement with before/after conditioned mass and repeatable moisture measurement.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Establish matched-control baseline; then improve energy per kg moisture removed without extending endpoint or harming textiles.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Water-removal denominator must be measured, not inferred from cycle name.",
+        "Report partial and full load separately."
+      ]
+    },
+    {
+      "id": "DRYER-DURATION",
+      "system_boundary": "dryer",
+      "unit": "minutes",
+      "denominator": "declared load and final-moisture endpoint",
+      "direction": "minimize",
+      "method": "Time from cycle start to accepted endpoint; report full and partial load separately under matched inlet moisture.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Explore <=180 min full-load against the 199 min manufacturer listing, with no moisture or textile-quality regression.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Same endpoint and programme class are required.",
+        "Do not omit cool-down or endpoint stabilisation if the standard includes it."
+      ]
+    },
+    {
+      "id": "DRYER-CONDENSATION",
+      "system_boundary": "dryer",
+      "unit": "percent moisture condensed/contained under declared method",
+      "denominator": "water removed from the declared textile load",
+      "direction": "maximize",
+      "method": "Use the standard/product-method definition and independently reconcile condensate, exhaust moisture and retained system moisture.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "First target >=96%; stretch >=97% against the 94% manufacturer reference.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "No unsafe condensate, leakage, corrosion or microbial contamination.",
+        "Define condensation efficiency method before comparing labels."
+      ]
+    },
+    {
+      "id": "DRYER-NOISE",
+      "system_boundary": "dryer",
+      "unit": "dB(A)",
+      "denominator": "declared drying programme and installation condition",
+      "direction": "minimize",
+      "method": "Calibrated acoustic measurement with consistent installation and programme under applicable test method.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Explore <=58 dB(A) versus the 60 dB manufacturer reference.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Noise reduction cannot be achieved by reducing airflow below safe/functional limits.",
+        "Report uncertainty and microphone placement."
+      ]
+    },
+    {
+      "id": "DRYER-AIRFLOW-FOULING",
+      "system_boundary": "dryer",
+      "unit": "percent airflow or pressure-drop change from clean reference",
+      "denominator": "same fan command, filter state and declared fouling exposure",
+      "direction": "minimize",
+      "method": "Measure air-path pressure drop, flow, temperature and energy over repeated lint/fibre loading and cleaning events.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Keep airflow and performance degradation bounded; freeze numerical margin after baseline fouling trials.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Fire and over-temperature protections remain independent.",
+        "Do not bypass lint or heat-exchanger maintenance to preserve measured efficiency."
+      ]
+    },
+    {
+      "id": "SPIN-TO-DRYER-ENERGY-TRADE",
+      "system_boundary": "paired_system",
+      "unit": "kWh dryer electricity/kg additional water removed upstream",
+      "denominator": "additional residual water removed from the same textile load by washer spin relative to the frozen control",
+      "direction": "minimize",
+      "method": "Run matched and randomized spin conditions; measure washer energy and residual moisture gravimetrically, then dry each load to the same final-moisture endpoint and measure dryer electricity and elapsed time. Report paired net energy, textile gentleness, vibration, noise and imbalance.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Measure the empirical change rather than assume a conversion. An illustrative 8 kg calculation for 53.9% to 45.0% residual moisture gives 0.712 kg less water; latent-heat and illustrative COP assumptions imply 0.15–0.23 kWh electrical equivalent, not a product-saving prediction.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Subtract any added washer spin energy when reporting paired net energy.",
+        "Same load, final moisture and cleaning/rinse/fabric-care acceptance are required.",
+        "No high-spin strategy wins if vibration, noise, fabric damage or reliability regress."
+      ]
+    },
+    {
+      "id": "PAIRED-ENERGY",
+      "system_boundary": "paired_system",
+      "unit": "kWh/kg accepted dry-equivalent textile",
+      "denominator": "accepted paired wash-to-dry output",
+      "direction": "minimize",
+      "method": "Sum calibrated washer and dryer energy over the exact same textile batches that pass the full functional unit; include standby/start/retry consumption within the declared boundary.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "At least 10% lower than matched control pairs first; 15% stretch after matched pair controls exist.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Washer and dryer capacity/programme must be matched to the same load.",
+        "Failed or rejected batches remain in denominators and cost accounting."
+      ]
+    },
+    {
+      "id": "PAIRED-TIME",
+      "system_boundary": "paired_system",
+      "unit": "elapsed minutes/kg accepted dry-equivalent textile",
+      "denominator": "accepted output, including transfer and waiting intervals within declared boundary",
+      "direction": "minimize",
+      "method": "Timestamp fill, wash, spin, transfer, dry, cool-down and rework with synchronized clocks.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial"
+      ],
+      "target_hypothesis": "Explore 10% less end-to-end elapsed time versus matched pairs without degrading acceptance.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not report machine cycle duration as end-to-end service time.",
+        "Report median and P90 household wait time separately."
+      ]
+    },
+    {
+      "id": "MICROFIBER-CAPTURE",
+      "system_boundary": "paired_system",
+      "unit": "mass capture fraction",
+      "denominator": "total measured microfiber mass entering the declared capture boundary",
+      "direction": "maximize",
+      "method": "Validated collection and mass-balance protocol with polymer/fibre identification, bypass, filter-retained mass, cleaning loss and residual streams.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": ">=70% mass capture first; >=80% stretch, informed by a 2025 study reporting 35–65% for three commercial filters.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Full mass balance required; particle counts alone are insufficient.",
+        "Pressure drop, bypass, clogging and safe disposal must be measured."
+      ]
+    },
+    {
+      "id": "MICROFIBER-RELEASE",
+      "system_boundary": "textile_lifecycle",
+      "unit": "mg microfibres/kg accepted textile",
+      "denominator": "accepted output after a declared wash and optional dry sequence",
+      "direction": "minimize",
+      "method": "Collect and characterize effluent, dryer lint and other output streams under a validated sampling and analytical protocol.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Reduce measured release against matched controls; freeze numeric target after method detection limits and mass balance are validated.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not label fibre mass as plastic without polymer identification.",
+        "Dryer lint and washing effluent both count."
+      ]
+    },
+    {
+      "id": "TEXTILE-DAMAGE",
+      "system_boundary": "textile_lifecycle",
+      "unit": "percent change in tensile strength, mass, colour and dimensions by textile family",
+      "denominator": "declared garment/test textile after a fixed repeated wash-dry exposure",
+      "direction": "minimize",
+      "method": "Repeated-cycle controlled textile testing with conditioned specimens, blinded measurement and textile-family stratification.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "At least non-inferior to the best matched control; later seek >=10% lower damage on selected textiles.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not infer garment lifetime directly from a small repeated-cycle test.",
+        "Report each textile family and uncertainty separately."
+      ]
+    },
+    {
+      "id": "REPAIR-RESTORE-TIME",
+      "system_boundary": "repair_service",
+      "unit": "minutes and elapsed days to verified restoration",
+      "denominator": "all started repair attempts for the preregistered fault curriculum",
+      "direction": "minimize",
+      "method": "Use existing Symtropy repair-task and proof-carrying restoration contracts; include diagnosis, travel, part wait, failed attempts, rework and verification.",
+      "evidence_class_required": [
+        "repeated_physical_trial",
+        "independent_replication",
+        "field_observed"
+      ],
+      "target_hypothesis": ">=25% lower median and P90 time to verified restoration, preserving existing washer programme target.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Failed and abandoned attempts remain visible.",
+        "Work-order closure alone does not count as restoration."
+      ]
+    },
+    {
+      "id": "USER-MAINTENANCE-SUCCESS",
+      "system_boundary": "repair_service",
+      "unit": "percent successful approved tasks",
+      "denominator": "all participants who start an approved normal-user maintenance task",
+      "direction": "maximize",
+      "method": "Representative usability trial with safety boundary, task success, error, time, spills, tool needs and stop conditions.",
+      "evidence_class_required": [
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": ">=90% completion for approved user tasks, preserving existing washer programme target.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Mains, heater, heavy rotating assembly and sealed refrigerant work are not user tasks.",
+        "Abandoned/safety-stop attempts remain in denominator."
+      ]
+    },
+    {
+      "id": "PARTS-SUPPORT-HORIZON",
+      "system_boundary": "supply_chain",
+      "unit": "years",
+      "denominator": "documented support period from end of product placement on market",
+      "direction": "maximize",
+      "method": "Audit dated manufacturer/distributor commitments, exact model compatibility, supplier independence, stock and fulfilment records.",
+      "evidence_class_required": [
+        "manufacturer_public_data",
+        "bench_measured",
+        "field_observed"
+      ],
+      "target_hypothesis": "Design ambition >=15 years documented parts/service support; local fulfilment target set after supplier mapping.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Do not confuse legal minimum with voluntary commitment.",
+        "A storefront listing is not proof of stock, fit or delivery."
+      ]
+    },
+    {
+      "id": "LIFECYCLE-COST",
+      "system_boundary": "paired_system",
+      "unit": "local currency per 1,000 kg accepted dry-equivalent textile",
+      "denominator": "accepted output over a declared household use profile and lifecycle horizon",
+      "direction": "minimize",
+      "method": "Use Sol-Atlas household-cost projection consuming measured purchase, tariff, water, consumable, repair, freight, downtime, replacement and end-of-life inputs.",
+      "evidence_class_required": [
+        "bench_measured",
+        "field_observed",
+        "independent_replication"
+      ],
+      "target_hypothesis": "Explore >=20% lower lifecycle cost per 1,000 kg accepted output against matched local controls.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "Unknown cost components remain unknown, not zero.",
+        "Report household cash cost and wider material/resource burden separately."
+      ]
+    },
+    {
+      "id": "WASH-MNB-NET-ENERGY",
+      "system_boundary": "washer",
+      "unit": "kWh/kg accepted dry-equivalent textile",
+      "denominator": "accepted standardized wash output from the same textile, stain and water batch",
+      "direction": "minimize",
+      "method": "Compare MNB-assisted, conventional and generator-off sham arms at matched cleaning, rinse and fabric-care acceptance. Include gas generation, circulation pumps, mixing, heating, controls and any additional filtration; report generator and whole-washer energy separately.",
+      "evidence_class_required": [
+        "bench_measured",
+        "repeated_physical_trial",
+        "independent_replication"
+      ],
+      "target_hypothesis": "No numeric target frozen. Establish whether MNB achieves a useful stain-class improvement or enables lower detergent, temperature, mechanical action or time after counting all auxiliary electricity and water.",
+      "status": "proposal_not_result",
+      "hard_guardrails": [
+        "A mechanism or stain-specific laboratory improvement is not a household product claim.",
+        "No resource claim unless cleaning/rinsing/gentleness are matched and auxiliary loads are included.",
+        "Stop for unstable gas characterization, fouling, foam, pump cavitation, leakage or adverse wastewater effects."
+      ]
+    }
+  ],
+  "hard_gates": [
+    "safety_and_conformity",
+    "cleaning_acceptance",
+    "rinse_acceptance",
+    "textile_gentleness",
+    "final_moisture_acceptance",
+    "microfiber_discharge",
+    "repair_role_boundary"
+  ],
+  "governance": {
+    "symthaea_authority": "advisory_only_no_actuation",
+    "safety_interlock_authority": "independent_deterministic_device_controls",
+    "offline_operation_required": true,
+    "physical_observations": 0,
+    "product_qualification_claims": false,
+    "unknown_value_policy": "unknown_is_not_zero_and_missing_is_not_success"
+  },
+  "sources": [
+    {
+      "id": "IEC-60456-2024",
+      "title": "IEC 60456:2024 household washing-machine performance methods",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/70049",
+      "scope_note": "Sixth edition; includes cleaning, LAS rinse and gentleness methods."
+    },
+    {
+      "id": "IEC-61121-2012",
+      "title": "IEC 61121:2012 household tumble-dryer performance methods",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/4539",
+      "scope_note": "Confirm current national adoption and amendments at protocol freeze."
+    },
+    {
+      "id": "IEC-62512-2012",
+      "title": "IEC 62512:2012 combined washer-dryer performance methods",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/7145",
+      "scope_note": "Relevant to combined washer-dryers, not a substitute for the separate units in a paired system."
+    },
+    {
+      "id": "IEC-60335-2-7-2024",
+      "title": "IEC 60335-2-7:2024 washing-machine safety",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/80076",
+      "scope_note": "Product safety standard; obtain full text and local adoption."
+    },
+    {
+      "id": "IEC-60335-2-11-2024",
+      "title": "IEC 60335-2-11:2024 tumble-dryer safety",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/75494",
+      "scope_note": "Applies to tumble dryer safety; product-specific refrigerant requirements remain critical."
+    },
+    {
+      "id": "IEC-TS-63576-2025",
+      "title": "IEC TS 63576:2025 fire-risk evaluation methods for electric tumble dryers",
+      "source_type": "standard",
+      "uri": "https://webstore.iec.ch/en/publication/91814",
+      "scope_note": "Guidance for dryer-specific fire-risk test methods."
+    },
+    {
+      "id": "MICROFIBER-STUDY-2025",
+      "title": "Evaluating microfiber emissions and point-of-use filtration efficiency in household washing and drying cycles",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1016/j.jhazmat.2025.137646",
+      "scope_note": "Three commercial filters reported 35–65% capture; the study describes a filtration/hydraulic trade-off."
+    },
+    {
+      "id": "WASHER-DESK-REFERENCE",
+      "title": "AEG LR9WW80409 label data",
+      "source_type": "label_dataset",
+      "uri": "https://energielabeleu.com/model/aeg-lr9ww80409-914505606",
+      "scope_note": "Third-party presentation of EU label data; EPREL cross-reference shown."
+    },
+    {
+      "id": "DRYER-DESK-REFERENCE",
+      "title": "AEG TR948V4BC PNC 916 900 129 product page",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.aeg.ie/laundry/laundry/dryers/heat-pump-dryer/tr948v4bc/",
+      "scope_note": "Manufacturer product-page attributes; exact regional PNC and programme must remain frozen."
+    },
+    {
+      "id": "SA-VC9008-2026",
+      "title": "South Africa VC 9008 Notice 7859 of 2026",
+      "source_type": "regulation",
+      "uri": "https://www.acts.co.za/national-/n7859_notice_no__7859_of_2026",
+      "scope_note": "Secondary legal-information page for the 28 August 2026 amendment; verify official Gazette and current consolidated text."
+    },
+    {
+      "id": "SYMTROPY-WASHER",
+      "title": "Symtropy APPLIANCE-WASHER-001",
+      "source_type": "internal_issue",
+      "uri": "https://github.com/Luminous-Dynamics/symtropy/issues/1828",
+      "scope_note": "Existing washer architecture and repairability benchmark owner."
+    },
+    {
+      "id": "SYMTROPY-MORPHOLOGY",
+      "title": "Symtropy APPLIANCE-MORPHOLOGY-001",
+      "source_type": "internal_issue",
+      "uri": "https://github.com/Luminous-Dynamics/symtropy/issues/1893",
+      "scope_note": "Existing cross-appliance morphology owner; includes washer spin and dryer energy coupling hypothesis."
+    },
+    {
+      "id": "DEFY-DAW397",
+      "title": "Defy DAW397 official 10 kg South African product page",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/products/freestanding-washing-machines/freestanding-washing-machines-front-loader-daw-397",
+      "scope_note": "Current specs include 10 kg, 1400 rpm, wash/spin noise and motor warranty; catalogue provides 55 L and legacy A+++(-10%)."
+    },
+    {
+      "id": "DEFY-DTD323",
+      "title": "Defy DTD323 official 9 kg South African heat-pump dryer page",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/products/tumble-dryers/tumble-dryers-heat-pump-dtd323",
+      "scope_note": "Current page identifies heat pump, 9 kg, 81% condensation and 230-240 V / 50 Hz."
+    },
+    {
+      "id": "DEFY-CATALOGUE-2025-26",
+      "title": "Defy Collection 2025/2026 product catalogue",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.defy.co.za/content/dam/bekoglobal/za/defy-documents/06_DefyCatalogue_AdditionalPages_AP.pdf",
+      "scope_note": "Lists capacity, water, legacy energy class, spin speed, dryer families, factories and service centres as manufacturer statements."
+    },
+    {
+      "id": "BOSCH-WGA254ZRZA",
+      "title": "Bosch South Africa WGA254ZRZA 10 kg washer specification sheet",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://media3.bsh-group.com/Documents/specsheet/en-ZA/WGA254ZRZA.pdf",
+      "scope_note": "Publishes 167 kWh/year, 11,660 L/year over 220 cycles, 53% remaining moisture, 1400 rpm and 75 dB spin noise."
+    },
+    {
+      "id": "LG-RH90V9JV2N",
+      "title": "LG South Africa RH90V9JV2N 9 kg heat-pump dryer",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.lg.com/za/laundry-care/heat-pump-dryers/rh90v9jv2n/",
+      "scope_note": "Local product page lists dual-inverter heat pump, A+++(-10%), auto condenser cleaning and dual lint filtration; exact kWh/cycle requires compliance label."
+    },
+    {
+      "id": "SAMSUNG-DV90T6240LB",
+      "title": "Samsung South Africa DV90T6240LB 9 kg heat-pump dryer",
+      "source_type": "manufacturer_product_page",
+      "uri": "https://www.samsung.com/za/washers-and-dryers/washing-machines/dv6000t-front-loading-hygiene-care-reversible-door-wrinkle-prevent-9kg-black-dv90t6240lb-fa/",
+      "scope_note": "Local product page identifies 9 kg, heat pump, A+++ legacy class, 220-minute cycle and 65 dB; page mixes energy references to other models."
+    },
+    {
+      "id": "MNB-TEXTILE-2026",
+      "title": "Micro and nano bubbles technology for textile cleaning: mechanisms and the impact of multi-dimensional factors on cleaning efficiency",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1080/00405000.2026.2668156",
+      "scope_note": "Published online 7 May 2026; two textile substrates and five stains; promising oil-removal findings are not a household washer performance claim."
+    },
+    {
+      "id": "MNB-REVIEW-2025",
+      "title": "Micro-Nano Bubbles: A New Field of Eco-Friendly Cleaning",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.3390/nano15070480",
+      "scope_note": "Review of cleaning mechanisms and application constraints; not product validation."
+    },
+    {
+      "id": "ULTRASONIC-HOUSEHOLD-2023",
+      "title": "Potential of ultrasonics for energy saving in the household washing process",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1007/s12053-023-10115-7",
+      "scope_note": "Household devices performed better than soaking but below conventional wash programs in the tested conditions."
+    },
+    {
+      "id": "ULTRASONIC-PRETREAT-2023",
+      "title": "Comparison of ultrasonic devices for the pretreatment of textiles before washing and analysis of action",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1177/15589250231217086",
+      "scope_note": "Separates ultrasound, friction, soaking and temperature for pretreatment tools; no full washer superiority claim."
+    },
+    {
+      "id": "MICROBUBBLE-FLOTATION-2024",
+      "title": "Removal of Microplastics/Microfibers and Detergents from Laundry Wastewater by Microbubble Flotation",
+      "source_type": "peer_reviewed_study",
+      "uri": "https://doi.org/10.1021/acsestwater.3c00802",
+      "scope_note": "Bench and pilot wastewater flotation results at optimized conditions; not a compact household filter demonstration."
+    }
+  ]
+}

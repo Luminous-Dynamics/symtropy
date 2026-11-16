@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:laundry-service-benchmark:0.1.0",
+  "title": "Laundry Service System Benchmark v0.1",
+  "description": "Proposed washer, dryer and paired laundry service metrics. This contract contains desk references and target hypotheses only, not measured product results. South African Defy, Bosch, LG and Samsung desk references are included where product-specific data is public.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "status",
+    "claim_ceiling",
+    "functional_unit",
+    "control_policy",
+    "baselines",
+    "metrics",
+    "hard_gates",
+    "governance",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "LAUNDRY-SERVICE-BENCH-001"
+    },
+    "status": {
+      "const": "proposed_no_physical_measurements"
+    },
+    "claim_ceiling": {
+      "const": "no_physical_performance_or_superiority_claim"
+    },
+    "functional_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "definition",
+        "acceptance_conditions",
+        "separate_views"
+      ],
+      "properties": {
+        "id": {
+          "const": "kg_accepted_dry_equivalent_textile"
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 50
+        },
+        "acceptance_conditions": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "separate_views": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "washer_service",
+              "dryer_service",
+              "paired_laundry_service"
+            ]
+          }
+        }
+      }
+    },
+    "control_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_model_families_per_class",
+        "exact_identity_fields",
+        "selection_status",
+        "selected_controls",
+        "protocol_status",
+        "sample_size_policy"
+      ],
+      "properties": {
+        "minimum_model_families_per_class": {
+          "const": 3
+        },
+        "exact_identity_fields": {
+          "type": "array",
+          "minItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "selection_status": {
+          "const": "desk_references_only_controls_not_selected"
+        },
+        "selected_controls": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "protocol_status": {
+          "const": "draft_pending_control_selection_and_pilot"
+        },
+        "sample_size_policy": {
+          "type": "string",
+          "minLength": 50
+        }
+      }
+    },
+    "baselines": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "appliance_class",
+          "manufacturer_model",
+          "product_number",
+          "capacity_kg",
+          "evidence_class",
+          "status",
+          "attributes",
+          "source_uri",
+          "scope_note"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{5,64}$"
+          },
+          "appliance_class": {
+            "enum": [
+              "front_load_washer",
+              "heat_pump_tumble_dryer",
+              "microfiber_filter_literature"
+            ]
+          },
+          "manufacturer_model": {
+            "type": "string",
+            "minLength": 3
+          },
+          "product_number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capacity_kg": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "evidence_class": {
+            "enum": [
+              "manufacturer_public_data",
+              "third_party_label_data",
+              "peer_reviewed_literature"
+            ]
+          },
+          "status": {
+            "const": "desk_reference_not_selected_control"
+          },
+          "attributes": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "value",
+                "unit",
+                "method_or_basis",
+                "scope_note"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{2,48}$"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "string"
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "method_or_basis": {
+                  "type": "string",
+                  "minLength": 5
+                },
+                "scope_note": {
+                  "type": "string",
+                  "minLength": 5
+                }
+              }
+            }
+          },
+          "source_uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "scope_note": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "system_boundary",
+          "unit",
+          "denominator",
+          "direction",
+          "method",
+          "evidence_class_required",
+          "target_hypothesis",
+          "status",
+          "hard_guardrails"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9-]{3,48}$"
+          },
+          "system_boundary": {
+            "enum": [
+              "washer",
+              "dryer",
+              "paired_system",
+              "textile_lifecycle",
+              "repair_service",
+              "supply_chain"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "denominator": {
+            "type": "string",
+            "minLength": 6
+          },
+          "direction": {
+            "enum": [
+              "minimize",
+              "maximize",
+              "non_inferior",
+              "report_distribution"
+            ]
+          },
+          "method": {
+            "type": "string",
+            "minLength": 25
+          },
+          "evidence_class_required": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "bench_measured",
+                "repeated_physical_trial",
+                "independent_replication",
+                "field_observed",
+                "manufacturer_public_data",
+                "third_party_label_data",
+                "peer_reviewed_literature"
+              ]
+            }
+          },
+          "target_hypothesis": {
+            "type": "string",
+            "minLength": 15
+          },
+          "status": {
+            "const": "proposal_not_result"
+          },
+          "hard_guardrails": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 8
+            }
+          }
+        }
+      }
+    },
+    "hard_gates": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "safety_and_conformity",
+          "cleaning_acceptance",
+          "rinse_acceptance",
+          "textile_gentleness",
+          "final_moisture_acceptance",
+          "microfiber_discharge",
+          "repair_role_boundary"
+        ]
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symthaea_authority",
+        "safety_interlock_authority",
+        "offline_operation_required",
+        "physical_observations",
+        "product_qualification_claims",
+        "unknown_value_policy"
+      ],
+      "properties": {
+        "symthaea_authority": {
+          "const": "advisory_only_no_actuation"
+        },
+        "safety_interlock_authority": {
+          "const": "independent_deterministic_device_controls"
+        },
+        "offline_operation_required": {
+          "const": true
+        },
+        "physical_observations": {
+          "const": 0
+        },
+        "product_qualification_claims": {
+          "const": false
+        },
+        "unknown_value_policy": {
+          "const": "unknown_is_not_zero_and_missing_is_not_success"
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "source_type",
+          "uri",
+          "scope_note"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{3,48}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 5
+          },
+          "source_type": {
+            "enum": [
+              "standard",
+              "regulation",
+              "manufacturer_product_page",
+              "label_dataset",
+              "peer_reviewed_study",
+              "internal_issue"
+            ]
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "scope_note": {
+            "type": "string",
+            "minLength": 15
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+name: Laundry Service Benchmark Contract
+
+on:
+  pull_request:
+    branches:
+      - main
+      - research/large-appliance-repairable-architecture-v0-1
+    paths:
+      - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
+      - "docs/tech/LAUNDRY_CLEANING_INTENSIFICATION_SCREEN_V0_1.md"
+      - "schemas/laundry/laundry_service_benchmark_v0_1.schema.json"
+      - "fixtures/laundry/laundry_service_benchmark_v0_1.json"
+      - "tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs"
+      - "tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs"
+      - ".github/workflows/laundry-service-benchmark-audit.yml"
+  push:
+    branches:
+      - main
+      - research/large-appliance-repairable-architecture-v0-1
+      - research/laundry-service-system-benchmark-v0-1
+    paths:
+      - "docs/tech/LAUNDRY_SERVICE_SYSTEM_BENCHMARK_V0_1.md"
+      - "schemas/laundry/laundry_service_benchmark_v0_1.schema.json"
+      - "fixtures/laundry/laundry_service_benchmark_v0_1.json"
+      - "tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs"
+      - "tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs"
+      - ".github/workflows/laundry-service-benchmark-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laundry-service-benchmark-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: rustfmt --edition 2024 --check tools/household-appliance-bench-audit/src/bin/laundry_service_audit.rs tools/household-appliance-bench-audit/src/bin/laundry_spin_dryer_screen.rs
+      - name: Run schema and mutation tests
+        run: cargo test --manifest-path tools/household-appliance-bench-audit/Cargo.toml --all-targets
+      - name: Audit laundry service profile and emit digest-bound receipt
+        run: |
+          cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --bin laundry_service_audit -- \
+            --schema schemas/laundry/laundry_service_benchmark_v0_1.schema.json \
+            --profile fixtures/laundry/laundry_service_benchmark_v0_1.json \
+            | tee /tmp/laundry-service-benchmark-receipt.json
+          printf '{"head_sha":"%s","workflow":"laundry-service-benchmark-contract","receipt":"laundry-service-benchmark-receipt.json"}\n' "$GITHUB_SHA" \
+            > /tmp/laundry-service-exact-head-manifest.json
+      - name: Run washer-spin dryer latent-heat screening model
+        run: |
+          cargo run --manifest-path tools/household-appliance-bench-audit/Cargo.toml --bin laundry_spin_dryer_screen \
+            | tee /tmp/laundry-spin-dryer-screen.json
+      - name: Preserve contract receipt and exact-head manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laundry-service-benchmark-${{ github.sha }}
+          path: |
+            /tmp/laundry-service-benchmark-receipt.json
+            /tmp/laundry-spin-dryer-screen.json
+            /tmp/laundry-service-exact-head-manifest.json
+          if-no-files-found: ignore
+          retention-days: 30
