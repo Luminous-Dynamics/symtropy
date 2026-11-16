@@ -97,6 +97,12 @@ jobs:
       with:
         toolchain: 1.96.0
         components: clippy, rustfmt
+    - name: Verify frozen fixture blob identities
+      run: |
+        test "$(wc -c < tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp)" -eq 58
+        test "$(wc -c < tools/factory-fjsplib-adapter/fixtures/fattahi1.fajsp)" -eq 66
+        test "$(git hash-object tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp)" = "84e868f74b099f68d05352d645cdbcaf444ddd6b"
+        test "$(git hash-object tools/factory-fjsplib-adapter/fixtures/fattahi1.fajsp)" = "a249bd1413bc04ffe6c6f7ce24c86adc82bb6e56"
     - name: Format
       run: cargo fmt --manifest-path tools/factory-fjsplib-adapter/Cargo.toml -- --check
     - name: Clippy
