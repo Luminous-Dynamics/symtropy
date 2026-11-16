@@ -740,7 +740,10 @@ mod tests {
     #[test]
     fn valid_ro_crate_and_sparse_prov_graph_are_accepted() {
         let report = run().expect("valid E2 synthetic package");
-        assert_eq!(report.crate_file_count, 7);
+        assert_eq!(report.crate_file_count, 9);
+        assert_eq!(report.evidence_binding_count, 4);
+        assert_eq!(report.e1_dataset_binding_count, 2);
+        assert_eq!(report.synthetic_control_binding_count, 2);
         assert_eq!(report.provenance_entity_count, 4);
         assert_eq!(report.provenance_activity_count, 1);
         assert_eq!(report.provenance_agent_count, 1);
@@ -750,6 +753,55 @@ mod tests {
         assert!(report.json_ld_processing_scope.contains("not implemented"));
         assert!(report.prov_conformance_scope.contains("not certified"));
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
+    }
+
+    #[test]
+    fn prov_dataset_identity_must_match_binding_manifest() {
+        let mut prov = prov_value();
+        let power = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == INPUT_POWER)
+            .expect("power input");
+        power["ex:datasetId"] = Value::String("synthetic.dataset.water.input.001".into());
+        let error = validate_crate(CRATE, &prov.to_string())
+            .expect_err("dataset ID disagrees with evidence binding manifest");
+        assert!(error.contains("PROV entity binding differs from the E2 binding manifest"));
+    }
+
+    #[test]
+    fn synthetic_control_cannot_be_promoted_to_an_e1_dataset() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["bindings"][1]["binding_status"] =
+            Value::String("E1_ENVELOPE_DATASET".into());
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("synthetic control has no E1 source");
+        assert!(error.contains("E1 dataset binding must cite E1_ENVELOPE"));
+    }
+
+    #[test]
+    fn e2_binding_must_pin_the_exact_e1_envelope_digest() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["source_envelope"]["sha256"] = Value::String("00".repeat(32));
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("source envelope digest mismatch");
+        assert!(error.contains("source envelope SHA-256 differs from the E1 envelope"));
+    }
+
+    #[test]
+    fn prov_activity_must_match_e1_analysis_identity() {
+        let mut prov = prov_value();
+        let activity = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("activity");
+        activity["ex:analysisId"] = Value::String("other-analysis".into());
+        let error = validate_crate(CRATE, &prov.to_string())
+            .expect_err("analysis identity mismatch");
+        assert!(error.contains("activity identity/status differs from the E1 evidence envelope"));
     }
 
     #[test]
