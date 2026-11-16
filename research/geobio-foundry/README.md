@@ -21,6 +21,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [State-of-the-art gap analysis — 16 November 2026](SOTA_GAP_ANALYSIS_2026-11-16.md)
 - [GeoBioBench protocol v0.2](BENCHMARK_PROTOCOL_v0.2.md)
 - [BioAsteroid replication and process-comparison protocol](BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md)
+- [PressureForge analytical reference protocol](PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
 - [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
 - [Reference kernel](kernel/) — elemental/resource accounting and bounded ideal-gas pressure reference
