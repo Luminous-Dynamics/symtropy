@@ -29,6 +29,7 @@
 | `kernel/src/lib.rs` | Elemental balance, uncertainty handling, evidence validation and uncertainty-propagated resource intensities |
 | `kernel/src/pressure.rs` | Single-species ideal-gas compartment reference, prescribed mass transfer and observed-pressure comparison |
 | `kernel/src/subterra.rs` | Non-uniform profile morphometry with observation coverage and uncertainty-aware weighted dimensions |
+| `kernel/src/subterra_evidence.rs` | Typed cross-field semantic validator for morphology, origin, connectivity, access, survey, use qualification and preservation claims |
 | `kernel/README.md` | Kernel scope, command and limitations |
 
 ## Implemented in the reference kernel
@@ -47,6 +48,7 @@
 - Numerical overflow and non-finite input rejection; complete-composition reconciliation and resource-intensity ratio overflow guards.
 - Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
 - Non-uniform subterranean profile summary with explicit unobserved intervals, coverage, length-weighted geometry, measurement uncertainty and variability.
+- Cross-field claim-consistency checks so direct connectivity requires demonstrated access and interior survey; survey/qualified pressurized use requires prerequisite evidence; authorized activity requires planetary-protection authorization and a basis record.
 
 ## Validation evidence
 
@@ -59,7 +61,7 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 32 unit tests (16 resource + 5 pressure + 11 Subterra) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 44 unit tests (16 resource + 5 pressure + 11 morphometry + 12 evidence semantics) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Cross-field semantic validation for all site-state combinations | **NOT IMPLEMENTED** | JSON Schema validates fields and types; a semantic validator is still required to enforce state-transition dependencies |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
@@ -71,7 +73,7 @@
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
 4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
 5. Subterra morphometry is a one-dimensional piecewise-constant profile summary, not a 3D interior reconstruction, cave-connectivity inference, geomechanics model or stability/safety assessment.
-6. The Subterra site-evidence schema does not yet enforce all cross-field semantic rules; for example, a `directly_observed_connected` state must eventually require direct in-situ evidence and a consistent interior survey record.
+6. The typed semantic validator checks a subset of cross-field dependencies but does not authenticate evidence references, validate coordinate transforms, or replace independent geotechnical/planetary-protection review. The JSON record-to-typed-validator adapter is not yet implemented.
 5. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
 6. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
 7. The synthetic electrolysis fixture is not an empirical performance datum.
@@ -79,7 +81,7 @@
 ## Immediate next increments
 
 1. Add schema-to-Rust deserialization only after choosing a minimal, reviewed serialization dependency policy.
-2. Add profile-graph and branch/chamber topology representation, preserving unknown and unobserved geometry.
+2. Add a versioned JSON-to-typed Subterra evidence adapter and adversarial fixtures for every semantic rule.
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 5. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
