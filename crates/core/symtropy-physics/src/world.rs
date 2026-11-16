@@ -2583,7 +2583,6 @@ mod transformed_halfspace_tests {
     }
 }
 
-
 #[cfg(test)]
 mod collision_event_capture_tests {
     use super::*;
