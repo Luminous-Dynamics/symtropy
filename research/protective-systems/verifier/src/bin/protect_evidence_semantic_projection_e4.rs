@@ -502,7 +502,7 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
             .unwrap_or(Value::Null),
         preserved_unmapped_properties: Value::Object(preserved_unmapped_properties.clone()),
     };
-    let decisions = vec![
+    let mut decisions = vec![
         decision("OGC_API_RECORDS", "/id", Some("/native_view/record_id"), MappingClass::ExactNative, None, "Server-assigned catalog record identity remains a record ID, not a DOI or payload digest."),
         decision("OGC_API_RECORDS", "/conformsTo", Some("/native_view/conforms_to"), MappingClass::ExactNative, None, "Selected conformance classes remain explicit rather than being inferred from content."),
         decision("OGC_API_RECORDS", "/properties/type", Some("/native_view/record_type"), MappingClass::ExactNative, None, "Catalog record type is distinct from DataCite resourceTypeGeneral."),
@@ -634,7 +634,7 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
     {
         return Err("OpenLineage projection requires stable run identity and E3 context facet".to_owned());
     }
-    let decisions = vec![
+    let mut decisions = vec![
         decision("OPENLINEAGE", "/events/0/run/runId", Some("/native_view/run_id"), MappingClass::ExactNative, None, "Run ID identifies the synthetic E3 adapter-test execution only."),
         decision("OPENLINEAGE", "/events/0/job", Some("/native_view/job_namespace+job_name"), MappingClass::ExactNative, None, "Job namespace and name stay distinct from a dataset or DOI."),
         decision("OPENLINEAGE", "/events/0/producer", Some("/native_view/producer_uri"), MappingClass::ExactNative, None, "Producer URI is kept distinct from the job and run identities."),
@@ -715,6 +715,7 @@ fn build_envelope_with_source_bytes(
             "E1_CONTEXT",
             "Protective Systems E1 evidence envelope (NOT_EXECUTED context only)",
             e1_analysis_id,
+            "context/e1-envelope-context.json",
             E1_CONTEXT,
         ),
         source_receipts: vec![
