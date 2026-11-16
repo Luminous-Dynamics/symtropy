@@ -209,7 +209,9 @@ fn issue_release(
         dispatch_issued: transaction.dispatch_issued,
     });
     if first != DispatchGate::DispatchOnce {
-        return Err(format!("first release command was not issued once: {first:?}"));
+        return Err(format!(
+            "first release command was not issued once: {first:?}"
+        ));
     }
 
     let second = transaction.request_release_command(&command_id)?;
@@ -596,10 +598,7 @@ mod tests {
         assert_eq!(result.accepted_episode_count, 10);
         assert!(result.all_expected_outcomes_observed, "{result:?}");
         assert!(result.pre_dispatch_faults_never_dispatched, "{result:?}");
-        assert!(
-            result.post_dispatch_ambiguities_blocked_retry,
-            "{result:?}"
-        );
+        assert!(result.post_dispatch_ambiguities_blocked_retry, "{result:?}");
         assert!(result.no_episode_false_completed, "{result:?}");
     }
 
