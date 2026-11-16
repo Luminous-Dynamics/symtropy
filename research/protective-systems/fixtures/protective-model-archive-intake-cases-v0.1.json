@@ -1,0 +1,144 @@
+{
+  "schema_version": "protective-model-archive-intake-cases/0.1",
+  "evidence_class": "synthetic",
+  "intended_use": "SYNTHETIC_TEST_ONLY",
+  "policy_id": "SYNTHETIC-ARCHIVE-INTAKE-TEST-POLICY-001",
+  "claim_ceiling": "METADATA_ONLY_CONTENT_NOT_VERIFIED",
+  "cases": [
+    {
+      "case_id": "ZIP_STORED_SAFE_001",
+      "kind": "ACCEPT_METADATA_ONLY",
+      "reason": "single-disk stored member with safe relative path; payload is not decompressed"
+    },
+    {
+      "case_id": "ZIP_DEFLATE_SAFE_002",
+      "kind": "ACCEPT_METADATA_ONLY",
+      "reason": "single-disk deflate member; payload is not decompressed"
+    },
+    {
+      "case_id": "ZIP_ABSOLUTE_PATH_003",
+      "kind": "REJECT",
+      "reason": "absolute archive member path"
+    },
+    {
+      "case_id": "ZIP_PARENT_TRAVERSAL_004",
+      "kind": "REJECT",
+      "reason": "parent path component"
+    },
+    {
+      "case_id": "ZIP_DRIVE_PREFIX_005",
+      "kind": "REJECT",
+      "reason": "Windows drive or UNC prefix"
+    },
+    {
+      "case_id": "ZIP_BACKSLASH_006",
+      "kind": "REJECT",
+      "reason": "backslash path separator"
+    },
+    {
+      "case_id": "ZIP_DUPLICATE_NAME_007",
+      "kind": "REJECT",
+      "reason": "duplicate member path"
+    },
+    {
+      "case_id": "ZIP_CASE_COLLISION_008",
+      "kind": "REJECT",
+      "reason": "case-fold path collision"
+    },
+    {
+      "case_id": "ZIP_SYMLINK_009",
+      "kind": "REJECT",
+      "reason": "symbolic-link external attributes"
+    },
+    {
+      "case_id": "ZIP_SPECIAL_FILE_010",
+      "kind": "REJECT",
+      "reason": "non-regular non-directory file type"
+    },
+    {
+      "case_id": "ZIP_ENCRYPTED_011",
+      "kind": "REJECT",
+      "reason": "encrypted entry flag"
+    },
+    {
+      "case_id": "ZIP_DATA_DESCRIPTOR_012",
+      "kind": "REJECT",
+      "reason": "data-descriptor flag unsupported in v0.1"
+    },
+    {
+      "case_id": "ZIP_UNSUPPORTED_METHOD_013",
+      "kind": "REJECT",
+      "reason": "compression method not in frozen policy"
+    },
+    {
+      "case_id": "ZIP_ZIP64_014",
+      "kind": "REJECT",
+      "reason": "ZIP64 sentinel or extra field"
+    },
+    {
+      "case_id": "ZIP_MULTIDISK_015",
+      "kind": "REJECT",
+      "reason": "multi-disk archive marker"
+    },
+    {
+      "case_id": "ZIP_TRUNCATED_EOCD_016",
+      "kind": "REJECT",
+      "reason": "EOCD missing or truncated"
+    },
+    {
+      "case_id": "ZIP_CENTRAL_BOUNDS_017",
+      "kind": "REJECT",
+      "reason": "central-directory offset/size out of bounds"
+    },
+    {
+      "case_id": "ZIP_LOCAL_HEADER_MISMATCH_018",
+      "kind": "REJECT",
+      "reason": "local and central header metadata differ"
+    },
+    {
+      "case_id": "ZIP_TRAILING_BYTES_019",
+      "kind": "REJECT",
+      "reason": "trailing bytes after EOCD"
+    },
+    {
+      "case_id": "ZIP_NAME_TOO_LONG_020",
+      "kind": "REJECT",
+      "reason": "filename exceeds policy"
+    },
+    {
+      "case_id": "ZIP_TOO_MANY_ENTRIES_021",
+      "kind": "REJECT",
+      "reason": "entry count exceeds policy"
+    },
+    {
+      "case_id": "ZIP_EXPANDED_LIMIT_022",
+      "kind": "REJECT",
+      "reason": "declared uncompressed member size exceeds policy"
+    },
+    {
+      "case_id": "ZIP_RATIO_LIMIT_023",
+      "kind": "REJECT",
+      "reason": "declared compression ratio exceeds policy"
+    },
+    {
+      "case_id": "ZIP_EMPTY_COMPONENT_024",
+      "kind": "REJECT",
+      "reason": "empty path component"
+    },
+    {
+      "case_id": "ZIP_DOT_COMPONENT_025",
+      "kind": "REJECT",
+      "reason": "dot path component"
+    },
+    {
+      "case_id": "ZIP_CONTROL_CHARACTER_026",
+      "kind": "REJECT",
+      "reason": "control character in path"
+    }
+  ],
+  "notes": [
+    "All limits belong to a synthetic conformance policy, not a production deployment recommendation.",
+    "Metadata inspection is not decompression or CRC verification.",
+    "No archive member is extracted or written to a filesystem."
+  ]
+}
