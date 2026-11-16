@@ -15,6 +15,7 @@ pub mod crossing_qualification;
 pub mod cytoplasmic_flow;
 pub mod hyphal_graph;
 pub mod legacy_accounting;
+pub mod observation_evidence;
 pub mod transport;
 
 use std::collections::{HashMap, VecDeque};
