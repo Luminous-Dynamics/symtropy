@@ -335,8 +335,7 @@ fn claim_without_support_or_decomposition_is_explicitly_blocked() {
 fn required_hazard_without_mitigation_blocks_review() {
     let (mut nodes, mut edges) = positive_case();
     nodes.retain(|node| {
-        node.node_id != "mitigation-conflict-screen"
-            && node.node_id != "evidence-mitigation-test"
+        node.node_id != "mitigation-conflict-screen" && node.node_id != "evidence-mitigation-test"
     });
     edges.retain(|edge| {
         edge.from_node_id != "mitigation-conflict-screen"
