@@ -328,3 +328,43 @@ native source snapshots and reported rather than flattened away.
 
 The E3 fixture has 30 unit tests written. Their result is pending exact-head
 hosted execution. The gate returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
+
+
+## E4 typed semantic projection and loss-accounted roundtrip gate
+
+The `protect-evidence-semantic-projection-e4` binary builds a provider-tagged
+semantic projection for the E3 DataCite, OGC Records and OpenLineage source
+fixtures. It does not flatten all three standards into one generic record.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-semantic-projection-e4
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-semantic-projection-e4
+```
+
+Each provider has a distinct tagged native view. Mapping decisions classify
+fields as `EXACT_NATIVE`, `NORMALIZED_EQUIVALENT`, `DERIVED`,
+`PRESERVED_RAW_ONLY` or `UNKNOWN_OR_UNSUPPORTED`. The projection retains
+unmapped DataCite attributes, OGC properties and OpenLineage event/facet JSON.
+Unknown vendor fields are retained and explicitly reported; they are not
+coerced to defaults or silently dropped.
+
+The E4 report serializes and deserializes the typed envelope and checks
+structural equality. Source byte digests are separate from semantic
+projection equality: changing whitespace may change a raw SHA-256 while
+leaving provider-native typed values and mapping decisions unchanged.
+OGC bbox coordinates are explicitly classified as a normalized-equivalent
+numeric representation; no CRS or coordinate reprojection is performed.
+OpenLineage terminal state is explicitly classified as derived from the
+observed START/terminal event pair, not as a prediction or E1 model result.
+
+The exact E1 context envelope is separately hashed into a context receipt.
+The OpenLineage E3 facet must match its embedded E1 analysis ID and
+`NOT_EXECUTED` status with null run ID; it remains context only.
+
+The E4 prototype has 22 unit tests written. Hosted formatting, Clippy,
+compilation, test and executable evidence remain pending exact-head CI.
+The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
