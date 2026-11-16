@@ -526,3 +526,15 @@ This informs a useful Symtropy distinction:
 New work [#5485](https://github.com/Luminous-Dynamics/symtropy/issues/5485) implements a first synthetic usefulness-limit policy. It deliberately composes with the shared CRPS kernel, block-coverage/conformal methods and decision-value owner instead of creating another forecasting stack. The 128-case synthetic fixture distinguishes a stable canopy variable from post-disturbance mortality; useful prefixes are 90 and 30 days respectively under the invented decision tolerances, with later-horizon recovery explicitly reported rather than allowed to erase the first failure.
 
 This is a policy proof, not empirical forecast performance. A real digital twin requires admitted source observations, repeated data assimilation, model state updates, forecast issuance receipts and held-out outcome verification.
+
+
+### 16 November 2026 — ecological data latency and as-of forecast reproducibility
+
+Operational ecological forecasting has a second time axis beyond when a measurement occurred: when its exact version became available to a model. Dietze et al. explicitly identify data latency as the time between collection and availability, with laboratory analysis, QA/QC and long data-release cycles limiting iterative forecasting (https://pmc.ncbi.nlm.nih.gov/articles/PMC5816139/). NEON publishes theme-specific availability schedules/latencies and distinguishes forecast publication time (https://projects.ecoforecast.org/neon4cast-docs/CronTiming.html). Ecological forecast data conventions separate the reference time from the target datetime and record publication time to distinguish prospective forecasts from retrospective reforecasts (DOI 10.1002/ecs2.4686).
+
+Symtropy's new [#5487 as-of integrity workstream](https://github.com/Luminous-Dynamics/symtropy/issues/5487) qualifies that distinction with source release, QA/QC release, rights-effective time, system ingestion, forecast information cutoff and immutable data-version identity. The synthetic 12-case corpus covers delayed root assays, retrospective satellite releases, later corrections, future realized drivers, valid forecasted drivers, future-fitted transforms, missing QA evidence, rights refusal and target leakage. It is integrated with the same forest validator rather than a parallel forecasting stack:
+- [Protocol](FOREST_AS_OF_FORECAST_INTEGRITY_V0_1.md)
+- [Synthetic cases](cases/forest-as-of-forecast-integrity-synthetic-v0.1.json)
+- [Rust gate](validator/src/forest_as_of_integrity_kernel.rs)
+
+This matters particularly for AFEX: its root traits, phosphatase assays, litterfall chemistry, soil enzymes, tree census revisions and satellite products have different sampling, processing and release pathways. Collection date alone cannot establish when a hindcast could have used the data. Real availability times still have to be obtained from archives and custodians; v0.1 timestamps are invented.
