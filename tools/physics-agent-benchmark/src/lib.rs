@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Classification {
@@ -157,9 +157,9 @@ fn compare_metrics(case: &Value) -> Result<&'static str, String> {
 }
 
 pub fn evaluate_registry(registry: &Value) -> Result<Value, String> {
-    if registry.get("benchmark_id").and_then(Value::as_str)
-        != Some("muon-collider-physics-agent")
-    {
+    if registry.get("benchmark_id").and_then(Value::as_str) == Some("muon-collider-physics-agent") {
+        // continue validation below
+    } else {
         return Err("unexpected benchmark_id".to_owned());
     }
     if registry.get("version").and_then(Value::as_str) != Some("0.1.0") {
@@ -168,7 +168,9 @@ pub fn evaluate_registry(registry: &Value) -> Result<Value, String> {
     if registry.get("evidence_class").and_then(Value::as_str)
         != Some("synthetic_workflow_control_cases")
     {
-        return Err("registry must be explicitly classified as synthetic workflow controls".to_owned());
+        return Err(
+            "registry must be explicitly classified as synthetic workflow controls".to_owned(),
+        );
     }
 
     let cases = registry
