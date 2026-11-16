@@ -349,12 +349,7 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
         if let (Some(rows), Some(events)) = (stage_status, target_trace) {
             let stage_dispositions = rows
                 .iter()
-                .filter_map(|row| {
-                    Some((
-                        row.get(0)?.as_str()?,
-                        row.get(1)?.as_str()?,
-                    ))
-                })
+                .filter_map(|row| Some((row.get(0)?.as_str()?, row.get(1)?.as_str()?)))
                 .collect::<std::collections::BTreeMap<_, _>>();
             for event in events {
                 if let Some(stage_id) = event.get("stage_id").and_then(Value::as_str) {
@@ -613,14 +608,11 @@ mod tests {
             .iter_mut()
             .find(|entry| entry["pair_id"] == "MIP-005")
             .unwrap();
-        entry["failure_progression"] = Value::Array(vec![Value::String(
-            "generic_failure".to_owned(),
-        )]);
-        assert!(
-            cross_file_invariants(&stage, &corpus, &oracle)
-                .iter()
-                .any(|error| error == "target_unmapped_clock_not_reflected_as_temporal_unknown:MIP-005")
-        );
+        entry["failure_progression"] =
+            Value::Array(vec![Value::String("generic_failure".to_owned())]);
+        assert!(cross_file_invariants(&stage, &corpus, &oracle).iter().any(
+            |error| error == "target_unmapped_clock_not_reflected_as_temporal_unknown:MIP-005"
+        ));
     }
 
     #[test]
