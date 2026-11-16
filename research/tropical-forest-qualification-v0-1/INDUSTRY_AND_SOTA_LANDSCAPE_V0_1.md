@@ -538,3 +538,23 @@ Symtropy's new [#5487 as-of integrity workstream](https://github.com/Luminous-Dy
 - [Rust gate](validator/src/forest_as_of_integrity_kernel.rs)
 
 This matters particularly for AFEX: its root traits, phosphatase assays, litterfall chemistry, soil enzymes, tree census revisions and satellite products have different sampling, processing and release pathways. Collection date alone cannot establish when a hindcast could have used the data. Real availability times still have to be obtained from archives and custodians; v0.1 timestamps are invented.
+
+
+### 16 November 2026 — monitoring cadence is a latency-and-process-timescale problem
+
+The 2024 reservoir assimilation study compared daily, weekly, fortnightly and monthly updates. Daily assimilation was more skillful at 1–7-day horizons, while weekly assimilation often performed better for 8–35-day horizons; the crossover varied by season and depth. It also warns that data latency and over-frequent updates can erode the value of high-frequency measurements. This is a reservoir result, not a tropical-forest cadence prescription (Wander et al., DOI 10.1002/ecs2.4752).
+
+New forest-specific benchmark [#5492](https://github.com/Luminous-Dynamics/symtropy/issues/5492) applies the principle to a transparent synthetic AR(1) state process. It evaluates six streams with distinct nominal cadence, latency, measurement error, field effort and ecological disturbance. For each process persistence and 7/30/90-day decision deadline, it enumerates feasible portfolios and the cost–posterior-variance Pareto frontier.
+
+The synthetic result demonstrates why cadence cannot be picked by sample count:
+- at a 7-day decision deadline, 10-day-latency laboratory streams produce no usable observations;
+- at 30 days, they become available but may be stale relative to the state;
+- a more volatile post-disturbance process retains higher forecast-state uncertainty even with the same schedules;
+- field disturbance is a separate hard budget, not free sampling.
+
+Artifacts:
+- [Cadence protocol](FOREST_OBSERVATION_CADENCE_V0_1.md)
+- [Six-scenario fixture](cases/forest-observation-cadence-synthetic-v0.1.json)
+- [Rust cadence kernel](validator/src/forest_observation_cadence_kernel.rs)
+
+All cadence, latency, sensor noise, effort and disturbance values are synthetic. The reservoir study motivates a method; only matched tropical-forest data can establish a useful monitoring schedule.
