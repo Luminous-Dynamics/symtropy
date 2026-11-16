@@ -23,9 +23,7 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Process-level status: within tolerance, outside tolerance or unquantified.
 - Independent-witness requirement for independently reproduced and qualified claims.
 - Resource intensity per kg of declared primary product, with first-order uncertainty propagation for feedstock-origin ratios and gross/recovered energy kept separate.
-- Numerical overflow checks and negative/non-finite input rejection.
-- Numerical overflow checks and negative/non-finite input rejection.
-- Complete-composition mass reconciliation and origin-intensity ratio overflow rejection.
+- Numerical overflow checks, negative/non-finite input rejection, complete-composition reconciliation and origin-intensity ratio overflow rejection.
 - Single-species ideal-gas pressure/known-mass-transfer reference module with explicit limitations and observation comparison.
 
 ## Important limitations
