@@ -517,12 +517,8 @@ fn affine_coordinate_bounds(
         return Err(TranslationCcdError::NumericalOverflow);
     }
 
-    let displacement_min = displacement0
-        .next_down()
-        .min(displacement1.next_down());
-    let displacement_max = displacement0
-        .next_up()
-        .max(displacement1.next_up());
+    let displacement_min = displacement0.next_down().min(displacement1.next_down());
+    let displacement_max = displacement0.next_up().max(displacement1.next_up());
     let lower = (origin + displacement_min).next_down();
     let upper = (origin + displacement_max).next_up();
     if !lower.is_finite() || !upper.is_finite() {
