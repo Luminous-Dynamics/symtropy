@@ -497,6 +497,36 @@ Do not infer intelligence, cognition, consciousness, intention or a universal co
 
 Performance optimization must preserve declared canonical observables. Runners are a later exact-head evidence gate, not a reason to defer source review, mathematical fixtures, data admission, and implementation design.
 
+## 11. New research extensions — 16 November 2026
+
+### T19 — cross-modal experiment clock alignment
+
+A plant–fungus experiment often combines microscopy, flow video, Raman/SRS, isotope imaging, electrical sensing and possibly PET/fluorescent-particle measurements. Their timestamps must not be treated as one clock simply because they are stored in the same dataset.
+
+The implementation in PR #5388 adds `ExperimentTimeAligner` and a source-receipted `ClockCalibration`. Each non-reference clock needs an explicit synchronization observation; the transform is valid only over its declared source-time interval; anchor, rate and timestamp uncertainty are propagated using conservative absolute bounds. Temporal order is asserted only when two bounded intervals are disjoint. Overlapping or touching intervals return `IndeterminateOverlap`. Calibration-chain composition is intentionally unsupported in v0.1.
+
+The benchmark is [MYCO-TEMPORAL-ALIGN-QUAL-001 #5631](https://github.com/Luminous-Dynamics/symtropy/issues/5631), with 14 synthetic known-truth cases in `benchmarks/mycelium/temporal-alignment-v0-1.json`. Its primary safety metric is false precedence, not timestamp MAE alone. A temporal sequence is not causality; causal inference still requires interventions and mechanism-specific evidence.
+
+### T20 — overlapping plant–fungus interface checkpoints
+
+The 2026 checkpoint framework distinguishes invitation, admission, accommodation, investment, maintenance, and termination/renewal. These are not six globally ordered states. Multiple interfaces within one root system can be at different checkpoints simultaneously, and fungal regulatory inputs must remain represented alongside plant regulation.
+
+The new `symbiosis_checkpoints` module registers a plant/fungus interface identity, links each checkpoint observation to a typed source receipt, allows overlapping/repeated checkpoint events, and keeps chronological display order separate from temporal precedence. A separate performance-evaluation evidence chain requires isotope/tracer resource contribution, host nutrient response, subsequent fate of that same interface, and matched control. It returns only sequence-consistent, contradicted, or temporally indeterminate status; even a complete sequence explicitly does **not** establish causality, sanction, partner choice or intention.
+
+Tracked in [MYCO-SYMBIOSIS-CHECKPOINT-QUAL-001 #5638](https://github.com/Luminous-Dynamics/symtropy/issues/5638), with the six-checkpoint evaluation contract in `benchmarks/mycelium/symbiosis-checkpoints-v0-1.json`. Local arbuscule termination must never be conflated with removal of a fungal individual/genotype. Gene expression, colonization abundance or degeneration alone are not resource-flux measurements.
+
+### T21 — global AMF infrastructure measurement chain
+
+The 2026 global AMF hyphal-density study provides a large empirical infrastructure benchmark: 322 studies, more than 16,000 soil cores across nine biomes, machine-learning spatial predictions, and robotic imaging used to calibrate geometry-to-biomass conversion. Its reported global length and biomass totals are model-based extrapolations, not a direct global census.
+
+A new end-to-end reproduction contract is [AMF-GLOBAL-INFRASTRUCTURE-REPRO-001 #5639](https://github.com/Luminous-Dynamics/symtropy/issues/5639), with `benchmarks/mycelium/amf-global-infrastructure-v0-1.json`. The work is deliberately decomposed into study/core admission, unit harmonization, study- and spatial-blocked density modelling, leave-biome-out transfer, uncertainty calibration, effective-radius geometry, dry-biomass conversion, and active sampling. Hyphal length density, geometric volume fraction, dry biomass, carbon stock, nutrient flux and plant benefit remain separate outputs.
+
+### Current code boundary and validation
+
+The current PR adds the temporal alignment and checkpoint modules to the existing graph, transport, BMX reference, source-receipt, spatial-field, spectroscopy and hyphal-highway code. It also adds an explicit `cargo test --locked -p symtropy-mycelium --lib` step to CI; this corrects an earlier test-coverage gap where the workflow checked the workspace but did not run this crate's unit tests.
+
+The first explicit Mycelium test run compiled the crate and executed 177 tests; 176 passed and one timeline-order expectation failed. The implementation's deterministic center-time display order placed the 10.0-second item before the 10.5-second item, while the test expected the reverse. The correction now asserts that display order and independently checks that the overlapping uncertainty intervals remain `IndeterminateOverlap`. This correction awaits its exact-head rerun. No green current-head CI, external source reproduction, data-rights admission, biological validation or SOTA superiority is claimed.
+
 ## 11. Claim ceiling
 
 This document is a research/implementation contract. It does not establish biological realism, measured field transfer, common-network function in arbitrary ecosystems, empirical forecast skill, SOTA superiority, or consciousness in plants/fungi or Symthaea.
