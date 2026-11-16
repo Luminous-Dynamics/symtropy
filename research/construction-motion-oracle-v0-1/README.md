@@ -126,3 +126,23 @@ The verifier requires the leaf windows to form a complete, ordered, gap-free dya
 The certificate-producing variant evaluates every surviving candidate leaf rather than stopping at the first contact, so its ledger is complete. The existing adaptive query remains available for early-contact latency. Certificates are typed replay records, not signed/cryptographically authenticated attestations or formal proofs; callers must bind the embedded geometry and translations to exact design, site, robot, tool, calibration and controller identities in their outer evidence record.
 
 The certificate API has a 65,536 terminal-leaf cap to bound memory use. See [#5651](https://github.com/Luminous-Dynamics/symtropy/issues/5651).
+
+
+
+## Independent interval verifier for capsule space-time separation
+
+The active-set capsule narrow phase and this verifier use different algorithms. The independent verifier bounds the relative centerline vector over the full normalized time × moving-axis × obstacle-axis parameter box using outward-rounded IEEE-754 intervals.
+
+For any parameter box, each coordinate interval encloses every possible relative centerline coordinate. The distance from each coordinate interval to zero gives a conservative lower bound on squared separation. The contact threshold is rounded upward for clear proofs and downward for positive contact witnesses.
+
+- A box is pruned only when its squared-distance lower bound is strictly above the squared contact-threshold upper bound.
+- A concrete parameter sample is a contact witness only when its squared-distance upper bound is below the contact-threshold lower bound.
+- All parameter boxes pruned: `Clear`.
+- Concrete witnessed contact: `ContactWitness`.
+- Node/depth exhaustion or arithmetic enclosure failure: `Unresolved`.
+
+The search covers all three continuous parameters, not merely a time grid. Splits are dyadic and the queue covers the parameter cube without gaps. Search-order heuristics affect runtime only; they do not affect the interval-pruning condition.
+
+This provides a second algorithm for checking the affine translating-capsule geometry. It is still a floating-point interval implementation that needs independent code review and adversarial numerical testing. It is not a formally verified theorem prover, exact rational arithmetic, cryptographic attestation, clock-drift model, rotating/articulated CCD, physical stopping proof or worksite authorization.
+
+The benchmark records verifier status, parameter boxes visited/pruned, generation latency and deterministic receipt-replay latency separately from the active-set kernel and adaptive producer. See [#5653](https://github.com/Luminous-Dynamics/symtropy/issues/5653).
