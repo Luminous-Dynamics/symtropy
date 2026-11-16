@@ -165,3 +165,10 @@ A deterministic reference-channel noise term is separate from the sensor readout
 The executable robustness follow-on requires at least 50 preregistered paired seeds. Each seed reuses the same generated data across policy arms, and each arm is compared with the full-grid reference under the same seed. The summary preserves mean, median, p95 and maximum error, synthetic interval diagnostic, generated contact-cost proxy and paired RMSE delta against full-grid.
 
 This establishes whether the first policy ordering is seed-stable enough to justify further study. It does not yet provide bootstrap confidence intervals, cluster-robust statistical inference or model-family robustness; those remain required before any physical-policy selection. The source/target split and selector/evaluator type boundary remain intact across every seed.
+
+
+## Paired bootstrap interval
+
+For each policy, the campaign forms one RMSE difference per seed against the full-grid reference from the same seed. It then performs a deterministic 2,000-resample percentile bootstrap over those paired seed-level differences and reports the 95% interval for the mean difference. Each bootstrap draw resamples seed-level pairs; contact samples within a seed are never treated as independent replicates.
+
+The interval is conditional on the frozen synthetic generator and seed-selection mechanism. It quantifies seed-to-seed variability for this generator; it does not establish uncertainty for a physical sensor population, an uncertainty budget, or performance transfer to different hardware/model families. Model-family robustness and real article/lot replication remain required.
