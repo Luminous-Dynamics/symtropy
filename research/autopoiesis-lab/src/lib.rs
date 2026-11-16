@@ -67,7 +67,12 @@ struct State {
 
 impl State {
     fn total(&self) -> f64 {
-        self.environment + self.stock + self.catalyst_a + self.catalyst_b + self.membrane + self.waste
+        self.environment
+            + self.stock
+            + self.catalyst_a
+            + self.catalyst_b
+            + self.membrane
+            + self.waste
     }
 
     fn finite_nonnegative(&self) -> bool {
@@ -102,8 +107,11 @@ impl AutopoieticNetwork {
             membrane: initial.membrane,
             waste: 0.0,
         };
-        if max_ticks == 0 || !state.finite_nonnegative()
-            || state.catalyst_a > 1.0 || state.catalyst_b > 1.0 || state.membrane > 1.0
+        if max_ticks == 0
+            || !state.finite_nonnegative()
+            || state.catalyst_a > 1.0
+            || state.catalyst_b > 1.0
+            || state.membrane > 1.0
         {
             return Err(ModelError::InvalidInitialState);
         }
@@ -111,10 +119,17 @@ impl AutopoieticNetwork {
         if !initial_total.is_finite() {
             return Err(ModelError::InvalidInitialState);
         }
-        Ok(Self { state, initial_total, tick: 0, max_ticks })
+        Ok(Self {
+            state,
+            initial_total,
+            tick: 0,
+            max_ticks,
+        })
     }
 
-    pub fn tick(&self) -> u64 { self.tick }
+    pub fn tick(&self) -> u64 {
+        self.tick
+    }
 
     pub fn component(&self, component: Component) -> f64 {
         match component {
@@ -124,11 +139,21 @@ impl AutopoieticNetwork {
         }
     }
 
-    pub fn stock(&self) -> f64 { self.state.stock }
-    pub fn environmental_resource(&self) -> f64 { self.state.environment }
-    pub fn waste(&self) -> f64 { self.state.waste }
-    pub fn resource_total(&self) -> f64 { self.state.total() }
-    pub fn resource_residual(&self) -> f64 { self.state.total() - self.initial_total }
+    pub fn stock(&self) -> f64 {
+        self.state.stock
+    }
+    pub fn environmental_resource(&self) -> f64 {
+        self.state.environment
+    }
+    pub fn waste(&self) -> f64 {
+        self.state.waste
+    }
+    pub fn resource_total(&self) -> f64 {
+        self.state.total()
+    }
+    pub fn resource_residual(&self) -> f64 {
+        self.state.total() - self.initial_total
+    }
 
     /// Operational viability predicate for this toy model, not a definition of life.
     pub fn is_viable(&self) -> bool {
@@ -167,7 +192,10 @@ impl AutopoieticNetwork {
     /// One deterministic model step. All candidate changes are computed in a
     /// cloned state and committed only after resource and finiteness checks.
     pub fn step(&mut self) -> Result<StepReceipt, ModelError> {
-        let next_tick = self.tick.checked_add(1).ok_or(ModelError::ArithmeticOverflow)?;
+        let next_tick = self
+            .tick
+            .checked_add(1)
+            .ok_or(ModelError::ArithmeticOverflow)?;
         if next_tick > self.max_ticks {
             return Err(ModelError::TickBudgetExceeded);
         }
@@ -192,13 +220,19 @@ impl AutopoieticNetwork {
         // proportionally scaled if the shared stock is insufficient.
         let desired_a = if self.state.catalyst_b >= 0.05 {
             (0.003 * self.state.catalyst_b).min(1.0 - self.state.catalyst_a)
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let desired_b = if self.state.catalyst_a >= 0.05 {
             (0.003 * self.state.catalyst_a).min(1.0 - self.state.catalyst_b)
-        } else { 0.0 };
+        } else {
+            0.0
+        };
         let desired_membrane = if catalyst_activity >= 0.10 {
             (0.006 * catalyst_activity).min(1.0 - self.state.membrane)
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         let desired_total = desired_a + desired_b + desired_membrane;
         let scale = if desired_total <= 0.0 {
@@ -254,7 +288,10 @@ impl AutopoieticNetwork {
     }
 
     pub fn run_steps(&mut self, steps: u64) -> Result<(), ModelError> {
-        let final_tick = self.tick.checked_add(steps).ok_or(ModelError::ArithmeticOverflow)?;
+        let final_tick = self
+            .tick
+            .checked_add(steps)
+            .ok_or(ModelError::ArithmeticOverflow)?;
         if final_tick > self.max_ticks {
             return Err(ModelError::TickBudgetExceeded);
         }
