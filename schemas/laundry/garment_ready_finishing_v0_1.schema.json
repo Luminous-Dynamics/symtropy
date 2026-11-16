@@ -35,7 +35,7 @@
         "P50_P95_time_required":{"const":true},
         "intervention_and_damage_accounting_required":{"const":true}
       }
-    }},
+    },
     "standard_watch":{"type":"object","additionalProperties":false,
       "required":["published_predecessor","current_reference","current_reference_status","published_standard"],
       "properties":{
