@@ -1,0 +1,386 @@
+{
+  "schema_version": "waterloop-modular-interface-v0.1",
+  "design_id": "WATERLOOP-MODULAR-REF-V0.1",
+  "parent_issue": 5542,
+  "integration_parent_issue": 5335,
+  "status": "proposed_reference_design_not_build_authorized",
+  "evidence_class": "design_research",
+  "claim_ceiling": "functional_architecture_and_test_contract_only_no_physical_or_quality_qualification",
+  "initial_test_cell": {
+    "occupancy": "unoccupied",
+    "fluid": "clean_water_only",
+    "greywater_feed_connected": false,
+    "drinking_or_cooking": false,
+    "municipal_connection": false,
+    "initial_use_boundary": "isolated_fixture_equivalent_or_test_cistern_only"
+  },
+  "target_context": {
+    "site_class": "fully_serviced_managed_property",
+    "initial_stream": "bathroom_bath_shower_only",
+    "initial_use": "non_potable_toilet_cistern",
+    "geography": "Johannesburg_Gauteng_candidate_site"
+  },
+  "source_streams": [
+    {
+      "id": "SRC-BATH-01",
+      "name": "Bath and shower greywater",
+      "state": "candidate_first_feed_after_approval_and_characterisation",
+      "source_boundary": "dedicated branch capture before any mixing",
+      "initial_test_cell_enabled": false,
+      "allowed_future_use": [
+        "toilet_flushing_after_treatment_disinfection_and_independent_use_quality_admission"
+      ],
+      "untreated_storage_limit_hours": 24,
+      "quality_owner": "Mycelix #6100",
+      "evidence_requirements": [
+        "source identity",
+        "batch/sample identity",
+        "flow and elapsed time",
+        "feed quality panel",
+        "method/lab/detection limit",
+        "uncertainty and use profile"
+      ]
+    },
+    {
+      "id": "SRC-BASIN-01",
+      "name": "Hand-basin greywater",
+      "state": "deferred_candidate",
+      "source_boundary": "separate branch",
+      "initial_test_cell_enabled": false,
+      "requires_separate_characterisation": true,
+      "allowed_future_use": [],
+      "quality_owner": "Mycelix #6100"
+    },
+    {
+      "id": "SRC-LAUNDRY-01",
+      "name": "Laundry greywater",
+      "state": "separate_research_stream_not_connected_to_initial_train",
+      "source_boundary": "separate branch and hold/sample point",
+      "initial_test_cell_enabled": false,
+      "requires_separate_characterisation": true,
+      "screening_parameters": [
+        "surfactants",
+        "sodium",
+        "boron",
+        "conductivity",
+        "COD",
+        "TSS",
+        "microbial indicators"
+      ],
+      "allowed_future_use": [],
+      "quality_owner": "Mycelix #6100"
+    },
+    {
+      "id": "SRC-KITCHEN-01",
+      "name": "Kitchen sink and dishwasher",
+      "state": "excluded_from_v0_1",
+      "source_boundary": "normal approved drainage",
+      "initial_test_cell_enabled": false,
+      "reason": "high grease/organic load; WRC TT 746/17 normally excludes kitchen fraction from greywater reuse without distinct pretreatment and risk assessment"
+    },
+    {
+      "id": "SRC-BLACKWATER-01",
+      "name": "Toilet, urinal, bidet, faecal/nappy contaminated water",
+      "state": "excluded",
+      "source_boundary": "sanitary sewer only",
+      "initial_test_cell_enabled": false
+    },
+    {
+      "id": "SRC-CHEM-01",
+      "name": "Paint, vehicle, machinery, hair-dye or strong chemical-cleaning water",
+      "state": "excluded",
+      "source_boundary": "approved waste route",
+      "initial_test_cell_enabled": false
+    },
+    {
+      "id": "SRC-RAIN-01",
+      "name": "Roof rainwater",
+      "state": "future_separate_circuit",
+      "source_boundary": "separate roof catchment / first-flush / tank",
+      "initial_test_cell_enabled": false,
+      "requires_separate_quality_profile": true,
+      "allowed_future_use": [
+        "non_potable_only_after_use_quality_admission"
+      ]
+    },
+    {
+      "id": "SRC-MAIN-01",
+      "name": "Municipal potable water",
+      "state": "independent_backup_source_only",
+      "source_boundary": "physically separated municipal feed",
+      "initial_test_cell_enabled": false,
+      "allowed_future_use": [
+        "approved cistern_top_up_via_local_approved_air_gap_or_hazard_rated_backflow_solution"
+      ],
+      "may_join_reclaimed_water_header": false
+    }
+  ],
+  "use_profiles": [
+    {
+      "id": "USE-WC-FLUSH-01",
+      "name": "Toilet flushing",
+      "initial_target": true,
+      "requirements": [
+        "treated_greywater",
+        "disinfection",
+        "independent_use_quality_admission",
+        "labelled_non_potable_distribution",
+        "municipal_backup",
+        "sewer_reject_path"
+      ],
+      "potable_claim": false
+    },
+    {
+      "id": "USE-IRR-SUB-01",
+      "name": "Restricted subsurface irrigation",
+      "initial_target": false,
+      "requirements": [
+        "site_specific_WRC_risk_guidance",
+        "local_permission",
+        "avoid_human_contact_and_runoff",
+        "land_soil_groundwater_suitability",
+        "use_specific_quality_admission"
+      ],
+      "potable_claim": false
+    },
+    {
+      "id": "USE-POTABLE-01",
+      "name": "Drinking and cooking",
+      "initial_target": false,
+      "allowed": false,
+      "reason": "outside v0.1 scope; no potable water treatment or SANS 241 claim"
+    }
+  ],
+  "modules": [
+    {
+      "id": "M0-SCREEN",
+      "slot": "source_conditioning",
+      "purpose": "removable hair/lint and coarse-solids protection",
+      "required_in_v0_1_hydraulic_mockup": true,
+      "selected_technology": null,
+      "qualification_state": "NotSelected"
+    },
+    {
+      "id": "M1-PRIMARY",
+      "slot": "primary_treatment",
+      "purpose": "feed-specific primary treatment",
+      "candidate_families": [
+        "attached_growth_biological",
+        "media_biofilter",
+        "sand_media_filtration",
+        "compact_wetland_media_cell",
+        "ultrafiltration_if_justified"
+      ],
+      "required_in_v0_1_hydraulic_mockup": false,
+      "selected_technology": null,
+      "qualification_state": "NotSelected"
+    },
+    {
+      "id": "M2-POLISH",
+      "slot": "polishing",
+      "purpose": "analyte-specific polishing",
+      "candidate_families": [
+        "granular_activated_carbon",
+        "fine_media_filtration",
+        "ultrafiltration_if_justified"
+      ],
+      "required_in_v0_1_hydraulic_mockup": false,
+      "selected_technology": null,
+      "qualification_state": "NotSelected"
+    },
+    {
+      "id": "M3-DISINFECTION",
+      "slot": "final_disinfection",
+      "purpose": "validated microbiological barrier for target use",
+      "candidate_families": [
+        "UV",
+        "chemical_disinfection_under_professional_design"
+      ],
+      "required_for_future_toilet_flush": true,
+      "selected_technology": null,
+      "qualification_state": "NotSelected"
+    },
+    {
+      "id": "M4-TREATED_BUFFER",
+      "slot": "treated_water_storage_delivery",
+      "purpose": "separate covered buffer and dedicated non-potable pump",
+      "required_in_v0_1_hydraulic_mockup": true,
+      "selected_technology": null,
+      "qualification_state": "NotSelected"
+    }
+  ],
+  "physical_tags": [
+    {
+      "tag": "FM-101",
+      "purpose": "source flow"
+    },
+    {
+      "tag": "XV-101",
+      "purpose": "source isolation"
+    },
+    {
+      "tag": "ST-101",
+      "purpose": "removable hair/lint screen"
+    },
+    {
+      "tag": "DV-101",
+      "purpose": "fail-safe source diversion to approved reject"
+    },
+    {
+      "tag": "TK-101",
+      "purpose": "raw equalisation buffer with elapsed-time record"
+    },
+    {
+      "tag": "LT-101",
+      "purpose": "level measurand; volume derived only with calibrated tank geometry"
+    },
+    {
+      "tag": "TT-101",
+      "purpose": "untreated residence-time evidence"
+    },
+    {
+      "tag": "P-101",
+      "purpose": "transfer through isolated module bay"
+    },
+    {
+      "tag": "MB-101",
+      "purpose": "replaceable treatment module bay"
+    },
+    {
+      "tag": "SP-101",
+      "purpose": "stage sample point"
+    },
+    {
+      "tag": "SP-102",
+      "purpose": "final outlet sample point"
+    },
+    {
+      "tag": "QG-101",
+      "purpose": "external use-quality admission result"
+    },
+    {
+      "tag": "TK-102",
+      "purpose": "covered treated buffer"
+    },
+    {
+      "tag": "P-102",
+      "purpose": "dedicated non-potable delivery pump"
+    },
+    {
+      "tag": "FM-102",
+      "purpose": "meter at actual useful-delivery boundary"
+    },
+    {
+      "tag": "WC-101",
+      "purpose": "isolated test cistern / fixture-equivalent load"
+    },
+    {
+      "tag": "AG-101",
+      "purpose": "municipal backup air-gap/hazard-rated protection, only after local approval"
+    },
+    {
+      "tag": "RJ-101",
+      "purpose": "source reject to approved sewer/contained reject"
+    },
+    {
+      "tag": "RJ-102",
+      "purpose": "treatment reject and purge"
+    },
+    {
+      "tag": "RJ-103",
+      "purpose": "overflow"
+    },
+    {
+      "tag": "EM-101",
+      "purpose": "module/pump energy"
+    }
+  ],
+  "module_interface": {
+    "required_ports": [
+      "inlet",
+      "outlet",
+      "reject_or_residual",
+      "sample_in",
+      "sample_out",
+      "drain_down",
+      "isolation",
+      "service_access"
+    ],
+    "declared_fields": [
+      "module_id",
+      "revision",
+      "serial_or_lot",
+      "wetted_materials",
+      "seal_materials",
+      "flow_envelope",
+      "pressure_envelope",
+      "feed_quality_envelope",
+      "output_quality_evidence",
+      "energy",
+      "residual_mass_or_volume",
+      "maintenance_interval",
+      "failure_state",
+      "calibration_channels",
+      "firmware_config_digest"
+    ],
+    "replacement_rule": "Any module change invalidates the previous configuration-level qualification until commissioning checks and intended-use quality admission are repeated.",
+    "bypass_rule": "No bypass may deliver untreated or non-admitted water to a use outlet. Bypass means reject/divert only."
+  },
+  "fail_safe_states": [
+    {
+      "trigger": "source identity unknown or excluded",
+      "action": "isolate source and divert to reject"
+    },
+    {
+      "trigger": "untreated residence exceeds 24 h",
+      "action": "reject or independently qualify a different treated route before use"
+    },
+    {
+      "trigger": "quality admission absent, stale, failed or wrong use profile",
+      "action": "close reuse delivery; divert; preserve municipal cistern backup"
+    },
+    {
+      "trigger": "process barrier failure",
+      "action": "isolate module; no bypass to use outlet"
+    },
+    {
+      "trigger": "power or control loss",
+      "action": "reuse pump off; source to reject by reviewed passive arrangement"
+    },
+    {
+      "trigger": "high_high storage",
+      "action": "stop capture or divert; no uncontrolled overflow"
+    },
+    {
+      "trigger": "suspected cross_connection",
+      "action": "quarantine both systems until qualified inspection and approval"
+    },
+    {
+      "trigger": "pump failure or low pressure",
+      "action": "disable reuse delivery; use independently compliant cistern backup"
+    }
+  ],
+  "evidence_owners": {
+    "quality": "Mycelix #6100",
+    "instruments_and_measurands": "Mycelix #6034/#6029",
+    "uncertainty": "Mycelix #6048",
+    "timebase_and_applicability": "Mycelix #6054/#6057",
+    "hydraulic_solver": "existing Symtropy solver owners; do not duplicate",
+    "service_evaluator": "Symtropy water-service-t0",
+    "lifecycle_cost": "Sol-Atlas #816 and Symtropy WaterLoop economics adapter",
+    "local_permissions": "City of Johannesburg / current applicable authority and qualified local professionals"
+  },
+  "legal_design_gates": [
+    "Verify current City of Johannesburg Water Services By-law and Council permission requirements for non-municipal source water before any greywater household connection.",
+    "Verify current official SABS-controlled SANS 10252-1 edition/amendments and hazard-rated backflow requirements.",
+    "Qualified local plumber and electrical designer review all site drawings, drains, pressure protection, electrical isolation and installation method.",
+    "No cross-boundary/community distribution without confirming applicable GN 6292 Regulation 12 / W2RAP institutional requirements."
+  ],
+  "nonclaims": [
+    "No physical prototype is qualified.",
+    "No water quality or treatment performance is qualified.",
+    "No potable, SANS 241, health or regulatory compliance claim.",
+    "No Johannesburg household installation or municipal connection is authorized.",
+    "No procurement or supplier SKU is selected."
+  ]
+}
