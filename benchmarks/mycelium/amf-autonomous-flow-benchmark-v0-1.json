@@ -1,0 +1,120 @@
+{
+  "schema_version": "myco.amf_autonomous_flow_benchmark.v0.1",
+  "suite_id": "AMF-AUTONOMOUS-FLOW-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5565",
+  "source": {
+    "doi": "10.1016/j.funbio.2026.101775",
+    "publication": "Fungal Biology 130(4), 2026, article 101775",
+    "data_availability": "all data available upon request according to publication",
+    "downloaded": false,
+    "reuse_rights_status": "verify article and any supplied data terms before ingest"
+  },
+  "experiment": {
+    "strains": [
+      {
+        "name": "Rhizophagus irregularis A5",
+        "accession": "DAOM 664344"
+      },
+      {
+        "name": "Rhizophagus irregularis C2",
+        "accession": "DAOM 664346"
+      }
+    ],
+    "host": "none; asymbiotic in-vitro growth",
+    "medium": "MSR medium with 0.3% Phytagel",
+    "treatment_conditions": [
+      "no myristic acid",
+      "0.5 mM myristic acid"
+    ],
+    "temperature_c": 25,
+    "imaging_duration_days": 57,
+    "imaging_interval_hours": [
+      2,
+      4
+    ],
+    "flow_videos_reported": 5000,
+    "flow_trajectories_reported": 25000,
+    "lipid_label": "Nile red on a subset of plates"
+  },
+  "source_reported_effects": {
+    "network_length_fold_change_with_myristic_acid": 10,
+    "area_fold_change_up_to": 4,
+    "mean_cytoplasmic_flow_speed_change_percent": 50,
+    "rare_flow_bursts_um_per_s": [
+      10,
+      30
+    ],
+    "fluorescent_lipid_speed_mean_um_per_s": 3,
+    "fluorescent_lipid_speed_effect_of_myristic_acid": "none reported",
+    "persistent_flow_near_parental_spores_after_application_days": 365
+  },
+  "observables": [
+    "bulk_cytoplasmic_particle_velocity",
+    "fluorescent_lipid_cargo_velocity",
+    "flow_direction_and_burst_distribution",
+    "network_length_and_area",
+    "strain_and_treatment",
+    "timepoint_and_spatial_roi"
+  ],
+  "rules": [
+    "bulk cytoplasmic movement and cargo-specific lipid movement are not interchangeable",
+    "velocity is not volumetric flow without measured cross-section mean velocity and area",
+    "volumetric flow is not nutrient mass transfer without concentration",
+    "host-free internal flow is not plant-to-plant transfer",
+    "one-year persistent observation near parental spores is not a continuously tracked one-year trajectory"
+  ],
+  "evaluation_tracks": [
+    {
+      "id": "T1",
+      "name": "network_growth_reproduction",
+      "metrics": [
+        "network_length_error",
+        "network_area_error",
+        "timecourse_error"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "bulk_flow_distribution",
+      "metrics": [
+        "velocity_distribution_distance",
+        "burst_frequency_error",
+        "quantile_error",
+        "time_space_autocorrelation_error"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "lipid_cargo_distribution",
+      "metrics": [
+        "lipid_velocity_distribution_error",
+        "bulk_to_cargo_velocity_ratio_error",
+        "cargo_treatment_effect_error"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "host_independent_persistence",
+      "metrics": [
+        "near_spore_flow_detection_reproduction",
+        "strain_treatment_heldout_log_score"
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "calibrated_model_selection",
+      "metrics": [
+        "heldout_calibration",
+        "out_of_domain_detection",
+        "false_bulk_cargo_equivalence_rate"
+      ]
+    }
+  ],
+  "proposed_targets_not_results": {
+    "reproduction": "reproduce source-reported flow and lipid distributions before new mechanistic claims",
+    "calibration": "nominal 90% and 95% predictive interval coverage on held-out plates and time blocks",
+    "separation": "zero silent pooling between bulk-cytoplasm and fluorescent-cargo tracer types",
+    "generalization": "report each of the two strains separately; no universal AMF claim"
+  },
+  "claim_ceiling": "Host-free flow and cargo-specific observations for two R. irregularis strains under the named in-vitro conditions only."
+}
