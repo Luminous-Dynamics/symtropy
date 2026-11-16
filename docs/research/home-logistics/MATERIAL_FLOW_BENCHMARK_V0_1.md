@@ -378,7 +378,7 @@ A score is not valid if it omits failed tasks, excludes interventions, ignores e
 
 No level automatically implies the next. A digital twin is not a certified aircraft model, building structural model, refrigeration validation, safety case or regulatory approval.
 
-## 12.1 Executable contract tool — Rust contract checks passed; simulation pending
+## 12.1 Executable MFB toolkit — contract, physics and protocol campaign
 
 The benchmark branch now includes a standalone Rust tool at `tools/material-flow-benchmark/`:
 
@@ -394,7 +394,7 @@ The benchmark branch now includes a standalone Rust tool at `tools/material-flow
 - A CLI (`mfb-validate`) and synthetic stationary-carrier JSON fixture.
 - A dedicated GitHub Actions workflow for formatting, Clippy, tests and fixture validation.
 
-The first implementation intentionally does not authenticate signatures, query Hearth or Commons, model 3D packing, simulate physics, or prove real-world safety. It validates internal consistency of the declared scenario contract only.
+The contract layer intentionally does not authenticate signatures or query Hearth/Commons. Separate L1 simulation, analytical convergence and protocol fault execution modules now exercise the reduced-order receiving scene and the pure handoff state machine. None of those software checks proves real-world safety, physical sensor integrity, HIL or field performance.
 
 ### 12.2 Machine-checkable ten-fault campaign
 
@@ -415,7 +415,7 @@ The standalone tool now also defines a `FaultCampaignManifest` and `mfb-validate
 
 The fixture `tools/material-flow-benchmark/fixtures/ten-fault-campaign.json` and its CLI verify only that the declared test campaign is complete and internally consistent. It does not execute a fault injection, simulate a physical response or prove safe recovery. Those results require the Symtropy scenario runner and later evidence levels.
 
-**Verification status (2026-11-15):** dedicated GitHub Actions run `43765714883`, job `132970215338`, completed successfully on exact PR source head `d0e365cb51299de904b377b0059f132fae862f6c`. The exact job passed strict formatting, Clippy with `-D warnings`, **50 Rust unit tests (50 passed, 0 failed)**, nominal-scenario CLI validation and the ten-fault campaign CLI validation. The standalone tool has a committed `Cargo.lock`; Clippy, tests and both fixture commands use `--locked`. The workflow is non-mutating and does not alter source or lock state. The environment itself has no Rust/Cargo toolchain, so no local compile/test claim is made. No physical simulation, HIL, guarded rig or field operation has been run; the two fixtures validate only scenario and campaign contracts.
+**Verification status (2026-11-16):** the dedicated workflow's newest exact-head result is [`43819492450`](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450), on source `a270a138095f187b6ad034fbb530cc27f746ec4f`. It passed strict formatting, Clippy with `-D warnings`, **61 Rust tests**, nominal scenario validation, campaign-manifest validation, all ten executable protocol fault episodes, four-timestep analytical free-fall convergence, L1 simulation/replay and evidence upload. The dependency graph is committed in `Cargo.lock`; checks use `--locked`. Artifact `mfb-l1-evidence-a270a138095f187b6ad034fbb530cc27f746ec4f` (ID `14204140876`) contains the protocol campaign, convergence and L1 results plus environment metadata. No physical sensor, power, network, actuator, HIL, guarded-rig or field fault injection is claimed.
 
 ### 12.3 Distributed physical-transaction reference state machine
 
@@ -455,13 +455,13 @@ The 120 Hz and 240 Hz results remain preserved as baselines; only the 480 Hz run
 
 **Evidence level:** L1 simulation of one stationary receiver episode. The model is a rigid-box proxy, not deformable packaging, grasp planning, a robot, full carrier, truck/aircraft, route or fleet model. It contains no sensor uncertainty/metrology, perception, human/animal exposure, door/latch or actuator constraints, guarding or emergency-stop hardware. Same-host replay is demonstrated; cross-platform bitwise determinism is not claimed. The physics engine currently approximates asymmetric-body inertia, so the centred low-angular-motion drop does not qualify tumbling packages.
 
-**Exact-head verification:** the 480 Hz code and Tier-B free-fall evaluator passed dedicated workflow [43769459756](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769459756) on `2643fc9df9c22dfa760179c1deab0cf2e7f16a0e`: formatting, Clippy with `-D warnings`, **56 Rust tests**, nominal manifest CLI, ten-fault campaign CLI, analytical convergence CLI, L1 simulation/replay and evidence upload. The artifact is `mfb-l1-evidence-2643fc9df9c22dfa760179c1deab0cf2e7f16a0e` (artifact ID `14183677454`); raw L1 result SHA-256 `cd836f52f70483b4375e4aa39bca81be14b9546a6b4cf24ba607458501e85070`. The 480 Hz scene measured 2.307 mm peak contact penetration, zero final linear/angular speed, same-host replay equality, safe containment and completed custody.
+**Exact-head verification:** the current 480 Hz scene and Tier-B free-fall evaluator were re-run inside dedicated workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) on `a270a138095f187b6ad034fbb530cc27f746ec4f`, now alongside the executable ten-fault protocol campaign. Formatting, Clippy `-D warnings`, **61 tests**, all ten protocol episodes, both manifest validators, convergence, L1 replay and artifact upload passed. Evidence artifact `mfb-l1-evidence-a270a138095f187b6ad034fbb530cc27f746ec4f` (ID `14204140876`). L1 measured 2.307 mm peak penetration, zero final linear/angular speed, same-host replay equality, safe containment and completed custody.
 
 ### 12.5 Tier-B analytical free-fall convergence
 
 The new `mfb-validate-convergence` CLI runs the same one-second, pre-contact free-fall initial condition at (dt = 1/30, 1/60, 1/120, 1/240) s and compares against the closed-form uniform-gravity position/velocity solution.
 
-On exact source `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d`, it measured:
+On exact source `b9a8fc5416e721f81fe9a0c41d9cb710e78d799d` (re-run unchanged in workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450)), it measured:
 - absolute position error: **163.436 mm, 81.725 mm, 41.228 mm, 20.812 mm**;
 - absolute velocity error: **0.125 mm/s, 0.125 mm/s, 0.791 mm/s, 0.791 mm/s**;
 - relative energy drift: **−0.164%, −0.0818%, −0.0404%, −0.0200%**;
@@ -492,7 +492,7 @@ The runner checks that every observed terminal state matches the campaign oracle
 
 **Evidence level:** deterministic protocol-event injection against a pure in-memory state machine. These are real executed software transitions and negative controls, but not physical fault injection. It does not actually interrupt power, partition a network, corrupt a temperature sensor, jam a gate or move an object. It does not exercise a deployed Holochain conductor or hardware. Those require separate simulator, HIL and guarded-rig campaigns.
 
-The CI workflow archives `protocol-fault-campaign.json` with the L1 physics result and analytical convergence output. Exact-head workflow qualification is pending for the new executable runner.
+The CI workflow archives `protocol-fault-campaign.json` with the L1 physics result and analytical convergence output. Exact-head workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) passed on `a270a138095f187b6ad034fbb530cc27f746ec4f`: 10/10 protocol episodes were accepted; pre-dispatch faults never dispatched; duplicate logical command replay was suppressed; duplicate physical release evidence required reconciliation; post-dispatch timeout/power/network ambiguity blocked retry; and no fault was falsely completed. The full report is in artifact `14204140876`.
 
 ## 12. First executable slice
 
