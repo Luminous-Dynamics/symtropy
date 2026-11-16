@@ -154,7 +154,8 @@ The Rust validator intentionally uses an exact, tiny six-artifact allow-list in 
 
 ## 5. Conformance and adversarial tests
 
-The Rust validator has 22 unit tests written, covering:
+The Rust validator has 25 unit tests written, covering:
+- full Draft 2020-12 schema validation, including additional properties, URI formats and integer types;
 - synthetic envelope validates but still abstains from any model claim;
 - byte tampering, wrong byte lengths and digest mismatch;
 - duplicate dataset identities;
@@ -172,7 +173,7 @@ The Rust validator has 22 unit tests written, covering:
 - unsupported claim-ceiling escalation;
 - intended-use/evidence-class mismatch.
 
-Compilation, format, Clippy and tests remain unverified until the isolated hosted workflow completes. A test count is not a pass.
+The hosted E0 base branch now has a full formatting/Clippy/test/oracle workflow pass (run 43830359021). The E1 head has not yet passed a fresh full-crate workflow; its previous run used an older stacked-base merge snapshot and failed only at inherited formatting differences that have since been fixed on the E0 branch. E1 compilation, Clippy, its 25 tests and the new JSON Schema validation are not yet claimed as passing. A test count is not a pass.
 
 ## 6. Benchmarking against the industry
 
