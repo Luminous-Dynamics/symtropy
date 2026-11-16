@@ -169,6 +169,8 @@ pub struct ChallengeObservation {
     pub candidate_id: String,
     /// Exact Track V utility-estimate receipt payload digest this outcome evaluates.
     pub utility_receipt_payload_sha256: String,
+    /// Authenticated-source evidence receipt digest; signature and authority are external.
+    pub measurement_evidence_receipt_sha256: String,
     /// Exact frozen challenge dataset manifest.
     pub challenge_manifest_sha256: String,
     /// Partition identity; only ChallengeSealed is eligible for final assessment.
@@ -204,6 +206,10 @@ pub struct CalibrationPolicy {
     pub expected_estimate_method_sha256: String,
     /// Exact sealed challenge dataset manifest.
     pub challenge_manifest_sha256: String,
+    /// Exact calibration-evaluator build identity recorded in the report.
+    pub evaluator_build_sha256: String,
+    /// Exact Wilson interval-method identity used for this assessment.
+    pub interval_method_sha256: String,
     /// Required sampling unit for independent challenge groups.
     pub required_independent_unit: IndependentUnit,
     /// Metrics whose lower bounds must be calibrated.
@@ -328,6 +334,10 @@ pub struct CalibrationReport {
     pub strata: Vec<StratumAssessment>,
     /// Exact policy used.
     pub policy_sha256: String,
+    /// Exact calibration-evaluator build identity.
+    pub evaluator_build_sha256: String,
+    /// Exact interval-method identity.
+    pub interval_method_sha256: String,
 }
 
 /// Wilson score interval one-sided critical value for supported confidence levels.
@@ -379,6 +389,8 @@ fn validate_policy(policy: &CalibrationPolicy) -> Result<f64, CalibrationError> 
         || !valid_sha256(&policy.expected_estimator_build_sha256)
         || !valid_sha256(&policy.expected_estimate_method_sha256)
         || !valid_sha256(&policy.challenge_manifest_sha256)
+        || !valid_sha256(&policy.evaluator_build_sha256)
+        || !valid_sha256(&policy.interval_method_sha256)
         || policy.minimum_groups_per_stratum == 0
         || !bounded(policy.minimum_coverage_lower_bound)
         || policy.required_strata.is_empty()
@@ -444,7 +456,9 @@ fn validate_claim(
     if claim.independent_unit != policy.required_independent_unit {
         return Err(CalibrationError::SamplingUnitMismatch);
     }
-    if claim.adaptive_data_manifest_sha256 == policy.challenge_manifest_sha256 {
+    if claim.adaptive_data_manifest_sha256 == policy.challenge_manifest_sha256
+        || policy.minimum_coverage_lower_bound < claim.estimate_confidence_level
+    {
         return Err(CalibrationError::ClaimPolicyMismatch);
     }
     Ok(())
@@ -476,6 +490,7 @@ pub fn evaluate_utility_claim(
             || observation.independent_group_id.trim().is_empty()
             || observation.stratum_id.trim().is_empty()
             || !valid_sha256(&observation.utility_receipt_payload_sha256)
+            || !valid_sha256(&observation.measurement_evidence_receipt_sha256)
             || !valid_sha256(&observation.challenge_manifest_sha256)
             || !observation.realized.is_valid()
         {
@@ -600,5 +615,7 @@ pub fn evaluate_utility_claim(
         independent_group_count: total_groups,
         strata,
         policy_sha256: policy.policy_sha256.clone(),
+        evaluator_build_sha256: policy.evaluator_build_sha256.clone(),
+        interval_method_sha256: policy.interval_method_sha256.clone(),
     })
 }
