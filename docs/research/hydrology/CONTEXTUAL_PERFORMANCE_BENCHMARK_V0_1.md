@@ -325,7 +325,7 @@ The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 40 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 50 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -406,9 +406,25 @@ Absolute CRPS or Brier score is not enough to claim improvement. WMO verificatio
 
 Both are calculated on identical ordered observation-case IDs, the same evaluation population and forecast lead time. BSS also requires an identical versioned binary-event definition/threshold. Scores are not clipped; negative skill means worse than the named reference. A reference score of zero/within tolerance makes the skill Undefined.
 
-The six added cases exercise matched CRPSS, matched BSS, population mismatch, zero-reference Brier, zero-reference CRPS and lead-time mismatch. The resulting 40-case corpus remains synthetic arithmetic/contract evidence; the real reference forecast identity, observation uncertainty and sample population still require admission. Do not use a high skill score from one catchment/lead/event population to claim improvement in another.
+The six added cases exercise matched CRPSS, matched BSS, population mismatch, zero-reference Brier, zero-reference CRPS and lead-time mismatch. The resulting 50-case corpus remains synthetic arithmetic/contract evidence; the real reference forecast identity, observation uncertainty and sample population still require admission. Do not use a high skill score from one catchment/lead/event population to claim improvement in another.
 
 For real forecasts, freeze at least two references separately where appropriate: (1) persistence and (2) train-only seasonal climatology. Verify that forecast/reference timestamps, missingness, lead, event definition, station and catchment all match before computing skill. Use dependence-aware event-block uncertainty intervals and report raw scores alongside skill scores.
 
 
 The CRPSS/BSS extension requires both `forecast_id` and `reference_forecast_id`. Cases 039–040 reject a reference with mismatched verification case IDs or a different event threshold definition. This makes persistence and train-only seasonal climatology separate, explicit reference populations rather than an unnamed baseline.
+
+
+## 17. Forecast-to-decision utility — cases 041–050
+
+The WMO verification → decision → response chain now has a synthetic T0 contract. A threshold event probability may trigger an action, but an action is executed only when response capability exists and `response_delay_hours <= available_lead_time_hours`. The scorer distinguishes:
+- forecast warning triggered;
+- action actually executed;
+- false warning (even if no response was executed);
+- missed event;
+- warning arriving too late or with no response capacity;
+- cost of action, residual event loss and missed-event loss;
+- no-action baseline cost and candidate-minus-baseline cost.
+
+The decision threshold is frozen using training/validation only. Final-test threshold selection rejects. Batch comparisons are allowed only on the same population and ordered verification-case IDs. Missing loss matrix or outcome evidence returns Indeterminate. The T0 loss values are synthetic units only; they are not calibrated monetary or public-safety consequences.
+
+Ten new cases (041–050) cover threshold/no-action, timely action, absent response capacity, false alarm, missed event, batch-vs-no-action cost, population mismatch, final-test threshold leakage, late warning and missing loss evidence. This brings the synthetic corpus to 50 cases. The T0 evaluator is an arithmetic/contract verifier, not an operational warning or decision system.

@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 40,
+  "case_count": 50,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -44,7 +44,17 @@
     "HC-T0-037-crps-skill-zero-reference-undefined",
     "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
     "HC-T0-039-crps-skill-case-identity-mismatch",
-    "HC-T0-040-brier-skill-event-definition-mismatch"
+    "HC-T0-040-brier-skill-event-definition-mismatch",
+    "HC-T0-041-decision-below-threshold-no-action",
+    "HC-T0-042-decision-timely-action-on-event",
+    "HC-T0-043-decision-no-response-capacity",
+    "HC-T0-044-decision-false-alarm-cost",
+    "HC-T0-045-decision-missed-event-loss",
+    "HC-T0-046-decision-batch-vs-no-action-baseline",
+    "HC-T0-047-decision-population-mismatch",
+    "HC-T0-048-decision-test-threshold-tuning-reject",
+    "HC-T0-049-decision-late-warning-unactionable",
+    "HC-T0-050-decision-missing-loss-evidence-indeterminate"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -65,7 +75,9 @@
     "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
     "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null.",
     "crps_skill_score": "CRPSS = 1 - mean(CRPS_forecast)/mean(CRPS_reference), evaluated on identical observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined.",
-    "brier_skill_score": "BSS = 1 - mean(BS_forecast)/mean(BS_reference), evaluated for the same versioned binary event, observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined."
+    "brier_skill_score": "BSS = 1 - mean(BS_forecast)/mean(BS_reference), evaluated for the same versioned binary event, observation case IDs, evaluation population and lead time. Negative scores remain negative; a zero reference score is Undefined.",
+    "decision_rule": "An action is triggered iff forecast_probability >= a predeclared decision_probability_threshold. An action is executed only when response_capable is true and response_delay_hours <= available_lead_time_hours.",
+    "realized_decision_loss": "If event occurs and action executes, cost = action_cost + residual_event_loss. If event occurs and action does not execute, cost = missed_event_loss. If no event and action executes, cost = action_cost. Otherwise cost = 0. No-action baseline cost is missed_event_loss for each event and zero otherwise."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -95,6 +107,11 @@
     "A zero or near-zero reference score makes the corresponding skill score Undefined, not zero or infinite.",
     "Do not compare a forecast to a reference computed on different catchments, events, observation cases, lead times or threshold definitions.",
     "Each relative skill result names both the candidate forecast and reference forecast (for example, persistence or train-only seasonal climatology); unnamed or implicit references are not accepted.",
-    "Skill comparisons reject different ordered observation-case identities or different versioned binary-event definitions, even when aggregate sample counts match."
+    "Skill comparisons reject different ordered observation-case identities or different versioned binary-event definitions, even when aggregate sample counts match.",
+    "Decision probability thresholds must be selected on training/validation only and remain frozen for final test; a final-test-selected threshold is rejected.",
+    "Avoided-loss credit is granted only if the response is capable and arrives no later than the declared available lead time.",
+    "False forecast warnings, executed false-alarm actions, missed events and unactionable warnings are reported separately.",
+    "Candidate and no-action baseline losses use identical observation case identities and the same admitted loss matrix.",
+    "Loss values in T0 are synthetic units only; no public-safety, household or agency consequence model is implied."
   ]
 }

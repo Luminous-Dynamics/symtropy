@@ -48,8 +48,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 40,
-      "maxItems": 40,
+      "minItems": 50,
+      "maxItems": 50,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -74,7 +74,8 @@
               "low_flow_metrics",
               "interval_metrics",
               "probabilistic_score",
-              "probabilistic_skill"
+              "probabilistic_skill",
+              "decision_utility"
             ]
           },
           "inputs": {
