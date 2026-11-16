@@ -2,7 +2,8 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, Capsule, Vec3, chord_collision, co_translating_capsule_capsule_collision,
+    AnalyticPath, Capsule, Vec3, ClockPhaseErrorBounds, chord_collision,
+    co_translating_capsule_capsule_collision, co_translating_capsule_clock_robust_query,
     co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
@@ -231,6 +232,44 @@ fn main() {
         black_box(moving_pair_b_delta),
     )
     .expect("valid co-translating pair query");
+
+    let clock_robust = co_translating_capsule_clock_robust_query(
+        black_box(moving_pair_a),
+        black_box(moving_pair_a_delta),
+        black_box(moving_pair_b),
+        black_box(moving_pair_b_delta),
+        ClockPhaseErrorBounds {
+            moving_phase_error_bound: 0.005,
+            obstacle_phase_error_bound: 0.005,
+        },
+    )
+    .expect("valid clock-robust query");
+    println!(
+        "clock-robust-pair,status,{:?}",
+        clock_robust.status
+    );
+    println!(
+        "clock-robust-pair,phase_displacement_bound_mm,{}",
+        clock_robust.maximum_relative_displacement_mm
+    );
+    println!(
+        "clock-robust-pair,distance_interval_mm,{}..{}",
+        clock_robust.lower_distance_bound_mm,
+        clock_robust.upper_distance_bound_mm
+    );
+    measure("clock-robust-relative-motion-classification", || {
+        co_translating_capsule_clock_robust_query(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+            ClockPhaseErrorBounds {
+                moving_phase_error_bound: 0.005,
+                obstacle_phase_error_bound: 0.005,
+            },
+        )
+        .expect("valid clock-robust query");
+    });
     println!(
         "co-translating-capsules,analytic_collision,{}",
         co_translating_capsule_capsule_collision(
