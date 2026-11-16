@@ -129,6 +129,32 @@ The graph report confirms 15 steps and `structurally_valid_for_external_review=t
 
 Evidence artifact: `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (ID `14204208667`), five files, ZIP SHA-256 `b8fcda86fad54b649148faae8c722970596b3716f3f92c0df26decb070fc0e4c`. It includes the procedure readiness report and SHA-256 bindings for the scenario, L1 result, convergence report, protocol campaign, procedure report and Cargo.lock.
 
+## Procedure evidence-receipt admission
+
+The procedure graph describes what evidence each step needs. The separate `mfb-admit-procedure-evidence` CLI checks a synthetic bundle of those receipts against the exact scenario and procedure version.
+
+It currently enforces:
+- exact procedure ID/version and scenario ID;
+- exact source commit and configuration digest on every receipt;
+- one receipt for every externally-supplied evidence kind, with no unexpected or duplicate kinds/identities;
+- evidence-kind-specific subject binding (package, tote, receiver endpoint, transfer mechanism, grant or scenario);
+- issuer actor existence and allowed actor role for that evidence kind;
+- SHA-256 digest syntax;
+- observation time and expiry against the scenario timestamp and declared clock-uncertainty window.
+
+Run it from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json
+```
+
+The current synthetic bundle contains 14 external evidence envelopes. The admission report explicitly sets `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
+
+This is a structural receipt-admission gate, not a cryptographic verifier. It does not check signatures, revocation, hardware attestation, sensor truth, evidence-source independence or actual physical state. Do not equate an admitted envelope with a trusted observation or authorized actuation. CI archives the raw admission report and hashes it with the other MFB evidence outputs.
+
 ## What it does not prove
 
 The contract validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve general 3D packing, prove safety, or qualify HIL / field performance. The separate L1 simulator executes one reduced-order stationary receiving scene; a valid manifest or successful L1 episode is not a physical safety case or field qualification.
@@ -162,6 +188,10 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-validate-procedure -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
   tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json \
+  tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json
 cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- \
   tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json
 ```
