@@ -1080,7 +1080,6 @@ fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
     );
 }
 
-
 #[test]
 fn wrong_source_stream_for_claim_dependency_is_rejected() {
     let mut change = event!(
