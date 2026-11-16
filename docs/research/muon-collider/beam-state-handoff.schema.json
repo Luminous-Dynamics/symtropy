@@ -1,0 +1,716 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/muon-collider/beam-state-handoff.schema.json",
+  "title": "Muon Collider Beam-State Handoff Envelope",
+  "description": "Metadata and qualification envelope for one species/bunch handoff. Large particle data remain in an immutable external asset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "handoff_id",
+    "stage",
+    "run",
+    "particle",
+    "coordinates",
+    "distribution",
+    "population_ledger",
+    "uncertainty",
+    "qualification",
+    "provenance",
+    "handoff"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "handoff_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stage": {
+      "enum": [
+        "target_capture",
+        "cooling",
+        "bunch_preparation",
+        "pre_acceleration",
+        "acceleration",
+        "collider_ring",
+        "machine_detector_interface",
+        "detector_reconstruction"
+      ]
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "created_utc",
+        "parent_handoff_ids",
+        "seed_set"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "created_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "parent_handoff_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "seed_set": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "scenario_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "particle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pdg_id",
+        "charge_e",
+        "rest_energy_MeV"
+      ],
+      "properties": {
+        "pdg_id": {
+          "type": "integer"
+        },
+        "charge_e": {
+          "type": "number"
+        },
+        "rest_energy_MeV": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "coordinates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "handedness",
+        "reference_plane",
+        "beam_direction",
+        "order",
+        "position_unit",
+        "momentum_unit",
+        "longitudinal_origin"
+      ],
+      "properties": {
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handedness": {
+          "const": "right"
+        },
+        "reference_plane": {
+          "type": "string",
+          "minLength": 1
+        },
+        "beam_direction": {
+          "enum": [
+            "+z",
+            "-z"
+          ]
+        },
+        "order": {
+          "const": [
+            "x",
+            "px",
+            "y",
+            "py",
+            "z",
+            "pz"
+          ]
+        },
+        "position_unit": {
+          "const": "m"
+        },
+        "momentum_unit": {
+          "const": "GeV/c"
+        },
+        "longitudinal_origin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_coordinate_mapping": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "distribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation",
+        "macro_particle_count",
+        "weighted_population",
+        "effective_sample_size",
+        "sampling_method",
+        "independent_sample",
+        "correlations_preserved",
+        "summary"
+      ],
+      "properties": {
+        "representation": {
+          "enum": [
+            "full_distribution",
+            "reduced_distribution",
+            "summary_only"
+          ]
+        },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "uri",
+            "sha256",
+            "format",
+            "byte_length"
+          ],
+          "properties": {
+            "uri": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "format": {
+              "type": "string",
+              "minLength": 1
+            },
+            "byte_length": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "adapter_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "macro_particle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "weighted_population": {
+          "type": "number",
+          "minimum": 0
+        },
+        "effective_sample_size": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sampling_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_sample": {
+          "type": "boolean"
+        },
+        "correlations_preserved": {
+          "type": "boolean"
+        },
+        "ancestry_preserved": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mean_6d",
+            "covariance_6d"
+          ],
+          "properties": {
+            "mean_6d": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "number"
+              }
+            },
+            "covariance_6d": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "array",
+                "minItems": 6,
+                "maxItems": 6,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "emittance_metrics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "definition",
+                  "unit",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "definition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "quantile_metrics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "probability",
+                  "unit",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "probability": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "unit": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "value": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "representation": {
+                "enum": [
+                  "full_distribution",
+                  "reduced_distribution"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "asset"
+            ]
+          }
+        }
+      ]
+    },
+    "population_ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accounting_scope",
+        "input_weighted_count",
+        "generated_weighted_count",
+        "surviving_weighted_count",
+        "losses",
+        "balance_tolerance_relative",
+        "balance_residual_weighted_count"
+      ],
+      "properties": {
+        "accounting_scope": {
+          "enum": [
+            "same_species_transport",
+            "particle_production",
+            "stage_selection",
+            "detector_selection"
+          ]
+        },
+        "input_weighted_count": {
+          "type": "number",
+          "minimum": 0
+        },
+        "generated_weighted_count": {
+          "type": "number",
+          "minimum": 0
+        },
+        "surviving_weighted_count": {
+          "type": "number",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cause",
+              "weighted_count"
+            ],
+            "properties": {
+              "cause": {
+                "enum": [
+                  "decay",
+                  "aperture",
+                  "rf_bucket",
+                  "momentum_acceptance",
+                  "material_interaction",
+                  "deliberate_collimation",
+                  "detector_rejection",
+                  "other_declared",
+                  "unknown"
+                ]
+              },
+              "weighted_count": {
+                "type": "number",
+                "minimum": 0
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "balance_tolerance_relative": {
+          "type": "number",
+          "minimum": 0
+        },
+        "balance_residual_weighted_count": {
+          "type": "number"
+        }
+      }
+    },
+    "source_accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_species_pdg_id",
+        "source_population_weighted_count",
+        "yield_definition"
+      ],
+      "properties": {
+        "source_species_pdg_id": {
+          "type": "integer"
+        },
+        "source_population_weighted_count": {
+          "type": "number",
+          "minimum": 0
+        },
+        "yield_definition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components"
+      ],
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "category",
+              "quantity",
+              "status"
+            ],
+            "properties": {
+              "category": {
+                "enum": [
+                  "monte_carlo",
+                  "numerical",
+                  "model_form",
+                  "input_parameter",
+                  "measurement"
+                ]
+              },
+              "quantity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "quantified",
+                  "bounded",
+                  "unquantified"
+                ]
+              },
+              "central": {
+                "type": "number"
+              },
+              "lower": {
+                "type": "number"
+              },
+              "upper": {
+                "type": "number"
+              },
+              "confidence_level": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "method": {
+                "type": "string"
+              },
+              "reason_unquantified": {
+                "type": "string"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "quantified"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "central",
+                    "lower",
+                    "upper",
+                    "method"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "bounded"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "lower",
+                    "upper",
+                    "method"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unquantified"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "reason_unquantified"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "dependence_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "tier",
+        "validity_domain",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "qualified",
+            "conditional",
+            "rejected",
+            "not_evaluated"
+          ]
+        },
+        "tier": {
+          "enum": [
+            "schema_only",
+            "analytical",
+            "code_to_code",
+            "experimentally_correlated",
+            "independently_replicated"
+          ]
+        },
+        "validity_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded_regimes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_dataset_id",
+        "producer",
+        "producer_version"
+      ],
+      "properties": {
+        "source_dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "producer_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "configuration_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^([0-9a-f]{64})?$"
+        },
+        "toolchain_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "physics_list": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "material_database": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_uri": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptance_status",
+        "reason"
+      ],
+      "properties": {
+        "acceptance_status": {
+          "enum": [
+            "qualified",
+            "conditional",
+            "rejected",
+            "not_evaluated"
+          ]
+        },
+        "downstream_contract_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocked_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
