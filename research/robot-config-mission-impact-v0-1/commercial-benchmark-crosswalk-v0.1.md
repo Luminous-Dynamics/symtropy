@@ -32,6 +32,9 @@ HP's current official product page states a high-accuracy layout tolerance of ±
 
 Sources:
 - HP official product page and conditions/footnotes: https://www.hp.com/us-en/printers/site-print/layout-robot.html
+- HP SitePrint product datasheet, March 2026: https://h20195.www2.hp.com/v2/getpdf.aspx/c08651741.pdf
+
+**Important configuration distinction:** the current HP product page's footnote 1 explicitly states the tighter ±2 mm layout / ±0.8 mm average floor-level figures for the SMR prism + High Accuracy Print Mode + 1-inch total station at 5–30 m. HP's March 2026 datasheet separately lists ±3 mm average print tolerance and ±2 mm average floor-level tolerance at 5–30 m with a 3-inch total station. These are different configurations and must not be combined into a single vendor specification or compared as if they were the same test condition.
 
 Comparison discipline:
 - Reproduce HP's total-station class, prism, print mode and 5–30 m working range for its declared high-accuracy condition.
