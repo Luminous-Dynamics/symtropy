@@ -20,8 +20,7 @@ pub const C_MAX_HARMONICS: usize = 5;
 ///
 /// These coefficients describe a reference waveform only. They are not
 /// individualized, calibrated, or sufficient to identify circadian phase.
-pub const REFERENCE_C_HARMONICS: [f64; C_MAX_HARMONICS] =
-    [0.97, 0.22, 0.07, 0.03, 0.001];
+pub const REFERENCE_C_HARMONICS: [f64; C_MAX_HARMONICS] = [0.97, 0.22, 0.07, 0.03, 0.001];
 
 /// Process-S kinetic parameters. No population defaults are supplied because
 /// wake build-up and sleep decay time constants are individual/model specific.
@@ -34,7 +33,10 @@ pub struct ProcessSParameters {
 }
 
 impl ProcessSParameters {
-    pub fn new(wake_time_constant_hours: f64, sleep_time_constant_hours: f64) -> Result<Self, ModelError> {
+    pub fn new(
+        wake_time_constant_hours: f64,
+        sleep_time_constant_hours: f64,
+    ) -> Result<Self, ModelError> {
         let value = Self {
             wake_time_constant_hours,
             sleep_time_constant_hours,
@@ -91,19 +93,22 @@ impl CircadianParameters {
         period_hours: f64,
         phase_offset_hours: f64,
     ) -> Result<Self, ModelError> {
-        Self::new(
-            period_hours,
-            phase_offset_hours,
-            REFERENCE_C_HARMONICS,
-        )
+        Self::new(period_hours, phase_offset_hours, REFERENCE_C_HARMONICS)
     }
 
     fn validate(self) -> Result<(), ModelError> {
         if !self.period_hours.is_finite()
             || self.period_hours <= 0.0
             || !self.phase_offset_hours.is_finite()
-            || self.harmonics.iter().any(|coefficient| !coefficient.is_finite())
-            || self.harmonics.iter().map(|coefficient| coefficient.abs()).sum::<f64>()
+            || self
+                .harmonics
+                .iter()
+                .any(|coefficient| !coefficient.is_finite())
+            || self
+                .harmonics
+                .iter()
+                .map(|coefficient| coefficient.abs())
+                .sum::<f64>()
                 >= f64::MAX / 2.0
         {
             return Err(ModelError::InvalidCircadianParameters);
@@ -144,10 +149,20 @@ pub enum ModelError {
 impl fmt::Display for ModelError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidInitialProcessS => write!(formatter, "initial Process S must be finite and in [0, 1]"),
-            Self::InvalidProcessSTimeConstants => write!(formatter, "Process S time constants must be finite and greater than zero"),
-            Self::InvalidCircadianParameters => write!(formatter, "circadian period, phase, and harmonic coefficients must be finite; period must be positive"),
-            Self::InvalidElapsedTime => write!(formatter, "elapsed time must be finite and non-negative"),
+            Self::InvalidInitialProcessS => {
+                write!(formatter, "initial Process S must be finite and in [0, 1]")
+            }
+            Self::InvalidProcessSTimeConstants => write!(
+                formatter,
+                "Process S time constants must be finite and greater than zero"
+            ),
+            Self::InvalidCircadianParameters => write!(
+                formatter,
+                "circadian period, phase, and harmonic coefficients must be finite; period must be positive"
+            ),
+            Self::InvalidElapsedTime => {
+                write!(formatter, "elapsed time must be finite and non-negative")
+            }
             Self::NonFiniteState => write!(formatter, "model update produced a non-finite state"),
         }
     }
@@ -386,26 +401,17 @@ mod tests {
         );
     }
 
- 
     #[test]
     fn circadian_phase_is_normalized_without_changing_periodicity() {
-        let normalized = CircadianParameters::new(
-            24.0,
-            27.0,
-            REFERENCE_C_HARMONICS,
-        )
-        .unwrap();
+        let normalized =
+            CircadianParameters::new(24.0, 27.0, REFERENCE_C_HARMONICS).unwrap();
         assert!((normalized.phase_offset_hours - 3.0).abs() < 1.0e-12);
     }
 
     #[test]
     fn non_finite_harmonic_sum_is_rejected_before_model_mutation() {
         assert_eq!(
-            CircadianParameters::new(
-                24.0,
-                0.0,
-                [f64::MAX, f64::MAX, 0.0, 0.0, 0.0],
-            ),
+            CircadianParameters::new(24.0, 0.0, [f64::MAX, f64::MAX, 0.0, 0.0, 0.0],),
             Err(ModelError::InvalidCircadianParameters)
         );
     }
@@ -429,7 +435,19 @@ mod tests {
     #[test]
     fn process_s_remains_bounded_under_extreme_but_finite_intervals() {
         let mut model = model(0.5);
-        assert_eq!(model.advance(1.0e100, SleepWakeState::Wake).unwrap().process_s, 1.0);
-        assert_eq!(model.advance(1.0e100, SleepWakeState::Sleep).unwrap().process_s, 0.0);
+        assert_eq!(
+            model
+                .advance(1.0e100, SleepWakeState::Wake)
+                .unwrap()
+                .process_s,
+            1.0
+        );
+        assert_eq!(
+            model
+                .advance(1.0e100, SleepWakeState::Sleep)
+                .unwrap()
+                .process_s,
+            0.0
+        );
     }
 }
