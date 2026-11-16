@@ -5,7 +5,7 @@
 //! upstream model is correct or that a physical system is safe.
 
 use serde::Serialize;
-use serde_json::{Value, json};
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::process;
@@ -870,6 +870,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn fixture_value() -> Value {
         serde_json::from_str(FIXTURE).expect("embedded fixture JSON")
