@@ -111,3 +111,10 @@ Public corpus validity or synthetic EVSI agreement establishes only arithmetic /
 A forecast's error tolerance must be tied to its action context, not chosen to make the model pass. The new [#5485 usefulness-limit protocol](FOREST_FORECAST_USEFULNESS_LIMIT_V0_1.md) requires a unitful decision tolerance alongside proper-score skill, interval calibration, issuance coverage and block qualification.
 
 For empirical use, the tolerance should be derived from the action-loss function or explicitly approved domain protocol already owned here. A biomass tolerance in Mg C ha⁻¹ cannot be reused for mortality probability, root turnover or recruitment. The forecast-usefulness adapter consumes a declared tolerance and reports the first failing horizon, but does not invent or optimize the real conservation action.
+
+
+## 16 November 2026: observation cadence and disturbance budgets
+
+The new [#5492 observation-cadence benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/5492) estimates how candidate monitoring schedules change a synthetic ecological state estimate by a decision deadline, while accounting for collection-to-availability latency, field effort and ecological disturbance. It emits a cost–uncertainty Pareto frontier rather than declaring one universally optimal sensor frequency.
+
+Posterior variance is only a measurement-information diagnostic. It is not an action value. A candidate cadence must be passed through this issue's action-loss / EVSI contract before any real survey recommendation is made. In particular, a more precise measurement can have zero decision value when it arrives after the action deadline or cannot change the selected action.
