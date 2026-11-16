@@ -44,7 +44,6 @@ fn measure(label: &str, mut operation: impl FnMut()) {
     );
 }
 
-
 const ROBUST_BATCH_SIZE: usize = 50;
 const ROBUST_SAMPLES: usize = 51;
 
@@ -631,9 +630,8 @@ fn main() {
         });
     }
 
-    let guaranteed_moving =
-        Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.75)
-            .expect("valid guaranteed-contact moving capsule");
+    let guaranteed_moving = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.75)
+        .expect("valid guaranteed-contact moving capsule");
     let guaranteed_obstacle =
         Capsule::new(Vec3::new(0.5, 0.0, 0.0), Vec3::new(0.5, 0.0, 0.0), 0.75)
             .expect("valid guaranteed-contact obstacle capsule");
