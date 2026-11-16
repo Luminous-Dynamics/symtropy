@@ -19,7 +19,7 @@
 | `RESOURCE_GRAPH_SCHEMA_v0.2.json` | JSON Schema for evidence-aware resource-process records |
 | `fixtures/water-electrolysis-reference.json` | Synthetic stoichiometric/schema fixture; energy values are illustrative |
 | `kernel/Cargo.toml` | Standalone, dependency-free Rust package with its own workspace |
-| `kernel/src/lib.rs` | Elemental balance, uncertainty handling, evidence validation and nominal resource intensities |
+| `kernel/src/lib.rs` | Elemental balance, uncertainty handling, evidence validation and uncertainty-propagated resource intensities |
 | `kernel/src/pressure.rs` | Single-species ideal-gas compartment reference, prescribed mass transfer and observed-pressure comparison |
 | `kernel/README.md` | Kernel scope, command and limitations |
 
@@ -36,9 +36,8 @@
 - Gross energy and recovered energy reported separately.
 - Feedstock-origin and gross/recovered-energy intensity per kilogram of a nominated product, with first-order uncertainty propagation and separate standard-uncertainty fields.
 - Shared correlation-group terms are carried through ratio derivatives; incomplete measurement uncertainty returns `None` rather than zero.
-- Numerical overflow and non-finite input rejection.
+- Numerical overflow and non-finite input rejection; complete-composition reconciliation and resource-intensity ratio overflow guards.
 - Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
-- Complete-composition reconciliation and non-finite resource-intensity ratio rejection.
 
 ## Validation evidence
 
@@ -67,7 +66,7 @@
 
 1. Add schema-to-Rust deserialization only after choosing a minimal, reviewed serialization dependency policy.
 2. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
-3. Add independent analytical pressure-compartment mass/leak/isolation reference equations.
+3. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 4. Add deterministic synthetic geological fixtures with hidden regions and measurement provenance.
 5. Add ResourceForge test cases comparing an abiotic route, a biological route and a hybrid route on matched product and process boundaries.
 6. Only after these reference cases are reproducible, propose production adapters for `symtropy-terrain`, `symtropy-basin` and robotics interfaces.
