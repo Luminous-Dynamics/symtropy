@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/geobio/resource-process/v0.2",
+  "title": "GeoBio Resource Process Record v0.2",
+  "description": "Evidence-aware record for a bounded material and energy transformation. This records claims; it does not certify physical availability, process safety, product quality, or qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "process_id",
+    "functional_unit",
+    "primary_product_flow_id",
+    "evidence_state",
+    "inputs",
+    "products",
+    "waste_streams",
+    "energy",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "process_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "functional_unit": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primary_product_flow_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_state": {
+      "enum": [
+        "assumed",
+        "modelled",
+        "measured",
+        "independently_reproduced",
+        "qualified_for_declared_envelope"
+      ]
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/materialFlow"
+      }
+    },
+    "products": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/materialFlow"
+      }
+    },
+    "waste_streams": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/materialFlow"
+      }
+    },
+    "energy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gross_consumed_j",
+        "recovered_j"
+      ],
+      "properties": {
+        "gross_consumed_j": {
+          "$ref": "#/$defs/measurement"
+        },
+        "recovered_j": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/measurement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "standard_uncertainty",
+        "correlation_group"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "correlation_group": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Measurements sharing a non-null group are modelled as perfectly correlated for first-order uncertainty propagation in kernel v0.2. Distinct groups and ungrouped measurements are treated as independent. This is an explicit approximation, not a general covariance model."
+        }
+      }
+    },
+    "materialFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow_id",
+        "material_id",
+        "origin",
+        "mass_kg",
+        "composition_complete",
+        "elements"
+      ],
+      "properties": {
+        "flow_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "enum": [
+            "local_measured",
+            "local_inferred",
+            "imported",
+            "recycled",
+            "unknown"
+          ]
+        },
+        "mass_kg": {
+          "$ref": "#/$defs/measurement"
+        },
+        "composition_complete": {
+          "type": "boolean",
+          "description": "True only when all material constituents are represented by the element list. If false, any unlisted element is unknown, not zero."
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "element",
+              "mass_kg"
+            ],
+            "properties": {
+              "element": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mass_kg": {
+                "$ref": "#/$defs/measurement"
+              }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer",
+        "method_id",
+        "observed_at",
+        "input_sha256",
+        "model_sha256",
+        "independent_witness"
+      ],
+      "properties": {
+        "producer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "input_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "model_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "independent_witness": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

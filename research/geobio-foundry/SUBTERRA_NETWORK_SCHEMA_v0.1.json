@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/subterra/cave-network/v0.1",
+  "title": "Subterra Evidence-Preserving Cave Network v0.1",
+  "description": "A graph of cave survey nodes and evidence-qualified links. Candidate and geophysically supported links remain hypotheses. Demonstrated routes require directly observed connectivity and demonstrated traversability. This schema is not a cave map or safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["network_id", "nodes", "edges", "notes"],
+  "properties": {
+    "network_id": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "edge_id",
+          "node_a",
+          "node_b",
+          "length_m",
+          "connection_evidence",
+          "traversability",
+          "direction",
+          "evidence_refs"
+        ],
+        "properties": {
+          "edge_id": { "type": "string", "minLength": 1 },
+          "node_a": { "type": "string", "minLength": 1 },
+          "node_b": { "type": "string", "minLength": 1 },
+          "length_m": { "type": "number", "exclusiveMinimum": 0 },
+          "connection_evidence": {
+            "enum": [
+              "unknown",
+              "candidate",
+              "geophysically_supported",
+              "directly_observed",
+              "contradicted"
+            ]
+          },
+          "traversability": {
+            "enum": [
+              "unknown",
+              "candidate",
+              "demonstrated",
+              "non_traversable",
+              "out_of_domain"
+            ]
+          },
+          "direction": {
+            "enum": ["undirected", "a_to_b", "b_to_a"]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "connection_evidence": { "const": "directly_observed" }
+              },
+              "required": ["connection_evidence"]
+            },
+            "then": {
+              "properties": {
+                "evidence_refs": { "minItems": 1 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "connection_evidence": { "enum": ["candidate", "geophysically_supported"] }
+              },
+              "required": ["connection_evidence"]
+            },
+            "then": {
+              "properties": {
+                "evidence_refs": { "minItems": 1 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "traversability": { "const": "demonstrated" }
+              },
+              "required": ["traversability"]
+            },
+            "then": {
+              "properties": {
+                "connection_evidence": { "const": "directly_observed" },
+                "evidence_refs": { "minItems": 1 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "connection_evidence": { "const": "contradicted" }
+              },
+              "required": ["connection_evidence"]
+            },
+            "then": {
+              "properties": {
+                "traversability": { "not": { "const": "demonstrated" } }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}
