@@ -308,3 +308,53 @@ The other two owner joins are deliberately unresolved:
 - #3605's accepted functional-unit/inspection contract is not yet pinned as a machine-readable owner artifact here; the current layout acceptance profile is a synthetic fixture only.
 
 The validator enforces these nonclaims. It rejects changing either unresolved owner link into a synthetic "receipt" and rejects mission-to-qualification mappings whose declared mission family no longer matches the MIP corpus. Later owner acceptance should replace these explicit unresolved states with exact, revision/digest-pinned references—not reinterpret the current fixture URIs as real owner contracts.
+
+## 20. Verified subgoal transitions: command completion is not mission progress
+
+Long-horizon benchmark evidence motivates a stricter progression contract:
+
+- **LADDER** varies task horizon from 1 to 10 subgoals across 145 tasks and three suites. Its project report finds the direct low-level policy's success falls from 85.4% on single-subgoal tasks to 26.9% on two-subgoal tasks and 0% on five-subgoal tasks in its evaluated setup. Orchestration and visual verification improve results, but physical execution remains a bottleneck; on real WidowX/Franka tasks, reported success differs substantially between the low-level policy, verifier and orchestration systems. These are manipulation benchmark results, not construction performance baselines. https://ladderrobotics.ai/research and https://arxiv.org/abs/2610.18053
+- **MOST / RoboCasa-Long** argues that memory should preserve object-state changes and subtask progress, not merely accumulate longer observation histories. Its reported household-manipulation results are not a construction comparator. https://arxiv.org/abs/2611.00734
+- **RoboCasa-Shift** shows why paired outcome sensitivity and stage diagnostics matter: one camera perturbation changed 8 of 80 paired outcomes despite zero aggregate success-rate change, and equal aggregate degradation from two shifts came from different first-stage failure profiles. It also reports non-monotonic response to increased perturbation severity. https://arxiv.org/abs/2610.27861
+
+### Required stage transition record
+
+For a stage Si, separate:
+
+1. **Intent:** the requested operation and frozen task/configuration revision.
+2. **Preconditions:** the exact state and evidence required before starting.
+3. **Command/attempt:** what the controller or operator requested, with command identity and acknowledgement.
+4. **Observed execution:** telemetry/event traces from declared sources, retaining raw time and arrival order.
+5. **Postcondition:** the externally observable state that must hold for this stage to count as complete.
+6. **Verification:** the competent verifier/referee, method/profile revision, measurement, uncertainty and exact evidence/raw-artifact reference.
+7. **Disposition:** accepted/reached, rejected/failed, blocked, not reached, intentionally skipped by declared policy, aborted or unknown.
+8. **Downstream gate:** whether the next stage may begin, must wait, or must remain held.
+
+A controller's command-accepted, motion-complete, job-finished, self-reported success=true, or elapsed timeout is not sufficient proof of an independently accepted postcondition. Do not promote a stage from unknown to passed because no alarm arrived. If the verifier or evidence path is unavailable, preserve the uncertainty and apply the task's competent hold/abstention policy.
+
+A postcondition can be operationally verified without requiring a separate physical referee for every low-risk intermediate action; the required verifier class is claim/task/profile-specific. Final functional acceptance remains owned by #3605 and physical evidence admissibility by #3522/#3531/#3505. Do not require redundant measurements merely for ceremony, and do not let the robot authorize its own safety-critical release.
+
+### Development comparators
+
+The next benchmark version should compare, on exactly the same generated work packages:
+
+- **C7 — command-only progression:** accept action/command completion as stage completion (intentionally weak diagnostic baseline).
+- **C8 — self-reported telemetry progression:** use the robot's own state estimate/postcondition report.
+- **C9 — evidence-gated progression:** require profile-declared postcondition evidence before marking a stage passed.
+- **C10 — evidence-gated adaptive recovery:** retain task-relevant state/progress through interruption, query only the missing competent observation, then resume or safely abstain.
+
+C7/C8 are diagnostic baselines, not acceptable operational policies. All candidates use the same task, stage definitions, resources and acceptance boundary.
+
+### Additional metrics
+
+- premature stage advancement count;
+- false subgoal completion count and severity;
+- stage command-to-observation and observation-to-acceptance latency;
+- unverified postcondition intervals and unknown-state duration;
+- state/progress reconstruction accuracy after interruption;
+- repeated work and duplicate accepted units after recovery;
+- false resumption on stale configuration, map, frame, calibration or task revision;
+- correct hold/abstention when required verification is unavailable;
+- accepted complete missions and accepted functional units, separately.
+
+A system that increases task throughput by accepting unverified postconditions fails the benchmark's evidence gate regardless of its completion score. No metric combines safety, quality, productivity, energy, crew burden or evidence uncertainty into one compensable scalar.
