@@ -1,0 +1,12 @@
+[package]
+name = "plasma-food-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic, fail-closed process accounting primitives for PFB-1"
+
+# This research crate is intentionally isolated from the main Symtropy package.
+[workspace]
+members = ["."]
+resolver = "3"
