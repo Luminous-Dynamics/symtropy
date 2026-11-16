@@ -17,7 +17,7 @@ It does not compute test likelihoods, posterior beliefs, expected value of infor
 - Completed and in-flight operations are frozen commitments. They may be marked for containment but may not be released for rescheduling.
 - Impacted planned operations must be released for repair/requalification.
 - Unaffected planned operations may remain scheduled; unnecessary releases are measured separately.
-- An observation from the same lineage group as the baseline sensor is not independent evidence.
+- An observation from the same lineage group as the baseline sensor is not independent evidence; different labels also require an explicit independence disposition from the evidence owner.
 - Stale, blocked, unknown, inapplicable or unresolved inspection evidence blocks repair admission.
 - Diagnosis and impact receipts must match the exact episode references.
 - Unknown/duplicate operation identities fail closed.
