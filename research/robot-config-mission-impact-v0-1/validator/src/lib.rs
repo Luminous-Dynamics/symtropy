@@ -801,6 +801,273 @@ pub fn owner_crosswalk_invariants(crosswalk: &Value, corpus: &Value) -> Vec<Stri
     errors
 }
 
+fn string_list_contains(value: &Value, path: &[&str], expected: &str) -> bool {
+    array_at(value, path)
+        .is_some_and(|values| values.iter().any(|item| item.as_str() == Some(expected)))
+}
+
+fn stage_transition_decision(case: &Value) -> (&'static str, &'static str) {
+    let optional = bool_at(case, &["optional_stage"]) == Some(true);
+    let skip_requested = bool_at(case, &["skip_requested"]) == Some(true);
+    let skip_authorized = bool_at(case, &["skip_authorized"]) == Some(true);
+
+    if skip_requested {
+        if optional && skip_authorized {
+            return ("skipped_by_policy", "OPTIONAL_STAGE_SKIP_AUTHORIZED");
+        }
+        return ("held", "MANDATORY_STAGE_SKIP_NOT_AUTHORIZED");
+    }
+
+    if case["duplicate_event_replay_count"].as_u64().unwrap_or(0) > 0
+        && case["accepted_unit_count"].as_u64().unwrap_or(0) > 1
+    {
+        return ("held", "DUPLICATE_ACCEPTED_OUTPUT");
+    }
+
+    if bool_at(case, &["resume_context", "interrupted"]) == Some(true)
+        && bool_at(case, &["resume_context", "resume_requested"]) == Some(true)
+    {
+        if string_at(case, &["resume_context", "prior_configuration_revision"])
+            != string_at(case, &["current_configuration_revision"])
+        {
+            return ("held", "RESUME_CONFIGURATION_MISMATCH");
+        }
+        if string_at(case, &["resume_context", "prior_frame_epoch_ref"])
+            != string_at(case, &["current_frame_epoch_ref"])
+            && string_list_contains(case, &["required_evidence_axes"], "frame_epoch")
+        {
+            return ("held", "RESUME_FRAME_EPOCH_MISMATCH");
+        }
+    }
+
+    let evidence = array_at(case, &["evidence"]).cloned().unwrap_or_default();
+    let required_sources = array_at(case, &["required_source_classes"])
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .collect::<BTreeSet<_>>();
+    let required_config = string_list_contains(
+        case,
+        &["required_evidence_axes"],
+        "configuration_identity",
+    );
+    let required_frame =
+        string_list_contains(case, &["required_evidence_axes"], "frame_epoch");
+    let required_calibration =
+        string_list_contains(case, &["required_evidence_axes"], "calibration");
+    let required_clock = bool_at(case, &["clock_mapping_required"]) == Some(true)
+        || string_list_contains(case, &["required_evidence_axes"], "clock_mapping");
+    let required_raw =
+        string_list_contains(case, &["required_evidence_axes"], "raw_artifact");
+
+    let relevant = evidence
+        .iter()
+        .filter(|item| {
+            item.get("source_class")
+                .and_then(Value::as_str)
+                .is_some_and(|source| required_sources.contains(source))
+        })
+        .collect::<Vec<_>>();
+
+    if relevant.is_empty() {
+        return if evidence.is_empty() {
+            ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE")
+        } else {
+            ("held", "REQUIRED_VERIFIER_EVIDENCE_MISSING")
+        };
+    }
+
+    let current_revision = string_at(case, &["current_configuration_revision"]);
+    let current_frame = string_at(case, &["current_frame_epoch_ref"]);
+    let mut stale_configuration = false;
+    let mut stale_frame = false;
+    let mut expired_calibration = false;
+    let mut unqualified_clock = false;
+    let mut missing_raw = false;
+    let mut eligible_results = Vec::new();
+
+    for item in &relevant {
+        if required_config
+            && string_at(item, &["configuration_revision"]) != current_revision
+        {
+            stale_configuration = true;
+            continue;
+        }
+        if required_frame && string_at(item, &["frame_epoch_ref"]) != current_frame {
+            stale_frame = true;
+            continue;
+        }
+        if required_calibration
+            && string_at(item, &["calibration_status"]) != Some("current")
+        {
+            expired_calibration = true;
+            continue;
+        }
+        if required_clock
+            && string_at(item, &["clock_mapping_status"]) != Some("qualified")
+        {
+            unqualified_clock = true;
+            continue;
+        }
+        if required_raw && !has_nonempty_ref(item.get("raw_artifact_ref")) {
+            missing_raw = true;
+            continue;
+        }
+        if !has_nonempty_ref(item.get("verifier_profile_ref")) {
+            missing_raw = true;
+            continue;
+        }
+        eligible_results.push(string_at(item, &["observation_result"]).unwrap_or("unknown"));
+    }
+
+    if eligible_results.is_empty() {
+        if stale_configuration {
+            return ("held", "STALE_CONFIGURATION_EVIDENCE");
+        }
+        if stale_frame {
+            return ("held", "STALE_FRAME_EVIDENCE");
+        }
+        if expired_calibration {
+            return ("held", "EXPIRED_CALIBRATION_EVIDENCE");
+        }
+        if unqualified_clock {
+            return ("held", "CLOCK_MAPPING_UNQUALIFIED");
+        }
+        if missing_raw {
+            return ("held", "RAW_EVIDENCE_OR_VERIFIER_PROFILE_MISSING");
+        }
+        return ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE");
+    }
+
+    let has_satisfied = eligible_results.contains(&"satisfied");
+    let has_violated = eligible_results.contains(&"violated");
+    if has_satisfied && has_violated {
+        return ("held", "CONFLICTING_POSTCONDITION_EVIDENCE");
+    }
+    if has_violated {
+        return ("failed", "POSTCONDITION_VIOLATED");
+    }
+    if has_satisfied {
+        return ("advance", "POSTCONDITION_VERIFIED");
+    }
+    ("held", "POSTCONDITION_UNKNOWN")
+}
+
+/// Validate the finite public development stage-transition challenge and
+/// oracle. This checks only the declared synthetic policy; it is not a
+/// controller, scheduler, safety mechanism or physical verifier.
+pub fn stage_transition_invariants(
+    stage_catalog: &Value,
+    corpus: &Value,
+    oracle: &Value,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    let Some(stages) = array_at(stage_catalog, &["stages"]) else {
+        return vec!["stage_transition_stage_catalog_missing".to_owned()];
+    };
+    let stage_ids = stages
+        .iter()
+        .filter_map(|stage| string_at(stage, &["stage_id"]))
+        .collect::<BTreeSet<_>>();
+
+    let Some(cases) = array_at(corpus, &["cases"]) else {
+        return vec!["stage_transition_cases_missing".to_owned()];
+    };
+    let Some(labels) = array_at(oracle, &["dispositions"]) else {
+        return vec!["stage_transition_oracle_missing".to_owned()];
+    };
+
+    let mut cases_by_id = BTreeMap::new();
+    for (index, case) in cases.iter().enumerate() {
+        let Some(case_id) = string_at(case, &["case_id"]) else {
+            errors.push(format!("stage_transition_case_id_missing:{index}"));
+            continue;
+        };
+        if cases_by_id.insert(case_id.to_owned(), case).is_some() {
+            errors.push(format!("stage_transition_case_id_duplicate:{case_id}"));
+        }
+        let stage_id = string_at(case, &["stage_id"]).unwrap_or("unknown_stage");
+        if !stage_ids.contains(stage_id) {
+            errors.push(format!("stage_transition_stage_undeclared:{case_id}:{stage_id}"));
+        }
+
+        let criticality = string_at(case, &["stage_criticality"]);
+        let sources = array_at(case, &["required_source_classes"])
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        if criticality == Some("safety_critical") && !sources.contains("independent_referee") {
+            errors.push(format!("stage_transition_safety_stage_lacks_independent_referee:{case_id}"));
+        }
+        if criticality == Some("quality_critical")
+            && !sources.contains("independent_referee")
+            && !sources.contains("referee_measurement")
+        {
+            errors.push(format!("stage_transition_quality_stage_lacks_referee:{case_id}"));
+        }
+
+        let resume_interrupted =
+            bool_at(case, &["resume_context", "interrupted"]) == Some(true);
+        let resume_requested =
+            bool_at(case, &["resume_context", "resume_requested"]) == Some(true);
+        if resume_requested && !resume_interrupted {
+            errors.push(format!("stage_transition_resume_without_interruption:{case_id}"));
+        }
+        if resume_interrupted
+            && (string_at(case, &["resume_context", "prior_configuration_revision"]).is_none()
+                || string_at(case, &["resume_context", "prior_frame_epoch_ref"]).is_none())
+        {
+            errors.push(format!("stage_transition_resume_context_incomplete:{case_id}"));
+        }
+        if bool_at(case, &["skip_requested"]) == Some(true)
+            && bool_at(case, &["optional_stage"]) != Some(true)
+            && bool_at(case, &["skip_authorized"]) == Some(true)
+        {
+            errors.push(format!("stage_transition_mandatory_skip_authorized:{case_id}"));
+        }
+    }
+
+    let mut oracle_by_id = BTreeMap::new();
+    for (index, row) in labels.iter().enumerate() {
+        let Some(case_id) = string_at(row, &["case_id"]) else {
+            errors.push(format!("stage_transition_oracle_case_id_missing:{index}"));
+            continue;
+        };
+        if oracle_by_id.insert(case_id.to_owned(), row).is_some() {
+            errors.push(format!("stage_transition_oracle_case_duplicate:{case_id}"));
+        }
+        if !cases_by_id.contains_key(case_id) {
+            errors.push(format!("stage_transition_oracle_extra_case:{case_id}"));
+        }
+    }
+
+    for (case_id, case) in &cases_by_id {
+        let Some(label) = oracle_by_id.get(case_id) else {
+            errors.push(format!("stage_transition_oracle_missing_case:{case_id}"));
+            continue;
+        };
+        let (actual_disposition, actual_reason) = stage_transition_decision(case);
+        let expected_disposition =
+            string_at(label, &["expected_disposition"]).unwrap_or("invalid");
+        let expected_reason = string_at(label, &["reason_code"]).unwrap_or("invalid");
+        if actual_disposition != expected_disposition || actual_reason != expected_reason {
+            errors.push(format!(
+                "stage_transition_oracle_mismatch:{case_id}:expected={expected_disposition}/{expected_reason}:actual={actual_disposition}/{actual_reason}"
+            ));
+        }
+    }
+    for case_id in oracle_by_id.keys() {
+        if !cases_by_id.contains_key(case_id) {
+            errors.push(format!("stage_transition_oracle_extra_case:{case_id}"));
+        }
+    }
+
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
 pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     let base = root.join("research/robot-config-mission-impact-v0-1");
     let files = [
@@ -836,6 +1103,14 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             "golden-vectors-v0.1.json",
             "schemas/golden-vectors-v0.1.schema.json",
         ),
+        (
+            "stage-transition-challenges-v0.1.json",
+            "schemas/stage-transition-challenges-v0.1.schema.json",
+        ),
+        (
+            "stage-transition-oracle-v0.1.json",
+            "schemas/stage-transition-oracle-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
@@ -862,6 +1137,11 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
         errors.extend(outcome_metric_invariants(&values[4], &values[2]));
         errors.extend(owner_crosswalk_invariants(&values[5], &values[1]));
         errors.extend(generator::distribution_profile_invariants(&values[6]));
+        errors.extend(stage_transition_invariants(
+            &values[0],
+            &values[8],
+            &values[9],
+        ));
         let manifest_schema_path = base.join("schemas/challenge-manifest-v0.1.schema.json");
         match read_json(&manifest_schema_path) {
             Ok(schema) if schema_is_valid(&schema) => {}
@@ -898,6 +1178,8 @@ mod tests {
             "schemas/challenge-distribution-v0.1.schema.json",
             "schemas/challenge-manifest-v0.1.schema.json",
             "schemas/golden-vectors-v0.1.schema.json",
+            "schemas/stage-transition-challenges-v0.1.schema.json",
+            "schemas/stage-transition-oracle-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
@@ -905,6 +1187,119 @@ mod tests {
                 "{name} must satisfy Draft 2020-12"
             );
         }
+    }
+
+    #[test]
+    fn evidence_gated_stage_transition_corpus_matches_public_oracle() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let stages = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("stage-transition-oracle-v0.1.json")).unwrap();
+        assert!(stage_transition_invariants(&stages, &corpus, &oracle).is_empty());
+    }
+
+    #[test]
+    fn command_acknowledgement_and_robot_self_report_do_not_advance_stage() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        let case = &corpus["cases"][0];
+        assert_eq!(
+            stage_transition_decision(case),
+            ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE")
+        );
+        let self_report_only = &corpus["cases"][1];
+        assert_eq!(
+            stage_transition_decision(self_report_only),
+            ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE")
+        );
+    }
+
+    #[test]
+    fn stage_transition_requires_independent_acceptance_and_rejects_stale_evidence() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][3]),
+            ("held", "REQUIRED_VERIFIER_EVIDENCE_MISSING")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][5]),
+            ("held", "STALE_CONFIGURATION_EVIDENCE")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][6]),
+            ("held", "STALE_FRAME_EVIDENCE")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][7]),
+            ("held", "EXPIRED_CALIBRATION_EVIDENCE")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][8]),
+            ("held", "CLOCK_MAPPING_UNQUALIFIED")
+        );
+    }
+
+    #[test]
+    fn interruption_resume_and_duplicate_output_controls_fail_closed() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][12]),
+            ("held", "RESUME_CONFIGURATION_MISMATCH")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][13]),
+            ("held", "DUPLICATE_ACCEPTED_OUTPUT")
+        );
+    }
+
+    #[test]
+    fn verified_postconditions_can_advance_without_command_acknowledgement() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][2]),
+            ("advance", "POSTCONDITION_VERIFIED")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][9]),
+            ("advance", "POSTCONDITION_VERIFIED")
+        );
+    }
+
+    #[test]
+    fn stage_skip_conflict_and_unknown_postcondition_are_not_silently_passed() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][10]),
+            ("skipped_by_policy", "OPTIONAL_STAGE_SKIP_AUTHORIZED")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][11]),
+            ("held", "MANDATORY_STAGE_SKIP_NOT_AUTHORIZED")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][14]),
+            ("held", "CONFLICTING_POSTCONDITION_EVIDENCE")
+        );
+        assert_eq!(
+            stage_transition_decision(&corpus["cases"][15]),
+            ("held", "POSTCONDITION_UNKNOWN")
+        );
+    }
+
+    #[test]
+    fn stage_transition_oracle_coverage_is_exact() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let stages = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        let mut oracle = read_json(&base.join("stage-transition-oracle-v0.1.json")).unwrap();
+        oracle["dispositions"].as_array_mut().unwrap().pop();
+        assert!(stage_transition_invariants(&stages, &corpus, &oracle)
+            .iter()
+            .any(|error| error.starts_with("stage_transition_oracle_missing_case:")));
     }
 
     #[test]
