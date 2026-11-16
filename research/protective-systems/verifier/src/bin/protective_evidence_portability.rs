@@ -263,10 +263,10 @@ fn validate_crate_with_binding(
         .get("byte_length")
         .and_then(Value::as_u64)
         .ok_or_else(|| "E2 binding source envelope byte_length is invalid".to_owned())?;
-    if source_envelope_length != E1_ENVELOPE_SOURCE_BYTES.len() as u64 {
+    if source_envelope_length != E1_SOURCE_ENVELOPE_BYTES.len() as u64 {
         return Err("E2 binding source envelope byte_length differs from the E1 envelope".to_owned());
     }
-    let source_envelope_sha256 = format!("{:x}", Sha256::digest(E1_ENVELOPE_SOURCE_BYTES));
+    let source_envelope_sha256 = format!("{:x}", Sha256::digest(E1_SOURCE_ENVELOPE_BYTES));
     if required_text(source_envelope, "sha256", "E2 binding.source_envelope")?
         != source_envelope_sha256
     {
