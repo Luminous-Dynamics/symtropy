@@ -99,6 +99,16 @@ jobs:
           grep -q '"false_completion_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
           grep -q '"transaction_state": "reconciliation_required"' mfb-l1-evidence/gate-obstruction-fault.json
           cat mfb-l1-evidence/gate-obstruction-fault.json
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault-sweep -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json 30 > mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"requested_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"executed_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"passed_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"failed_run_count": 0' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"all_fault_oracles_passed": true' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"reconciliation_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"blind_retry_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          grep -q '"false_completion_blocked_run_count": 30' mfb-l1-evidence/gate-obstruction-fault-sweep.json
+          cat mfb-l1-evidence/gate-obstruction-fault-sweep.json
           {
             echo "source_sha=${GITHUB_SHA}"
             echo "workflow_run_id=${GITHUB_RUN_ID}"
@@ -140,6 +150,9 @@ jobs:
             echo
             echo "[gate_obstruction_fault_digest]"
             sha256sum mfb-l1-evidence/gate-obstruction-fault.json
+            echo
+            echo "[gate_obstruction_fault_sweep_digest]"
+            sha256sum mfb-l1-evidence/gate-obstruction-fault-sweep.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
