@@ -15,6 +15,7 @@ pub mod crossing_qualification;
 pub mod cytoplasmic_flow;
 pub mod hyphal_graph;
 pub mod hyphal_highway;
+pub mod hyphal_spectroscopy;
 pub mod legacy_accounting;
 pub mod network_evidence;
 pub mod observation_evidence;
