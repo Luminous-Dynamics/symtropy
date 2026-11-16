@@ -307,7 +307,7 @@ The second proof should add an independently checked truss/beam analysis and sim
 - NASA-HDBK-5026 (active), AM strength/fatigue/fracture guidance: https://standards.nasa.gov/node/11897
 - NASA human factors and space architecture: https://www.nasa.gov/reference/jsc-human-factors-performance/
 - Disability-inclusive co-design review (2026): https://doi.org/10.1080/09638288.2026.2723366
-- Sensory stimuli in built environments for autistic people (2026): https://doi.org/10.1016/j.buildenv.2026.114315
+- Sensory stimuli in built environments for autistic people (2026): https://doi.org/10.1016/j.buildenv.2026.114271
 
 ## Decision
 
