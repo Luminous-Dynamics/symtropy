@@ -49,6 +49,7 @@ fn plan() -> ExecutionPlan {
             window: interval(10, 30),
             minimum_samples: 20,
             measurement_profile_sha256: digest('9'),
+            calibration_receipt_sha256: digest('0'),
             time_scale_id: "UTC-SYNTHETIC".into(),
             horizontal_frame_id: "LOCAL-ENU-01".into(),
             vertical_datum_id: "SYNTHETIC-VD-01".into(),
@@ -73,7 +74,11 @@ fn segment(id: &str, sequence: u64, start: i64, end: i64, samples: u64) -> DataS
         window: interval(start, end),
         sample_count: samples,
         payload_sha256: digest('a'),
+        raw_data_manifest_sha256: digest('b'),
+        capture_receipt_sha256: digest('c'),
+        calibration_receipt_sha256: digest('0'),
         measurement_profile_sha256: digest('9'),
+        calibration_receipt_sha256: digest('0'),
         time_scale_id: "UTC-SYNTHETIC".into(),
         horizontal_frame_id: "LOCAL-ENU-01".into(),
         vertical_datum_id: "SYNTHETIC-VD-01".into(),
@@ -525,4 +530,38 @@ fn record_and_segment_permutation_preserves_canonical_assessment() {
     actual.deviations.reverse();
     let actual_result = assess(&expected_plan, &actual).unwrap();
     assert_eq!(actual_result, expected);
+}
+
+
+#[test]
+fn capture_segment_must_bind_the_planned_calibration_receipt() {
+    let mut actual = record();
+    actual.segments[0].calibration_receipt_sha256 = digest('1');
+    let result = assess(&plan(), &actual).unwrap();
+    assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
+    assert!(result.mismatch_dimensions.contains(&MismatchDimension::CalibrationEvidence));
+}
+
+#[test]
+fn segments_for_one_window_must_share_the_exact_raw_data_manifest() {
+    let mut actual = record();
+    let mut second = segment("segment-002", 2, 20, 30, 10);
+    second.raw_data_manifest_sha256 = digest('1');
+    actual.segments = vec![
+        segment("segment-001", 1, 10, 20, 10),
+        second,
+    ];
+    let result = assess(&plan(), &actual).unwrap();
+    assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
+    assert!(result.mismatch_dimensions.contains(&MismatchDimension::RawDataManifest));
+}
+
+#[test]
+fn capture_receipt_digest_is_required_for_every_raw_segment() {
+    let mut actual = record();
+    actual.segments[0].capture_receipt_sha256 = "not-a-digest".into();
+    assert_eq!(
+        assess(&plan(), &actual),
+        Err(ExecutionError::InvalidSegment)
+    );
 }
