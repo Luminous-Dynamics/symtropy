@@ -153,3 +153,8 @@ A passing result qualifies the selector only for the supplied synthetic candidat
 ### Semantic boundary clarification
 
 Controlled flight always requires external authorization; the frozen campaign policy has an explicit `authorization_required_modalities` set and can require it for HIL or other modalities too. For model-form discrimination, the common scenario/measurement contract and explicit pairwise prediction contrasts must match, but competing model outputs are expected to differ; implementation-equivalence receipts are required specifically for cross-implementation comparisons, not as a blanket requirement for physical model hypotheses. The Pareto result's model-family-pair count uses the exact same policy separation floor used for admission.
+
+
+### Gate issuer and payload binding hardening
+
+The frozen selection policy pins exactly one expected issuer namespace for each of the five gate roles (authorization, safety, envelope, independent reference and semantic equivalence). Every structured gate receipt must match that role-specific issuer namespace and the candidate's exact payload-digest reference. A role receipt with no corresponding candidate digest reference is inadmissible, even if its scope fields match. This prevents receipt presence alone or an arbitrary non-empty issuer label from satisfying an affirmative gate. It does not authenticate the issuer or signature; Track Q/Mycelix remains the trust owner.
