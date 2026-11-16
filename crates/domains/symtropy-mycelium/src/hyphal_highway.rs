@@ -134,6 +134,11 @@ pub enum HighwayUnresolvedReason {
     MissingPatchObservation(LiquidPatchId),
     MissingPatchReceipt(ObservationEvidenceId),
     WrongPatchReceiptSubject(ObservationEvidenceId),
+    PatchReceiptReusedAcrossDistinctPatches {
+        receipt: ObservationEvidenceId,
+        first_patch: LiquidPatchId,
+        second_patch: LiquidPatchId,
+    },
     MissingLiquidPatchLink {
         from: LiquidPatchId,
         to: LiquidPatchId,
@@ -350,6 +355,7 @@ impl HyphalHighwayNetwork {
         let mut supporting_links = Vec::with_capacity(transit.path.len() - 1);
         let mut saw_fungus = false;
         let mut saw_oomycete = false;
+        let mut patch_receipt_owners = BTreeMap::<ObservationEvidenceId, LiquidPatchId>::new();
 
         for hop in transit.path.windows(2) {
             let from = hop[0];
@@ -367,6 +373,19 @@ impl HyphalHighwayNetwork {
                         HighwayUnresolvedReason::MissingPatchObservation(patch_id),
                     ));
                 };
+                if let Some(first_patch) =
+                    patch_receipt_owners.insert(observation_id, patch_id)
+                {
+                    if first_patch != patch_id {
+                        return Ok(unresolved(
+                            HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
+                                receipt: observation_id,
+                                first_patch,
+                                second_patch: patch_id,
+                            },
+                        ));
+                    }
+                }
                 let Some(patch_receipt) = receipt_map.get(&observation_id) else {
                     return Ok(unresolved(HighwayUnresolvedReason::MissingPatchReceipt(
                         observation_id,
@@ -825,6 +844,30 @@ mod tests {
             HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::MissingPatchObservation(
                 LiquidPatchId(1)
             ))
+        );
+    }
+
+    #[test]
+    fn one_receipt_cannot_stand_for_two_distinct_liquid_patches() {
+        let (mut network, transit, mut receipts) = fixture(
+            FilamentDomain::TrueFungus,
+            LiquidFilmState::Connected,
+        );
+        network
+            .patches
+            .get_mut(&LiquidPatchId(2))
+            .unwrap()
+            .observation = Some(ObservationEvidenceId(20));
+        receipts.retain(|item| item.id != ObservationEvidenceId(21));
+        assert_eq!(
+            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            HyphalHighwayOutcome::Unresolved(
+                HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
+                    receipt: ObservationEvidenceId(20),
+                    first_patch: LiquidPatchId(1),
+                    second_patch: LiquidPatchId(2),
+                }
+            )
         );
     }
 
