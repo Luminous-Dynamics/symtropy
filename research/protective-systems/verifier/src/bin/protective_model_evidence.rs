@@ -594,7 +594,7 @@ mod tests {
         }
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("license purpose does not cover intended use");
-        assert!(error.contains("unsupported rights status"));
+        assert!(error.contains(".status is unsupported"));
     }
 
     #[test]
