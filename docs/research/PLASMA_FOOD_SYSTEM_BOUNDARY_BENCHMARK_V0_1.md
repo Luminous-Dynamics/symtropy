@@ -217,6 +217,18 @@ HPP, PEF, ultrasound and pulsed light are not universal competitors. They should
 
 A review's energy value from one food and another technology's energy value from a different paper must never be ranked as a head-to-head result. Obtain primary-study boundaries or perform a matched test.
 
+### 7.1 Current industrial reference architectures
+
+The comparison set must acknowledge that continuous food-plasma engineering already exists in the literature:
+
+- A 2024 continuous industrial-scale CAP equipment study describes modular multipin-to-plate modules on a conveyor, ambient-air operation and treatment of irregular produce such as tomatoes. Its own discussion identifies the unresolved challenges: complete surface exposure, arcing, integration into existing line speeds and modular throughput. The article also discloses that two authors have an association with a business that designs, patents and sells similar equipment. Treat it as an important engineering reference, not an independently verified vendor-neutral performance benchmark.
+- A separate 2024 study describes a continuous PAW disinfection system for fresh produce with a non-uniform electrode design, venturi gas-liquid contact and continuous spray/drying. Its economic and antimicrobial claims need primary-data boundary extraction and independent matched replication before being used as comparative scores.
+- A February 2026 Food Control review places the reported field broadly between mid-stage experimental validation (TRL 4–5) and pre-commercial demonstration (TRL 6–7), while identifying matrix-specific optimization, heterogeneous geometry and long-term nutrient interactions as remaining industrialization constraints. This is a review-level sector estimate, not a certification or a universal TRL assigned to every supplier.
+
+The public evidence available for these system descriptions does not provide one comparable throughput/energy/accepted-output dataset across systems. Consequently, PFB-1 should not invent a vendor ranking. Obtain the primary papers and supplementary data, record what is not reported, and invite industry systems to submit the same manifest. For any vendor demonstration, require continuous-feed throughput, uptime, cleaning/changeover, rejection rate, worst-position treatment uniformity, food-quality endpoint, measured auxiliary energy and independent assay evidence.
+
+**Our potential differentiation is qualification quality:** matched incumbent comparisons, whole-system functional units, lot/geometry robustness, measured exposure chemistry, independent replication, full cost/yield and retained negative results. A modular conveyor alone is not a paradigm shift; a repeatable process envelope with verified per-serving value could be.
+
 ## 8. Statistical and evidence contract
 
 - Pre-register primary endpoint, comparator, meaningful-effect threshold, exclusion rules and analysis before confirmatory testing.
