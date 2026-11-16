@@ -245,9 +245,11 @@
       "observation_subject",
       "optional_graph_node_or_segment_target",
       "optional_spatial_uncertainty_um",
-      "human_review_or_adjudication_disposition"
+      "human_review_or_adjudication_disposition",
+      "optional_applied_graph_event_id"
     ],
     "claim_boundary": "Receipt validates traceability, declared calibration and uncertainty fields; it does not establish measurement correctness.",
-    "next_qualification_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5509"
+    "next_qualification_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5509",
+    "digest_policy": "source_file_sha256 and processor_parameters_sha256 must be non-zero SHA-256 values; digest computation/canonical serialization remain future work"
   }
 }
