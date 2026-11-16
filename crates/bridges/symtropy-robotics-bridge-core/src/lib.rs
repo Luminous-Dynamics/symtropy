@@ -4,6 +4,7 @@
 //! Core types and traits for robotic agents in Symtropy.
 
 pub mod agent;
+pub mod construction_qualification;
 pub mod haptic;
 pub mod motor;
 pub mod platform;
