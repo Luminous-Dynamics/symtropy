@@ -1,0 +1,470 @@
+{
+  "schema_version": "robot-config-mission-impact-development-oracle-v0.1",
+  "benchmark_id": "ROBOT-CONFIG-MISSION-IMPACT-001",
+  "visibility": "public_development_oracle_not_hidden_holdout",
+  "oracle_note": "Expected stage and mission labels are authored development fixtures. They are not physical outcomes, blind challenge labels or evidence of robot performance.",
+  "dispositions": [
+    {
+      "pair_id": "MIP-001",
+      "source_mission_status": "accepted",
+      "target_mission_status": "held",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S03",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "failed"
+        ],
+        [
+          "S04",
+          "not_reached"
+        ],
+        [
+          "S05",
+          "not_reached"
+        ],
+        [
+          "S06",
+          "not_reached"
+        ],
+        [
+          "S07",
+          "not_reached"
+        ],
+        [
+          "S08",
+          "not_reached"
+        ],
+        [
+          "S09",
+          "not_reached"
+        ],
+        [
+          "S10",
+          "not_reached"
+        ]
+      ],
+      "failure_progression": [
+        "frame_registration_residual",
+        "localization_update_rejected",
+        "mission_output_held"
+      ],
+      "reason": "New camera serial lacks transferred calibration; the first observed mission divergence is reference-frame registration."
+    },
+    {
+      "pair_id": "MIP-002",
+      "source_mission_status": "accepted",
+      "target_mission_status": "rejected",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S06",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "passed"
+        ],
+        [
+          "S05",
+          "passed"
+        ],
+        [
+          "S06",
+          "failed"
+        ],
+        [
+          "S07",
+          "completed_with_deviation"
+        ],
+        [
+          "S08",
+          "rejected"
+        ],
+        [
+          "S09",
+          "completed"
+        ],
+        [
+          "S10",
+          "reconciled"
+        ]
+      ],
+      "failure_progression": [
+        "tcp_residual_exceeds_profile",
+        "operation_completed",
+        "independent_quality_outside_acceptance"
+      ],
+      "reason": "Changed tool geometry produces a TCP deviation before operation and a rejected final output; the base-only stages remain passed."
+    },
+    {
+      "pair_id": "MIP-003",
+      "source_mission_status": "accepted",
+      "target_mission_status": "aborted_safe_hold",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S07",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "passed"
+        ],
+        [
+          "S05",
+          "passed"
+        ],
+        [
+          "S06",
+          "passed"
+        ],
+        [
+          "S07",
+          "aborted_safe_hold"
+        ],
+        [
+          "S08",
+          "not_reached"
+        ],
+        [
+          "S09",
+          "safe_hold"
+        ],
+        [
+          "S10",
+          "unknown"
+        ]
+      ],
+      "failure_progression": [
+        "energy_measurement_below_required_reserve",
+        "controlled_safe_hold_recorded",
+        "mission_outcome_unresolved"
+      ],
+      "reason": "The target battery health/capacity evidence is missing; the synthetic event trace reaches a safe hold during operation."
+    },
+    {
+      "pair_id": "MIP-004",
+      "source_mission_status": "accepted",
+      "target_mission_status": "held",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S04",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "completed_with_deviation"
+        ],
+        [
+          "S05",
+          "failed"
+        ],
+        [
+          "S06",
+          "not_reached"
+        ],
+        [
+          "S07",
+          "not_reached"
+        ],
+        [
+          "S08",
+          "not_reached"
+        ],
+        [
+          "S09",
+          "recovery_attempted"
+        ],
+        [
+          "S10",
+          "held"
+        ]
+      ],
+      "failure_progression": [
+        "slip_events_observed",
+        "base_pose_residual_exceeds_profile",
+        "mission_output_held"
+      ],
+      "reason": "Drive replacement is associated with navigation slip and failed base-pose acceptance in the synthetic trace; causal traction analysis remains separate."
+    },
+    {
+      "pair_id": "MIP-005",
+      "source_mission_status": "accepted",
+      "target_mission_status": "unresolved",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S08",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "passed"
+        ],
+        [
+          "S05",
+          "passed"
+        ],
+        [
+          "S06",
+          "passed"
+        ],
+        [
+          "S07",
+          "completed"
+        ],
+        [
+          "S08",
+          "unknown"
+        ],
+        [
+          "S09",
+          "not_reached"
+        ],
+        [
+          "S10",
+          "unknown"
+        ]
+      ],
+      "failure_progression": [
+        "event_time_arrival_time_conflict",
+        "temporal_reconciliation_unknown",
+        "mission_output_unresolved"
+      ],
+      "reason": "The task executes, but the changed timebase prevents admissible temporal reconciliation of acceptance evidence."
+    },
+    {
+      "pair_id": "MIP-006",
+      "source_mission_status": "accepted",
+      "target_mission_status": "accepted_after_reinspection",
+      "aggregate_mission_success_changed": false,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S05",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "passed"
+        ],
+        [
+          "S05",
+          "completed_with_reduced_margin"
+        ],
+        [
+          "S06",
+          "passed"
+        ],
+        [
+          "S07",
+          "completed_with_intervention"
+        ],
+        [
+          "S08",
+          "accepted_after_reinspection"
+        ],
+        [
+          "S09",
+          "completed"
+        ],
+        [
+          "S10",
+          "reconciled"
+        ]
+      ],
+      "failure_progression": [
+        "base_pose_margin_reduced",
+        "operation_intervention",
+        "reinspection_required"
+      ],
+      "reason": "Aggregate mission acceptance is unchanged, but the matched pair is outcome-sensitive at the stage/effort level; this is the required zero-delta aggregate positive control."
+    },
+    {
+      "pair_id": "MIP-007",
+      "source_mission_status": "accepted",
+      "target_mission_status": "not_run_target_hold",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": "S06",
+      "attribution_status": "stage_localized_not_root_cause",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "passed"
+        ],
+        [
+          "S03",
+          "passed"
+        ],
+        [
+          "S04",
+          "passed"
+        ],
+        [
+          "S05",
+          "passed"
+        ],
+        [
+          "S06",
+          "blocked_missing_commissioning_evidence"
+        ],
+        [
+          "S07",
+          "not_reached"
+        ],
+        [
+          "S08",
+          "not_reached"
+        ],
+        [
+          "S09",
+          "safe_hold"
+        ],
+        [
+          "S10",
+          "unknown"
+        ]
+      ],
+      "failure_progression": [
+        "safety_chain_revision_detected",
+        "required_commissioning_evidence_absent",
+        "controlled_hold_disposition"
+      ],
+      "reason": "The synthetic target is not run beyond the missing commissioning evidence; no powered fault injection or safety-function degradation is represented."
+    },
+    {
+      "pair_id": "MIP-008",
+      "source_mission_status": "accepted",
+      "target_mission_status": "unknown_blocked",
+      "aggregate_mission_success_changed": true,
+      "paired_outcome_sensitive": true,
+      "first_observed_divergence_stage": null,
+      "attribution_status": "unlocalized_unknown",
+      "target_stage_status": [
+        [
+          "S01",
+          "passed"
+        ],
+        [
+          "S02",
+          "unknown"
+        ],
+        [
+          "S03",
+          "unknown"
+        ],
+        [
+          "S04",
+          "unknown"
+        ],
+        [
+          "S05",
+          "unknown"
+        ],
+        [
+          "S06",
+          "unknown"
+        ],
+        [
+          "S07",
+          "not_run"
+        ],
+        [
+          "S08",
+          "not_run"
+        ],
+        [
+          "S09",
+          "not_run"
+        ],
+        [
+          "S10",
+          "unknown"
+        ]
+      ],
+      "failure_progression": [
+        "module_identity_unresolved",
+        "dependency_scope_incomplete",
+        "candidate_execution_not_admitted"
+      ],
+      "reason": "The unknown module prevents a justified stage attribution; the benchmark must not guess a failure stage or preserve mission claims optimistically."
+    }
+  ],
+  "nonclaims": [
+    "All target/source statuses and stage traces are invented fixture labels.",
+    "First observed divergence is not causal root-cause proof.",
+    "An accepted synthetic mission does not imply physical capability, safety, qualification or dispatch authority.",
+    "A held, rejected or unknown synthetic mission does not prove that a real target configuration is unsafe."
+  ]
+}
