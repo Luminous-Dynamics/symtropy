@@ -375,7 +375,7 @@ pub fn render_report_json() -> Result<String, String> {
             "    \"The total-cross-section interaction count is a rate proxy, not detector-accepted pile-up. The paper's rounded approximately 1e6 events/crossing implies a smaller effective process cross section than the 283 mb burn-off cross section; keep those meanings separate.\",\n",
             "    \"The beam-beam tune shift xi=0.06 is an assumed parameter extrapolated in the paper, not independently qualified proton-beam stability. Sensitivity rows are arithmetic only.\",\n",
             "    \"Burn-off lifetime excludes other loss mechanisms. Annual integrated luminosity assumes the stated scheduled time, availability and effective luminosity fraction.\",\n",
-            "    \"The synchrotron-radiation loss per turn is computed from the paper's stated per-beam power and beam current.\",\n",
+            "    \"The synchrotron-radiation loss per turn is computed from the paper's stated per-beam power and beam current.\"\n",
             "  ],\n",
             "  \"claim_ceiling\": \"arithmetic closure of the declared literature reference parameters only; no beam dynamics, tune-shift validation, detector, magnet, RF, orbital, physical or construction qualification\"\n",
             "}}"
