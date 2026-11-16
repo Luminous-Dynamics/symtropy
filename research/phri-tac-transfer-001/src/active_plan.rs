@@ -528,7 +528,7 @@ mod tests {
 
         assert_eq!(
             plan.excluded_candidate_reasons["expired"],
-            "REFERENCE_NOT_CURRENT"
+            "REFERENCE_NOT_CURRENT_AND_INDEPENDENT"
         );
         assert_eq!(
             plan.excluded_candidate_reasons["unresolved"],
