@@ -1,7 +1,7 @@
 {
   "events": [
     {
-      "schemaURL": "https://openlineage.io/spec/2-0-0/OpenLineage.json#/definitions/RunEvent",
+      "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent",
       "producer": "https://example.invalid/luminous-e3-adapter-fixture",
       "run": {
         "runId": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
@@ -37,7 +37,7 @@
       "eventTime": "2026-11-16T10:00:00.000Z"
     },
     {
-      "schemaURL": "https://openlineage.io/spec/2-0-0/OpenLineage.json#/definitions/RunEvent",
+      "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent",
       "producer": "https://example.invalid/luminous-e3-adapter-fixture",
       "run": {
         "runId": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
