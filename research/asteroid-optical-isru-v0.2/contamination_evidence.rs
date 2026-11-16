@@ -22,8 +22,6 @@
 use std::error::Error;
 use std::fmt;
 
-const VALUE_TOLERANCE: f64 = 1.0e-12;
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CalibrationEligibility {
     EligibleAtMeasurementTime,
@@ -35,7 +33,7 @@ pub enum CalibrationEligibility {
 pub enum ChangeDisposition {
     DecreaseEstablished,
     IncreaseEstablished,
-    NoChangeResolved,
+    NotDistinguishedFromZero,
     IndeterminateWithinUncertainty,
 }
 
@@ -188,14 +186,14 @@ fn assess_change(
     let bound = multiplier * (baseline_uncertainty + current_uncertainty);
     let lower = raw_change - bound;
     let upper = raw_change + bound;
-    let disposition = if lower > VALUE_TOLERANCE {
+    let disposition = if lower > 0.0 {
         ChangeDisposition::IncreaseEstablished
-    } else if upper < -VALUE_TOLERANCE {
+    } else if upper < 0.0 {
         ChangeDisposition::DecreaseEstablished
-    } else if lower >= -VALUE_TOLERANCE && upper <= VALUE_TOLERANCE {
-        ChangeDisposition::NoChangeResolved
     } else {
-        ChangeDisposition::IndeterminateWithinUncertainty
+        // An interval that includes zero does not establish either change
+        // direction; it is not evidence that no change occurred.
+        ChangeDisposition::NotDistinguishedFromZero
     };
 
     ChangeAssessment {
@@ -366,7 +364,7 @@ mod tests {
         let qcm_result = compare_qcm_deposition(&qcm(10, 1.0e-8, 1.0e-10), &qcm(20, 1.0e-8, 1.0e-10), 2.0, 1.0, 1.0).unwrap();
         let witness_result = compare_optical_witness(&witness(10, 0.98, 0.001), &witness(20, 0.90, 0.001), 2.0, 1.0, 1.0).unwrap();
 
-        assert_eq!(qcm_result.disposition, ChangeDisposition::NoChangeResolved);
+        assert_eq!(qcm_result.disposition, ChangeDisposition::NotDistinguishedFromZero);
         assert_eq!(witness_result.disposition, ChangeDisposition::DecreaseEstablished);
     }
 
