@@ -531,7 +531,11 @@
           4,
           6
         ],
-        "denominator_tolerance": 1e-12
+        "denominator_tolerance": 1e-12,
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-catchment-event-window-001",
+        "lead_time_hours": 24
       }
     },
     {
@@ -549,7 +553,11 @@
           4,
           4
         ],
-        "denominator_tolerance": 1e-12
+        "denominator_tolerance": 1e-12,
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-catchment-event-window-001",
+        "lead_time_hours": 24
       }
     },
     {
@@ -605,6 +613,70 @@
             "upper_bound": 5
           }
         ]
+      }
+    },
+    {
+      "case_id": "HC-T0-038-weighted-interval-duplicate-alpha-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "observed": 5,
+        "median_forecast": 4,
+        "intervals": [
+          {
+            "alpha": 0.2,
+            "lower_bound": 1,
+            "upper_bound": 7
+          },
+          {
+            "alpha": 0.2,
+            "lower_bound": 2,
+            "upper_bound": 6
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-039-crpss-invalid-forecast-identity-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "observed": 4,
+        "model_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_members": [
+          2,
+          4,
+          6
+        ],
+        "model_forecast_id": "same-forecast",
+        "reference_forecast_id": "same-forecast",
+        "verification_population_id": "synthetic-event-002",
+        "lead_time_hours": 24,
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-040-crpss-negative-lead-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "observed": 4,
+        "model_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_members": [
+          2,
+          4,
+          6
+        ],
+        "model_forecast_id": "model-flow-v0.1",
+        "reference_forecast_id": "seasonal-climatology-v0.1",
+        "verification_population_id": "synthetic-event-003",
+        "lead_time_hours": -1,
+        "denominator_tolerance": 1e-12
       }
     }
   ]
