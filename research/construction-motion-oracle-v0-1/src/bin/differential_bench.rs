@@ -9,7 +9,7 @@ use construction_motion_oracle::{
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
     swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
-}
+};
 
 const BATCH_SIZE: usize = 10_000;
 const SAMPLES: usize = 101;
