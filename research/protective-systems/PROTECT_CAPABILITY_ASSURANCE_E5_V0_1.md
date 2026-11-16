@@ -4,7 +4,7 @@
 **Owner:** PROTECT-CAPABILITY-ASSURANCE-001 #5710  
 **Branch:** `research/protect-capability-assurance-e5-v0-1`  
 **Parent:** E4 typed semantic projections #5643 / PR #5708  
-**Status:** synthetic capability graph, JSON Schema, Rust impact/requalification oracle and 23 tests written; exact-head Rust execution pending
+**Status:** synthetic capability graph, JSON Schema, Rust impact/requalification oracle and 24 tests written; exact-head Rust execution pending
 
 ## 1. Paradigm shift
 
