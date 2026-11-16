@@ -231,6 +231,19 @@
       }
     },
     {
+      "id": "synthetic-solar-image-100km-2p7au",
+      "evidence_class": "synthetic_analytic_screen",
+      "expected_disposition": "PASS_HELIOCENTRIC_GEOMETRY_ONLY",
+      "note": "The solar angular diameter decreases inversely with heliocentric distance; this is a geometric focal-image screen, not a collector or asteroid thermal-process model.",
+      "source_id": null,
+      "conditions": {
+        "reference_solar_angular_diameter_at_1au_rad": 0.0093,
+        "heliocentric_distance_au": 2.7,
+        "mirror_to_target_range_m": 100000,
+        "expected_solar_image_diameter_m": 344.44444444444446
+      }
+    },
+    {
       "id": "synthetic-laser-diffraction-1km",
       "evidence_class": "synthetic_analytic_screen",
       "expected_disposition": "PASS_DIFFRACTION_SCREEN_ONLY",
