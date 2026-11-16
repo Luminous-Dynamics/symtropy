@@ -1793,7 +1793,10 @@ mod adaptive_certificate_tests {
             config(),
         )
         .unwrap();
-        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        assert_eq!(
+            certificate.report.status,
+            AdaptiveCollisionStatus::NoContact
+        );
         assert_eq!(certificate.leaves.len(), 1);
         assert!(matches!(
             certificate.leaves[0].disposition,
