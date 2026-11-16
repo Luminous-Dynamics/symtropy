@@ -51,7 +51,7 @@ fn run() -> Result<i32, String> {
     let count = result["result_count"].as_u64().unwrap_or(0);
     let matched = result["matched_case_count"].as_u64().unwrap_or(0);
     let success =
-        count == 32 && matched == 32 && result["mismatches"].as_array().is_some_and(Vec::is_empty);
+        count == 37 && matched == 37 && result["mismatches"].as_array().is_some_and(Vec::is_empty);
     let raw_revision = env::var("HYDRO_CONTEXTUAL_T0_REVISION")
         .or_else(|_| env::var("GITHUB_SHA"))
         .ok();
