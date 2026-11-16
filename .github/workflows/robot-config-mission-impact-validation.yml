@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - research/robot-config-mission-impact-v0-1
+      - research/robot-stochastic-challenge-generator-v0-1
     paths:
       - "research/robot-config-mission-impact-v0-1/**"
       - ".github/workflows/robot-config-mission-impact-validation.yml"
   pull_request:
-    branches: [main]
+    branches: [main, research/robot-config-mission-impact-v0-1]
     paths:
       - "research/robot-config-mission-impact-v0-1/**"
       - ".github/workflows/robot-config-mission-impact-validation.yml"
@@ -42,12 +43,21 @@ jobs:
         run: cargo test --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked --all-targets
       - name: Run deterministic package validator
         run: cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked
+      - name: Generate deterministic public development challenge manifest
+        shell: bash
+        run: |
+          cargo run --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked -- generate \
+            --seed 0123456789abcdef \
+            --count 128 \
+            --output "$RUNNER_TEMP/robot-mission-impact-challenges.json"
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/robot-config-mission-impact-v0-1/validator/Cargo.toml --locked --all-targets -- -D warnings
-      - name: Export resolved Cargo lockfile for review
+      - name: Export lockfile and generated manifest for review
         uses: actions/upload-artifact@v4
         with:
-          name: robot-mission-impact-lock-${{ matrix.os }}
-          path: research/robot-config-mission-impact-v0-1/validator/Cargo.lock
+          name: robot-mission-impact-evidence-${{ matrix.os }}
+          path: |
+            research/robot-config-mission-impact-v0-1/validator/Cargo.lock
+            ${{ runner.temp }}/robot-mission-impact-challenges.json
           if-no-files-found: error
           retention-days: 7
