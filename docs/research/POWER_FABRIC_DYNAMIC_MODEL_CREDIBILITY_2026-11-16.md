@@ -51,7 +51,7 @@ The implication is not “build one giant Symtropy solver.” It is “make the 
 | Search and experiment choice | Symthaea #10119 / #10143 / #10151 and relevant research owners | Generate candidate studies and rank experiments; never self-certify |
 | Provenance / authorization | Mycelix identity, supply-chain and manufacturing owners | Bind source, material, asset and review provenance; signatures are not proof of physical truth |
 
-Current Symtropy root workspace inspection (16 November 2026) found the N-dimensional rigid-body core and existing EM/physics research owners, but no dedicated power/electrical domain crate at the checked paths. Keep electrical-network and specialist field solvers outside the rigid-body core.
+The public Symtropy mainline remains centered on the N-dimensional rigid-body core and existing EM/physics owners. A separate `symtropy-energy-systems` crate is proposed in draft PR #3401, with compatibility and ServiceGraph work stacked in draft PRs #5182 and #5188; those branches are not yet merged into mainline. This proposal composes with that crate and its typed ports rather than creating a competing power crate. Keep electrical-network and specialist field solvers outside the rigid-body core.
 
 ## 4. Proposed data contracts
 
