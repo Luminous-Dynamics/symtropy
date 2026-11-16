@@ -1,0 +1,949 @@
+{
+  "schema_version": "luminous.human_observation_scenarios/0.1.0",
+  "status": "synthetic_fixture_specification_only",
+  "generated_on": "2026-11-16",
+  "time_unit": "seconds",
+  "observation_interface_visibility": "estimator_only",
+  "latent_truth_visibility": "scorer_only",
+  "default_world": {
+    "kind": "synthetic_sinusoid",
+    "duration_s": 21600,
+    "parameters": {
+      "offset": 0.5,
+      "amplitude": 0.25,
+      "period_s": 7200,
+      "phase_rad": 0
+    },
+    "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+    "unit": "arbitrary_unit",
+    "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+  },
+  "seed_policy": "Each scenario has a fixed seed derived from its scenario_id in the eventual generator; the concrete seed derivation algorithm must be versioned before implementation.",
+  "claim_ceiling": "These are arbitrary-unit mathematical fixtures, not human measurements, physiology parameters, or validation evidence.",
+  "scenarios": [
+    {
+      "scenario_id": "HOBS-00",
+      "name": "Clean complete regular stream",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-clean-00",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "One delivered observation exists for each capture tick.",
+        "Observed values equal the declared sensor transfer function.",
+        "The full-observation adapter is a reference upper bound, not a deployment baseline."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-01",
+      "name": "Irregular capture cadence with bounded jitter",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-jitter-01",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "jittered_periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 10
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Capture timestamps remain strictly increasing.",
+        "State propagation uses physical elapsed time, not sample count.",
+        "A fixed seed reproduces the same capture schedule."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-02",
+      "name": "MCAR iid dropout plus independent scheduled sensor outage",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-mcar-02",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "composed_independent_processes",
+            "processes": [
+              {
+                "kind": "mcar_iid",
+                "probability": 0.1,
+                "dependency": "independent_of_observed_and_latent_world"
+              },
+              {
+                "kind": "exogenous_sensor_outage",
+                "intervals_s": [
+                  [
+                    7200,
+                    7800
+                  ]
+                ],
+                "dependency": "scheduled_independent_of_signal"
+              }
+            ]
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "MCAR iid missing events are independent of observed and latent signal values under this generator.",
+        "The fixed outage interval is labelled as an independent sensor outage, not as MCAR.",
+        "Each missing event carries no numeric measurement and no measurement likelihood.",
+        "Prior dynamics may advance without a measurement according to physical model time."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-03",
+      "name": "MAR activity-linked artefact",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter.",
+        "covariates": {
+          "activity_proxy": "0.5 + 0.5*sin(2*pi*t/1800)"
+        }
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-mar-03",
+          "modality": "synthetic_scalar_with_motion_quality",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "gaussian_additive",
+            "standard_deviation": 0.04,
+            "trigger": {
+              "quantity": "activity_proxy",
+              "operator": ">",
+              "threshold": 0.7,
+              "additional_standard_deviation": 0.2
+            }
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "mar_threshold",
+            "probability": 0.35,
+            "dependency": {
+              "quantity": "activity_proxy",
+              "operator": ">",
+              "threshold": 0.7,
+              "visibility": "observed_covariate"
+            }
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Missingness and motion-related noise depend only on the declared observed covariate.",
+        "The covariate and target signal remain separate measurement channels.",
+        "An estimator may use the covariate but must not receive hidden truth."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-04",
+      "name": "MNAR latent-state-dependent dropout",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-mnar-04",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "mnar_threshold",
+            "probability": 0.4,
+            "dependency": {
+              "quantity": "latent_signal",
+              "operator": ">",
+              "threshold": 0.65,
+              "visibility": "latent_truth_only"
+            }
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Dropout probability depends on latent signal unavailable to the estimator.",
+        "The missingness mechanism is retained in scorer-only metadata.",
+        "Calibration from the clean or MCAR scenario is not assumed to transfer."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-05",
+      "name": "Sensor bias and slow calibration drift",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-drift-05",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "gaussian_additive",
+            "standard_deviation": 0.01
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0.02
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Bias drift is generated by sensor state, not by changing latent truth.",
+        "The calibration profile and version are recorded.",
+        "A latent-state estimator must not silently absorb sensor bias as physiology."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-06",
+      "name": "Quantisation, clipping and saturation",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-quant-06",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": 0.1,
+          "clipping": {
+            "minimum": 0.3,
+            "maximum": 0.7
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Quantisation and clipping are applied after the sensor transfer function.",
+        "Saturated values retain a censored/saturated status.",
+        "Clipped observations are not treated as exact latent values."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-07",
+      "name": "Capture-clock offset and drift",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-clock-07",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_07",
+            "offset_s": 12,
+            "drift_ppm": 200
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Raw sensor-clock time and the clock transform are both retained.",
+        "Clock offset/drift does not alter the physical world's latent trajectory.",
+        "Clock uncertainty is not relabelled as biological phase uncertainty."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-08",
+      "name": "Delayed availability and stale observations",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-delay-08",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 600,
+        "latency_jitter_s": 30,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "decision_cutoffs_s": [
+        7200,
+        14400,
+        21600
+      ],
+      "expected_invariants": [
+        "Only events available by the declared decision cutoff can be assimilated.",
+        "Observation age at use is measured from capture time.",
+        "A late packet cannot retroactively alter an earlier decision snapshot."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-09",
+      "name": "Packet loss, duplication and reordering",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-packet-09",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 5,
+        "latency_jitter_s": 20,
+        "packet_loss_probability": 0.03,
+        "duplicate_probability": 0.05,
+        "reorder_probability": 0.08,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Packet identity is stable across duplicate deliveries.",
+        "Duplicate packets do not create a second physical observation update.",
+        "Out-of-order events follow an explicit late-data disposition."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-10",
+      "name": "Common-cause power outage and shared calibration failure",
+      "world": {
+        "kind": "synthetic_sinusoid",
+        "duration_s": 21600,
+        "parameters": {
+          "offset": 0.5,
+          "amplitude": 0.25,
+          "period_s": 7200,
+          "phase_rad": 0
+        },
+        "equation": "x(t) = offset + amplitude * sin(2*pi*t/period_s + phase_rad)",
+        "unit": "arbitrary_unit",
+        "note": "Mathematical fixture only; not a physiological variable or calibrated human parameter."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-common-a",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": "power-domain-A"
+        },
+        {
+          "sensor_id": "sensor-common-b",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_signal",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1.05,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": "power-domain-A"
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": [
+          [
+            10800,
+            12600
+          ]
+        ]
+      },
+      "expected_invariants": [
+        "Both channels fail during the declared shared outage.",
+        "The two channels are not counted as independent confirmation during common-cause failure.",
+        "Shared calibration lineage remains visible to the scorer."
+      ]
+    },
+    {
+      "scenario_id": "HOBS-11",
+      "name": "Observationally indistinguishable latent worlds",
+      "world": {
+        "kind": "two_latent_sum",
+        "duration_s": 21600,
+        "observation_equation": "y(t) = latent_a(t) + latent_b(t)",
+        "unit": "arbitrary_unit",
+        "variants": [
+          {
+            "variant_id": "world-A",
+            "latent_a": {
+              "constant": 1
+            },
+            "latent_b": {
+              "constant": 0
+            }
+          },
+          {
+            "variant_id": "world-B",
+            "latent_a": {
+              "constant": 0
+            },
+            "latent_b": {
+              "constant": 1
+            }
+          }
+        ],
+        "note": "The sensor observes only the sum; the two latent histories differ but produce identical observations."
+      },
+      "sensors": [
+        {
+          "sensor_id": "sensor-mixture-11",
+          "modality": "synthetic_scalar",
+          "quantity": "latent_a_plus_latent_b",
+          "unit": "arbitrary_unit",
+          "placement": "not_applicable",
+          "sampling": {
+            "kind": "periodic",
+            "cadence_s": 60,
+            "jitter_bound_s": 0
+          },
+          "noise": {
+            "kind": "none",
+            "standard_deviation": 0
+          },
+          "calibration": {
+            "gain": 1,
+            "bias": 0,
+            "bias_drift_per_hour": 0
+          },
+          "quantization_step": null,
+          "clipping": {
+            "minimum": null,
+            "maximum": null
+          },
+          "missingness": {
+            "kind": "none",
+            "probability": 0,
+            "dependency": null
+          },
+          "clock": {
+            "clock_domain": "sensor_clock_v1",
+            "offset_s": 0,
+            "drift_ppm": 0
+          },
+          "common_cause_group": null
+        }
+      ],
+      "transport": {
+        "base_latency_s": 0,
+        "latency_jitter_s": 0,
+        "packet_loss_probability": 0,
+        "duplicate_probability": 0,
+        "reorder_probability": 0,
+        "outage_intervals_s": []
+      },
+      "expected_invariants": [
+        "Observation streams for world-A and world-B are byte-identical.",
+        "The estimator cannot uniquely identify latent_a and latent_b from this stream.",
+        "A calibrated result must express ambiguity or abstain rather than return unsupported certainty."
+      ]
+    }
+  ]
+}
