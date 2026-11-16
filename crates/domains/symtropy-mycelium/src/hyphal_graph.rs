@@ -1276,6 +1276,129 @@ mod tests {
         assert!(!graph.has_active_path(NodeId(1), NodeId(2)));
     }
 
+    fn oracle_active_component_count(
+        node_count: usize,
+        edges: &[(u64, usize, usize)],
+        removed_edge: Option<u64>,
+        removed_node: Option<usize>,
+    ) -> usize {
+        let mut adjacency = vec![Vec::<usize>::new(); node_count];
+        for (edge_id, from, to) in edges {
+            if Some(*edge_id) == removed_edge
+                || Some(*from) == removed_node
+                || Some(*to) == removed_node
+            {
+                continue;
+            }
+            adjacency[*from].push(*to);
+            adjacency[*to].push(*from);
+        }
+
+        let mut visited = vec![false; node_count];
+        let mut components = 0;
+        for start in 0..node_count {
+            if Some(start) == removed_node || visited[start] {
+                continue;
+            }
+            components += 1;
+            visited[start] = true;
+            let mut queue = VecDeque::from([start]);
+            while let Some(current) = queue.pop_front() {
+                for neighbor in &adjacency[current] {
+                    if !visited[*neighbor] {
+                        visited[*neighbor] = true;
+                        queue.push_back(*neighbor);
+                    }
+                }
+            }
+        }
+        components
+    }
+
+    #[test]
+    fn active_graph_criticality_matches_removal_oracle_for_all_small_simple_graphs() {
+        // Exhaust every simple undirected graph through five vertices.
+        // Bridges and articulation nodes are independently defined by whether
+        // removing that identity increases the number of connected components.
+        for node_count in 1..=5 {
+            let mut possible_edges = Vec::new();
+            for from in 0..node_count {
+                for to in (from + 1)..node_count {
+                    possible_edges.push((possible_edges.len() as u64 + 1, from, to));
+                }
+            }
+            let graph_count = 1_usize << possible_edges.len();
+
+            for mask in 0..graph_count {
+                let selected: Vec<_> = possible_edges
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, edge)| ((mask >> index) & 1 == 1).then_some(*edge))
+                    .collect();
+
+                let mut graph = HyphalGraph::new();
+                for index in 0..node_count {
+                    let node_id = index as u64 + 1;
+                    graph
+                        .add_node(node(
+                            node_id,
+                            HyphalNodeKind::Anchor,
+                            index as f64,
+                            0.0,
+                            0.0,
+                        ))
+                        .unwrap();
+                }
+                for (edge_id, from, to) in &selected {
+                    graph
+                        .add_segment(segment(
+                            *edge_id,
+                            *from as u64 + 1,
+                            *to as u64 + 1,
+                            1.0,
+                        ))
+                        .unwrap();
+                }
+
+                let baseline = oracle_active_component_count(node_count, &selected, None, None);
+                let expected_bridges: Vec<_> = selected
+                    .iter()
+                    .filter_map(|(edge_id, _, _)| {
+                        (oracle_active_component_count(
+                            node_count,
+                            &selected,
+                            Some(*edge_id),
+                            None,
+                        ) > baseline)
+                            .then_some(SegmentId(*edge_id))
+                    })
+                    .collect();
+                let expected_articulation: Vec<_> = (0..node_count)
+                    .filter(|node_index| {
+                        oracle_active_component_count(
+                            node_count,
+                            &selected,
+                            None,
+                            Some(*node_index),
+                        ) > baseline
+                    })
+                    .map(|node_index| NodeId(node_index as u64 + 1))
+                    .collect();
+
+                assert_eq!(
+                    graph.active_graph_criticality().bridge_segments,
+                    expected_bridges,
+                    "bridge mismatch for node_count={node_count}, mask={mask}"
+                );
+                assert_eq!(
+                    graph.active_graph_criticality().articulation_nodes,
+                    expected_articulation,
+                    "articulation mismatch for node_count={node_count}, mask={mask}"
+                );
+            }
+        }
+    }
+
     #[test]
     fn active_graph_criticality_finds_chain_bridges_and_articulation() {
         let mut graph = HyphalGraph::new();
