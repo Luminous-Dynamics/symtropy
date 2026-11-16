@@ -250,6 +250,24 @@
     ],
     "claim_boundary": "Receipt validates traceability, declared calibration and uncertainty fields; it does not establish measurement correctness.",
     "next_qualification_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5509",
-    "digest_policy": "source_file_sha256 and processor_parameters_sha256 must be non-zero SHA-256 values; digest computation/canonical serialization remain future work"
+    "digest_policy": "source_file_sha256 and processor_parameters_sha256 must be non-zero SHA-256 values; digest computation/canonical serialization remain future work",
+    "canonical_encoding": {
+      "method": "ObservationEvidenceReceipt::canonical_bytes",
+      "encoding_version": 1,
+      "magic_prefix": "MYCO-EVIDENCE-RECEIPT\\0",
+      "integers": "little-endian",
+      "floats": "IEEE-754 f64 bit patterns, little-endian; negative zero normalized to positive zero",
+      "strings": "UTF-8 bytes prefixed with little-endian u32 byte length",
+      "options": "explicit 0/1 presence tags",
+      "enums": "explicit fixed u8 tags",
+      "independent_reviewer_panel": "reviewer keys sorted lexicographically before serialization",
+      "cryptographic_hash": "not computed here; an independently admitted SHA-256 implementation must hash canonical bytes",
+      "status": "implemented_in_code; exact-head CI pending"
+    },
+    "review_semantics": {
+      "human_reviewed": "one pseudonymous reviewer key and reason code",
+      "independently_adjudicated": "at least two distinct non-empty pseudonymous reviewer keys; panel order canonicalized",
+      "disposition_not_truth": "a review is a provenance record, not proof that a biological interpretation is correct"
+    }
   }
 }
