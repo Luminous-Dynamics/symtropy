@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - "research/aeroweFt-validation-experiment-design-001"
+      - "research/aeroweFt-validation-experiment-design-stacked-003"
     paths:
       - "tools/aeroweift-experiment-design/**"
       - "docs/research/aviation/AEROWEFT_VALIDATION_EXPERIMENT_DESIGN_001.md"
