@@ -4,13 +4,41 @@
   "title":"Garment Ready-State and Finishing Benchmark Contract v0.1",
   "type":"object",
   "additionalProperties":false,
-  "required":["schema_version","program_id","status","claim_ceiling","endpoint_classes","metrics","comparison_policy","standard_watch","hard_gates","governance","sources"],
+  "required":["schema_version","program_id","status","claim_ceiling","endpoint_classes","benchmark_suites","external_comparators","metrics","comparison_policy","standard_watch","hard_gates","governance","sources"],
   "properties":{
     "schema_version":{"const":"0.1.0"},
     "program_id":{"const":"GARMENT-READY-001"},
     "status":{"const":"proposal_no_physical_measurements"},
     "claim_ceiling":{"const":"no_endpoint_robot_or_product_qualification_claim"},
     "endpoint_classes":{"type":"array","minItems":3,"maxItems":3,"uniqueItems":true,"items":{"enum":["ready_to_wear","ready_to_store","ready_to_iron"]}},
+    "benchmark_suites":{"type":"array","minItems":2,"maxItems":2,"items":{
+      "type":"object","additionalProperties":false,
+      "required":["id","cohort_scope","first_pass_success_target","stretch_success_target","first_pass_human_throughput_ratio","stretch_human_throughput_ratio","human_baseline_required"],
+      "properties":{
+        "id":{"enum":["standardized_commercial_textiles","diverse_household_garments"]},
+        "cohort_scope":{"type":"string","minLength":20},
+        "first_pass_success_target":{"type":"number","minimum":0.0,"maximum":1.0},
+        "stretch_success_target":{"type":"number","minimum":0.0,"maximum":1.0},
+        "first_pass_human_throughput_ratio":{"type":"number","minimum":0.0},
+        "stretch_human_throughput_ratio":{"type":"number","minimum":0.0},
+        "human_baseline_required":{"const":true}
+      }
+    }},
+    "external_comparators":{"type":"array","minItems":4,"items":{
+      "type":"object","additionalProperties":false,
+      "required":["id","suite_id","evidence_class","reported_success_rate","reported_human_throughput_ratio","attempt_count","source_uri","scope_note","is_our_result"],
+      "properties":{
+        "id":{"type":"string","minLength":4},
+        "suite_id":{"enum":["standardized_commercial_textiles","diverse_household_garments"]},
+        "evidence_class":{"enum":["external_analysis_of_company_report","vendor_published_evaluation","external_demo_report"]},
+        "reported_success_rate":{"type":"number","minimum":0.0,"maximum":1.0},
+        "reported_human_throughput_ratio":{"type":["number","null"],"minimum":0.0},
+        "attempt_count":{"type":["integer","null"],"minimum":0},
+        "source_uri":{"type":"string","format":"uri","pattern":"^https://"},
+        "scope_note":{"type":"string","minLength":20},
+        "is_our_result":{"const":false}
+      }
+    }},
     "metrics":{"type":"array","minItems":10,"items":{
       "type":"object","additionalProperties":false,
       "required":["id","unit","denominator","scope","target_hypothesis","status","hard_guardrails"],
