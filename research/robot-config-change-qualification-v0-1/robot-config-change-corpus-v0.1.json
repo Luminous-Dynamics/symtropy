@@ -69,13 +69,18 @@
         "controller.process",
         "robot.calibration",
         "substrate.profile",
-        "reference.metrology"
+        "reference.metrology",
+        "sensor.mount",
+        "sensor.calibration",
+        "frame.transform"
       ],
       "evidence_axes": [
         "configuration_identity",
         "process_validation",
         "measurement_uncertainty",
-        "acceptance_profile"
+        "acceptance_profile",
+        "calibration",
+        "frame_admission"
       ]
     },
     {
@@ -106,7 +111,8 @@
         "payload.mass_com_inertia",
         "controller.motion",
         "site.surface",
-        "reference.metrology"
+        "reference.metrology",
+        "battery.module"
       ],
       "evidence_axes": [
         "configuration_identity",
