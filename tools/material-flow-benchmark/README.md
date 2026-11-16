@@ -29,6 +29,10 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 
 The report separates `physical_fault_effect_observed`, `gate_contact_event_count`, `gate_contact_max_impulse_ns`, `reconciliation_required`, `blind_retry_blocked`, `false_completion_blocked` and `fault_oracle_passed`. A passing fault oracle requires a non-zero package↔gate `CollisionEvent` and measured impact impulse. These events are emitted by the physics engine once per finalized resolved contact manifold after the solver, and are captured in `WorldSnapshot` replay evidence. A passing fault oracle is not a successful delivery: the nested nominal `SimulationResult.accepted` must be false and the transaction must remain unresolved.
 
+**Exact-head verification (2026-11-16):** workflow [43836138408](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43836138408) passed on `c1a388ab592d2bbbd07ced65662aea827b77e26e` with **79 Rust tests**, strict formatting and Clippy, all pre-existing MFB gates, and the L1 gate fault. The fault report recorded **1,841 package↔gate collision events**, maximum impulse **2.1043744963 N·s**, peak penetration **2.6422119 mm**, same-host replay equality, stable final package, `reconciliation_required`, retry blocked, and no false completion. The nested delivery result was `accepted=false`, while `fault_oracle_passed=true`.
+
+Evidence artifact: `mfb-l1-evidence-c1a388ab592d2bbbd07ced65662aea827b77e26e` (ID `14211340768`), ZIP SHA-256 `f32e707b516cdc8071d8c60aaa2e0c019bbc99e5b6985b6749d2e3b31cac38db`. Gate-fault JSON SHA-256: `f97581eefb8e52b2d2680158e36761a4673cd96dca6f0db77055be4cbb398cdb`.
+
 **Limitations:** the gate is a static collision geometry proxy present in the scene. This does not simulate gate motion, controller/interlock timing, actuator power, sensor perception or firmware. It is not HIL or a real-world safety test. The detailed physical fault-injection programme remains #5500.
 
 ## Distributed physical handoff reference state machine
