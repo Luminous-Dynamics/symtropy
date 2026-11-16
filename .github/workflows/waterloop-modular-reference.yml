@@ -1,0 +1,75 @@
+name: WaterLoop modular reference design contract
+
+on:
+  push:
+    paths:
+      - "research/water-service-engineering/MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md"
+      - "research/water-service-engineering/waterloop-modular-interface-v0.1.json"
+      - "research/water-service-engineering/waterloop-modular-test-matrix-v0.1.json"
+      - "research/water-service-engineering/README.md"
+      - ".github/workflows/waterloop-modular-reference.yml"
+  pull_request:
+    paths:
+      - "research/water-service-engineering/MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md"
+      - "research/water-service-engineering/waterloop-modular-interface-v0.1.json"
+      - "research/water-service-engineering/waterloop-modular-test-matrix-v0.1.json"
+      - "research/water-service-engineering/README.md"
+      - ".github/workflows/waterloop-modular-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  design-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse JSON design contracts
+        run: |
+          set -euo pipefail
+          jq -e . research/water-service-engineering/waterloop-modular-interface-v0.1.json >/dev/null
+          jq -e . research/water-service-engineering/waterloop-modular-test-matrix-v0.1.json >/dev/null
+
+      - name: Check unique typed source, module and tag identities
+        run: |
+          set -euo pipefail
+          jq -e '
+            [.source_streams[].id] as $ids |
+            ($ids | length) == 8 and
+            ($ids | length) == ($ids | unique | length) and
+            ([.modules[].id] | length) == 5 and
+            ([.modules[].id] | length) == ([.modules[].id] | unique | length) and
+            ([.physical_tags[].tag] | length) == ([.physical_tags[].tag] | unique | length)
+          ' research/water-service-engineering/waterloop-modular-interface-v0.1.json
+
+      - name: Enforce test-matrix identity and negative controls
+        run: |
+          set -euo pipefail
+          jq -e '
+            ([.cases[].id] | length) == 20 and
+            ([.cases[].id] | length) == ([.cases[].id] | unique | length) and
+            ([.cases[] | select(.class == "negative_control")] | length) >= 10
+          ' research/water-service-engineering/waterloop-modular-test-matrix-v0.1.json
+
+      - name: Enforce the clean-water-only first article and safety boundaries
+        run: |
+          set -euo pipefail
+          jq -e '
+            .initial_test_cell.fluid == "clean_water_only" and
+            .initial_test_cell.greywater_feed_connected == false and
+            .initial_test_cell.municipal_connection == false and
+            ([.source_streams[] | select(.id == "SRC-KITCHEN-01" and .state == "excluded_from_v0_1")] | length) == 1 and
+            ([.source_streams[] | select(.id == "SRC-BLACKWATER-01" and .state == "excluded")] | length) == 1 and
+            (.evidence_owners.quality == "Mycelix #6100") and
+            (.nonclaims | length) >= 5
+          ' research/water-service-engineering/waterloop-modular-interface-v0.1.json
+
+      - name: Emit design input digests
+        run: |
+          set -euo pipefail
+          sha256sum \
+            research/water-service-engineering/MODULAR_WATERLOOP_REFERENCE_ARCHITECTURE_V0_1.md \
+            research/water-service-engineering/waterloop-modular-interface-v0.1.json \
+            research/water-service-engineering/waterloop-modular-test-matrix-v0.1.json
