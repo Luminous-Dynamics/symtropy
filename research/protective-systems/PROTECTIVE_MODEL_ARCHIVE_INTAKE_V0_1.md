@@ -172,3 +172,16 @@ A later extraction worker, if justified, must be separate from metadata prefligh
 - never execute, dynamically import, or automatically parse untrusted content as code.
 
 This document authorizes only defensive parsing and synthetic tests. It does not authorize live provider calls, production credentials, host filesystem extraction, procurement, or changes to operational infrastructure.
+
+## 9. E2 metadata-only ZIP preflight implementation
+
+The isolated Rust binary is `verifier/src/bin/protective_model_archive_intake.rs`. Its frozen policy and case index are:
+
+- `fixtures/protective-model-archive-intake-policy-v0.1.json`
+- `fixtures/protective-model-archive-intake-cases-v0.1.json`
+
+Two committed ZIP fixtures provide stored and deflate member examples. The scanner parses EOCD, central-directory records, local file headers and extra-field boundaries. It enforces the explicitly synthetic policy, rejects unsupported ZIP features, unsafe member names, symlinks/special file metadata, duplicate/case-colliding paths, header disagreement, overlapping local records and policy-limit breaches.
+
+The first version intentionally performs **no extraction, decompression, CRC validation against expanded bytes, malware scanning or content/model validation**. Its success label is `METADATA_ONLY_CONTENT_NOT_VERIFIED`. The policy limits are test fixtures only and are not production recommendations.
+
+The binary currently contains 14 Rust tests written for benign stored/deflate archives and selected negative controls. Rust formatting, compilation, Clippy and tests remain unverified until a hosted result is observed.
