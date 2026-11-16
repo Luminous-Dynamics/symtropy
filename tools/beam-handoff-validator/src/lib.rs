@@ -36,6 +36,12 @@ pub fn validate_files(
     let envelope: Value = serde_json::from_slice(&envelope_bytes)
         .map_err(|error| vec![format!("handoff is not valid JSON: {error}")])?;
 
+    if !jsonschema::draft202012::meta::is_valid(&schema) {
+        return Err(vec![
+            "schema document does not conform to the JSON Schema Draft 2020-12 meta-schema".to_owned(),
+        ]);
+    }
+
     let validator = jsonschema::draft202012::options()
         .should_validate_formats(true)
         .build(&schema)
@@ -406,7 +412,7 @@ fn validate_csv_distribution(
         }
 
         let mut coordinates = [0.0_f64; 6];
-        for coordinate_index in 0..6 {
+        for (coordinate_index, coordinate) in coordinates.iter_mut().enumerate() {
             let name = required_columns[coordinate_index + 1];
             let raw = field(&record, indices[coordinate_index + 1], name)?;
             let parsed = raw
@@ -419,7 +425,7 @@ fn validate_csv_distribution(
                     row_index + 2
                 ));
             }
-            coordinates[coordinate_index] = parsed;
+            *coordinate = parsed;
         }
 
         let weight_raw = field(&record, indices[7], "weight")?;
@@ -439,9 +445,13 @@ fn validate_csv_distribution(
         points.push((coordinates, weight));
     }
 
-    let count = points.len() as u64;
-    let declared_count = number_at(envelope, &["distribution", "macro_particle_count"])
-        .map_err(|error| error.join("; "))? as u64;
+    let count = u64::try_from(points.len())
+        .map_err(|error| format!("particle count cannot be represented as u64: {error}"))?;
+    let declared_count = envelope
+        .get("distribution")
+        .and_then(|value| value.get("macro_particle_count"))
+        .and_then(Value::as_u64)
+        .ok_or_else(|| "distribution.macro_particle_count must be an unsigned integer".to_owned())?;
 
     if count != declared_count {
         return Err(format!(
@@ -472,8 +482,8 @@ fn validate_csv_distribution(
 
     let mut mean = [0.0_f64; 6];
     for (coordinates, weight) in &points {
-        for index in 0..6 {
-            mean[index] += coordinates[index] * weight;
+        for (index, value) in mean.iter_mut().enumerate() {
+            *value += coordinates[index] * weight;
         }
     }
     for value in &mut mean {
@@ -482,27 +492,27 @@ fn validate_csv_distribution(
 
     let mut covariance = [[0.0_f64; 6]; 6];
     for (coordinates, weight) in &points {
-        for row in 0..6 {
-            for column in 0..6 {
-                covariance[row][column] +=
-                    weight * (coordinates[row] - mean[row]) * (coordinates[column] - mean[column]);
+        for (row_index, row) in covariance.iter_mut().enumerate() {
+            for (column_index, value) in row.iter_mut().enumerate() {
+                *value += weight
+                    * (coordinates[row_index] - mean[row_index])
+                    * (coordinates[column_index] - mean[column_index]);
             }
         }
     }
-    for row in 0..6 {
-        for column in 0..6 {
-            covariance[row][column] /= weight_sum;
+    for row in &mut covariance {
+        for value in row {
+            *value /= weight_sum;
         }
     }
 
     let declared_mean =
         number_array_at::<6>(envelope, &["distribution", "summary", "mean_6d"], 6)
             .map_err(|error| error.join("; "))?;
-    for index in 0..6 {
-        if !close_moment(mean[index], declared_mean[index]) {
+    for (index, (computed, declared)) in mean.iter().zip(declared_mean.iter()).enumerate() {
+        if !close_moment(*computed, *declared) {
             return Err(format!(
-                "weighted mean mismatch at coordinate {index}: declared {}, computed {}",
-                declared_mean[index], mean[index]
+                "weighted mean mismatch at coordinate {index}: declared {declared}, computed {computed}"
             ));
         }
     }
@@ -511,28 +521,31 @@ fn validate_csv_distribution(
         matrix_array_at::<6>(envelope, &["distribution", "summary", "covariance_6d"], 6)
             .map_err(|error| error.join("; "))?;
 
-    for row in 0..6 {
-        for column in 0..6 {
-            if !close_moment(covariance[row][column], declared_covariance[row][column]) {
+    for (row_index, (computed_row, declared_row)) in
+        covariance.iter().zip(declared_covariance.iter()).enumerate()
+    {
+        for (column_index, (computed, declared)) in
+            computed_row.iter().zip(declared_row.iter()).enumerate()
+        {
+            if !close_moment(*computed, *declared) {
                 return Err(format!(
-                    "weighted covariance mismatch at [{row}][{column}]: declared {}, computed {}",
-                    declared_covariance[row][column], covariance[row][column]
+                    "weighted covariance mismatch at [{row_index}][{column_index}]: declared {declared}, computed {computed}"
                 ));
             }
 
             if !close_moment(
-                declared_covariance[row][column],
-                declared_covariance[column][row],
+                *declared,
+                declared_covariance[column_index][row_index],
             ) {
                 return Err(format!(
-                    "declared covariance is not symmetric at [{row}][{column}]"
+                    "declared covariance is not symmetric at [{row_index}][{column_index}]"
                 ));
             }
         }
 
-        if declared_covariance[row][row] < -MOMENT_ABS_TOLERANCE {
+        if declared_row[row_index] < -MOMENT_ABS_TOLERANCE {
             return Err(format!(
-                "declared covariance has negative diagonal at [{row}][{row}]"
+                "declared covariance has negative diagonal at [{row_index}][{row_index}]"
             ));
         }
     }
@@ -693,6 +706,7 @@ mod tests {
         let schema: Value =
             serde_json::from_slice(&fs::read(schema_path).expect("schema must be readable"))
                 .expect("schema JSON must parse");
+        assert!(jsonschema::draft202012::meta::is_valid(&schema));
         jsonschema::draft202012::options()
             .should_validate_formats(true)
             .build(&schema)
