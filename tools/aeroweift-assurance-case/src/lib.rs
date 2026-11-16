@@ -281,6 +281,8 @@ pub enum EdgeKind {
     Contextualizes,
     /// Assumption is relied upon by a claim or strategy.
     Assumes,
+    /// A claim or strategy explicitly includes a hazard in its assurance argument.
+    AddressesHazard,
     /// Mitigation/control is asserted to address a hazard.
     Mitigates,
     /// Qualified evidence discharges a defeater.
@@ -701,6 +703,10 @@ fn edge_type_valid(edge: &AssuranceEdge, nodes: &BTreeMap<&str, &AssuranceNode>)
                     NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy
                 )
         }
+        EdgeKind::AddressesHazard => {
+            matches!(from.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy)
+                && to.kind == NodeKind::Hazard
+        }
         EdgeKind::Mitigates => from.kind == NodeKind::Mitigation && to.kind == NodeKind::Hazard,
         EdgeKind::Discharges => from.kind == NodeKind::Evidence && to.kind == NodeKind::Defeater,
         EdgeKind::Challenges => {
@@ -1019,6 +1025,20 @@ pub fn evaluate_assurance_case(
             );
             continue;
         };
+        let has_argument_link = edges.iter().any(|edge| {
+            edge.to_node_id == hazard.node_id
+                && edge.kind == EdgeKind::AddressesHazard
+                && by_id.get(edge.from_node_id.as_str()).is_some_and(|node| {
+                    matches!(node.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy)
+                })
+        });
+        if !has_argument_link {
+            add_blocker(
+                &mut blockers,
+                required,
+                BlockerReason::HazardNotLinkedToArgument,
+            );
+        }
         let mitigations: Vec<&AssuranceNode> = edges
             .iter()
             .filter(|edge| edge.to_node_id == hazard.node_id && edge.kind == EdgeKind::Mitigates)
