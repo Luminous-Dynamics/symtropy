@@ -168,3 +168,48 @@ The checker also requires all six declared force setpoints (0, 2, 4, 6, 8, 10 N)
 Tests cover nominal response, injected upper-range plateau, decreasing response, a truncated force range and a missing operating-condition stratum. The adversarial campaign reports observability per response family; diagnostic-only policy fits still execute under saturation to expose how models behave when the gate is ignored. The ordinary active-calibration runner uses the guard and refuses the fit if it fails.
 
 The 1e-12 raw-response resolution, six-point force manifest and twelve-condition manifest are synthetic fixture declarations only. They are not physical ADC resolution, force range or a calibration tolerance. A monotonic response test is not a complete observability proof for real multi-axis, nonlinear, hysteretic or mechanically coupled tactile systems.
+
+
+## TouchWGNN-style 113-taxel rational calibration model-form campaign
+
+The new executable module `src/active_benchmark/model_forms.rs` adds a deterministic synthetic 113-taxel array with heterogeneous taxel response parameters. It fits and compares:
+- per-taxel rational inverse calibration (F(V)=bV/(a-V)+c) using the complete 11-point grid (0–5 N, 0.5 N steps);
+- the same per-taxel rational model with six and four reference contacts per taxel;
+- one pooled/shared rational curve trained on the same six-per-taxel contact budget;
+- independent per-taxel affine calibration with the six-contact budget.
+
+Every model is evaluated on ten interleaved held-out force values per taxel. The scorecard reports pooled field RMSE, mean/p95/worst per-taxel RMSE, worst taxel identity, and total/per-taxel reference-contact counts. This is a model-form comparison; it does not yet include a hierarchical partial-pooling estimator, cross-taxel mechanical coupling, field geometry reconstruction or active selection per taxel.
+
+The fitted rational form is a deterministic grid search over the saturation asymptote (a), with conditional linear least squares for (b,c). It is not intended as a production metrology fitter. The synthetic taxel transfer functions and noise are deliberately heterogeneous and are not fitted from the TouchWGNN hardware.
+
+TouchWGNN paper comparator (not a reproduced result): seven piezoresistive modules, 113 taxels, per-taxel normal-force calibration, rational inverse form (F(V)=bV/(a-V)+c), reported calibration RMSE 0.0892 N and (R^2=0.9985), with 0–5 N in 0.5 N force steps. The paper reports these values for its own hardware, force gauge, fixture and protocol. They are not thresholds or a direct Luminous result.
+
+Paper: https://doi.org/10.3389/frobt.2026.1791424
+Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC13351857/
+
+
+## First hosted 113-taxel model-form result — 16 November 2026
+
+Hosted workflow #145 completed successfully on source head `3cedcc2c86bd3c31c366d9e5b88980610da4d125`: **55 Rust tests passed**, rustfmt PASS, strict Clippy PASS, tracked 34-case transfer oracle PASS, paired 50-seed campaign CLI PASS, six-family adversarial CLI PASS and 113-taxel model-form CLI PASS. Follow-up commit `12f37c490fe865a515aaa4f68ca27e61014cdf33` contains runner-generated rustfmt-only changes.
+
+The model-form harness evaluates 113 synthetic taxels on 10 interleaved held-out force values each:
+
+| Model | Reference contacts/taxel | Total contacts | Pooled RMSE | Mean taxel RMSE | p95 taxel RMSE | Worst taxel RMSE |
+|---|---:|---:|---:|---:|---:|---:|
+| Per-taxel rational, 11-point grid | 11 | 1,243 | 0.004142 N | 0.004035 N | 0.005466 N | 0.005635 N |
+| Per-taxel rational, 6-point grid | 6 | 678 | 0.005358 N | 0.005146 N | 0.007320 N | 0.007690 N |
+| Per-taxel rational, 4-point grid | 4 | 452 | 0.005253 N | 0.005233 N | 0.006011 N | 0.006101 N |
+| Shared rational, 6 points/taxel | 6 | 678 | 0.658408 N | 0.639161 N | 0.962757 N | 1.034081 N |
+| Per-taxel affine, 6-point grid | 6 | 678 | 1.141575 N | 1.141572 N | 1.145063 N | 1.146402 N |
+
+### Interpretation
+
+- In this deliberately heterogeneous synthetic array, per-taxel rational calibration is substantially more accurate than a single shared rational curve or per-taxel affine response.
+- Four reference contacts per taxel used 452 rather than 1,243 contacts (63.6% fewer) while the pooled RMSE rose by about 26.8% and worst-taxel RMSE by about 8.3% versus the 11-point rational reference.
+- The four-point design outperformed the six-point design for this particular stimulus placement. This is not a general claim that fewer contacts are better; it is evidence that force-point placement and parameter identifiability need to be optimized jointly.
+- The global/shared curve's poor performance is expected because the synthetic taxel transfer functions differ. A more realistic hierarchical partial-pooling model may improve efficiency without imposing one curve on all taxels.
+- The affine control is unable to represent the rational sensor's saturation-shaped response over the full range.
+
+These are synthetic model-form results, not TouchWGNN replications or physical metrology results. TouchWGNN's published 0.0892 N RMSE and (R^2=0.9985) belong to its own 113-taxel hardware and its own force-gauge/protocol. The synthetic RMSE magnitudes must not be compared as though the datasets or measurement systems were matched.
+
+The next useful model family is hierarchical/partial pooling with taxel-specific residuals and a graph prior, plus calibration-point selection that targets weakly identified taxels, boundary taxels and saturated regions. Physical comparison still requires #4753's characterized phantom, reference instrument and taxel geometry.
