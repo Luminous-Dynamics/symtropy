@@ -88,3 +88,16 @@ The timed adapter accepts two capsule motion spans whose start and end timestamp
 - The current version rejects non-zero declared clock uncertainty as `ClockUncertaintyUnmodeled`. It does not invent clock synchronization or widen the geometry/time model.
 
 This remains a fixed-orientation linear-translation geometry primitive. It is not an asynchronous multi-clock solver, articulated robot collision system or safety function. See [#5478](https://github.com/Luminous-Dynamics/symtropy/issues/5478).
+
+## Bounded clock-uncertainty collision envelope
+
+The clock-aware adapter consumes absolute-time capsule spans with independent, constant clock-offset bounds relative to a common monotonic domain. It widens each half-open execution interval by its bound and inflates the capsule radius by the maximum affine displacement during that time uncertainty: translation norm multiplied by uncertainty divided by span duration.
+
+The outcome is deliberately three-valued for non-zero uncertainty:
+- `NoPossibleTemporalOverlap`: the widened intervals cannot overlap for any allowed clock offsets.
+- `NoPossibleContact`: the widened space-time outer geometry is disjoint; no contact is possible under the declared bounds.
+- `PotentialContactUnresolved`: the outer geometry overlaps; this is a conservative candidate, not proof of a realizable contact.
+
+Only zero-uncertainty inputs can return `ExactContact` or `ExactNoContact`. A terminal half-open boundary candidate remains unresolved. Timestamp arithmetic overflow, underflow, geometry failure, site epoch mismatch, frame mismatch and clock-domain mismatch are explicit errors.
+
+This is a sufficient conservative enclosure for fixed-orientation affine translation and bounded constant clock offsets. It is not a probabilistic clock model, drift estimator, non-linear motion model, clock-synchronization protocol, physical safety function or arbitrary time-varying collision detector.
