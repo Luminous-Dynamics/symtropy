@@ -42,10 +42,12 @@ fn main() -> ExitCode {
                         benchmark.target_contact_budget
                     );
                     println!(
-                        "active_calibration_observability=accepted:{} flatlines:{} affected_conditions:{} max_force_setpoint_n:{:.3}",
+                        "active_calibration_observability=accepted:{} flatlines:{} affected_conditions:{} missing_conditions:{} incomplete_conditions:{} max_force_setpoint_n:{:.3}",
                         benchmark.response_observability.accepted,
                         benchmark.response_observability.flatline_transition_count,
                         benchmark.response_observability.affected_condition_count,
+                        benchmark.response_observability.missing_condition_count,
+                        benchmark.response_observability.incomplete_condition_count,
                         benchmark.response_observability.maximum_observed_force_setpoint_n,
                     );
                     for result in benchmark.results {
@@ -126,10 +128,12 @@ fn main() -> ExitCode {
                             family.shared_reference_common_cause_injected,
                         );
                         println!(
-                            "response_observability family={} accepted={} conditions={} transitions={} flatlines={} decreasing={} affected_conditions={} first_plateau_start_n={:?} max_force_setpoint_n={:.3} resolution={:.3e}",
+                            "response_observability family={} accepted={} conditions={} missing_conditions={} incomplete_conditions={} transitions={} flatlines={} decreasing={} affected_conditions={} first_plateau_start_n={:?} max_force_setpoint_n={:.3} resolution={:.3e}",
                             family.family_id,
                             family.observability.accepted,
                             family.observability.condition_count,
+                            family.observability.missing_condition_count,
+                            family.observability.incomplete_condition_count,
                             family.observability.checked_transition_count,
                             family.observability.flatline_transition_count,
                             family.observability.decreasing_transition_count,
