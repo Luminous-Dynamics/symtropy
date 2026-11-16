@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/modular-train-interface.schema.json",
+  "title": "WaterLoop Modular Train Options and Interface Contract",
+  "description": "Strict top-level validation for source-aware modular train candidates; design metadata only, not treatment qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "design_owner_issue",
+    "physical_demonstrator_owner_issue",
+    "declared_initial_scope",
+    "architecture_invariants",
+    "ports",
+    "modules",
+    "process_options",
+    "fault_matrix_file",
+    "required_gates",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-modular-train-options-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-MODULAR-TRAIN-T0"
+    },
+    "evidence_class": {
+      "const": "concept_candidate"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "design_owner_issue": {
+      "const": 5644
+    },
+    "physical_demonstrator_owner_issue": {
+      "const": 5335
+    },
+    "declared_initial_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "test_environment",
+        "source_streams",
+        "intended_use_class",
+        "explicitly_excluded",
+        "source_mixing_allowed",
+        "treated_product_release_requires"
+      ],
+      "properties": {
+        "test_environment": {
+          "const": "unoccupied_room_scale_test_cell"
+        },
+        "source_streams": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "intended_use_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "explicitly_excluded": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_mixing_allowed": {
+          "const": false
+        },
+        "treated_product_release_requires": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "architecture_invariants": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "ports": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "port_class",
+          "direction",
+          "fluid_state",
+          "identity_required",
+          "quality_admission_required"
+        ],
+        "properties": {
+          "port_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "inlet",
+              "outlet",
+              "bidirectional"
+            ]
+          },
+          "fluid_state": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identity_required": {
+            "const": true
+          },
+          "quality_admission_required": {
+            "const": true
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "module_id",
+          "name",
+          "category",
+          "status",
+          "purpose",
+          "inputs",
+          "outputs",
+          "design_evidence_required",
+          "critical_faults",
+          "safe_state"
+        ],
+        "properties": {
+          "module_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "concept_candidate",
+              "candidate_not_selected",
+              "integration_contract_only",
+              "comparison_baseline"
+            ]
+          },
+          "purpose": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inputs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "design_evidence_required": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "critical_faults": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "safe_state": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "process_options": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "option_id",
+          "status",
+          "modules",
+          "notes"
+        ],
+        "properties": {
+          "option_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "status": {
+            "enum": [
+              "comparison_baseline",
+              "candidate_not_selected"
+            ]
+          },
+          "modules": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "fault_matrix_file": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
