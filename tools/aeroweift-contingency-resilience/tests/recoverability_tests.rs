@@ -58,7 +58,7 @@ fn policy() -> RecoverabilityPolicy {
             ContingencyKind::EnvironmentalDisturbance,
         ]),
         diversity_exempt_domains: BTreeSet::from(["AIRFRAME".to_string()]),
-        maximum_determinate_option_count: 100,
+        maximum_determinate_option_count: 24,
     }
 }
 
@@ -650,5 +650,94 @@ fn empty_dependency_inventory_cannot_manufacture_independence() {
     assert_eq!(
         evaluate(&case(), &[candidate], &inventory(), &policy()),
         Err(EvaluationError::InvalidDependencySet)
+    );
+}
+
+
+#[test]
+fn exact_maximum_independent_set_finds_pair_missed_by_greedy_order() {
+    let result = evaluate(
+        &case(),
+        &[
+            option("a-blocker", &["X", "Y"]),
+            option("b-left", &["X", "Z"]),
+            option("c-right", &["Y", "W"]),
+        ],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::CoveredWithRequiredDiversity
+    );
+    assert!(result.independent_option_witness_exact);
+    assert_eq!(
+        result.independent_option_witness,
+        vec!["b-left".to_string(), "c-right".to_string()]
+    );
+}
+
+#[test]
+fn options_with_only_exempt_common_dependencies_are_not_independent() {
+    let result = evaluate(
+        &case(),
+        &[
+            option("airframe-a", &["AIRFRAME"]),
+            option("airframe-b", &["AIRFRAME"]),
+        ],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
+    assert_eq!(result.status, RecoverabilityStatus::CoveredButCorrelated);
+    assert!(result.independent_option_witness_exact);
+    assert_eq!(result.independent_option_witness.len(), 1);
+    assert!(!result.required_diversity_met);
+}
+
+#[test]
+fn option_count_above_exact_limit_returns_non_exact_witness_and_abstains() {
+    let mut frozen = policy();
+    frozen.maximum_determinate_option_count = 2;
+    let options = vec![
+        option("option-a", &["SHARED-C2"]),
+        option("option-b", &["SHARED-C2"]),
+        option("option-c", &["SHARED-C2"]),
+    ];
+    let result = evaluate(&case(), &options, &inventory(), &frozen).unwrap();
+    assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
+    assert!(!result.independent_option_witness_exact);
+    assert_eq!(result.independent_option_witness.len(), 1);
+    assert!(!result.required_diversity_met);
+}
+
+#[test]
+fn exact_independent_set_ties_use_canonical_lexicographic_witness() {
+    let result = evaluate(
+        &case(),
+        &[
+            option("z-route", &["Z"]),
+            option("a-route", &["A"]),
+            option("m-route", &["M"]),
+        ],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
+    assert!(result.independent_option_witness_exact);
+    assert_eq!(
+        result.independent_option_witness,
+        vec!["a-route".to_string(), "m-route".to_string()]
+    );
+}
+
+#[test]
+fn determinate_option_limit_cannot_exceed_implementation_cap() {
+    let mut frozen = policy();
+    frozen.maximum_determinate_option_count = 25;
+    assert_eq!(
+        evaluate(&case(), &[], &inventory(), &frozen),
+        Err(EvaluationError::InvalidPolicy)
     );
 }
