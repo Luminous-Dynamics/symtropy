@@ -641,8 +641,8 @@ fn evaluate(
         return Err("held-out stimulus and evaluator-truth cardinalities differ or are empty".to_owned());
     }
 
-    let mut errors = Vec::with_capacity(heldout.len());
-    let mut interval_widths = Vec::with_capacity(heldout.len());
+    let mut errors = Vec::with_capacity(heldout.candidates.len());
+    let mut interval_widths = Vec::with_capacity(heldout.candidates.len());
     let mut covered = 0_usize;
 
     for (index, candidate) in heldout.candidates.iter().enumerate() {
@@ -839,7 +839,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         seed,
         source_candidate_pool_size: source_domain.candidates.len(),
         target_candidate_pool_size: target_domain.candidates.len(),
-        heldout_case_count: heldout.len(),
+        heldout_case_count: heldout.candidates.len(),
         target_contact_budget: TARGET_BUDGET,
         results,
     })
