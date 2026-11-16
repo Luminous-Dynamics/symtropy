@@ -1,0 +1,15 @@
+[package]
+name = "geobio-reference-kernel"
+version = "0.2.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Standalone reference kernels for GeoBio resource accounting and evidence completeness"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+# Keep this research crate independent from Symtropy's production workspace.
+[workspace]
