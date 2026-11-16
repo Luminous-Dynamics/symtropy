@@ -723,7 +723,10 @@ mod tests {
             6_240_000
         );
         assert_eq!(
-            report["portfolio_reports"].as_array().expect("reports").len(),
+            report["portfolio_reports"]
+                .as_array()
+                .expect("reports")
+                .len(),
             3
         );
     }
