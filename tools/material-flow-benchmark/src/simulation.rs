@@ -750,7 +750,11 @@ mod tests {
             .expect("closed-gate obstruction episode should execute");
         assert!(result.physical_fault_effect_observed, "{result:?}");
         assert!(result.gate_contact_event_count > 0, "{result:?}");
-        assert!(result.gate_contact_max_impulse_ns > 0.0, "{result:?}");
+        assert!(
+            result.gate_contact_max_impulse_ns.is_finite()
+                && result.gate_contact_max_impulse_ns > 0.0,
+            "{result:?}"
+        );
         assert!(result.simulation.replay_bitwise_equal, "{result:?}");
         assert!(result.simulation.settled, "{result:?}");
         assert!(result.simulation.physics_numerically_healthy, "{result:?}");
@@ -856,10 +860,10 @@ pub fn simulate_closed_gate_obstruction_sweep(
                     minimum_gate_contact_events.min(result.gate_contact_event_count);
                 maximum_gate_contact_events =
                     maximum_gate_contact_events.max(result.gate_contact_event_count);
-                maximum_gate_contact_impulse_ns = maximum_gate_contact_impulse_ns
-                    .max(result.gate_contact_max_impulse_ns);
-                maximum_contact_penetration_m = maximum_contact_penetration_m
-                    .max(result.simulation.max_contact_penetration_m);
+                maximum_gate_contact_impulse_ns =
+                    maximum_gate_contact_impulse_ns.max(result.gate_contact_max_impulse_ns);
+                maximum_contact_penetration_m =
+                    maximum_contact_penetration_m.max(result.simulation.max_contact_penetration_m);
                 if result.reconciliation_required {
                     reconciliation_run_count += 1;
                 }
