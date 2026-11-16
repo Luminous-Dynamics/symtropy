@@ -1387,7 +1387,6 @@ fn policy_requires_a_nonzero_independent_estimate_sample_floor() {
     );
 }
 
-
 #[test]
 fn parameter_identification_pareto_order_ignores_model_discrimination_score() {
     let mut frozen = policy();
@@ -1415,15 +1414,18 @@ fn parameter_identification_pareto_order_ignores_model_discrimination_score() {
 fn duplicate_utility_estimate_receipt_id_across_candidates_fails_closed() {
     let first = candidate("candidate-a");
     let mut second = candidate("candidate-b");
-    second.utility_estimate_receipt.as_mut().unwrap().receipt_id =
-        first.utility_estimate_receipt.as_ref().unwrap().receipt_id.clone();
+    second.utility_estimate_receipt.as_mut().unwrap().receipt_id = first
+        .utility_estimate_receipt
+        .as_ref()
+        .unwrap()
+        .receipt_id
+        .clone();
 
     assert_eq!(
         select_experiments(&[first, second], &policy()),
         Err(aeroweift_experiment_design::DesignError::DuplicateUtilityEstimateReceiptId)
     );
 }
-
 
 #[test]
 fn hypothesis_array_permutation_preserves_utility_receipt_admissibility() {
@@ -1458,6 +1460,8 @@ fn model_family_pair_sampling_unit_must_match_distinct_qualified_group_pairs() {
         .unwrap()
         .independent_unit_count = 2;
     let rejected = select_experiments(&[candidate], &frozen).unwrap();
-    assert!(reason(&rejected, "model-family-pair-samples")
-        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+    assert!(
+        reason(&rejected, "model-family-pair-samples")
+            .contains(&RejectionReason::InvalidUtilityEstimateReceipt)
+    );
 }
