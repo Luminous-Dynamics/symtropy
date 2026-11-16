@@ -374,3 +374,18 @@ The first article is a **contained bench module**, not an occupied-household app
 The 15 frozen challenges include bathroom baseline, laundry-only challenge, unknown/mixed feed rejection, kitchen/blackwater rejection, feed-envelope excursion, membrane fouling/integrity failure, UVT/UV failure, ozone off-gas failure, GAC breakthrough/unknown age, EC electrode degradation, power loss, stale quality evidence, unmetered residual path, extended idle/restart and quality-verification gap.
 
 For every failed/unknown critical state, expected output is isolation/quarantine or an explicit loss of quality claim. These are proposed test cases only; running them requires the release gates in the test matrix and the professional/safety reviews already stated above.
+
+## 17. Cassette-specific operating envelope (hard qualification boundary)
+
+Mechanical fit is not process compatibility. Each exact train revision must carry its own source allowlist, intended-use allowlist and versioned multidimensional operating envelope before product-use credit is possible.
+
+The machine-readable `qualification_envelopes` records enumerate feed-quality, hydraulic, temperature, pressure, duty-cycle, idle, fouling/maintenance and process-specific fields. **Every unmeasured limit is explicitly `NOT_ESTABLISHED` with a null value, units, source evidence ID and uncertainty.** This is intentional. Literature ranges are not copied into local acceptance limits.
+
+A process may not accept a source merely because its connector fits. It must demonstrate that the batch falls within its exact feed envelope and that the module configuration, barriers, residual paths and test method match the admitted record. A new membrane lot, GAC grade, UV reactor, electrode material, geometry or process sequence creates a new configuration identity and may require requalification.
+
+The allowed initial source populations are deliberately narrow:
+- Train A/B/C: bathroom source-profile characterization batches only.
+- Train D: separately collected laundry challenge batches only.
+- No train accepts kitchen, blackwater or unknown mixed feed in v0.1.
+
+The only intended use currently listed is a contained test load; no reuse application is qualified.
