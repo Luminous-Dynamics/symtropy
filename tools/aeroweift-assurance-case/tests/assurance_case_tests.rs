@@ -207,6 +207,7 @@ fn positive_case() -> (Vec<AssuranceNode>, Vec<AssuranceEdge>) {
             "hazard-collision",
             EdgeKind::Mitigates,
         ),
+        edge("strategy", "hazard-collision", EdgeKind::AddressesHazard),
         edge(
             "context-operation",
             "hazard-collision",
@@ -913,4 +914,14 @@ fn rejected_authority_decision_is_reported_as_outstanding() {
         result.outstanding_authority_roles,
         vec!["risk-acceptance".to_string()]
     );
+}
+
+
+#[test]
+fn hazard_must_be_explicitly_addressed_by_a_claim_or_strategy() {
+    let (nodes, mut edges) = positive_case();
+    edges.retain(|edge| edge.kind != EdgeKind::AddressesHazard);
+    let result = evaluate(&nodes, &edges).unwrap();
+    assert!(blocker(&result, BlockerReason::HazardNotLinkedToArgument));
+    assert_eq!(result.status, AssuranceStatus::IncompleteArgument);
 }
