@@ -36,3 +36,8 @@ duplicate-dependency|duplicate-domain|INVALID_DEPENDENCY_SET
 malformed-evidence-digest|bad-digest|INVALID_OPTION
 unknown-dependency-not-independent|unknown-domain|INDETERMINATE
 reauthorization-gap-for-diversity|second-option-auth|REAUTHORIZATION_REQUIRED
+greedy-trap-exact-pair-found|a-blocker-b-left-c-right|COVERED_WITH_REQUIRED_DIVERSITY
+only-exempt-common-dependencies|airframe-only|COVERED_BUT_CORRELATED
+option-count-above-exact-cap|non-exact-lower-bound|INDETERMINATE
+maximum-set-lexicographic-tie|canonical-witness|SAME_RESULT
+exact-search-cap-over-24|policy-cap|INVALID_POLICY
