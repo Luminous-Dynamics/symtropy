@@ -582,10 +582,16 @@ mod tests {
         );
         item = calibration(20, 2);
         item.rate_error_bound = item.rate;
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidCalibration));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidCalibration)
+        );
         item = calibration(20, 2);
         item.source_valid_to_s = f64::NAN;
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidCalibration));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidCalibration)
+        );
     }
 
     #[test]
@@ -672,9 +678,15 @@ mod tests {
             Err(TemporalAlignmentError::InvalidRawTimestamp)
         );
         item.seconds = f64::NAN;
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidRawTimestamp));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidRawTimestamp)
+        );
         item.seconds = 1.0;
         item.error_bound_s = -0.1;
-        assert_eq!(item.validate(), Err(TemporalAlignmentError::InvalidRawTimestamp));
+        assert_eq!(
+            item.validate(),
+            Err(TemporalAlignmentError::InvalidRawTimestamp)
+        );
     }
 }
