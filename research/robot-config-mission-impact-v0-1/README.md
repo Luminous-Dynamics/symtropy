@@ -34,7 +34,9 @@ The benchmark combines:
 - `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
 - `schemas/mission-outcome-metrics-v0.1.schema.json`: closed Draft 2020-12 schema for synthetic per-pair outcome measurements.
 - `schemas/owner-crosswalk-v0.1.schema.json`: closed Draft 2020-12 schema for owner references and conservative family-level case mappings.
-- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and cross-file corpus/oracle/event-to-stage/source/outcome/owner-crosswalk invariants; it also contains the deterministic public-development challenge generator and CLI. It does not score robot performance or determine qualification.
+- `stage-transition-challenges-v0.1.json`: 16 public synthetic stage-evidence challenges covering command-only completion, self-report, qualified observations, critical referee requirements, stale configuration/frame/calibration/clock evidence, interruption/resume, replay, conflict and safe hold.
+- `stage-transition-oracle-v0.1.json` and closed schemas: separate public development dispositions for the finite evidence-gated stage-transition policy.
+- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and cross-file corpus/oracle/event-to-stage/source/outcome/owner-crosswalk invariants; it also contains the deterministic public-development challenge generator and CLI. It validates the finite stage-transition policy and its public development oracle; it does not control a robot, score physical performance or determine qualification.
 - `.github/workflows/robot-config-mission-impact-validation.yml`: focused Ubuntu/Windows/macOS schema, fixture, format, Clippy and CLI workflow.
 
 All article IDs, configurations, task references, event IDs, timestamps and outcome-shaped values are invented fixtures. They are not measured robot outcomes or vendor performance data.
@@ -68,9 +70,11 @@ No second capability engine, evidence graph, accepted-output ledger, maintenance
 
 ## Current verification
 
-The isolated Rust 1.96 package validates the public schemas and cross-file invariants, and now generates deterministic public synthetic challenge manifests from a pinned distribution profile. Its default `validate` command is separate from the `generate` command. The public development generator uses domain-separated SHA-256 seed derivation and SplitMix64 sampling; this is reproducible but not cryptographically secure. The focused Linux/macOS/Windows workflow is being extended to generate identical 128-challenge manifests on each platform.
+The isolated Rust 1.96 package validates the public schemas and cross-file invariants, generates deterministic public synthetic challenge manifests, and checks the 16-case stage-transition challenge corpus against a separate public development oracle. Stage-transition checks fail closed on missing postcondition evidence, critical verifier-class mismatch, stale configuration/frame/calibration, unqualified clock mapping, unauthorized skip, resume revision mismatch, conflicting evidence and duplicate accepted output. Robot command acknowledgement and self-report alone cannot advance a stage.
 
-This is not an evaluator-held blind set, a cryptographic custody system, a physical-scene generator, a simulator, a robot connection, HIL, or a physical test. Named factor bundles are symbolic synthetic labels and do not yet contain validated physical ranges. CI success proves package conformance only.
+The public development generator uses domain-separated SHA-256 seed derivation and SplitMix64 sampling; this is reproducible but not cryptographically secure. The focused Linux/macOS/Windows workflow exercises the generator and stage-transition fixtures. Exact-head results must be reported from the current workflow run, not inferred from an earlier revision.
+
+This is not an evaluator-held blind set, a cryptographic custody system, a physical-scene generator, a simulator, a robot connection, HIL, or a physical test. Named factor bundles and stage evidence references are symbolic synthetic fixtures. CI success proves software fixture conformance only.
 
 ## Nonclaims
 
