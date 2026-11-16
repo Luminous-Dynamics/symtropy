@@ -89,6 +89,6 @@ This transfer oracle is not the physical phantom, pHRI controller, a safety auth
 
 ## Synthetic oracle and claim ceiling
 
-cases-v0.json contains 30 synthetic known-answer cases. The Rust oracle validates closed typed structures, split integrity, method applicability, target calibration/revision, independent held-out validation, uncertainty/guard-band evidence and expected dispositions.
+cases-v0.json contains 34 synthetic known-answer cases. The Rust oracle validates closed typed structures, split integrity, method applicability, target calibration/revision, independent held-out validation, uncertainty/guard-band evidence and expected dispositions.
 
 A software PASS means only that the synthetic contract implementation reproduces these known answers. It does not reproduce GenForce, TacVerse or RCT, establish real sensor transfer, qualify a calibration, prove uncertainty coverage on hardware, establish physical performance, or authorize human contact or actuation.
