@@ -17,8 +17,8 @@ use std::fmt;
 
 use crate::hyphal_graph::{HyphalGraph, HyphalSegmentState, SegmentId};
 use crate::observation_evidence::{
-    EvidenceGraphTarget, EvidenceReceiptError, ObservationEvidenceId,
-    ObservationEvidenceReceipt, ObservationSubject,
+    EvidenceGraphTarget, EvidenceReceiptError, ObservationEvidenceId, ObservationEvidenceReceipt,
+    ObservationSubject,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -210,10 +210,16 @@ impl fmt::Display for HyphalHighwayError {
                 write!(f, "hyphal highway link references missing patch {:?}", id)
             }
             Self::InvalidTransitPath => {
-                write!(f, "bacterial transit path must contain matching source and target patches")
+                write!(
+                    f,
+                    "bacterial transit path must contain matching source and target patches"
+                )
             }
             Self::InvalidTransitTime => {
-                write!(f, "bacterial transit times must be finite, non-negative and ordered")
+                write!(
+                    f,
+                    "bacterial transit times must be finite, non-negative and ordered"
+                )
             }
             Self::DuplicateObservationReceipt(id) => {
                 write!(f, "duplicate observation receipt {:?}", id)
@@ -313,12 +319,12 @@ impl HyphalHighwayNetwork {
                 transit.trajectory_observation,
             ));
         };
-        trajectory_receipt
-            .validate()
-            .map_err(|source| HyphalHighwayError::InvalidObservationReceipt {
+        trajectory_receipt.validate().map_err(|source| {
+            HyphalHighwayError::InvalidObservationReceipt {
                 id: transit.trajectory_observation,
                 source,
-            })?;
+            }
+        })?;
         if trajectory_receipt.subject != ObservationSubject::BacterialTrajectory {
             return Err(HyphalHighwayError::WrongBacterialTrajectorySubject(
                 transit.trajectory_observation,
@@ -375,8 +381,7 @@ impl HyphalHighwayNetwork {
                 }
 
                 let Some(segment) = graph.segment(link.hyphal_segment) else {
-                    best_reason =
-                        HighwayUnresolvedReason::MissingActiveHyphalSupport { from, to };
+                    best_reason = HighwayUnresolvedReason::MissingActiveHyphalSupport { from, to };
                     continue;
                 };
                 if segment.state != HyphalSegmentState::Active {
@@ -385,8 +390,7 @@ impl HyphalHighwayNetwork {
                     continue;
                 }
                 if link.filament_domain == FilamentDomain::Unresolved {
-                    best_reason =
-                        HighwayUnresolvedReason::UnresolvedFilamentDomain(link.id);
+                    best_reason = HighwayUnresolvedReason::UnresolvedFilamentDomain(link.id);
                     continue;
                 }
                 let Some(hyphal_id) = link.hyphal_observation else {
@@ -403,12 +407,12 @@ impl HyphalHighwayNetwork {
                     best_reason = HighwayUnresolvedReason::MissingHyphalReceipt(hyphal_id);
                     continue;
                 };
-                hyphal_receipt
-                    .validate()
-                    .map_err(|source| HyphalHighwayError::InvalidObservationReceipt {
+                hyphal_receipt.validate().map_err(|source| {
+                    HyphalHighwayError::InvalidObservationReceipt {
                         id: hyphal_id,
                         source,
-                    })?;
+                    }
+                })?;
                 if hyphal_receipt.subject != ObservationSubject::HyphalSegmentTrace {
                     best_reason = HighwayUnresolvedReason::WrongHyphalReceiptSubject(hyphal_id);
                     continue;
@@ -416,8 +420,7 @@ impl HyphalHighwayNetwork {
                 if hyphal_receipt.graph_target
                     != Some(EvidenceGraphTarget::Segment(link.hyphal_segment))
                 {
-                    best_reason =
-                        HighwayUnresolvedReason::HyphalReceiptTargetMismatch(hyphal_id);
+                    best_reason = HighwayUnresolvedReason::HyphalReceiptTargetMismatch(hyphal_id);
                     continue;
                 }
 
@@ -425,12 +428,12 @@ impl HyphalHighwayNetwork {
                     best_reason = HighwayUnresolvedReason::MissingLiquidReceipt(liquid_id);
                     continue;
                 };
-                liquid_receipt
-                    .validate()
-                    .map_err(|source| HyphalHighwayError::InvalidObservationReceipt {
+                liquid_receipt.validate().map_err(|source| {
+                    HyphalHighwayError::InvalidObservationReceipt {
                         id: liquid_id,
                         source,
-                    })?;
+                    }
+                })?;
                 if liquid_receipt.subject != ObservationSubject::LiquidFilmPatch {
                     best_reason = HighwayUnresolvedReason::WrongLiquidReceiptSubject(liquid_id);
                     continue;
@@ -469,9 +472,7 @@ impl HyphalHighwayNetwork {
             (false, false) => {
                 return Ok(unresolved(
                     HighwayUnresolvedReason::UnresolvedFilamentDomain(
-                        *supporting_links
-                            .first()
-                            .unwrap_or(&HyphalHighwayLinkId(0)),
+                        *supporting_links.first().unwrap_or(&HyphalHighwayLinkId(0)),
                     ),
                 ));
             }
@@ -506,9 +507,7 @@ fn receipt_index<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hyphal_graph::{
-        HyphalNode, HyphalNodeKind, HyphalSegment, Position3Mm, NodeId,
-    };
+    use crate::hyphal_graph::{HyphalNode, HyphalNodeKind, HyphalSegment, NodeId, Position3Mm};
     use crate::observation_evidence::{
         EvidenceDisposition, ImageFrameIndex, ImageFrameReference, ImageRoiBoundsPx,
         ObservationRoiId, PhysicalSamplingCalibration, Sha256Digest,
@@ -647,10 +646,8 @@ mod tests {
 
     #[test]
     fn source_linked_fungal_hyphal_liquid_route_qualifies() {
-        let (network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         let assessment = network
             .assess_transit(&graph(), &transit, &receipts)
             .unwrap();
@@ -658,10 +655,7 @@ mod tests {
             assessment.outcome,
             HyphalHighwayOutcome::QualifiedTrueFungus
         );
-        assert_eq!(
-            assessment.supporting_links,
-            vec![HyphalHighwayLinkId(50)]
-        );
+        assert_eq!(assessment.supporting_links, vec![HyphalHighwayLinkId(50)]);
     }
 
     #[test]
@@ -754,74 +748,65 @@ mod tests {
 
     #[test]
     fn disconnected_liquid_film_never_qualifies_a_highway() {
-        let (network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Disconnected,
-        );
+        let (network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Disconnected);
         let assessment = network
             .assess_transit(&graph(), &transit, &receipts)
             .unwrap();
         assert_eq!(
             assessment.outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::LiquidFilmDisconnected {
-                    from: LiquidPatchId(1),
-                    to: LiquidPatchId(2),
-                }
-            )
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::LiquidFilmDisconnected {
+                from: LiquidPatchId(1),
+                to: LiquidPatchId(2),
+            })
         );
         assert!(assessment.supporting_links.is_empty());
     }
 
     #[test]
     fn unreported_liquid_state_never_qualifies_a_highway() {
-        let (network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Unreported,
-        );
+        let (network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Unreported);
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::LiquidFilmStateUnreported {
-                    from: LiquidPatchId(1),
-                    to: LiquidPatchId(2),
-                }
-            )
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::LiquidFilmStateUnreported {
+                from: LiquidPatchId(1),
+                to: LiquidPatchId(2),
+            })
         );
     }
 
     #[test]
     fn absent_liquid_receipt_prevents_qualification() {
-        let (mut network, transit, mut receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (mut network, transit, mut receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         let link = network.links.get_mut(&HyphalHighwayLinkId(50)).unwrap();
         link.liquid_observation = None;
         receipts.retain(|item| item.id != ObservationEvidenceId(11));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::MissingLiquidObservation(HyphalHighwayLinkId(50))
-            )
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::MissingLiquidObservation(
+                HyphalHighwayLinkId(50)
+            ))
         );
     }
 
     #[test]
     fn inactive_or_absent_hyphal_segment_prevents_qualification() {
-        let (network, transit, receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         let inactive_graph = graph_with_segment_state(HyphalSegmentState::Inactive);
         assert_eq!(
             network
                 .assess_transit(&inactive_graph, &transit, &receipts)
                 .unwrap()
                 .outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::InactiveHyphalSupport(SegmentId(7))
-            )
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::InactiveHyphalSupport(
+                SegmentId(7)
+            ))
         );
     }
 
@@ -855,11 +840,7 @@ mod tests {
         );
 
         let mut receipts = receipts;
-        receipts.push(receipt(
-            12,
-            ObservationSubject::FluorescenceRoi,
-            None,
-        ));
+        receipts.push(receipt(12, ObservationSubject::FluorescenceRoi, None));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts),
             Err(HyphalHighwayError::WrongBacterialTrajectorySubject(
@@ -880,12 +861,10 @@ mod tests {
                 .assess_transit(&empty_graph, &transit, &receipts)
                 .unwrap()
                 .outcome,
-            HyphalHighwayOutcome::Unresolved(
-                HighwayUnresolvedReason::MissingActiveHyphalSupport {
-                    from: LiquidPatchId(1),
-                    to: LiquidPatchId(2),
-                }
-            )
+            HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::MissingActiveHyphalSupport {
+                from: LiquidPatchId(1),
+                to: LiquidPatchId(2),
+            })
         );
     }
 
@@ -895,11 +874,7 @@ mod tests {
             FilamentDomain::TrueFungus,
             LiquidFilmState::Connected,
         );
-        receipts.push(receipt(
-            12,
-            ObservationSubject::BacterialTrajectory,
-            None,
-        ));
+        receipts.push(receipt(12, ObservationSubject::BacterialTrajectory, None));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts),
             Err(HyphalHighwayError::DuplicateObservationReceipt(
