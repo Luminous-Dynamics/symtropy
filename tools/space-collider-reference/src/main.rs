@@ -148,7 +148,7 @@ fn render_reference_report() -> Result<String, String> {
             "  \"maximum_cm_energy_for_47000_km_circumference_2_t_fill_0p7_pev\": {:.6},\n",
             "  \"performance_closure\": {},\n",
             "  \"paper_claim_review\": \"A 140x Lorentz-factor ratio is inconsistent with 1 PeV as centre-of-mass energy and 14 TeV LHC centre-of-mass energy; it corresponds to 1 PeV per beam. Clarify convention before using the compensation factor.\",\n",
-            "  \"claim_ceiling\": \"analytic energy-convention, rigidity and revolution-frequency checks only; no beam-optics, luminosity, magnet, orbit-control, thermal or flight qualification\"\n",
+            "  \"claim_ceiling\": \"analytical energy-convention, rigidity, revolution-frequency, luminosity and beam-operating-budget arithmetic only; no beam optics or dynamics, tune-shift validation, detector qualification, magnet, RF, orbit-control, thermal or flight qualification\"\n",
             "}}"
         ),
         candidate_cm.0,
