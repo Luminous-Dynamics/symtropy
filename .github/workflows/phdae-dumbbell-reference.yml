@@ -2,6 +2,7 @@ name: pHDAE dumbbell momentum-map reference
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - "tools/phdae-dumbbell-reference/**"
       - "docs/research/PHDAE_DUMBBELL_MOMENTUM_MAP_2026-10-31.md"
@@ -15,10 +16,13 @@ permissions:
 
 jobs:
   standalone-dumbbell-reference:
-    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout exact commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
 
       - name: Install pinned Rust toolchain
         run: |
