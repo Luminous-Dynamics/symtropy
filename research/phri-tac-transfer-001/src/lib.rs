@@ -49,7 +49,10 @@ const EXPECTED_CASES: &[(&str, &str)] = &[
     ("PTT-026", "only_development_validation_available"),
     ("PTT-027", "validation_receipt_binds_other_sensor_unit"),
     ("PTT-028", "model_binds_wrong_target_calibration"),
-    ("PTT-029", "qualified_transfer_remains_model_estimate_when_claimed_as_such"),
+    (
+        "PTT-029",
+        "qualified_transfer_remains_model_estimate_when_claimed_as_such",
+    ),
     ("PTT-030", "qualified_cross_family_transfer"),
     ("PTT-031", "source_train_target_validation_sample_overlap"),
     ("PTT-032", "source_train_target_adaptation_sample_overlap"),
@@ -364,7 +367,10 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
     });
     let target_partition_overlap =
         overlaps(&target_adaptation.sample_ids, &target_validation.sample_ids)
-            || overlaps(&target_adaptation.sequence_ids, &target_validation.sequence_ids)
+            || overlaps(
+                &target_adaptation.sequence_ids,
+                &target_validation.sequence_ids,
+            )
             || overlaps(&target_adaptation.sample_ids, &target_test.sample_ids)
             || overlaps(&target_adaptation.sequence_ids, &target_test.sequence_ids)
             || overlaps(&target_validation.sample_ids, &target_test.sample_ids)
@@ -375,12 +381,14 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
     }
 
     if input.holdout_materials {
-        let source_or_target_article_overlap = target_groups.iter().any(|target_group| {
-            overlaps(&source_train.article_ids, &target_group.article_ids)
-        });
+        let source_or_target_article_overlap = target_groups
+            .iter()
+            .any(|target_group| overlaps(&source_train.article_ids, &target_group.article_ids));
         let target_article_overlap =
-            overlaps(&target_adaptation.article_ids, &target_validation.article_ids)
-                || overlaps(&target_adaptation.article_ids, &target_test.article_ids)
+            overlaps(
+                &target_adaptation.article_ids,
+                &target_validation.article_ids,
+            ) || overlaps(&target_adaptation.article_ids, &target_test.article_ids)
                 || overlaps(&target_validation.article_ids, &target_test.article_ids);
         if source_or_target_article_overlap || target_article_overlap {
             return SplitDisposition::Leaked;
@@ -394,15 +402,11 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
         return SplitDisposition::Leaked;
     }
 
-    if !group_is_empty(target_adaptation)
-        && !group_binds_target(target_adaptation, &input.target)
-    {
+    if !group_is_empty(target_adaptation) && !group_binds_target(target_adaptation, &input.target) {
         return SplitDisposition::Leaked;
     }
 
-    if !group_is_empty(target_validation)
-        && !group_binds_target(target_validation, &input.target)
-    {
+    if !group_is_empty(target_validation) && !group_binds_target(target_validation, &input.target) {
         return SplitDisposition::Leaked;
     }
 
@@ -448,10 +452,7 @@ fn split_integrity(input: &CandidateInput) -> SplitDisposition {
     SplitDisposition::Valid
 }
 
-fn transfer_eligibility(
-    input: &CandidateInput,
-    split: SplitDisposition,
-) -> TransferDisposition {
+fn transfer_eligibility(input: &CandidateInput, split: SplitDisposition) -> TransferDisposition {
     if split != SplitDisposition::Valid {
         return TransferDisposition::BlockedSplit;
     }
@@ -605,8 +606,14 @@ fn is_hex_digest(value: &str) -> bool {
 fn validate_case(case: &Case) -> Result<(), String> {
     let input = &case.candidate_input;
     for (name, digest) in [
-        ("source.profile_digest", input.source.profile_digest.as_str()),
-        ("target.profile_digest", input.target.profile_digest.as_str()),
+        (
+            "source.profile_digest",
+            input.source.profile_digest.as_str(),
+        ),
+        (
+            "target.profile_digest",
+            input.target.profile_digest.as_str(),
+        ),
         (
             "transfer_method.source_profile_digest",
             input.transfer_method.source_profile_digest.as_str(),
@@ -679,7 +686,10 @@ pub fn validate_document(corpus: &Corpus) -> Result<ValidationReport, String> {
     for (index, case) in corpus.cases.iter().enumerate() {
         let (expected_id, expected_fault) = EXPECTED_CASES[index];
         if case.id != expected_id || case.evaluator_only.fault_kind != expected_fault {
-            return Err(format!("fixture identity drift at position {index}: {}", case.id));
+            return Err(format!(
+                "fixture identity drift at position {index}: {}",
+                case.id
+            ));
         }
         if !identifiers.insert(case.id.as_str()) {
             return Err(format!("duplicate fixture id: {}", case.id));
@@ -834,7 +844,6 @@ mod tests {
         });
         assert!(parse_and_validate(&value).is_err());
     }
-
 
     #[test]
     fn same_device_may_reuse_its_current_calibration_when_profile_is_unchanged() {
