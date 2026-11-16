@@ -104,6 +104,13 @@ fn validate_dataset_payload_media_type(
     Ok(())
 }
 
+fn require_not_deleted(value: &Value, path: &str) -> Result<(), String> {
+    if value.get("deleted").and_then(Value::as_bool) != Some(false) {
+        return Err(format!("{path}.deleted must be explicitly false"));
+    }
+    Ok(())
+}
+
 fn validate_rights(
     value: &Value,
     path: &str,
@@ -454,6 +461,12 @@ fn validate_envelope(
 
             match role {
                 "DATASET_METADATA" => {
+                    require_not_deleted(&parsed, &artifact_path)?;
+                    required_text(&parsed, "title", &artifact_path)?;
+                    required_text(&parsed, "description", &artifact_path)?;
+                    required_text(&parsed, "date", &artifact_path)?;
+                    required_text(&parsed, "creator", &artifact_path)?;
+                    required_text(&parsed, "format", &artifact_path)?;
                     if required_text(&parsed, "id", &artifact_path)? != id {
                         return Err(format!("{artifact_path}: provider dataset ID differs from envelope dataset_id"));
                     }
@@ -468,9 +481,17 @@ fn validate_envelope(
                         .filter(|items| !items.is_empty())
                         .ok_or_else(|| format!("{artifact_path}.fileDescriptors must be non-empty"))?;
                     for descriptor in descriptors {
+                        require_not_deleted(descriptor, &artifact_path)?;
                         let file_id = required_text(descriptor, "id", &artifact_path)?;
                         let filename = required_text(descriptor, "filename", &artifact_path)?;
                         let mime_type = required_text(descriptor, "mimeType", &artifact_path)?;
+                        required_text(descriptor, "dataURL", &artifact_path)?;
+                        let md5sum = required_text(descriptor, "md5sum", &artifact_path)?;
+                        if md5sum.len() != 32
+                            || !md5sum.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+                        {
+                            return Err(format!("{artifact_path}: provider MD5 metadata must be 32 lowercase hex characters"));
+                        }
                         let size = required_u64(descriptor, "size", &artifact_path)?;
                         if !dataset_file_ids.insert(file_id.to_owned()) {
                             return Err(format!("{artifact_path}: duplicate provider file ID {file_id}"));
@@ -492,6 +513,7 @@ fn validate_envelope(
                         .filter(|items| !items.is_empty())
                         .ok_or_else(|| format!("{artifact_path}: file metadata response must be a non-empty array"))?;
                     for descriptor in descriptors {
+                        require_not_deleted(descriptor, &artifact_path)?;
                         let file_id = required_text(descriptor, "id", &artifact_path)?;
                         if !endpoint_file_ids.insert(file_id.to_owned()) {
                             return Err(format!("{artifact_path}: duplicate file ID in provider file-metadata response"));
@@ -794,6 +816,14 @@ mod tests {
         let tampered = b"{\"fixture_id\":\"tampered\"}\n";
         let error = validate_envelope(FIXTURE, tampered, OUTPUT_BYTES).expect_err("digest mismatch");
         assert!(error.contains("byte length mismatch") || error.contains("SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn deleted_provider_dataset_or_file_descriptor_is_not_admitted() {
+        let mut dataset = json!({"id":"dataset-1","deleted":true});
+        assert!(require_not_deleted(&dataset, "dataset").is_err());
+        dataset["deleted"] = Value::Bool(false);
+        assert!(require_not_deleted(&dataset, "dataset").is_ok());
     }
 
     #[test]
