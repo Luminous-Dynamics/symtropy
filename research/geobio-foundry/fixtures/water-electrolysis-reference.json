@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.2",
+  "process_id": "synthetic-water-electrolysis-reference",
+  "functional_unit": "1 kg water feed processed",
+  "primary_product_flow_id": "oxygen-product",
+  "evidence_state": "modelled",
+  "inputs": [
+    {
+      "flow_id": "water-feed",
+      "material_id": "water",
+      "origin": "local_measured",
+      "mass_kg": {
+        "value": 1.0,
+        "standard_uncertainty": 0.0001,
+        "correlation_group": "feed-mass-assay"
+      },
+      "composition_complete": true,
+      "elements": [
+        {
+          "element": "H",
+          "mass_kg": {
+            "value": 0.111898,
+            "standard_uncertainty": 0.0001,
+            "correlation_group": "water-element-assay"
+          }
+        },
+        {
+          "element": "O",
+          "mass_kg": {
+            "value": 0.888102,
+            "standard_uncertainty": 0.0001,
+            "correlation_group": "water-element-assay"
+          }
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "flow_id": "hydrogen-product",
+      "material_id": "hydrogen",
+      "origin": "local_measured",
+      "mass_kg": {
+        "value": 0.111898,
+        "standard_uncertainty": 0.0001,
+        "correlation_group": "product-mass-assay"
+      },
+      "composition_complete": true,
+      "elements": [
+        {
+          "element": "H",
+          "mass_kg": {
+            "value": 0.111898,
+            "standard_uncertainty": 0.0001,
+            "correlation_group": "hydrogen-assay"
+          }
+        }
+      ]
+    },
+    {
+      "flow_id": "oxygen-product",
+      "material_id": "oxygen",
+      "origin": "local_measured",
+      "mass_kg": {
+        "value": 0.888102,
+        "standard_uncertainty": 0.0001,
+        "correlation_group": "product-mass-assay"
+      },
+      "composition_complete": true,
+      "elements": [
+        {
+          "element": "O",
+          "mass_kg": {
+            "value": 0.888102,
+            "standard_uncertainty": 0.0001,
+            "correlation_group": "oxygen-assay"
+          }
+        }
+      ]
+    }
+  ],
+  "waste_streams": [],
+  "energy": {
+    "gross_consumed_j": {
+      "value": 1000.0,
+      "standard_uncertainty": 1.0,
+      "correlation_group": "power-meter-01"
+    },
+    "recovered_j": {
+      "value": 50.0,
+      "standard_uncertainty": 1.0,
+      "correlation_group": "recovery-meter-01"
+    }
+  },
+  "provenance": {
+    "producer": "GeoBio Foundry synthetic fixture",
+    "method_id": "water-electrolysis-stoichiometric-fixture-v0.2",
+    "observed_at": "2026-11-16T00:00:00Z",
+    "input_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_sha256": null,
+    "independent_witness": null
+  },
+  "notes": "Synthetic stoichiometric and schema fixture only. It is not a measured process run and its energy value is illustrative."
+}
