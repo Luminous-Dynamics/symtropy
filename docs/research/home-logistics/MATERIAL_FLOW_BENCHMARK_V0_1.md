@@ -582,6 +582,20 @@ Evidence artifact `mfb-l1-evidence-c1a388ab592d2bbbd07ced65662aea827b77e26e` (ID
 
 **Claim ceiling:** the gate is static collision geometry in the L1 scene. It is not a moving door, physical interlock, actuator/power fault, sensor timing, perception/firmware test or HIL. The report is evidence about the reduced-order rigid-body model and software response only. Further fault timing, dynamic gate, power-loss and sensor-channel work remains in #5500.
 
+### 12.10 No-drop 30-seed L1 gate-obstruction robustness sweep
+
+The scene-level gate fault now has a deterministic multi-seed sweep API, `simulate_closed_gate_obstruction_sweep`, and CLI `mfb-simulate-gate-fault-sweep`.
+
+The runner defaults to 30 consecutive seeds beginning at the frozen scenario seed (bounded to 1..=256). For each seed it runs the full 480 Hz scene twice, checks same-host replay, collects package↔gate collision-event count and impulse, tests the placement/reconciliation/retry oracles, and emits a per-seed trace digest. A failed simulation or failed oracle remains a row in the output with an explicit failure reason; no case is silently removed from the denominator.
+
+The summary reports requested vs executed runs, passed/failed counts, all-oracles-passed, total/min/max gate contacts, max impact impulse, worst contact penetration, reconciliation count, retry-blocked count and false-completion-blocked count.
+
+Unit tests check a three-seed sweep is exactly repeatable, all three cases remain present and each requires reconciliation/retry blocking, and run counts of zero or above the configured maximum reject.
+
+**Statistical boundary:** this is a deterministic initial-offset sweep for one synthetic scenario and one static gate proxy. It does not vary home layouts, robot platforms, sensors, site conditions, package families, firmware or physics engines. Do not use 30 seeds as a claim of 30 independent field trials or as a reliability confidence interval. The full F2 design in #5500 must stratify independent task families/sites and preserve failed runs.
+
+The workflow now requests 30 seeds and archives `gate-obstruction-fault-sweep.json` with its own SHA-256. Exact-head qualification is pending for this new runner.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
