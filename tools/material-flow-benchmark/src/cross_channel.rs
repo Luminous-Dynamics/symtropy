@@ -15,7 +15,7 @@ use crate::observation::{
     PresenceAdjudicationPolicy, PresenceAdjudicationReport, PresenceReading,
     PresenceVerdict, ReceiverPresenceObservation, adjudicate_receiver_presence,
 };
-use crate::simulation::{FaultSimulationResult, simulate_closed_gate_obstruction};
+use crate::simulation::simulate_closed_gate_obstruction;
 use crate::ScenarioManifest;
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
