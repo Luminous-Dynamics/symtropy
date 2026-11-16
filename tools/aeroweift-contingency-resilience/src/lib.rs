@@ -296,6 +296,14 @@ pub struct OptionAssessment {
     pub option_id: String,
     /// Candidate disposition.
     pub disposition: OptionDisposition,
+    /// Exact option evidence-binding digest string.
+    pub evidence_binding_sha256: String,
+    /// Exact receipt identifiers consumed by this option.
+    pub evidence_receipt_ids: Vec<String>,
+    /// Evidence validity end time, exclusive.
+    pub evidence_valid_until: i64,
+    /// Owner-provided authorization state.
+    pub authorization_state: AuthorizationState,
     /// Definite rejection reasons.
     pub rejection_reasons: Vec<RejectionReason>,
     /// Unresolved evidence reasons.
@@ -405,7 +413,10 @@ fn validate_policy(policy: &RecoverabilityPolicy) -> Result<(), EvaluationError>
     if !is_sha256(&policy.policy_sha256)
         || policy.supported_contingencies.is_empty()
         || policy.maximum_determinate_option_count == 0
-        || policy.diversity_exempt_domains.iter().any(|value| value.trim().is_empty())
+        || policy
+            .diversity_exempt_domains
+            .iter()
+            .any(|value| value.trim().is_empty())
     {
         return Err(EvaluationError::InvalidPolicy);
     }
@@ -430,9 +441,7 @@ fn validate_case(case: &ContingencyCase) -> Result<(), EvaluationError> {
     Ok(())
 }
 
-fn validate_inventory(
-    inventory: &OptionInventory,
-) -> Result<(), EvaluationError> {
+fn validate_inventory(inventory: &OptionInventory) -> Result<(), EvaluationError> {
     if inventory.source_id.trim().is_empty()
         || !is_sha256(&inventory.manifest_sha256)
         || inventory.effective_from < 0
@@ -449,12 +458,18 @@ fn validate_option(option: &RecoveryOption) -> Result<(), EvaluationError> {
     if !unique_nonempty(&option.dependency_domains) {
         return Err(EvaluationError::InvalidDependencySet);
     }
+    if option.dependency_domains.is_empty() {
+        return Err(EvaluationError::InvalidDependencySet);
+    }
     if option.option_id.trim().is_empty()
         || option.contingency_id.trim().is_empty()
         || !option.subject.is_complete()
         || !is_sha256(&option.evidence_binding_sha256)
         || option.evidence_receipt_ids.is_empty()
-        || option.evidence_receipt_ids.iter().any(|value| value.trim().is_empty())
+        || option
+            .evidence_receipt_ids
+            .iter()
+            .any(|value| value.trim().is_empty())
         || !finite_nonnegative(option.bounds.response_time_upper_ms)
         || !finite_nonnegative(option.bounds.energy_available_lower)
         || !finite_nonnegative(option.bounds.energy_required_upper)
@@ -572,6 +587,10 @@ fn assess_option(
     OptionAssessment {
         option_id: option.option_id.clone(),
         disposition,
+        evidence_binding_sha256: option.evidence_binding_sha256.clone(),
+        evidence_receipt_ids: option.evidence_receipt_ids.clone(),
+        evidence_valid_until: option.evidence_valid_until,
+        authorization_state: option.authorization_state,
         rejection_reasons: rejected.into_iter().collect(),
         uncertainty_reasons: uncertain.into_iter().collect(),
         reauthorization_required,
@@ -712,8 +731,8 @@ pub fn evaluate_recoverability(
     let has_reauthorization = options
         .iter()
         .any(|option| option.disposition == OptionDisposition::ReauthorizationRequired);
-    let exceeds_determinate_limit = admissible_option_ids.len()
-        > policy.maximum_determinate_option_count;
+    let exceeds_determinate_limit =
+        admissible_option_ids.len() > policy.maximum_determinate_option_count;
 
     let status = if witness.len() >= case.required_independent_options {
         if case.required_independent_options == 1 {
