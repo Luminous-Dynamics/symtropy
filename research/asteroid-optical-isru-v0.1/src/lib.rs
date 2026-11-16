@@ -145,6 +145,7 @@ pub struct CaseRecord {
     pub expected_disposition: String,
     pub note: String,
     pub source_id: Option<String>,
+    pub conditions: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -191,6 +192,7 @@ pub fn validate_corpus(corpus: &BenchmarkCorpus) -> Result<(), AuditError> {
             || case.evidence_class.trim().is_empty()
             || case.expected_disposition.trim().is_empty()
             || case.note.trim().is_empty()
+            || !case.conditions.is_object()
         {
             return Err(AuditError::InvalidRange("case_record_required_field"));
         }
