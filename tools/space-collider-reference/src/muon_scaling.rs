@@ -35,6 +35,9 @@ struct MuonScenario {
     average_beam_current_a: f64,
     average_stored_energy_per_beam_j: f64,
     injection_power_per_beam_w: f64,
+    muon_decay_rate_per_beam_s: f64,
+    decay_energy_flow_per_beam_w: f64,
+    decay_energy_flow_per_ring_m_w: f64,
     synchrotron_loss_per_turn_mev: f64,
     synchrotron_loss_fraction_per_turn: f64,
     synchrotron_power_per_beam_w: f64,
@@ -118,6 +121,12 @@ fn calculate_scenario(
         * average_circulating_bunches
         * revolution_frequency_hz;
     let injection_power_per_beam_w = bunch_energy_j * bunch_repetition_hz;
+    // In steady state, one bunch's worth of muons per repetition ultimately
+    // decays out of the circulating beam. This is total energy carried into
+    // decay products, not deposited heat or neutrino dose.
+    let muon_decay_rate_per_beam_s = muons_per_bunch * bunch_repetition_hz;
+    let decay_energy_flow_per_beam_w = muon_decay_rate_per_beam_s * beam_energy_gev * JOULES_PER_GEV;
+    let decay_energy_flow_per_ring_m_w = decay_energy_flow_per_beam_w / circumference_m;
 
     let synchrotron_loss_per_turn_mev = synchrotron_loss_per_turn_mev(
         beam_energy_gev,
@@ -150,6 +159,9 @@ fn calculate_scenario(
         average_beam_current_a,
         average_stored_energy_per_beam_j,
         injection_power_per_beam_w,
+        muon_decay_rate_per_beam_s,
+        decay_energy_flow_per_beam_w,
+        decay_energy_flow_per_ring_m_w,
         synchrotron_loss_per_turn_mev,
         synchrotron_loss_fraction_per_turn,
         synchrotron_power_per_beam_w,
@@ -177,6 +189,9 @@ fn calculate_scenario(
         average_beam_current_a,
         average_stored_energy_per_beam_j,
         injection_power_per_beam_w,
+        muon_decay_rate_per_beam_s,
+        decay_energy_flow_per_beam_w,
+        decay_energy_flow_per_ring_m_w,
         synchrotron_loss_per_turn_mev,
         synchrotron_loss_fraction_per_turn,
         synchrotron_power_per_beam_w,
@@ -220,6 +235,9 @@ fn render_scenario_json(s: MuonScenario) -> String {
             "\"average_stored_energy_j_per_beam\":{:.6e},",
             "\"average_beam_current_a\":{:.9e},",
             "\"injection_power_w_per_beam\":{:.6e},",
+            "\"muon_decay_rate_per_beam_per_s\":{:.6e},",
+            "\"decay_energy_flow_w_per_beam_not_deposited_heat\":{:.6e},",
+            "\"decay_energy_flow_w_per_ring_m_per_beam_not_deposited_heat\":{:.6e},",
             "\"synchrotron_loss_mev_per_turn\":{:.9e},",
             "\"synchrotron_loss_fraction_per_turn\":{:.9e},",
             "\"synchrotron_power_w_per_beam_formal\":{:.6e},",
@@ -245,6 +263,9 @@ fn render_scenario_json(s: MuonScenario) -> String {
         s.average_stored_energy_per_beam_j,
         s.average_beam_current_a,
         s.injection_power_per_beam_w,
+        s.muon_decay_rate_per_beam_s,
+        s.decay_energy_flow_per_beam_w,
+        s.decay_energy_flow_per_ring_m_w,
         s.synchrotron_loss_per_turn_mev,
         s.synchrotron_loss_fraction_per_turn,
         s.synchrotron_power_per_beam_w,
@@ -344,6 +365,7 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
             "\"bunch_repetition_hz\":5.0,",
             "\"reported_beam_power_mw_two_beams\":14.4,",
             "\"reported_luminosity_lifetime_turns\":1363.0,",
+            "\"reported_beam_induced_cold_mass_power_w_per_m\":500.0,",
             "\"derived_dipole_fill_fraction_from_rigidity\":{:.9},",
             "\"derived_muon_decay_turns\":{:.6},",
             "\"derived_luminosity_decay_turns\":{:.6},",
@@ -369,6 +391,10 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
             "}},",
             "\"assumptions\":[",
             "\"Isomagnetic circular arcs; rho = dipole_fill_fraction * circumference / (2 pi).",
+            "\",",
+            "\"The decay energy flow is energy carried by decay products and is not deposited heat; neutrino/electron/shower partitions require transport simulation.",
+            "\",",
+            "\"Classical synchrotron model; quantum validity is flagged by chi and the electron lunar-energy comparator is outside the classical regime.",
             "\",",
             "\"Peak field is used as a uniform effective arc field for this first-order screen; a real lattice requires the radiation integral I2 = integral(ds/rho(s)^2).",
             "\",",
@@ -494,6 +520,7 @@ mod tests {
         assert!(report.contains("fixed_energy_lunar_ring"));
         assert!(report.contains("fixed_field_sweep"));
         assert!(report.contains("no_fixed_energy_circular_equilibrium_under_declared_model"));
-        assert!(report.contains("classical_synchrotron_model"));
+        assert!(report.contains("Classical synchrotron model"));
+        assert!(report.contains("decay_energy_flow_w_per_beam_not_deposited_heat"));
     }
 }
