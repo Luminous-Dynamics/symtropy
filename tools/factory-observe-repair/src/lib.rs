@@ -697,13 +697,13 @@ mod tests {
             );
             assert_eq!(
                 evaluated.metrics.false_preserved_affected_operations,
-                columns[16].parse::<usize>().unwrap(),
+                columns[15].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
             assert_eq!(
                 evaluated.metrics.unnecessary_released_operations,
-                columns[15].parse::<usize>().unwrap(),
+                columns[16].parse::<usize>().unwrap(),
                 "fixture {}",
                 columns[0]
             );
