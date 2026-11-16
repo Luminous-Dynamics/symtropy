@@ -162,9 +162,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             .find(|item| text_at(item, "id") == Some("DYNA-2-DIN-TAI-FUNG-AUG2026"))
     });
     let commercial_suite = suites.and_then(|items| {
-        items.iter().find(|item| {
-            text_at(item, "id") == Some("standardized_commercial_textiles")
-        })
+        items
+            .iter()
+            .find(|item| text_at(item, "id") == Some("standardized_commercial_textiles"))
     });
     match (dyna2, commercial_suite) {
         (Some(reference), Some(suite)) => {
@@ -617,8 +617,7 @@ mod tests {
             .as_array_mut()
             .expect("comparators")
             .retain(|item| {
-                item.get("id").and_then(Value::as_str)
-                    != Some("DYNA-2-DIN-TAI-FUNG-AUG2026")
+                item.get("id").and_then(Value::as_str) != Some("DYNA-2-DIN-TAI-FUNG-AUG2026")
             });
         assert!(!is_valid(&schema, &profile));
     }
