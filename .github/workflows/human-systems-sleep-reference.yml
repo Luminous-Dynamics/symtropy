@@ -1,0 +1,44 @@
+name: Symtropy Human Systems — Two-Process Sleep Reference
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/domains/symtropy-human-systems/**"
+      - ".github/workflows/human-systems-sleep-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact qualification subject
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact head
+        if: github.event_name == 'pull_request'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-human-systems/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --all-targets --locked -- -D warnings
