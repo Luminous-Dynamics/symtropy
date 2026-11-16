@@ -1,0 +1,12 @@
+[package]
+name = "aeroweift-longitudinal-monitoring"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0"
+description = "Aviation-specific monitor adapter for upstream anytime-valid sequential evidence"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
