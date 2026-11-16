@@ -28,9 +28,11 @@ A deterministic FNV-1a 64-bit canonical fingerprint is emitted for reproducibili
     cargo test --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets
     cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fjsp
     cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fajsp
+    cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fjsp
+    cargo run --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fajsp
 
 The tests use the official FJSPLib fattahi1 example in both text formats. They check one-based versus zero-based normalization and that the FJSP route structure and FAJSP precedence graph carry the same operation/machine/duration semantics.
 
 ## Claim ceiling
 
-This adapter proves parser/normalization behavior only. It does not solve flexible jobshop instances, establish SOTA, reproduce a reference engine's benchmark results, or establish real factory capacity. Alternative-machine assignment optimization is a separately versioned follow-on to the tiny fixed-route exact oracle.
+This adapter includes a bounded exact makespan oracle for tiny FJSP/FAJSP instances. It exhaustively enumerates every eligible-machine assignment and each resulting machine-order product, rejects cyclic precedence combinations, and derives earliest starts from a longest-path calculation. It is limited to nine operations, at most 100,000 assignments and at most 500,000 aggregate machine-order combinations; preflight overflow/bound failures return INCONCLUSIVE before partial search. For the documented Fattahi1 fixture, both text formats normalize to an exact makespan of 66 ticks after 16 assignments and 120 machine-order combinations (68 cyclic, 52 feasible). The fixture is synthetic and this result is not an industrial SOTA claim. The adapter does not reproduce a reference engine or establish real factory capacity.
