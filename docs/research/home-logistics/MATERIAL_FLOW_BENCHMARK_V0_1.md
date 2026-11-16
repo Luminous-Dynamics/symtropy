@@ -562,6 +562,20 @@ The non-physical receipt domains (household grant, provider records, receiver ca
 **Exact-head history:** the earlier structural-admission implementation passed [workflow 43823753266](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266), source `386fc63ea84561f072ec58804154cb02f0d4b8d9`, with 76 tests and 14/14 synthetic envelopes admitted. The required-verifier-domain map, new anti-claim fields and strict timestamp-boundary rejection were added afterwards and need their own exact-head qualification. The earlier run does not qualify them.
 
 
+### 12.9 First L1 scene-level physical fault proxy
+
+The L1 physics module now includes `simulate_closed_gate_obstruction` and the `mfb-simulate-gate-fault` CLI. It inserts a static collision proxy across the tote opening, replays the same deterministic 480 Hz scene, and checks that:
+- the package physically remains outside the tote and the placement predicate fails;
+- the scene remains numerically healthy and the contact-penetration gate passes;
+- the same-host replay is bitwise equal;
+- the handoff records an observation disagreement after logical release and enters `ReconciliationRequired`;
+- a retry against the old logical command is blocked;
+- no false delivery completion is emitted.
+
+The report is accepted as a *fault-oracle pass* only when the above conditions hold. The nested nominal-delivery `accepted` flag must be false. This keeps “the system responded correctly to a fault” distinct from “the delivery succeeded.”
+
+**Claim ceiling:** the gate is static collision geometry in the L1 scene. It is not a moving door, physical interlock, actuator/power fault, sensor timing, perception/firmware test or HIL. The report is evidence about the reduced-order rigid-body model and software response only. Further fault timing, dynamic gate, power-loss and sensor-channel work remains in #5500.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
