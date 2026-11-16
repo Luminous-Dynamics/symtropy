@@ -379,6 +379,44 @@ fn challenge_value(
 /// field. The manifest digest covers the complete manifest without its digest
 /// field. Serde JSON's default sorted object map order is part of the v0.1
 /// canonicalization contract.
+/// Recompute a generated manifest from its public profile, root seed and
+/// requested count. This rejects edited/reordered output that no longer
+/// reproduces under the declared generator version and canonicalization.
+pub fn manifest_invariants(manifest: &Value, profile: &Value) -> Vec<String> {
+    let Some(seed_text) = string_at(manifest, &["root_seed_hex"]) else {
+        return vec!["manifest_root_seed_missing".to_owned()];
+    };
+    if seed_text.len() != 16 {
+        return vec!["manifest_root_seed_format_invalid".to_owned()];
+    }
+    let Ok(root_seed) = u64::from_str_radix(seed_text, 16) else {
+        return vec!["manifest_root_seed_format_invalid".to_owned()];
+    };
+    let Some(count) = manifest
+        .get("requested_count")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+    else {
+        return vec!["manifest_requested_count_invalid".to_owned()];
+    };
+    let expected = match generate_manifest(profile, root_seed, count) {
+        Ok(expected) => expected,
+        Err(errors) => return errors,
+    };
+    let actual_bytes = match canonical_json(manifest) {
+        Ok(bytes) => bytes,
+        Err(error) => return vec![error],
+    };
+    let expected_bytes = match canonical_json(&expected) {
+        Ok(bytes) => bytes,
+        Err(error) => return vec![error],
+    };
+    if actual_bytes != expected_bytes {
+        return vec!["manifest_not_reproducible_from_profile_seed_and_count".to_owned()];
+    }
+    Vec::new()
+}
+
 pub fn generate_manifest(
     profile: &Value,
     root_seed: u64,
@@ -597,6 +635,25 @@ mod tests {
         assert_ne!(
             derive_seed(root, "challenge", 7),
             derive_seed(root, "challenge", 8)
+        );
+    }
+
+    #[test]
+    fn manifest_invariants_accept_generated_manifest() {
+        let value = profile();
+        let manifest = generate_manifest(&value, 0x1234, 16).unwrap();
+        assert!(manifest_invariants(&manifest, &value).is_empty());
+    }
+
+    #[test]
+    fn manifest_invariants_reject_mutated_bundle_or_digest() {
+        let value = profile();
+        let mut manifest = generate_manifest(&value, 0x1234, 16).unwrap();
+        manifest["challenges"][0]["factor_bundle_id"] =
+            Value::String("unregistered-bundle".to_owned());
+        assert_eq!(
+            manifest_invariants(&manifest, &value),
+            vec!["manifest_not_reproducible_from_profile_seed_and_count".to_owned()]
         );
     }
 
