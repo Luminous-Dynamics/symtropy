@@ -87,10 +87,14 @@ fn scope_digest(scope: &Value) -> Result<String, String> {
     Ok(format!("{:x}", Sha256::digest(bytes)))
 }
 
+type OutcomeContractKey = (String, String);
+type OutcomeContractValue = (String, u64, u64);
+type OutcomeContracts = BTreeMap<OutcomeContractKey, OutcomeContractValue>;
+
 fn outcome_contracts(
     outcomes: &[Value],
     horizon: usize,
-) -> Result<BTreeMap<(String, String), (String, u64, u64)>, String> {
+) -> Result<OutcomeContracts, String> {
     if outcomes.is_empty() {
         return Err("service_outcomes must be a non-empty array".to_owned());
     }
@@ -493,9 +497,7 @@ fn evaluate_portfolio(
     let (service_totals, service_pass) =
         service_totals_report(&aggregates, context.baseline_aggregates, context.limits, &metric_by_service)?;
 
-    let disposition = if safety_status == "VIOLATED" {
-        "INFEASIBLE"
-    } else if !service_pass {
+    let disposition = if safety_status == "VIOLATED" || !service_pass {
         "INFEASIBLE"
     } else if safety_status == "UNKNOWN" || buffer_status == "UNKNOWN" {
         "ABSTAIN_MISSING_UPSTREAM_EVIDENCE"
