@@ -818,9 +818,12 @@ mod tests {
         let mut metrics = read_json(&base.join("mission-outcome-metrics-v0.1.json")).unwrap();
         let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
         metrics["rows"][5]["target"]["quality"]["signed_error_mm"] = Value::from(1.9);
-        assert!(outcome_metric_invariants(&metrics, &oracle)
-            .iter()
-            .any(|error| error.starts_with("accepted_output_outside_uncertainty_guarded_tolerance:")));
+        assert!(
+            outcome_metric_invariants(&metrics, &oracle)
+                .iter()
+                .any(|error| error
+                    .starts_with("accepted_output_outside_uncertainty_guarded_tolerance:"))
+        );
     }
 
     #[test]
