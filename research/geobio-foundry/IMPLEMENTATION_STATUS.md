@@ -61,7 +61,7 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 44 unit tests (16 resource + 5 pressure + 11 morphometry + 12 evidence semantics) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 47 unit tests (16 resource + 5 pressure + 11 morphometry + 15 evidence semantics) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Cross-field semantic validation for all site-state combinations | **NOT IMPLEMENTED** | JSON Schema validates fields and types; a semantic validator is still required to enforce state-transition dependencies |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
