@@ -25,12 +25,14 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Resource intensity per kg of declared primary product, with first-order uncertainty propagation for feedstock-origin ratios and gross/recovered energy kept separate.
 - Numerical overflow checks, negative/non-finite input rejection, complete-composition reconciliation and origin-intensity ratio overflow rejection.
 - Single-species ideal-gas pressure/known-mass-transfer reference module with explicit limitations and observation comparison.
+- Non-uniform one-dimensional subterranean profile summary with explicit unobserved intervals, coverage fraction, length-weighted width/height and standard uncertainty, observed extrema and profile variability.
 
 ## Important limitations
 
 - Correlation groups assume perfect correlation within a group and independence between groups. A general covariance matrix is not implemented.
 - Ratio uncertainty uses first-order derivatives; this is not a full covariance estimator and does not model non-linear uncertainty or model discrepancy.
 - Detection-limit/censored measurements, elemental ontology mapping, isotope effects, process heat/exergy closure, JSON deserialization and lifecycle cost are not implemented.
+- The profile kernel uses a piecewise-constant representative cross-section per interval. It is not a 3D surface reconstruction, connectivity model, roof-stability predictor, geomechanics solver or safe-clearance certification.
 - The kernel does not model a live biological process, geomechanics, pressure vessels, life support or any physical actuator.
 - A synthetic fixture and unit tests do not establish laboratory, field, orbital or flight performance.
 
