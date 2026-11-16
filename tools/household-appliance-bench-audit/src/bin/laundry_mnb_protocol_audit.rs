@@ -158,9 +158,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(governance.unwrap_or(&Value::Null), "symthaea_authority")
         != Some("advisory_only_no_actuation")
     {
-        errors.push(
-            "Symthaea must remain advisory-only with no actuation authority".to_owned(),
-        );
+        errors.push("Symthaea must remain advisory-only with no actuation authority".to_owned());
     }
     if text_at(
         governance.unwrap_or(&Value::Null),
