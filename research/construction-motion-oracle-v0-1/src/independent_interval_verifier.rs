@@ -738,7 +738,10 @@ mod tests {
             },
         )
         .unwrap();
-        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        assert_eq!(
+            certificate.report.status,
+            AdaptiveCollisionStatus::NoContact
+        );
 
         assert_eq!(
             verify_adaptive_no_contact_independently(
