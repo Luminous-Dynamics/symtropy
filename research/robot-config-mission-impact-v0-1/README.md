@@ -24,6 +24,8 @@ The benchmark combines:
 - `schemas/mission-pair-corpus-v0.1.schema.json`: closed Draft 2020-12 schema for paired cases and event traces.
 - `schemas/stage-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for the stage vocabulary.
 - `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
+- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and checks cross-file corpus/oracle invariants. It does not score robot performance or determine qualification.
+- `.github/workflows/robot-config-mission-impact-validation.yml`: focused Ubuntu/Windows/macOS schema, fixture, format, Clippy and CLI workflow.
 
 All article IDs, configurations, task references, event IDs, timestamps and outcome-shaped values are invented fixtures. They are not measured robot outcomes or vendor performance data.
 
