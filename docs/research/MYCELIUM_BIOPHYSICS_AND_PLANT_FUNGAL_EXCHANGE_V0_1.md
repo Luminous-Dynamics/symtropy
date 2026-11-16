@@ -332,6 +332,12 @@ Use each tool only on the task it actually measures:
 
 Do not produce one pooled score across segmentation, skeletonization, graph tracking, tip-growth and molecular fluorescence. Report per-task metrics, data-censoring, human review, speed, memory and worst-stratum performance. The Symtropy target is a composable evidence chain linking frame/ROI to 3D hypotheses, persistent graph identity and measured dynamics, not a claim to replace each specialized tool at its own task.
 
+### T12 — source-to-graph evidence receipt and replay
+
+The code branch adds `ObservationEvidenceReceipt` in `crates/domains/symtropy-mycelium/src/observation_evidence.rs`. It binds each observation to source-file SHA-256, frame/slice/timestamp, pixel ROI, physical pixel/voxel calibration, processor name/revision, parameter digest, observation subject, optional graph target, spatial uncertainty and pseudonymous human-review status. Depth estimates require explicit Z calibration; a graph target must resolve against the canonical graph.
+
+The implementation is tracked in [MYCO-EVIDENCE-RECEIPT-001 #5509](https://github.com/Luminous-Dynamics/symtropy/issues/5509). Eight tests are authored for 2D/3D calibration, invalid time/ROI/spacing, human-review receipt fields, uncertainty, and graph-target existence. Canonical serialization and digest computation are not yet implemented; the API currently accepts caller-supplied digests. A receipt proves traceability and declared calibration, not measurement correctness or biological validation.
+
 ## 6. Baselines and competitive positioning
 
 Use matched baselines:
