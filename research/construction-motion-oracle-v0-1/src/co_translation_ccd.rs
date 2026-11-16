@@ -427,13 +427,15 @@ mod tests {
         let obstacle = capsule(p(5.0, 0.0, 0.0), p(5.0, 0.0, 0.0), 0.25);
         let shared_delta = p(10.0, 0.0, 0.0);
 
-        assert!(co_translating_capsule_swept_aabb_candidate(
-            moving,
-            shared_delta,
-            obstacle,
-            shared_delta,
-        )
-        .unwrap());
+        assert!(
+            co_translating_capsule_swept_aabb_candidate(
+                moving,
+                shared_delta,
+                obstacle,
+                shared_delta,
+            )
+            .unwrap()
+        );
 
         let one = co_translating_capsule_time_sliced_aabb_candidates(
             moving,
