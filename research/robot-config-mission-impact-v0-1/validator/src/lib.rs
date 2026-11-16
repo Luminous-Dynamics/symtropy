@@ -282,18 +282,23 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
         for (side, path) in [("source", "source_trace"), ("target", "target_trace")] {
             match array_at(case, &[path]) {
                 Some(trace) if !trace.is_empty() => {
-                    let unmapped = check_trace(pair_id, side, trace, &stage_ids, &mut errors);
+                    let unmapped =
+                        check_trace(pair_id, side, trace, &stage_ids, &mut errors);
                     if side == "source" {
                         source_clock_unmapped = unmapped;
                     } else {
                         target_clock_unmapped = unmapped;
                     }
                 }
-                _ => errors.push(format!("trace_missing_or_empty:{pair_id}:{side}")),
+                _ => errors.push(format!(
+                    "trace_missing_or_empty:{pair_id}:{side}"
+                )),
             }
         }
         if source_clock_unmapped {
-            errors.push(format!("source_trace_clock_mapping_not_qualified:{pair_id}"));
+            errors.push(format!(
+                "source_trace_clock_mapping_not_qualified:{pair_id}"
+            ));
         }
 
         let Some(disposition) = dispositions
