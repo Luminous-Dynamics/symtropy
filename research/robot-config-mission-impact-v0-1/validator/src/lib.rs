@@ -860,6 +860,10 @@ fn stage_transition_decision(case: &Value) -> (&'static str, &'static str) {
     let required_raw =
         string_list_contains(case, &["required_evidence_axes"], "raw_artifact");
 
+    if evidence.is_empty() {
+        return ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE");
+    }
+
     let available_sources = evidence
         .iter()
         .filter_map(|item| string_at(item, &["source_class"]))
