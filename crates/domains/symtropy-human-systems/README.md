@@ -113,3 +113,33 @@ cargo fmt --manifest-path crates/domains/symtropy-human-systems/Cargo.toml -- --
 cargo test --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --locked
 cargo clippy --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --all-targets --locked -- -D warnings
 ~~~
+
+
+## Known-truth sampling-rate reference
+
+The crate exposes an independent mathematical rate-robustness fixture in the sampling_rate module. It is designed to separate information loss caused by sensor bandwidth from degradation introduced by an estimator.
+
+The 1,200-second composite signal contains:
+- a 0.01 Hz slow context component;
+- 0.05 Hz and 0.15 Hz task-critical components;
+- a 5 Hz above-task-band decoy.
+
+The canonical sampling rates are 20, 8, 2, 0.8, 0.28 and 0.08 Hz. Under an ideal brick-wall low-pass reference, the task-band power retention values are 1, 1, 1, 1, 25/34 and 0. The partially lost case (0.28 Hz) retains the 0.05 Hz task component but loses the 0.15 Hz component; the 0.08 Hz case loses both.
+
+Minimal use:
+
+~~~rust
+use symtropy_human_systems::sampling_rate::{
+    canonical_rate_profiles, sample_ideal_lowpass,
+};
+
+let profiles = canonical_rate_profiles();
+let samples = sample_ideal_lowpass(0.28, 1_200.0)?;
+
+assert!((profiles[4].expected_task_band_retention - 25.0 / 34.0).abs() < 1.0e-12);
+assert_eq!(samples.len(), 336);
+~~~
+
+This ideal low-pass is a known-answer oracle, not a production anti-alias filter. A future decimation implementation must pin its filter family, order/taps, cutoff, phase mode, boundaries and group delay, then quantify its deviation from the oracle. The fixed-token TSFM experiment must separately interpolate to a constant token count while preserving physical context duration and forecast horizon.
+
+Every signal component is an arbitrary mathematical fixture, not human physiology, sensor calibration, or a wearable measurement. See [HUMAN-SAMPLING-INVARIANCE-001 / #5688](https://github.com/Luminous-Dynamics/symtropy/issues/5688) and the research fixture [HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json](../../../research/human-systems/HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json).
