@@ -698,6 +698,8 @@ pub fn evaluate_recoverability(
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
             inventory_complete: false,
+            required_independent_options: case.required_independent_options,
+            required_diversity_met: false,
             failed_domains: case.failed_domains.clone(),
             policy_sha256: policy.policy_sha256.clone(),
         });
@@ -796,6 +798,7 @@ pub fn evaluate_recoverability(
 
     let mut failed_domains = case.failed_domains.clone();
     failed_domains.sort_unstable();
+    let required_diversity_met = witness.len() >= case.required_independent_options;
 
     Ok(RecoverabilityAssessment {
         contingency_id: case.contingency_id.clone(),
@@ -805,7 +808,7 @@ pub fn evaluate_recoverability(
         independent_option_witness: witness,
         inventory_complete,
         required_independent_options: case.required_independent_options,
-        required_diversity_met: witness.len() >= case.required_independent_options,
+        required_diversity_met,
         failed_domains,
         policy_sha256: policy.policy_sha256.clone(),
     })
