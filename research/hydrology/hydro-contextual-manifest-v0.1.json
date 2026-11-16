@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 37,
+  "case_count": 39,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -41,7 +41,9 @@
     "HC-T0-034-brier-skill-score",
     "HC-T0-035-crps-skill-zero-reference-undefined",
     "HC-T0-036-brier-skill-event-mismatch",
-    "HC-T0-037-brier-skill-reference-probability-reject"
+    "HC-T0-037-brier-skill-reference-probability-reject",
+    "HC-T0-038-crps-skill-lead-time-mismatch",
+    "HC-T0-039-brier-skill-population-mismatch"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -61,8 +63,8 @@
     "empirical_ensemble_crps": "CRPS(F,y) = mean_m |x_m-y| - (1/(2M^2)) sum_m sum_n |x_m-x_n| for the finite empirical ensemble; lower is better. Report raw ensemble size and do not clip negative CRPS caused by an implementation bug.",
     "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
     "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null.",
-    "crps_skill_score": "CRPSS = 1 - CRPS_forecast / CRPS_reference using the same observed target, target definition, valid time, lead time and admitted sample population; positive indicates improvement over reference; reference CRPS zero/within tolerance is Undefined.",
-    "brier_skill_score": "BSS = 1 - BS_forecast / BS_reference for the same binary event definition, forecast horizon, valid time and observed outcome; positive indicates improvement; reference BS zero/within tolerance is Undefined."
+    "crps_skill_score": "CRPSS = 1 - CRPS_forecast / CRPS_reference, only when target, valid-time, lead-time and evaluation-population IDs match exactly.",
+    "brier_skill_score": "BSS = 1 - BS_forecast / BS_reference, only when event-definition, valid-time, lead-time and evaluation-population IDs match exactly."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -90,6 +92,7 @@
     "Probabilistic skill scores must compare like-for-like forecasts on the same target/event definition, valid-time/lead-time population and outcome labels; non-matching identifiers return NOT_COMPARABLE.",
     "CRPSS and BSS must name the exact reference forecast or baseline and use the same evaluation cases; never compare a model score with a reference calculated on a different sample population.",
     "A zero or near-zero reference score produces UNDEFINED skill score, not infinity, clipping or a manufactured improvement.",
-    "Report raw forecast and reference scores alongside CRPSS/BSS; a skill score alone is not sufficient evidence."
+    "Report raw forecast and reference scores alongside CRPSS/BSS; a skill score alone is not sufficient evidence.",
+    "Skill-score comparisons must match target/event, valid-time definition, lead time and evaluation population exactly; the reference and forecast scores must use the same observations. Scope mismatch returns NOT_COMPARABLE."
   ]
 }
