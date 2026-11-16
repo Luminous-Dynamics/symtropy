@@ -7,7 +7,7 @@
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fmt::Write as FmtWrite;
 
 #[derive(Clone, Debug)]
