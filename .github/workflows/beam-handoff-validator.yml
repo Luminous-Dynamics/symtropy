@@ -1,0 +1,87 @@
+name: beam-handoff-validator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/beam-handoff-validator.yml"
+      - "tools/beam-handoff-validator/**"
+      - "docs/research/muon-collider/**"
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/beam-handoff-validator.yml"
+      - "tools/beam-handoff-validator/**"
+      - "docs/research/muon-collider/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beam-handoff-validator-\${{ github.workflow }}-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validator:
+    name: validator (\${{ matrix.os }})
+    runs-on: \${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          expected="\${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Generate dependency lock
+        run: cargo generate-lockfile --manifest-path tools/beam-handoff-validator/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/beam-handoff-validator/Cargo.toml -- --check
+
+      - name: Run unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/beam-handoff-validator/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/beam-handoff-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate both checked-in fixtures
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/beam-handoff-validator/Cargo.toml -- \
+            --schema docs/research/muon-collider/beam-state-handoff.schema.json \
+            --input docs/research/muon-collider/fixtures/beam-handoff.synthetic.example.json \
+            > summary-report.json
+          cargo run --locked --manifest-path tools/beam-handoff-validator/Cargo.toml -- \
+            --schema docs/research/muon-collider/beam-state-handoff.schema.json \
+            --input docs/research/muon-collider/fixtures/beam-handoff.full-distribution.synthetic.example.json \
+            > full-report.json
+          jq -e '.status == "passed" and .macro_particle_count == null' summary-report.json >/dev/null
+          jq -e '.status == "passed" and .macro_particle_count == 8 and .asset_sha256 == "759c2c5372f4fd4fe959a65b7a70be6dcde3113df8a233944ad17e6f205f81b9"' full-report.json >/dev/null
+
+      - name: Retain lockfile and validation receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beam-handoff-validator-\${{ matrix.os }}-\${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/beam-handoff-validator/Cargo.lock
+            summary-report.json
+            full-report.json
+          if-no-files-found: warn
+          retention-days: 30
