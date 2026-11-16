@@ -39,3 +39,9 @@ jobs:
         test "$(wc -l < /tmp/fjsplib-fajsp.tsv)" -eq 16
         awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fjsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp.tsv
         awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fajsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp.tsv
+        cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fjsp | tee /tmp/fjsplib-fjsp-solved.tsv
+        cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fajsp | tee /tmp/fjsplib-fajsp-solved.tsv
+        test "$(wc -l < /tmp/fjsplib-fjsp-solved.tsv)" -eq 8
+        test "$(wc -l < /tmp/fjsplib-fajsp-solved.tsv)" -eq 8
+        awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp-solved.tsv
+        awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp-solved.tsv
