@@ -1,1 +1,99 @@
-"// SPDX-License-Identifier: AGPL-3.0-or-later\nuse hydro_contextual_t0::evaluate;\nuse serde_json::{Value, json};\nuse std::env;\nuse std::fs;\nuse std::path::{Path, PathBuf};\n\nfn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {\n    let bytes = fs::read(path).map_err(|e| format!(\"read {}: {e}\", path.display()))?;\n    let value =\n        serde_json::from_slice(&bytes).map_err(|e| format!(\"parse {}: {e}\", path.display()))?;\n    Ok((bytes, value))\n}\n\nfn valid_revision(value: &str) -> bool {\n    value.len() == 40\n        && value\n            .bytes()\n            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))\n}\n\nfn run() -> Result<i32, String> {\n    let args: Vec<String> = env::args().skip(1).collect();\n    if args.len() > 4 {\n        return Err(\"usage: hydro-contextual-t0 [INPUTS] [MANIFEST] [ORACLE] [RECEIPT]\".to_owned());\n    }\n    let input_path = PathBuf::from(\n        args.first()\n            .map(String::as_str)\n            .unwrap_or(\"research/hydrology/hydro-contextual-t0-v0.1.json\"),\n    );\n    let manifest_path = PathBuf::from(\n        args.get(1)\n            .map(String::as_str)\n            .unwrap_or(\"research/hydrology/hydro-contextual-manifest-v0.1.json\"),\n    );\n    let oracle_path = PathBuf::from(\n        args.get(2)\n            .map(String::as_str)\n            .unwrap_or(\"research/hydrology/hydro-contextual-oracle-v0.1.json\"),\n    );\n    let receipt_path = PathBuf::from(\n        args.get(3)\n            .map(String::as_str)\n            .unwrap_or(\"artifacts/hydro-contextual-t0/receipt.json\"),\n    );\n    let (input_bytes, inputs) = read_json(&input_path)?;\n    let (manifest_bytes, manifest) = read_json(&manifest_path)?;\n    let (oracle_bytes, oracle) = read_json(&oracle_path)?;\n    let result = evaluate(&inputs, &manifest, &oracle)?;\n    let count = result[\"result_count\"].as_u64().unwrap_or(0);\n    let matched = result[\"matched_case_count\"].as_u64().unwrap_or(0);\n    let success =\n        count == 36 && matched == 36 && result[\"mismatches\"].as_array().is_some_and(Vec::is_empty);\n    let raw_revision = env::var(\"HYDRO_CONTEXTUAL_T0_REVISION\")\n        .or_else(|_| env::var(\"GITHUB_SHA\"))\n        .ok();\n    let revision = raw_revision.filter(|s| valid_revision(s));\n    let lock_path = PathBuf::from(env!(\"CARGO_MANIFEST_DIR\")).join(\"../../Cargo.lock\");\n    let lock = fs::read(&lock_path).map_err(|e| format!(\"read {}: {e}\", lock_path.display()))?;\n    let receipt = json!({\n      \"schema_version\":\"hydro-contextual-t0-run-v0.1\",\n      \"verification_state\":if !success{\"OracleMismatch\"}else if revision.is_some(){\"PassedExactRevision\"}else{\"PassedLocalUnpinned\"},\n      \"qualification_status\":\"NotRun\",\n      \"implementation_revision\":revision,\n      \"inputs_sha256\":hydro_contextual_t0::sha256(&input_bytes),\n      \"manifest_sha256\":hydro_contextual_t0::sha256(&manifest_bytes),\n      \"oracle_sha256\":hydro_contextual_t0::sha256(&oracle_bytes),\n      \"cargo_lock_sha256\":hydro_contextual_t0::sha256(&lock),\n      \"result_count\":count,\n      \"matched_case_count\":matched,\n      \"mismatches\":result[\"mismatches\"].clone(),\n      \"results\":result[\"results\"].clone(),\n      \"evidence_class\":\"synthetic_only\",\n      \"claim_ceiling\":hydro_contextual_t0::CLAIM_CEILING,\n      \"nonclaims\":result[\"nonclaims\"].clone()\n    });\n    if let Some(parent) = receipt_path.parent()\n        && !parent.as_os_str().is_empty()\n    {\n        fs::create_dir_all(parent).map_err(|e| format!(\"create {}: {e}\", parent.display()))?;\n    }\n    let serialized = serde_json::to_string_pretty(&receipt)\n        .map_err(|e| format!(\"serialize receipt: {e}\"))?\n        + \"\\n\";\n    fs::write(&receipt_path, serialized.as_bytes())\n        .map_err(|e| format!(\"write {}: {e}\", receipt_path.display()))?;\n    println!(\"{serialized}\");\n    Ok(if success { 0 } else { 2 })\n}\nfn main() {\n    match run() {\n        Ok(code) => std::process::exit(code),\n        Err(e) => {\n            eprintln!(\"HYDRO_CONTEXTUAL_T0_ERROR: {e}\");\n            std::process::exit(1);\n        }\n    }\n}\n"
+// SPDX-License-Identifier: AGPL-3.0-or-later
+use hydro_contextual_t0::evaluate;
+use serde_json::{Value, json};
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
+
+fn read_json(path: &Path) -> Result<(Vec<u8>, Value), String> {
+    let bytes = fs::read(path).map_err(|e| format!("read {}: {e}", path.display()))?;
+    let value =
+        serde_json::from_slice(&bytes).map_err(|e| format!("parse {}: {e}", path.display()))?;
+    Ok((bytes, value))
+}
+
+fn valid_revision(value: &str) -> bool {
+    value.len() == 40
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+fn run() -> Result<i32, String> {
+    let args: Vec<String> = env::args().skip(1).collect();
+    if args.len() > 4 {
+        return Err("usage: hydro-contextual-t0 [INPUTS] [MANIFEST] [ORACLE] [RECEIPT]".to_owned());
+    }
+    let input_path = PathBuf::from(
+        args.first()
+            .map(String::as_str)
+            .unwrap_or("research/hydrology/hydro-contextual-t0-v0.1.json"),
+    );
+    let manifest_path = PathBuf::from(
+        args.get(1)
+            .map(String::as_str)
+            .unwrap_or("research/hydrology/hydro-contextual-manifest-v0.1.json"),
+    );
+    let oracle_path = PathBuf::from(
+        args.get(2)
+            .map(String::as_str)
+            .unwrap_or("research/hydrology/hydro-contextual-oracle-v0.1.json"),
+    );
+    let receipt_path = PathBuf::from(
+        args.get(3)
+            .map(String::as_str)
+            .unwrap_or("artifacts/hydro-contextual-t0/receipt.json"),
+    );
+    let (input_bytes, inputs) = read_json(&input_path)?;
+    let (manifest_bytes, manifest) = read_json(&manifest_path)?;
+    let (oracle_bytes, oracle) = read_json(&oracle_path)?;
+    let result = evaluate(&inputs, &manifest, &oracle)?;
+    let count = result["result_count"].as_u64().unwrap_or(0);
+    let matched = result["matched_case_count"].as_u64().unwrap_or(0);
+    let success =
+        count == 36 && matched == 36 && result["mismatches"].as_array().is_some_and(Vec::is_empty);
+    let raw_revision = env::var("HYDRO_CONTEXTUAL_T0_REVISION")
+        .or_else(|_| env::var("GITHUB_SHA"))
+        .ok();
+    let revision = raw_revision.filter(|s| valid_revision(s));
+    let lock_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
+    let lock = fs::read(&lock_path).map_err(|e| format!("read {}: {e}", lock_path.display()))?;
+    let receipt = json!({
+      "schema_version":"hydro-contextual-t0-run-v0.1",
+      "verification_state":if !success{"OracleMismatch"}else if revision.is_some(){"PassedExactRevision"}else{"PassedLocalUnpinned"},
+      "qualification_status":"NotRun",
+      "implementation_revision":revision,
+      "inputs_sha256":hydro_contextual_t0::sha256(&input_bytes),
+      "manifest_sha256":hydro_contextual_t0::sha256(&manifest_bytes),
+      "oracle_sha256":hydro_contextual_t0::sha256(&oracle_bytes),
+      "cargo_lock_sha256":hydro_contextual_t0::sha256(&lock),
+      "result_count":count,
+      "matched_case_count":matched,
+      "mismatches":result["mismatches"].clone(),
+      "results":result["results"].clone(),
+      "evidence_class":"synthetic_only",
+      "claim_ceiling":hydro_contextual_t0::CLAIM_CEILING,
+      "nonclaims":result["nonclaims"].clone()
+    });
+    if let Some(parent) = receipt_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent).map_err(|e| format!("create {}: {e}", parent.display()))?;
+    }
+    let serialized = serde_json::to_string_pretty(&receipt)
+        .map_err(|e| format!("serialize receipt: {e}"))?
+        + "\n";
+    fs::write(&receipt_path, serialized.as_bytes())
+        .map_err(|e| format!("write {}: {e}", receipt_path.display()))?;
+    println!("{serialized}");
+    Ok(if success { 0 } else { 2 })
+}
+fn main() {
+    match run() {
+        Ok(code) => std::process::exit(code),
+        Err(e) => {
+            eprintln!("HYDRO_CONTEXTUAL_T0_ERROR: {e}");
+            std::process::exit(1);
+        }
+    }
+}
