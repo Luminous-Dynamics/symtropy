@@ -220,6 +220,65 @@
         "quality_claim_state",
         "reverification_event"
       ]
+    },
+    {
+      "id": "SC-T1-016-no-established-module-envelope",
+      "name": "no_established_module_envelope",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "attempt process operation without an admitted complete source/configuration envelope",
+      "expected_state": "REJECT_PROCESS_AND_ISOLATE_PRODUCT",
+      "required_observations": [
+        "cassette_configuration_id",
+        "envelope_revision",
+        "envelope_admission_state",
+        "product_outlet_state",
+        "rejection_event"
+      ]
+    },
+    {
+      "id": "SC-T1-017-source_outside_cassette_allowlist",
+      "name": "source_outside_cassette_allowlist",
+      "source_profile": "laundry_greywater_challenge_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "present laundry feed to a train whose allowlist is bathroom-only",
+      "expected_state": "REJECT_AND_QUARANTINE",
+      "required_observations": [
+        "source_profile_id",
+        "train_id",
+        "source_allowlist_revision",
+        "rejection_event",
+        "quarantine_volume"
+      ]
+    },
+    {
+      "id": "SC-T1-018-intended_use_outside_envelope",
+      "name": "intended_use_outside_envelope",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_a_membrane_uf_uv_v0",
+      "challenge": "request an end use not included in the current contained-test-only allowlist",
+      "expected_state": "NO_PRODUCT_USE_CREDIT_AND_ISOLATE",
+      "required_observations": [
+        "intended_use_profile_id",
+        "allowed_use_profile_ids",
+        "envelope_revision",
+        "product_outlet_state"
+      ]
+    },
+    {
+      "id": "SC-T1-019-cassette_configuration_change_requalifies",
+      "name": "cassette_configuration_change_requalifies",
+      "source_profile": "bathroom_light_greywater_v0",
+      "train": "train_b_ozone_gac_uv_v0",
+      "challenge": "change critical module identity such as UV reactor, GAC grade or geometry without a new configuration record",
+      "expected_state": "REQUALIFICATION_REQUIRED_NO_INHERITED_CREDIT",
+      "required_observations": [
+        "prior_configuration_id",
+        "new_configuration_id",
+        "changed_component_lot_or_revision",
+        "qualification_state",
+        "outlet_state"
+      ]
     }
   ],
   "release_gates": [
