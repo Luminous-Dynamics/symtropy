@@ -23,7 +23,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [BioAsteroid replication and process-comparison protocol](BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
 - [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
-- [Reference kernel](kernel/)
+- [Reference kernel](kernel/) — elemental/resource accounting and bounded ideal-gas pressure reference
 - [Implementation and validation status](IMPLEMENTATION_STATUS.md)
 
 ## Evidence contract
