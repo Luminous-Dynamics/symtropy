@@ -145,8 +145,10 @@ struct OpenLineageRunView {
     job_name: String,
     producer_uri: String,
     run_event_schema_url: String,
+    start_event_type: String,
     start_event_time: String,
     terminal_event_type: String,
+    derived_terminal_status: String,
     terminal_event_time: String,
     inputs: Vec<OpenLineageDataset>,
     outputs: Vec<OpenLineageDataset>,
@@ -155,6 +157,7 @@ struct OpenLineageRunView {
     source_e1_analysis_id: String,
     source_e1_execution_status: String,
     source_e1_relationship: String,
+    source_e1_not_source_execution: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -616,8 +619,20 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         job_name: required_text(job, "name", "OpenLineage job")?.to_owned(),
         producer_uri: required_text(start, "producer", "OpenLineage START")?.to_owned(),
         run_event_schema_url: required_text(start, "schemaURL", "OpenLineage START")?.to_owned(),
+        start_event_type: required_text(start, "eventType", "OpenLineage START")?.to_owned(),
         start_event_time: required_text(start, "eventTime", "OpenLineage START")?.to_owned(),
         terminal_event_type: required_text(terminal, "eventType", "OpenLineage terminal")?.to_owned(),
+        derived_terminal_status: match required_text(
+            terminal,
+            "eventType",
+            "OpenLineage terminal",
+        )? {
+            "COMPLETE" => "COMPLETED",
+            "FAIL" => "FAILED",
+            "ABORT" => "ABORTED",
+            other => return Err(format!("unsupported OpenLineage terminal event type: {other}")),
+        }
+        .to_owned(),
         terminal_event_time: required_text(terminal, "eventTime", "OpenLineage terminal")?.to_owned(),
         inputs,
         outputs,
@@ -627,6 +642,10 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         source_e1_execution_status: e1_execution_status.to_owned(),
         source_e1_relationship: required_text(&start_facet, "sourceBinding", "OpenLineage facet")?
             .to_owned(),
+        source_e1_not_source_execution: start_facet
+            .get("notASourceExecution")
+            .and_then(Value::as_bool)
+            .ok_or_else(|| "OpenLineage E3 facet notASourceExecution must be boolean".to_owned())?,
     };
     if required_text(start_run, "runId", "OpenLineage START run")?
         != required_text(terminal_run, "runId", "OpenLineage terminal run")?
@@ -646,8 +665,12 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceE1AnalysisId", Some("/native_view/source_e1_analysis_id"), MappingClass::ExactNative, None, "E1 analysis identity is cross-checked against the exact E1 context receipt."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceE1ExecutionStatus", Some("/native_view/source_e1_execution_status"), MappingClass::ExactNative, None, "E1 NOT_EXECUTED status is retained and is not converted into an E3 run state."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/sourceBinding", Some("/native_view/source_e1_relationship"), MappingClass::ExactNative, None, "Context-only relationship remains explicit."),
-        decision("OPENLINEAGE", "/events/0/eventType+/events/1/eventType", Some("/native_view/terminal_event_type"), MappingClass::Derived, Some(TERMINAL_RULE), "Terminal state is derived from the observed event pair; it is not predicted and does not describe the E1 model run."),
+        decision("OPENLINEAGE", "/events/0/eventType", Some("/native_view/start_event_type"), MappingClass::ExactNative, None, "START is the directly observed run event, not a predicted state."),
+        decision("OPENLINEAGE", "/events/1/eventType", Some("/native_view/terminal_event_type"), MappingClass::ExactNative, None, "COMPLETE is the directly observed terminal event, retained separately from a derived lifecycle label."),
+        decision("OPENLINEAGE", "/events/0/eventType+/events/1/eventType", Some("/native_view/derived_terminal_status"), MappingClass::Derived, Some(TERMINAL_RULE), "A local lifecycle label is derived from the observed START and terminal events; it does not describe the E1 model run."),
+        decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context/notASourceExecution", Some("/native_view/source_e1_not_source_execution"), MappingClass::ExactNative, None, "Explicit boolean prevents the embedded E1 context from being interpreted as this OpenLineage run."),
         decision("OPENLINEAGE", "/events/*/run/facets/e3_evidence_context", Some("/native_view/preserved_run_facets"), MappingClass::PreservedRawOnly, None, "Custom facet is retained as native facet JSON, including E1 NOT_EXECUTED context-only assertion."),
+        decision("OPENLINEAGE", "/events/*", Some("/native_view/preserved_native_events"), MappingClass::PreservedRawOnly, None, "Complete native event objects remain available so unprojected provider fields survive the typed projection."),
     ];
     for (index, event) in events.iter().enumerate() {
         if let Some(facets) = event
@@ -846,7 +869,7 @@ mod tests {
         assert!(report.source_bytes_retained);
         assert_eq!(report.provider_count, 3);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_METADATA_ONLY");
-        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&33));
+        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&35));
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
         assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&10));
@@ -970,7 +993,10 @@ mod tests {
         let ProviderNativeView::OpenLineage(view) = &report.provider_views[2] else {
             panic!("OpenLineage view expected")
         };
+        assert_eq!(view.start_event_type, "START");
         assert_eq!(view.terminal_event_type, "COMPLETE");
+        assert_eq!(view.derived_terminal_status, "COMPLETED");
+        assert!(view.source_e1_not_source_execution);
         assert_eq!(view.source_e1_execution_status, "NOT_EXECUTED");
         assert_eq!(view.source_e1_relationship, "CONTEXT_ONLY");
         assert!(report.mapping_decisions.iter().any(|item| {
@@ -979,6 +1005,25 @@ mod tests {
                 && item.rule_id.as_deref() == Some(TERMINAL_RULE)
         }));
         assert!(roundtrip(view).expect("OpenLineage view roundtrip"));
+    }
+
+    #[test]
+    fn openlineage_terminal_event_is_preserved_separately_from_derived_status() {
+        let report = build_report().expect("report");
+        let ProviderNativeView::OpenLineage(view) = &report.provider_views[2] else {
+            panic!("OpenLineage view expected")
+        };
+        assert_eq!(view.terminal_event_type, "COMPLETE");
+        assert_eq!(view.derived_terminal_status, "COMPLETED");
+        assert_ne!(view.terminal_event_type, view.derived_terminal_status);
+        assert!(report.mapping_decisions.iter().any(|item| {
+            item.source_path == "/events/1/eventType"
+                && item.classification == MappingClass::ExactNative
+        }));
+        assert!(report.mapping_decisions.iter().any(|item| {
+            item.source_path == "/events/0/eventType+/events/1/eventType"
+                && item.classification == MappingClass::Derived
+        }));
     }
 
     #[test]
