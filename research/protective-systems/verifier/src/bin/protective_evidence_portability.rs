@@ -3,6 +3,11 @@
 //! Synthetic-only assurance: byte identity and graph/metadata semantics are
 //! validated, but source authentication, license authenticity, model validity
 //! and physical resilience are explicitly outside this executable's claim.
+//!
+//! The provenance checker enforces the E2 compact-JSON-LD profile. It does not
+//! implement the full JSON-LD 1.1 processing algorithms or all W3C PROV-DM
+//! normalization, validity and equivalence constraints; those require an
+//! independent standards processor/validator stage.
 
 use serde::Serialize;
 use serde_json::Value;
@@ -100,6 +105,8 @@ struct GateReport {
     verified_artifact_count: usize,
     crate_metadata_sha256: String,
     provenance_graph_sha256: String,
+    json_ld_processing_scope: &'static str,
+    prov_conformance_scope: &'static str,
     disposition: &'static str,
     structural_checks_passed: bool,
     claim_ceiling: &'static str,
@@ -462,6 +469,8 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         verified_artifact_count: verified_artifacts,
         crate_metadata_sha256: format!("{:x}", Sha256::digest(crate_text.as_bytes())),
         provenance_graph_sha256: format!("{:x}", Sha256::digest(prov_text.as_bytes())),
+        json_ld_processing_scope: "E2 compact-profile checks only; full JSON-LD 1.1 expansion is not implemented",
+        prov_conformance_scope: "E2 PROV-O subset only; full PROV-DM constraints and equivalence are not certified",
         disposition: "ABSTAIN_SYNTHETIC_NOT_EXECUTED",
         structural_checks_passed: true,
         claim_ceiling: CLAIM_CEILING,
@@ -508,6 +517,8 @@ mod tests {
         assert_eq!(report.used_input_count, 2);
         assert_eq!(report.generated_output_count, 2);
         assert_eq!(report.declared_derivation_count, 1);
+        assert!(report.json_ld_processing_scope.contains("not implemented"));
+        assert!(report.prov_conformance_scope.contains("not certified"));
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
     }
 
