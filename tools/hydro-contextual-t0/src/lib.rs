@@ -1129,7 +1129,10 @@ mod tests {
         assert_eq!(out["reliability_bins"][0]["sample_count"], 1);
         assert_eq!(out["reliability_bins"][2]["sample_count"], 1);
         assert_eq!(out["reliability_bins"][3]["sample_count"], 0);
-        assert_eq!(out["reliability_bins"][3]["observed_event_frequency"], Value::Null);
+        assert_eq!(
+            out["reliability_bins"][3]["observed_event_frequency"],
+            Value::Null
+        );
         assert_eq!(out["reliability_bins"][4]["sample_count"], 2);
     }
 
