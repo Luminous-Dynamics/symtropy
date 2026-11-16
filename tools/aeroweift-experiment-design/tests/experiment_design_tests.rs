@@ -1,8 +1,9 @@
 use aeroweift_experiment_design::{
-    AuthorizationState, DesignDisposition, ExperimentCandidate, ExperimentDesignPolicy,
-    ExperimentModality, ExperimentObjective, GateEvidenceReceipt, GateEvidenceRole,
-    HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget, ResourceCost,
-    SelectionEvidenceRole, SemanticEquivalence, select_experiments,
+    AuthorizationState, DesignDisposition, EstimateSampleUnit, ExperimentCandidate,
+    ExperimentDesignPolicy, ExperimentModality, ExperimentObjective, GateEvidenceReceipt,
+    GateEvidenceRole, HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget,
+    ResourceCost, SelectionEvidenceRole, SemanticEquivalence, UtilityEstimateReceipt,
+    select_experiments,
 };
 
 fn digest(ch: char) -> String {
@@ -14,6 +15,12 @@ fn policy() -> ExperimentDesignPolicy {
         campaign_sha256: digest('b'),
         model_scope_sha256: digest('c'),
         intended_use_profile_sha256: digest('d'),
+        decision_boundary_sha256: digest('7'),
+        hypothesis_manifest_sha256: digest('8'),
+        robust_uncertainty_set_sha256: digest('9'),
+        adaptive_data_manifest_sha256: digest('0'),
+        minimum_estimate_independent_units: 20,
+        required_estimate_sample_unit: EstimateSampleUnit::Encounter,
         decision_question_id: "occupancy-boundary-q1".into(),
         objective: ExperimentObjective::ModelDiscrimination,
         policy_sha256: digest('a'),
@@ -73,6 +80,47 @@ fn add_gate_evidence_receipt(
     candidate.gate_evidence_receipts.push(receipt);
 }
 
+fn utility_estimate_receipt(
+    candidate: &ExperimentCandidate,
+    frozen_policy: &ExperimentDesignPolicy,
+) -> UtilityEstimateReceipt {
+    UtilityEstimateReceipt {
+        receipt_id: format!("utility-estimate-{}", candidate.candidate_id),
+        payload_sha256: digest('6'),
+        issuer_id: "utility-estimator-owner".into(),
+        candidate_id: candidate.candidate_id.clone(),
+        campaign_sha256: candidate.campaign_sha256.clone(),
+        model_scope_sha256: candidate.model_scope_sha256.clone(),
+        intended_use_profile_sha256: candidate.intended_use_profile_sha256.clone(),
+        decision_question_id: candidate.decision_question_id.clone(),
+        design_sha256: candidate.design_sha256.clone(),
+        scenario_manifest_sha256: candidate.scenario_manifest_sha256.clone(),
+        measurement_plan_sha256: candidate.measurement_plan_sha256.clone(),
+        decision_boundary_sha256: candidate.decision_boundary_sha256.clone(),
+        hypothesis_manifest_sha256: candidate.hypothesis_manifest_sha256.clone(),
+        robust_uncertainty_set_sha256: candidate.robust_uncertainty_set_sha256.clone(),
+        adaptive_data_manifest_sha256: candidate.adaptive_data_manifest_sha256.clone(),
+        estimator_build_sha256: candidate.estimator_build_sha256.clone(),
+        estimate_method_sha256: candidate.estimate_method_sha256.clone(),
+        confidence_level: candidate.estimate_confidence_level,
+        sample_unit: frozen_policy.required_estimate_sample_unit,
+        independent_unit_count: frozen_policy.minimum_estimate_independent_units.max(100),
+        hypothesis_groups: candidate.hypothesis_groups.clone(),
+        hypothesis_contrasts: candidate.hypothesis_contrasts.clone(),
+        expected_uncertainty_reduction: candidate.expected_uncertainty_reduction,
+        expected_model_discrimination: candidate.expected_model_discrimination,
+        worst_case_robust_reduction: candidate.worst_case_robust_reduction,
+        decision_relevance: candidate.decision_relevance,
+        probability_uninformative: candidate.probability_uninformative,
+    }
+}
+
+fn refresh_utility_estimate_receipt(candidate: &mut ExperimentCandidate) {
+    let frozen_policy = policy();
+    candidate.utility_estimate_receipt =
+        Some(utility_estimate_receipt(candidate, &frozen_policy));
+}
+
 fn candidate(id: &str) -> ExperimentCandidate {
     let mut result = ExperimentCandidate {
         candidate_id: id.into(),
@@ -80,6 +128,11 @@ fn candidate(id: &str) -> ExperimentCandidate {
         model_scope_sha256: digest('c'),
         intended_use_profile_sha256: digest('d'),
         design_sha256: digest('1'),
+        decision_boundary_sha256: digest('7'),
+        hypothesis_manifest_sha256: digest('8'),
+        robust_uncertainty_set_sha256: digest('9'),
+        adaptive_data_manifest_sha256: digest('0'),
+        utility_estimate_receipt: None,
         scenario_manifest_sha256: digest('2'),
         measurement_plan_sha256: digest('3'),
         decision_question_id: "occupancy-boundary-q1".into(),
@@ -136,6 +189,8 @@ fn candidate(id: &str) -> ExperimentCandidate {
     };
 
     let frozen_policy = policy();
+    result.utility_estimate_receipt =
+        Some(utility_estimate_receipt(&result, &frozen_policy));
     add_gate_evidence_receipt(
         &mut result,
         &frozen_policy,
