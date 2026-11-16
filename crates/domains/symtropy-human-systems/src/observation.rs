@@ -294,9 +294,17 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
         match scenario_id {
             ScenarioId::Clean | ScenarioId::IrregularCadence => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(measured_signal),
+                    ObservationStatus::Observed,
+                    false,
                 );
             }
             ScenarioId::McarDropout => {
@@ -305,28 +313,50 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                 let iid_missing = random.unit() < 0.10;
                 let in_outage = (7_200.0..=7_800.0).contains(&physical_time);
                 let (value, status) = if in_outage {
-                    (None, ObservationStatus::Missing(MissingReason::IndependentSensorOutage))
+                    (
+                        None,
+                        ObservationStatus::Missing(MissingReason::IndependentSensorOutage),
+                    )
                 } else if iid_missing {
                     (None, ObservationStatus::Missing(MissingReason::Mcar))
                 } else {
                     (Some(measured_signal), ObservationStatus::Observed)
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, value, status, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    value,
+                    status,
+                    false,
                 );
             }
             ScenarioId::MarActivityArtifact => {
                 let activity = latent_secondary;
                 push_event(
-                    &mut observations, &mut next_delivery_id, secondary_source_id, 1,
-                    ObservationQuantity::ActivityProxy, sensor_timestamp, physical_time,
-                    clock_domain, Some(activity), ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    secondary_source_id,
+                    1,
+                    ObservationQuantity::ActivityProxy,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(activity),
+                    ObservationStatus::Observed,
+                    false,
                 );
                 let missing = activity > 0.7 && random.unit() < 0.35;
                 let (value, status) = if missing {
-                    (None, ObservationStatus::Missing(MissingReason::MarActivityLinked))
+                    (
+                        None,
+                        ObservationStatus::Missing(MissingReason::MarActivityLinked),
+                    )
                 } else {
                     let noise_bound = if activity > 0.7 { 0.24 } else { 0.04 };
                     (
@@ -335,31 +365,58 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     )
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, value, status, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    value,
+                    status,
+                    false,
                 );
             }
             ScenarioId::MnarStateDependentDropout => {
                 let missing = measured_signal > 0.65;
                 let (value, status) = if missing {
-                    (None, ObservationStatus::Missing(MissingReason::MnarLatentState))
+                    (
+                        None,
+                        ObservationStatus::Missing(MissingReason::MnarLatentState),
+                    )
                 } else {
                     (Some(measured_signal), ObservationStatus::Observed)
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, value, status, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    value,
+                    status,
+                    false,
                 );
             }
             ScenarioId::BiasDrift => {
                 let elapsed_hours = physical_time / 3_600.0;
                 let value = measured_signal + 0.02 * elapsed_hours + random.symmetric(0.01);
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, Some(value), ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(value),
+                    ObservationStatus::Observed,
+                    false,
                 );
             }
             ScenarioId::QuantizationAndClipping => {
@@ -379,24 +436,48 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     }
                 });
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, Some(quantized), status, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(quantized),
+                    status,
+                    false,
                 );
             }
             ScenarioId::ClockOffsetAndDrift => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                    clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(measured_signal),
+                    ObservationStatus::Observed,
+                    false,
                 );
             }
             ScenarioId::DelayedAvailability => {
                 let latency = 600.0 + random.symmetric(30.0);
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time + latency,
-                    clock_domain, Some(measured_signal), ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time + latency,
+                    clock_domain,
+                    Some(measured_signal),
+                    ObservationStatus::Observed,
+                    false,
                 );
             }
             ScenarioId::PacketFaults => {
@@ -412,17 +493,31 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                     _ => 5.0 + random.unit() * 20.0,
                 };
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::PrimarySignal, sensor_timestamp,
-                    physical_time + latency, clock_domain, Some(measured_signal),
-                    ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::PrimarySignal,
+                    sensor_timestamp,
+                    physical_time + latency,
+                    clock_domain,
+                    Some(measured_signal),
+                    ObservationStatus::Observed,
+                    false,
                 );
                 if random.unit() < 0.05 {
                     push_event(
-                        &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                        ObservationQuantity::PrimarySignal, sensor_timestamp,
-                        physical_time + latency + 1.0, clock_domain, Some(measured_signal),
-                        ObservationStatus::Observed, true,
+                        &mut observations,
+                        &mut next_delivery_id,
+                        primary_source_id,
+                        0,
+                        ObservationQuantity::PrimarySignal,
+                        sensor_timestamp,
+                        physical_time + latency + 1.0,
+                        clock_domain,
+                        Some(measured_signal),
+                        ObservationStatus::Observed,
+                        true,
                     );
                 }
             }
@@ -446,18 +541,33 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                         secondary_source_id
                     };
                     push_event(
-                        &mut observations, &mut next_delivery_id, source_id, sensor_id,
-                        ObservationQuantity::PrimarySignal, sensor_timestamp, physical_time,
-                        clock_domain, value, status, false,
+                        &mut observations,
+                        &mut next_delivery_id,
+                        source_id,
+                        sensor_id,
+                        ObservationQuantity::PrimarySignal,
+                        sensor_timestamp,
+                        physical_time,
+                        clock_domain,
+                        value,
+                        status,
+                        false,
                     );
                 }
             }
             ScenarioId::IndistinguishableWorlds => {
                 push_event(
-                    &mut observations, &mut next_delivery_id, primary_source_id, 0,
-                    ObservationQuantity::CompositeSignal, sensor_timestamp, physical_time,
-                    clock_domain, Some(latent_primary + latent_secondary),
-                    ObservationStatus::Observed, false,
+                    &mut observations,
+                    &mut next_delivery_id,
+                    primary_source_id,
+                    0,
+                    ObservationQuantity::CompositeSignal,
+                    sensor_timestamp,
+                    physical_time,
+                    clock_domain,
+                    Some(latent_primary + latent_secondary),
+                    ObservationStatus::Observed,
+                    false,
                 );
             }
         }
@@ -498,8 +608,7 @@ pub fn generate_scenario(scenario_id: ScenarioId, seed: u64) -> ScenarioRun {
                 seed,
                 duration_seconds: DEFAULT_DURATION_SECONDS,
                 nominal_cadence_seconds: DEFAULT_CADENCE_SECONDS,
-                claim_ceiling:
-                    "Synthetic arbitrary-unit fixture only; no human physiological or clinical validity.",
+                claim_ceiling: "Synthetic arbitrary-unit fixture only; no human physiological or clinical validity.",
             },
             truth,
             event_truth,
@@ -615,14 +724,20 @@ mod tests {
     #[test]
     fn fixed_scenario_and_seed_replay_identically() {
         for scenario_id in ScenarioId::ALL {
-            assert_eq!(generate_scenario(scenario_id, 42), generate_scenario(scenario_id, 42));
+            assert_eq!(
+                generate_scenario(scenario_id, 42),
+                generate_scenario(scenario_id, 42)
+            );
         }
     }
 
     #[test]
     fn estimator_view_does_not_expose_truth_seed_or_sample_ordinal() {
         let scenario = run(ScenarioId::ClockOffsetAndDrift);
-        assert_eq!(scenario.estimator_view.scenario_id, ScenarioId::ClockOffsetAndDrift);
+        assert_eq!(
+            scenario.estimator_view.scenario_id,
+            ScenarioId::ClockOffsetAndDrift
+        );
         assert_eq!(scenario.scorer_view.manifest.seed, 0x5EED_2026);
         assert!(scenario.scorer_view.truth.len() > 1);
         // ObservationEvent has no sample_index, physical timestamp, or seed field.
@@ -639,9 +754,13 @@ mod tests {
         assert!(scenario.estimator_view.observations.iter().all(|event| {
             event.status == ObservationStatus::Observed && event.value.is_some_and(f64::is_finite)
         }));
-        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
-            pair[0].available_at_seconds <= pair[1].available_at_seconds
-        }));
+        assert!(
+            scenario
+                .estimator_view
+                .observations
+                .windows(2)
+                .all(|pair| { pair[0].available_at_seconds <= pair[1].available_at_seconds })
+        );
     }
 
     #[test]
@@ -654,9 +773,11 @@ mod tests {
             .map(|point| point.event_time_seconds)
             .collect();
         assert!(times.windows(2).all(|pair| pair[1] > pair[0]));
-        assert!(times.windows(2).any(|pair| {
-            ((pair[1] - pair[0]) - DEFAULT_CADENCE_SECONDS as f64).abs() > 1.0
-        }));
+        assert!(
+            times
+                .windows(2)
+                .any(|pair| { ((pair[1] - pair[0]) - DEFAULT_CADENCE_SECONDS as f64).abs() > 1.0 })
+        );
     }
 
     #[test]
@@ -670,8 +791,12 @@ mod tests {
             }
         }
         for link in &scenario.scorer_view.event_truth {
-            let event = scenario.estimator_view.observations.iter()
-                .find(|event| event.source_event_id == link.source_event_id).unwrap();
+            let event = scenario
+                .estimator_view
+                .observations
+                .iter()
+                .find(|event| event.source_event_id == link.source_event_id)
+                .unwrap();
             if event.status == ObservationStatus::Missing(MissingReason::IndependentSensorOutage) {
                 assert!((7_200.0..=7_800.0).contains(&link.event_time_seconds));
             }
@@ -700,8 +825,13 @@ mod tests {
     #[test]
     fn mar_scenario_exposes_activity_as_a_separate_observation_channel() {
         let scenario = run(ScenarioId::MarActivityArtifact);
-        assert!(scenario.estimator_view.observations.iter()
-            .any(|event| event.quantity == ObservationQuantity::ActivityProxy));
+        assert!(
+            scenario
+                .estimator_view
+                .observations
+                .iter()
+                .any(|event| event.quantity == ObservationQuantity::ActivityProxy)
+        );
         assert!(scenario.estimator_view.observations.iter().any(|event| {
             event.status == ObservationStatus::Missing(MissingReason::MarActivityLinked)
         }));
@@ -726,16 +856,25 @@ mod tests {
             let latency = event.available_at_seconds - link.event_time_seconds;
             assert!((570.0..=630.0).contains(&latency));
         }
-        assert!(scenario.estimator_view.observations.windows(2).all(|pair| {
-            pair[0].available_at_seconds <= pair[1].available_at_seconds
-        }));
+        assert!(
+            scenario
+                .estimator_view
+                .observations
+                .windows(2)
+                .all(|pair| { pair[0].available_at_seconds <= pair[1].available_at_seconds })
+        );
     }
 
     #[test]
     fn packet_faults_create_duplicates_and_out_of_order_capture_events() {
         let scenario = run(ScenarioId::PacketFaults);
-        assert!(scenario.estimator_view.observations.iter()
-            .any(|event| event.is_duplicate_delivery));
+        assert!(
+            scenario
+                .estimator_view
+                .observations
+                .iter()
+                .any(|event| event.is_duplicate_delivery)
+        );
         let has_reordering = scenario.estimator_view.observations.windows(2).any(|pair| {
             let left = truth_link(&scenario, &pair[0]).sample_index;
             let right = truth_link(&scenario, &pair[1]).sample_index;
@@ -751,7 +890,10 @@ mod tests {
     fn common_cause_outage_affects_both_sensors_in_the_same_interval() {
         let scenario = run(ScenarioId::CommonCauseFailure);
         for sample_index in 180..=210 {
-            let pair: Vec<_> = scenario.estimator_view.observations.iter()
+            let pair: Vec<_> = scenario
+                .estimator_view
+                .observations
+                .iter()
                 .filter(|event| truth_link(&scenario, event).sample_index == sample_index)
                 .collect();
             assert_eq!(pair.len(), 2);
@@ -766,7 +908,10 @@ mod tests {
     fn clipping_is_flagged_and_values_remain_inside_sensor_limits() {
         let scenario = run(ScenarioId::QuantizationAndClipping);
         assert!(scenario.estimator_view.observations.iter().any(|event| {
-            matches!(event.status, ObservationStatus::ClippedLow | ObservationStatus::ClippedHigh)
+            matches!(
+                event.status,
+                ObservationStatus::ClippedLow | ObservationStatus::ClippedHigh
+            )
         }));
         assert!(scenario.estimator_view.observations.iter().all(|event| {
             event.value.is_none_or(|value| (0.3 - 1.0e-9..=0.7 + 1.0e-9).contains(&value))
@@ -777,8 +922,14 @@ mod tests {
     fn indistinguishable_worlds_have_distinct_truth_but_the_same_observations() {
         let scenario = run(ScenarioId::IndistinguishableWorlds);
         let alternate = scenario.scorer_view.alternate_truth.as_ref().unwrap();
-        assert_ne!(scenario.scorer_view.truth[0].latent_primary, alternate[0].latent_primary);
-        assert_ne!(scenario.scorer_view.truth[0].latent_secondary, alternate[0].latent_secondary);
+        assert_ne!(
+            scenario.scorer_view.truth[0].latent_primary,
+            alternate[0].latent_primary
+        );
+        assert_ne!(
+            scenario.scorer_view.truth[0].latent_secondary,
+            alternate[0].latent_secondary
+        );
         assert_eq!(scenario.scorer_view.truth.len(), alternate.len());
         assert!(scenario.estimator_view.observations.iter().all(|event| {
             event.quantity == ObservationQuantity::CompositeSignal && event.value == Some(1.0)
