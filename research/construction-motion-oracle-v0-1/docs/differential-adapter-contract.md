@@ -86,3 +86,19 @@ Do not compare LVS_CONTINUOUS with one-shot CONTINUOUS without recording their d
 - corpus case-family and geometry coverage.
 
 No aggregate score may hide a false negative, a missing case family or a high abstention rate.
+
+## Memory, evaluator construction and matched backend baselines
+
+The comparison records more than query latency. It must count collision-manager clones and evaluator construction separately from collision-check work, then measure peak RSS/footprint and output equivalence. This is not a theoretical concern: the current Tesseract developer note for 0.35 records a 437-waypoint TrajOpt example making 437 Bullet contact-manager clones (~7 MiB each), with a peak of 3,223–3,268 MiB. A patched ifopt path reduced this to one clone, 104–116 MiB peak, and 14.7–15.5 s planning versus 23.9–29.3 s stock, while its output trajectory remained bitwise identical. The note marks this as a patched source result rather than a released-package result, and legacy TrajOpt still had a separate outstanding fix. Reproduce the exact source/build/robot/profile before attributing the result to all Tesseract configurations.
+
+The Tesseract collision documentation also distinguishes:
+- `DISCRETE`: only supplied states;
+- `LVS_DISCRETE`: interpolated discrete states; still can miss a thin obstacle between samples;
+- `LVS_CONTINUOUS`: casts each interpolated segment;
+- `CONTINUOUS`: casts each full trajectory segment.
+
+The documented continuous casts use convex hulls of link endpoint poses; segment length is a geometry-conservatism parameter, not an innocuous speed knob. Report candidate false positives as well as false negatives.
+
+The public Tesseract 0.28.4 page publishes Bullet-vs-FCL speed ratios by FIRST/CLOSEST/ALL test mode. Use those as historical backend-specific reference data only; never compare them directly with Rust formula microbenchmarks or a differently versioned end-to-end trajectory. Require identical geometry, test mode, scene, hardware, plugin, interpolation and measurement method.
+
+For MoveIt, pin the actual plugin implementation and query scope. The inspected FCL continuous overload is a stub in the current source snapshot. The MoveIt Bullet API currently limits continuous objects to static-obstacle checks; continuous-to-continuous is unsupported. Treat moving-robot/moving-human as NOT_RUN for that API until a matching implementation is proven. Its collision managers are mutable and must be isolated or serialized for multithreaded tests.
