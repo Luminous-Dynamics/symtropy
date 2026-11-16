@@ -89,7 +89,6 @@ jobs:
 
   factory-fjsplib-adapter:
     name: FJSPLib Import + Exact Oracle + CP-SAT Cross-Check
-    if: ${{ hashFiles('tools/factory-fjsplib-adapter/Cargo.toml') != '' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
