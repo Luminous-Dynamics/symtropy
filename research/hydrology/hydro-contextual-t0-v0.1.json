@@ -899,6 +899,299 @@
         ],
         "denominator_tolerance": 1e-12
       }
+    },
+    {
+      "case_id": "HC-T0-041-decision-below-threshold-no-action",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-041-decision-below-threshold-no-action",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.3,
+        "observed_event": 0,
+        "response_delay_hours": 1,
+        "available_lead_time_hours": 4,
+        "response_capable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-042-decision-timely-action-on-event",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-042-decision-timely-action-on-event",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.8,
+        "observed_event": 1,
+        "response_delay_hours": 1,
+        "available_lead_time_hours": 4,
+        "response_capable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-043-decision-no-response-capacity",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-043-decision-no-response-capacity",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.9,
+        "observed_event": 1,
+        "response_delay_hours": 1,
+        "available_lead_time_hours": 4,
+        "response_capable": false
+      }
+    },
+    {
+      "case_id": "HC-T0-044-decision-false-alarm-cost",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-044-decision-false-alarm-cost",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.8,
+        "observed_event": 0,
+        "response_delay_hours": 1,
+        "available_lead_time_hours": 4,
+        "response_capable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-045-decision-missed-event-loss",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-045-decision-missed-event-loss",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.2,
+        "observed_event": 1,
+        "response_delay_hours": 1,
+        "available_lead_time_hours": 4,
+        "response_capable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-046-decision-batch-vs-no-action-baseline",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "synthetic-batch-decision-01",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "reference_evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "forecast_lead_hours": 12,
+        "reference_lead_hours": 12,
+        "observation_case_ids": [
+          "ev-001",
+          "ev-002",
+          "ev-003"
+        ],
+        "forecast_case_ids": [
+          "ev-001",
+          "ev-002",
+          "ev-003"
+        ],
+        "reference_case_ids": [
+          "ev-001",
+          "ev-002",
+          "ev-003"
+        ],
+        "cases": [
+          {
+            "case_id": "ev-001",
+            "forecast_probability": 0.9,
+            "observed_event": 1,
+            "response_delay_hours": 1,
+            "available_lead_time_hours": 3,
+            "response_capable": true
+          },
+          {
+            "case_id": "ev-002",
+            "forecast_probability": 0.2,
+            "observed_event": 1,
+            "response_delay_hours": 1,
+            "available_lead_time_hours": 3,
+            "response_capable": true
+          },
+          {
+            "case_id": "ev-003",
+            "forecast_probability": 0.8,
+            "observed_event": 0,
+            "response_delay_hours": 1,
+            "available_lead_time_hours": 3,
+            "response_capable": true
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-047-decision-population-mismatch",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "synthetic-batch-mismatch",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "reference_evaluation_population_id": "OTHER-CATCHMENT-DECISION-B",
+        "forecast_lead_hours": 12,
+        "reference_lead_hours": 12,
+        "observation_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "forecast_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "reference_case_ids": [
+          "ev-001",
+          "ev-002"
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-048-decision-test-threshold-tuning-reject",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "final_test",
+        "final_test_used_for_threshold": true,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "synthetic-threshold-leak",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "reference_evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "forecast_lead_hours": 12,
+        "reference_lead_hours": 12,
+        "observation_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "forecast_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "reference_case_ids": [
+          "ev-001",
+          "ev-002"
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-049-decision-late-warning-unactionable",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": true,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "hc-t0-049-decision-late-warning-unactionable",
+        "decision_family": "flood_warning",
+        "event_definition_id": "river_stage_exceeds_4m-v1",
+        "decision_probability_threshold": 0.5,
+        "forecast_probability": 0.9,
+        "observed_event": 1,
+        "response_delay_hours": 5,
+        "available_lead_time_hours": 2,
+        "response_capable": true
+      }
+    },
+    {
+      "case_id": "HC-T0-050-decision-missing-loss-evidence-indeterminate",
+      "family": "decision_utility",
+      "inputs": {
+        "decision_threshold_fit_scope": "train_or_validation_only",
+        "final_test_used_for_threshold": false,
+        "loss_matrix_admitted": false,
+        "outcome_evidence_admitted": true,
+        "action_cost": 5,
+        "missed_event_loss": 100,
+        "residual_event_loss": 10,
+        "decision_id": "synthetic-missing-loss",
+        "decision_family": "low_flow_service",
+        "event_definition_id": "streamflow_below_drought_stage_2-v1",
+        "decision_probability_threshold": 0.6,
+        "evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "reference_evaluation_population_id": "SYNTH-HIGHVELD-DECISION-A",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 24,
+        "observation_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "forecast_case_ids": [
+          "ev-001",
+          "ev-002"
+        ],
+        "reference_case_ids": [
+          "ev-001",
+          "ev-002"
+        ]
+      }
     }
   ]
-}
+}undefined
