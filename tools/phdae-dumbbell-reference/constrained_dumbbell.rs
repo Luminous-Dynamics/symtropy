@@ -903,6 +903,163 @@ mod tests {
         assert!(receipt.constraint_reaction_work.abs() < 1.0e-12);
     }
 
+    fn reflect(vector: Vec2) -> Vec2 {
+        [vector[0], -vector[1]]
+    }
+
+    fn reflect_state(state: State) -> State {
+        State {
+            q1: reflect(state.q1),
+            q2: reflect(state.q2),
+            v1: reflect(state.v1),
+            v2: reflect(state.v2),
+        }
+    }
+
+    fn o2_state(state: State, angle: f64, reflected_component: bool) -> State {
+        let state = if reflected_component {
+            reflect_state(state)
+        } else {
+            state
+        };
+        rotate_state(state, angle)
+    }
+
+    fn o2_vector(vector: Vec2, angle: f64, reflected_component: bool) -> Vec2 {
+        let vector = if reflected_component {
+            reflect(vector)
+        } else {
+            vector
+        };
+        rotate(vector, angle)
+    }
+
+    #[test]
+    fn reflection_component_conjugates_the_connected_rotation_generator() {
+        // J = [[0,-1],[1,0]], F = diag(1,-1), F^-1 = F^T = F.
+        // The split O(2) relation is F J F^-1 = -J.
+        let conjugated = [[0.0, 1.0], [-1.0, 0.0]];
+        let negative_generator = [[0.0, 1.0], [-1.0, 0.0]];
+        assert_eq!(conjugated, negative_generator);
+
+        let angle = 0.731_f64;
+        let state = initial_state();
+        let left = reflect_state(rotate_state(state, angle));
+        let right = rotate_state(reflect_state(state), -angle);
+        assert!(state_error(left, right) < 3.0e-16);
+
+        let model = model();
+        let reflected = reflect_state(state);
+        assert!((model.hamiltonian(reflected).unwrap() - model.hamiltonian(state).unwrap()).abs()
+            < 2.0e-15);
+        assert!(
+            (model.angular_momentum(reflected) + model.angular_momentum(state)).abs() < 2.0e-15,
+            "2D angular momentum is a pseudoscalar and changes sign under reflection"
+        );
+        let reflected_momentum = model.linear_momentum(reflected);
+        let expected_momentum = reflect(model.linear_momentum(state));
+        assert!(norm(sub(reflected_momentum, expected_momentum)) < 2.0e-15);
+    }
+
+    #[test]
+    fn full_o2_components_commute_with_the_actual_discrete_step_map() {
+        let model = model();
+        let initial = initial_state();
+        let force1 = [0.9, -0.7];
+        let force2 = [-0.3, 1.1];
+        let dt = 0.05;
+        let canonical = model
+            .step(initial, force1, force2, dt, SolverOptions::default())
+            .unwrap();
+
+        let mut maximum_rotation_defect = 0.0_f64;
+        let mut maximum_reflection_defect = 0.0_f64;
+        for index in 0..32 {
+            let angle = std::f64::consts::TAU * index as f64 / 32.0;
+            for reflected_component in [false, true] {
+                let transformed = model
+                    .step(
+                        o2_state(initial, angle, reflected_component),
+                        o2_vector(force1, angle, reflected_component),
+                        o2_vector(force2, angle, reflected_component),
+                        dt,
+                        SolverOptions::default(),
+                    )
+                    .unwrap();
+                let expected = o2_state(canonical.after, angle, reflected_component);
+                let defect = state_error(transformed.after, expected);
+                if reflected_component {
+                    maximum_reflection_defect = maximum_reflection_defect.max(defect);
+                } else {
+                    maximum_rotation_defect = maximum_rotation_defect.max(defect);
+                }
+
+                // The scalar distance-constraint multiplier is invariant under O(2).
+                assert!((transformed.multiplier - canonical.multiplier).abs() < 4.0e-12);
+                assert!(
+                    (transformed.constraint_reaction_work - canonical.constraint_reaction_work)
+                        .abs()
+                        < 2.0e-13
+                );
+                assert!((transformed.energy_after - canonical.energy_after).abs() < 3.0e-12);
+                assert!((transformed.external_work - canonical.external_work).abs() < 3.0e-12);
+
+                let expected_angular = if reflected_component {
+                    -model.angular_momentum(canonical.after)
+                } else {
+                    model.angular_momentum(canonical.after)
+                };
+                assert!(
+                    (model.angular_momentum(transformed.after) - expected_angular).abs() < 4.0e-12
+                );
+            }
+        }
+
+        assert!(maximum_rotation_defect < 4.0e-12, "{maximum_rotation_defect:e}");
+        assert!(
+            maximum_reflection_defect < 4.0e-12,
+            "{maximum_reflection_defect:e}"
+        );
+    }
+
+    #[test]
+    fn wrong_force_covector_transform_is_rejected_by_step_equivariance() {
+        let model = model();
+        let initial = initial_state();
+        let force1 = [0.9, -0.7];
+        let force2 = [-0.3, 1.1];
+        let dt = 0.05;
+        let canonical = model
+            .step(initial, force1, force2, dt, SolverOptions::default())
+            .unwrap();
+        let correctly_reflected = model
+            .step(
+                reflect_state(initial),
+                reflect(force1),
+                reflect(force2),
+                dt,
+                SolverOptions::default(),
+            )
+            .unwrap();
+        let wrongly_reflected = model
+            .step(
+                reflect_state(initial),
+                force1,
+                force2,
+                dt,
+                SolverOptions::default(),
+            )
+            .unwrap();
+
+        assert!(
+            state_error(correctly_reflected.after, reflect_state(canonical.after)) < 4.0e-12
+        );
+        assert!(
+            state_error(wrongly_reflected.after, reflect_state(canonical.after)) > 1.0e-5,
+            "leaving the force components unchanged must break reflection equivariance"
+        );
+    }
+
     #[test]
     fn negative_controls_reject_invalid_manifold_and_solver_inputs() {
         let model = model();
