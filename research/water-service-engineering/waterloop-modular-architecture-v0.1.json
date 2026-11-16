@@ -11,7 +11,9 @@
     "No module or process train is validated or selected for deployment.",
     "No treated-water quality or public-health safety is established.",
     "No plumbing installation, backflow arrangement, discharge route or regulatory compliance is approved.",
-    "No water-saving, treatment-energy, lifecycle-cost or service-availability result is measured."
+    "No water-saving, treatment-energy, lifecycle-cost or service-availability result is measured.",
+    "Source-characterization minima are exploratory design targets, not proof of household-population representativeness.",
+    "Backflow device selection, reject/overflow route and hydraulic dimensions remain unassigned until qualified local professional and authority review."
   ],
   "boundaries": {
     "system_scope": "source capture through use-specific fixture boundary and all residual/reject paths",
@@ -107,6 +109,13 @@
         "local_authority_approval"
       ],
       "default_action": "isolated_potable_supply"
+    },
+    {
+      "id": "SRC-BABY-NAPPY-WASH",
+      "status": "prohibited_from_greywater_inlet",
+      "description": "Baby/nappy washing and clinically or faecally contaminated laundry are excluded from the initial greywater reference feed.",
+      "admission_requirements": [],
+      "default_action": "sanitary_waste_route"
     }
   ],
   "intended_use_classes": [
@@ -496,6 +505,22 @@
         "M08-FINAL-DISINFECTION"
       ],
       "selection": "site_and_land_dependent_pilot_only"
+    },
+    {
+      "id": "TRAIN-E-BATH-SHOWER-OZONE-GAC",
+      "sources": [
+        "SRC-LGW-BATH-SHOWER"
+      ],
+      "candidate_sequence": [
+        "M01-SOURCE-SELECTOR",
+        "M02-COARSE-SCREEN",
+        "M03-EQUALIZATION",
+        "M06-OZONE-GAC",
+        "M08-FINAL-DISINFECTION",
+        "M09-NONPOTABLE-RESERVOIR",
+        "M10-USE-DELIVERY"
+      ],
+      "selection": "candidate_for_matched_unoccupied_test_only; compare chemistry and microbial outcomes separately; not selected or qualified"
     }
   ],
   "fail_safe_state": {
@@ -505,7 +530,8 @@
     "on_unknown_source": "REJECT_OR_HOLD_BATCH",
     "on_overflow_or_blocked_reject": "STOP_FEED_AND_ALARM",
     "on_configuration_change": "REVOKE_PRIOR_TRAIN_QUALIFICATION_UNTIL_IMPACT_REVIEW",
-    "note": "A reject/drain route may be used only after site-specific hydraulic and legal permission is reviewed."
+    "note": "A reject/drain route may be used only after site-specific hydraulic and legal permission is reviewed.",
+    "on_cross_connection_suspected": "ISOLATE_POTABLE_AND_NONPOTABLE_BOUNDARIES_LATCH_FAULT_AND_REQUIRE_PHYSICAL_INSPECTION"
   },
   "qualification_stages": [
     {
@@ -561,5 +587,128 @@
       "report mains backup/reject/backwash/spent media per useful m3",
       "report lifecycle cost per verified useful m3 and critical person-day"
     ]
-  }
+  },
+  "potable_nonpotable_separation": {
+    "separate_physical_circuits": true,
+    "common_tank_or_pipe_prohibited": true,
+    "cross_connection_test_required": true,
+    "cross_connection_suspected_action": "ISOLATE_POTABLE_AND_NONPOTABLE_BOUNDARIES_LATCH_FAULT_AND_REQUIRE_PHYSICAL_INSPECTION",
+    "potable_makeup_connection_in_v0_1": false,
+    "future_makeup_protection_method": "UNASSIGNED_PENDING_QUALIFIED_PLUMBING_DESIGN_AND_LOCAL_AUTHORITY_APPROVAL",
+    "future_makeup_requires_backflow_or_air_gap_review": true,
+    "local_authority_approval_required_before_any_plumbed_makeup": true,
+    "nonpotable_fixture_and_pipe_identification_required": true
+  },
+  "reject_and_overflow_routing": {
+    "reject_destination": "UNASSIGNED_PENDING_UNOCCUPIED_TEST_CELL_AND_SITE_APPROVAL",
+    "overflow_destination": "UNASSIGNED_PENDING_UNOCCUPIED_TEST_CELL_AND_SITE_APPROVAL",
+    "bypass_to_product_permitted": false,
+    "bypass_isolated_from_product": true,
+    "blocked_reject_action": "STOP_FEED_AND_ALARM",
+    "route_authorization": "NOT_AUTHORIZED_BY_THIS_DESIGN_REFERENCE"
+  },
+  "batch_quality_release_policy": {
+    "source_batch_identity_required": true,
+    "module_configuration_identity_required": true,
+    "independent_laboratory_sample_required": true,
+    "sample_before_and_after_train_required": true,
+    "quality_assessment_must_match_exact_intended_use": true,
+    "sample_time_and_storage_age_required": true,
+    "stale_or_missing_quality_action": "ISOLATE_NONPOTABLE_DELIVERY_AND_HOLD_OR_REJECT_PRODUCT",
+    "online_sensor_alone_can_unlock_release": false,
+    "batch_release_authority": "INDEPENDENT_USE_SPECIFIC_QUALITY_ASSESSMENT_ONLY"
+  },
+  "source_characterization_protocol": {
+    "source_populations": [
+      "SRC-LGW-BATH-SHOWER",
+      "SRC-LGW-HANDBASIN",
+      "SRC-LAUNDRY",
+      "SRC-RAINWATER"
+    ],
+    "minimum_source_survey_days": 7,
+    "minimum_independent_real_feed_batches_per_source_class": 3,
+    "exploratory_only": true,
+    "synthetic_feed_role": "REPRODUCIBLE_STRESS_CONTROL_ONLY_NOT_A_REPLACEMENT_FOR_REAL_FEED",
+    "common_characterization": [
+      "pH",
+      "temperature",
+      "conductivity",
+      "turbidity",
+      "TSS",
+      "COD",
+      "BOD_where_applicable"
+    ],
+    "laundry_characterization": [
+      "anionic_surfactants",
+      "sodium",
+      "boron",
+      "chloride",
+      "detergent_cycle_phase",
+      "lint_and_fibre"
+    ],
+    "microbial_characterization": "use-specific independent panel defined by Mycelix #6100; never inferred from turbidity or conductivity",
+    "sample_identity_fields": [
+      "source_id",
+      "batch_id",
+      "collection_point",
+      "collection_start_end",
+      "time_zone",
+      "storage_age",
+      "sample_method",
+      "preservation",
+      "laboratory",
+      "method_revision",
+      "detection_limit",
+      "uncertainty",
+      "chain_of_custody"
+    ]
+  },
+  "matched_train_experiment": {
+    "train_ids": [
+      "TRAIN-A-BATH-SHOWER-PASSIVE",
+      "TRAIN-B-BATH-SHOWER-UF",
+      "TRAIN-C-LAUNDRY-SEGREGATED",
+      "TRAIN-D-NATURE-BASED",
+      "TRAIN-E-BATH-SHOWER-OZONE-GAC"
+    ],
+    "matched_conditions": [
+      "same_source_batch_or_matched_aliquot",
+      "same_feed_volume_and_hydraulic_loading",
+      "same_temperature_band",
+      "same_run_duration_and_sampling_schedule",
+      "same_intended_use_profile",
+      "same_energy_and_residual_boundaries"
+    ],
+    "minimum_independent_runs_per_train_batch": 3,
+    "report_absolute_concentrations_and_mass_loads": true,
+    "report_microbiology_separately_from_turbidity_and_COD": true,
+    "report_energy_and_all_auxiliary_loads": true,
+    "report_reject_backwash_concentrate_and_spent_media": true,
+    "no_single_removal_score_may_select_the_train": true
+  },
+  "keys": [
+    "schema_version",
+    "architecture_id",
+    "revision",
+    "date",
+    "evidence_class",
+    "qualification_status",
+    "claim_ceiling",
+    "design_principle",
+    "nonclaims",
+    "boundaries",
+    "source_classes",
+    "intended_use_classes",
+    "module_interface",
+    "candidate_modules",
+    "candidate_train_families",
+    "fail_safe_state",
+    "potable_nonpotable_separation",
+    "reject_and_overflow_routing",
+    "batch_quality_release_policy",
+    "source_characterization_protocol",
+    "matched_train_experiment",
+    "qualification_stages",
+    "benchmark_targets"
+  ]
 }
