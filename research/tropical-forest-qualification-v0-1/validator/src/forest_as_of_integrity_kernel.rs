@@ -190,35 +190,35 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         let Some(selected) = versions.iter().find(|version| &version.version_id == selected_id) else {
             return Ok(disposition(
                 case_id, "NOT_ESTIMABLE", "SELECTED_SOURCE_VERSION_NOT_FOUND",
-                selected_ids, latencies
+                selected_ids.clone(), latencies
             ));
         };
 
         if !selected_logical_ids.insert(selected.logical_observation_id.clone()) {
             return Ok(disposition(
                 case_id, "MULTIPLE_VERSIONS_OF_ONE_OBSERVATION_SELECTED",
-                "DUPLICATE_LOGICAL_OBSERVATION_INPUT", selected_ids, latencies
+                "DUPLICATE_LOGICAL_OBSERVATION_INPUT", selected_ids.clone(), latencies
             ));
         }
 
         if selected.rights_status != "PERMITTED" {
             return Ok(disposition(
                 case_id, "REFUSED_RIGHTS", "RIGHTS_NOT_CLEARED",
-                selected_ids, latencies
+                selected_ids.clone(), latencies
             ));
         }
 
         let Some(available_at) = selected.effective_available_at() else {
             return Ok(disposition(
                 case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                "MISSING_AVAILABILITY_EVIDENCE", selected_ids, latencies
+                "MISSING_AVAILABILITY_EVIDENCE", selected_ids.clone(), latencies
             ));
         };
 
         if selected.collected_at > available_at {
             return Ok(disposition(
                 case_id, "NOT_ESTIMABLE_INVALID_AVAILABILITY_ORDER",
-                "COLLECTION_AFTER_AVAILABILITY", selected_ids, latencies
+                "COLLECTION_AFTER_AVAILABILITY", selected_ids.clone(), latencies
             ));
         }
 
@@ -233,14 +233,14 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             "evaluation_only_target" => {
                 return Ok(disposition(
                     case_id, "EVALUATION_TARGET_USED_AS_INPUT",
-                    "EVALUATION_TARGET_USED_AS_INPUT", selected_ids, latencies
+                    "EVALUATION_TARGET_USED_AS_INPUT", selected_ids.clone(), latencies
                 ));
             }
             "historical_observation" | "training_label" | "state_initialization" | "realized_observation" => {
                 if selected.valid_start > reference || selected.valid_end > reference {
                     return Ok(disposition(
                         case_id, "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER",
-                        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER", selected_ids, latencies
+                        "REALIZED_FUTURE_OBSERVATION_USED_AS_DRIVER", selected_ids.clone(), latencies
                     ));
                 }
             }
@@ -248,7 +248,7 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             _ => {
                 return Ok(disposition(
                     case_id, "REFUSED_UNKNOWN_INPUT_ROLE",
-                    "UNKNOWN_INPUT_ROLE", selected_ids, latencies
+                    "UNKNOWN_INPUT_ROLE", selected_ids.clone(), latencies
                 ));
             }
         }
@@ -265,14 +265,14 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             } else {
                 ("INPUT_NOT_AVAILABLE_BY_CUTOFF", "INPUT_NOT_AVAILABLE_BY_CUTOFF")
             };
-            return Ok(disposition(case_id, name, reason, selected_ids, latencies));
+            return Ok(disposition(case_id, name, reason, selected_ids.clone(), latencies));
         }
 
         if selected.role == "forecasted_driver" {
             let Some(driver_issued) = selected.driver_forecast_issued_at else {
                 return Ok(disposition(
                     case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                    "MISSING_DRIVER_FORECAST_ISSUE_TIME", selected_ids, latencies
+                    "MISSING_DRIVER_FORECAST_ISSUE_TIME", selected_ids.clone(), latencies
                 ));
             };
             let (Some(driver_start), Some(driver_end)) =
@@ -280,14 +280,14 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             else {
                 return Ok(disposition(
                     case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                    "MISSING_DRIVER_TARGET_SUPPORT", selected_ids, latencies
+                    "MISSING_DRIVER_TARGET_SUPPORT", selected_ids.clone(), latencies
                 ));
             };
             if driver_issued > cutoff || driver_start > target_start || driver_end < target_end {
                 return Ok(disposition(
                     case_id, "INVALID_FORECASTED_DRIVER_SUPPORT",
                     "DRIVER_FORECAST_NOT_AVAILABLE_OR_TARGET_SUPPORT_MISMATCH",
-                    selected_ids, latencies
+                    selected_ids.clone(), latencies
                 ));
             }
         }
@@ -317,14 +317,14 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
                 return Ok(disposition(
                     case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
                     "CANNOT_ESTABLISH_LATEST_VERSION_AS_OF_CUTOFF",
-                    selected_ids, latencies
+                    selected_ids.clone(), latencies
                 ));
             }
         }
         if latest_available != Some(selected.version_number) {
             return Ok(disposition(
                 case_id, "SELECTED_VERSION_NOT_LATEST_AS_OF_CUTOFF",
-                "SELECTED_VERSION_NOT_LATEST_AS_OF_CUTOFF", selected_ids, latencies
+                "SELECTED_VERSION_NOT_LATEST_AS_OF_CUTOFF", selected_ids.clone(), latencies
             ));
         }
     }
@@ -338,7 +338,7 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         if fit_cutoff > cutoff || fit_completed > issued {
             return Ok(disposition(
                 case_id, "TRANSFORM_FIT_AFTER_CUTOFF",
-                "TRANSFORM_FIT_AFTER_CUTOFF", selected_ids, latencies
+                "TRANSFORM_FIT_AFTER_CUTOFF", selected_ids.clone(), latencies
             ));
         }
         let dependencies = transform.get("training_input_version_ids").and_then(Value::as_array)
@@ -348,7 +348,7 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             if !selected_unique.contains(id) {
                 return Ok(disposition(
                     case_id, "NOT_ESTIMABLE_TRANSFORM_DEPENDENCY_NOT_ADMITTED",
-                    "TRANSFORM_DEPENDENCY_NOT_IN_SELECTED_INPUT_SET", selected_ids, latencies
+                    "TRANSFORM_DEPENDENCY_NOT_IN_SELECTED_INPUT_SET", selected_ids.clone(), latencies
                 ));
             }
         }
@@ -362,13 +362,13 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
     if evaluation_start < target_start || evaluation_end > target_end || evaluation_start > evaluation_end {
         return Ok(disposition(
             case_id, "EVALUATION_TARGET_SUPPORT_MISMATCH",
-            "EVALUATION_TARGET_SUPPORT_MISMATCH", selected_ids, latencies
+            "EVALUATION_TARGET_SUPPORT_MISMATCH", selected_ids.clone(), latencies
         ));
     }
     if evaluation_available <= issued {
         return Ok(disposition(
             case_id, "EVALUATION_TARGET_AVAILABLE_AT_ISSUE",
-            "TARGET_OBSERVATION_AVAILABLE_BEFORE_FORECAST_ISSUE", selected_ids, latencies
+            "TARGET_OBSERVATION_AVAILABLE_BEFORE_FORECAST_ISSUE", selected_ids.clone(), latencies
         ));
     }
 
