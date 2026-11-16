@@ -1169,15 +1169,12 @@ fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
 fn structured_gate_receipt_must_match_policy_pinned_issuer_namespace() {
     let frozen = policy();
     let mut candidate = candidate("wrong-gate-issuer");
-    candidate.gate_evidence_receipts.push(gate_evidence_receipt(
-        &candidate,
-        &frozen,
-        GateEvidenceRole::Safety,
-        "safety-receipt-wrong-issuer",
-        candidate.safety_gate_receipt_sha256.clone().unwrap(),
-    ));
-    candidate.gate_evidence_receipts.last_mut().unwrap().issuer_id =
-        "attacker-controlled-issuer".into();
+    let receipt = candidate
+        .gate_evidence_receipts
+        .iter_mut()
+        .find(|receipt| receipt.role == GateEvidenceRole::Safety)
+        .unwrap();
+    receipt.issuer_id = "attacker-controlled-issuer".into();
     let reasons = select_experiments(&[candidate], &frozen).unwrap().rejected[0]
         .reasons
         .clone();
@@ -1199,13 +1196,6 @@ fn gate_receipt_cannot_be_admitted_when_candidate_has_no_exact_payload_reference
     let frozen = policy();
     let mut candidate = candidate("orphan-gate-receipt");
     candidate.safety_gate_receipt_sha256 = None;
-    candidate.gate_evidence_receipts.push(gate_evidence_receipt(
-        &candidate,
-        &frozen,
-        GateEvidenceRole::Safety,
-        "unreferenced-safety-receipt",
-        digest('9'),
-    ));
     let reasons = select_experiments(&[candidate], &frozen).unwrap().rejected[0]
         .reasons
         .clone();
