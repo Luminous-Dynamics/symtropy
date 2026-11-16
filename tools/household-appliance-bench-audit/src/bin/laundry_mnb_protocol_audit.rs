@@ -38,7 +38,7 @@ fn contains_all(values: Option<&Value>, expected: &[&str]) -> bool {
     };
     expected
         .iter()
-        .all(|expected| items.iter().any(|item| item.as_str() == Some(expected)))
+        .all(|expected| items.iter().any(|item| item.as_str() == Some(*expected)))
 }
 
 fn semantic_errors(profile: &Value) -> Vec<String> {
