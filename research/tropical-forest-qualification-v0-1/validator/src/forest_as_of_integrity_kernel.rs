@@ -208,6 +208,27 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             ));
         }
 
+        let Some(available_at) = selected.effective_available_at() else {
+            return Ok(disposition(
+                case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
+                "MISSING_AVAILABILITY_EVIDENCE", selected_ids, latencies
+            ));
+        };
+
+        if selected.collected_at > available_at {
+            return Ok(disposition(
+                case_id, "NOT_ESTIMABLE_INVALID_AVAILABILITY_ORDER",
+                "COLLECTION_AFTER_AVAILABILITY", selected_ids, latencies
+            ));
+        }
+
+        latencies.push(InputLatency {
+            version_id: selected.version_id.clone(),
+            collected_at: selected.collected_at,
+            available_at,
+            latency_seconds: available_at - selected.collected_at,
+        });
+
         match selected.role.as_str() {
             "evaluation_only_target" => {
                 return Ok(disposition(
@@ -230,20 +251,6 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
                     "UNKNOWN_INPUT_ROLE", selected_ids, latencies
                 ));
             }
-        }
-
-        let Some(available_at) = selected.effective_available_at() else {
-            return Ok(disposition(
-                case_id, "NOT_ESTIMABLE_MISSING_AVAILABILITY_EVIDENCE",
-                "MISSING_AVAILABILITY_EVIDENCE", selected_ids, latencies
-            ));
-        };
-
-        if selected.collected_at > available_at {
-            return Ok(disposition(
-                case_id, "NOT_ESTIMABLE_INVALID_AVAILABILITY_ORDER",
-                "COLLECTION_AFTER_AVAILABILITY", selected_ids, latencies
-            ));
         }
 
         if available_at > cutoff {
@@ -285,12 +292,6 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             }
         }
 
-        latencies.push(InputLatency {
-            version_id: selected.version_id.clone(),
-            collected_at: selected.collected_at,
-            available_at,
-            latency_seconds: available_at - selected.collected_at,
-        });
     }
 
     // For each logical observation, the selected version must be the newest
