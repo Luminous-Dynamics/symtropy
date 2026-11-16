@@ -832,6 +832,10 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             "challenge-distribution-v0.1.json",
             "schemas/challenge-distribution-v0.1.schema.json",
         ),
+        (
+            "golden-vectors-v0.1.json",
+            "schemas/golden-vectors-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
@@ -893,6 +897,7 @@ mod tests {
             "schemas/owner-crosswalk-v0.1.schema.json",
             "schemas/challenge-distribution-v0.1.schema.json",
             "schemas/challenge-manifest-v0.1.schema.json",
+            "schemas/golden-vectors-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
