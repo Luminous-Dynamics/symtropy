@@ -156,10 +156,7 @@ fn design_features(raw: f64, position: f64, temperature: f64, phase: f64) -> [f6
     ]
 }
 
-fn make_candidate(
-    id: usize,
-    stimulus: SyntheticStimulus,
-) -> (Candidate, f64) {
+fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> (Candidate, f64) {
     let SyntheticStimulus {
         profile,
         force_n,
@@ -439,8 +436,10 @@ fn initial_stratum_candidate(candidates: &[Candidate], stratum: usize) -> Option
         .enumerate()
         .filter(|(_, candidate)| candidate.stratum == stratum)
         .max_by(|(_, left), (_, right)| {
-            let left_score = (left.force_setpoint_n / 10.0 - 0.5).abs() + left.position.abs() * 0.25;
-            let right_score = (right.force_setpoint_n / 10.0 - 0.5).abs() + right.position.abs() * 0.25;
+            let left_score =
+                (left.force_setpoint_n / 10.0 - 0.5).abs() + left.position.abs() * 0.25;
+            let right_score =
+                (right.force_setpoint_n / 10.0 - 0.5).abs() + right.position.abs() * 0.25;
             left_score
                 .total_cmp(&right_score)
                 .then_with(|| right.id.cmp(&left.id))
@@ -638,7 +637,9 @@ fn evaluate(
     if heldout.candidates.is_empty()
         || heldout.candidates.len() != heldout.evaluator_truth_force_n.len()
     {
-        return Err("held-out stimulus and evaluator-truth cardinalities differ or are empty".to_owned());
+        return Err(
+            "held-out stimulus and evaluator-truth cardinalities differ or are empty".to_owned(),
+        );
     }
 
     let mut errors = Vec::with_capacity(heldout.candidates.len());
@@ -771,7 +772,13 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let uniform_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &uniform, None, 0.0)?;
+    let uniform_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &uniform,
+        None,
+        0.0,
+    )?;
     results.push(evaluate(
         "uniform_stratified",
         target_candidates,
@@ -782,7 +789,13 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let random_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &random, None, 0.0)?;
+    let random_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &random,
+        None,
+        0.0,
+    )?;
     results.push(evaluate(
         "random_stratified",
         target_candidates,
@@ -793,7 +806,13 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let maximin_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &maximin, None, 0.0)?;
+    let maximin_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &maximin,
+        None,
+        0.0,
+    )?;
     results.push(evaluate(
         "maximin_stratified",
         target_candidates,
@@ -804,7 +823,13 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
         &heldout,
     )?);
 
-    let d_optimal_fit = fit_model(target_candidates, &target_domain.reference_force_observations_n, &d_optimal, None, 0.0)?;
+    let d_optimal_fit = fit_model(
+        target_candidates,
+        &target_domain.reference_force_observations_n,
+        &d_optimal,
+        None,
+        0.0,
+    )?;
     results.push(evaluate(
         "d_optimal_stratified",
         target_candidates,
@@ -857,19 +882,20 @@ mod tests {
         assert_eq!(target.reference_force_observations_n.len(), 72);
         assert_eq!(heldout.candidates.len(), 60);
         assert_eq!(heldout.evaluator_truth_force_n.len(), 60);
-        assert!(
-            target.candidates.iter().all(|candidate| {
-                [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_setpoint_n)
-            })
-        );
+        assert!(target.candidates.iter().all(|candidate| {
+            [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_setpoint_n)
+        }));
         assert!(
             heldout.candidates.iter().all(|candidate| {
                 [1.0, 3.0, 5.0, 7.0, 9.0].contains(&candidate.force_setpoint_n)
             })
         );
-        assert!(target.reference_force_observations_n.iter().any(|observed| {
-            (*observed - 2.0).abs() > 0.0
-        }));
+        assert!(
+            target
+                .reference_force_observations_n
+                .iter()
+                .any(|observed| { (*observed - 2.0).abs() > 0.0 })
+        );
     }
 
     #[test]
