@@ -87,6 +87,39 @@ Every point has a reject or safe route:
 
 Safety and physical isolation must work with no internet, no cloud, no Symthaea/Mycelix availability and no AI inference. Digital components may report, diagnose and produce evidence; they do not replace local hardwired protections, manual isolation or qualified operator judgement.
 
+### PFD-level service boundary
+
+```mermaid
+flowchart LR
+  S["Shower / bath source"] --> A["Source acceptance gate"]
+  A -->|Accepted| F["Hair / lint screen"]
+  A -->|Rejected| D["Approved drain"]
+  F --> E["Raw equalisation tank\nfirst-entry residence clock"]
+  E -->|Overtime / out-of-envelope| D
+  E --> P["Interchangeable treatment cassette bay"]
+  P --> T1["A: passive / biofilter / wetland"]
+  P --> T2["B: sand + UF + UV"]
+  P --> T3["C: ozone + GAC + UV"]
+  P --> T4["D: compact biological"]
+  T1 --> Q["Final barrier and local interlock"]
+  T2 --> Q
+  T3 --> Q
+  T4 --> Q
+  Q -->|Failed / stale / unknown| H["Isolate and hold / divert"]
+  Q -->|Process envelope met| L["Independent sample / quality release"]
+  L -->|Not admitted| H
+  L -->|Admitted for toilet-flushing profile| R["Protected non-potable reservoir"]
+  R --> U["Dedicated labelled non-potable header"]
+  M["Mains backup"] --> G["Air gap / approved separation"]
+  G --> U
+  U --> X["Toilet cistern / flush"]
+  E -->|Overflow / purge| D
+  P -->|Reject / backwash / cleaning waste| D
+  R -->|Overflow / quarantine drain| D
+```
+
+The four cassette blocks are **alternatives**, not sequential treatment stages in one fixed train. The final-barrier and independent sample-release gates depend on the validated use profile. The mains line terminates through an approved physical separation into the non-potable service arrangement; it is not a cross-connection to the treated-water line.
+
 ## 5. V0 physical modules and interface contract
 
 | Module | Required interface | Key failure / acceptance condition |
