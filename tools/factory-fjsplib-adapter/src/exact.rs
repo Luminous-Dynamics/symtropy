@@ -601,6 +601,44 @@ mod tests {
     }
 
     #[test]
+    fn assignment_bound_returns_inconclusive_before_search() {
+        let mut row = String::from("9");
+        for _ in 0..9 {
+            row.push_str(" 10");
+            for machine in 1..=10 {
+                row.push_str(&format!(" {machine} 1"));
+            }
+        }
+        let input = format!("1 10 10\n{row}\n");
+        let instance = parse_fjsp("assignment-bound", None, &input).unwrap();
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Inconclusive);
+        assert_eq!(
+            result.inconclusive_reason,
+            Some(InconclusiveReason::AssignmentSearchBoundExceeded)
+        );
+        assert_eq!(result.stats.assignment_combinations, 0);
+    }
+
+    #[test]
+    fn machine_order_bound_returns_inconclusive_before_partial_search() {
+        let mut row = String::from("9");
+        for _ in 0..9 {
+            row.push_str(" 2 1 1 2 1");
+        }
+        let input = format!("1 2 2\n{row}\n");
+        let instance = parse_fjsp("order-bound", None, &input).unwrap();
+        let result = solve_exact(&instance);
+        assert_eq!(result.status, ExactStatus::Inconclusive);
+        assert_eq!(
+            result.inconclusive_reason,
+            Some(InconclusiveReason::MachineOrderSearchBoundExceeded)
+        );
+        assert_eq!(result.stats.assignment_combinations, 0);
+        assert_eq!(result.stats.machine_order_combinations, 0);
+    }
+
+    #[test]
     fn exact_solver_returns_inconclusive_before_exceeding_operation_bound() {
         let mut instance = parse_fjsp("fattahi1", None, FJSP_FATTAHI1).unwrap();
         instance.operations.push(instance.operations[0].clone());
