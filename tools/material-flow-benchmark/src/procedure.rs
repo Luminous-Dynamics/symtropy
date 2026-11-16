@@ -558,6 +558,58 @@ pub struct ProcedureEvidenceReceipt {
     pub expires_at_unix_ms: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RequiredVerificationDomain {
+    HouseholdGrantAuthority,
+    ServiceProviderAttestation,
+    ReceiverCapabilityAttestation,
+    PhysicalObservationAttestation,
+    CounterpartyCustodyAttestation,
+    TransactionOutcomeAttestation,
+}
+
+impl EvidenceKind {
+    /// Identifies the downstream trust domain required for this receipt.
+    /// This classifies future verifier responsibility; it does not perform
+    /// authentication or issuer authorization.
+    pub fn required_verification_domain(self) -> Option<RequiredVerificationDomain> {
+        use EvidenceKind as E;
+        use RequiredVerificationDomain as D;
+        match self {
+            E::ManifestSnapshot
+            | E::PackageIdentityObservation
+            | E::ReleaseExecutionReceipt => Some(D::ServiceProviderAttestation),
+            E::AuthorizationReceipt => Some(D::HouseholdGrantAuthority),
+            E::ReceiverCapabilityReceipt => Some(D::ReceiverCapabilityAttestation),
+            E::ContainerFitObservation
+            | E::PayloadMassObservation
+            | E::SealObservation
+            | E::TemperatureObservation
+            | E::TransferGateObservation
+            | E::ReceiverPresenceObservation
+            | E::PlacementObservation => Some(D::PhysicalObservationAttestation),
+            E::CounterpartyCustodyReceipt => Some(D::CounterpartyCustodyAttestation),
+            E::AmbiguousOutcomeObservation => Some(D::TransactionOutcomeAttestation),
+            E::ManifestValidated
+            | E::AuthorizationValidated
+            | E::ReceiverCapabilityValidated
+            | E::PackageIdentityValidated
+            | E::ContainerFitValidated
+            | E::PayloadMassValidated
+            | E::SealValidated
+            | E::TemperatureValidated
+            | E::TransferGateInterlockValidated
+            | E::ReleaseIntentReady
+            | E::SourceReleaseObserved
+            | E::ReceiverArrivalObserved
+            | E::PlacementVerified
+            | E::CustodyEvidenceComplete
+            | E::ReconciliationRecord => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProcedureEvidenceAdmissionReport {
     pub schema_version: u16,
@@ -567,8 +619,13 @@ pub struct ProcedureEvidenceAdmissionReport {
     pub scenario_id: String,
     pub admitted_receipt_count: usize,
     pub admitted_kinds: Vec<EvidenceKind>,
+    pub required_verification_domains: Vec<RequiredVerificationDomain>,
     pub evidence_envelopes_structurally_admitted: bool,
+    pub declared_freshness_policy_passed: bool,
+    pub content_digest_verified: bool,
     pub cryptographic_authentication_verified: bool,
+    pub issuer_authorization_verified: bool,
+    pub trusted_time_verified: bool,
     pub sensor_truth_established: bool,
     pub motion_authority_granted: bool,
     pub physical_command_emitted: bool,
@@ -695,14 +752,14 @@ impl ProcedureGraph {
             // Fail closed across the entire uncertainty interval: the receipt
             // must already exist at the earliest plausible decision time and
             // remain valid through the latest plausible decision time.
-            if receipt.observed_at_unix_ms > earliest_possible_decision_time {
+            if receipt.observed_at_unix_ms >= earliest_possible_decision_time {
                 errors.push(format!(
-                    "{prefix}: observation is not guaranteed to precede the decision window"
+                    "{prefix}: observation is not strictly earlier than the full decision uncertainty window"
                 ));
             }
-            if receipt.expires_at_unix_ms < latest_possible_decision_time {
+            if receipt.expires_at_unix_ms <= latest_possible_decision_time {
                 errors.push(format!(
-                    "{prefix}: expiry does not cover the full decision uncertainty window"
+                    "{prefix}: expiry does not strictly cover the full decision uncertainty window"
                 ));
             }
             if let Some(maximum_age_ms) = receipt.kind.maximum_observation_age_ms() {
@@ -735,6 +792,14 @@ impl ProcedureGraph {
             return Err(errors);
         }
 
+        let required_verification_domains = bundle
+            .receipts
+            .iter()
+            .filter_map(|receipt| receipt.kind.required_verification_domain())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+
         Ok(ProcedureEvidenceAdmissionReport {
             schema_version: bundle.schema_version,
             freshness_policy_version: 1,
@@ -743,16 +808,23 @@ impl ProcedureGraph {
             scenario_id: scenario.scenario_id.clone(),
             admitted_receipt_count: bundle.receipts.len(),
             admitted_kinds: receipt_kinds.into_iter().collect::<BTreeSet<_>>().into_iter().collect(),
+            required_verification_domains,
             evidence_envelopes_structurally_admitted: true,
+            declared_freshness_policy_passed: true,
+            content_digest_verified: false,
             cryptographic_authentication_verified: false,
+            issuer_authorization_verified: false,
+            trusted_time_verified: false,
             sensor_truth_established: false,
             motion_authority_granted: false,
             physical_command_emitted: false,
             task_success_attested: false,
             limitations: vec![
-                "Validates receipt identity, actor role, exact scenario/source/configuration binding, subject, digest shape and declared time window only".into(),
+                "Checks declared timestamps and age limits against the scenario clock window; no trusted clock or timestamp authority is verified".into(),
+                "Checks SHA-256 digest syntax only; it does not recompute a digest from canonical evidence content".into(),
+                "Required verification domains identify future verifier responsibility; they are not authenticated here".into(),
                 "Does not verify cryptographic signatures, revocation, hardware attestation or actual sensor truth".into(),
-                "Does not prove that an issuer is honest or that multiple evidence sources are independent".into(),
+                "Does not prove that an issuer is authorized or that multiple evidence sources are independent".into(),
                 "Evidence admission grants no motion authority and performs no physical command".into(),
             ],
         })
@@ -870,7 +942,12 @@ mod tests {
         assert_eq!(report.admitted_receipt_count, 14);
         assert_eq!(report.admitted_kinds.len(), 14);
         assert!(report.evidence_envelopes_structurally_admitted);
+        assert!(report.declared_freshness_policy_passed);
+        assert_eq!(report.required_verification_domains.len(), 6);
+        assert!(!report.content_digest_verified);
         assert!(!report.cryptographic_authentication_verified);
+        assert!(!report.issuer_authorization_verified);
+        assert!(!report.trusted_time_verified);
         assert!(!report.sensor_truth_established);
         assert!(!report.motion_authority_granted);
         assert!(!report.physical_command_emitted);
@@ -913,6 +990,24 @@ mod tests {
                 .admit_evidence(&scenario, &expiry_inside_uncertainty)
                 .is_err()
         );
+    }
+
+    #[test]
+    fn evidence_admission_rejects_observation_exactly_at_earliest_decision_time() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        bundle.receipts[0].observed_at_unix_ms = scenario.started_at_unix_ms
+            - u64::from(scenario.clock_uncertainty_ms);
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
+    }
+
+    #[test]
+    fn evidence_admission_rejects_expiry_exactly_at_latest_decision_time() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        bundle.receipts[0].expires_at_unix_ms = scenario.started_at_unix_ms
+            + u64::from(scenario.clock_uncertainty_ms);
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
     }
 
     #[test]
