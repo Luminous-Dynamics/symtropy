@@ -589,6 +589,33 @@ mod tests {
     }
 
     #[test]
+    fn uninspected_initial_surface_cannot_qualify_calibration() {
+        let current = snapshot();
+        let assessment = passport(&current).assess(&current);
+        assert_eq!(
+            assessment.disposition,
+            AssessmentDisposition::MaintenanceRequired
+        );
+        assert!(assessment.reasons.contains(
+            &AssessmentReason::SurfaceConditionNotQualified(SurfaceCondition::ConditionUnknown)
+        ));
+    }
+
+    #[test]
+    fn clean_state_without_a_condition_receipt_is_not_qualified() {
+        let mut current = qualified_snapshot();
+        current.surface_condition_receipt_id = None;
+        let assessment = passport(&current).assess(&current);
+        assert_eq!(
+            assessment.disposition,
+            AssessmentDisposition::UnqualifiedEvidence
+        );
+        assert!(assessment.reasons.contains(
+            &AssessmentReason::MissingEvidenceReceipt("surface_condition")
+        ));
+    }
+
+    #[test]
     fn unchanged_physical_state_with_complete_evidence_remains_applicable() {
         let current = qualified_snapshot();
         let assessment = passport(&current).assess(&current);
