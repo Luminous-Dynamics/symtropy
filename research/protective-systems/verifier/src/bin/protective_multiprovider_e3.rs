@@ -486,39 +486,25 @@ fn validate_manifest(
     {
         return Err("E3 manifest must remain synthetic and metadata-portability-only".to_owned());
     }
-    let e1_context = manifest
+    let e1_context_manifest = manifest
         .get("source_e1_context")
         .ok_or_else(|| "E3 manifest source_e1_context is required".to_owned())?;
-    if required_text(e1_context, "execution_status", "E3 source E1 context")?
+    if required_text(e1_context_manifest, "execution_status", "E3 source E1 context")?
         != "NOT_EXECUTED"
-        || required_text(e1_context, "relationship", "E3 source E1 context")?
+        || required_text(e1_context_manifest, "relationship", "E3 source E1 context")?
             != "CONTEXT_ONLY_NOT_A_RUN"
-        || required_text(e1_context, "relative_path", "E3 source E1 context")?
+        || required_text(e1_context_manifest, "relative_path", "E3 source E1 context")?
             != "context/e1-envelope-context.json"
-        || e1_context
-            .get("byte_length")
-            .and_then(Value::as_u64)
-            != Some(e1_context.len() as u64)
     {
-        // Byte length is verified separately below; this branch keeps semantic
-        // context values distinct from the envelope's own length.
-        if required_text(e1_context, "execution_status", "E3 source E1 context")?
-            != "NOT_EXECUTED"
-            || required_text(e1_context, "relationship", "E3 source E1 context")?
-                != "CONTEXT_ONLY_NOT_A_RUN"
-        {
-            return Err("E3 manifest must preserve the E1 NOT_EXECUTED context-only boundary".to_owned());
-        }
+        return Err("E3 manifest must preserve the E1 NOT_EXECUTED context-only boundary".to_owned());
     }
-    let e1_context_length = e1_context
+    let e1_context_length = e1_context_manifest
         .get("byte_length")
         .and_then(Value::as_u64)
         .ok_or_else(|| "E3 source E1 context byte_length is invalid".to_owned())?;
-    if e1_context_length != e1_context_bytes_len(e1_context, e1_context_length) {
-        return Err("E3 source E1 context byte_length is invalid".to_owned());
-    }
-    if e1_context_length != E1_CONTEXT.len() as u64
-        || required_text(e1_context, "sha256", "E3 source E1 context")? != sha256(E1_CONTEXT)
+    if e1_context_length != e1_context.len() as u64
+        || required_text(e1_context_manifest, "sha256", "E3 source E1 context")?
+            != sha256(e1_context)
     {
         return Err("E3 source E1 envelope byte length/digest differs from the packaged context".to_owned());
     }
@@ -572,9 +558,6 @@ fn validate_manifest(
     Ok(())
 }
 
-fn e1_context_bytes_len(_manifest_value: &Value, length: u64) -> u64 {
-    length
-}
 
 fn validate_crate_metadata(
     crate_text: &str,
@@ -683,7 +666,7 @@ fn validate_bundle(
     if E1_CONTEXT != E1_ORIGINAL || e1_context_text.as_bytes() != E1_ORIGINAL {
         return Err("E3 packaged E1 context envelope is not byte-identical to the E1 source fixture".to_owned());
     }
-    if E1_CONTEXT.as_bytes() != e1_context_text.as_bytes() {
+    if E1_CONTEXT != e1_context_text.as_bytes() {
         return Err("E3 packaged E1 context differs from original bytes".to_owned());
     }
     if PACKAGED_MANIFEST_SCHEMA != MANIFEST_SCHEMA.as_bytes() {
@@ -960,7 +943,6 @@ mod tests {
     #[test]
     fn openlineage_terminal_event_must_follow_start() {
         let mut value = openlineage_value();
-        value["events"][1]["eventType"] = Value::String("FAIL".into());
         value["events"][1]["eventTime"] = Value::String("2026-11-16T10:00:00.000Z".into());
         let error = validate_openlineage(&value, &e1_value(), &openlineage_schema_value())
             .expect_err("invalid transition");
