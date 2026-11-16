@@ -215,7 +215,7 @@ impl EnergyEvidence {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CandidateRun {
     pub candidate_id: String,
     pub campaign: CampaignIdentity,
