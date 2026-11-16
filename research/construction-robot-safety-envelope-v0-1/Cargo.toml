@@ -1,0 +1,16 @@
+[package]
+name = "construction-robot-safety-envelope"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Portable, evidence-bounded construction robot safety-envelope reference evaluator."
+
+[[bin]]
+name = "safety-envelope-benchmark"
+path = "src/main.rs"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
