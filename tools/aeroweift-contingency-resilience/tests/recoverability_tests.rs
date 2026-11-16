@@ -405,7 +405,10 @@ fn common_airframe_dependency_can_be_explicitly_exempted_from_diversity() {
         &policy(),
     )
     .unwrap();
-    assert_eq!(result.status, RecoverabilityStatus::CoveredWithRequiredDiversity);
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::CoveredWithRequiredDiversity
+    );
     assert_eq!(
         result.options[0].diversity_dependencies,
         vec!["C2".to_string()]
@@ -537,4 +540,104 @@ fn reauthorization_gap_is_reported_when_one_known_option_is_not_enough() {
     )
     .unwrap();
     assert_eq!(result.status, RecoverabilityStatus::ReauthorizationRequired);
+}
+
+
+#[test]
+fn one_option_is_not_misreported_as_meeting_two_option_requirement() {
+    let result = evaluate(
+        &case(),
+        &[option("single", &["C2"])],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
+    assert_eq!(result.status, RecoverabilityStatus::CoveredSingleOption);
+    assert_eq!(result.required_independent_options, 2);
+    assert!(!result.required_diversity_met);
+    assert_eq!(result.independent_option_witness, vec!["single".to_string()]);
+}
+
+#[test]
+fn empty_complete_dependency_inventory_is_rejected() {
+    let mut candidate = option("empty-dependency-set", &["GNSS"]);
+    candidate.dependency_domains.clear();
+    assert_eq!(
+        evaluate(&case(), &[candidate], &inventory(), &policy()),
+        Err(EvaluationError::InvalidDependencySet)
+    );
+}
+
+#[test]
+fn inventory_effective_history_must_start_before_requested_cutoff() {
+    let mut inv = inventory();
+    inv.effective_from = 51;
+    let result = evaluate(&case(), &[], &inv, &policy()).unwrap();
+    assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
+    assert!(!result.inventory_complete);
+}
+
+#[test]
+fn inventory_knowledge_history_must_start_before_requested_cutoff() {
+    let mut inv = inventory();
+    inv.knowledge_from = 51;
+    let result = evaluate(&case(), &[], &inv, &policy()).unwrap();
+    assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
+    assert!(!result.inventory_complete);
+}
+
+#[test]
+fn known_diverse_witness_is_not_erased_by_an_unresolved_extra_option() {
+    let mut unknown = option("unknown-extra", &["LANDING-SITE"]);
+    unknown.evidence_state = EvidenceState::Unknown;
+    let result = evaluate(
+        &case(),
+        &[
+            option("return", &["C2"]),
+            option("divert", &["GNSS"]),
+            unknown,
+        ],
+        &inventory(),
+        &policy(),
+    )
+    .unwrap();
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::CoveredWithRequiredDiversity
+    );
+    assert!(result.required_diversity_met);
+}
+
+#[test]
+fn adding_failed_dependency_never_increases_admissible_option_count() {
+    for index in 0..50 {
+        let mut contingency = case();
+        let domain = format!("FAILURE-{index}");
+        let candidate = option("candidate", &[&domain]);
+        let baseline = evaluate(&contingency, &[candidate.clone()], &inventory(), &policy()).unwrap();
+        contingency.failed_domains.push(domain);
+        let after = evaluate(&contingency, &[candidate], &inventory(), &policy()).unwrap();
+        assert_eq!(baseline.admissible_option_ids.len(), 1);
+        assert!(after.admissible_option_ids.len() <= baseline.admissible_option_ids.len());
+    }
+}
+
+#[test]
+fn decreasing_containment_bound_never_improves_option_admissibility() {
+    for step in 0..20 {
+        let mut candidate = option("containment-monotone", &["GNSS"]);
+        candidate.bounds.containment_lower = 0.95 - (step as f64 * 0.001);
+        let result = evaluate(
+            &case(),
+            &[candidate],
+            &inventory(),
+            &policy(),
+        )
+        .unwrap();
+        if step == 0 {
+            assert_eq!(result.admissible_option_ids.len(), 1);
+        } else {
+            assert_eq!(result.admissible_option_ids.len(), 0);
+        }
+    }
 }
