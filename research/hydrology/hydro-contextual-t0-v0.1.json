@@ -636,7 +636,7 @@
         "valid_time_definition_id": "2026-07-01T00:00:00Z",
         "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
         "lead_time_hours": 24,
-        "reference_lead_time_hours": 24,
+        "reference_lead_time_hours": 48,
         "evaluation_population_id": "highveld-events-holdout-v1",
         "reference_evaluation_population_id": "highveld-events-holdout-v1"
       }
@@ -655,7 +655,7 @@
         "lead_time_hours": 24,
         "reference_lead_time_hours": 24,
         "evaluation_population_id": "highveld-events-holdout-v1",
-        "reference_evaluation_population_id": "highveld-events-holdout-v1"
+        "reference_evaluation_population_id": "different-catchment-event-population-v1"
       }
     }
   ]
