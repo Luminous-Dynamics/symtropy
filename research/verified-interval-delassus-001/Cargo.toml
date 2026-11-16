@@ -1,0 +1,16 @@
+[package]
+name = "verified-interval-delassus-provenance"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Outward-rounded provenance and full-row-rank certificate for W = J M^-1 J^T"
+
+[dependencies]
+verified-interval-metric-envelope = { path = "../verified-interval-metric-envelope-001" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
