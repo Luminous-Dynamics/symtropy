@@ -146,3 +146,13 @@ The search covers all three continuous parameters, not merely a time grid. Split
 This provides a second algorithm for checking the affine translating-capsule geometry. It is still a floating-point interval implementation that needs independent code review and adversarial numerical testing. It is not a formally verified theorem prover, exact rational arithmetic, cryptographic attestation, clock-drift model, rotating/articulated CCD, physical stopping proof or worksite authorization.
 
 The benchmark records verifier status, parameter boxes visited/pruned, generation latency and deterministic receipt-replay latency separately from the active-set kernel and adaptive producer. See [#5653](https://github.com/Luminous-Dynamics/symtropy/issues/5653).
+
+
+
+## Independent verification of adaptive no-contact certificates
+
+`verify_adaptive_no_contact_independently` first validates the typed producer ledger, then **re-runs the interval verifier over every terminal time leaf**, including leaves the producer originally labelled `Pruned`. It does not accept the producer's active-set clear answer or AABB-prune outcome as independent clearance evidence.
+
+The aggregate no-contact verification succeeds only if every terminal leaf receives an independent `Clear` interval receipt. If any leaf contains a positive contact witness, has an unresolved interval, or exceeds the interval search budget, the aggregate verification fails closed. The return value preserves the per-leaf receipts and aggregate node/prune/depth counts.
+
+This is an independent second software algorithm for the declared affine capsule model—not a formal proof assistant, exact-rational implementation or hardware safety certificate. The caller still needs to bind the certificate to the design revision, site epoch, frames, robot/tool/payload, calibration, controller profile and clock domain.
