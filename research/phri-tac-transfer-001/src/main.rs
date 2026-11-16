@@ -167,6 +167,33 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::model_forms::run_model_form_campaign(
+                20261116,
+            ) {
+                Ok(campaign) => {
+                    println!("taxel_model_form_campaign=touchwgnn_style_rational_v0_1");
+                    println!("taxel_count={}", campaign.taxel_count);
+                    println!("full_grid_contacts_per_taxel={}", campaign.full_grid_contacts_per_taxel);
+                    println!("heldout_force_count_per_taxel={}", campaign.heldout_force_count_per_taxel);
+                    for result in campaign.results {
+                        println!(
+                            "taxel_model={} contacts_per_taxel={} total_contacts={} pooled_rmse_n={:.6} mean_taxel_rmse_n={:.6} p95_taxel_rmse_n={:.6} worst_taxel_rmse_n={:.6} worst_taxel_id={}",
+                            result.model_id,
+                            result.reference_contacts_per_taxel,
+                            result.total_reference_contacts,
+                            result.pooled_rmse_n,
+                            result.mean_taxel_rmse_n,
+                            result.p95_taxel_rmse_n,
+                            result.worst_taxel_rmse_n,
+                            result.worst_taxel_id,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("taxel_model_form_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
