@@ -10,7 +10,8 @@
     "evidence_class",
     "claim_ceiling",
     "source_e1_context",
-    "sources"
+    "sources",
+    "validation_assets"
   ],
   "properties": {
     "schema_version": {
@@ -28,7 +29,10 @@
       "required": [
         "analysis_id",
         "execution_status",
-        "relationship"
+        "relationship",
+        "relative_path",
+        "byte_length",
+        "sha256"
       ],
       "properties": {
         "analysis_id": {
@@ -40,6 +44,17 @@
         },
         "relationship": {
           "const": "CONTEXT_ONLY_NOT_A_RUN"
+        },
+        "relative_path": {
+          "const": "context/e1-envelope-context.json"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
@@ -93,6 +108,50 @@
           },
           "claim_ceiling": {
             "const": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY"
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "validation_assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "relative_path",
+          "schema_id",
+          "source_repository",
+          "source_blob_sha",
+          "byte_length",
+          "sha256"
+        ],
+        "properties": {
+          "provider": {
+            "const": "OPENLINEAGE"
+          },
+          "relative_path": {
+            "const": "schemas/openlineage-2.0.2.schema.json"
+          },
+          "schema_id": {
+            "const": "https://openlineage.io/spec/2-0-2/OpenLineage.json"
+          },
+          "source_repository": {
+            "const": "OpenLineage/OpenLineage"
+          },
+          "source_blob_sha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$"
           },
           "byte_length": {
             "type": "integer",
