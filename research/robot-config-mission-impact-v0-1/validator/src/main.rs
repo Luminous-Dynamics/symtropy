@@ -144,7 +144,7 @@ fn generate(args: &[String]) -> Result<(), String> {
     let mut bytes =
         serde_json::to_vec_pretty(&manifest).map_err(|error| format!("manifest_serialize:{error}"))?;
     bytes.push(b'\n');
-    if let Some(parent) = output.parent() {
+    if let Some(parent) = output.parent().filter(|path| !path.as_os_str().is_empty()) {
         fs::create_dir_all(parent)
             .map_err(|error| format!("output_parent_create:{}:{error}", parent.display()))?;
     }
