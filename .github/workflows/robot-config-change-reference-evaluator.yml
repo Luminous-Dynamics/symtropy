@@ -46,7 +46,7 @@ jobs:
       - name: Validate the public development corpus
         run: cargo run --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked -- validate
       - name: Export deterministic evaluated result
-        run: cargo run --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked -- evaluate --output target/rcq-development-result.json
+        run: cargo run --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked -- evaluate --output research/robot-config-change-qualification-v0-1/evaluator/target/rcq-development-result.json
       - name: Run strict Clippy
         run: cargo clippy --manifest-path research/robot-config-change-qualification-v0-1/evaluator/Cargo.toml --locked --all-targets -- -D warnings
       - name: Export lockfile and result for review
