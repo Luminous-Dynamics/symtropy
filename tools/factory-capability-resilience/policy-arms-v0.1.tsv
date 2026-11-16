@@ -1,0 +1,9 @@
+arm_id	name	observable_information	action_semantics	role
+R0	count_based_redundancy	route IDs and nominal machine/resource count	Count candidate alternatives; no qualification or common-cause reasoning	weak baseline
+R1	route_diversity_only	route structures and declared operation eligibility	Count distinct candidate routes; ignore evidence validity and shared roots	weak baseline
+R2	qualification_aware	typed prerequisites and qualification states	Reject stale, revoked, mismatched, unknown and incomplete paths	hard-gate baseline
+R3	fault_domain_aware	complete typed prerequisites and declared fault-domain projection	Compute available paths and pairwise disjoint qualified-path subsets	proposed static policy
+R4	adaptive_resilience	same observable evidence plus authorized requalification/action costs	Select a surviving qualified route or perform bounded, justified requalification	proposed dynamic policy
+R5	exact_tiny_oracle	same observable evidence as deployable arms	Exhaustively enumerate feasible route/qualification choices for tiny fixtures	correctness oracle
+R6	full_reconfiguration	same observable evidence and #5411 chronology inputs	Release all affected commitments and rebuild the route	stability/recovery baseline
+R7	hindsight_reference	evaluator-only future events and labels	Compute evaluator-only best possible route/action	upper bound only; never deployable
