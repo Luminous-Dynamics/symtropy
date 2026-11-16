@@ -39,10 +39,10 @@
       "language": "en",
       "relatedIdentifiers": [
         {
-          "relatedIdentifier": "https://example.invalid/e3/fixture-control",
+          "relatedIdentifier": "swh:1:cnt:0000000000000000000000000000000000000000",
           "relatedIdentifierType": "SWHID",
           "relationType": "Other",
-          "relationTypeInformation": "Synthetic E3 interoperability control only"
+          "relationTypeInformation": "Syntactically valid SWHID-shaped test sentinel only; it is not asserted to resolve in Software Heritage."
         }
       ],
       "rightsList": [
