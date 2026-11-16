@@ -15,7 +15,8 @@ pub use capsule::{
 pub use co_translation_ccd::{
     CoTranslatingCapsuleClosestApproach,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
-    co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
+    co_translating_capsule_vs_capsule, co_translating_capsule_time_sliced_aabb_candidates,
+    endpoints_only_co_translating_capsule_collision, TimeSlicedAabbCandidates,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
