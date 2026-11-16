@@ -107,7 +107,8 @@
         ]
       ],
       "emittance_metrics": [],
-      "quantile_metrics": []
+      "quantile_metrics": [],
+      "covariance_definition": "Weighted population covariance: sum_i(w_i * (u_i - mean) * (u_i - mean)^T) / sum_i(w_i), with u=(x,px,y,py,z,pz) in declared units."
     }
   },
   "population_ledger": {
