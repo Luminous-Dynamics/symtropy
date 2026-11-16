@@ -1102,7 +1102,6 @@ fn unrelated_evidence_purpose_does_not_increase_claim_independence_count() {
     );
 }
 
-
 #[test]
 fn owner_cannot_lower_claim_independence_below_frozen_policy_minimum() {
     let (mut nodes, edges) = positive_case();
