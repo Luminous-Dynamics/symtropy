@@ -5,6 +5,7 @@ on:
     branches:
       - "research/protect-threat-portfolio-v0-1"
       - "research/protect-resilience-e0-oracle-v0-1"
+      - "research/protect-model-evidence-e1-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -13,6 +14,7 @@ on:
       - "main"
       - "research/protective-systems-benchmark-v0-1"
       - "research/protect-threat-portfolio-v0-1"
+      - "research/protect-resilience-e0-oracle-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -43,6 +45,9 @@ jobs:
           workspaces: |
             research/protective-systems/verifier -> target
 
+      # Check formatting on the E1 executable introduced by this branch.
+      # Other isolated verifiers were present in the stacked base and have
+      # separate formatting debt; do not silently reformat unrelated owners.
       - name: Check formatting
         run: cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
 
@@ -69,3 +74,6 @@ jobs:
 
       - name: Run exact E0 resilience reference oracle
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-e0
+
+      - name: Run external model evidence envelope gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-model-evidence
