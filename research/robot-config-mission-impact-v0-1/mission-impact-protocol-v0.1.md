@@ -394,3 +394,37 @@ The policy tests only the fixture contract. An advancement requires an applicabl
 The 16 cases include no-evidence command completion, self-report only, a permitted low-risk telemetry postcondition, critical independent-referee requirement, referee rejection, stale configuration, stale frame epoch, expired calibration, unqualified clock mapping, valid independent acceptance without command acknowledgement, authorized optional skip, unauthorized mandatory skip, interrupted resume across configuration revisions, duplicate accepted output replay, contradictory competent observations and an unknown postcondition under safe hold.
 
 This policy is a benchmark comparator, not the only permissible stage design for every robot. The competent stage/claim profile must define which evidence class is appropriate. No physical test, safety authorization or qualification is produced.
+
+
+## 22. Benchmark validity and long-horizon SOTA comparators
+
+The next benchmark increment should pass a validity audit before its scores are treated as evidence of general capability. Four diagnostics are mandatory:
+
+1. **Shortcut solvability:** a small, weak, non-specialist baseline must not obtain the headline result without the capability being tested.
+2. **Statistical significance:** publish denominators, independent units, paired/unpaired structure, uncertainty intervals and preregistered minimum effects. A reported leaderboard difference is not evidence of a real improvement if the design cannot test its significance.
+3. **Creeping overfit:** sample from a declared distribution, redraw seeds, include boundary and held-out strata, and detect test-sample and distribution overfitting.
+4. **Data-source dependence:** preserve training/source provenance and run source-held-out or contamination-aware tests; a result may measure proximity of training data to test examples rather than generalization.
+
+Jiang et al.'s 2026 benchmark audit identified these four failure modes. In its audit, only 19.8% of LIBERO SOTA claims and 19.7% of SimplerEnv claims were provably statistically significant under the studied evidence. These rates are specific to those benchmark audits, not a universal estimate of robotics research quality. The lesson is to make statistical validity a release gate, not a reporting afterthought. https://arxiv.org/abs/2606.04233
+
+### Long-horizon benchmark comparators
+
+- **LADDER:** 145 tasks across three suites, 1–10 subgoals and 2,024 simulated episodes per system. Its direct low-level policy reports 85.4% on single-subgoal tasks, 26.9% on two-subgoal tasks and 0% on five-subgoal tasks. It finds orchestration helps but physical execution remains a bottleneck; its best listed tool-selection arm reaches 62.0% overall at material API cost. We should adopt horizon scaling and report decision/verification cost, but not borrow household-manipulation scores as construction targets. https://ladderrobotics.ai/research
+- **MOST / RoboCasa-Long:** emphasizes memory of task-relevant world-state changes and subtask progress rather than longer raw visual histories. Its reported improvement in maximum task progress on RoboCasa-Long supports explicit progress-state reconstruction and interruption recovery, not a construction success-rate baseline. https://arxiv.org/abs/2611.00734
+- **RoboCasa-Shift:** uses matched clean/perturbed rollouts and stage diagnostics. One camera condition changed 8/80 paired outcomes with zero aggregate success-rate change; identical end-to-end degradation from two perturbations had different first-stage failure profiles. Therefore report paired outcome sensitivity and stage progression even where aggregate success does not move. https://arxiv.org/abs/2610.27861
+- **DexArena:** 10 long-horizon tasks and 30 stage-level tasks with explicit physically grounded stage success conditions. It reinforces the need for a task-specific stage contract and intermediate progress reporting. https://arxiv.org/abs/2611.02629
+- **NIST PAF:** already composes perception, mobility, dexterity and safety component measurements into task-level robotic system performance models. We build on that measurement-science foundation; the MIP contribution is the paired A/B configuration-change, stage-evidence, accepted-output and lifecycle join. https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems
+
+### Prospective benchmark targets
+
+These are design targets, not measured results:
+
+- **0** safety- or quality-critical stage advances without required competent, current postcondition evidence.
+- **0** duplicate accepted functional units from command/event replay.
+- **100%** exact replay of public synthetic fixtures and their declared oracle.
+- **≥98%** stage-state reconstruction agreement on a future independently adjudicated, evaluator-held set, with confidence intervals and all ambiguous cases retained.
+- **≥95%** correct safe hold/abstention when postcondition evidence, configuration identity, frame, calibration or clock validity is unknown.
+- **≥30%** fewer unnecessary re-observations than an all-or-nothing full-reset recovery baseline, provided the critical false-advance rate does not increase.
+- **No universal sample count:** determine independent seed/article/lab requirements from a pilot variance model and a preregistered minimum detectable effect. Treat scenes nested within seeds, repeated attempts, episodes on the same article and telemetry frames as clustered observations—not independent robot trials.
+
+A result is only considered better than the matched baseline when it improves the prespecified outcome without violating the evidence, safety, acceptance or statistical-validity gates. Report end-to-end accepted missions, stage-level progress, paired outcome sensitivity, false advances, recovery time, accepted functional units, crew-hours and resource use separately. No compensating weighted score is allowed.
