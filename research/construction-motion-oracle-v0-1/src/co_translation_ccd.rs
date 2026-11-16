@@ -436,19 +436,35 @@ mod tests {
         .unwrap());
 
         let one = co_translating_capsule_time_sliced_aabb_candidates(
-            moving, shared_delta, obstacle, shared_delta, 1,
+            moving,
+            shared_delta,
+            obstacle,
+            shared_delta,
+            1,
         )
         .unwrap();
         let two = co_translating_capsule_time_sliced_aabb_candidates(
-            moving, shared_delta, obstacle, shared_delta, 2,
+            moving,
+            shared_delta,
+            obstacle,
+            shared_delta,
+            2,
         )
         .unwrap();
         let four = co_translating_capsule_time_sliced_aabb_candidates(
-            moving, shared_delta, obstacle, shared_delta, 4,
+            moving,
+            shared_delta,
+            obstacle,
+            shared_delta,
+            4,
         )
         .unwrap();
         let eight = co_translating_capsule_time_sliced_aabb_candidates(
-            moving, shared_delta, obstacle, shared_delta, 8,
+            moving,
+            shared_delta,
+            obstacle,
+            shared_delta,
+            8,
         )
         .unwrap();
 
@@ -469,10 +485,15 @@ mod tests {
         let moving_delta = p(20.0, 0.0, 0.0);
         let obstacle_delta = p(-20.0, 0.0, 0.0);
 
-        assert!(co_translating_capsule_capsule_collision(
-            moving, moving_delta, obstacle, obstacle_delta,
-        )
-        .unwrap());
+        assert!(
+            co_translating_capsule_capsule_collision(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+            )
+            .unwrap()
+        );
         for subdivisions in [1, 2, 4, 8, 16, 32] {
             let candidates = co_translating_capsule_time_sliced_aabb_candidates(
                 moving,
