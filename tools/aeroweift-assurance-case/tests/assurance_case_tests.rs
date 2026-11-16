@@ -1,9 +1,10 @@
 use aeroweift_assurance_case::{
     AssumptionData, AssumptionState, AssuranceCasePolicy, AssuranceCaseScope, AssuranceEdge,
     AssuranceNode, AssuranceStatus, AuthorityDecisionData, AuthorityDecisionStatus,
-    AuthorityRequirement, BlockerReason, ClaimData, ClaimState, DefeaterData, DefeaterState,
-    EdgeKind, EvaluationError, EvidenceDisposition, EvidenceReference, EvidenceSourceKind,
-    NodeKind, evaluate_assurance_case,
+    AuthorityRequirement, BlockerReason, ClaimData, ClaimEvidenceRequirement, ClaimState,
+    DefeaterData, DefeaterState, EdgeKind, EvaluationError, EvidenceDisposition, EvidencePurpose,
+    EvidenceReference, EvidenceSourceKind, MitigationEvidenceRequirement, NodeKind,
+    evaluate_assurance_case,
 };
 
 fn digest(ch: char) -> String {
@@ -35,6 +36,20 @@ fn scope() -> AssuranceCaseScope {
 fn policy() -> AssuranceCasePolicy {
     AssuranceCasePolicy {
         expected_scope: scope(),
+        required_claim_evidence: vec![
+            ClaimEvidenceRequirement {
+                claim_id: "root".into(),
+                required_purposes: vec![],
+            },
+            ClaimEvidenceRequirement {
+                claim_id: "claim-model-envelope".into(),
+                required_purposes: vec![EvidencePurpose::ModelCredibility],
+            },
+        ],
+        required_mitigation_evidence: vec![MitigationEvidenceRequirement {
+            mitigation_id: "mitigation-conflict-screen".into(),
+            required_purposes: vec![EvidencePurpose::PhysicalMitigationEffectiveness],
+        }],
         policy_sha256: digest('e'),
         verifier_build_sha256: digest('f'),
         required_hazards: vec!["collision-avoidance".into()],
@@ -86,6 +101,23 @@ fn evidence_node(
         source_payload_sha256: digest('2'),
         source_assessment_sha256: digest('3'),
         source_kind,
+        purpose: match source_kind {
+            EvidenceSourceKind::TrackL => EvidencePurpose::PntReachability,
+            EvidenceSourceKind::TrackM => EvidencePurpose::SurveillanceObservability,
+            EvidenceSourceKind::TrackN => EvidencePurpose::IntentConformance,
+            EvidenceSourceKind::TrackP => EvidencePurpose::CausalReceiptBinding,
+            EvidenceSourceKind::TrackQ => EvidencePurpose::AuthenticatedCustody,
+            EvidenceSourceKind::TrackR => EvidencePurpose::ConflictPerformance,
+            EvidenceSourceKind::TrackS => EvidencePurpose::MultiSubjectScope,
+            EvidenceSourceKind::TrackT => EvidencePurpose::ModelCredibility,
+            EvidenceSourceKind::TrackU => EvidencePurpose::ModelRequalification,
+            EvidenceSourceKind::TrackVPlanning => EvidencePurpose::ExperimentPlan,
+            EvidenceSourceKind::ExternalFlightTest => EvidencePurpose::PhysicalMitigationEffectiveness,
+            EvidenceSourceKind::ExternalMeasurement => EvidencePurpose::ReferenceMeasurement,
+            EvidenceSourceKind::ExternalAuthority => EvidencePurpose::ExternalAuthorityRecord,
+            EvidenceSourceKind::GenericSoftwareCi => EvidencePurpose::GenericSoftwareVerification,
+            EvidenceSourceKind::Other => EvidencePurpose::Unclassified,
+        },
         disposition,
         correlation_group_id: correlation_group.map(str::to_owned),
         effective_cutoff: 50,
