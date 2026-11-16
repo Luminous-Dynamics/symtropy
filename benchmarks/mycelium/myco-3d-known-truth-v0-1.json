@@ -196,5 +196,11 @@
     "geometry_metrics_and_topology_metrics",
     "runtime_and_memory",
     "PASS_FAIL_NOT_RUN_INSUFFICIENT_EVIDENCE"
-  ]
+  ],
+  "source_baselines": {
+    "sten_2025": "https://doi.org/10.5281/zenodo.15780623",
+    "snt_docs": "https://imagej.net/plugins/snt/",
+    "snt_paper": "https://doi.org/10.1038/s41592-021-01105-7",
+    "skelpy_paper": "https://doi.org/10.1002/aps3.70049"
+  }
 }
