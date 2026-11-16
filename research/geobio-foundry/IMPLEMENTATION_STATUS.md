@@ -14,6 +14,7 @@
 | `RESEARCH_PROGRAMME_v0.2.md` | Seven paradigm shifts, system architecture, work packages and demonstrator |
 | `SOTA_GAP_ANALYSIS_2026-11-16.md` | Current public industry/research baselines and differentiation boundaries |
 | `BENCHMARK_PROTOCOL_v0.2.md` | Evidence tiers, baselines, proposed gates, experimental design and failure dispositions |
+| `BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md` | Reproduction-first biological/abiotic/hybrid protocol with process accounting and statistical controls |
 | `RESOURCE_GRAPH_SCHEMA_v0.2.json` | JSON Schema for evidence-aware resource-process records |
 | `fixtures/water-electrolysis-reference.json` | Synthetic stoichiometric/schema fixture; energy values are illustrative |
 | `kernel/Cargo.toml` | Standalone, dependency-free Rust package with its own workspace |
@@ -33,6 +34,7 @@
 - Gross energy and recovered energy reported separately.
 - Nominal feedstock-origin and gross-energy intensity per kilogram of a nominated product.
 - Numerical overflow and non-finite input rejection.
+- Complete-composition reconciliation and non-finite resource-intensity ratio rejection.
 
 ## Validation evidence
 
@@ -43,7 +45,7 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 11 unit tests | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 13 unit tests | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
@@ -53,6 +55,7 @@
 2. Resource-intensity ratios are nominal point estimates; ratio uncertainty is not propagated. The report explicitly returns `uncertainty_propagated = false`.
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
 4. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
+6. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
 5. The synthetic electrolysis fixture is not an empirical performance datum.
 
 ## Immediate next increments
