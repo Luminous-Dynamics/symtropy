@@ -170,18 +170,30 @@ impl MyceliumWorld {
     }
 
     pub fn step(&mut self) {
-        let _ = self.step_with_report();
+        let _ = self.step_internal(false);
     }
 
-    /// Execute the legacy step unchanged while returning a model-unit audit.
+    /// Execute the legacy step and collect a model-unit accounting report.
     ///
-    /// This is diagnostic instrumentation only. It does not convert legacy
-    /// heuristic quantities into physical units or claim mass conservation.
+    /// This diagnostic path does not convert legacy heuristics into physical
+    /// units or claim mass conservation. The ordinary `step()` path avoids
+    /// the extra full-field summations required only for reporting.
     pub fn step_with_report(&mut self) -> LegacyMyceliumStepReport {
+        self.step_internal(true)
+            .expect("report collection is enabled for step_with_report")
+    }
+
+    fn step_internal(&mut self, collect_report: bool) -> Option<LegacyMyceliumStepReport> {
         let tick_before = self.tick;
-        let biomass_before = self.total_layer(FieldLayer::Biomass);
-        let nutrient_before = self.total_layer(FieldLayer::Nutrient);
-        let toxin_before = self.total_layer(FieldLayer::Toxin);
+        let totals_before = if collect_report {
+            Some((
+                self.total_layer(FieldLayer::Biomass),
+                self.total_layer(FieldLayer::Nutrient),
+                self.total_layer(FieldLayer::Toxin),
+            ))
+        } else {
+            None
+        };
 
         self.tick += 1;
         self.fields.step_diffuse_decay(
@@ -203,8 +215,14 @@ impl MyceliumWorld {
             },
         );
 
-        let nutrient_after_diffusion_decay = self.total_layer(FieldLayer::Nutrient);
-        let toxin_after_diffusion_decay = self.total_layer(FieldLayer::Toxin);
+        let totals_after_diffusion = if collect_report {
+            Some((
+                self.total_layer(FieldLayer::Nutrient),
+                self.total_layer(FieldLayer::Toxin),
+            ))
+        } else {
+            None
+        };
         let mut biomass_delta = HashMap::<(usize, usize), f32>::new();
         let mut nutrient_delta = HashMap::<(usize, usize), f32>::new();
         let mut transported_to_origin = 0.0;
@@ -226,8 +244,10 @@ impl MyceliumWorld {
                 if local_toxin < 5.0 && assimilation > 0.0 {
                     *biomass_delta.entry((x, y)).or_default() += assimilation;
                     *nutrient_delta.entry((x, y)).or_default() -= assimilation;
-                    assimilation_total += assimilation;
                     transported_to_origin += assimilation * 0.25;
+                    if collect_report {
+                        assimilation_total += assimilation;
+                    }
                 }
 
                 if biomass < 0.05 {
@@ -248,9 +268,11 @@ impl MyceliumWorld {
                     *biomass_delta.entry(target).or_default() += growth;
                     *biomass_delta.entry((x, y)).or_default() -= growth * 0.05;
                     *nutrient_delta.entry(target).or_default() -= growth * 0.35;
-                    growth_target_biomass_credit += growth;
-                    growth_source_biomass_debit += growth * 0.05;
-                    growth_nutrient_debit += growth * 0.35;
+                    if collect_report {
+                        growth_target_biomass_credit += growth;
+                        growth_source_biomass_debit += growth * 0.05;
+                        growth_nutrient_debit += growth * 0.35;
+                    }
                 }
             }
         }
@@ -268,8 +290,15 @@ impl MyceliumWorld {
             transported_to_origin,
         );
 
-        let biomass_before_decay = self.total_layer(FieldLayer::Biomass);
-        let nutrient_after_step = self.total_layer(FieldLayer::Nutrient);
+        let (biomass_before_decay, nutrient_after_step) = if collect_report {
+            (
+                Some(self.total_layer(FieldLayer::Biomass)),
+                Some(self.total_layer(FieldLayer::Nutrient)),
+            )
+        } else {
+            (None, None)
+        };
+
         self.fields.step_diffuse_decay(
             FieldLayer::Biomass,
             DiffusionParams {
@@ -279,9 +308,22 @@ impl MyceliumWorld {
                 max_value: 1_000.0,
             },
         );
-        let biomass_after_decay = self.total_layer(FieldLayer::Biomass);
 
-        LegacyMyceliumStepReport {
+        if !collect_report {
+            return None;
+        }
+
+        let biomass_after_decay = self.total_layer(FieldLayer::Biomass);
+        let (biomass_before, nutrient_before, toxin_before) =
+            totals_before.expect("report collection captured initial totals");
+        let (nutrient_after_diffusion_decay, toxin_after_diffusion_decay) =
+            totals_after_diffusion.expect("report collection captured diffusion totals");
+        let biomass_before_decay =
+            biomass_before_decay.expect("report collection captured pre-decay biomass");
+        let nutrient_after_step =
+            nutrient_after_step.expect("report collection captured post-step nutrient");
+
+        Some(LegacyMyceliumStepReport {
             tick_before,
             tick_after: self.tick,
             biomass_before,
@@ -299,7 +341,7 @@ impl MyceliumWorld {
             growth_source_biomass_debit,
             growth_nutrient_debit,
             observed_biomass_decay_loss: biomass_before_decay - biomass_after_decay,
-        }
+        })
     }
 
     fn total_layer(&self, layer: FieldLayer) -> f32 {
