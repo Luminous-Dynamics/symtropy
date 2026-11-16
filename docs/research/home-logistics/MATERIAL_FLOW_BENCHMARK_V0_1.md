@@ -576,6 +576,10 @@ The report is accepted as a *fault-oracle pass* only when the above conditions h
 
 The physics engine now records one finalized `CollisionEvent` per resolved contact manifold after the solver loop. The event vector is captured into `WorldSnapshot`, hashed into the replay trace and exposed in the fault report by exact body handles. A regression test in `symtropy-physics/src/world.rs` checks that a falling sphere produces one finalized event and that the replay snapshot retains the same body pair. This repairs an event-channel gap: the `collision_events` vector was previously cleared at each step but never populated.
 
+**Exact-head qualification:** workflow [43836138408](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43836138408) passed on source `c1a388ab592d2bbbd07ced65662aea827b77e26e`: strict formatting, Clippy `-D warnings`, **79 tests**, the procedure/evidence/ten-fault checks, convergence, nominal 480 Hz L1 replay, and the gate-fault CLI. The gate-fault report measured 1,841 package↔gate collision events, maximum impulse 2.1043744963 N·s, peak penetration 2.6422119 mm, replay equality and settled final state. The package remained outside the tote; transaction state was `reconciliation_required`; retry was blocked; nested delivery acceptance was false; fault oracle was true.
+
+Evidence artifact `mfb-l1-evidence-c1a388ab592d2bbbd07ced65662aea827b77e26e` (ID `14211340768`), ZIP digest `f32e707b516cdc8071d8c60aaa2e0c019bbc99e5b6985b6749d2e3b31cac38db`. The gate-fault result JSON digest is `f97581eefb8e52b2d2680158e36761a4673cd96dca6f0db77055be4cbb398cdb`.
+
 **Claim ceiling:** the gate is static collision geometry in the L1 scene. It is not a moving door, physical interlock, actuator/power fault, sensor timing, perception/firmware test or HIL. The report is evidence about the reduced-order rigid-body model and software response only. Further fault timing, dynamic gate, power-loss and sensor-channel work remains in #5500.
 
 ## 12. First executable slice
