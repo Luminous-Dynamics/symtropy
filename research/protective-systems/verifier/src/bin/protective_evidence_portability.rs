@@ -31,6 +31,11 @@ const E2_BINDING: &str = include_str!(
 );
 const BINDING_SCHEMA_SPEC: &str =
     include_str!("../../../schemas/protect-evidence-binding-v0.1.schema.json");
+const BINDING_SCHEMA_SOURCE_BYTES: &[u8] =
+    include_bytes!("../../../schemas/protect-evidence-binding-v0.1.schema.json");
+const BINDING_SCHEMA_PACKAGE_BYTES: &[u8] = include_bytes!(
+    "../../../fixtures/protective-evidence-crate-v0.1/schemas/protect-evidence-binding-v0.1.schema.json"
+);
 
 const RO_CONTEXT: &str = "https://w3id.org/ro/crate/1.3/context";
 const RO_SPEC: &str = "https://w3id.org/ro/crate/1.3";
@@ -48,7 +53,7 @@ const INPUT_POWER: &str = "ex:entity/input-power-availability";
 const OUTPUT_WATER: &str = "ex:entity/output-water-service";
 const OUTPUT_CLINIC: &str = "ex:entity/output-clinic-access";
 
-const ARTIFACTS: [(&str, &[u8], &str); 9] = [
+const ARTIFACTS: [(&str, &[u8], &str); 10] = [
     (
         "model-evidence-metadata/synthetic-input-dataset.json",
         include_bytes!(
@@ -111,6 +116,13 @@ const ARTIFACTS: [(&str, &[u8], &str); 9] = [
             "../../../fixtures/protective-evidence-crate-v0.1/evidence/protective-model-evidence-envelope-v0.1.json"
         ),
         "application/json",
+    ),
+    (
+        "schemas/protect-evidence-binding-v0.1.schema.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/schemas/protect-evidence-binding-v0.1.schema.json"
+        ),
+        "application/schema+json",
     ),
 ];
 
@@ -218,6 +230,9 @@ fn validate_crate_with_binding(
         .map_err(|error| format!("E1 envelope JSON invalid: {error}"))?;
     if E1_ENVELOPE.as_bytes() != E1_SOURCE_ENVELOPE_BYTES {
         return Err("packaged E1 envelope bytes differ from the original E1 fixture".to_owned());
+    }
+    if BINDING_SCHEMA_SOURCE_BYTES != BINDING_SCHEMA_PACKAGE_BYTES {
+        return Err("packaged E2 binding schema bytes differ from the verifier schema".to_owned());
     }
     let binding_root: Value = serde_json::from_str(binding_text)
         .map_err(|error| format!("E2 evidence binding JSON invalid: {error}"))?;
@@ -751,7 +766,7 @@ mod tests {
     #[test]
     fn valid_ro_crate_and_sparse_prov_graph_are_accepted() {
         let report = run().expect("valid E2 synthetic package");
-        assert_eq!(report.crate_file_count, 9);
+        assert_eq!(report.crate_file_count, 10);
         assert_eq!(report.evidence_binding_count, 4);
         assert_eq!(report.e1_dataset_binding_count, 2);
         assert_eq!(report.synthetic_control_binding_count, 2);
