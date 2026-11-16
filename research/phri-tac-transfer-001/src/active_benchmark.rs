@@ -74,11 +74,17 @@ pub fn reference_integrity_check(
         || !tolerance_n.is_finite()
         || tolerance_n < 0.0
     {
-        return Err("reference channels require equal nonempty samples and a finite nonnegative tolerance".to_owned());
+        return Err(
+            "reference channels require equal nonempty samples and a finite nonnegative tolerance"
+                .to_owned(),
+        );
     }
     let mut squared = 0.0;
     let mut maximum = 0.0_f64;
-    for (primary, check) in primary_reference_n.iter().zip(independent_check_reference_n) {
+    for (primary, check) in primary_reference_n
+        .iter()
+        .zip(independent_check_reference_n)
+    {
         if !primary.is_finite() || !check.is_finite() {
             return Err("reference channel contains non-finite sample".to_owned());
         }
@@ -281,9 +287,8 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
-                    independent_check_reference_force_observations_n.push(
-                        force + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003),
-                    );
+                    independent_check_reference_force_observations_n
+                        .push(force + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003));
                     id += 1;
                 }
             }
@@ -321,9 +326,8 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
-                    independent_check_reference_force_observations_n.push(
-                        force + deterministic_noise(seed ^ 0xE703_7ED1_A0B4_28DB, id, 0.003),
-                    );
+                    independent_check_reference_force_observations_n
+                        .push(force + deterministic_noise(seed ^ 0xE703_7ED1_A0B4_28DB, id, 0.003));
                     id += 1;
                 }
             }
@@ -904,8 +908,7 @@ pub fn run_active_calibration_benchmark(seed: u64) -> Result<BenchmarkReport, St
     results.push(evaluate_source_transfer(&source_domain, &heldout)?);
 
     let prior = source_prior(&source_domain)?;
-    let transfer_active_fit =
-        fit_qualified_domain(&target_domain, &d_optimal, Some(&prior), 0.25)?;
+    let transfer_active_fit = fit_qualified_domain(&target_domain, &d_optimal, Some(&prior), 0.25)?;
     results.push(evaluate(
         "transfer_plus_d_optimal_target_adaptation",
         target_candidates,
@@ -1178,18 +1181,10 @@ mod tests {
 
     #[test]
     fn malformed_reference_channels_fail_closed() {
-        assert!(
-            reference_integrity_check(&[1.0, 2.0], &[1.0], 0.02, true).is_err()
-        );
-        assert!(
-            reference_integrity_check(&[], &[], 0.02, true).is_err()
-        );
-        assert!(
-            reference_integrity_check(&[f64::NAN], &[1.0], 0.02, true).is_err()
-        );
-        assert!(
-            reference_integrity_check(&[1.0], &[1.0], -0.01, true).is_err()
-        );
+        assert!(reference_integrity_check(&[1.0, 2.0], &[1.0], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[], &[], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[f64::NAN], &[1.0], 0.02, true).is_err());
+        assert!(reference_integrity_check(&[1.0], &[1.0], -0.01, true).is_err());
     }
 
     #[test]

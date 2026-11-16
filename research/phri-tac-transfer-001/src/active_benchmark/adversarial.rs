@@ -33,9 +33,9 @@ impl ResponseFamily {
 
     fn sensor_response_shift(self, force_n: f64, temperature: f64, phase: f64) -> f64 {
         match self {
-            Self::Nominal
-            | Self::ReferenceCommonModeBias
-            | Self::SharedReferenceCommonModeBias => 0.0,
+            Self::Nominal | Self::ReferenceCommonModeBias | Self::SharedReferenceCommonModeBias => {
+                0.0
+            }
             Self::CubicForce => 0.0009 * force_n.powi(3),
             Self::ForceTemperatureHistoryInteraction => 0.035 * force_n * temperature * phase,
             Self::Saturation => 0.0,
@@ -189,11 +189,7 @@ fn family_training_domain(
                     reference_force_observations_n.push(reference);
                     independent_check_reference_force_observations_n.push(
                         force
-                            + deterministic_noise(
-                                seed ^ 0xA076_1D64_78BD_642F,
-                                id,
-                                0.003,
-                            )
+                            + deterministic_noise(seed ^ 0xA076_1D64_78BD_642F, id, 0.003)
                             + family.independent_check_bias_n(),
                     );
                     id += 1;
@@ -516,8 +512,7 @@ pub fn run_adversarial_campaign(
             });
         }
 
-        let target_reference_domain =
-            family_training_domain(first_seed, TARGET_PROFILE, family);
+        let target_reference_domain = family_training_domain(first_seed, TARGET_PROFILE, family);
         let reference_integrity = reference_integrity_check(
             &target_reference_domain.reference_force_observations_n,
             &target_reference_domain.independent_check_reference_force_observations_n,
@@ -550,8 +545,11 @@ mod tests {
 
     #[test]
     fn primary_reference_common_mode_bias_is_rejected_before_qualification() {
-        let domain =
-            family_training_domain(20261116, TARGET_PROFILE, ResponseFamily::ReferenceCommonModeBias);
+        let domain = family_training_domain(
+            20261116,
+            TARGET_PROFILE,
+            ResponseFamily::ReferenceCommonModeBias,
+        );
         let integrity = reference_integrity_check(
             &domain.reference_force_observations_n,
             &domain.independent_check_reference_force_observations_n,

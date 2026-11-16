@@ -112,7 +112,9 @@ fn main() -> ExitCode {
                             family.reference_integrity.max_abs_disagreement_n,
                             family.reference_integrity.rms_disagreement_n,
                             family.reference_integrity.tolerance_n,
-                            family.reference_integrity.independent_reference_ancestry_attested,
+                            family
+                                .reference_integrity
+                                .independent_reference_ancestry_attested,
                             family.reference_integrity.agreement_proves_independence,
                             family.shared_reference_common_cause_injected,
                         );
