@@ -109,3 +109,16 @@ The follow-on module `src/active_benchmark/adversarial.rs` adds five synthetic k
 The selector-visible candidate type still contains no reference label. The generated training domain stores labels separately, and the held-out domain stores evaluator truth separately. The campaign compares full-grid, uniform, random, maximin, D-optimal, source-only transfer and transfer-plus-adaptation over 50 paired seeds for each family.
 
 These cases are synthetic fault injections; saturation, aging, hysteresis and common-mode behaviour are not claimed to reproduce a specific physical sensor until independently measured on #4753's fixture. The additional model-family campaign is intentionally a stress test of the current response basis, not a universal tactile sensor simulator.
+
+
+## Independent reference-channel integrity tranche
+
+The follow-on contract adds a second synthetic reference stream that is not used in model fitting. Qualified synthetic fits require both:
+1. pairwise primary/check disagreement within the named synthetic-only tolerance (0.02 N in this executable fixture); and
+2. an explicit synthetic reference-ancestry attestation indicating distinct calibration ancestry.
+
+The report always states that pairwise agreement does **not** prove independence. A sixth response family injects the same 0.25 N offset into both reference streams. Its pairwise disagreement is small, but its ancestry attestation is false, so the qualified fitting path rejects it. A separate family biases only the primary stream; the numerical disagreement guard rejects it.
+
+The adversarial campaign still executes the unguarded diagnostic fit to quantify the damage from ignoring a failed reference gate. These policy metrics are counterfactual diagnostics only and must not be treated as qualified measurements. The normal active-calibration benchmark and fit helper now enforce the reference gate before fitting.
+
+The 0.02 N threshold and ancestry boolean are synthetic test-fixture parameters, not physical metrology thresholds or proof of actual instrument independence. Real qualification requires the #4753 owners to establish independent instrument identities, calibration ancestry, timebases, mounting/range applicability, uncertainty, and common-cause analysis.
