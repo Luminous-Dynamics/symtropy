@@ -28,3 +28,6 @@ reject-all-control|all-ineligible|ABSTAIN
 model-discrimination-without-semantic-equivalence|semantic-not-required|REJECT
 uninformative-probability-over-policy-maximum|probability-uninformative|REJECT
 empty-hypothesis-correlation-group|empty-group|REJECT
+gate-receipt-wrong-issuer|issuer-namespace|REJECT
+gate-receipt-unreferenced-payload|missing-candidate-digest|REJECT
+policy-missing-gate-issuer|issuer-policy-incomplete|STRUCTURAL_ERROR
