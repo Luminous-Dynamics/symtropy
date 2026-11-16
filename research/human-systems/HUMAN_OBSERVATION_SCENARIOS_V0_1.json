@@ -161,7 +161,7 @@
     },
     {
       "scenario_id": "HOBS-02",
-      "name": "MCAR channel dropout and burst outage",
+      "name": "MCAR iid dropout plus independent scheduled sensor outage",
       "world": {
         "kind": "synthetic_sinusoid",
         "duration_s": 21600,
@@ -202,17 +202,24 @@
             "maximum": null
           },
           "missingness": {
-            "kind": "mcar_iid_plus_burst",
-            "probability": 0.1,
-            "dependency": {
-              "iid": "independent_of_world",
-              "burst_intervals_s": [
-                [
-                  7200,
-                  7800
-                ]
-              ]
-            }
+            "kind": "composed_independent_processes",
+            "processes": [
+              {
+                "kind": "mcar_iid",
+                "probability": 0.1,
+                "dependency": "independent_of_observed_and_latent_world"
+              },
+              {
+                "kind": "exogenous_sensor_outage",
+                "intervals_s": [
+                  [
+                    7200,
+                    7800
+                  ]
+                ],
+                "dependency": "scheduled_independent_of_signal"
+              }
+            ]
           },
           "clock": {
             "clock_domain": "sensor_clock_v1",
@@ -231,9 +238,10 @@
         "outage_intervals_s": []
       },
       "expected_invariants": [
-        "Missing events carry no measurement value and no measurement likelihood.",
-        "Dropout is independent of latent and observed values under this scenario.",
-        "Prior dynamics may advance without an observation according to model time."
+        "MCAR iid missing events are independent of observed and latent signal values under this generator.",
+        "The fixed outage interval is labelled as an independent sensor outage, not as MCAR.",
+        "Each missing event carries no numeric measurement and no measurement likelihood.",
+        "Prior dynamics may advance without a measurement according to physical model time."
       ]
     },
     {
