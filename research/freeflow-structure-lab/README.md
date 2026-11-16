@@ -15,6 +15,8 @@ The face-attached assembly includes:
 - finite geometry, cell volume and attachment face area checks;
 - member length, graph connectivity, duplicate-edge and cycle-rank audits;
 - minimum angular separation between ports at a shared node;
+- pin/bore worst-case clearance analysis;
+- worst-case and root-sum-square tolerance stack estimates;
 - assembly parent/child ordering;
 - deterministic same-build, non-cryptographic regression digest.
 
@@ -25,6 +27,10 @@ cargo test --manifest-path research/freeflow-structure-lab/Cargo.toml
 cargo clippy --manifest-path research/freeflow-structure-lab/Cargo.toml --all-targets -- -D warnings
 cargo run --manifest-path research/freeflow-structure-lab/Cargo.toml --bin freeflow-structure
 ```
+
+## Companion truss analysis
+
+The separate `research/truss-fem-lab` crate consumes this geometry and provides a narrow linear-elastic pin-jointed truss reference solver, with analytical single-bar tests and a singular-mechanism negative control. It is not part of this geometry crate.
 
 ## Claim boundary
 
