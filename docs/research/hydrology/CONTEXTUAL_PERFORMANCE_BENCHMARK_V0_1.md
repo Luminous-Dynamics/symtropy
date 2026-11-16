@@ -304,7 +304,7 @@ The first deterministic evaluator is now implemented in the separate Rust packag
 - `research/hydrology/hydro-contextual-oracle-v0.1.json`
 - `research/hydrology/hydro-contextual-t0.schema.json`
 
-The 44-case synthetic suite covers:
+The 46-case synthetic suite covers:
 - B0 persistence / training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member reporting, including invalid/non-conservative members;
 - B2 repeated train-only calibration-reference summary;
@@ -320,7 +320,7 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 44-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 46-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
@@ -330,7 +330,7 @@ The contextual T0 suite has been extended from 21 to 40 cases to cover the metri
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
 
-The new known-answer cases are 022–026; input, manifest, oracle and schema all declare 44 cases. These are metric arithmetic and data-contract tests only. A small synthetic interval fixture does not prove calibration; report sample count, independent event count, event strata and time-horizon coverage before making probabilistic-skill claims.
+The new known-answer cases are 022–026; input, manifest, oracle and schema all declare 46 cases. These are metric arithmetic and data-contract tests only. A small synthetic interval fixture does not prove calibration; report sample count, independent event count, event strata and time-horizon coverage before making probabilistic-skill claims.
 
 The event-peak contract also freezes the tie rule: equal maxima select the earliest time index. A separate case tests this deterministically.
 
@@ -366,12 +366,12 @@ A complementary 3 July 2026 study benchmarked 47 conceptual rainfall–runoff mo
 6. **Operational relevance:** score threshold exceedance/forecast lead time for flood/low-flow decisions separately from continuous-flow metrics. A high NSE cannot compensate for missed critical events.
 7. **Complexity/uncertainty:** report parameter and structural spread, runtime/energy, memory, data burden and calibration effort alongside each metric; publish Pareto sets, not one weighted score.
 
-The existing 44-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.
+The existing 46-case corpus is only a metric/split software contract. It does not yet execute 1,000 model simulations or establish lower/upper catchment benchmarks. That is the next model-run tournament after source data and the B1 prior definitions are qualified.
 
 
 ## 15. Proper probabilistic scoring — implementation cases 028–032
 
-The evaluator now extends the 44-case process-aware metric suite with five synthetic proper-score cases:
+The evaluator now extends the 46-case process-aware metric suite with five synthetic proper-score cases:
 - **Empirical ensemble CRPS:**
   `CRPS(F,y) = mean_m |x_m-y| - (1/(2M²)) Σ_m Σ_n |x_m-x_n|`.
   It scores the full finite ensemble distribution, penalizing both lack of sharpness and lack of accuracy. Streamflow values below zero are rejected in this profile.
@@ -424,6 +424,9 @@ The reference must use the **same exact verification case IDs and order, evaluat
 
 A zero or within-tolerance reference score makes the skill ratio Undefined. A negative skill score is valid and means the candidate is worse than the reference; it is deliberately not clipped. This matters because leaderboard designs that clip below-zero skill can make a poor model look merely neutral.
 
-Cases 033–044 include matched CRPSS/BSS, mismatched population, lead, case IDs, event definition, units and aggregation semantics, zero-reference abstentions, and deliberately negative CRPSS/BSS controls. The corpus is now 44 cases; input, manifest, schema and oracle must match exactly.
+Cases 033–044 include matched CRPSS/BSS, mismatched population, lead, case IDs, event definition, units and aggregation semantics, zero-reference abstentions, and deliberately negative CRPSS/BSS controls. The corpus is now 46 cases; input, manifest, schema and oracle must match exactly.
 
 These results remain synthetic metric-contract evidence. The future South African tournament must compare the same forecast targets and observation population for each candidate and reference, stratify by catchment regime and lead, quantify event-block uncertainty, and expose B0/B1/B2/B3 reference definitions.
+
+
+Cases 045–046 add explicit negative controls for variable mismatch (river discharge vs water level) and valid-time semantics mismatch (UTC hydrological day vs local civil-midnight day). These accompany the earlier case-identity, catchment/population, lead, unit, aggregation and event-definition controls. The 46-case synthetic corpus is the software contract; it does not claim those metadata are available/admitted for a real catchment yet.
