@@ -21,12 +21,19 @@ const CRATE: &str = include_str!(
 const PROV: &str = include_str!(
     "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-sparse-derivation.jsonld"
 );
-const E1_ENVELOPE: &str =
-    include_str!("../../../fixtures/protective-model-evidence-envelope-v0.1.json");
+const E1_ENVELOPE: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/evidence/protective-model-evidence-envelope-v0.1.json"
+);
+const E1_SOURCE_ENVELOPE_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/protective-model-evidence-envelope-v0.1.json");
+const E2_BINDING: &str = include_str!(
+    "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-evidence-binding.json"
+);
 
 const RO_CONTEXT: &str = "https://w3id.org/ro/crate/1.3/context";
 const RO_SPEC: &str = "https://w3id.org/ro/crate/1.3";
 const PROV_NS: &str = "http://www.w3.org/ns/prov#";
+const SCHEMA_NS: &str = "https://schema.org/";
 const E2_NS: &str = "https://luminousdynamics.io/protect-evidence/e2/";
 const CLAIM_CEILING: &str = "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY";
 const RIGHTS_STATUS: &str = "SYNTHETIC_OPEN_FIXTURE";
@@ -39,7 +46,7 @@ const INPUT_POWER: &str = "ex:entity/input-power-availability";
 const OUTPUT_WATER: &str = "ex:entity/output-water-service";
 const OUTPUT_CLINIC: &str = "ex:entity/output-clinic-access";
 
-const ARTIFACTS: [(&str, &[u8], &str); 7] = [
+const ARTIFACTS: [(&str, &[u8], &str); 9] = [
     (
         "model-evidence-metadata/synthetic-input-dataset.json",
         include_bytes!(
@@ -89,6 +96,20 @@ const ARTIFACTS: [(&str, &[u8], &str); 7] = [
         ),
         "application/ld+json",
     ),
+    (
+        "provenance/e2-evidence-binding.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-evidence-binding.json"
+        ),
+        "application/json",
+    ),
+    (
+        "evidence/protective-model-evidence-envelope-v0.1.json",
+        include_bytes!(
+            "../../../fixtures/protective-evidence-crate-v0.1/evidence/protective-model-evidence-envelope-v0.1.json"
+        ),
+        "application/json",
+    ),
 ];
 
 #[derive(Debug, Serialize)]
@@ -102,6 +123,10 @@ struct GateReport {
     used_input_count: usize,
     generated_output_count: usize,
     declared_derivation_count: usize,
+    evidence_binding_count: usize,
+    e1_dataset_binding_count: usize,
+    synthetic_control_binding_count: usize,
+    source_envelope_sha256: String,
     verified_artifact_count: usize,
     crate_metadata_sha256: String,
     provenance_graph_sha256: String,
