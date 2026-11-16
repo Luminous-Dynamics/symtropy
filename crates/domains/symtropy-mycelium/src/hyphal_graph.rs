@@ -1352,12 +1352,7 @@ mod tests {
                 }
                 for (edge_id, from, to) in &selected {
                     graph
-                        .add_segment(segment(
-                            *edge_id,
-                            *from as u64 + 1,
-                            *to as u64 + 1,
-                            1.0,
-                        ))
+                        .add_segment(segment(*edge_id, *from as u64 + 1, *to as u64 + 1, 1.0))
                         .unwrap();
                 }
 
@@ -1365,12 +1360,8 @@ mod tests {
                 let expected_bridges: Vec<_> = selected
                     .iter()
                     .filter(|(edge_id, _, _)| {
-                        oracle_active_component_count(
-                            node_count,
-                            &selected,
-                            Some(*edge_id),
-                            None,
-                        ) > baseline
+                        oracle_active_component_count(node_count, &selected, Some(*edge_id), None)
+                            > baseline
                     })
                     .map(|(edge_id, _, _)| SegmentId(*edge_id))
                     .collect();
