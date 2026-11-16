@@ -48,7 +48,7 @@ fn canonical_json(value: &Value) -> Result<Vec<u8>, String> {
     serde_json::to_vec(value).map_err(|error| format!("canonical_json_serialize:{error}"))
 }
 
-fn seed_hex(seed: u64) -> String {
+pub fn seed_hex(seed: u64) -> String {
     format!("{seed:016x}")
 }
 
