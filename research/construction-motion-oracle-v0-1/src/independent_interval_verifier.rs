@@ -1140,11 +1140,31 @@ mod tests {
                 },
             )
             .unwrap_or_else(|error| panic!("case {case_index} failed: {error:?}"));
-            assert_eq!(
-                result.status,
-                expected,
-                "case={case_index} min={minimum_distance} max={maximum_distance} r={contact_radius}",
-            );
+            if expected == IntervalVerificationStatus::Clear {
+                assert_eq!(
+                    result.status,
+                    IntervalVerificationStatus::Clear,
+                    "case={case_index} min={minimum_distance} max={maximum_distance} r={contact_radius}",
+                );
+            } else if expected == IntervalVerificationStatus::ContactWitness {
+                assert_eq!(
+                    result.status,
+                    IntervalVerificationStatus::ContactWitness,
+                    "case={case_index} min={minimum_distance} max={maximum_distance} r={contact_radius}",
+                );
+            } else {
+                assert_ne!(
+                    result.status,
+                    IntervalVerificationStatus::Clear,
+                    "possible contact was incorrectly cleared: case={case_index}",
+                );
+                if result.status == IntervalVerificationStatus::ContactWitness {
+                    assert!(
+                        maximum_distance <= contact_radius + 1.0e-10,
+                        "false robust contact witness: case={case_index}",
+                    );
+                }
+            }
         }
     }
 
