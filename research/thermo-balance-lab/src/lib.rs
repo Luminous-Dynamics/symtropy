@@ -415,7 +415,7 @@ mod tests {
     #[test]
     fn extreme_mass_values_that_overflow_inverse_mass_are_rejected() {
         assert_eq!(
-            solve_collision_1d(f64::MIN_POSITIVE, 1.0, 1.0, 0.0, 0.5),
+            solve_collision_1d(f64::from_bits(1), 1.0, 1.0, 0.0, 0.5),
             Err(LedgerError::InvalidMass)
         );
     }
