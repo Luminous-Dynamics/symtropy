@@ -59,12 +59,15 @@
         }
       ],
       "url": "https://example.invalid/e3/synthetic-resource",
-      "schemaVersion": "http://datacite.org/schema/kernel-4",
-      "customMetadata": {
-        "extensionOwner": "luminous-e3",
-        "preservationMode": "retain-unmapped-source-fields",
-        "claimCeiling": "METADATA_PORTABILITY_ONLY"
-      }
+      "schemaVersion": "http://datacite.org/schema/kernel-4"
+    }
+  },
+  "meta": {
+    "e3FixtureExtension": {
+      "extensionOwner": "luminous-e3",
+      "preservationMode": "retain-unmapped-source-fields",
+      "claimCeiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "notice": "Synthetic JSON:API top-level metadata extension; not a DataCite schema property."
     }
   }
 }
