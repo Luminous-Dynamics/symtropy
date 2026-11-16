@@ -60,3 +60,10 @@ This result is deliberately not the campaign conclusion. [PHRI-TAC-ROBUST-001 #5
 The follow-on executable exposes `run_active_calibration_campaign(first_seed, replicate_count)`. It requires at least 50 paired seeds and evaluates every policy on the same source, target and held-out domains for each seed. Each policy reports mean, median, p95 and maximum values for synthetic RMSE, p95/worst absolute error, prediction-interval coverage/width and generated fixture-cost proxy. It also reports the per-seed paired RMSE difference against the full target-grid arm.
 
 The first implementation is a stability screen, not a complete statistical analysis: bootstrap confidence intervals, cluster-aware inference, model-family misspecification, common-mode reference faults and multiple physical target articles remain follow-on requirements under #5591. These repeated runs remain synthetic and do not establish physical uncertainty coverage or calibration savings.
+
+
+### Paired seed-level bootstrap interval
+
+The campaign now computes a deterministic 95% percentile-bootstrap interval for the mean **paired per-seed RMSE difference versus the full-grid arm** (2,000 resamples with replacement over the 50 or more seed-level paired differences). The CLI emits lower/upper interval endpoints per policy.
+
+The resampling unit is a complete paired synthetic seed, not a contact/frame. This avoids treating dependent contacts inside one generated domain as independent replicates. It estimates variability across this fixed synthetic generator's random seeds only; it is not a confidence interval for physical sensor populations, calibration uncertainty, a GUM coverage interval or transfer to new hardware.
