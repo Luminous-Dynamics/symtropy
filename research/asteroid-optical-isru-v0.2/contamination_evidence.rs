@@ -34,7 +34,6 @@ pub enum ChangeDisposition {
     DecreaseEstablished,
     IncreaseEstablished,
     NotDistinguishedFromZero,
-    IndeterminateWithinUncertainty,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -367,7 +366,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             result.disposition,
-            ChangeDisposition::IndeterminateWithinUncertainty
+            ChangeDisposition::NotDistinguishedFromZero
         );
     }
 
