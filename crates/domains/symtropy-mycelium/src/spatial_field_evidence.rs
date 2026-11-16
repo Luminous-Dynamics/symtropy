@@ -945,11 +945,10 @@ mod tests {
             standard_error: Some(0.1),
         };
         let radius = radius();
-        let estimate =
-            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
-                density, &radius,
-            )
-            .unwrap();
+        let estimate = GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+            density, &radius,
+        )
+        .unwrap();
         assert_eq!(estimate.mean.0, 0.0);
         assert!(estimate.standard_deviation.unwrap() > 0.0);
     }
