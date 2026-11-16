@@ -22,6 +22,7 @@ const E1_ENVELOPE: &str =
 const RO_CONTEXT: &str = "https://w3id.org/ro/crate/1.3/context";
 const RO_SPEC: &str = "https://w3id.org/ro/crate/1.3";
 const PROV_NS: &str = "http://www.w3.org/ns/prov#";
+const E2_NS: &str = "https://luminousdynamics.io/protect-evidence/e2/";
 const CLAIM_CEILING: &str = "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY";
 const RIGHTS_STATUS: &str = "SYNTHETIC_OPEN_FIXTURE";
 const PERMITTED_USE: &str = "SYNTHETIC_TEST_ONLY";
@@ -327,6 +328,17 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
     if prov_context.get("prov").and_then(Value::as_str) != Some(PROV_NS) {
         return Err("PROV-O context must bind prov to the W3C PROV namespace".to_owned());
     }
+    let prov_context = prov_root
+        .get("@context")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "PROV-O @context must be an object".to_owned())?;
+    if prov_context.get("prov").and_then(Value::as_str) != Some(PROV_NS) {
+        return Err("PROV-O context must bind prov to the W3C PROV namespace".to_owned());
+    }
+    if prov_context.get("ex").and_then(Value::as_str) != Some(E2_NS) {
+        return Err("PROV-O context must bind ex to the E2 fixture namespace".to_owned());
+    }
+
     let prov_entities = unique_graph(&prov_root, "PROV-O")?;
     if prov_entities.len() != 6 {
         return Err(format!("E2 sparse fixture requires six PROV nodes, found {}", prov_entities.len()));
@@ -350,8 +362,8 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .map(|item| reference_id(item, "prov:used").map(str::to_owned))
         .collect::<Result<_, _>>()?;
     let expected_used = BTreeSet::from([INPUT_WATER.to_owned(), INPUT_POWER.to_owned()]);
-    if used_ids != expected_used {
-        return Err("prov:used must contain exactly the two declared input entities".to_owned());
+    if used.len() != 2 || used_ids != expected_used {
+        return Err("prov:used must contain exactly two unique declared input entities".to_owned());
     }
     if reference_id(
         activity
@@ -359,8 +371,11 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
             .ok_or_else(|| "PROV-O activity.prov:wasAssociatedWith is required".to_owned())?,
         "prov:wasAssociatedWith",
     )? != AGENT
+        || activity
+            .get("prov:wasAssociatedWith")
+            .is_some_and(Value::is_array)
     {
-        return Err("PROV-O activity is associated with an unexpected Agent".to_owned());
+        return Err("PROV-O activity must have exactly one declared associated Agent".to_owned());
     }
 
     for id in [INPUT_WATER, INPUT_POWER] {
@@ -406,6 +421,16 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         .count();
     if derivation_count != 1 {
         return Err(format!("exactly one provider-declared derivation is allowed, found {derivation_count}"));
+    }
+
+    let generation_edge_count = prov_entities
+        .values()
+        .filter(|value| value.get("prov:wasGeneratedBy").is_some())
+        .count();
+    if generation_edge_count != 2 {
+        return Err(format!(
+            "exactly two provider-declared prov:wasGeneratedBy edges are allowed, found {generation_edge_count}"
+        ));
     }
 
     let entity_count = prov_entities
@@ -649,6 +674,45 @@ mod tests {
         prov["@context"]["prov"] = Value::String("https://example.invalid/prov#".into());
         let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong PROV namespace");
         assert!(error.contains("W3C PROV namespace"));
+    }
+
+    #[test]
+    fn duplicate_used_input_is_rejected() {
+        let mut prov = prov_value();
+        let activity = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == ACTIVITY)
+            .expect("analysis");
+        activity["prov:used"] = json!([
+            {"@id": INPUT_WATER},
+            {"@id": INPUT_WATER}
+        ]);
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("duplicate used edge");
+        assert!(error.contains("exactly two unique declared input entities"));
+    }
+
+    #[test]
+    fn unexpected_generation_edge_on_an_input_is_rejected() {
+        let mut prov = prov_value();
+        let input = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == INPUT_POWER)
+            .expect("power input");
+        input["prov:wasGeneratedBy"] = json!({"@id": ACTIVITY});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("extra generation edge");
+        assert!(error.contains("exactly two provider-declared prov:wasGeneratedBy edges"));
+    }
+
+    #[test]
+    fn e2_namespace_binding_is_required() {
+        let mut prov = prov_value();
+        prov["@context"]["ex"] = Value::String("https://example.invalid/e2/".into());
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong E2 namespace");
+        assert!(error.contains("E2 fixture namespace"));
     }
 
     #[test]
