@@ -395,6 +395,6 @@ set. It applies mandatory methods and independence as hard constraints.
 Expired, superseded, unknown or otherwise invalid evidence never promotes a
 claim. The output is a plan only; it does not execute work or qualify assets.
 
-The fixture has 23 unit tests written. Exact-head hosted formatting, Clippy,
+The fixture has 24 unit tests written. Exact-head hosted formatting, Clippy,
 compilation, tests and executable output remain pending. The gate's result is
 `ABSTAIN_REQUALIFICATION_NOT_EXECUTED`.
