@@ -1,0 +1,232 @@
+# ROBOT-CONFIG-MISSION-IMPACT-001 — paired stochastic, stage-aware mission protocol v0.1
+
+Status: public synthetic development protocol. No physical robot result or mission qualification is asserted.
+
+Issue: https://github.com/Luminous-Dynamics/symtropy/issues/5547
+
+## 1. What this benchmark measures
+
+This protocol measures the **system-level performance consequences of a robot configuration change**. For the same sampled work package and operating conditions, compare source configuration A with target configuration B:
+
+- Does the complete mission still finish?
+- Is the same useful work independently accepted?
+- Which stage first diverges, and what failures follow?
+- Do intervention, recovery, energy, time, quality or rework change?
+- Does the result generalize across challenge seeds, articles, teams and laboratories?
+
+This is deliberately separate from claim applicability:
+
+- #5488 decides which prior claim-specific evidence remains applicable after a configuration delta and proposes requalification obligations.
+- #5547 measures what the A-to-B configuration change does to complete-mission performance under matched work.
+
+A preserved claim is not a mission-performance result. A successful mission is not proof that every prior qualification claim remains applicable.
+
+## 2. Current research that changes the protocol
+
+### Stochastic Challenges — CoRL 2026 / arXiv:2611.12804
+
+Gläßer et al. propose standardizing the distribution of reproducible physical scenes instead of one fixed public test set. Their published benchmark reports 568 real-world trials with Stretch 3 and Spot with arm across two laboratories. The authors also disclose that one researcher rebuilt the shared-seed scenes in both labs, so inter-team reconstruction variation is not quantified.
+
+**Adaptation:** publish a seeded challenge distribution, mix paired and independent seeds, estimate seed difficulty separately from repeat noise, and add an independent reconstruction-team factor.
+
+References:
+- https://arxiv.org/abs/2611.12804
+- https://rpl-bonn.github.io/stochastic-challenges/
+
+### RoboCasa-Shift — arXiv:2610.27861, 20 October 2026
+
+Wang et al. evaluate matched clean/perturbed rollouts where each pair shares the same underlying settings and differs only by a controlled shift. Their report describes 1,040 formal rollouts over four long-horizon tasks, four perturbation factors and three severity levels. It shows that aggregate success can hide paired outcome changes and that equal end-to-end degradation can arise from different stage-failure profiles.
+
+**Adaptation:** pair A/B executions on the same scenario seed; record paired outcome sensitivity even when aggregate success is unchanged; preserve the first observed divergence and downstream failure sequence; do not assume a monotonic performance response to perturbation severity.
+
+Reference: https://arxiv.org/abs/2610.27861
+
+### MOST / RoboCasa-Long — arXiv:2611.00734, 31 October 2026
+
+He et al. argue that long-horizon agents must preserve task-relevant object-state changes and progress, not simply longer visual histories. The paper reports 72.1% versus 65.9% average success on RoboCasa365 for MOST and XR-1, maximum task progress of 42.22% versus 20.83% on RoboCasa-Long, and 43.33% versus 6.66% real-robot success in its reported setup.
+
+These household manipulation results are not construction-robot comparators. The transferable benchmark lesson is to retain consequential state changes and subtask progress over the full mission rather than scoring only the final binary outcome.
+
+Reference: https://arxiv.org/abs/2611.00734
+
+### Existing compositional test science
+
+NIST already composes perception, mobility, dexterity and safety measurements into system-level robotic performance models. We should use that foundation and contribute the paired change-impact, stage-diagnostic and accepted-work layer—not claim to have invented compositional performance assessment.
+
+Reference: https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems
+
+## 3. Benchmark units and pairing
+
+The primary independent unit is a **challenge seed × task/site/ODD instance**. A seed may generate multiple work items, but claims, telemetry frames, controller ticks, retries and stage rows within one mission are not independent physical trials.
+
+For each seed, create a matched A/B pair:
+- same task and acceptance profile;
+- same site/material/environment stratum;
+- same initial state and permitted intervention policy;
+- same independent reference method and acceptance boundary;
+- same crew/role policy where practical;
+- exact source and target configuration/article bindings;
+- one declared configuration delta for single-factor cases.
+
+Where hardware permits reversible module changes, counterbalance A/B order and record warm-up, wear, battery state, contamination, calibration and operator learning/carryover. Where the same physical article cannot be used in both conditions, use randomized article/configuration allocation and a hierarchical model. Do not label unpaired article runs as paired.
+
+Use both common seeds, to cancel scene/task difficulty in A/B comparisons, and independent seeds, to estimate generalization across the full distribution. Choose the ratio after a pilot and preregister it; do not select it after seeing which ratio improves a result.
+
+## 4. Mission-stage vocabulary
+
+The stage catalog is profile-bound. This reference decomposition is a starting vocabulary, not a universal process model.
+
+| Stage | Name | Question |
+| --- | --- | --- |
+| S01 | Task contract | Are work package, preconditions and success criteria understood? |
+| S02 | Site observation | Are site, material, obstacles and task-relevant objects observed? |
+| S03 | Frame and localization | Are survey control, map/frame epoch and robot pose consistent? |
+| S04 | Navigation | Can the robot reach the intended work area? |
+| S05 | Base positioning | Can it achieve a useful, accessible and stable work pose? |
+| S06 | Tool and calibration | Are module, tool, TCP, calibration and interfaces correct? |
+| S07 | Operation | Can the robot perform the declared task? |
+| S08 | Independent acceptance | Does output satisfy the functional acceptance profile under independent measurement? |
+| S09 | Recovery | Can discrepancies, faults and failed attempts be safely reconciled? |
+| S10 | State reconciliation | Are output, residual WIP, configuration and return-to-service states reconciled? |
+
+For each stage transition record:
+- stage entry/exit criteria and transition identity;
+- event-time and arrival-time with clock domain;
+- attempts, retries, duration and intervention;
+- evidence and raw-artifact references;
+- status: reached, passed, failed, blocked, not reached, intentionally skipped by policy, aborted, or unknown;
+- first observed divergence and later downstream consequences.
+
+Failure classification can be multi-label. FirstDivergenceStage is an observed location in the trace, not causal root-cause proof. Root-cause attribution needs separate evidence and competent adjudication.
+
+## 5. Challenge distribution
+
+Sample at the level of complete configuration/task instances. Stratify across:
+- platform family, serial/article and assembly generation;
+- tool/end-effector, sensor/mount/calibration, base/drive, payload, battery/power, firmware/controller, safety chain, timebase and frame/site changes;
+- task family and functional unit;
+- site, surface/material, environment and ODD;
+- in-envelope, boundary, out-of-envelope and unknown conditions;
+- single-factor changes and preregistered pairwise/three-way interactions;
+- task criticality and independent acceptance method.
+
+Couple physically coherent variables. Payload mass, CoM and inertia must be jointly plausible; sensor mount and extrinsics must be represented consistently; battery identity, mass, interface, health and power envelope must agree; drive/tire/track, surface and stopping condition must be sampled as a matched set; site/map/frame epoch changes must carry exact frame context.
+
+Every rejected impossible draw and its reason is retained. Hard cases cannot be silently removed after observing performance.
+
+For scored challenges, publish generator source/version, schema, canonicalization rules, PRNG identity, parameter ranges and sampling procedure. Evaluator-held scored seeds/labels remain private until candidate output is committed; blind custody composes #1300. A hash commitment is not proof of generator correctness or physical-scene authenticity.
+
+## 6. Required comparator arms
+
+| Arm | Description | Why it is needed |
+| --- | --- | --- |
+| C0 | Atomic subsystem tests only | Shows what isolated tests miss |
+| C1 | Aggregate mission success/time only | Measures the cost of lacking stage diagnostics |
+| C2 | Fixed public cases | Development baseline; susceptible to memorization |
+| C3 | Stochastic independent seeds | Measures distribution-level generalization |
+| C4 | Paired stochastic stage-aware evaluation | Proposed benchmark method |
+| C5 | Evaluator-only oracle perturbation/stage cause | Diagnostic upper bound; never a candidate |
+| C6 | Matched expert/manual workflow | Commercially meaningful total-workflow baseline |
+
+For configuration-change reasoning specifically, preserve #5488's separate preserve-all, invalidate-all, direct-only, generic-adapter, proposed-adapter and finite-oracle comparison arms. Do not conflate the two benchmarks.
+
+## 7. Metrics — no composite score
+
+### Mission and accepted output
+- final accepted functional units per robot-hour, direct crew-hour, total workflow crew-hour and elapsed site-hour;
+- mission completion, task-progress distribution and first-pass/final acceptance;
+- accepted, rejected, reworked, held, aborted, cancelled, superseded and unresolved denominators;
+- quality/error distributions, units, uncertainty and acceptance margins.
+
+### Stage diagnostics
+- probability of reaching each stage;
+- transition success and conditional completion given stage reached;
+- first observed divergence, stage-failure progression and multi-label failure counts;
+- stage duration, retry and intervention distributions;
+- paired outcome sensitivity: fraction of matched seeds whose outcome changes, even if aggregate success is unchanged.
+
+### Resources and human collaboration
+- energy and consumables per accepted functional unit;
+- setup, survey, calibration, charging, replenishment, idle, waiting and recovery;
+- crew/equipment support hours, intervention time and rework;
+- damage, material loss and inspection burden.
+
+### Reproducibility and validity
+- per-seed and per-stratum results;
+- paired effect estimates and intervals;
+- between-seed, within-seed, article, team, operator, lab and instrument variance;
+- reconstruction fidelity and adjudicator disagreement;
+- missing/unknown event intervals and denominator reconciliation;
+- shortcut, leakage, overfit, source-dependence and benchmark-gaming probes.
+
+### Separate qualification/lifecycle context
+- link #5488 dispositions, but do not treat them as mission success;
+- link #5411 reconfiguration chronology, but do not reuse changeover time as task productivity;
+- link #3628 maintenance/exposure, but do not equate uptime with accepted output;
+- link #11866 terminal reserve, but do not average heterogeneous physical reserves into one score.
+
+Safety, quality, productivity, energy, repairability, reserve and uncertainty stay separate. A hard safety or acceptance violation cannot be compensated by faster cycle time.
+
+## 8. Statistics and reproducibility
+
+A pilot estimates between-seed variance, within-seed attempt variance, article-to-article variation, team reconstruction variation, operator/crew variation, and lab/instrument/calibration variation.
+
+Pre-register per endpoint:
+- minimum meaningful difference or equivalence margin;
+- type-I error, target power and sample size;
+- paired-seed fraction and allocation;
+- cluster/hierarchical analysis;
+- multiple-endpoint policy;
+- missingness, censoring, abort and safety-stop handling.
+
+Report effects and uncertainty. Do not stop early because an interim ranking looks favourable. A result with materially overlapping uncertainty is inconclusive, not a win. More retries on one seed cannot compensate for too few independent seeds.
+
+## 9. Prospective acceptance targets (not achieved results)
+
+- 100% exact source/target configuration, task, seed, ODD, acceptance-profile and evaluator binding—or explicit invalid/unknown.
+- 100% scheduled mission time reconciles to a declared stage/state or explicit unknown interval.
+- 100% accepted functional units bind independently adjudicated acceptance evidence and raw measurement references.
+- 100% failed, aborted, safety-stopped and unknown episodes remain in declared denominators.
+- Every primary endpoint reports per-seed outcomes and uncertainty, not pooled success alone.
+- Same pinned seed/configuration/task manifest produces deterministic synthetic replay.
+- Independent reconstruction teams report fidelity and disagreement; seed determinism is not mistaken for physical reconstruction repeatability.
+- Zero synthetic/simulated episodes promoted to physical performance, safety, certification or work-authorization evidence.
+
+Do not set a percentage superiority target until the manual/commercial baseline, instrument capability and pilot variance are measured.
+
+## 10. Physical-test gate
+
+This protocol does not authorize physical trials. A later campaign requires #3505/#3522/#3531/#3591 physical procedure, receipts, admissibility and interlab methodology; task-specific risk assessment, safeguards, qualified operators, site permission and competent independent adjudication; exact configuration and calibration binding; independent calibrated reference measurements suited to the acceptance margin; pre-registered seed allocation and analysis; and reconciliation after interruption, network/power loss or unknown execution outcome.
+
+Start with guarded, low-consequence, reversible work such as stand-off survey/inspection and non-load-bearing layout. No autonomous excavation, lifting, cutting, fastening or public-site operation is authorized by this benchmark. Do not deliberately degrade safety functions or bypass interlocks.
+
+## 11. Composition / ownership
+
+- #5488: claim-specific evidence applicability after a configuration delta.
+- #5411: last accepted A to first accepted B reconfiguration chronology.
+- #3605: functional unit and accepted-output accounting.
+- #3523/#3524: construction-robot task performance profiles.
+- #3505/#3522/#3531: physical procedure, receipt and evidence admissibility.
+- #3591: cross-lab metrology and reproducibility.
+- #3628: accepted production, wear, maintenance, repair and restoration.
+- #1834: robot capability/work-package compatibility.
+- Symthaea #10543/#4918/#12046: generic change impact, dependency/common-mode lineage and evidence request planning.
+- Symthaea #4863/#11866: lifecycle/degradation and productive work versus terminal reserve.
+
+No second capability engine, dependency graph, accepted-output ledger, maintenance ledger, controller, digital-twin truth store or safety authority is introduced.
+
+## 12. Deliverables and claim ceiling
+
+V0.1 artifacts:
+1. public stage catalog and mission-pair schema;
+2. stochastic matched-pair protocol;
+3. synthetic development corpus and separately stored public oracle;
+4. cross-file invariants and benchmark-validity checks.
+
+Later:
+- evaluator-held challenge and custody protocol;
+- Rust-first replay/analysis tool after owner event/receipt contracts are pinned;
+- guarded reference workcell campaign;
+- second article, independent team/lab replication and public report.
+
+The public artifacts establish methodology and synthetic fixture semantics only. They do not establish robot performance, causal attribution, physical safety, calibration validity, qualification, construction productivity, conformity or vendor superiority.
