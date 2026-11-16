@@ -699,7 +699,11 @@ impl IsotopeTransferExperiment {
         }
 
         let mut arm_receipts = BTreeMap::new();
+        let mut arm_receipt_ids = BTreeSet::new();
         for arm in &self.arm_evidence {
+            if !arm_receipt_ids.insert(arm.evidence) {
+                return Err(IsotopeTransferError::DuplicateReceipt(arm.evidence));
+            }
             if arm_receipts.insert(arm.intervention, arm.evidence).is_some() {
                 return Err(IsotopeTransferError::DuplicateArmEvidence(
                     arm.intervention,
