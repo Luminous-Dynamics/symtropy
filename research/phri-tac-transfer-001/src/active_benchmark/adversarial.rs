@@ -82,8 +82,8 @@ pub struct AdversarialCampaignReport {
     pub families: Vec<FamilyCampaignResult>,
 }
 
-fn family_candidate(
-    id: usize,
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct FamilyStimulus {
     profile: SensorProfile,
     family: ResponseFamily,
     force_n: f64,
@@ -92,7 +92,19 @@ fn family_candidate(
     phase: f64,
     seed: u64,
     is_heldout: bool,
-) -> (Candidate, f64) {
+}
+
+fn family_candidate(id: usize, stimulus: FamilyStimulus) -> (Candidate, f64) {
+    let FamilyStimulus {
+        profile,
+        family,
+        force_n,
+        position,
+        temperature,
+        phase,
+        seed,
+        is_heldout,
+    } = stimulus;
     let stratum = usize::from(temperature > 0.0) * 2 + usize::from(phase > 0.0);
     let noise = deterministic_noise(seed, id, 0.006);
     let mut raw = polynomial_response(
@@ -156,14 +168,16 @@ fn family_training_domain(
                 for phase in [-1.0, 1.0] {
                     let (candidate, reference) = family_candidate(
                         id,
-                        profile,
-                        family,
-                        force,
-                        position,
-                        temperature,
-                        phase,
-                        seed,
-                        false,
+                        FamilyStimulus {
+                            profile,
+                            family,
+                            force_n: force,
+                            position,
+                            temperature,
+                            phase,
+                            seed,
+                            is_heldout: false,
+                        },
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference);
@@ -190,14 +204,16 @@ fn family_heldout_domain(seed: u64, family: ResponseFamily) -> HeldoutDomain {
                 for phase in [-0.5, 0.5] {
                     let (candidate, _heldout_reference_observation) = family_candidate(
                         id,
-                        TARGET_PROFILE,
-                        family,
-                        force,
-                        position,
-                        temperature,
-                        phase,
-                        seed ^ 0x1357_9BDF_2468_ACE0,
-                        true,
+                        FamilyStimulus {
+                            profile: TARGET_PROFILE,
+                            family,
+                            force_n: force,
+                            position,
+                            temperature,
+                            phase,
+                            seed: seed ^ 0x1357_9BDF_2468_ACE0,
+                            is_heldout: true,
+                        },
                     );
                     candidates.push(candidate);
                     evaluator_truth_force_n.push(force);
