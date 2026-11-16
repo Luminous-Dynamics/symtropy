@@ -67,7 +67,6 @@ struct IntakeReport {
 struct Entry {
     path: String,
     directory: bool,
-    flags: u16,
     method: u16,
     crc32: u32,
     compressed: u64,
@@ -280,6 +279,13 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
         return Err(fail("REJECT_ARCHIVE_SIZE", "empty archive or compressed byte limit exceeded"));
     }
     let eocd = find_eocd(bytes)?;
+    let zip64_locator = (0..eocd.saturating_sub(20)).any(|offset| {
+        u32_at(bytes, offset).ok() == Some(0x0706_4b50)
+    });
+    let zip64_eocd = (0..eocd).any(|offset| u32_at(bytes, offset).ok() == Some(0x0606_4b50));
+    if zip64_locator || zip64_eocd {
+        return Err(fail("REJECT_ZIP64", "ZIP64 end records are unsupported"));
+    }
     let disk = u16_at(bytes, eocd + 4)?;
     let cd_disk = u16_at(bytes, eocd + 6)?;
     let entries_on_disk = u16_at(bytes, eocd + 8)?;
@@ -419,6 +425,9 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
         if file_type != 0 && file_type != 0x8000 && file_type != 0x4000 {
             return Err(fail("REJECT_SPECIAL_FILE", "non-regular special file entry"));
         }
+        if external_attributes & 0x0000_0440 != 0 {
+            return Err(fail("REJECT_SPECIAL_FILE", "DOS device or reparse-point attributes are forbidden"));
+        }
         let directory_attr = (external_attributes & 0x10) != 0 || file_type == 0x4000;
         if directory_name != directory_attr {
             return Err(fail("REJECT_DIRECTORY_TYPE_MISMATCH", "trailing slash conflicts with file attributes"));
@@ -474,7 +483,6 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
         entries.push(Entry {
             path,
             directory: directory_name,
-            flags,
             method,
             crc32,
             compressed,
@@ -511,7 +519,8 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
 
     let mut ranges = Vec::with_capacity(entries.len());
     for entry in &entries {
-        let local_offset = as_usize(entry.local_offset as u32, "local header offset")?;
+        let local_offset = usize::try_from(entry.local_offset)
+            .map_err(|_| fail("REJECT_INTEGER_OVERFLOW", "local header offset"))?;
         let name_length = usize::from(u16_at(bytes, local_offset + 26)?);
         let extra_length = usize::from(u16_at(bytes, local_offset + 28)?);
         let start = local_offset;
@@ -657,6 +666,58 @@ mod tests {
         assert!(validate_archive(&bytes, &policy())
             .expect_err("encryption flag")
             .starts_with("REJECT_ENCRYPTED"));
+    }
+
+    #[test]
+    fn unix_symlink_entry_is_rejected() {
+        let mut bytes = stored();
+        let central = find_signature(&bytes, CENTRAL_SIG);
+        bytes[central + 38..central + 42].copy_from_slice(&0xa1ff_0000u32.to_le_bytes());
+        assert!(validate_archive(&bytes, &policy())
+            .expect_err("symlink entry")
+            .starts_with("REJECT_SYMLINK"));
+    }
+
+    #[test]
+    fn zip64_size_sentinel_is_rejected() {
+        let mut bytes = stored();
+        let central = find_signature(&bytes, CENTRAL_SIG);
+        bytes[central + 20..central + 24].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(validate_archive(&bytes, &policy())
+            .expect_err("ZIP64 size sentinel")
+            .starts_with("REJECT_ZIP64"));
+    }
+
+    #[test]
+    fn duplicate_central_directory_name_is_rejected() {
+        let mut bytes = stored();
+        let central = find_signature(&bytes, CENTRAL_SIG);
+        let eocd = find_signature(&bytes, EOCD_SIG);
+        let record_length = 46 + usize::from(u16_at(&bytes, central + 28).expect("name length"))
+            + usize::from(u16_at(&bytes, central + 30).expect("extra length"))
+            + usize::from(u16_at(&bytes, central + 32).expect("comment length"));
+        let record = bytes[central..central + record_length].to_vec();
+        let mut duplicate = bytes[..eocd].to_vec();
+        duplicate.extend_from_slice(&record);
+        duplicate.extend_from_slice(&bytes[eocd..]);
+        let new_eocd = eocd + record_length;
+        duplicate[new_eocd + 8..new_eocd + 10].copy_from_slice(&2u16.to_le_bytes());
+        duplicate[new_eocd + 10..new_eocd + 12].copy_from_slice(&2u16.to_le_bytes());
+        duplicate[new_eocd + 12..new_eocd + 16]
+            .copy_from_slice(&u32::try_from(record_length * 2).expect("CD size").to_le_bytes());
+        assert!(validate_archive(&duplicate, &policy())
+            .expect_err("duplicate path")
+            .starts_with("REJECT_DUPLICATE_PATH"));
+    }
+
+    #[test]
+    fn declared_compression_ratio_is_enforced_before_content_validation() {
+        let mut bytes = stored();
+        let central = find_signature(&bytes, CENTRAL_SIG);
+        bytes[central + 20..central + 24].copy_from_slice(&1u32.to_le_bytes());
+        bytes[central + 24..central + 28].copy_from_slice(&21u32.to_le_bytes());
+        let error = validate_archive(&bytes, &policy()).expect_err("ratio limit");
+        assert!(error.starts_with("REJECT_COMPRESSION_RATIO"));
     }
 
     #[test]
