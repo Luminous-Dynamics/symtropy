@@ -321,6 +321,41 @@ The November 2026 NLASG report supplies a 10 TeV design-study reference and emph
 
 The RCS1 tracking work is another important anchor: RF distribution and energy–field mismatch affect transverse emittance growth. A handoff that preserves only RMS beam values can hide the tails and correlations needed to diagnose these effects.
 
+## 14A. Competitive benchmark scorecard
+
+The following are **reproduction gates and proposed comparison criteria**, not claims that Symtropy has achieved these results. A result is comparable only when the reference distribution, physics model, geometry, solver tolerances, particle statistics, acceptance definitions and evaluation budget match.
+
+| Workstream | Public reference to reproduce | Minimum reproduction gate | Improvement criterion |
+|---|---|---|---|
+| Target and capture | SNS, J-PARC, Mu2e, RaDIATE and published target/capture studies | Reproduce the measured/simulation-linked pion and muon yield, accepted 6D distribution, stress/thermal and irradiation observables for a named configuration | Increase muons delivered inside the downstream cooling acceptance per incident proton while meeting target lifetime, thermal-shock, radiation and maintainability constraints |
+| 6D cooling | July 2026 Fermilab rectilinear-channel poster: one solution 38% shorter at comparable final emittance; a separate alternative 22% lower final emittance at 20% shorter. AI4MuC also reports a factor-of-two reduction in final transverse emittance from a conventional IMCC redesign | Reproduce each published trade-off as its own case, using the source definitions and initial distributions; report full 6D distribution, transmission, tail loss and material sensitivity | Improve the matched Pareto frontier in channel length, 6D cooling, accepted population and robustness—not merely a quoted transverse RMS emittance |
+| RCS1 and high-energy acceleration | Soubirou–Chancé, arXiv:2611.02865: 8-arc RCS1 >500% horizontal emittance growth versus 13% for 32 arcs in the stated RF-distribution comparison; their 32-arc energy–field mismatch table reports 6.8%, 0.4%, 1.0%, 1.5% horizontal growth in RCS1–RCS4 | Reproduce the RF-distribution and energy–field mismatch cases separately, including the 17-turn RCS1 trajectory, beta beating, transverse/longitudinal emittance, transmission and jitter sensitivity | Keep cumulative transverse emittance growth within the declared 10% chain budget under the full matched lattice and tolerance set, while preserving survival, RF acceptance and power constraints |
+| Plasma muon acceleration | Wang et al., PRAB 29, 021302 (2026): 23 GeV electron driver; 300 MeV → 40 GeV; 18.85% energy spread; 8.86 mm mrad normalized emittance | Independently reproduce the source PIC configuration, then separately test finite energy spread/emittance injection; retain source-data availability and finite-emittance losses in the receipt | Demonstrate increased downstream-accepted muons per driver joule or lower decay loss at equal downstream beam-quality and capture constraints; high gradient alone is not a win |
+| Beam-induced background (BIB) | FLUKA/Geant4 full transport and the AI4MuC report's identified spectra/correlation/tail problem | Match reference geometry, material, lattice and physics list; compare distributions and event-level dependencies on blinded configurations | Reduce high-fidelity simulation cost at fixed accuracy in spectra, lattice asymmetry, correlations, occupancy, rare-tail exceedance and reconstructed physics observables |
+| Detector/reconstruction | AI4MuC recommended efficiency, fake rates, resolution, timing rejection and robustness to BIB variations | Benchmark on held-out signal channels and BIB conditions; report signal efficiency and background/fake rates jointly | Improve physics-channel significance or useful reconstructed yield without eroding prompt, displaced or other unconventional-signal acceptance |
+| Whole chain | NLASG 10 TeV centre-of-mass design study, clearly labelled as a design reference rather than an integrated demonstration | Propagate a compatible distribution and its uncertainty through every admitted stage, with explicit untested boundaries | Improve the constrained Pareto frontier for reconstructed signal yield, integrated luminosity, wall-plug energy, availability, lifecycle burden and footprint, subject to hard safety gates |
+
+### Comparison rules that prevent false wins
+
+1. **Freeze the baseline first.** Preserve source distributions, versioned lattice/geometry, physics lists, material data, solver commit, tolerances and output definitions.
+2. **Match evaluation effort.** Equalize high-fidelity particle statistics, replicates, random-seed policy, solver fidelity and compute budget. Report CPU/GPU hours and wall time.
+3. **Use blind holdouts.** Hold out entire lattice settings, target/material conditions, absorber configurations or detector-background scenarios. Randomly splitting particles from one generated run is not independent validation.
+4. **Score distributions, not only moments.** Compare transmission, covariance, emittance definitions, quantiles, correlations, tail exceedance and losses. For BIB, evaluate lattice-induced asymmetry and event-level correlations, not just one-dimensional spectra.
+5. **Treat uncertainty as an output.** Report calibration, confidence intervals, coverage and failure/abstention rates. A surrogate that is accurate on average but underestimates rare tails is not qualified for detector or machine-protection decisions.
+6. **Require downstream survival of the improvement.** An optimizer's proposed gain remains provisional until a trusted specialist simulation checks it and the benefit survives the next stage's acceptance conditions.
+7. **Publish losses and non-wins.** Report where the new method loses, fails, or abstains. No clipping negative skill or hiding infeasible Pareto points.
+
+### What would constitute a meaningful result beyond current practice
+
+A credible first research result would not be “Symtropy beats the world's accelerator codes.” It would be a public, reproducible demonstration that a cross-code workflow can:
+- reproduce a published cooling or RCS benchmark;
+- preserve the full input/output distribution and population ledger across a solver boundary;
+- identify a design change that improves a downstream-accepted objective under a fixed high-fidelity compute budget;
+- carry calibrated uncertainty and tail-risk into the next-stage decision; and
+- reproduce the decision independently from frozen inputs and receipts.
+
+A stronger result would show the same method across two different domains—for example, cooling-to-acceleration and lattice-to-BIB—without changing the meaning of the evidence contract. That would demonstrate reusable research infrastructure rather than a one-off optimizer.
+
 ## 15. Initial implementation sequence
 
 1. Freeze the envelope schema and a field dictionary, including units and coordinate conversion rules.
