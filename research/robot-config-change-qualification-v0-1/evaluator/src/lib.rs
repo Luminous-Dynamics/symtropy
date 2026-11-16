@@ -588,7 +588,11 @@ fn evaluate_claim(family: &str, case: &Value, claim: &Value, catalog_claim: &Val
     })
 }
 
-fn oracle_map(oracle: &Value) -> Result<BTreeMap<(String, String), (String, String)>, Vec<String>> {
+type OracleKey = (String, String);
+type OracleDisposition = (String, String);
+type OracleMap = BTreeMap<OracleKey, OracleDisposition>;
+
+fn oracle_map(oracle: &Value) -> Result<OracleMap, Vec<String>> {
     let mut errors = Vec::new();
     let mut expected = BTreeMap::new();
     let Some(rows) = array_at(oracle, &["dispositions"]) else {
@@ -646,7 +650,7 @@ pub fn evaluate_against_oracle(corpus: &Value, oracle: &Value) -> Result<Value, 
     if !structural_errors.is_empty() {
         return Err(sorted(structural_errors));
     }
-    let expected = oracle_map(oracle).map_err(|errors| errors)?;
+    let expected = oracle_map(oracle)?;
     let mut cases = array_at(corpus, &["cases"]).cloned().unwrap_or_default();
     cases.sort_by_key(|case| string_at(case, &["case_id"]).unwrap_or("").to_owned());
 
