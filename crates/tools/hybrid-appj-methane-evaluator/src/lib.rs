@@ -116,14 +116,14 @@ fn nonempty(value: &str) -> bool {
 }
 
 fn close(a: f64, b: f64) -> bool {
-    a.is_finite()
-        && b.is_finite()
-        && (a - b).abs() <= REL_TOLERANCE * a.abs().max(b.abs()).max(1.0)
+    a.is_finite() && b.is_finite() && (a - b).abs() <= REL_TOLERANCE * a.abs().max(b.abs()).max(1.0)
 }
 
 fn validate_factorial_design(design: &FactorialDesign) -> Result<(), String> {
     if design.design_class != "PROPOSED_DESIGN_NOT_SOURCE_EXPERIMENT" {
-        return Err("factorial design must be explicitly marked proposed, not source experiment".to_owned());
+        return Err(
+            "factorial design must be explicitly marked proposed, not source experiment".to_owned(),
+        );
     }
     if design.factors != ["plasma_enabled", "thermal_zone_enabled"] {
         return Err("factorial design factors must be the declared plasma/thermal 2x2".to_owned());
@@ -134,13 +134,18 @@ fn validate_factorial_design(design: &FactorialDesign) -> Result<(), String> {
             return Err("factorial design contains a duplicate treatment cell".to_owned());
         }
         if cell.measurement_status != "NOT_MEASURED" {
-            return Err("synthetic design fixture cannot claim measured factorial results".to_owned());
+            return Err(
+                "synthetic design fixture cannot claim measured factorial results".to_owned(),
+            );
         }
         if cell.observed_absolute_conversion_fraction.is_some()
             || cell.observed_accepted_h2_mass_g.is_some()
             || cell.raw_artifact_ref.is_some()
         {
-            return Err("proposed factorial design must not contain invented physical observations".to_owned());
+            return Err(
+                "proposed factorial design must not contain invented physical observations"
+                    .to_owned(),
+            );
         }
     }
     if cells.len() != 4
@@ -149,7 +154,9 @@ fn validate_factorial_design(design: &FactorialDesign) -> Result<(), String> {
         || !cells.contains(&(false, true))
         || !cells.contains(&(true, true))
     {
-        return Err("factorial design must contain all four plasma/thermal treatment cells".to_owned());
+        return Err(
+            "factorial design must contain all four plasma/thermal treatment cells".to_owned(),
+        );
     }
     Ok(())
 }
@@ -171,22 +178,37 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 return result(scenario, rejected, blocked, not_comparable, design_only);
             };
             if !close(claim.relative_conversion_gain_lower_bound_fold, 5.0) {
-                rejected.push("source-relative conversion claim must remain a >5-fold lower bound".to_owned());
+                rejected.push(
+                    "source-relative conversion claim must remain a >5-fold lower bound".to_owned(),
+                );
             }
             if claim.absolute_conversion_fraction.is_some() {
                 rejected.push("relative conversion gain cannot be promoted to an absolute conversion fraction".to_owned());
             }
             if !close(claim.carbon_deposition_fraction_approx, 0.36) {
-                rejected.push("source-reported carbon deposition must remain approximately 36%".to_owned());
+                rejected.push(
+                    "source-reported carbon deposition must remain approximately 36%".to_owned(),
+                );
             }
             if claim.carbon_deposition_denominator_status != "RECONSTRUCT_FROM_SOURCE_DATA" {
-                blocked.push("carbon-deposition denominator remains unresolved until source reconstruction".to_owned());
+                blocked.push(
+                    "carbon-deposition denominator remains unresolved until source reconstruction"
+                        .to_owned(),
+                );
             }
-            if claim.captured_carbon_mass_g.is_some() || claim.feed_carbon_recovery_fraction.is_some() {
-                rejected.push("carbon deposition cannot be promoted to captured/recovered feed carbon".to_owned());
+            if claim.captured_carbon_mass_g.is_some()
+                || claim.feed_carbon_recovery_fraction.is_some()
+            {
+                rejected.push(
+                    "carbon deposition cannot be promoted to captured/recovered feed carbon"
+                        .to_owned(),
+                );
             }
             if claim.carbon_product_grade_status != "NOT_VALIDATED" {
-                rejected.push("turbostratic carbon characterization is not product-grade qualification".to_owned());
+                rejected.push(
+                    "turbostratic carbon characterization is not product-grade qualification"
+                        .to_owned(),
+                );
             }
         }
         "PRODUCT_CLAIM" => {
@@ -195,7 +217,8 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 return result(scenario, rejected, blocked, not_comparable, design_only);
             };
             if !matches!(product.species.as_str(), "H2" | "C2-C3" | "SOLID_CARBON") {
-                rejected.push("product species is outside the declared multi-product slate".to_owned());
+                rejected
+                    .push("product species is outside the declared multi-product slate".to_owned());
             }
             let any_quantitative = product.accepted_mass_g.is_some()
                 || product.rate_g_per_hour.is_some()
@@ -203,7 +226,10 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 || product.pressure_kpa.is_some();
             if any_quantitative {
                 let has_refs = product.calibration_ref.as_deref().is_some_and(nonempty)
-                    && product.quantitative_measurement_ref.as_deref().is_some_and(nonempty)
+                    && product
+                        .quantitative_measurement_ref
+                        .as_deref()
+                        .is_some_and(nonempty)
                     && product.raw_artifact_ref.as_deref().is_some_and(nonempty);
                 if !has_refs {
                     blocked.push("quantitative product claim lacks calibration, measurement and raw-artifact lineage".to_owned());
@@ -214,13 +240,19 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
             {
                 blocked.push("artifact identifiers without a quantitative product measurand are not a product measurement".to_owned());
             } else {
-                design_only.push("product remains source-described but not quantitatively accepted".to_owned());
+                design_only.push(
+                    "product remains source-described but not quantitatively accepted".to_owned(),
+                );
             }
             if product.species == "SOLID_CARBON"
                 && (product.accepted_mass_g.is_some() || product.purity_fraction.is_some())
-                && product.calibration_ref.as_deref().is_none_or(|v| !nonempty(v))
+                && product
+                    .calibration_ref
+                    .as_deref()
+                    .is_none_or(|v| !nonempty(v))
             {
-                blocked.push("solid carbon requires a qualified mass/grade evidence chain".to_owned());
+                blocked
+                    .push("solid carbon requires a qualified mass/grade evidence chain".to_owned());
             }
         }
         "COMPARISON" => {
@@ -233,14 +265,25 @@ fn evaluate_scenario(scenario: &Scenario) -> ScenarioResult {
                 &comparison.reference_product_contract_id,
                 &comparison.candidate_energy_boundary_id,
                 &comparison.reference_energy_boundary_id,
-            ].iter().any(|v| !nonempty(v)) {
-                blocked.push("comparison product or energy boundary identity is incomplete".to_owned());
-            } else if comparison.candidate_product_contract_id != comparison.reference_product_contract_id
-                || comparison.candidate_energy_boundary_id != comparison.reference_energy_boundary_id
+            ]
+            .iter()
+            .any(|v| !nonempty(v))
             {
-                not_comparable.push("candidate and reference product/boundary contracts differ".to_owned());
+                blocked.push(
+                    "comparison product or energy boundary identity is incomplete".to_owned(),
+                );
+            } else if comparison.candidate_product_contract_id
+                != comparison.reference_product_contract_id
+                || comparison.candidate_energy_boundary_id
+                    != comparison.reference_energy_boundary_id
+            {
+                not_comparable
+                    .push("candidate and reference product/boundary contracts differ".to_owned());
             } else {
-                design_only.push("matched identifiers alone do not prove comparable measured performance".to_owned());
+                design_only.push(
+                    "matched identifiers alone do not prove comparable measured performance"
+                        .to_owned(),
+                );
             }
         }
         "FACTORIAL_DESIGN" => {
@@ -287,14 +330,20 @@ fn result(
 }
 
 pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
-    let manifest: Manifest = serde_json::from_str(source)
-        .map_err(|error| format!("invalid manifest: {error}"))?;
+    let manifest: Manifest =
+        serde_json::from_str(source).map_err(|error| format!("invalid manifest: {error}"))?;
 
     if manifest.schema_version != SCHEMA_VERSION {
-        return Err(format!("unsupported schema version: {}", manifest.schema_version));
+        return Err(format!(
+            "unsupported schema version: {}",
+            manifest.schema_version
+        ));
     }
     if manifest.benchmark_id != BENCHMARK_ID {
-        return Err(format!("unexpected benchmark ID: {}", manifest.benchmark_id));
+        return Err(format!(
+            "unexpected benchmark ID: {}",
+            manifest.benchmark_id
+        ));
     }
     if manifest.evidence_class != "published_source_register_plus_synthetic_design_controls" {
         return Err("unexpected top-level evidence class".to_owned());
@@ -314,7 +363,9 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
         "double-electrode APPJ configuration",
     ];
     if manifest.source_configurations.len() != expected_configs.len()
-        || expected_configs.iter().any(|expected| !manifest.source_configurations.iter().any(|v| v == expected))
+        || expected_configs
+            .iter()
+            .any(|expected| !manifest.source_configurations.iter().any(|v| v == expected))
     {
         return Err("source configuration identities are incomplete or altered".to_owned());
     }
@@ -328,15 +379,22 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
         if !ids.insert(scenario.id.as_str()) {
             return Err("scenario IDs must be unique".to_owned());
         }
-        if !matches!(scenario.expected_disposition.as_str(),
-            "SOURCE_CLAIM_ONLY" | "DESIGN_ONLY" | "BLOCKED" | "REJECTED" | "NOT_COMPARABLE")
-        {
-            return Err(format!("scenario {} has unsupported expected disposition", scenario.id));
+        if !matches!(
+            scenario.expected_disposition.as_str(),
+            "SOURCE_CLAIM_ONLY" | "DESIGN_ONLY" | "BLOCKED" | "REJECTED" | "NOT_COMPARABLE"
+        ) {
+            return Err(format!(
+                "scenario {} has unsupported expected disposition",
+                scenario.id
+            ));
         }
     }
 
     let results: Vec<_> = manifest.scenarios.iter().map(evaluate_scenario).collect();
-    let matched = results.iter().filter(|r| r.disposition == r.expected_disposition).count();
+    let matched = results
+        .iter()
+        .filter(|r| r.disposition == r.expected_disposition)
+        .count();
     let total = results.len();
     Ok(AuditReport {
         benchmark_id: manifest.benchmark_id,
@@ -353,16 +411,20 @@ pub fn audit_manifest_json(source: &str) -> Result<AuditReport, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
-    const FIXTURE: &str = include_str!("../../../../benchmarks/plasma/appj-methane-process-v0.json");
+    const FIXTURE: &str =
+        include_str!("../../../../benchmarks/plasma/appj-methane-process-v0.json");
 
     fn audit() -> AuditReport {
         audit_manifest_json(FIXTURE).expect("APPJ fixture is syntactically and structurally valid")
     }
 
     fn scenario<'a>(report: &'a AuditReport, id: &str) -> &'a ScenarioResult {
-        report.results.iter().find(|r| r.id == id).expect("scenario exists")
+        report
+            .results
+            .iter()
+            .find(|r| r.id == id)
+            .expect("scenario exists")
     }
 
     #[test]
@@ -375,36 +437,57 @@ mod tests {
 
     #[test]
     fn source_relative_gain_remains_relative_and_carbon_deposition_is_not_recovery() {
-        assert_eq!(scenario(&audit(), "source-claim-positive").disposition, "SOURCE_CLAIM_ONLY");
+        assert_eq!(
+            scenario(&audit(), "source-claim-positive").disposition,
+            "SOURCE_CLAIM_ONLY"
+        );
     }
 
     #[test]
     fn absolute_conversion_promotion_is_rejected() {
-        assert_eq!(scenario(&audit(), "reject-absolute-conversion-from-relative-claim").disposition, "REJECTED");
+        assert_eq!(
+            scenario(&audit(), "reject-absolute-conversion-from-relative-claim").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn carbon_deposition_promotion_to_recovery_is_rejected() {
-        assert_eq!(scenario(&audit(), "reject-deposition-as-carbon-recovery").disposition, "REJECTED");
+        assert_eq!(
+            scenario(&audit(), "reject-deposition-as-carbon-recovery").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn quantitative_h2_without_calibration_and_measurement_is_blocked() {
-        assert_eq!(scenario(&audit(), "block-quantitative-h2-without-metrology").disposition, "BLOCKED");
+        assert_eq!(
+            scenario(&audit(), "block-quantitative-h2-without-metrology").disposition,
+            "BLOCKED"
+        );
     }
 
     #[test]
     fn proposed_factorial_is_design_only_not_published_result() {
-        assert_eq!(scenario(&audit(), "factorial-controls-design-only").disposition, "DESIGN_ONLY");
+        assert_eq!(
+            scenario(&audit(), "factorial-controls-design-only").disposition,
+            "DESIGN_ONLY"
+        );
     }
 
     #[test]
     fn incomplete_factorial_controls_are_rejected() {
-        assert_eq!(scenario(&audit(), "reject-incomplete-factorial").disposition, "REJECTED");
+        assert_eq!(
+            scenario(&audit(), "reject-incomplete-factorial").disposition,
+            "REJECTED"
+        );
     }
 
     #[test]
     fn candidate_and_reference_with_different_boundary_are_not_comparable() {
-        assert_eq!(scenario(&audit(), "not-comparable-mismatched-system-boundary").disposition, "NOT_COMPARABLE");
+        assert_eq!(
+            scenario(&audit(), "not-comparable-mismatched-system-boundary").disposition,
+            "NOT_COMPARABLE"
+        );
     }
 }
