@@ -568,6 +568,48 @@ mod tests {
     }
 
     #[test]
+    fn increasing_latency_cannot_add_observations_or_reduce_posterior_variance() {
+        let fast = Profile {
+            id: "FAST".to_string(),
+            cadence_days: 3,
+            latency_days: 2,
+            measurement_variance: 0.25,
+            effort_cost_per_sample: 0.05,
+            disturbance_cost_per_sample: 0.002,
+        };
+        let delayed = Profile {
+            latency_days: 20,
+            ..fast.clone()
+        };
+        let fast_times = sample_times(&fast, 30);
+        let delayed_times = sample_times(&delayed, 30);
+        assert!(delayed_times.len() <= fast_times.len());
+        let (fast_variance, fast_count, _) =
+            posterior_variance(0.98, 30, &[&fast]).expect("fast schedule");
+        let (delayed_variance, delayed_count, _) =
+            posterior_variance(0.98, 30, &[&delayed]).expect("delayed schedule");
+        assert!(delayed_count <= fast_count);
+        assert!(delayed_variance + 1e-12 >= fast_variance);
+    }
+
+    #[test]
+    fn no_measurement_available_by_deadline_preserves_prior_variance() {
+        let delayed = Profile {
+            id: "DELAYED".to_string(),
+            cadence_days: 7,
+            latency_days: 10,
+            measurement_variance: 0.01,
+            effort_cost_per_sample: 0.7,
+            disturbance_cost_per_sample: 0.12,
+        };
+        let (variance, count, age) =
+            posterior_variance(0.98, 7, &[&delayed]).expect("no eligible observation");
+        assert_eq!(count, 0);
+        assert_eq!(age, None);
+        assert_eq!(variance, 1.0);
+    }
+
+    #[test]
     fn budgets_and_pareto_frontier_are_hard_gates() {
         let mut manifest:Value=serde_json::from_str(FIXTURE).expect("fixture");
         manifest["budgets"]["ecological_disturbance_units"]=json!(0.0);
