@@ -367,8 +367,10 @@ pub struct RecoverabilityAssessment {
     pub options: Vec<OptionAssessment>,
     /// IDs of definitely admissible options.
     pub admissible_option_ids: Vec<String>,
-    /// Deterministic pairwise-independent witness (a lower bound, not a maximum).
+    /// Pairwise-independent option set; exact when the determinate option cap is respected.
     pub independent_option_witness: Vec<String>,
+    /// True only when the returned witness is the exact maximum independent set.
+    pub independent_option_witness_exact: bool,
     /// Whether the candidate-option inventory is complete at both cutoffs.
     pub inventory_complete: bool,
     /// Required number of pairwise-independent options in the frozen profile.
@@ -417,6 +419,7 @@ fn validate_policy(policy: &RecoverabilityPolicy) -> Result<(), EvaluationError>
     if !is_sha256(&policy.policy_sha256)
         || policy.supported_contingencies.is_empty()
         || policy.maximum_determinate_option_count == 0
+        || policy.maximum_determinate_option_count > 24
         || policy
             .diversity_exempt_domains
             .iter()
@@ -604,6 +607,11 @@ fn assess_option(
 }
 
 fn pairwise_independent(left: &OptionAssessment, right: &OptionAssessment) -> bool {
+    // An empty non-exempt dependency set proves no diversity; exempt common
+    // platform dependencies cannot be used as evidence that two options are independent.
+    if left.diversity_dependencies.is_empty() || right.diversity_dependencies.is_empty() {
+        return false;
+    }
     let right_set: BTreeSet<&str> = right
         .diversity_dependencies
         .iter()
@@ -614,31 +622,116 @@ fn pairwise_independent(left: &OptionAssessment, right: &OptionAssessment) -> bo
         .all(|domain| !right_set.contains(domain.as_str()))
 }
 
-/// Build a deterministic greedy witness of pairwise-independent admissible options.
+/// Build an exact maximum independent set for small option sets, otherwise a
+/// deterministic independent-set lower bound.
 ///
-/// The witness is a proven lower bound only. A small witness does not establish that a
-/// larger independent set does not exist; V0 returns INDETERMINATE when that distinction
-/// matters and the exact requested diversity cannot be demonstrated.
-fn independent_witness(options: &[OptionAssessment]) -> Vec<String> {
+/// Maximum independent set is NP-hard. V0 caps exact search at the policy's
+/// `maximum_determinate_option_count` (itself bounded to 24); larger sets receive a
+/// deterministic greedy lower bound and must not be described as a proven maximum.
+fn independent_witness(
+    options: &[OptionAssessment],
+    exact_limit: usize,
+) -> (Vec<String>, bool) {
     let mut admissible: Vec<&OptionAssessment> = options
         .iter()
         .filter(|option| option.disposition == OptionDisposition::Admissible)
         .collect();
     admissible.sort_by(|left, right| left.option_id.cmp(&right.option_id));
 
-    let mut selected: Vec<&OptionAssessment> = Vec::new();
-    for candidate in admissible {
-        if selected
-            .iter()
-            .all(|chosen| pairwise_independent(candidate, chosen))
-        {
-            selected.push(candidate);
+    if admissible.len() > exact_limit {
+        let mut selected: Vec<&OptionAssessment> = Vec::new();
+        for candidate in admissible {
+            if selected.iter().all(|chosen| pairwise_independent(candidate, chosen)) {
+                selected.push(candidate);
+            }
+        }
+        return (
+            selected.into_iter().map(|option| option.option_id.clone()).collect(),
+            false,
+        );
+    }
+
+    let count = admissible.len();
+    if count == 0 {
+        return (Vec::new(), true);
+    }
+
+    let mut conflicts = vec![0_u64; count];
+    for left in 0..count {
+        for right in (left + 1)..count {
+            if !pairwise_independent(admissible[left], admissible[right]) {
+                conflicts[left] |= 1_u64 << right;
+                conflicts[right] |= 1_u64 << left;
+            }
         }
     }
-    selected
-        .into_iter()
-        .map(|option| option.option_id.clone())
-        .collect()
+
+    fn ids_for_mask(mask: u64, options: &[&OptionAssessment]) -> Vec<String> {
+        options
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| mask & (1_u64 << index) != 0)
+            .map(|(_, option)| option.option_id.clone())
+            .collect()
+    }
+
+    fn search(
+        candidates: u64,
+        selected: u64,
+        conflicts: &[u64],
+        options: &[&OptionAssessment],
+        best: &mut u64,
+    ) {
+        let selected_count = selected.count_ones();
+        if selected_count + candidates.count_ones() < best.count_ones() {
+            return;
+        }
+        if candidates == 0 {
+            let candidate_ids = ids_for_mask(selected, options);
+            let best_ids = ids_for_mask(*best, options);
+            if selected_count > best.count_ones()
+                || (selected_count == best.count_ones() && candidate_ids < best_ids)
+            {
+                *best = selected;
+            }
+            return;
+        }
+
+        // Highest conflict degree prunes earlier; ties follow canonical option order.
+        let mut chosen = candidates.trailing_zeros() as usize;
+        let mut chosen_degree = 0_u32;
+        let mut remaining = candidates;
+        while remaining != 0 {
+            let index = remaining.trailing_zeros() as usize;
+            let bit = 1_u64 << index;
+            let degree = (conflicts[index] & candidates).count_ones();
+            if degree > chosen_degree {
+                chosen = index;
+                chosen_degree = degree;
+            }
+            remaining &= !bit;
+        }
+
+        let bit = 1_u64 << chosen;
+        search(
+            candidates & !bit & !conflicts[chosen],
+            selected | bit,
+            conflicts,
+            options,
+            best,
+        );
+        search(candidates & !bit, selected, conflicts, options, best);
+    }
+
+    let mut best = 0_u64;
+    search(
+        (1_u64 << count) - 1,
+        0,
+        &conflicts,
+        &admissible,
+        &mut best,
+    );
+    (ids_for_mask(best, &admissible), true)
 }
 
 /// Evaluate candidate recovery options against a frozen contingency and evidence policy.
@@ -663,6 +756,7 @@ pub fn evaluate_recoverability(
             options: Vec::new(),
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
+            independent_option_witness_exact: false,
             inventory_complete: inventory.state == InventoryState::Complete
                 && inventory.effective_from <= case.effective_at
                 && inventory.effective_through >= case.effective_at
@@ -682,6 +776,7 @@ pub fn evaluate_recoverability(
             options: Vec::new(),
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
+            independent_option_witness_exact: false,
             inventory_complete: false,
             required_independent_options: case.required_independent_options,
             required_diversity_met: false,
@@ -697,6 +792,7 @@ pub fn evaluate_recoverability(
             options: Vec::new(),
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
+            independent_option_witness_exact: false,
             inventory_complete: false,
             required_independent_options: case.required_independent_options,
             required_diversity_met: false,
@@ -736,7 +832,8 @@ pub fn evaluate_recoverability(
         .filter(|option| option.disposition == OptionDisposition::Admissible)
         .map(|option| option.option_id.clone())
         .collect();
-    let witness = independent_witness(&options);
+    let (witness, witness_exact) =
+        independent_witness(&options, policy.maximum_determinate_option_count);
     let has_unknown = options
         .iter()
         .any(|option| option.disposition == OptionDisposition::Indeterminate);
@@ -752,14 +849,6 @@ pub fn evaluate_recoverability(
         } else {
             RecoverabilityStatus::CoveredWithRequiredDiversity
         }
-    } else if !admissible_option_ids.is_empty()
-        && witness.len() == 1
-        && admissible_option_ids.len() == 1
-        && !has_unknown
-        && !has_reauthorization
-        && inventory_complete
-    {
-        RecoverabilityStatus::CoveredSingleOption
     } else if admissible_option_ids.is_empty() {
         if has_unknown || !inventory_complete {
             RecoverabilityStatus::Indeterminate
@@ -768,32 +857,15 @@ pub fn evaluate_recoverability(
         } else {
             RecoverabilityStatus::NoAdmissibleOption
         }
-    } else if exceeds_determinate_limit || has_unknown || !inventory_complete {
+    } else if exceeds_determinate_limit || has_unknown || !inventory_complete || !witness_exact {
         RecoverabilityStatus::Indeterminate
     } else if has_reauthorization {
         RecoverabilityStatus::ReauthorizationRequired
-    } else if case.required_independent_options == 2
-        && admissible_option_ids.len() > 1
-        && options
-            .iter()
-            .filter(|option| option.disposition == OptionDisposition::Admissible)
-            .all(|left| {
-                options
-                    .iter()
-                    .filter(|right| {
-                        right.disposition == OptionDisposition::Admissible
-                            && right.option_id != left.option_id
-                    })
-                    .all(|right| !pairwise_independent(left, right))
-            })
-    {
-        RecoverabilityStatus::CoveredButCorrelated
-    } else if case.required_independent_options == 1 {
+    } else if witness.len() == 1 && admissible_option_ids.len() == 1 {
         RecoverabilityStatus::CoveredSingleOption
     } else {
-        // The greedy witness is only a lower bound. Do not turn failure to find a
-        // sufficiently large witness into a claim that no such set exists.
-        RecoverabilityStatus::Indeterminate
+        // The exact maximum is known but falls short of the required option count.
+        RecoverabilityStatus::CoveredButCorrelated
     };
 
     let mut failed_domains = case.failed_domains.clone();
@@ -806,6 +878,7 @@ pub fn evaluate_recoverability(
         options,
         admissible_option_ids,
         independent_option_witness: witness,
+        independent_option_witness_exact: witness_exact,
         inventory_complete,
         required_independent_options: case.required_independent_options,
         required_diversity_met,
