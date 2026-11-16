@@ -115,7 +115,9 @@
         "order",
         "position_unit",
         "momentum_unit",
-        "longitudinal_origin"
+        "longitudinal_origin",
+        "time_reference",
+        "native_coordinate_mapping"
       ],
       "properties": {
         "frame_id": {
@@ -176,7 +178,8 @@
         "sampling_method",
         "independent_sample",
         "correlations_preserved",
-        "summary"
+        "summary",
+        "ancestry_preserved"
       ],
       "properties": {
         "representation": {
@@ -712,5 +715,31 @@
         }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "population_ledger": {
+            "properties": {
+              "accounting_scope": {
+                "const": "particle_production"
+              }
+            },
+            "required": [
+              "accounting_scope"
+            ]
+          }
+        },
+        "required": [
+          "population_ledger"
+        ]
+      },
+      "then": {
+        "required": [
+          "source_accounting"
+        ]
+      }
+    }
+  ]
 }
