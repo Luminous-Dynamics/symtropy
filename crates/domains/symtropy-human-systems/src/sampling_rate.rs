@@ -122,7 +122,7 @@ impl std::fmt::Display for SamplingRateError {
         match self {
             Self::InvalidSamplingRate => {
                 write!(formatter, "sampling rate must be finite and positive")
-            },
+            }
             Self::InvalidDuration => write!(formatter, "duration must be finite and positive"),
             Self::TooManySamples => write!(
                 formatter,
