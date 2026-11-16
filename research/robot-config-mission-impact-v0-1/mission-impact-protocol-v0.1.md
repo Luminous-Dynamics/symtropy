@@ -506,3 +506,48 @@ These are targets for a future independently controlled physical campaign, not c
 - #5678 owns only sensor-condition benchmark fixtures and read-only decision comparisons.
 
 This is not a new sensor-health controller, universal calibration service, preventive-maintenance scheduler, safety authority or robot return-to-work authorization.
+
+
+## 24. Behavior-conditioned work packages: next constraints follow accepted state
+
+The follow-on workstream is [#5685 — ROBOT-BEHAVIOUR-CONDITIONED-WORK-001](https://github.com/Luminous-Dynamics/symtropy/issues/5685). It draws on RoboCasa-Mem (arXiv:2611.06475, 4 November 2026), which introduces behavior-conditioned evaluation for tasks with multiple valid execution paths: later constraints are derived from earlier interactions rather than a fixed target assignment. Its nine mobile-manipulation tasks study environment and process memory; those results are not construction performance baselines.
+
+The construction adaptation is stronger than remembering the last command: derive downstream work only from independently observed/accepted prior output, actual residual WIP, current materials/site state and explicit conditional work-package rules.
+
+### Contract
+
+For every work-package transition, bind:
+- prior work-package revision and allowed branch rules;
+- accepted functional-unit IDs and exact #3605 acceptance references;
+- rejected, held, partially completed and unknown output separately;
+- residual WIP/material inventory and any physically observed state changes;
+- stage completion evidence from #5657, preserving command, observation and acceptance as separate records;
+- current robot configuration and affected claim applicability from #5488;
+- event-time/arrival-time and source provenance;
+- any human-authorized exception as a separate approval record with reason, scope and expiry.
+
+The next work set must be a deterministic function of the approved conditional rule revision and the accepted/observed state artifacts. A robot's own success=true, command history or predicted world state is not sufficient to reduce residual WIP or satisfy a downstream prerequisite.
+
+### Comparators
+
+- **B1 fixed target/fixed sequence:** a diagnostic baseline vulnerable to memorized ordering and fixed-target shortcuts.
+- **B2 robot self-reported progress:** a diagnostic baseline that tests whether unverified claims can incorrectly reduce WIP.
+- **B3 behavior-conditioned from observed but non-independent state:** tests adaptive task derivation without independent acceptance semantics.
+- **B4 behavior-conditioned from #3605 accepted output and #5657 evidence-gated transitions:** the intended benchmark arm.
+
+Run each on the same initial work package/site seed, conditional rule set, resource budget and acceptance boundary. When valid execution paths lead to different intermediate states, the evaluator should derive different valid next constraints; it must not require one memorized trajectory. Where the A/B configuration comparison is used, preserve the same underlying work objective and report differences in accepted work and residual WIP rather than falsely calling distinct paths paired identical output sequences.
+
+### New metrics
+
+- behavior-conditioned next-work-set correctness;
+- accepted-output and residual-WIP reconstruction agreement;
+- false downstream continuation after rejected/held/unknown output;
+- duplicate accepted units or erased WIP after interruption/event replay;
+- valid alternate-path coverage;
+- fixed-target shortcut pass rate;
+- time-to-first-accepted-output and total crew-hour burden;
+- correct hold/abstention when prior state cannot be reconstructed.
+
+Prospective targets: 0 downstream continuation on unknown/unaccepted prerequisites; 0 duplicate accepted units; 100% exact reproduction of public synthetic conditional rules; ≥98% next-work-set agreement on an evaluator-held, independently adjudicated corpus; 0 shortcut passes where fixed-target memorization violates the state-conditioned constraints. These are design targets, not measured results.
+
+The evaluator derives the next constraint set; it does not select or execute a construction method, direct actuation, accept work independently of #3605, or authorize human/robot exceptions.
