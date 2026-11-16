@@ -27,6 +27,7 @@ The benchmark combines:
 - `commercial-benchmark-crosswalk-v0.1.md`: public-source comparison and fair test tracks for Dusty FieldPrinter 2, HP SitePrint and Built Robotics RPD35/RPS25.
 - `challenge-distribution-v0.1.json`: public synthetic development profile with eight change-family strata and 23 atomic named factor bundles. Bundles are symbolic; they do not yet provide physically qualified parameter ranges.
 - `schemas/challenge-distribution-v0.1.schema.json` and `schemas/challenge-manifest-v0.1.schema.json`: closed schemas for the distribution profile and generated challenge manifest.
+- `golden-vectors-v0.1.json` and `schemas/golden-vectors-v0.1.schema.json`: a public 128-challenge known-answer vector pinned to the cross-platform manifest digest.
 - `schemas/mission-pair-corpus-v0.1.schema.json`: closed Draft 2020-12 schema for paired cases and event traces.
 - `schemas/stage-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for the stage vocabulary.
 - `schemas/event-type-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for event-to-stage/source mappings.
