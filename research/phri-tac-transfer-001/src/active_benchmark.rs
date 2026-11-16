@@ -1151,6 +1151,65 @@ mod tests {
     use super::*;
 
     #[test]
+    fn reference_integrity_requires_agreement_and_ancestry_attestation() {
+        let domain = target_candidate_pool(20261116);
+        let report = reference_integrity_check(
+            &domain.reference_force_observations_n,
+            &domain.independent_check_reference_force_observations_n,
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            domain.independent_reference_ancestry_attested,
+        )
+        .expect("valid reference agreement report");
+        assert!(report.accepted);
+        assert!(!report.agreement_proves_independence);
+        assert!(report.independent_reference_ancestry_attested);
+
+        let shared_cause = reference_integrity_check(
+            &[1.25, 2.25, 3.25],
+            &[1.25, 2.25, 3.25],
+            SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            false,
+        )
+        .expect("shared-cause reference report");
+        assert!(!shared_cause.accepted);
+        assert!(shared_cause.max_abs_disagreement_n == 0.0);
+        assert!(!shared_cause.agreement_proves_independence);
+    }
+
+    #[test]
+    fn malformed_reference_channels_fail_closed() {
+        assert!(
+            reference_integrity_check(&[1.0, 2.0], &[1.0], 0.02, true).is_err()
+        );
+        assert!(
+            reference_integrity_check(&[], &[], 0.02, true).is_err()
+        );
+        assert!(
+            reference_integrity_check(&[f64::NAN], &[1.0], 0.02, true).is_err()
+        );
+        assert!(
+            reference_integrity_check(&[1.0], &[1.0], -0.01, true).is_err()
+        );
+    }
+
+    #[test]
+    fn qualified_fit_rejects_reference_disagreement_and_missing_ancestry() {
+        let domain = target_candidate_pool(20261116);
+        let selected: Vec<_> = (0..domain.candidates.len()).collect();
+        assert!(fit_qualified_domain(&domain, &selected, None, 0.0).is_ok());
+
+        let mut biased = domain.clone();
+        for observation in &mut biased.reference_force_observations_n {
+            *observation += 0.25;
+        }
+        assert!(fit_qualified_domain(&biased, &selected, None, 0.0).is_err());
+
+        let mut unattested = domain;
+        unattested.independent_reference_ancestry_attested = false;
+        assert!(fit_qualified_domain(&unattested, &selected, None, 0.0).is_err());
+    }
+
+    #[test]
     fn selector_stimuli_do_not_contain_reference_labels_or_heldout_truth() {
         let target = target_candidate_pool(20261116);
         let heldout = heldout_target_pool(20261116);
