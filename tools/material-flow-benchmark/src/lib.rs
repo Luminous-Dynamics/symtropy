@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
+pub mod campaign;
 pub mod convergence;
 pub mod simulation;
 pub mod transaction;
