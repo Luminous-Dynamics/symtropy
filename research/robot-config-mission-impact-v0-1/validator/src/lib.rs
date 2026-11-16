@@ -513,6 +513,163 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
     errors
 }
 
+/// Check that the separate A/B workflow and accepted-output metrics reconcile with
+/// the public mission oracle. No composite productivity or safety score is created.
+pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+    let Some(rows) = array_at(metrics, &["rows"]) else {
+        return vec!["outcome_metrics_rows_missing".to_owned()];
+    };
+    let Some(dispositions) = array_at(oracle, &["dispositions"]) else {
+        return vec!["outcome_metrics_oracle_missing".to_owned()];
+    };
+
+    check_unique_ids(rows, "pair_id", "outcome_pair", &mut errors);
+    let metric_ids = rows
+        .iter()
+        .filter_map(|row| row.get("pair_id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let oracle_ids = dispositions
+        .iter()
+        .filter_map(|row| row.get("pair_id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    if metric_ids != oracle_ids {
+        errors.push("outcome_metrics_oracle_pair_coverage_mismatch".to_owned());
+    }
+
+    for row in rows {
+        let pair_id = string_at(row, &["pair_id"]).unwrap_or("unknown_pair");
+        let Some(disposition) = dispositions
+            .iter()
+            .find(|item| string_at(item, &["pair_id"]) == Some(pair_id))
+        else {
+            continue;
+        };
+
+        for side in ["source", "target"] {
+            let Some(outcome) = row.get(side) else {
+                errors.push(format!("outcome_metrics_side_missing:{pair_id}:{side}"));
+                continue;
+            };
+            let status = string_at(outcome, &["mission_outcome"]);
+            let counts = [
+                "accepted_units",
+                "rejected_units",
+                "held_units",
+                "aborted_units",
+                "unknown_units",
+                "not_started_units",
+            ];
+            let mut outcome_total = 0_u64;
+            for field in counts {
+                match outcome.get(field).and_then(Value::as_u64) {
+                    Some(value) => outcome_total = outcome_total.saturating_add(value),
+                    None => errors.push(format!(
+                        "outcome_count_missing_or_invalid:{pair_id}:{side}:{field}"
+                    )),
+                }
+            }
+            if outcome_total != 1 {
+                errors.push(format!("functional_unit_denominator_not_one:{pair_id}:{side}"));
+            }
+
+            let attempted = outcome
+                .get("functional_units_attempted")
+                .and_then(Value::as_u64);
+            if attempted.is_none_or(|count| count > 1) {
+                errors.push(format!("functional_units_attempted_invalid:{pair_id}:{side}"));
+            }
+            if (status == Some("not_started")) != (attempted == Some(0)) {
+                errors.push(format!("not_started_attempt_denominator_mismatch:{pair_id}:{side}"));
+            }
+
+            let expected = if side == "source" {
+                string_at(disposition, &["source_mission_status"])
+            } else {
+                string_at(disposition, &["target_mission_status"])
+            };
+            let normalized = match expected {
+                Some("accepted" | "accepted_after_reinspection") => Some("accepted"),
+                Some("rejected") => Some("rejected"),
+                Some("held") => Some("held"),
+                Some("aborted_safe_hold") => Some("aborted_safe_hold"),
+                Some("unresolved" | "unknown_blocked") => Some("unknown"),
+                Some("not_run_target_hold") => Some("not_started"),
+                _ => None,
+            };
+            if normalized != status {
+                errors.push(format!("outcome_status_oracle_mismatch:{pair_id}:{side}"));
+            }
+
+            let interventions = outcome
+                .get("operator_interventions")
+                .and_then(Value::as_u64);
+            let intervention_seconds = outcome
+                .get("intervention_seconds")
+                .and_then(Value::as_u64);
+            let crew_seconds = outcome
+                .get("total_workflow_crew_seconds")
+                .and_then(Value::as_u64);
+            if interventions.is_none() || intervention_seconds.is_none() || crew_seconds.is_none()
+            {
+                errors.push(format!("intervention_or_crew_metric_missing:{pair_id}:{side}"));
+            } else if intervention_seconds > crew_seconds {
+                errors.push(format!(
+                    "intervention_time_exceeds_workflow_crew_time:{pair_id}:{side}"
+                ));
+            }
+            if outcome
+                .get("reinspection_count")
+                .and_then(Value::as_u64)
+                .is_none()
+            {
+                errors.push(format!("reinspection_count_invalid:{pair_id}:{side}"));
+            }
+
+            let quality = outcome.get("quality");
+            let signed_error = quality.and_then(|value| value.get("signed_error_mm"));
+            let uncertainty = quality.and_then(|value| value.get("expanded_uncertainty_mm"));
+            let measurement_ref = quality.and_then(|value| value.get("independent_measurement_ref"));
+            let has_measurement = signed_error.is_some_and(Value::is_number)
+                && uncertainty.is_some_and(Value::is_number)
+                && has_nonempty_ref(measurement_ref);
+            let no_measurement = signed_error.is_some_and(Value::is_null)
+                && uncertainty.is_some_and(Value::is_null)
+                && measurement_ref.is_some_and(Value::is_null);
+            if matches!(status, Some("accepted" | "rejected")) && !has_measurement {
+                errors.push(format!("accepted_or_rejected_output_lacks_referee_measurement:{pair_id}:{side}"));
+            }
+            if !matches!(status, Some("accepted" | "rejected")) && !has_measurement && !no_measurement {
+                errors.push(format!("partial_quality_measurement_fields:{pair_id}:{side}"));
+            }
+            if has_measurement {
+                let deviation = signed_error.and_then(Value::as_f64).unwrap_or(f64::INFINITY);
+                let expanded = uncertainty.and_then(Value::as_f64).unwrap_or(f64::INFINITY);
+                let tolerance = quality
+                    .and_then(|value| value.get("acceptance_tolerance_mm"))
+                    .and_then(Value::as_f64)
+                    .unwrap_or(f64::NEG_INFINITY);
+                if !deviation.is_finite()
+                    || !expanded.is_finite()
+                    || !tolerance.is_finite()
+                    || expanded < 0.0
+                    || tolerance <= 0.0
+                {
+                    errors.push(format!("quality_measurement_numeric_invalid:{pair_id}:{side}"));
+                } else if status == Some("accepted") && deviation.abs() + expanded > tolerance {
+                    errors.push(format!("accepted_output_outside_uncertainty_guarded_tolerance:{pair_id}:{side}"));
+                } else if status == Some("rejected") && deviation.abs() + expanded <= tolerance {
+                    errors.push(format!("rejected_output_inside_uncertainty_guarded_tolerance:{pair_id}:{side}"));
+                }
+            }
+        }
+    }
+
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
 pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     let base = root.join("research/robot-config-mission-impact-v0-1");
     let files = [
@@ -531,6 +688,10 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
         (
             "event-type-catalog-v0.1.json",
             "schemas/event-type-catalog-v0.1.schema.json",
+        ),
+        (
+            "mission-outcome-metrics-v0.1.json",
+            "schemas/mission-outcome-metrics-v0.1.schema.json",
         ),
     ];
     let mut values = Vec::new();
@@ -553,6 +714,7 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     if errors.is_empty() {
         errors.extend(cross_file_invariants(&values[0], &values[1], &values[2]));
         errors.extend(event_type_catalog_invariants(&values[0], &values[3], &values[1]));
+        errors.extend(outcome_metric_invariants(&values[4], &values[2]));
     }
 
     if errors.is_empty() {
@@ -577,6 +739,7 @@ mod tests {
             "schemas/mission-pair-corpus-v0.1.schema.json",
             "schemas/development-oracle-v0.1.schema.json",
             "schemas/event-type-catalog-v0.1.schema.json",
+            "schemas/mission-outcome-metrics-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
@@ -639,6 +802,39 @@ mod tests {
         assert!(event_type_catalog_invariants(&stage, &catalog, &corpus)
             .iter()
             .any(|error| error.starts_with("event_type_source_class_not_allowed:")));
+    }
+
+    #[test]
+    fn outcome_metrics_reconcile_with_mission_oracle() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let metrics = read_json(&base.join("mission-outcome-metrics-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        assert!(outcome_metric_invariants(&metrics, &oracle).is_empty());
+    }
+
+    #[test]
+    fn accepted_output_cannot_exceed_uncertainty_guarded_tolerance() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let mut metrics = read_json(&base.join("mission-outcome-metrics-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        metrics["rows"][5]["target"]["quality"]["signed_error_mm"] = Value::from(1.9);
+        assert!(outcome_metric_invariants(&metrics, &oracle)
+            .iter()
+            .any(|error| error.starts_with("accepted_output_outside_uncertainty_guarded_tolerance:")));
+    }
+
+    #[test]
+    fn accepted_output_requires_independent_measurement_reference() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let mut metrics = read_json(&base.join("mission-outcome-metrics-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        metrics["rows"][0]["source"]["quality"]["independent_measurement_ref"] = Value::Null;
+        assert!(outcome_metric_invariants(&metrics, &oracle)
+            .iter()
+            .any(|error| error.starts_with("accepted_or_rejected_output_lacks_referee_measurement:")));
     }
 
     #[test]
