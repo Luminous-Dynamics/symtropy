@@ -279,7 +279,7 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
         return Err(fail("REJECT_ARCHIVE_SIZE", "empty archive or compressed byte limit exceeded"));
     }
     let eocd = find_eocd(bytes)?;
-    let zip64_locator = (0..eocd.saturating_sub(20)).any(|offset| {
+    let zip64_locator = (0..=eocd.saturating_sub(20)).any(|offset| {
         u32_at(bytes, offset).ok() == Some(0x0706_4b50)
     });
     let zip64_eocd = (0..eocd).any(|offset| u32_at(bytes, offset).ok() == Some(0x0606_4b50));
@@ -351,8 +351,8 @@ fn validate_archive(bytes: &[u8], policy: &Policy) -> Result<IntakeReport, Strin
         if flags & 0x0008 != 0 {
             return Err(fail("REJECT_DATA_DESCRIPTOR", "data-descriptor entries are unsupported"));
         }
-        if flags & !0x0800 != 0 {
-            return Err(fail("REJECT_GENERAL_PURPOSE_FLAGS", "unsupported general-purpose ZIP flags"));
+        if flags != 0 {
+            return Err(fail("REJECT_GENERAL_PURPOSE_FLAGS", "v0.1 permits no general-purpose flags"));
         }
         if ![0, 8].contains(&method) {
             return Err(fail("REJECT_COMPRESSION_METHOD", "compression method not permitted by v0.1"));
