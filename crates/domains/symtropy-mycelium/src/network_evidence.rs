@@ -246,6 +246,19 @@ impl NetworkEvidenceAssessment {
                 .validate()
                 .map_err(|source| NetworkEvidenceError::InvalidObservationReceipt { id, source })?;
         }
+
+        if let Some(flow_id) = self.cytoplasmic_flow.observation {
+            let flow_receipt = receipts
+                .iter()
+                .find(|receipt| receipt.id == flow_id)
+                .expect("referenced flow receipt was resolved above");
+            if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+                && flow_receipt.subject
+                    != crate::observation_evidence::ObservationSubject::CytoplasmicFlowStream
+            {
+                return Err(NetworkEvidenceError::FlowReceiptSubjectMismatch(flow_id));
+            }
+        }
         Ok(())
     }
 
@@ -347,6 +360,7 @@ pub enum NetworkEvidenceError {
     },
     MissingSharedLinkReasonCode,
     MissingFlowReceipt,
+    FlowReceiptSubjectMismatch(ObservationEvidenceId),
     FlowWithoutSharedNetwork,
     UnexpectedFlowReceipt,
     MissingFlowReasonCode,
@@ -403,6 +417,9 @@ impl fmt::Display for NetworkEvidenceError {
             }
             Self::MissingFlowReceipt => {
                 write!(f, "plant-to-plant flow result requires a source receipt")
+            },
+            Self::FlowReceiptSubjectMismatch(id) => {
+                write!(f, "flow observation {:?} is not typed as a cytoplasmic flow stream", id)
             }
             Self::FlowWithoutSharedNetwork => write!(
                 f,
@@ -634,6 +651,34 @@ mod tests {
             receipt(4),
             receipt(5),
         ];
+        assert_eq!(assessment.validate_against_receipts(&receipts), Ok(()));
+    }
+
+    #[test]
+    fn plant_to_plant_flow_receipt_must_be_typed_as_flow_stream() {
+        let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        assessment.cytoplasmic_flow = CytoplasmicFlowReceipt {
+            outcome: CytoplasmicFlowEvidence::PlantToPlantFlowSupported,
+            observation: Some(ObservationEvidenceId(101)),
+            reason_code: "flow_path_claim".to_owned(),
+        };
+        let mut receipts = vec![
+            receipt(90),
+            receipt(1),
+            receipt(2),
+            receipt(3),
+            receipt(4),
+            receipt(5),
+            receipt(101),
+        ];
+        assert_eq!(
+            assessment.validate_against_receipts(&receipts),
+            Err(NetworkEvidenceError::FlowReceiptSubjectMismatch(
+                ObservationEvidenceId(101)
+            ))
+        );
+        receipts.last_mut().unwrap().subject =
+            crate::observation_evidence::ObservationSubject::CytoplasmicFlowStream;
         assert_eq!(assessment.validate_against_receipts(&receipts), Ok(()));
     }
 
