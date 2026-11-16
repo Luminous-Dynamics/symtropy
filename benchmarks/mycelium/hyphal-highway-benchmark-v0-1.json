@@ -1,0 +1,238 @@
+{
+  "schema_version": "myco.hyphal_highway_benchmark.v0.1",
+  "suite_id": "MYCO-HYPHAL-HIGHWAY-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5562",
+  "status": "protocol_defined_not_run",
+  "sources": [
+    {
+      "id": "MORATTO_HHD_2026",
+      "doi": "10.1093/femsml/uqag035",
+      "data_doi": "10.5281/zenodo.20071448",
+      "publication_date": "2026-09-21",
+      "license": "CC-BY-4.0 for article; Zenodo file-level terms must be independently checked",
+      "organisms": {
+        "filament": "Pythium ultimum M194",
+        "filament_domain": "oomycete",
+        "bacteria": [
+          "Pseudomonas putida KT2440::gfp",
+          "Pseudomonas putida F1 mScarlet-I"
+        ]
+      },
+      "reported_design": {
+        "main_channel_length_mm": 12.5,
+        "imaging_interval_hours": 24,
+        "observation_days": 5,
+        "hyphal_outlet_day": 4,
+        "bacterial_outlet_day": 5,
+        "co_inoculated_devices_n": 8,
+        "outlet_cfu_positive_devices_n": 4,
+        "outlet_cfu_range": [
+          3000,
+          7000
+        ],
+        "fraction_available_hyphal_highways_used_percent": 28.79,
+        "highway_usage_sd_percent": 5.68
+      },
+      "reported_findings": [
+        "P. putida crossed unsaturated channel only in presence of P. ultimum in the reported assay",
+        "bacteria were absent from most discontinuous liquid patches",
+        "bacteria moved bidirectionally on hyphal highways",
+        "P. putida presence was associated with increased liquid-patch connectivity",
+        "PBS control was included to separate bacteria effects from extra inoculum liquid"
+      ],
+      "data_downloaded": false,
+      "rights_admitted": false
+    },
+    {
+      "id": "BOUCHARD_METHODS_2026",
+      "doi": "10.1093/femsml/uqag017",
+      "publication_date": "2026-05-06",
+      "license": "CC-BY-NC-4.0; non-commercial only absent separate permission",
+      "reported_design": {
+        "parallel_device_pairs": 10
+      },
+      "reported_findings": [
+        "bacterial transport varies with fungal-bacterial pairing",
+        "transport was limited in nutrient-rich media and increased under poorer nutrient conditions",
+        "cis- and trans-inoculation both support highway formation; no co-inoculation delays arrival",
+        "3D printed devices support natural-substrate tests and an in-planta wheat-spike assay",
+        "Fusarium graminearum transported bacteria during wheat-spike colonization"
+      ],
+      "data_downloaded": false,
+      "rights_admitted": false
+    }
+  ],
+  "layers": [
+    {
+      "id": "filament_graph",
+      "entities": [
+        "hyphal_segments",
+        "branch_nodes",
+        "tip_nodes"
+      ],
+      "identity_domain": [
+        "true_fungus",
+        "oomycete",
+        "unresolved"
+      ]
+    },
+    {
+      "id": "liquid_patch_graph",
+      "entities": [
+        "liquid_patches",
+        "film_bridges"
+      ],
+      "states": [
+        "connected",
+        "disconnected",
+        "unreported"
+      ]
+    },
+    {
+      "id": "bacterial_track_graph",
+      "entities": [
+        "bacterial_tracks",
+        "ordered_patch_paths",
+        "arrival_events"
+      ],
+      "states": [
+        "observed",
+        "not_observed",
+        "unresolved"
+      ]
+    },
+    {
+      "id": "chemistry_layer",
+      "entities": [
+        "nutrient_availability",
+        "biosurfactant",
+        "tracer",
+        "metabolic_response"
+      ],
+      "rule": "only source-observed variables may be populated; no implicit default values"
+    },
+    {
+      "id": "host_soil_context",
+      "entities": [
+        "water_potential",
+        "pore_geometry",
+        "root_interface",
+        "nutrient_context"
+      ],
+      "rule": "independent experimental context, not inferred from a plate image"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "T1",
+      "name": "HHD reproduction",
+      "metrics": [
+        "hyphal_front_position_error",
+        "bacterial_front_position_error",
+        "liquid_front_position_error",
+        "liquid_patch_count_error",
+        "liquid_patch_area_distribution",
+        "outlet_arrival_probability",
+        "time_to_arrival_error",
+        "CFU_recovery_error",
+        "fraction_highways_used_error"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "multiplex graph reconstruction",
+      "metrics": [
+        "filament_graph_edit_distance",
+        "liquid_patch_component_error",
+        "film_bridge_precision_recall",
+        "bacterial_track_precision_recall",
+        "route_redundancy_error",
+        "direction_accuracy"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "causal pathway discrimination",
+      "metrics": [
+        "heldout_log_score",
+        "arrival_calibration",
+        "false_highway_attribution_rate",
+        "disconnected_film_specificity",
+        "bacteria_only_specificity",
+        "abstention_coverage"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "cross-device and ecological generalization",
+      "metrics": [
+        "leave_device_out",
+        "leave_strain_out",
+        "leave_filament_domain_out",
+        "leave_nutrient_context_out",
+        "leave_inoculation_strategy_out",
+        "in_planta_external_validity"
+      ]
+    }
+  ],
+  "model_families": [
+    "hypha_only_connectivity",
+    "liquid_patch_only",
+    "fully_saturated_free_bacterial_motility",
+    "disconnected_film_negative_control",
+    "hypha_plus_measured_liquid_bridge",
+    "co_evolving_bacteria_liquid_patch_feedback",
+    "non_hyphal_diffusion_or_contamination_alternative"
+  ],
+  "causal_interventions_future_only": [
+    "controlled_water_potential",
+    "liquid_patch_thickness_or_hydrophobicity_manipulation",
+    "biosurfactant_perturbation",
+    "bacterial_flagellar_motility_perturbation",
+    "inactive_or_killed_filament_control",
+    "matched_filament_biomass_and_front_length"
+  ],
+  "rules": [
+    "fungal cytoplasmic flow is not liquid film flow",
+    "liquid film flow is not bacterial movement",
+    "bacterial movement is not plant nutrient exchange",
+    "Pythium ultimum is oomycete and must never be tagged as true fungus",
+    "a path is not a confirmed highway unless each hop has source-supported hyphal support and connected liquid-film evidence",
+    "unknown liquid state must never become connected by default",
+    "topology alone never proves bacterial dispersal"
+  ],
+  "split_contract": {
+    "unit": "complete microfluidic device",
+    "required": [
+      "leave_device_out",
+      "leave_bacterial_strain_out",
+      "leave_filament_species_or_domain_out",
+      "leave_nutrient_context_out",
+      "leave_inoculation_strategy_out"
+    ],
+    "forbidden": [
+      "random frame split within same device",
+      "time-adjacent frame leakage",
+      "same trajectory split across train/test"
+    ]
+  },
+  "proposed_targets_not_results": {
+    "false_positive_highway": "zero confirmed routes in disconnected and unreported liquid controls",
+    "baseline": "improve device-level arrival prediction over hypha-only and liquid-only baselines",
+    "calibration": "nominal 90%/95% intervals within ±3 percentage points on held-out device groups, once sample size supports this estimate",
+    "generalization": "report per-device and worst-stratum outcomes; no global pooling across organism domains"
+  },
+  "receipt_requirements": [
+    "source image/video sha256",
+    "frame/ROI and physical calibration",
+    "filament organism identity and graph-segment reference",
+    "liquid state and source observation",
+    "bacterial track identity and trajectory receipt",
+    "ordered source/destination patch sequence",
+    "device/strain/nutrient/inoculation identifiers",
+    "analysis macro and parameter digests",
+    "review/adjudication records",
+    "claim class and PASS_FAIL_UNREPORTED_NOT_RUN status"
+  ],
+  "claim_ceiling": "Source-specific microbial movement through hypha-associated liquid films; no universal fungal transport or plant nutrient-transfer claim."
+}
