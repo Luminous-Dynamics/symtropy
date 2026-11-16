@@ -67,7 +67,7 @@ Using the lunar paper's rounded inputs:
 - 25 ns slots would permit 40 MHz only for a completely filled ring; the source bunch count corresponds to an approximately 81.8% nominal fill fraction.
 - The tune-shift formula produces 1.82 × 10^38 cm^-2 s^-1 using the rounded 0.5 A input, or 1.91 × 10^38 when using the bunch-derived current, close to the paper's approximately 2 × 10^38.
 - 283 mb total cross section with the reported luminosity implies about 1.73 million total-cross-section interactions per crossing. This is a rate proxy, not a detector-accepted pile-up count.
-- The paper's rounded approximately 1 million interactions/crossing implies an effective cross section near 164 mb at the same collision rate. The tool records this as an implied value, not as a source-certified inelastic cross section. The event definition/cross section behind the rounded table figure needs clarification.
+- The paper reports only approximately 1 million interactions/crossing. The independently recomputed 1.73 million total-cross-section proxy is consistent at that order of magnitude. No separate inelastic cross section or detector-accepted event count is inferred from that rounded table entry.
 - The burn-off equation gives approximately 17.67 minutes, consistent with the paper's 18-minute estimate.
 - 8.5 TW per beam / 0.5 A gives approximately 17 TeV lost per proton per turn.
 - 160 scheduled physics days × 70% availability gives approximately 1,935 ab^-1 per year at the stated peak luminosity and effective operating fraction 1.0.
@@ -114,3 +114,61 @@ The focused GitHub Actions workflow executes the report twice and requires byte-
 - an evidence manifest binding the exact checked-out commit, pinned Rust/Cargo versions, source-file SHA-256 fingerprints and report SHA-256.
 
 The two files are uploaded as a run artifact named `space-collider-reference-<exact-commit>`. The report is source-arithmetic evidence only; the manifest makes its software/input lineage reproducible and does not turn it into physical validation.
+
+
+## Muon species and ring-circumference scaling screen
+
+The existing executable now includes a separate analytical species-scaling object for the 2026 NLASG 10 TeV muon-collider reference and two Moon-scale extrapolations. It uses the same dependency-free Rust crate, not a second accelerator calculator.
+
+### Source reference and baseline reconstruction
+
+The 5 November 2026 NLASG report (FERMILAB-PUB-26-0741-TD / arXiv:2611.06680, Table 1) gives 10 TeV centre-of-mass, 11.4 km circumference, 14 T peak arc field, 1.8e12 muons/bunch, 5 Hz repetition, 14.4 MW beam power and 1,363-turn luminosity lifetime. The report also stresses that end-to-end muon production, cooling, acceleration and collisions have not been demonstrated as an integrated system.
+
+The screen infers an **effective isomagnetic fill fraction ~0.656593** from 5 TeV/beam, 14 T and 11.4 km. This is a geometric proxy using the peak field as a uniform effective arc field, not a real lattice fill map. Under that declared approximation it obtains:
+- muon Lorentz factor ~47,322;
+- mean lab lifetime ~0.103966 s;
+- particle decay e-fold ~2,734 turns;
+- two-beam luminosity decay e-fold ~1,367 turns, close to the source's 1,363-turn value;
+- 7.210 MW injection beam power per beam / 14.420 MW both beams, consistent with the rounded 14.4 MW table value;
+- classical isomagnetic synchrotron loss ~25.40 MeV/turn.
+
+The 2025 MuCol consolidated-parameter report gives a 27.2 MeV/turn design target for its 10 TeV case. The ~6.6% difference is retained as a source/model comparison: the screening approximation uses the NLASG table's 14 T peak field and a uniform bending-radius proxy, whereas the real radiation loss depends on the lattice radiation integral I2. This is not silently calibrated away.
+
+### Two different lunar extrapolations
+
+**Fixed beam energy (5 TeV/beam):** keep the bending radius/field and energy unchanged while stretching circumference to 11,000 km. The implied dipole fill fraction falls to about 0.00068 and the muon survives only ~2.83 turns per decay e-fold; the luminosity e-fold is ~1.42 turns. This is a poor use of a very large ring unless the energy is increased.
+
+**Fixed field and source fill fraction:** keep 14 T and ~0.6566 dipole fill. At 11,000 km, the rigidity screen implies ~4.8246 PeV/beam (~9.649 PeV centre-of-mass). Both lab lifetime and revolution period scale linearly with circumference, so the number of turns per decay e-fold remains ~2,734. But the classical isomagnetic synchrotron loss scales as C^3 and reaches:
+- ~22.82 PeV lost per muon per turn;
+- ~4.730 beam energies per turn;
+- a formal constant-energy RF replacement ratio ~12,932 times the nominal per-beam injection power;
+- a formal synchrotron power scale ~89.97 TW per beam under the continuous-repetition exponential-decay model.
+
+That scenario has **no fixed-energy circular equilibrium under the declared model**: it would need more than one beam energy replenished each turn. The formal power is a diagnostic extrapolation, not a sustainable machine operating point.
+
+### A useful non-obvious invariant—and its limit
+
+At fixed field, fill fraction, muons/bunch and repetition rate, beam energy grows with circumference while muon lifetime grows in the same proportion. The number of decay turns is therefore invariant. The total energy carried into muon decay products grows with circumference, but its simple ring-averaged energy-flow-per-metre remains approximately constant because both total decay energy flow and circumference scale linearly.
+
+The report therefore outputs decay rate and decay-product energy flow separately from deposited heat. It does **not** infer that this energy is deposited in cold masses: the partition among electrons, photons, hadrons, neutrinos, shielding and cold mass requires transport simulation. The NLASG report's ~500 W/m cold-mass beam-induced deposition is a separate source quantity, not directly equated with this energy-flow diagnostic.
+
+### Synchrotron thresholds and species comparison
+
+Under the same isomagnetic fixed-field scaling, fractional synchrotron energy loss per turn grows as C^2. With the NLASG-derived baseline geometry, the screen finds:
+- ~1% loss/turn at ~506 km;
+- ~5% at ~1,132 km;
+- ~10% at ~1,600 km;
+- ~100% at ~5,058 km.
+
+At the Moon-scale fixed-field energy, muon synchrotron loss is about 6,200 times the proton loss at the same energy/radius because the scaling is proportional to mass^-4. Electron radiation is far larger; the electron quantum parameter chi exceeds one in this Moon-scale comparator, so the classical electron loss is deliberately labelled invalid without a quantum synchrotron model. The muon chi remains ~3.39e-6, which supports the classical photon-emission approximation for this first-order radiation screen; it does not validate lattice or beam equilibrium.
+
+### Claim ceiling
+
+This is a kinematic lifetime / rigidity / classical-radiation screen using a uniform effective bending-radius model. It does not model 6D cooling, production and acceleration-chain survival, beam-beam dynamics, RF cavity layout, non-isomagnetic lattice I2, magnet shielding/decay deposition, detector backgrounds, neutrino dose or civil/site feasibility. For detailed work, use the exact MuCol/FCC design sources, Bmad/MAD-X/Xsuite/SixTrack beam and lattice models, and FLUKA/Geant4 transport with pinned geometries and physics lists.
+
+Sources:
+- NLASG 10 TeV muon collider report, 5 November 2026: https://lss.fnal.gov/archive/2026/pub/fermilab-pub-26-0741-td.pdf
+- MuCol Consolidated Parameters, 2025, including 27.2 MeV/turn target: https://doi.org/10.5281/zenodo.17476875
+- Synchrotron radiation relation / mass and energy scaling: https://pdg.lbl.gov/2009/download/rpp-2008-plB667.pdf
+- Bmad radiation integral and stochastic emission reference: https://www.classe.cornell.edu/bmad/bmad-manual-2026-03-09.pdf
+- Follow-on qualification owner: [SPACE-COLLIDER-MUON-SCALING-001 #5583](https://github.com/Luminous-Dynamics/symtropy/issues/5583)
