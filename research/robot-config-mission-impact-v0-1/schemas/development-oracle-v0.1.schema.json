@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-impact-oracle:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 public development oracle v0.1",
+  "description": "Closed structural schema for public development labels. Does not establish label correctness or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "visibility",
+    "oracle_note",
+    "dispositions",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-impact-development-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-MISSION-IMPACT-001"
+    },
+    "visibility": {
+      "const": "public_development_oracle_not_hidden_holdout"
+    },
+    "oracle_note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dispositions": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pair_id",
+          "source_mission_status",
+          "target_mission_status",
+          "aggregate_mission_success_changed",
+          "paired_outcome_sensitive",
+          "first_observed_divergence_stage",
+          "attribution_status",
+          "target_stage_status",
+          "failure_progression",
+          "reason"
+        ],
+        "properties": {
+          "pair_id": {
+            "type": "string",
+            "pattern": "^MIP-[0-9]{3}$"
+          },
+          "source_mission_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_mission_status": {
+            "type": "string",
+            "minLength": 1
+          },
+          "aggregate_mission_success_changed": {
+            "type": "boolean"
+          },
+          "paired_outcome_sensitive": {
+            "type": "boolean"
+          },
+          "first_observed_divergence_stage": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "string",
+                "pattern": "^S[0-9]{2}$"
+              }
+            ]
+          },
+          "attribution_status": {
+            "enum": [
+              "stage_localized_not_root_cause",
+              "unlocalized_unknown"
+            ]
+          },
+          "target_stage_status": {
+            "type": "array",
+            "minItems": 10,
+            "maxItems": 10,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "pattern": "^S[0-9]{2}$"
+                },
+                {
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "not_reached",
+                    "completed_with_deviation",
+                    "completed_with_intervention",
+                    "rejected",
+                    "completed",
+                    "aborted_safe_hold",
+                    "safe_hold",
+                    "unknown",
+                    "held",
+                    "recovery_attempted",
+                    "reconciled",
+                    "accepted_after_reinspection",
+                    "completed_with_reduced_margin",
+                    "blocked_missing_commissioning_evidence",
+                    "not_run",
+                    "accepted",
+                    "unresolved"
+                  ]
+                }
+              ],
+              "items": false
+            }
+          },
+          "failure_progression": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
