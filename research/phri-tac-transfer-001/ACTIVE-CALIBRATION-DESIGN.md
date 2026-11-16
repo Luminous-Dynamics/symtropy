@@ -209,3 +209,16 @@ A separate executable module adds five response families: nominal, cubic-force m
 Every family compares the same seven policy arms over at least 50 paired seeds. The training labels are generated separately from selector-visible stimuli; the held-out evaluator truth remains separate and inaccessible to selection and fitting. The reference-bias scenario injects a shared 0.25 N offset into training reference observations while leaving held-out truth unbiased, so an internally consistent but wrong fit can be exposed through held-out error and its regression interval diagnostic.
 
 This is a first stress tranche only. It does not yet model physical aging curves, remount geometry changes, dropout, multi-channel common-mode correlation, or independently measured sensor-unit/lot variability. Those remain future response-family extensions and require physical fixture characterization before parameter values can be called realistic.
+
+
+## Independent reference-channel integrity tranche
+
+The follow-on contract adds a second synthetic reference stream that is not used in model fitting. Qualified synthetic fits require both:
+1. pairwise primary/check disagreement within the named synthetic-only tolerance (0.02 N in this executable fixture); and
+2. an explicit synthetic reference-ancestry attestation indicating distinct calibration ancestry.
+
+The report always states that pairwise agreement does **not** prove independence. A sixth response family injects the same 0.25 N offset into both reference streams. Its pairwise disagreement is small, but its ancestry attestation is false, so the qualified fitting path rejects it. A separate family biases only the primary stream; the numerical disagreement guard rejects it.
+
+The adversarial campaign still executes the unguarded diagnostic fit to quantify the damage from ignoring a failed reference gate. These policy metrics are counterfactual diagnostics only and must not be treated as qualified measurements. The normal active-calibration benchmark and fit helper now enforce the reference gate before fitting.
+
+The 0.02 N threshold and ancestry boolean are synthetic test-fixture parameters, not physical metrology thresholds or proof of actual instrument independence. Real qualification requires the #4753 owners to establish independent instrument identities, calibration ancestry, timebases, mounting/range applicability, uncertainty, and common-cause analysis.
