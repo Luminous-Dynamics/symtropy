@@ -60,6 +60,11 @@ def check_profile(profile: dict[str, Any]) -> None:
             raise SystemExit(f"profile has duplicate {label} identities")
 
     axis_set = set(axis_ids)
+    for axis in profile["operating_envelope"]["axes"]:
+        coverage = axis["coverage"]
+        if coverage["state"] == "bounded" and coverage["lower"] >= coverage["upper"]:
+            raise SystemExit(f"operating-envelope axis {axis['quantity']} has an empty or inverted range")
+
     for output in profile["outputs"]:
         undeclared = set(output["validity_axes"]) - axis_set
         if undeclared:
@@ -100,7 +105,15 @@ def check_receipt(profile: dict[str, Any], receipt: dict[str, Any]) -> None:
     if set(actual_outputs) != expected_outputs:
         raise SystemExit("receipt output result identities do not exactly cover the profile outputs")
 
+    profile_outputs = {output["output_id"]: output for output in profile["outputs"]}
     for output in receipt["output_results"]:
+        profile_output = profile_outputs[output["output_id"]]
+        if output["unit"] != profile_output["unit"]:
+            raise SystemExit(f"receipt output {output['output_id']} unit differs from its profile")
+        if output["status"] in {"pass", "fail"}:
+            recomputed_error = abs(output["observed"] - output["reference"])
+            if abs(recomputed_error - output["absolute_error"]) > max(1e-12, 1e-9 * recomputed_error):
+                raise SystemExit(f"receipt output {output['output_id']} reports an inconsistent absolute error")
         if output["status"] == "pass" and output["absolute_error"] > output["tolerance"]:
             raise SystemExit(f"output {output['output_id']} claims pass above its tolerance")
         if output["status"] == "fail" and output["absolute_error"] <= output["tolerance"]:
