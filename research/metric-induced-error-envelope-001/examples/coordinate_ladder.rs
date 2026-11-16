@@ -31,8 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let tangent_norm_y = metric_y.tangent_norm(&vector_y)?;
         let cotangent_norm_q = metric_q.cotangent_norm(&covector_q)?;
         let cotangent_norm_y = metric_y.cotangent_norm(&covector_y)?;
-        let pairing_q = metric_induced_error_envelope_reference::pairing(&covector_q, &vector_q);
-        let pairing_y = metric_induced_error_envelope_reference::pairing(&covector_y, &vector_y);
+        let pairing_q = metric_induced_error_envelope_reference::pairing(&covector_q, &vector_q)?;
+        let pairing_y = metric_induced_error_envelope_reference::pairing(&covector_y, &vector_y)?;
 
         println!(
             "{shear:.1},{:.8e},{:.8e},{:.8e},{:.8e},{:.8e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e}",
