@@ -1,0 +1,121 @@
+{
+  "schema_version": "luminous.human_sampling_rate_fixtures/0.1.0",
+  "status": "synthetic_known_truth_specification_only",
+  "unit_system": "seconds and arbitrary signal units",
+  "claim_ceiling": "Mathematical signal fixture only. Not human physiology, sensor calibration, or public-person data.",
+  "duration_seconds": 1200,
+  "native_sampling_rate_hz": 20,
+  "sample_count_native": 24000,
+  "signal": {
+    "equation": "x(t) = 0.8*sin(2*pi*0.01*t) + 0.5*sin(2*pi*0.05*t + 0.3) + 0.3*cos(2*pi*0.15*t) + 0.25*sin(2*pi*5.0*t + 0.7)",
+    "components": [
+      {
+        "name": "slow_trend",
+        "frequency_hz": 0.01,
+        "amplitude": 0.8,
+        "phase_rad": 0,
+        "role": "context_only_not_scored_in_task_band"
+      },
+      {
+        "name": "task_band_low",
+        "frequency_hz": 0.05,
+        "amplitude": 0.5,
+        "phase_rad": 0.3,
+        "role": "task_critical"
+      },
+      {
+        "name": "task_band_high",
+        "frequency_hz": 0.15,
+        "amplitude": 0.3,
+        "phase_rad": 0,
+        "role": "task_critical"
+      },
+      {
+        "name": "above_task_band_decoy",
+        "frequency_hz": 5,
+        "amplitude": 0.25,
+        "phase_rad": 0.7,
+        "role": "not_task_critical"
+      }
+    ],
+    "task_critical_band_hz": {
+      "low": 0.05,
+      "high": 0.15
+    },
+    "ideal_task_band_power": 0.17,
+    "notes": [
+      "The 1200 s duration contains an integer number of cycles for each declared component at the native sampling rate.",
+      "All amplitudes, phases, and frequencies are mathematical fixture values, not human or sensor parameters."
+    ]
+  },
+  "anti_aliasing": {
+    "required": true,
+    "reference_filter": "ideal_brick_wall_lowpass_for_known_answer_only",
+    "production_filter_requirement": "Every implemented filter must pin family, order/taps, cutoff convention, phase mode, boundary handling, group delay and implementation version.",
+    "decimation_before_interpolation": true,
+    "fixed_token_length_comparison": true,
+    "interpolation_after_decimation": true
+  },
+  "rate_sweep": [
+    {
+      "sampling_rate_hz": 20,
+      "nyquist_hz": 10,
+      "expected_task_band_retention": 1,
+      "regime": "native_reference"
+    },
+    {
+      "sampling_rate_hz": 8,
+      "nyquist_hz": 4,
+      "expected_task_band_retention": 1,
+      "regime": "information_preserving"
+    },
+    {
+      "sampling_rate_hz": 2,
+      "nyquist_hz": 1,
+      "expected_task_band_retention": 1,
+      "regime": "information_preserving"
+    },
+    {
+      "sampling_rate_hz": 0.8,
+      "nyquist_hz": 0.4,
+      "expected_task_band_retention": 1,
+      "regime": "information_preserving_with_2_67x_nyquist_margin"
+    },
+    {
+      "sampling_rate_hz": 0.28,
+      "nyquist_hz": 0.14,
+      "expected_task_band_retention": 0.7352941176470589,
+      "regime": "task_band_high_component_lost"
+    },
+    {
+      "sampling_rate_hz": 0.08,
+      "nyquist_hz": 0.04,
+      "expected_task_band_retention": 0,
+      "regime": "all_task_band_components_lost"
+    }
+  ],
+  "expected_information_retention": {
+    "definition": "sum of ideal in-band power in the task-critical component set below the post-decimation Nyquist frequency divided by total task-critical component power",
+    "values_by_rate_hz": {
+      "2": 1,
+      "8": 1,
+      "20": 1,
+      "0.8": 1,
+      "0.28": 0.7352941176470589,
+      "0.08": 0
+    },
+    "derivation": {
+      "total_task_band_power": "(0.5^2 + 0.3^2) / 2 = 0.17",
+      "after_0_28_hz_sampling": "only 0.05 Hz component retained: (0.5^2 / 2) / 0.17 = 25/34",
+      "after_0_08_hz_sampling": "Nyquist 0.04 Hz < 0.05 Hz; no task-band component retained"
+    }
+  },
+  "evaluation_rules": [
+    "Do not treat embedding invariance as equivalent to forecast or classification invariance.",
+    "Keep physical context duration and forecast horizon constant across rate conditions.",
+    "Separate information-preserving from information-destroying rate conditions.",
+    "Compare model degradation to ideal task-band information retention; do not penalise irrecoverable information loss as model error.",
+    "For the fixed-token lane, decimate with anti-aliasing and interpolate back to the same token length.",
+    "For event-native irregular-time experiments, retain true event timestamps and do not interpolate unless that resampling policy is the named baseline."
+  ]
+}
