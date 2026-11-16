@@ -36,10 +36,17 @@ impl fmt::Display for CrossingQualificationError {
                 write!(f, "depth interval bounds must be finite and ordered")
             }
             Self::InvalidProjectedDistance => {
-                write!(f, "projected crossing distance must be finite and non-negative")
+                write!(
+                    f,
+                    "projected crossing distance must be finite and non-negative"
+                )
             }
             Self::SameFilamentTrack(id) => {
-                write!(f, "crossing candidate must reference distinct filament tracks: {:?}", id)
+                write!(
+                    f,
+                    "crossing candidate must reference distinct filament tracks: {:?}",
+                    id
+                )
             }
         }
     }
@@ -130,8 +137,14 @@ mod tests {
             first_filament: FilamentTrackId(10),
             second_filament: FilamentTrackId(20),
             projected_distance_um: 0.0,
-            first_depth: first_depth.map(|(lo, hi)| DepthIntervalUm { lower_um: lo, upper_um: hi }),
-            second_depth: second_depth.map(|(lo, hi)| DepthIntervalUm { lower_um: lo, upper_um: hi }),
+            first_depth: first_depth.map(|(lo, hi)| DepthIntervalUm {
+                lower_um: lo,
+                upper_um: hi,
+            }),
+            second_depth: second_depth.map(|(lo, hi)| DepthIntervalUm {
+                lower_um: lo,
+                upper_um: hi,
+            }),
         }
     }
 
