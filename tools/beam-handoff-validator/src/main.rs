@@ -22,13 +22,15 @@ fn run() -> Result<(), (u8, String)> {
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--schema" => {
-                schema = Some(PathBuf::from(
-                    args.next().ok_or_else(|| (64, "--schema requires a path".to_owned()))?,
-                ));
+                schema =
+                    Some(PathBuf::from(args.next().ok_or_else(|| {
+                        (64, "--schema requires a path".to_owned())
+                    })?));
             }
             "--input" => {
                 input = Some(PathBuf::from(
-                    args.next().ok_or_else(|| (64, "--input requires a path".to_owned()))?,
+                    args.next()
+                        .ok_or_else(|| (64, "--input requires a path".to_owned()))?,
                 ));
             }
             "--help" | "-h" => {
@@ -80,8 +82,9 @@ fn run() -> Result<(), (u8, String)> {
             });
             Err((
                 2,
-                serde_json::to_string_pretty(&output)
-                    .unwrap_or_else(|_| "validation failed; report serialization failed".to_owned()),
+                serde_json::to_string_pretty(&output).unwrap_or_else(|_| {
+                    "validation failed; report serialization failed".to_owned()
+                }),
             ))
         }
     }
