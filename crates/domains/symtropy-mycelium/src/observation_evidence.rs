@@ -458,6 +458,9 @@ mod tests {
 
         item = receipt();
         item.uncertainty.as_mut().unwrap().x_std_dev_um = Some(f64::NAN);
-        assert_eq!(item.validate(), Err(EvidenceReceiptError::InvalidSpatialUncertainty));
+        assert_eq!(
+            item.validate(),
+            Err(EvidenceReceiptError::InvalidSpatialUncertainty)
+        );
     }
 }
