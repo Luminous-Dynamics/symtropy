@@ -46,7 +46,7 @@ const CLAIM_CEILING: &str = "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY";
 const RIGHTS_STATUS: &str = "SYNTHETIC_OPEN_FIXTURE";
 const PERMITTED_USE: &str = "SYNTHETIC_TEST_ONLY";
 
-const ACTIVITY: &str = "ex:activity/analysis-001";
+const ACTIVITY: &str = "ex:activity/e2-portability-fixture-001";
 const AGENT: &str = "ex:agent/synthetic-provider";
 const INPUT_WATER: &str = "ex:entity/input-water-demand";
 const INPUT_POWER: &str = "ex:entity/input-power-availability";
@@ -287,6 +287,23 @@ fn validate_crate_with_binding(
             != e1_execution_status
     {
         return Err("E2 binding analysis identity/status differs from the E1 envelope".to_owned());
+    }
+    let fixture_activity_binding = binding_root
+        .get("fixture_activity")
+        .ok_or_else(|| "E2 binding.fixture_activity is required".to_owned())?;
+    let fixture_activity_id =
+        required_text(fixture_activity_binding, "fixture_activity_id", "E2 fixture activity")?;
+    let fixture_execution_class =
+        required_text(fixture_activity_binding, "execution_class", "E2 fixture activity")?;
+    if required_text(fixture_activity_binding, "prov_activity_id", "E2 fixture activity")?
+        != ACTIVITY
+        || fixture_execution_class != "E2_SYNTHETIC_GRAPH_FIXTURE"
+        || fixture_activity_binding
+            .get("source_analysis_not_executed")
+            .and_then(Value::as_bool)
+            != Some(true)
+    {
+        return Err("E2 fixture Activity must remain distinct from the NOT_EXECUTED E1 analysis".to_owned());
     }
 
     let contexts = crate_root
@@ -578,10 +595,24 @@ fn validate_crate_with_binding(
         .get(ACTIVITY)
         .ok_or_else(|| "PROV-O analysis Activity is missing".to_owned())?;
     require_type(activity, "prov:Activity", "PROV-O analysis")?;
-    if required_text(activity, "ex:analysisId", "PROV-O analysis")? != e1_analysis_id
-        || required_text(activity, "ex:executionStatus", "PROV-O analysis")? != e1_execution_status
+    if required_text(activity, "ex:fixtureActivityId", "PROV-O fixture activity")?
+        != fixture_activity_id
+        || required_text(activity, "ex:executionClass", "PROV-O fixture activity")?
+            != fixture_execution_class
+        || required_text(activity, "ex:sourceAnalysisId", "PROV-O fixture activity")?
+            != e1_analysis_id
+        || required_text(
+            activity,
+            "ex:sourceAnalysisExecutionStatus",
+            "PROV-O fixture activity",
+        )? != e1_execution_status
+        || required_text(activity, "ex:analysisExecutionClaim", "PROV-O fixture activity")?
+            != "NONE"
     {
-        return Err("PROV-O activity identity/status differs from the E1 evidence envelope".to_owned());
+        return Err(
+            "PROV-O Activity must identify the synthetic E2 graph fixture and preserve E1 NOT_EXECUTED status"
+                .to_owned(),
+        );
     }
     let agent = prov_entities
         .get(AGENT)
@@ -653,22 +684,59 @@ fn validate_crate_with_binding(
         }
     }
 
-    if reference_id(
-        prov_entities[OUTPUT_WATER]
-            .get("prov:wasDerivedFrom")
-            .ok_or_else(|| {
-                "water-service output lacks its one provider-declared derivation".to_owned()
-            })?,
-        "output-water.prov:wasDerivedFrom",
-    )? != INPUT_WATER
+    let derivation_assertions = binding_root
+        .get("derivations")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == 1)
+        .ok_or_else(|| "E2 binding must declare exactly one synthetic sparse derivation".to_owned())?;
+    let derivation_assertion = &derivation_assertions[0];
+    let derivation_source = required_text(
+        derivation_assertion,
+        "source_entity_id",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_generated = required_text(
+        derivation_assertion,
+        "generated_entity_id",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_source_class = required_text(
+        derivation_assertion,
+        "source_class",
+        "E2 binding.derivations[0]",
+    )?;
+    let derivation_assertion_source = required_text(
+        derivation_assertion,
+        "assertion_source",
+        "E2 binding.derivations[0]",
+    )?;
+    if derivation_source != INPUT_POWER
+        || derivation_generated != OUTPUT_CLINIC
+        || derivation_source_class != "E2_FIXTURE"
+        || derivation_assertion_source != "E2_FIXTURE_SYNTHETIC_CONTROL"
+        || derivation_assertion
+            .get("not_in_e1_lineage")
+            .and_then(Value::as_bool)
+            != Some(true)
     {
-        return Err(
-            "water-service output derivation differs from the sparse provider declaration"
-                .to_owned(),
-        );
+        return Err("E2 sparse derivation must be explicitly declared as a synthetic control, not E1 lineage".to_owned());
     }
-    if prov_entities[OUTPUT_CLINIC].get("prov:wasDerivedFrom").is_some() {
-        return Err("clinic-access output must not gain an undeclared derivation edge".to_owned());
+    if prov_entities[OUTPUT_WATER].get("prov:wasDerivedFrom").is_some() {
+        return Err("E1 water output must not gain an unsupported wasDerivedFrom relation".to_owned());
+    }
+    if reference_id(
+        prov_entities[OUTPUT_CLINIC]
+            .get("prov:wasDerivedFrom")
+            .ok_or_else(|| "clinic-control output lacks the E2 fixture derivation".to_owned())?,
+        "output-clinic.prov:wasDerivedFrom",
+    )? != derivation_source
+        || required_text(
+            &prov_entities[OUTPUT_CLINIC],
+            "ex:derivationAssertionSource",
+            "output-clinic",
+        )? != derivation_assertion_source
+    {
+        return Err("PROV-O derivation differs from the E2 synthetic binding assertion".to_owned());
     }
     let derivation_count = prov_entities
         .values()
@@ -676,7 +744,7 @@ fn validate_crate_with_binding(
         .count();
     if derivation_count != 1 {
         return Err(format!(
-            "exactly one provider-declared derivation is allowed, found {derivation_count}"
+            "exactly one E2 synthetic derivation is allowed, found {derivation_count}"
         ));
     }
 
@@ -686,7 +754,7 @@ fn validate_crate_with_binding(
         .count();
     if generation_edge_count != 2 {
         return Err(format!(
-            "exactly two provider-declared prov:wasGeneratedBy edges are allowed, found {generation_edge_count}"
+            "exactly two synthetic fixture prov:wasGeneratedBy edges are allowed, found {generation_edge_count}"
         ));
     }
 
@@ -800,6 +868,33 @@ mod tests {
     }
 
     #[test]
+    fn binding_schema_rejects_e1_as_the_source_of_synthetic_derivation() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["derivations"][0]["assertion_source"] = Value::String("E1_ENVELOPE".into());
+        binding["derivations"][0]["not_in_e1_lineage"] = Value::Bool(false);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("E1 must not be promoted into direct derivation");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn e1_consumed_and_produced_edges_are_not_promoted_to_was_derived_from() {
+        let e1: Value = serde_json::from_str(E1_ENVELOPE).expect("E1 envelope");
+        let edges = e1["lineage_edges"].as_array().expect("E1 lineage");
+        assert!(edges.iter().all(|edge| {
+            edge["relationship"] == "CONSUMED_BY" || edge["relationship"] == "PRODUCED_BY"
+        }));
+        assert!(edges.iter().all(|edge| edge["relationship"] != "WAS_DERIVED_FROM"));
+        let prov = prov_value();
+        let nodes = prov["@graph"].as_array().expect("PROV graph");
+        let water = nodes
+            .iter()
+            .find(|node| node["@id"] == OUTPUT_WATER)
+            .expect("E1 output node");
+        assert!(water.get("prov:wasDerivedFrom").is_none());
+    }
+
+    #[test]
     fn binding_schema_rejects_artifacts_on_synthetic_control() {
         let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
         binding["bindings"][1]["artifact_paths"] =
@@ -855,7 +950,7 @@ mod tests {
         activity["ex:analysisId"] = Value::String("other-analysis".into());
         let error = validate_crate(CRATE, &prov.to_string())
             .expect_err("analysis identity mismatch");
-        assert!(error.contains("activity identity/status differs from the E1 evidence envelope"));
+        assert!(error.contains("synthetic E2 graph fixture and preserve E1 NOT_EXECUTED status"));
     }
 
     #[test]
@@ -867,23 +962,29 @@ mod tests {
             .iter_mut()
             .find(|node| node["@id"] == OUTPUT_CLINIC)
             .expect("clinic output");
-        clinic["prov:wasDerivedFrom"] = json!({"@id": INPUT_POWER});
-        let error = validate_crate(CRATE, &prov.to_string()).expect_err("false derivation");
-        assert!(error.contains("clinic-access output must not gain"));
-    }
-
-    #[test]
-    fn wrong_sparse_derivation_target_is_rejected() {
-        let mut prov = prov_value();
         let water = prov["@graph"]
             .as_array_mut()
             .expect("graph")
             .iter_mut()
             .find(|node| node["@id"] == OUTPUT_WATER)
             .expect("water output");
-        water["prov:wasDerivedFrom"] = json!({"@id": INPUT_POWER});
-        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong derivation");
-        assert!(error.contains("water-service output derivation differs"));
+        water["prov:wasDerivedFrom"] = json!({"@id": INPUT_WATER});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("unsupported E1 derivation");
+        assert!(error.contains("E1 water output must not gain an unsupported"));
+    }
+
+    #[test]
+    fn wrong_sparse_derivation_target_is_rejected() {
+        let mut prov = prov_value();
+        let clinic = prov["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| node["@id"] == OUTPUT_CLINIC)
+            .expect("clinic output");
+        clinic["prov:wasDerivedFrom"] = json!({"@id": INPUT_WATER});
+        let error = validate_crate(CRATE, &prov.to_string()).expect_err("wrong synthetic derivation");
+        assert!(error.contains("PROV-O derivation differs from the E2 synthetic binding assertion"));
     }
 
     #[test]
@@ -1096,7 +1197,7 @@ mod tests {
             .expect("power input");
         input["prov:wasGeneratedBy"] = json!({"@id": ACTIVITY});
         let error = validate_crate(CRATE, &prov.to_string()).expect_err("extra generation edge");
-        assert!(error.contains("exactly two provider-declared prov:wasGeneratedBy edges"));
+        assert!(error.contains("exactly two synthetic fixture prov:wasGeneratedBy edges"));
     }
 
     #[test]
