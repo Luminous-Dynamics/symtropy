@@ -35,7 +35,7 @@
       "dataset_id": "synthetic.dataset.water.input.001",
       "direction": "INPUT",
       "data_type": "application/json",
-      "semantic_type": "synthetic.service-demand",
+      "semantic_type": "synthetic:serviceDemand",
       "revision": {
         "status": "UNKNOWN",
         "value": null
@@ -52,7 +52,29 @@
       },
       "artifacts": [
         {
+          "role": "DATASET_METADATA",
+          "relative_path": "model-evidence-metadata/synthetic-input-dataset.json",
+          "provider_file_id": null,
+          "file_name": "synthetic-input-dataset.json",
+          "media_type": "application/json",
+          "byte_length": 824,
+          "sha256": "4666739793f3a85025da66ab7d829222f7539549dcf93127728253c5a7756373"
+        },
+        {
+          "role": "FILE_METADATA",
+          "relative_path": "model-evidence-metadata/synthetic-input-files.json",
+          "provider_file_id": null,
+          "file_name": "synthetic-input-files.json",
+          "media_type": "application/json",
+          "byte_length": 323,
+          "sha256": "2b719d5523bd6154b779cf9abff637603f1ba1da9b0da0874c59f881129bf386"
+        },
+        {
+          "role": "DATA_PAYLOAD",
           "relative_path": "model-evidence-payloads/synthetic-input.json",
+          "provider_file_id": "synthetic-file-water-input-001",
+          "file_name": "synthetic-input.json",
+          "media_type": "application/json",
           "byte_length": 228,
           "sha256": "7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf"
         }
@@ -62,7 +84,7 @@
       "dataset_id": "synthetic.dataset.water.output.001",
       "direction": "OUTPUT",
       "data_type": "application/json",
-      "semantic_type": "synthetic.service-performance-trajectory",
+      "semantic_type": "synthetic:servicePerformance",
       "revision": {
         "status": "UNKNOWN",
         "value": null
@@ -79,7 +101,29 @@
       },
       "artifacts": [
         {
+          "role": "DATASET_METADATA",
+          "relative_path": "model-evidence-metadata/synthetic-output-dataset.json",
+          "provider_file_id": null,
+          "file_name": "synthetic-output-dataset.json",
+          "media_type": "application/json",
+          "byte_length": 847,
+          "sha256": "d04f016c8973ba8eb21fc2e9db64e2b8b6229258017873d09f7a6f62012612af"
+        },
+        {
+          "role": "FILE_METADATA",
+          "relative_path": "model-evidence-metadata/synthetic-output-files.json",
+          "provider_file_id": null,
+          "file_name": "synthetic-output-files.json",
+          "media_type": "application/json",
+          "byte_length": 327,
+          "sha256": "fcb0ca282e15f69c4c940e19f2a4434bed3b36a701ce7be4e825acf027ffc633"
+        },
+        {
+          "role": "DATA_PAYLOAD",
           "relative_path": "model-evidence-payloads/synthetic-output.json",
+          "provider_file_id": "synthetic-file-water-output-001",
+          "file_name": "synthetic-output.json",
+          "media_type": "application/json",
           "byte_length": 272,
           "sha256": "ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6"
         }
