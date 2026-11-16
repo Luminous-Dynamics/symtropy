@@ -83,7 +83,7 @@ Every node has a unique identity, exact case scope, owner role, revision/digest 
 3. Evidence scope and effective/knowledge cutoffs match the exact case.
 4. Required hazards must all be present; extra/unregistered hazards are rejected rather than silently omitted.
 5. Every required hazard is explicitly linked from a claim or strategy using an AddressesHazard relation and has at least one mitigation; every mitigation must attach to a registered hazard and have qualified evidence.
-6. Every claim and mitigation has a frozen, policy-pinned list of required evidence purposes and a minimum independent-correlation-group threshold. Evidence purpose must be compatible with the source owner (for example, a Track T model-credibility receipt cannot masquerade as a Track R performance receipt or physical mitigation-effectiveness test). Claim owners may demand a stricter minimum but cannot lower the frozen policy floor; mitigations must meet their own floor.
+6. Every claim and mitigation has a frozen, policy-pinned list of required evidence purposes and a minimum independent-correlation-group threshold. The result exposes the actual independent-group count for each claim and mitigation, including on blocked assessments. Evidence purpose must be compatible with the source owner (for example, a Track T model-credibility receipt cannot masquerade as a Track R performance receipt or physical mitigation-effectiveness test). Claim owners may demand a stricter minimum but cannot lower the frozen policy floor; mitigations must meet their own floor.
 7. Contradicted, unsupported or indeterminate claims/mitigations remain negative/unknown; no aggregate score can conceal them.
 8. Every assumption is explicit and owned. It is supported by qualified evidence, accepted through a current policy-pinned authority decision, open, expired or unknown. Unknown is indeterminate; open is an unresolved argument.
 9. Every defeater explicitly challenges a claim or mitigation. It is open, unknown, discharged by qualified evidence, or accepted/not-applicable under a current matching authority decision.
@@ -106,7 +106,7 @@ The primary status distinguishes:
 - BLOCKED_BY_SCOPE_MISMATCH
 - INDETERMINATE
 
-The result also returns all stable per-node blockers, outstanding authority roles and independent evidence-group counts per claim. There is no scalar safety score, weighted average or implied authorization.
+The result also returns all stable per-node blockers, outstanding authority roles and independent evidence-group counts for each claim and mitigation. Claim and mitigation diversity minima are frozen in the case policy; an owner may request a stricter minimum but cannot lower the policy floor. There is no scalar safety score, weighted average or implied authorization.
 
 ## Frozen synthetic adversarial corpus
 
