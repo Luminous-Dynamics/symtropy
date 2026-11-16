@@ -583,6 +583,9 @@ fn widen_interval(
     value: Interval,
     margin: f64,
 ) -> Result<Interval, IntervalVerifierError> {
+    if margin == 0.0 {
+        return Ok(value);
+    }
     let lower = value.lower - margin;
     let upper = value.upper + margin;
     if !lower.is_finite() || !upper.is_finite() {
@@ -1002,8 +1005,10 @@ mod tests {
     #[test]
     fn bounded_uncertainty_that_remains_separated_can_still_prove_clear() {
         let result = verify_capsule_interval_no_contact_with_uncertainty(
-            point_capsule(0.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
-            point_capsule(5.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(5.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
             CapsuleRelativeUncertainty {
                 origin_relative_mm: p(1.0, 0.2, 0.2),
                 ..CapsuleRelativeUncertainty::zero()
