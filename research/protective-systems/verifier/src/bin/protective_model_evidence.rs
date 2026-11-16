@@ -194,7 +194,9 @@ fn validate_rights(
         "SYNTHETIC_OPEN_FIXTURE" => Err(format!(
             "{path}: synthetic fixture rights are only valid for evidence_class=synthetic"
         )),
-        "LICENSED" => Err(format!("{path}.license_id is required for LICENSED rights")),
+        "LICENSED" => Err(format!(
+            "{path}.permitted_use does not cover intended_use or its license metadata is incomplete"
+        )),
         other => Err(format!("{path}.status is unsupported: {other}")),
     }
 }
@@ -966,7 +968,7 @@ mod tests {
         root["claim_ceiling"] = Value::String("PHYSICALLY_VALIDATED_AND_SAFE".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("unsupported claim");
-        assert!(error.contains("claim_ceiling exceeds"));
+        assert!(error.contains("envelope schema validation failed"));
     }
 
     #[test]
@@ -995,7 +997,7 @@ mod tests {
         }
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("license purpose does not cover intended use");
-        assert!(error.contains(".status is unsupported"));
+        assert!(error.contains("permitted_use does not cover intended_use"));
     }
 
     #[test]
@@ -1116,9 +1118,11 @@ mod tests {
     fn incomplete_lineage_is_rejected() {
         let mut root = fixture_value();
         let _ = root["lineage_edges"].as_array_mut().expect("edges").pop();
+        root["lineage_edges"][0]["to"] =
+            Value::String("analysis:unregistered".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("incomplete lineage");
-        assert!(error.contains("lineage_edges do not connect"));
+        assert!(error.contains("edge references unknown or directionally invalid lineage"));
     }
 
     #[test]
@@ -1136,7 +1140,11 @@ mod tests {
         root["evidence_class"] = Value::String("external_observed".into());
         root["source"]["provider_kind"] = Value::String("EXTERNAL_MODEL".into());
         root["analysis"]["execution_status"] = Value::String("COMPLETED".into());
+        root["analysis"]["started_at"] = Value::String("2026-11-16T00:00:00+01:00".into());
         root["analysis"]["completed_at"] = Value::String("2026-11-16T00:00:00+02:00".into());
+        root["intended_use"] = Value::String("INTEROPERABILITY_EVALUATION".into());
+        root["claim_ceiling"] =
+            Value::String("EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("missing run identity");
         assert!(error.contains("completed analysis requires a non-empty analysis.run_id"));
@@ -1200,7 +1208,7 @@ mod tests {
             Value::String("../../../../secret.txt".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("path traversal");
-        assert!(error.contains("artifact path does not match dataset direction"));
+        assert!(error.contains("artifact path/name/media type does not match its direction and role"));
     }
 
     #[test]
