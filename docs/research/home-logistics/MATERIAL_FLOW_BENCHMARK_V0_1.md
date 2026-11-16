@@ -494,6 +494,33 @@ The runner checks that every observed terminal state matches the campaign oracle
 
 The CI workflow archives `protocol-fault-campaign.json` with the L1 physics result and analytical convergence output. Exact-head workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) passed on `a270a138095f187b6ad034fbb530cc27f746ec4f`: 10/10 protocol episodes were accepted; pre-dispatch faults never dispatched; duplicate logical command replay was suppressed; duplicate physical release evidence required reconciliation; post-dispatch timeout/power/network ambiguity blocked retry; and no fault was falsely completed. The full report is in artifact `14204140876`.
 
+### 12.7 Evidence-typed reusable procedure graph prototype
+
+MFB now includes `tools/material-flow-benchmark/src/procedure.rs`, a first typed procedure-DAG validator, plus `mfb-validate-procedure` and the synthetic `nominal-receiving-procedure.json` fixture.
+
+The 15-step graph binds to the exact scenario ID, source commit and configuration digest. It declares typed evidence consumption/production for:
+1. manifest validation;
+2. household authorization receipt verification;
+3. receiver capability verification;
+4. package identity;
+5. container fit;
+6. payload mass;
+7. seal integrity;
+8. temperature envelope;
+9. transfer-gate interlock;
+10. release-intent preparation;
+11. source-release observation;
+12. receiver-arrival observation;
+13. placement verification;
+14. counterparty custody acknowledgement;
+15. unknown-outcome reconciliation.
+
+The validator checks unique operation/step identity, closed dependency references, acyclic ordering, exact typed evidence contracts, evidence producer ancestry and required preflight dependencies before release intent. Reconciliation remains an explicit branch after intent rather than an optimistic retry.
+
+**Anti-self-approval boundary:** the graph's only success state is `structurally_valid_for_external_review`. The report explicitly fixes `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. A separately governed authority, executor, observer and evaluator are still required. The prototype validates the declared graph structure, not evidence authenticity, signatures, freshness, physical execution or success.
+
+This is the minimal executable foundation for the procedure-learning hypothesis in [#5501](https://github.com/Luminous-Dynamics/symtropy/issues/5501). Exact-head formatting/Clippy/tests and the CLI report are being qualified by the dedicated MFB workflow; no passing claim should be made until that run finishes.
+
 ## 12. First executable slice
 
 Build one reference scenario before expanding the fleet:
