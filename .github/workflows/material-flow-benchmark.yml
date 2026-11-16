@@ -86,6 +86,17 @@ jobs:
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/result.json
           grep -q '"accepted": true' mfb-l1-evidence/result.json
           grep -q '"replay_bitwise_equal": true' mfb-l1-evidence/result.json
+          cat mfb-l1-evidence/result.json
+      - name: Run L1 closed-gate obstruction fault episode
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json > mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"fault_oracle_passed": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"physical_fault_effect_observed": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"reconciliation_required": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"blind_retry_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"false_completion_blocked": true' mfb-l1-evidence/gate-obstruction-fault.json
+          grep -q '"transaction_state": "reconciliation_required"' mfb-l1-evidence/gate-obstruction-fault.json
+          cat mfb-l1-evidence/gate-obstruction-fault.json
           {
             echo "source_sha=${GITHUB_SHA}"
             echo "workflow_run_id=${GITHUB_RUN_ID}"
@@ -124,6 +135,9 @@ jobs:
             echo
             echo "[procedure_evidence_admission_digest]"
             sha256sum mfb-l1-evidence/procedure-evidence-admission.json
+            echo
+            echo "[gate_obstruction_fault_digest]"
+            sha256sum mfb-l1-evidence/gate-obstruction-fault.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
