@@ -1111,6 +1111,19 @@ fn decision_context(input: &Value) -> Result<Result<Value, Value>, String> {
             "decision_cost": null
         })));
     }
+    if let Some(case_rows) = input.get("cases").and_then(Value::as_array) {
+        let actual_ids = case_rows
+            .iter()
+            .map(|row| string(row, "case_id"))
+            .collect::<Result<Vec<_>, _>>()?;
+        if actual_ids != observation_ids {
+            return Ok(Err(json!({
+                "decision_disposition": "NOT_COMPARABLE",
+                "reason": "DECISION_ROWS_DO_NOT_MATCH_DECLARED_CASE_IDS",
+                "decision_cost": null
+            })));
+        }
+    }
     Ok(Ok(json!({
         "evaluation_population_id": evaluation_population,
         "forecast_lead_hours": forecast_lead,
@@ -1329,11 +1342,11 @@ fn decision_utility_batch(input: &Value) -> Result<Value, String> {
         )?;
         forecast_cost += result["decision_cost"].as_f64().unwrap_or(0.0);
         no_action_cost += result["no_action_baseline_cost"].as_f64().unwrap_or(0.0);
-        warning_count += u64::from(result["action_triggered"] == true);
-        action_count += u64::from(result["action_executed"] == true);
-        false_alarms += u64::from(result["false_alarm"] == true);
-        missed_events += u64::from(result["missed_event"] == true);
-        unactionable += u64::from(result["warning_unactionable"] == true);
+        warning_count += if result["action_triggered"].as_bool().unwrap_or(false) { 1 } else { 0 };
+        action_count += if result["action_executed"].as_bool().unwrap_or(false) { 1 } else { 0 };
+        false_alarms += if result["false_alarm"].as_bool().unwrap_or(false) { 1 } else { 0 };
+        missed_events += if result["missed_event"].as_bool().unwrap_or(false) { 1 } else { 0 };
+        unactionable += if result["warning_unactionable"].as_bool().unwrap_or(false) { 1 } else { 0 };
         scored.push(json!({"case_id":case_id,"decision":result}));
     }
     Ok(json!({
