@@ -622,6 +622,10 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
     if claim_requirement_ids.len() != policy.required_claim_evidence.len()
         || policy.required_claim_evidence.iter().any(|item| {
             item.claim_id.trim().is_empty()
+                || (!item.required_purposes.is_empty()
+                    && item.minimum_independent_evidence_groups == 0)
+                || (item.required_purposes.is_empty()
+                    && item.minimum_independent_evidence_groups > 0)
                 || item
                     .required_purposes
                     .iter()
@@ -642,6 +646,7 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
         || policy.required_mitigation_evidence.iter().any(|item| {
             item.mitigation_id.trim().is_empty()
                 || item.required_purposes.is_empty()
+                || item.minimum_independent_evidence_groups == 0
                 || item
                     .required_purposes
                     .iter()
