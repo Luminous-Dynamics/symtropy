@@ -49,15 +49,15 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(profile, "status") != Some("proposal_no_physical_measurements") {
         errors.push("profile must remain proposal-only".to_owned());
     }
-    if text_at(profile, "claim_ceiling")
-        != Some("no_endpoint_robot_or_product_qualification_claim")
+    if text_at(profile, "claim_ceiling") != Some("no_endpoint_robot_or_product_qualification_claim")
     {
         errors.push("profile cannot grant endpoint or robot qualification claims".to_owned());
     }
 
     let endpoints = profile.get("endpoint_classes").and_then(Value::as_array);
     for required in ["ready_to_wear", "ready_to_store", "ready_to_iron"] {
-        if !endpoints.is_some_and(|items| items.iter().any(|item| item.as_str() == Some(required))) {
+        if !endpoints.is_some_and(|items| items.iter().any(|item| item.as_str() == Some(required)))
+        {
             errors.push(format!("required endpoint class missing: {required}"));
         }
     }
@@ -71,7 +71,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate metric id: {id}"));
             }
             if text_at(metric, "status") != Some("proposal_target_only") {
-                errors.push(format!("{id}: target cannot be promoted to measured result"));
+                errors.push(format!(
+                    "{id}: target cannot be promoted to measured result"
+                ));
             }
             if text_at(metric, "denominator").is_none_or(str::is_empty) {
                 errors.push(format!("{id}: denominator must be explicit"));
@@ -90,20 +92,32 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     for (field, label) in [
         ("same_garment_cohort_required", "same garment cohort"),
         ("same_task_definition_required", "same task definition"),
-        ("human_baseline_required_for_robot_speed_claim", "human speed baseline"),
+        (
+            "human_baseline_required_for_robot_speed_claim",
+            "human speed baseline",
+        ),
         ("failed_attempts_retained", "failed attempt retention"),
-        ("vendor_claims_are_external_only", "external vendor claim separation"),
+        (
+            "vendor_claims_are_external_only",
+            "external vendor claim separation",
+        ),
         ("P50_P95_time_required", "P50/P95 time reporting"),
-        ("intervention_and_damage_accounting_required", "intervention/damage accounting"),
+        (
+            "intervention_and_damage_accounting_required",
+            "intervention/damage accounting",
+        ),
     ] {
-        if comparison.and_then(|value| value.get(field)).and_then(Value::as_bool) != Some(true) {
+        if comparison
+            .and_then(|value| value.get(field))
+            .and_then(Value::as_bool)
+            != Some(true)
+        {
             errors.push(format!("{label} is required"));
         }
     }
 
     let standard = profile.get("standard_watch");
-    if text_at(standard.unwrap_or(&Value::Null), "published_predecessor")
-        != Some("ISO 15487:2018")
+    if text_at(standard.unwrap_or(&Value::Null), "published_predecessor") != Some("ISO 15487:2018")
     {
         errors.push("published predecessor must remain ISO 15487:2018".to_owned());
     }
