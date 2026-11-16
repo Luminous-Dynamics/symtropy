@@ -2,8 +2,9 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, Capsule, Vec3, chord_collision, co_translating_capsule_capsule_collision,
-    co_translating_capsule_swept_aabb_candidate,
+    AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule, Vec3,
+    chord_collision, co_translating_capsule_adaptive_query,
+    co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
@@ -318,4 +319,65 @@ fn main() {
             },
         );
     }
+    let asynchronous_a = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.25)
+        .expect("valid asynchronous pair A");
+    let asynchronous_b = Capsule::new(Vec3::new(6.0, 0.0, 0.0), Vec3::new(6.0, 0.0, 0.0), 0.25)
+        .expect("valid asynchronous pair B");
+    let common_translation = Vec3::new(10.0, 0.0, 0.0);
+    let adaptive_config = AdaptiveSubdivisionConfig {
+        maximum_depth: 8,
+        minimum_window_width: 1.0 / 256.0,
+    };
+    let adaptive_report = co_translating_capsule_adaptive_query(
+        black_box(asynchronous_a),
+        black_box(common_translation),
+        black_box(asynchronous_b),
+        black_box(common_translation),
+        adaptive_config,
+    )
+    .expect("valid adaptive asynchronous query");
+    assert_eq!(adaptive_report.status, AdaptiveCollisionStatus::NoContact);
+    println!(
+        "adaptive-asynchronous-pair,status,{:?}",
+        adaptive_report.status
+    );
+    println!(
+        "adaptive-asynchronous-pair,node-visits,{}",
+        adaptive_report.stats.node_visits
+    );
+    println!(
+        "adaptive-asynchronous-pair,pruned-intervals,{}",
+        adaptive_report.stats.pruned_intervals
+    );
+    println!(
+        "adaptive-asynchronous-pair,candidate-windows,{}",
+        adaptive_report.stats.candidate_window_count
+    );
+    println!(
+        "adaptive-asynchronous-pair,narrow-phase-calls,{}",
+        adaptive_report.stats.exact_narrow_phase_calls
+    );
+    println!(
+        "adaptive-asynchronous-pair,candidate-time-fraction,{}",
+        adaptive_report.stats.candidate_time_fraction
+    );
+    measure("adaptive-space-time-asynchronous-pair", || {
+        co_translating_capsule_adaptive_query(
+            black_box(asynchronous_a),
+            black_box(common_translation),
+            black_box(asynchronous_b),
+            black_box(common_translation),
+            adaptive_config,
+        )
+        .expect("valid adaptive asynchronous query");
+    });
+    measure("full-interval-analytic-asynchronous-pair", || {
+        co_translating_capsule_vs_capsule(
+            black_box(asynchronous_a),
+            black_box(common_translation),
+            black_box(asynchronous_b),
+            black_box(common_translation),
+        )
+        .expect("valid full interval asynchronous pair");
+    });
 }
