@@ -818,7 +818,7 @@ mod tests {
         assert!(report.source_bytes_retained);
         assert_eq!(report.provider_count, 3);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_METADATA_ONLY");
-        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&11));
+        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&12));
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
         assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&10));
@@ -951,6 +951,33 @@ mod tests {
                 && item.rule_id.as_deref() == Some(TERMINAL_RULE)
         }));
         assert!(roundtrip(view).expect("OpenLineage view roundtrip"));
+    }
+
+    #[test]
+    fn e4_context_receipt_binds_exact_e1_envelope_bytes() {
+        let report = build_report().expect("report");
+        assert_eq!(report.context_source_receipt.provider, "E1_CONTEXT");
+        assert_eq!(report.context_source_receipt.source_identity, E1_ANALYSIS_ID);
+        assert_eq!(report.context_source_receipt.source_byte_length, E1_CONTEXT.len() as u64);
+        assert_eq!(report.context_source_receipt.source_sha256, hash(E1_CONTEXT));
+        assert_eq!(
+            report.context_source_receipt.native_profile,
+            "Protective Systems E1 evidence envelope (NOT_EXECUTED context only)"
+        );
+    }
+
+    #[test]
+    fn openlineage_facet_cannot_change_the_embedded_e1_analysis_identity() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        lineage["events"][0]["run"]["facets"]["e3_evidence_context"]
+            ["sourceE1AnalysisId"] = Value::String("different-analysis".into());
+        let error = project_openlineage(
+            &lineage,
+            &parse(E1_CONTEXT, "E1 context").expect("E1 context"),
+        )
+        .expect_err("E1 identity mismatch");
+        assert!(error.contains("must match the exact E1 NOT_EXECUTED source context"));
+        let _ = (datacite, ogc);
     }
 
     #[test]
