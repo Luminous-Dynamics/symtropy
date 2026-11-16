@@ -12,7 +12,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn field<'a>(value: &'a Value, key: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("missing field: {key}"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("missing field: {key}"))
 }
 
 fn string(value: &Value, key: &str) -> Result<String, String> {
@@ -101,7 +103,11 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "sample_out",
         "isolation_bypass",
     ] {
-        require_contains(&hydraulic_ports, required, "module_interface.hydraulic_ports")?;
+        require_contains(
+            &hydraulic_ports,
+            required,
+            "module_interface.hydraulic_ports",
+        )?;
     }
     let identity_fields = strings(module_interface, "mandatory_identity")?;
     require_contains(
@@ -111,11 +117,15 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
     )?;
     let unknown_policy = string(module_interface, "unknown_required_field_policy")?;
     if !unknown_policy.contains("UNASSIGNED") || !unknown_policy.contains("DO_NOT_INFER") {
-        return Err("unknown module engineering fields must remain unassigned, not inferred".to_owned());
+        return Err(
+            "unknown module engineering fields must remain unassigned, not inferred".to_owned(),
+        );
     }
     let change_effect = string(module_interface, "module_change_effect")?;
     if !change_effect.contains("new whole-train configuration identity") {
-        return Err("module substitution must change whole-train configuration identity".to_owned());
+        return Err(
+            "module substitution must change whole-train configuration identity".to_owned(),
+        );
     }
 
     for module in rows(contract, "candidate_modules")? {
@@ -125,7 +135,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
             || strings(module, "hazards")?.is_empty()
             || strings(module, "required_controls")?.is_empty()
         {
-            return Err(format!("module {id} has an empty interface, hazard or control list"));
+            return Err(format!(
+                "module {id} has an empty interface, hazard or control list"
+            ));
         }
     }
 
@@ -148,12 +160,16 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
             .iter()
             .any(|claim| selection.to_lowercase().contains(claim))
         {
-            return Err(format!("train {train_id} promotes an unqualified design claim"));
+            return Err(format!(
+                "train {train_id} promotes an unqualified design claim"
+            ));
         }
 
         for source_id in strings(train, "sources")? {
             if !sources.contains(&source_id) {
-                return Err(format!("train {train_id} references unknown source: {source_id}"));
+                return Err(format!(
+                    "train {train_id} references unknown source: {source_id}"
+                ));
             }
             let source = rows(contract, "source_classes")?
                 .iter()
@@ -167,7 +183,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
             ]
             .contains(&status.as_str())
             {
-                return Err(format!("train {train_id} accepts prohibited source {source_id}"));
+                return Err(format!(
+                    "train {train_id} accepts prohibited source {source_id}"
+                ));
             }
             if status == "segregated_challenge_only"
                 && !selection.contains("challenge_population_only_no_reuse_credit")
@@ -184,7 +202,9 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         }
         for module_id in &sequence {
             if !modules.contains(module_id) {
-                return Err(format!("train {train_id} references unknown module: {module_id}"));
+                return Err(format!(
+                    "train {train_id} references unknown module: {module_id}"
+                ));
             }
         }
         if strings(train, "sources")?.contains(&"SRC-LAUNDRY".to_owned()) {
@@ -193,7 +213,10 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
                 "M02-COARSE-SCREEN",
                 "M03-EQUALIZATION",
             ];
-            if sequence.iter().any(|module_id| !allowed.contains(&module_id.as_str())) {
+            if sequence
+                .iter()
+                .any(|module_id| !allowed.contains(&module_id.as_str()))
+            {
                 return Err(format!(
                     "laundry challenge train {train_id} may not claim a treatment/reuse configuration"
                 ));
@@ -269,16 +292,13 @@ fn run() -> Result<i32, String> {
                 .to_owned(),
         );
     }
-    let architecture_path = PathBuf::from(
-        args.first()
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/waterloop-modular-architecture-v0.1.json"),
-    );
-    let schema_path = PathBuf::from(
-        args.get(1)
-            .map(String::as_str)
-            .unwrap_or("research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json"),
-    );
+    let architecture_path =
+        PathBuf::from(args.first().map(String::as_str).unwrap_or(
+            "research/water-service-engineering/waterloop-modular-architecture-v0.1.json",
+        ));
+    let schema_path = PathBuf::from(args.get(1).map(String::as_str).unwrap_or(
+        "research/water-service-engineering/waterloop-modular-architecture-v0.1.schema.json",
+    ));
     let receipt_path = PathBuf::from(
         args.get(2)
             .map(String::as_str)
@@ -421,8 +441,7 @@ mod tests {
     #[test]
     fn unknown_source_cannot_be_silently_assigned() {
         let mut contract = fixture();
-        contract["candidate_train_families"][0]["sources"][0] =
-            json!("SRC-UNKNOWN");
+        contract["candidate_train_families"][0]["sources"][0] = json!("SRC-UNKNOWN");
         assert!(
             validate_architecture(&contract)
                 .expect_err("unknown source rejected")
