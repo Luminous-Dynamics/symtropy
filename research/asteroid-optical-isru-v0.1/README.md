@@ -71,6 +71,25 @@ The isolated `src/tournament.rs` module adds a first typed comparison contract f
 
 This is an **admissibility and accounting slice**, not a signed-attestation verifier, calibration authority, physical process model or full Pareto-front report. A non-empty assay identifier, issuer identifier and digest do not prove authenticity or independence by themselves; the applicable Mycelix/evidence-authority record must resolve those claims. A declared current calibration status likewise requires external record verification. The module contains synthetic unit tests, not experimental data.
 
+## Source-faithful experimental observations v0.1
+
+The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 78 observation entries from:
+
+- NASA historical 8 kW / 10 m optical-mining demonstration;
+- 2025 Nectar A/B optical-mining experiments, including Table 5 and Table 6 TGA and author-derived efficiency rows;
+- 2026 C-/S-type cryogenic-vacuum laser experiment;
+- NASA/Lunar Resources 25 kg molten-regolith electrolysis presentation;
+- NASA CaRD integrated solar-carbothermal prototype.
+
+The source register preserves exact units, values/ranges, condition records, source locators and caveats. In particular:
+- Nectar's RGA-derived water-loss values are explicitly **author-derived estimates**, because the paper describes an uncalibrated RGA plus pressure-gauge calculation and an inefficient cold-trap measurement;
+- laser Fe–Ni enrichment applies to **ejected fines**, not captured or refined metal;
+- the MRE 0.3 mol O2/kWh, 0.07 kg/h, 2.3 wt%, 45 V and 210 A remain separate source-reported metrics. The time-varying electrical traces are not integrated into a synthetic campaign energy;
+- CaRD CO detection is recorded as a process signal, not purified accepted oxygen;
+- source-unreported product quantities remain explicit null-valued `not_reported` records, never zero.
+
+The new `src/observations.rs` module validates source/observation identity, cross-references, status/value/unit combinations, condition records and a positive-conservative-bound accepted-product gate requiring assay, issuer and contract identities. It does not authenticate those identities or establish physical truth. The register currently contains 12 authored structural tests; they are not reported as executed.
+
 ## Run
 
 From this directory:
