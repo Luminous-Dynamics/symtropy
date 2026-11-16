@@ -32,50 +32,58 @@
     {
       "mission_pair_id": "MIP-001",
       "qualification_case_id": "RCQ-007",
-      "related_family": "camera_serial_replacement",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "camera_serial_replacement",
+      "qualification_family": "camera_serial_replacement"
     },
     {
       "mission_pair_id": "MIP-002",
       "qualification_case_id": "RCQ-004",
-      "related_family": "tool_geometry_changed",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "tool_geometry_changed",
+      "qualification_family": "tool_geometry_changed"
     },
     {
       "mission_pair_id": "MIP-003",
       "qualification_case_id": "RCQ-009",
-      "related_family": "battery_replacement_same_mechanical_envelope",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "battery_health_unmeasured",
+      "qualification_family": "battery_replacement_same_mechanical_envelope"
     },
     {
       "mission_pair_id": "MIP-004",
       "qualification_case_id": "RCQ-010",
-      "related_family": "drive_module_replacement",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "drive_module_changed",
+      "qualification_family": "drive_module_replacement"
     },
     {
       "mission_pair_id": "MIP-005",
       "qualification_case_id": "RCQ-014",
-      "related_family": "timebase_replaced",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "timebase_replaced",
+      "qualification_family": "timebase_replaced"
     },
     {
       "mission_pair_id": "MIP-006",
       "qualification_case_id": "RCQ-005",
-      "related_family": "payload_within_qualified_envelope",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "payload_com_changed",
+      "qualification_family": "payload_within_qualified_envelope"
     },
     {
       "mission_pair_id": "MIP-007",
       "qualification_case_id": "RCQ-011",
-      "related_family": "safety_chain_revision",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "safety_chain_revision",
+      "qualification_family": "safety_chain_revision"
     },
     {
       "mission_pair_id": "MIP-008",
       "qualification_case_id": "RCQ-016",
-      "related_family": "unclassified_component_missing_dependencies",
-      "mapping_kind": "family_related_not_case_equivalence"
+      "mapping_kind": "family_related_not_case_equivalence",
+      "mission_mutation_family": "unknown_module_incomplete_scope",
+      "qualification_family": "unclassified_component_missing_dependencies"
     }
   ],
   "nonclaims": [
