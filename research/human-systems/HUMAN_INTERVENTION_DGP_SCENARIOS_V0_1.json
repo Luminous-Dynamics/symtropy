@@ -1,0 +1,340 @@
+{
+  "schema_version": "luminous.human_intervention_dgp_scenarios/0.1.0",
+  "status": "synthetic_scenario_specification_only",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5707",
+  "reused_oracle_owner": "https://github.com/Luminous-Dynamics/symthaea/issues/11954",
+  "domain": "non_clinical_human_day_and_human_operator_scenarios",
+  "time_unit": "synthetic_seconds",
+  "seed_policy": "Each execution must pin one seed, immutable configuration digest, DGP version and paired-randomness policy. This specification defines scenario families, not a seed-to-data implementation.",
+  "claim_ceiling": "All causal mechanisms and outcomes are synthetic. No real-person intervention effect, clinical efficacy, individual counterfactual, or personalized twin claim is implied.",
+  "event_chain": [
+    "assignment",
+    "delivery_attempt",
+    "delivered_action",
+    "physical_exposure",
+    "latent_response",
+    "sensor_capture",
+    "observation_availability",
+    "decision",
+    "outcome"
+  ],
+  "visibility_contract": {
+    "candidate_receives": "Only assigned actions, policy-permitted delivery evidence, observations available by the decision cutoff, declared pre-assignment covariates, and public model/resource contracts.",
+    "evaluator_only": "Potential outcomes, hidden structural parameters, unobserved latent response, true exposure when unmeasured, hidden confounder state, future outcomes, and causal-world identity.",
+    "security_note": "A Rust type distinction is not process isolation. Confirmatory evaluation must separate candidate and oracle processes."
+  },
+  "scenarios": [
+    {
+      "id": "HIDGP-00",
+      "name": "Randomized null-effect control",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "zero",
+      "receipt_selection": "none",
+      "observation": "complete",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "intention_to_treat",
+      "candidate_view": [
+        "assignment",
+        "delivered_action",
+        "observed_events",
+        "pre_assignment_covariates"
+      ],
+      "oracle_view": [
+        "potential_outcomes",
+        "assignment_probabilities",
+        "latent_state",
+        "structural_parameters"
+      ],
+      "invariants": [
+        "Oracle population ITT effect is exactly zero.",
+        "Candidate does not receive potential outcomes or structural parameters.",
+        "Any non-zero causal claim is a false-positive benchmark failure."
+      ]
+    },
+    {
+      "id": "HIDGP-01",
+      "name": "Randomized homogeneous effect",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "known_constant",
+      "receipt_selection": "none",
+      "observation": "complete",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "intention_to_treat",
+      "candidate_view": [
+        "assignment",
+        "delivered_action",
+        "observed_events",
+        "pre_assignment_covariates"
+      ],
+      "oracle_view": [
+        "potential_outcomes",
+        "assignment_probabilities",
+        "latent_state",
+        "structural_parameters"
+      ],
+      "invariants": [
+        "Oracle population ITT equals the declared constant effect.",
+        "Paired assignments share only DGP-declared intervention-invariant exogenous variables.",
+        "Individual unassigned potential outcome remains unobserved to the candidate."
+      ]
+    },
+    {
+      "id": "HIDGP-02",
+      "name": "Pre-assignment heterogeneous effect",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "pre_assignment_stratum_heterogeneous",
+      "receipt_selection": "none",
+      "observation": "complete",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "conditional_average_treatment_effect_and_population_itt",
+      "candidate_view": [
+        "assignment",
+        "delivered_action",
+        "observed_events",
+        "pre_assignment_covariates"
+      ],
+      "oracle_view": [
+        "potential_outcomes",
+        "hidden_stratum_truth",
+        "conditional_effects"
+      ],
+      "invariants": [
+        "Heterogeneity is driven by a pre-assignment synthetic covariate.",
+        "Subgroup labels are not directly exposed unless represented by a permitted observed covariate.",
+        "Report population and stratum-specific error separately."
+      ]
+    },
+    {
+      "id": "HIDGP-03",
+      "name": "Random assignment with imperfect delivery and exposure",
+      "assignment": "blocked_randomized",
+      "delivery": "probabilistic_non_delivery",
+      "exposure": "geometry_or_feasibility_dependent",
+      "effect": "known_under_delivered_exposure",
+      "receipt_selection": "possible",
+      "observation": "complete",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "intention_to_treat",
+      "candidate_view": [
+        "assignment",
+        "delivery_status_if_observed",
+        "observed_events"
+      ],
+      "oracle_view": [
+        "delivery_attempt",
+        "true_exposure",
+        "potential_outcomes",
+        "latent_state"
+      ],
+      "invariants": [
+        "Assignment is not equivalent to delivered action or actual exposure.",
+        "ITT remains defined by assignment regardless of compliance.",
+        "No response is attributed to a physically undelivered exposure."
+      ]
+    },
+    {
+      "id": "HIDGP-04",
+      "name": "Time-varying state drives treatment receipt",
+      "assignment": "observational_or_adaptive",
+      "delivery": "state_dependent",
+      "exposure": "state_dependent",
+      "effect": "known_structural_effect",
+      "receipt_selection": "informative_time_varying",
+      "observation": "partially_observed",
+      "censoring": "optional_informative",
+      "interference": "none",
+      "estimand": "explicitly_declared_policy_or_assignment_estimand",
+      "candidate_view": [
+        "past_observations",
+        "past_actions",
+        "delivery_evidence_when_available"
+      ],
+      "oracle_view": [
+        "full_confounder_history",
+        "potential_outcomes",
+        "structural_parameters"
+      ],
+      "invariants": [
+        "Naive received-vs-not-received contrast is biased under the declared selection mechanism.",
+        "Post-assignment mediators must not be treated as baseline confounders.",
+        "The candidate must name the estimand and assumptions before interpreting the contrast."
+      ]
+    },
+    {
+      "id": "HIDGP-05",
+      "name": "Exposure delivered but sensor observation missing or delayed",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "known",
+      "receipt_selection": "none",
+      "observation": "MCAR_MAR_MNAR_and_transport_delay",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "intention_to_treat",
+      "candidate_view": [
+        "assigned_action",
+        "sensor_events",
+        "capture_and_availability_times",
+        "missingness_metadata_when_visible"
+      ],
+      "oracle_view": [
+        "true_exposure",
+        "latent_response",
+        "potential_outcomes"
+      ],
+      "invariants": [
+        "Absence of an exposure measurement is not evidence that exposure did not occur.",
+        "Assignment/delivery/true exposure remain separate from sensor report.",
+        "Delayed events cannot be used before their availability time."
+      ]
+    },
+    {
+      "id": "HIDGP-06",
+      "name": "Positivity violation and unsupported extrapolation",
+      "assignment": "stratum_deterministic_or_near_deterministic",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "known",
+      "receipt_selection": "structural_by_stratum",
+      "observation": "complete",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "population_effect_not_identified_from_observed_support",
+      "candidate_view": [
+        "observed_assignments",
+        "pre_assignment_strata",
+        "overlap_diagnostics_if_estimable"
+      ],
+      "oracle_view": [
+        "potential_outcomes",
+        "true_assignment_mechanism"
+      ],
+      "invariants": [
+        "Unsupported strata are detected before an inverse-probability estimator is admitted.",
+        "The benchmark evaluator records lack of overlap and effective sample size.",
+        "The candidate abstains or restricts the estimand; no unsupported extrapolation is rewarded."
+      ]
+    },
+    {
+      "id": "HIDGP-07",
+      "name": "Competing terminal event and follow-up censoring",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "known",
+      "receipt_selection": "none",
+      "observation": "partial",
+      "censoring": "MCAR_conditional_and_positivity_violating",
+      "interference": "none",
+      "estimand": "fixed_horizon_itt_with_competing_event_accounting",
+      "candidate_view": [
+        "assignment",
+        "observed_event_type",
+        "followup_status",
+        "available_observations"
+      ],
+      "oracle_view": [
+        "potential_event_times",
+        "competing_risks_truth",
+        "censoring_process"
+      ],
+      "invariants": [
+        "Competing event, telemetry loss and administrative censoring use distinct event codes.",
+        "Every denominator is explicitly accounted for.",
+        "Complete-case and known-mechanism IPW results are compared only under their declared assumptions."
+      ]
+    },
+    {
+      "id": "HIDGP-08",
+      "name": "Observationally equivalent causal worlds",
+      "assignment": "observational",
+      "delivery": "latent_world_dependent",
+      "exposure": "partially_observed",
+      "effect": "world_specific_opposite_effects",
+      "receipt_selection": "structural",
+      "observation": "identical_observed_history",
+      "censoring": "optional",
+      "interference": "none",
+      "estimand": "individual_and_population_counterfactual_not_identified_without_extra_assumptions",
+      "candidate_view": [
+        "observed_event_history_only"
+      ],
+      "oracle_view": [
+        "world_identity",
+        "potential_outcomes",
+        "structural_causal_graph"
+      ],
+      "invariants": [
+        "Two different causal worlds generate byte-equivalent candidate observations.",
+        "The worlds imply different unobserved counterfactual outcomes.",
+        "A confident unique causal effect claim is a failure; the candidate must qualify or abstain."
+      ]
+    },
+    {
+      "id": "HIDGP-09",
+      "name": "Interference through shared household or task resource",
+      "assignment": "cluster_or_network_randomized",
+      "delivery": "shared_resource_constrained",
+      "exposure": "peer_and_environment_dependent",
+      "effect": "direct_and_spillover_effects",
+      "receipt_selection": "network_exposure_dependent",
+      "observation": "partial",
+      "censoring": "none",
+      "interference": "declared_network",
+      "estimand": "direct_indirect_and_total_effects_under_exposure_mapping",
+      "candidate_view": [
+        "own_assignment",
+        "permitted_network_observations",
+        "observed_resource_state"
+      ],
+      "oracle_view": [
+        "full_network_assignments",
+        "potential_outcomes_under_exposure_mapping"
+      ],
+      "invariants": [
+        "No-interference is not assumed when shared resources couple agents.",
+        "Direct, indirect and total effects are distinct estimands.",
+        "Randomization unit and exposure mapping are recorded."
+      ]
+    },
+    {
+      "id": "HIDGP-10",
+      "name": "Human state model discrepancy and regime shift",
+      "assignment": "blocked_randomized",
+      "delivery": "perfect",
+      "exposure": "perfect",
+      "effect": "known_in_DGP_but_misspecified_candidate_model",
+      "receipt_selection": "none",
+      "observation": "irregular_noisy",
+      "censoring": "none",
+      "interference": "none",
+      "estimand": "intention_to_treat_with_model_discrepancy_diagnostic",
+      "candidate_view": [
+        "observed_events",
+        "declared_model_version",
+        "pre_assignment_covariates"
+      ],
+      "oracle_view": [
+        "true_transition_law",
+        "potential_outcomes",
+        "regime_change_time"
+      ],
+      "invariants": [
+        "A model-form mismatch must not be disguised as sensor noise alone.",
+        "Calibration and error are reported by regime and horizon.",
+        "The estimator must expose disagreement or increased uncertainty under the held-out regime."
+      ]
+    }
+  ]
+}
