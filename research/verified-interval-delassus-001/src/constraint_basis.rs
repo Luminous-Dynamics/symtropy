@@ -539,25 +539,9 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     }
 
     let original_coefficients = certify_delassus_coefficients(mass, jacobian, profile)?;
-    let transformed_jacobian = multiply_point_interval(transform, jacobian)?;
-    let transformed_coefficients =
-        certify_delassus_coefficients(mass, &transformed_jacobian, profile)?;
 
-    let transform_interval = point_matrix_interval(transform)?;
-    let transform_transpose = transpose_interval(&transform_interval);
-
-    let left_product = multiply_interval(
-        &transform_interval,
-        original_coefficients.delassus_intervals(),
-    )?;
-    let delassus_from_congruence = multiply_interval(&left_product, &transform_transpose)?;
-    let delassus_common = intersect_delassus(
-        &delassus_from_congruence,
-        transformed_coefficients.delassus_intervals(),
-    )?;
-
-    // Solve T^T lambda_new = lambda_old. This applies the dual law and
-    // refuses transforms whose interval pivots cannot be separated from zero.
+    // Prove the constraint-equation basis transform is nonsingular before
+    // qualifying the transformed Jacobian or Delassus operator.
     let transform_transpose_point: [[f64; K]; K] =
         std::array::from_fn(|row| std::array::from_fn(|column| transform[column][row]));
     let transformed_multiplier = solve_point_system(&transform_transpose_point, multiplier_old)?;
@@ -569,7 +553,24 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
             return Err(ConstraintBasisErrorV1::MultiplierEquationNotEnclosed { index });
         }
     }
+
+    let transform_interval = point_matrix_interval(transform)?;
+    let transform_transpose = transpose_interval(&transform_interval);
     let transformed_residual = transform_vector(transform, residual_old)?;
+
+    let transformed_jacobian = multiply_point_interval(transform, jacobian)?;
+    let transformed_coefficients =
+        certify_delassus_coefficients(mass, &transformed_jacobian, profile)?;
+
+    let left_product = multiply_interval(
+        &transform_interval,
+        original_coefficients.delassus_intervals(),
+    )?;
+    let delassus_from_congruence = multiply_interval(&left_product, &transform_transpose)?;
+    let delassus_common = intersect_delassus(
+        &delassus_from_congruence,
+        transformed_coefficients.delassus_intervals(),
+    )?;
 
     let dual_pairing_original = pairing(multiplier_old, residual_old)?;
     let dual_pairing_transformed = pairing(&transformed_multiplier, &transformed_residual)?;
