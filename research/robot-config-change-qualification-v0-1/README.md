@@ -52,6 +52,9 @@ This work is an adapter and benchmark. It must consume these owners' stable cont
 - `claim-profile-binding-contract-v0.1.md`: proposed read-only join contract for the existing capability, change-impact, dependency, admissibility, provenance and evidence-request owners; not an upstream API.
 - `qualification-industry-crosswalk-v0.1.md`: standards, measurement-science, interoperability, commercial-product and matched-referee comparison plan.
 - `schemas/development-oracle-v0.1.schema.json`: closed structural schema for the public development oracle; does not certify label correctness.
+- `evaluator/`: isolated Rust 1.96 development-only reference evaluator for this finite 16-case fixture set; it validates both Draft 2020-12 input schemas, checks cross-file references, computes claim-relative dispositions, verifies the public oracle and emits a digest-bound result. It does not implement owner APIs or physical qualification.
+- `schemas/development-result-v0.1.schema.json`: closed Draft 2020-12 schema for the computed development result.
+- `.github/workflows/robot-config-change-reference-evaluator.yml`: focused Ubuntu/Windows/macOS format, test, oracle, CLI and Clippy workflow.
 
 All robot identities, module identifiers, evidence references, units and witness names in these files are fabricated. No vendor capability or physical measurement is asserted.
 
@@ -105,7 +108,9 @@ Do not use one scalar score to trade away safety or quality. Statistical units m
 
 ## Current verification
 
-This initial artifact tranche is authored as JSON/Markdown only. It has not been compiled or run against robot hardware. Any local JSON parsing/schema checks performed by the authoring environment must be reported separately from Rust tests, CI, HIL and physical qualification.
+The v0.1 public development package now has an isolated Rust 1.96 reference evaluator under `evaluator/`. It validates the closed corpus/oracle/result schemas, checks case/claim/witness references, computes only the explicit 16-case fixture rules, and compares every evaluated claim's disposition and reason code with the separately stored public oracle. The result binds canonical JSON digests for the corpus, oracle and result schema.
+
+This is a development-only interpreter of the public synthetic fixtures—not the scored or production evaluator described in the owner-binding note. The local claim catalog and equivalence witnesses are invented fixtures. No stable owner interfaces from Symthaea #10543/#4918 or Symtropy #1834/#3522/#3531 are inferred or replaced. A full all-platform CI pass must be reported by exact head; no physical test, HIL or qualification is implied.
 
 ## Nonclaims
 
@@ -129,14 +134,24 @@ The public oracle remains development-visible, and this correction is not a cand
 
 The same audit also made two missing claim-catalog relationships explicit: `process.output_quality` now depends on sensor mount, sensor calibration and frame transform for the inspection/acceptance-frame cases; `stopping.distance` now depends on the battery module's mass-distribution/interface state. These are synthetic claim-profile assumptions for this corpus, not universal laws for every robot. They must be replaced or confirmed by the exact profile supplied by the capability and evidence owners before any real platform assessment.
 
-## Claim-profile binding before evaluator implementation
+## Claim-profile binding before owner-integrated assessment
 
 The corpus currently contains a small local claim catalog and symbolic `target_claim_profile_ref` values. Those are useful development fixtures, but they are not yet pinned, consumable upstream claim contracts. A dependency intersection alone cannot decide whether the competent next step is applicability review, bench reverification, physical reverification, or independent adjudication.
 
-Before implementing the scored Rust evaluator, pin a read-only claim-profile binding contract. The design note is in `claim-profile-binding-contract-v0.1.md`. It specifies references to existing owners and the minimum fields the evaluator needs without creating a parallel capability registry, evidence graph, independence graph, or authority system.
+The reference evaluator is deliberately restricted to the public fixture rules. Before any scored or owner-integrated assessment, pin the read-only claim-profile binding contract in `claim-profile-binding-contract-v0.1.md`. It specifies exact references to existing owners and the minimum fields needed without creating a parallel capability registry, evidence graph, independence graph or authority system.
 
 ## Industry and standards crosswalk
 
 `qualification-industry-crosswalk-v0.1.md` records the existing test-configuration, metrology, interoperability, commercial-product and safety-standard comparators. The benchmark should ingest and compose those methods where applicable; it should not claim to replace them.
 
 The public development oracle now has a closed Draft 2020-12 schema at `schemas/development-oracle-v0.1.schema.json`. Schema shape validation is still a separate check from semantic oracle review and evaluator tests; no independent validator or Rust evaluator result is claimed by adding this schema.
+
+
+## V0.1.2 dependency-catalog audit
+
+The reference-evaluator tranche found three missing edges in the local synthetic claim catalog. The public corpus now explicitly records:
+- `controller.firmware` as a dependency of `localization.visual`;
+- `controller.firmware` as a dependency of `operator.recovery.observability`;
+- `controller.motion` as a dependency of `tool.swept_clearance`.
+
+These edges make the fixture's firmware-scope-unproven and motion-timing-changed cases agree with their intended claim-specific review/reverification obligations through actual dependency intersection, rather than evaluator-side name-based exceptions. They are corpus assumptions for this synthetic workcell only, not universal robot dependency laws. The updated corpus blob SHA-1 is `8ed43a9f4b99ddc6c8a76e8de42d6610325e2229`; consumers must update exact digest pins. The separate public oracle labels are unchanged.

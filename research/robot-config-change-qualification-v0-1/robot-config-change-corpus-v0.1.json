@@ -26,12 +26,13 @@
       "claim_id": "tool.swept_clearance",
       "criticality": "safety_critical",
       "depends_on": [
-        "base.structure",
         "arm.kinematics",
+        "base.structure",
+        "controller.motion",
+        "frame.transform",
+        "payload.geometry",
         "tool.geometry",
         "tool.mount",
-        "payload.geometry",
-        "frame.transform",
         "trajectory.profile"
       ],
       "evidence_axes": [
@@ -145,14 +146,15 @@
       "claim_id": "localization.visual",
       "criticality": "quality_critical",
       "depends_on": [
-        "sensor.camera",
-        "sensor.mount",
-        "sensor.calibration",
+        "controller.firmware",
         "drive.module",
         "frame.transform",
+        "localization.software",
+        "sensor.calibration",
+        "sensor.camera",
+        "sensor.mount",
         "site.map_epoch",
-        "timebase.clock",
-        "localization.software"
+        "timebase.clock"
       ],
       "evidence_axes": [
         "configuration_identity",
@@ -243,9 +245,10 @@
       "claim_id": "operator.recovery.observability",
       "criticality": "operational_critical",
       "depends_on": [
-        "hmi.display",
-        "fault.event_schema",
         "controller.diagnostics",
+        "controller.firmware",
+        "fault.event_schema",
+        "hmi.display",
         "timebase.clock"
       ],
       "evidence_axes": [
