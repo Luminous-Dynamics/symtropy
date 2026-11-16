@@ -14,6 +14,10 @@
 //! is a positive contact witness. Budget exhaustion or uncertain arithmetic
 //! is UNRESOLVED, never clear.
 
+use crate::co_translation_ccd::{
+    AdaptiveCertificateError, AdaptiveCollisionCertificate, AdaptiveCollisionStatus,
+    verify_adaptive_collision_certificate,
+};
 use crate::{Capsule, NormalizedTimeWindow, Vec3};
 
 const CONTACT_EPSILON_MM: f64 = 1.0e-9;
@@ -91,6 +95,95 @@ impl IntervalVerificationReceipt {
     pub fn contact_witness_established(self) -> bool {
         self.status == IntervalVerificationStatus::ContactWitness && self.witness.is_some()
     }
+}
+
+
+/// A separately computed interval-verification receipt for every leaf of one
+/// adaptive certificate. This verifier re-runs the full time × axis-parameter
+/// search per leaf; it does not trust producer narrow-phase outputs or pruned
+/// AABB outcomes as evidence of clearance.
+#[derive(Clone, Debug, PartialEq)]
+pub struct IndependentAdaptiveNoContactReceipt {
+    pub leaf_receipts: Vec<IntervalVerificationReceipt>,
+    pub parameter_boxes_visited: u64,
+    pub parameter_boxes_pruned: u64,
+    pub maximum_depth_reached: u8,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IndependentAdaptiveVerificationError {
+    CertificateReplay(AdaptiveCertificateError),
+    CertificateNotNoContact,
+    Interval(IntervalVerifierError),
+    IndependentContactWitness { leaf_index: usize },
+    IndependentUnresolved { leaf_index: usize },
+    CounterOverflow,
+}
+
+/// Independently verify a producer's NoContact certificate using the interval
+/// branch-and-bound algorithm, not the active-set narrow-phase solver.
+///
+/// Every terminal time leaf—including leaves the producer said were pruned by
+/// AABB—is rechecked over the full time × moving-axis × obstacle-axis domain.
+/// The function succeeds only when every leaf is independently proven clear.
+pub fn verify_adaptive_no_contact_independently(
+    certificate: &AdaptiveCollisionCertificate,
+    config: IntervalVerifierConfig,
+) -> Result<IndependentAdaptiveNoContactReceipt, IndependentAdaptiveVerificationError> {
+    verify_adaptive_collision_certificate(certificate)
+        .map_err(IndependentAdaptiveVerificationError::CertificateReplay)?;
+    if certificate.report.status != AdaptiveCollisionStatus::NoContact {
+        return Err(IndependentAdaptiveVerificationError::CertificateNotNoContact);
+    }
+
+    let mut leaf_receipts = Vec::with_capacity(certificate.leaves.len());
+    let mut parameter_boxes_visited = 0_u64;
+    let mut parameter_boxes_pruned = 0_u64;
+    let mut maximum_depth_reached = 0_u8;
+
+    for (leaf_index, leaf) in certificate.leaves.iter().enumerate() {
+        let receipt = verify_capsule_interval_no_contact(
+            certificate.moving,
+            certificate.moving_translation,
+            certificate.obstacle,
+            certificate.obstacle_translation,
+            leaf.window,
+            config,
+        )
+        .map_err(IndependentAdaptiveVerificationError::Interval)?;
+
+        match receipt.status {
+            IntervalVerificationStatus::Clear => {}
+            IntervalVerificationStatus::ContactWitness => {
+                return Err(
+                    IndependentAdaptiveVerificationError::IndependentContactWitness {
+                        leaf_index,
+                    },
+                );
+            }
+            IntervalVerificationStatus::Unresolved => {
+                return Err(IndependentAdaptiveVerificationError::IndependentUnresolved {
+                    leaf_index,
+                });
+            }
+        }
+
+        parameter_boxes_visited = parameter_boxes_visited
+            .checked_add(u64::from(receipt.parameter_boxes_visited))
+            .ok_or(IndependentAdaptiveVerificationError::CounterOverflow)?;
+        parameter_boxes_pruned = parameter_boxes_pruned
+            .checked_add(u64::from(receipt.parameter_boxes_pruned))
+            .ok_or(IndependentAdaptiveVerificationError::CounterOverflow)?;
+        maximum_depth_reached = maximum_depth_reached.max(receipt.maximum_depth_reached);
+        leaf_receipts.push(receipt);
+    }
+
+    Ok(IndependentAdaptiveNoContactReceipt {
+        leaf_receipts,
+        parameter_boxes_visited,
+        parameter_boxes_pruned,
+        maximum_depth_reached,
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -582,6 +675,82 @@ mod tests {
             start_parameter: 0.0,
             end_parameter: 1.0,
         }
+    }
+
+
+    #[test]
+    fn independent_interval_algorithm_can_recheck_a_complete_adaptive_no_contact_certificate() {
+        use crate::co_translation_ccd::{
+            AdaptiveSubdivisionConfig, co_translating_capsule_adaptive_query_with_certificate,
+        };
+
+        let moving = point_capsule(0.0, 0.0, 0.0, 0.5);
+        let obstacle = point_capsule(10.0, 0.0, 0.0, 0.5);
+        let certificate = co_translating_capsule_adaptive_query_with_certificate(
+            moving,
+            p(0.0, 0.0, 0.0),
+            obstacle,
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 4,
+                minimum_window_width: 1.0 / 16.0,
+            },
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+
+        let independent = verify_adaptive_no_contact_independently(
+            &certificate,
+            IntervalVerifierConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(independent.leaf_receipts.len(), certificate.leaves.len());
+        assert!(independent
+            .leaf_receipts
+            .iter()
+            .all(|receipt| receipt.status == IntervalVerificationStatus::Clear));
+        assert!(independent.parameter_boxes_visited > 0);
+    }
+
+    #[test]
+    fn independent_no_contact_recheck_abstains_when_parameter_budget_is_exhausted() {
+        use crate::co_translation_ccd::{
+            AdaptiveSubdivisionConfig, co_translating_capsule_adaptive_query_with_certificate,
+        };
+
+        // Parallel diagonal axes whose AABBs overlap, but whose true axis
+        // separation exceeds the radius sum. The active-set producer can
+        // solve this bounded geometry, while the independent interval
+        // verifier needs subdivision to eliminate the broad parameter box.
+        let moving = Capsule::new(p(0.0, 0.0, 0.0), p(10.0, 10.0, 0.0), 1.0).unwrap();
+        let obstacle = Capsule::new(p(0.0, 10.0, 0.0), p(10.0, 20.0, 0.0), 1.0).unwrap();
+        assert!(moving.aabb().overlaps(obstacle.aabb()));
+
+        let certificate = co_translating_capsule_adaptive_query_with_certificate(
+            moving,
+            p(0.0, 0.0, 0.0),
+            obstacle,
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 0,
+                minimum_window_width: 1.0,
+            },
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+
+        assert_eq!(
+            verify_adaptive_no_contact_independently(
+                &certificate,
+                IntervalVerifierConfig {
+                    maximum_nodes: 1,
+                    maximum_depth: 0,
+                },
+            ),
+            Err(IndependentAdaptiveVerificationError::IndependentUnresolved {
+                leaf_index: 0,
+            })
+        );
     }
 
     #[test]
