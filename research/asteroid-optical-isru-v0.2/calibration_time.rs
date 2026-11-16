@@ -305,7 +305,7 @@ mod tests {
         }]);
 
         assert_eq!(
-            assess_calibration_at(&measurement(150), &[record.clone()], 219),
+            assess_calibration_at(&measurement(150), std::slice::from_ref(&record), 219),
             Ok(CalibrationTemporalStatus::WithinDeclaredValidity)
         );
         assert_eq!(
