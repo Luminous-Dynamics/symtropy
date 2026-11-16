@@ -6,7 +6,7 @@
 
 ## Supported public formats
 
-FJSPLib documents 138 classic flexible-job-shop instances, 264 machine-independent flexible-job-shop instances and 50 flexible-assembly job-shop instances. Its reference protocol compares CPLEX, CP Optimizer, OR-Tools CP-SAT and OptalCP under a standardized 10-minute budget and records best-known lower/upper bounds.
+FJSPLib documents 452 logical instances: 138 classic flexible-job-shop, 264 machine-independent flexible-job-shop and 50 flexible-assembly instances. The upstream text repository contains 402 FJSP and 452 FAJSP representations (854 source files total); the 402 non-assembly cases have paired encodings, while the 50 assembly cases are FAJSP-only. A complete hash-pinned metadata index is in `corpus/fjsplib-index-2026-10-22.tsv`. Its reference protocol compares CPLEX, CP Optimizer, OR-Tools CP-SAT and OptalCP under a standardized 10-minute budget and records best-known lower/upper bounds.
 
 This adapter supports the two documented text formats:
 
