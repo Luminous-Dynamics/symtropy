@@ -752,13 +752,7 @@ mod tests {
     fn unresolved_criterion_receipt_id_is_rejected() {
         let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
         // Include receipts 1-3 so the first unresolved identity is 4.
-        let receipts = vec![
-            receipt(90),
-            receipt(1),
-            receipt(2),
-            receipt(3),
-            receipt(5),
-        ];
+        let receipts = vec![receipt(90), receipt(1), receipt(2), receipt(3), receipt(5)];
         assert_eq!(
             assessment.validate_against_receipts(&receipts),
             Err(NetworkEvidenceError::MissingObservationReceipt(
