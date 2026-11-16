@@ -48,8 +48,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 44,
-      "maxItems": 44,
+      "minItems": 46,
+      "maxItems": 46,
       "items": {
         "type": "object",
         "additionalProperties": false,
