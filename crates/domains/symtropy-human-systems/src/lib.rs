@@ -79,7 +79,10 @@ impl CircadianParameters {
             harmonics,
         };
         value.validate()?;
-        Ok(value)
+        Ok(Self {
+            phase_offset_hours: phase_offset_hours.rem_euclid(period_hours),
+            ..value
+        })
     }
 
     /// Construct the published five-harmonic waveform shape with an explicit
@@ -100,6 +103,8 @@ impl CircadianParameters {
             || self.period_hours <= 0.0
             || !self.phase_offset_hours.is_finite()
             || self.harmonics.iter().any(|coefficient| !coefficient.is_finite())
+            || self.harmonics.iter().map(|coefficient| coefficient.abs()).sum::<f64>()
+                >= f64::MAX / 2.0
         {
             return Err(ModelError::InvalidCircadianParameters);
         }
@@ -174,6 +179,12 @@ impl SleepRegulationModel {
         }
         process_s_parameters.validate()?;
         circadian_parameters.validate()?;
+        let circadian_parameters = CircadianParameters {
+            phase_offset_hours: circadian_parameters
+                .phase_offset_hours
+                .rem_euclid(circadian_parameters.period_hours),
+            ..circadian_parameters
+        };
 
         Ok(Self {
             process_s: initial_process_s,
@@ -197,9 +208,14 @@ impl SleepRegulationModel {
             return Err(ModelError::InvalidElapsedTime);
         }
 
-        let new_clock = (self.elapsed_hours_in_period
-            + elapsed_hours.rem_euclid(self.circadian_parameters.period_hours))
-            .rem_euclid(self.circadian_parameters.period_hours);
+        let period = self.circadian_parameters.period_hours;
+        let wrapped_duration = elapsed_hours.rem_euclid(period);
+        let time_until_wrap = period - self.elapsed_hours_in_period;
+        let new_clock = if wrapped_duration >= time_until_wrap {
+            wrapped_duration - time_until_wrap
+        } else {
+            self.elapsed_hours_in_period + wrapped_duration
+        };
 
         let next_process_s = match state {
             SleepWakeState::Wake => {
@@ -233,9 +249,11 @@ impl SleepRegulationModel {
             .enumerate()
         {
             let harmonic = (index + 1) as f64;
-            let angle = TAU * harmonic
-                * (self.elapsed_hours_in_period + self.circadian_parameters.phase_offset_hours)
-                / self.circadian_parameters.period_hours;
+            let phase_fraction = self.elapsed_hours_in_period
+                / self.circadian_parameters.period_hours
+                + self.circadian_parameters.phase_offset_hours
+                    / self.circadian_parameters.period_hours;
+            let angle = TAU * harmonic * phase_fraction;
             process_c += amplitude * angle.sin();
         }
 
@@ -364,6 +382,30 @@ mod tests {
         );
         assert_eq!(
             CircadianParameters::new(0.0, 0.0, REFERENCE_C_HARMONICS),
+            Err(ModelError::InvalidCircadianParameters)
+        );
+    }
+
+ 
+    #[test]
+    fn circadian_phase_is_normalized_without_changing_periodicity() {
+        let normalized = CircadianParameters::new(
+            24.0,
+            27.0,
+            REFERENCE_C_HARMONICS,
+        )
+        .unwrap();
+        assert!((normalized.phase_offset_hours - 3.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn non_finite_harmonic_sum_is_rejected_before_model_mutation() {
+        assert_eq!(
+            CircadianParameters::new(
+                24.0,
+                0.0,
+                [f64::MAX, f64::MAX, 0.0, 0.0, 0.0],
+            ),
             Err(ModelError::InvalidCircadianParameters)
         );
     }
