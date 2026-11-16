@@ -62,9 +62,7 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         }
     }
 
-    let suites = profile
-        .get("benchmark_suites")
-        .and_then(Value::as_array);
+    let suites = profile.get("benchmark_suites").and_then(Value::as_array);
     let mut suite_ids = BTreeSet::new();
     if let Some(suites) = suites {
         for suite in suites {
@@ -88,7 +86,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 .and_then(Value::as_f64)
                 .unwrap_or(0.0);
             if stretch < first_pass {
-                errors.push(format!("{id}: stretch success target must not be below first-pass target"));
+                errors.push(format!(
+                    "{id}: stretch success target must not be below first-pass target"
+                ));
             }
             let first_throughput = suite
                 .get("first_pass_human_throughput_ratio")
@@ -99,7 +99,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 .and_then(Value::as_f64)
                 .unwrap_or(0.0);
             if stretch_throughput < first_throughput {
-                errors.push(format!("{id}: stretch throughput target must not be below first-pass target"));
+                errors.push(format!(
+                    "{id}: stretch throughput target must not be below first-pass target"
+                ));
             }
             if id == "standardized_commercial_textiles"
                 && (first_pass <= 0.994 || first_throughput <= 0.6)
@@ -124,7 +126,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         "diverse_household_garments",
     ] {
         if !suite_ids.contains(required) {
-            errors.push(format!("required non-pooled benchmark suite missing: {required}"));
+            errors.push(format!(
+                "required non-pooled benchmark suite missing: {required}"
+            ));
         }
     }
 
@@ -138,16 +142,16 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             if !comparator_ids.insert(id.to_owned()) {
                 errors.push(format!("duplicate external comparator: {id}"));
             }
-            if comparator
-                .get("is_our_result")
-                .and_then(Value::as_bool)
-                != Some(false)
-            {
-                errors.push(format!("{id}: external benchmark cannot be presented as our result"));
+            if comparator.get("is_our_result").and_then(Value::as_bool) != Some(false) {
+                errors.push(format!(
+                    "{id}: external benchmark cannot be presented as our result"
+                ));
             }
             let suite_id = text_at(comparator, "suite_id").unwrap_or("");
             if !suite_ids.contains(suite_id) {
-                errors.push(format!("{id}: comparator references unknown or pooled suite"));
+                errors.push(format!(
+                    "{id}: comparator references unknown or pooled suite"
+                ));
             }
         }
     } else {
