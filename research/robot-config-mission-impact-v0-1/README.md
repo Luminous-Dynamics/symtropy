@@ -50,6 +50,12 @@ All article IDs, configurations, task references, event IDs, timestamps and outc
    - https://arxiv.org/abs/2610.27861
 3. He et al., *MOST: Memory of Object States and Task Progress for Long-Horizon Mobile Manipulation*, arXiv:2611.00734, 31 October 2026. It motivates preserving task-relevant world-state changes and subtask progress through long missions.
    - https://arxiv.org/abs/2611.00734
+4. Petkov et al., *LADDER: A Long-Horizon Robot Manipulation Benchmark*. It evaluates 145 tasks with 1–10 subgoals and exposes horizon-related failure and orchestration cost; the manipulation results are not construction baselines.
+   - https://ladderrobotics.ai/research
+5. Jiang et al., *What Are We Actually Benchmarking in Robot Manipulation?*, CoRL 2026, arXiv:2606.04233. It audits shortcut solvability, statistical significance, creeping overfitting and data-source dependence.
+   - https://arxiv.org/abs/2606.04233
+6. Ping et al., *DexArena: A Unified Benchmark for Long-Horizon Dexterous Manipulation*, arXiv:2611.02629. It uses explicit stage-level success conditions and multiple embodiments/end-effectors.
+   - https://arxiv.org/abs/2611.02629
 
 These papers concern general/household mobile manipulation. They inform benchmark methodology; their results are not construction-robot performance comparators.
 
