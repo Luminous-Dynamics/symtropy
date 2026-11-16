@@ -7,7 +7,7 @@
 //!
 //! This crate parses and validates benchmark data. It is not a scheduler.
 
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::VecDeque;
 use std::fmt;
 
 pub mod exact;
@@ -681,7 +681,6 @@ pub fn parse_fajsp(
     }
 
     let mut precedences = Vec::with_capacity(precedence_count);
-    let mut job_ids = BTreeSet::new();
     for line in lines.iter().skip(1).take(precedence_count) {
         let tokens: Vec<&str> = line.content.split_whitespace().collect();
         if tokens.len() != 3 {
@@ -694,7 +693,6 @@ pub fn parse_fajsp(
         let before = parse_usize(tokens.first(), line.number, "precedence before-operation")?;
         let after = parse_usize(tokens.get(1), line.number, "precedence after-operation")?;
         let job_id = parse_usize(tokens.get(2), line.number, "precedence job identifier")?;
-        job_ids.insert(job_id);
         precedences.push(Precedence {
             before,
             after,
@@ -727,7 +725,7 @@ pub fn parse_fajsp(
             instance_id,
             source_family,
             machine_count,
-            declared_job_count: (!job_ids.is_empty()).then_some(job_ids.len()),
+            declared_job_count: None,
             average_flexibility: None,
         },
         operations,
@@ -778,7 +776,7 @@ mod tests {
     fn fajsp_fattahi_example_preserves_explicit_precedence_graph() {
         let instance = parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1).unwrap();
         assert_eq!(instance.source_format, SourceFormat::Fajsp);
-        assert_eq!(instance.declared_job_count, Some(2));
+        assert_eq!(instance.declared_job_count, None);
         assert_eq!(instance.machine_count, 2);
         assert_eq!(instance.operations.len(), 4);
         assert_eq!(
