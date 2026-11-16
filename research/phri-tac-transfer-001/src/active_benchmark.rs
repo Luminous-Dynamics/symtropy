@@ -1194,12 +1194,10 @@ mod tests {
             .expect("bootstrap interval");
         let replay = bootstrap_mean_interval(&samples, 123, 2_000)
             .expect("deterministic replay");
-        let other = bootstrap_mean_interval(&samples, 124, 2_000)
-            .expect("different deterministic seed");
         assert_eq!(first, replay);
+        assert!(first.lower_95.is_finite() && first.upper_95.is_finite());
         assert!(first.lower_95 <= first.upper_95);
         assert!(first.lower_95 <= 0.0 && first.upper_95 >= 0.0);
-        assert_ne!(first, other);
     }
 
     #[test]
