@@ -73,6 +73,20 @@
         "spares lead time",
         "cost per admitted useful m3"
       ]
+    },
+    {
+      "id": "T0-safe-state-machine",
+      "cases": [
+        "only admitted shower/bath source starts RAW_COLLECTION",
+        "unknown or rejected source cannot enter treatment",
+        "raw residence expiry diverts or enters lockout",
+        "cassette/process envelope failure isolates reclaimed outlet",
+        "sample batch mismatch blocks PRODUCT_HOLD release",
+        "independent quality admission for exact intended use required before RELEASED_PRODUCT",
+        "power loss or stale critical evidence closes reclaimed outlet",
+        "BACKUP_ONLY requires verified air gap and carries zero reclaimed-water credit",
+        "MAINTENANCE_LOCKOUT requires qualified signed restart checks"
+      ]
     }
   ],
   "acceptance_gates": [
@@ -83,6 +97,10 @@
     "independent lab methods/sample plan admitted before quality claims",
     "water/energy/residual mass balance closes within uncertainty",
     "cross-connection and backflow review passes before connection to any building",
-    "unoccupied test cell only; no human exposure trial"
+    "unoccupied test cell only; no human exposure trial",
+    "state machine defaults to ISOLATED_SAFE with reclaimed product outlet closed",
+    "only PRODUCT_HOLD may transition to RELEASED_PRODUCT and only after batch-specific independent use-quality admission",
+    "BACKUP_ONLY remains physically separated and never contributes reclaimed-water credit",
+    "power/control loss and stale critical evidence have a fail-closed path independent of network or AI"
   ]
 }
