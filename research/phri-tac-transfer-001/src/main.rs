@@ -41,6 +41,13 @@ fn main() -> ExitCode {
                         "active_calibration_target_contact_budget={}",
                         benchmark.target_contact_budget
                     );
+                    println!(
+                        "active_calibration_observability=accepted:{} flatlines:{} affected_conditions:{} max_force_setpoint_n:{:.3}",
+                        benchmark.response_observability.accepted,
+                        benchmark.response_observability.flatline_transition_count,
+                        benchmark.response_observability.affected_condition_count,
+                        benchmark.response_observability.maximum_observed_force_setpoint_n,
+                    );
                     for result in benchmark.results {
                         println!(
                             "policy={} source_contacts={} target_contacts={} source_cost_ms={} target_cost_ms={} total_synthetic_cost_ms={} rmse_n={:.6} p95_abs_n={:.6} worst_abs_n={:.6} prediction_interval_coverage95={:.4} mean_interval_width_n={:.6} claim={}",
