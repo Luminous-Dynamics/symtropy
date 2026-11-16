@@ -557,7 +557,13 @@ mod tests {
                 edge_ids: vec!["demonstrated-ab".to_string()]
             }
         );
-        assert_eq!(retreat, outbound);
+        assert_eq!(
+            retreat,
+            RouteKnowledge::DemonstratedRoute {
+                node_ids: vec!["chamber-a".to_string(), "entrance".to_string()],
+                edge_ids: vec!["demonstrated-ab".to_string()]
+            }
+        );
     }
 
     #[test]
