@@ -262,7 +262,8 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
     }
     let file_ids: BTreeSet<String> = crate_entities
         .iter()
-        .filter_map(|(id, value)| (entity_type(value) == Some("File")).then_some(id.clone()))
+        .filter(|(_, value)| entity_type(value) == Some("File"))
+        .map(|(id, _)| id.clone())
         .collect();
     if file_ids != expected_parts {
         return Err("RO-Crate File entity inventory does not exactly match the root data entity inventory".to_owned());
@@ -578,7 +579,7 @@ mod tests {
             .iter_mut()
             .find(|node| node["@id"] == "./")
             .expect("root");
-        root["hasPart"].as_array_mut().expect("parts").pop();
+        let _ = root["hasPart"].as_array_mut().expect("parts").pop();
         let error = validate_crate(&metadata.to_string(), PROV).expect_err("missing file part");
         assert!(error.contains("root.hasPart does not exactly match"));
     }
@@ -603,7 +604,8 @@ mod tests {
     fn duplicate_ro_crate_ids_are_rejected() {
         let mut metadata = crate_value();
         let graph = metadata["@graph"].as_array_mut().expect("graph");
-        graph.push(graph[2].clone());
+        let duplicate = graph[2].clone();
+        graph.push(duplicate);
         let error = validate_crate(&metadata.to_string(), PROV).expect_err("duplicate ID");
         assert!(error.contains("duplicate RO-Crate @id"));
     }
