@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/schemas/power-fabric/model-validation-receipt-v0.1.schema.json",
+  "title": "Power Fabric Model Validation Receipt v0.1",
+  "description": "Per-output, source-bound record of one model validation attempt. A receipt records evidence; it does not make a model or asset physically true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "profile_id",
+    "profile_artifact",
+    "target",
+    "run",
+    "protocol",
+    "reference_methods",
+    "output_results",
+    "negative_controls",
+    "overall_disposition",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "receipt_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "profile_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "profile_artifact": {
+      "$ref": "#/$defs/artifactRef"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "hardware_revision",
+        "firmware_revision",
+        "as_built_configuration"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/$defs/identityRef"
+        },
+        "hardware_revision": {
+          "$ref": "#/$defs/identityRef"
+        },
+        "firmware_revision": {
+          "$ref": "#/$defs/identityRef"
+        },
+        "as_built_configuration": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "started_at",
+        "model_revision",
+        "input_artifact",
+        "run_artifact"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "model_revision": {
+          "$ref": "#/$defs/identityRef"
+        },
+        "input_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        },
+        "run_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        },
+        "solver_status": {
+          "$ref": "#/$defs/identityRef"
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "revision",
+        "protocol_artifact"
+      ],
+      "properties": {
+        "protocol_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "revision": {
+          "$ref": "#/$defs/identityRef"
+        },
+        "protocol_artifact": {
+          "$ref": "#/$defs/artifactRef"
+        }
+      }
+    },
+    "reference_methods": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "method_id",
+          "evidence_class",
+          "independent_identity",
+          "artifact"
+        ],
+        "properties": {
+          "method_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "evidence_class": {
+            "enum": [
+              "AnalyticallyVerified",
+              "ReferenceDifferential",
+              "LaboratoryMeasured",
+              "HardwareInLoop",
+              "FieldObserved",
+              "IndependentlyReviewed"
+            ]
+          },
+          "independent_identity": {
+            "$ref": "#/$defs/identityRef"
+          },
+          "artifact": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        }
+      }
+    },
+    "output_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "output_id",
+              "quantity",
+              "unit",
+              "status",
+              "observed",
+              "reference",
+              "absolute_error",
+              "tolerance",
+              "uncertainty"
+            ],
+            "properties": {
+              "output_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "quantity": {
+                "$ref": "#/$defs/text"
+              },
+              "unit": {
+                "$ref": "#/$defs/text"
+              },
+              "status": {
+                "enum": [
+                  "pass",
+                  "fail"
+                ]
+              },
+              "observed": {
+                "type": "number"
+              },
+              "reference": {
+                "type": "number"
+              },
+              "absolute_error": {
+                "type": "number",
+                "minimum": 0
+              },
+              "tolerance": {
+                "type": "number",
+                "minimum": 0
+              },
+              "uncertainty": {
+                "$ref": "#/$defs/uncertaintyRef"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/text"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "output_id",
+              "quantity",
+              "unit",
+              "status",
+              "reason"
+            ],
+            "properties": {
+              "output_id": {
+                "$ref": "#/$defs/identifier"
+              },
+              "quantity": {
+                "$ref": "#/$defs/text"
+              },
+              "unit": {
+                "$ref": "#/$defs/text"
+              },
+              "status": {
+                "enum": [
+                  "unknown",
+                  "not_evaluable"
+                ]
+              },
+              "reason": {
+                "$ref": "#/$defs/text"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "control_id",
+          "expected_disposition",
+          "observed_disposition",
+          "status"
+        ],
+        "properties": {
+          "control_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "expected_disposition": {
+            "enum": [
+              "reject",
+              "abstain",
+              "replan"
+            ]
+          },
+          "observed_disposition": {
+            "enum": [
+              "reject",
+              "abstain",
+              "replan",
+              "unknown",
+              "not_run"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "not_run"
+            ]
+          },
+          "reason": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "overall_disposition": {
+      "enum": [
+        "complete_pass",
+        "complete_fail",
+        "incomplete",
+        "not_evaluable"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "structural_only",
+        "analytical_only",
+        "reference_differential",
+        "laboratory",
+        "hardware_in_loop",
+        "field_observed"
+      ]
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "evidence"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_reviewed",
+            "reviewed",
+            "disputed"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactRef"
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    }
+  }
+}
