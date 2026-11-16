@@ -142,3 +142,12 @@ The records establish that multiple streams exist within the AFEX collection and
 All resources remain metadata-only in the current register. No raw archive bytes, plot-level joins, treatment effects, calibrated process pathways, integrated digital twin or SOTA advantage are claimed.
 
 The ratio's plot identity is part of its scientific meaning. Do not compute turnover after dropping plot IDs and joining only on treatment/year, and do not average stock and productivity before forming the plot-level response. See [AFEX_RATIO_ESTIMAND_V0_1.md](AFEX_RATIO_ESTIMAND_V0_1.md) and [#5443](https://github.com/Luminous-Dynamics/symtropy/issues/5443) for the synthetic same-marginal/opposite-pairing challenge.
+
+
+### 16 November 2026 — EIDC archive endpoint and access status
+
+The EIDC catalogue pages now expose the supporting-documentation package endpoints for the two highest-priority root trait records:
+- phosphatase supporting docs: https://data-package.ceh.ac.uk/sd/6529004d-b6e8-429d-ac68-0f5324d7e5d0.zip
+- morphology supporting docs: https://data-package.ceh.ac.uk/sd/4ccaab66-2818-41b8-8b31-1a710766c5d6.zip
+
+Both endpoints are recorded in [DATASET_CANDIDATE_REGISTER_V0_1.json](DATASET_CANDIDATE_REGISTER_V0_1.json). Catalogue links and Open Government Licence statements are verified; direct binary ZIP retrieval from the current runtime failed. The full data endpoint is not admitted. EIDC's current programmatic guidance states that downloads via tools such as wget/curl require a Personal Access Token, following its 5 October 2026 migration. No token is available in this workflow. The register therefore keeps `downloaded=false`, `data_ingested=false`, no SHA-256 and no file manifest. Do not infer raw-data admission from the catalogue page or link.
