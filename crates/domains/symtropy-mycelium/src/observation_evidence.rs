@@ -301,7 +301,7 @@ impl ObservationEvidenceReceipt {
             }
             _ => {
                 if let Some(event_id) = self.graph_event
-                    && !graph.has_applied_event(event_id)
+                    && !graph.contains_event(event_id)
                 {
                     return Err(EvidenceReceiptError::MissingGraphEvent(event_id));
                 }
