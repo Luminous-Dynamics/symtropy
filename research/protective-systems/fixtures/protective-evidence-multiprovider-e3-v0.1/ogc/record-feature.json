@@ -1,0 +1,61 @@
+{
+  "type": "Feature",
+  "id": "e3-synthetic-record-001",
+  "geometry": null,
+  "properties": {
+    "title": "Synthetic resilient water service catalogue record",
+    "description": "Synthetic OGC API - Records Core 1.0 catalog metadata fixture. No geospatial payload is bundled or implied.",
+    "type": "dataset",
+    "created": "2026-11-16T10:00:00Z",
+    "updated": "2026-11-16T10:00:00Z",
+    "conformsTo": [
+      "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core"
+    ],
+    "language": "en",
+    "languages": [
+      "en"
+    ],
+    "keywords": [
+      "resilience",
+      "water",
+      "synthetic"
+    ],
+    "themes": [],
+    "contacts": [],
+    "providers": [],
+    "extent": {
+      "spatial": {
+        "bbox": [
+          -180,
+          -90,
+          180,
+          90
+        ],
+        "crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+      },
+      "temporal": {
+        "interval": [
+          "2026-01-01T00:00:00Z",
+          null
+        ],
+        "trs": "http://www.opengis.net/def/uom/ISO-8601/0/Gregorian"
+      }
+    },
+    "e3Extension": {
+      "value": "must-be-preserved",
+      "provenance": "E3 synthetic test only"
+    }
+  },
+  "links": [
+    {
+      "rel": "self",
+      "type": "application/geo+json",
+      "href": "https://example.invalid/ogc/collections/synthetic/items/e3-synthetic-record-001"
+    },
+    {
+      "rel": "collection",
+      "type": "application/json",
+      "href": "https://example.invalid/ogc/collections/synthetic"
+    }
+  ]
+}
