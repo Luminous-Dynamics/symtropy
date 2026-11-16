@@ -170,9 +170,16 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
   tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json
 ```
 
-The current synthetic bundle contains 14 external evidence envelopes. The admission report explicitly sets `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
+The current synthetic bundle contains 14 external evidence envelopes. The admission report classifies the required downstream verification domains (household grant, service-provider, receiver capability, physical observation, counterparty custody and transaction outcome), but does not authenticate any of them.
 
-This is a structural receipt-admission gate, not a cryptographic verifier. It does not check signatures, revocation, hardware attestation, sensor truth, evidence-source independence or actual physical state. Do not equate an admitted envelope with a trusted observation or authorized actuation. CI archives the raw admission report and hashes it with the other MFB evidence outputs.
+The report explicitly separates:
+- `declared_freshness_policy_passed=true`: declared timestamps pass the scenario-relative policy and its full clock-uncertainty interval;
+- `trusted_time_verified=false`: no trusted timestamp authority or clock attestation is checked;
+- `content_digest_verified=false`: SHA-256 syntax is checked, but the digest is not recomputed from canonical evidence content;
+- `cryptographic_authentication_verified=false` and `issuer_authorization_verified=false`;
+- `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
+
+This is structural envelope admission, not a cryptographic verifier or trusted chronology theorem. Do not equate an admitted envelope or a declared freshness pass with authenticated content, an authorized issuer, a truthful observation or authorized actuation. For physical-evidence authentication, reuse the existing Symtropy PHYS-EVID-03A/B0/B1 and Xenia typed-attestor workstreams; do not add a separate Ed25519-only or generic signing shortcut. CI archives the raw admission report and hashes it with the other MFB evidence outputs.
 
 ### Exact-head receipt-admission qualification (2026-11-16)
 
