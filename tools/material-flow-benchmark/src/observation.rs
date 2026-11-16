@@ -58,6 +58,13 @@ pub struct PresenceAdjudicationPolicy {
     pub minimum_independent_groups: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PresenceAdjudicationInput {
+    pub policy: PresenceAdjudicationPolicy,
+    pub observations: Vec<ReceiverPresenceObservation>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PresenceAdjudicationReport {
     pub schema_version: u16,
@@ -224,6 +231,10 @@ pub fn adjudicate_receiver_presence(
         PresenceVerdict::ConfirmedAbsent
     } else if fresh_observations.is_empty() && stale_observation_count > 0 {
         PresenceVerdict::Stale
+    } else if stale_observation_count > 0
+        && independent_group_count < policy.minimum_independent_groups
+    {
+        PresenceVerdict::Stale
     } else {
         PresenceVerdict::Unknown
     };
@@ -345,6 +356,23 @@ mod tests {
         assert_eq!(report.verdict, PresenceVerdict::Contradictory);
         assert!(!report.positive_presence_confirmed);
         assert!(!report.custody_completion_permitted);
+    }
+
+    #[test]
+    fn stale_negative_observation_cannot_be_used_to_erase_a_fresh_single_positive() {
+        let mut stale_negative =
+            observation("evt-2", "gate-contact", Some("gate-controller"), PresenceReading::Absent);
+        stale_negative.observed_at_unix_ms = 100;
+        let report = adjudicate_receiver_presence(
+            &[
+                observation("evt-1", "receiver-presence", Some("receiver-device"), PresenceReading::Present),
+                stale_negative,
+            ],
+            &policy(),
+        )
+        .expect("well-formed observations");
+        assert_eq!(report.verdict, PresenceVerdict::Stale);
+        assert!(!report.positive_presence_confirmed);
     }
 
     #[test]
