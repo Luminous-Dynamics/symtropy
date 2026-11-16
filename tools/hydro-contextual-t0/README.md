@@ -31,7 +31,7 @@ The evaluator reads frozen arrays. It does not generate, calibrate, select or ex
 
 ## Evidence receipt
 
-The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 38 rows match the separate oracle.
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 40 rows match the separate oracle.
 
 ## Nonclaims
 
@@ -58,7 +58,7 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 38-case synthetic corpus adds:
+The 40-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
@@ -69,4 +69,7 @@ CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins ar
 
 ### Reference-relative probabilistic skill (cases 033–038)
 
-The 38-case synthetic corpus adds CRPSS and Brier Skill Score against a named reference forecast. A skill score is admitted only when forecast and reference share the same evaluation population, exact ordered observation case IDs and lead time; BSS also requires the same event definition. Scores are not clipped, so negative skill remains visible. A zero/near-zero reference score returns Undefined. The comparison does not prove the reference is scientifically appropriate; the reference forecast identity and generation protocol still need independent admission for real work.
+The 40-case synthetic corpus adds CRPSS and Brier Skill Score against a named reference forecast. A skill score is admitted only when forecast and reference share the same evaluation population, exact ordered observation case IDs and lead time; BSS also requires the same event definition. Scores are not clipped, so negative skill remains visible. A zero/near-zero reference score returns Undefined. The comparison does not prove the reference is scientifically appropriate; the reference forecast identity and generation protocol still need independent admission for real work.
+
+
+The CRPSS/BSS extension requires both `forecast_id` and `reference_forecast_id`. Cases 039–040 reject a reference with mismatched verification case IDs or a different event threshold definition. This makes persistence and train-only seasonal climatology separate, explicit reference populations rather than an unnamed baseline.
