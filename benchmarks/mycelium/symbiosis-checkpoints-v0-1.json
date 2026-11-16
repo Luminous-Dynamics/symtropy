@@ -1,0 +1,92 @@
+{
+  "schema_version": "myco.symbiosis_checkpoint_benchmark.v0.1",
+  "suite_id": "MYCO-SYMBIOSIS-CHECKPOINT-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5638",
+  "source": {
+    "title": "From invitation to eviction: How plants control arbuscular mycorrhizal symbiosis",
+    "doi": "10.1080/15592324.2026.2733232",
+    "publication": "2026",
+    "framework": "six overlapping checkpoints: invitation, admission, accommodation, investment, maintenance, termination and renewal",
+    "central_limit": "performance-sensitive evaluation is a hypothesis; gene expression, colonization abundance or arbuscule degeneration alone do not establish resource flux or selective sanction"
+  },
+  "checkpoints": [
+    {
+      "id": "CP-01",
+      "name": "invitation",
+      "evidence_subject": "PlantRootExudateSignal",
+      "biological_question": "Do host-derived cues increase fungal activity or encounter probability?"
+    },
+    {
+      "id": "CP-02",
+      "name": "admission",
+      "evidence_subject": "SymbioticSignalResponse",
+      "biological_question": "Does fungal signal perception support host entry competence?"
+    },
+    {
+      "id": "CP-03",
+      "name": "accommodation",
+      "evidence_subject": "ArbusculeInterfaceMorphology",
+      "biological_question": "Is the intracellular interface constructed and supported?"
+    },
+    {
+      "id": "CP-04",
+      "name": "investment",
+      "evidence_subjects": [
+        "HostCarbonInvestment",
+        "IsotopeTracerTransfer"
+      ],
+      "biological_question": "Are carbon/lipid investment and reciprocal resource movements measured?"
+    },
+    {
+      "id": "CP-05",
+      "name": "maintenance",
+      "evidence_subjects": [
+        "FungalNutrientDelivery",
+        "HostNutrientResponse"
+      ],
+      "biological_question": "Does a functioning interface persist and contribute to host nutrient acquisition?"
+    },
+    {
+      "id": "CP-06",
+      "name": "termination_and_renewal",
+      "evidence_subject": "ArbusculeTurnover",
+      "biological_question": "What is the fate of this specific interface: persistence, dismantling or renewal?"
+    }
+  ],
+  "design_rules": [
+    "checkpoint events may overlap, recur and differ across interfaces",
+    "no global linear stage automaton",
+    "plant regulation is substantial but not unilateral; fungal regulatory signals are preserved",
+    "local arbuscule termination is not removal of the connected fungal individual or genotype",
+    "time-consistent order is not causality",
+    "performance-sensitive evaluation requires measured resource contribution, host response, same-interface fate and matched control"
+  ],
+  "performance_evaluation_contract": {
+    "required_roles": [
+      "IsotopeTracerTransfer",
+      "HostNutrientResponse",
+      "ArbusculeTurnover",
+      "MatchedControlCondition"
+    ],
+    "same_interface_required": true,
+    "required_temporal_order": [
+      "resource_contribution_before_host_response",
+      "host_response_before_interface_fate"
+    ],
+    "overlapping_uncertainty": "indeterminate",
+    "complete_chain_result": "sequence_consistent_but_causality_not_established",
+    "causality_claim_permitted": false
+  },
+  "metrics": [
+    "interface_identity_persistence",
+    "checkpoint_event_precision_recall_by_stage",
+    "cross_modal_interface_registration_accuracy",
+    "event_time_bound_coverage",
+    "concurrent_checkpoint_reconstruction_accuracy",
+    "false_complete_lifecycle_rate",
+    "performance_chain_completion_rate",
+    "indeterminate_temporal_order_rate",
+    "human_adjudication_burden"
+  ],
+  "claim_ceiling": "evidence organization and claim qualification only; no established biological performance evaluation or selective sanction claim"
+}
