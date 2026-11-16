@@ -318,18 +318,10 @@ fn main() {
             },
         );
     }
-    let asynchronous_a = Capsule::new(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        0.25,
-    )
-    .expect("valid asynchronous pair A");
-    let asynchronous_b = Capsule::new(
-        Vec3::new(6.0, 0.0, 0.0),
-        Vec3::new(6.0, 0.0, 0.0),
-        0.25,
-    )
-    .expect("valid asynchronous pair B");
+    let asynchronous_a = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.25)
+        .expect("valid asynchronous pair A");
+    let asynchronous_b = Capsule::new(Vec3::new(6.0, 0.0, 0.0), Vec3::new(6.0, 0.0, 0.0), 0.25)
+        .expect("valid asynchronous pair B");
     let common_translation = Vec3::new(10.0, 0.0, 0.0);
     let adaptive_config = AdaptiveSubdivisionConfig {
         maximum_depth: 8,
