@@ -1,0 +1,342 @@
+{
+  "schema_version": "waterloop-modular-test-matrix-v0.1",
+  "design_id": "WATERLOOP-MODULAR-REF-V0.1",
+  "status": "proposed_test_contract_not_executed",
+  "evidence_class": "design_only",
+  "claim_ceiling": "test_intent_and_expected_disposition_only_no_physical_pass_or_water_quality_qualification",
+  "rules": [
+    "Stage 0 and Stage 1 use clean water only, in an unoccupied isolated test cell.",
+    "No greywater source is connected until site approval, source risk review, feed characterisation and professional design are admitted.",
+    "No chemical challenge recipes, dosing instructions or disinfection settings are specified by this matrix.",
+    "Any treatment or intended-use quality decision is owned by independent qualified assessment; the controller cannot self-admit output.",
+    "Numerical hydraulic tolerances are frozen only after calibrated instrument uncertainty, reference calculations and test-cell geometry are available."
+  ],
+  "cases": [
+    {
+      "id": "WLM-T0-001",
+      "name": "Clean-water normal hydraulic circulation",
+      "phase": "T0_clean_water",
+      "class": "positive_control",
+      "initial_state": "clean water in isolated test rig; treatment bay bypassed to reject, no use outlet",
+      "disturbance": "normal fill, transfer, tank storage and test-cistern delivery",
+      "expected": "Stable flow path; no leak; reject and delivery routes distinct",
+      "measurements": [
+        "source volume",
+        "tank level and calibrated volume",
+        "delivered volume",
+        "reject volume",
+        "pressure",
+        "flow",
+        "energy"
+      ],
+      "pass_rule": "Results within predeclared design envelope and measurement uncertainty; no unexplained route"
+    },
+    {
+      "id": "WLM-T0-002",
+      "name": "Tank level-to-volume calibration",
+      "phase": "T0_clean_water",
+      "class": "positive_control",
+      "initial_state": "isolated empty tank and calibrated volumetric reference",
+      "disturbance": "controlled fill and drain across declared operating range",
+      "expected": "Level channel maps to volume only through versioned geometry/calibration relation",
+      "measurements": [
+        "reference volume",
+        "level",
+        "temperature if material",
+        "time"
+      ],
+      "pass_rule": "Residuals fit declared uncertainty; no extrapolation outside calibrated range"
+    },
+    {
+      "id": "WLM-T0-003",
+      "name": "Pump duty and point-of-use service boundary",
+      "phase": "T0_clean_water",
+      "class": "positive_control",
+      "initial_state": "clean-water suction tank; isolated discharge to test cistern",
+      "disturbance": "declared flow and head points across candidate pump operating envelope",
+      "expected": "Flow/pressure at actual delivery boundary distinguished from tank inventory and pump nameplate",
+      "measurements": [
+        "suction pressure",
+        "discharge pressure",
+        "delivery flow",
+        "delivered volume",
+        "electrical power and energy"
+      ],
+      "pass_rule": "Measured operating points and uncertainty compared to published pump curve and independent calculation"
+    },
+    {
+      "id": "WLM-T0-004",
+      "name": "Reject path normal-state verification",
+      "phase": "T0_clean_water",
+      "class": "positive_control",
+      "initial_state": "reuse branch disabled; reject branch enabled",
+      "disturbance": "source inlet receives clean water with diversion disabled",
+      "expected": "Water routes only to contained/approved reject path",
+      "measurements": [
+        "source flow",
+        "reject flow",
+        "valve state"
+      ],
+      "pass_rule": "No liquid reaches the use outlet"
+    },
+    {
+      "id": "WLM-T0-005",
+      "name": "Independent potable and non-potable boundary inspection",
+      "phase": "T0_dry_review",
+      "class": "positive_control",
+      "initial_state": "drawings and dry assembly",
+      "disturbance": "qualified cross-connection and backflow hazard review",
+      "expected": "No shared reservoir/header or unapproved cross-connection; mains backup only through approved arrangement",
+      "measurements": [
+        "drawing revision",
+        "physical inspection",
+        "approval records"
+      ],
+      "pass_rule": "Written review approval; all points of connection and outlet labels identified"
+    },
+    {
+      "id": "WLM-T0-006",
+      "name": "Module identity and service replacement",
+      "phase": "T0_dry_review",
+      "class": "positive_control",
+      "initial_state": "module bay empty; one dummy module interface",
+      "disturbance": "remove/replace module with different serial or revision",
+      "expected": "Configuration digest changes; prior qualification is revoked; commissioning required",
+      "measurements": [
+        "module ID",
+        "revision",
+        "serial/lot",
+        "configuration digest",
+        "lockout receipt"
+      ],
+      "pass_rule": "No reuse delivery can be enabled with an unknown or uncommissioned module"
+    },
+    {
+      "id": "WLM-T0-007",
+      "name": "Unknown or excluded source",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "source isolation enabled",
+      "disturbance": "inject source identity absent or marked excluded",
+      "expected": "Source isolation and reject; no blending or use credit",
+      "measurements": [
+        "source identity",
+        "valve state",
+        "reject flow",
+        "event receipt"
+      ],
+      "pass_rule": "No flow reaches treatment/use branch"
+    },
+    {
+      "id": "WLM-T0-008",
+      "name": "Untreated source residence boundary",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "timestamped untreated volume in isolated raw buffer",
+      "disturbance": "advance simulation clock to 24 h and beyond 24 h",
+      "expected": "At/after configured WRC rule boundary, system rejects according to approved timing rule; no overdue untreated source is delivered",
+      "measurements": [
+        "capture timestamp",
+        "elapsed residence",
+        "buffer level",
+        "reject volume"
+      ],
+      "pass_rule": "No untreated greywater is sent to an end use after 24 h; exact trigger convention frozen with reviewer"
+    },
+    {
+      "id": "WLM-T0-009",
+      "name": "Missing, stale or unadmitted quality evidence",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "reuse delivery isolated",
+      "disturbance": "remove, stale-date or revoke required sample/result/channel evidence",
+      "expected": "Quality disposition Indeterminate; delivery remains isolated; diversion to reject",
+      "measurements": [
+        "sample identity",
+        "quality assessment status",
+        "validity window",
+        "valve state"
+      ],
+      "pass_rule": "No use-volume credit and no delivery to use outlet"
+    },
+    {
+      "id": "WLM-T0-010",
+      "name": "Wrong intended-use profile",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "quality assessment bound to a different use profile",
+      "disturbance": "request toilet-flush credit under mismatched profile",
+      "expected": "Not comparable / not creditable; route remains isolated",
+      "measurements": [
+        "source profile",
+        "treatment config",
+        "assessed use profile",
+        "requested use profile"
+      ],
+      "pass_rule": "No cross-use credit"
+    },
+    {
+      "id": "WLM-T0-011",
+      "name": "Disinfection barrier unproven",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "final disinfection module not admitted",
+      "disturbance": "seed loss of process-validity evidence or failed independent outlet sample",
+      "expected": "Reuse outlet closed; source to reject; municipal cistern fallback remains separate",
+      "measurements": [
+        "module state",
+        "process indicators",
+        "independent quality disposition",
+        "valve state"
+      ],
+      "pass_rule": "No output is admitted for toilet flushing"
+    },
+    {
+      "id": "WLM-T0-012",
+      "name": "Stale or invalid critical sensor",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "calibrated clean-water hydraulic system",
+      "disturbance": "freeze source flow, level, pressure or time channel; mark stale/invalid",
+      "expected": "Affected claim becomes Indeterminate; fail-safe diversion/stop according to hazard mapping",
+      "measurements": [
+        "channel ID",
+        "timestamp",
+        "quality flag",
+        "alarm",
+        "valve state"
+      ],
+      "pass_rule": "No stale sensor value is silently reused as current"
+    },
+    {
+      "id": "WLM-T0-013",
+      "name": "Loss of electrical power",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "clean water in test rig; reviewed passive reject path",
+      "disturbance": "remove primary power",
+      "expected": "Reuse delivery stops; incoming flow reaches safe reject if hydraulically possible; cistern backup is independent",
+      "measurements": [
+        "power state",
+        "valve fail position",
+        "flow",
+        "stored volume",
+        "delivery state"
+      ],
+      "pass_rule": "No unqualified or uncontrolled discharge to a use point"
+    },
+    {
+      "id": "WLM-T0-014",
+      "name": "Raw tank high-high and overflow",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "tank at normal level",
+      "disturbance": "seed high-high level or block normal transfer",
+      "expected": "Stop capture or divert before uncontrolled overflow; overflow separately metered/contained",
+      "measurements": [
+        "level",
+        "high-high switch",
+        "inlet flow",
+        "overflow volume",
+        "valve state"
+      ],
+      "pass_rule": "No overflow enters stormwater or an unapproved drain"
+    },
+    {
+      "id": "WLM-T0-015",
+      "name": "Pump no-flow / low-pressure failure",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "normal clean-water delivery",
+      "disturbance": "pump disabled or pressure/flow below declared service envelope",
+      "expected": "Reuse pump isolated; no service credited; independent cistern fallback available",
+      "measurements": [
+        "pressure",
+        "flow",
+        "pump current/power",
+        "cistern level"
+      ],
+      "pass_rule": "No false service delivery reported"
+    },
+    {
+      "id": "WLM-T0-016",
+      "name": "Blocked screen or filter",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "clean-water circuit with removable screen",
+      "disturbance": "seed blockage / differential pressure outside reviewed envelope",
+      "expected": "Module isolated or maintenance alarm, feed diverted; no uncontrolled bypass to use",
+      "measurements": [
+        "differential pressure",
+        "flow",
+        "module state",
+        "reject flow"
+      ],
+      "pass_rule": "Fail-safe action and safe maintenance isolation verified"
+    },
+    {
+      "id": "WLM-T0-017",
+      "name": "Leak and containment",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "dry containment and leak sensor verified",
+      "disturbance": "controlled clean-water leak challenge at reviewed test point",
+      "expected": "Containment detects or independently measures loss; no electrical hazard or uncontrolled floor discharge",
+      "measurements": [
+        "leak sensor",
+        "source/delivery/reject mass balance",
+        "containment volume",
+        "power isolation if required"
+      ],
+      "pass_rule": "Leak remains contained; loss is not hidden in a forced balance"
+    },
+    {
+      "id": "WLM-T0-018",
+      "name": "Suspected potable/non-potable cross-connection",
+      "phase": "T0_dry_review",
+      "class": "negative_control",
+      "initial_state": "separate empty systems",
+      "disturbance": "design/inspection challenge identifies a physical or potential connection",
+      "expected": "System quarantined; no commissioning or use until qualified remediation and approval",
+      "measurements": [
+        "inspection finding",
+        "hazard rating",
+        "drawing change",
+        "approval"
+      ],
+      "pass_rule": "Zero unresolved cross-connections"
+    },
+    {
+      "id": "WLM-T0-019",
+      "name": "Module revision or material mismatch",
+      "phase": "T0_controlled_fault",
+      "class": "negative_control",
+      "initial_state": "known module configuration",
+      "disturbance": "substitute unknown material, seal, component or firmware revision",
+      "expected": "Configuration mismatch, qualification invalidated, isolation maintained",
+      "measurements": [
+        "module BOM",
+        "wetted materials",
+        "serial",
+        "firmware/config digest"
+      ],
+      "pass_rule": "No automatic inheritance of prior module qualification"
+    },
+    {
+      "id": "WLM-T0-020",
+      "name": "Water balance residual exceeds uncertainty",
+      "phase": "T0_clean_water",
+      "class": "negative_control",
+      "initial_state": "all source/delivery/reject/overflow/storage meters calibrated",
+      "disturbance": "inject an unmetered leak or perturb a channel",
+      "expected": "Residual reported as unresolved; evaluator does not force closure or assign zero",
+      "measurements": [
+        "all flow integrals",
+        "storage delta",
+        "uncertainty budget",
+        "residual"
+      ],
+      "pass_rule": "Balance status Indeterminate/Fail outside declared uncertainty; no omitted sink added"
+    }
+  ]
+}
