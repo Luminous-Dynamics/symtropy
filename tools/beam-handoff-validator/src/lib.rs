@@ -23,8 +23,12 @@ pub fn validate_files(
     schema_path: &Path,
     envelope_path: &Path,
 ) -> Result<ValidationSummary, Vec<String>> {
-    let schema_bytes = fs::read(schema_path)
-        .map_err(|error| vec![format!("cannot read schema {}: {error}", schema_path.display())])?;
+    let schema_bytes = fs::read(schema_path).map_err(|error| {
+        vec![format!(
+            "cannot read schema {}: {error}",
+            schema_path.display()
+        )]
+    })?;
     let envelope_bytes = fs::read(envelope_path).map_err(|error| {
         vec![format!(
             "cannot read handoff {}: {error}",
@@ -39,7 +43,8 @@ pub fn validate_files(
 
     if !jsonschema::draft202012::meta::is_valid(&schema) {
         return Err(vec![
-            "schema document does not conform to the JSON Schema Draft 2020-12 meta-schema".to_owned(),
+            "schema document does not conform to the JSON Schema Draft 2020-12 meta-schema"
+                .to_owned(),
         ]);
     }
 
@@ -80,10 +85,16 @@ fn validate_document(
     let expected_population =
         number_at(envelope, &["population_ledger", "surviving_weighted_count"])?;
     let represented_population = number_at(envelope, &["distribution", "weighted_population"])?;
-    let relative_tolerance =
-        number_at(envelope, &["population_ledger", "balance_tolerance_relative"])?;
+    let relative_tolerance = number_at(
+        envelope,
+        &["population_ledger", "balance_tolerance_relative"],
+    )?;
 
-    if !close_relative(expected_population, represented_population, relative_tolerance) {
+    if !close_relative(
+        expected_population,
+        represented_population,
+        relative_tolerance,
+    ) {
         return Err(vec![format!(
             "distribution weighted population {represented_population} does not match surviving ledger population {expected_population}"
         )]);
@@ -98,7 +109,9 @@ fn validate_document(
     };
 
     if representation == "summary_only" {
-        checks.push("summary-only representation remains explicitly non-particle-resolved".to_owned());
+        checks.push(
+            "summary-only representation remains explicitly non-particle-resolved".to_owned(),
+        );
     } else {
         let correlations_preserved = envelope
             .get("distribution")
@@ -113,7 +126,9 @@ fn validate_document(
         checks.push("distribution asset path is confined to the envelope directory".to_owned());
         checks.push("asset byte length and SHA-256 digest match".to_owned());
         checks.push("CSV particle identities, weights and ancestry passed".to_owned());
-        checks.push("particle count, weighted population and effective sample size passed".to_owned());
+        checks.push(
+            "particle count, weighted population and effective sample size passed".to_owned(),
+        );
         checks.push("weighted six-dimensional mean and covariance passed".to_owned());
     }
 
@@ -158,13 +173,19 @@ fn validate_population_ledger(envelope: &Value) -> Result<(), Vec<String>> {
     let input = number_at(envelope, &["population_ledger", "input_weighted_count"])?;
     let generated = number_at(envelope, &["population_ledger", "generated_weighted_count"])?;
     let surviving = number_at(envelope, &["population_ledger", "surviving_weighted_count"])?;
-    let declared_residual =
-        number_at(envelope, &["population_ledger", "balance_residual_weighted_count"])?;
-    let tolerance =
-        number_at(envelope, &["population_ledger", "balance_tolerance_relative"])?;
+    let declared_residual = number_at(
+        envelope,
+        &["population_ledger", "balance_residual_weighted_count"],
+    )?;
+    let tolerance = number_at(
+        envelope,
+        &["population_ledger", "balance_tolerance_relative"],
+    )?;
 
     if tolerance < 0.0 {
-        return Err(vec!["population balance tolerance must be non-negative".to_owned()]);
+        return Err(vec![
+            "population balance tolerance must be non-negative".to_owned(),
+        ]);
     }
 
     if scope == "particle_production" {
@@ -209,7 +230,11 @@ fn validate_population_ledger(envelope: &Value) -> Result<(), Vec<String>> {
         let weighted_count = loss
             .get("weighted_count")
             .and_then(Value::as_f64)
-            .ok_or_else(|| vec![format!("loss cause {cause:?} has no numeric weighted_count")])?;
+            .ok_or_else(|| {
+                vec![format!(
+                    "loss cause {cause:?} has no numeric weighted_count"
+                )]
+            })?;
 
         if weighted_count < 0.0 {
             return Err(vec![format!(
@@ -283,8 +308,12 @@ fn validate_distribution_asset(
         )]
     })?;
     let joined = base_dir.join(relative_path);
-    let resolved = fs::canonicalize(&joined)
-        .map_err(|error| vec![format!("cannot resolve asset {}: {error}", joined.display())])?;
+    let resolved = fs::canonicalize(&joined).map_err(|error| {
+        vec![format!(
+            "cannot resolve asset {}: {error}",
+            joined.display()
+        )]
+    })?;
 
     if !resolved.starts_with(&root) {
         return Err(vec![format!(
@@ -452,7 +481,9 @@ fn validate_csv_distribution(
         .get("distribution")
         .and_then(|value| value.get("macro_particle_count"))
         .and_then(Value::as_u64)
-        .ok_or_else(|| "distribution.macro_particle_count must be an unsigned integer".to_owned())?;
+        .ok_or_else(|| {
+            "distribution.macro_particle_count must be an unsigned integer".to_owned()
+        })?;
 
     if count != declared_count {
         return Err(format!(
@@ -507,9 +538,8 @@ fn validate_csv_distribution(
         }
     }
 
-    let declared_mean =
-        number_array_at::<6>(envelope, &["distribution", "summary", "mean_6d"], 6)
-            .map_err(|error| error.join("; "))?;
+    let declared_mean = number_array_at::<6>(envelope, &["distribution", "summary", "mean_6d"], 6)
+        .map_err(|error| error.join("; "))?;
     for (index, (computed, declared)) in mean.iter().zip(declared_mean.iter()).enumerate() {
         if !close_moment(*computed, *declared) {
             return Err(format!(
@@ -522,8 +552,10 @@ fn validate_csv_distribution(
         matrix_array_at::<6>(envelope, &["distribution", "summary", "covariance_6d"], 6)
             .map_err(|error| error.join("; "))?;
 
-    for (row_index, (computed_row, declared_row)) in
-        covariance.iter().zip(declared_covariance.iter()).enumerate()
+    for (row_index, (computed_row, declared_row)) in covariance
+        .iter()
+        .zip(declared_covariance.iter())
+        .enumerate()
     {
         for (column_index, (computed, declared)) in
             computed_row.iter().zip(declared_row.iter()).enumerate()
@@ -534,10 +566,7 @@ fn validate_csv_distribution(
                 ));
             }
 
-            if !close_moment(
-                *declared,
-                declared_covariance[column_index][row_index],
-            ) {
+            if !close_moment(*declared, declared_covariance[column_index][row_index]) {
                 return Err(format!(
                     "declared covariance is not symmetric at [{row_index}][{column_index}]"
                 ));
@@ -554,11 +583,7 @@ fn validate_csv_distribution(
     Ok(count)
 }
 
-fn field<'a>(
-    record: &'a StringRecord,
-    index: usize,
-    name: &str,
-) -> Result<&'a str, String> {
+fn field<'a>(record: &'a StringRecord, index: usize, name: &str) -> Result<&'a str, String> {
     record
         .get(index)
         .ok_or_else(|| format!("missing value for CSV column {name:?}"))
@@ -573,7 +598,12 @@ fn number_at(root: &Value, path: &[&str]) -> Result<f64, Vec<String>> {
     value
         .as_f64()
         .filter(|number| number.is_finite())
-        .ok_or_else(|| vec![format!("field {} must be finite numeric data", path.join("."))])
+        .ok_or_else(|| {
+            vec![format!(
+                "field {} must be finite numeric data",
+                path.join(".")
+            )]
+        })
 }
 
 fn string_at(root: &Value, path: &[&str]) -> Result<String, Vec<String>> {
@@ -582,7 +612,12 @@ fn string_at(root: &Value, path: &[&str]) -> Result<String, Vec<String>> {
         .try_fold(root, |current, key| current.get(*key))
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| vec![format!("field {} must be a non-empty string", path.join("."))])?;
+        .ok_or_else(|| {
+            vec![format!(
+                "field {} must be a non-empty string",
+                path.join(".")
+            )]
+        })?;
 
     Ok(value.to_owned())
 }
@@ -607,12 +642,15 @@ fn number_array_at<const N: usize>(
 
     let mut output = [0.0_f64; N];
     for (index, value) in values.iter().enumerate() {
-        output[index] = value.as_f64().filter(|number| number.is_finite()).ok_or_else(|| {
-            vec![format!(
-                "field {}[{index}] must be finite numeric data",
-                path.join(".")
-            )]
-        })?;
+        output[index] = value
+            .as_f64()
+            .filter(|number| number.is_finite())
+            .ok_or_else(|| {
+                vec![format!(
+                    "field {}[{index}] must be finite numeric data",
+                    path.join(".")
+                )]
+            })?;
     }
 
     Ok(output)
@@ -652,8 +690,10 @@ fn matrix_array_at<const N: usize>(
         }
 
         for (column_index, value) in values.iter().enumerate() {
-            output[row_index][column_index] =
-                value.as_f64().filter(|number| number.is_finite()).ok_or_else(|| {
+            output[row_index][column_index] = value
+                .as_f64()
+                .filter(|number| number.is_finite())
+                .ok_or_else(|| {
                     vec![format!(
                         "field {}[{row_index}][{column_index}] must be finite numeric data",
                         path.join(".")
