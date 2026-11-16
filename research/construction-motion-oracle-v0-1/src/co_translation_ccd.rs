@@ -515,7 +515,7 @@ mod tests {
         let obstacle = capsule(p(10.0, -1.0, 2.0), p(10.0, 1.0, 2.0), 0.2);
         let moving_delta = p(12.0, 3.0, 0.0);
         let obstacle_delta = p(-3.0, -1.0, 0.0);
-        let counts: Vec<u32> = [1, 2, 4, 8, 16]
+        let counts: Vec<(u32, u32)> = [1, 2, 4, 8, 16]
             .into_iter()
             .map(|n| {
                 let result = co_translating_capsule_time_sliced_aabb_candidates(
@@ -533,6 +533,54 @@ mod tests {
             u64::from(pair[1].1) * u64::from(pair[0].0)
                 <= u64::from(pair[0].1) * u64::from(pair[1].0)
         }));
+    }
+
+    #[test]
+    fn time_sliced_broad_phase_never_drops_deterministic_generated_contacts() {
+        let mut seed = 0xa117_5eed_u64;
+        let mut next = || {
+            seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+            ((seed >> 32) % 2_001) as f64 - 1_000.0
+        };
+
+        for case_index in 0..64 {
+            let moving = capsule(
+                p(next(), next(), next()),
+                p(next(), next(), next()),
+                0.5,
+            );
+            let obstacle = capsule(
+                p(next(), next(), next()),
+                p(next(), next(), next()),
+                0.5,
+            );
+            let moving_delta = p(next(), next(), next());
+            let obstacle_delta = p(next(), next(), next());
+            let closest = co_translating_capsule_vs_capsule(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+            )
+            .unwrap();
+
+            if closest.is_contact(moving.radius_mm, obstacle.radius_mm) {
+                for subdivisions in [1, 2, 4, 8, 16, 32, 64] {
+                    let candidates = co_translating_capsule_time_sliced_aabb_candidates(
+                        moving,
+                        moving_delta,
+                        obstacle,
+                        obstacle_delta,
+                        subdivisions,
+                    )
+                    .unwrap();
+                    assert!(
+                        candidates.has_candidate(),
+                        "case={case_index} subdivisions={subdivisions}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
