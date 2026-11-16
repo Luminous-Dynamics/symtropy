@@ -59,6 +59,16 @@ jobs:
           grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-readiness.json
           grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-readiness.json
           cat mfb-l1-evidence/procedure-readiness.json
+      - name: Admit scoped procedure evidence receipts
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json > mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"cryptographic_authentication_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"sensor_truth_established": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-evidence-admission.json
+          cat mfb-l1-evidence/procedure-evidence-admission.json
       - name: Run analytical four-timestep free-fall convergence
         run: |
           mkdir -p mfb-l1-evidence
@@ -107,6 +117,9 @@ jobs:
             echo
             echo "[procedure_readiness_digest]"
             sha256sum mfb-l1-evidence/procedure-readiness.json
+            echo
+            echo "[procedure_evidence_admission_digest]"
+            sha256sum mfb-l1-evidence/procedure-evidence-admission.json
             echo
             echo "[dependency_lock_digest]"
             sha256sum tools/material-flow-benchmark/Cargo.lock
