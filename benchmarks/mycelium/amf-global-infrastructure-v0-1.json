@@ -1,0 +1,107 @@
+{
+  "schema_version": "myco.global_amf_infrastructure_benchmark.v0.1",
+  "suite_id": "AMF-GLOBAL-INFRASTRUCTURE-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5639",
+  "source": {
+    "title": "Global density and biomass of arbuscular mycorrhizal fungal networks",
+    "doi": "10.1126/science.adu4373",
+    "pubmed": "42275513",
+    "publication_year": 2026,
+    "study_count_reported": 322,
+    "soil_cores_reported": 16000,
+    "biomes_reported": 9,
+    "imaged_hyphae_reported": 300000,
+    "image_calibration_species_count": 2,
+    "exact_source_revision": null,
+    "supplementary_file_inventory": [],
+    "data_license": "unverified_at_file_level",
+    "downloaded": false,
+    "reproduced": false
+  },
+  "reported_estimates": {
+    "global_living_hyphal_length_km": 110000000000000000,
+    "living_hyphal_length_sd_km": 13000000000000000,
+    "global_biomass_megatons": 300,
+    "global_biomass_sd_megatons": 60,
+    "estimates_are_model_based": true
+  },
+  "evaluation_tracks": [
+    {
+      "id": "AMF-GLOBAL-T1",
+      "name": "source_record_admission",
+      "metrics": [
+        "record_completeness",
+        "unit_harmonization_error",
+        "source_duplicate_rate"
+      ]
+    },
+    {
+      "id": "AMF-GLOBAL-T2",
+      "name": "density_model_reproduction",
+      "metrics": [
+        "study_blocked_MAE",
+        "spatial_blocked_RMSE",
+        "leave_biome_out_error",
+        "spatial_residual_autocorrelation"
+      ]
+    },
+    {
+      "id": "AMF-GLOBAL-T3",
+      "name": "uncertainty_calibration",
+      "metrics": [
+        "90_percent_interval_coverage",
+        "interval_width_by_biome",
+        "worst_biome_calibration_error"
+      ]
+    },
+    {
+      "id": "AMF-GLOBAL-T4",
+      "name": "length_to_biomass_conversion",
+      "metrics": [
+        "radius_distribution_error",
+        "geometric_volume_error",
+        "dry_biomass_prediction_error",
+        "species_domain_shift"
+      ]
+    },
+    {
+      "id": "AMF-GLOBAL-T5",
+      "name": "undersampling_and_active_sampling",
+      "metrics": [
+        "uncertainty_reduction_per_cost",
+        "heldout_error_reduction",
+        "sampling_utility_vs_random"
+      ]
+    }
+  ],
+  "split_contract": {
+    "required": [
+      "study_grouped_holdout",
+      "spatial_blocked_holdout",
+      "leave_one_biome_out"
+    ],
+    "prohibited": [
+      "random_core_split_when_cores_share_study_or_spatial_block",
+      "geographic_leakage_across_adjacent_blocks"
+    ],
+    "report_by": [
+      "biome",
+      "study",
+      "sampling_method",
+      "depth_stratum"
+    ]
+  },
+  "claim_boundaries": [
+    "hyphal length density is not biomass without a calibrated geometry/density conversion",
+    "biomass is not nutrient delivery or carbon transfer rate",
+    "local hyphal presence is not common mycorrhizal network connectivity",
+    "global spatial prediction is not a direct global census"
+  ],
+  "proposed_targets_not_results": {
+    "reported_aggregate_reproduction": "reproduce reported aggregates and uncertainty from admitted source files",
+    "interval_coverage": "nominal 90 percent interval coverage at least 90 percent by biome",
+    "leakage": "no train-test source study or spatial-block leakage",
+    "sampling": "active sampling utility exceeds random and uncertainty-only baselines"
+  },
+  "claim_ceiling": "global AMF hyphal-density and biomass estimation only; not network connectivity or nutrient exchange"
+}
