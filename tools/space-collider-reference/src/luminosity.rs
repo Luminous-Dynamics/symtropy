@@ -251,9 +251,7 @@ fn luminosity_for_tune_shift(
         || tune_shift <= 0.0
         || tune_shift >= 1.0
     {
-        return Err(
-            "sensitivity inputs must be finite and physically positive".to_owned(),
-        );
+        return Err("sensitivity inputs must be finite and physically positive".to_owned());
     }
     let gamma = base.beam_energy_tev * 1_000.0 / PROTON_REST_ENERGY_GEV;
     let result_m2_s = gamma / (ELEMENTARY_CHARGE_C * PROTON_CLASSICAL_RADIUS_M)
