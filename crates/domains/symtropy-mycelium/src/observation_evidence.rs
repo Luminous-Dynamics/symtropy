@@ -28,6 +28,12 @@ pub struct ObservationRoiId(pub u64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Sha256Digest(pub [u8; 32]);
 
+impl Sha256Digest {
+    pub fn is_zero(self) -> bool {
+        self.0.iter().all(|byte| *byte == 0)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PhysicalSamplingCalibration {
     pub pixel_width_um: f64,
@@ -124,6 +130,7 @@ pub struct ObservationEvidenceReceipt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EvidenceReceiptError {
+    InvalidDigest,
     InvalidTimestamp,
     InvalidPixelCalibration,
     InvalidVoxelCalibration,
@@ -144,6 +151,7 @@ pub enum EvidenceReceiptError {
 impl fmt::Display for EvidenceReceiptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidDigest => write!(f, "source and processor digests must not be placeholder zero values"),
             Self::InvalidTimestamp => write!(f, "image timestamp must be finite and non-negative"),
             Self::InvalidPixelCalibration => {
                 write!(
@@ -237,6 +245,9 @@ impl ImageRoiBoundsPx {
 
 impl ObservationEvidenceReceipt {
     pub fn validate(&self) -> Result<(), EvidenceReceiptError> {
+        if self.source_file_sha256.is_zero() || self.processor_parameters_sha256.is_zero() {
+            return Err(EvidenceReceiptError::InvalidDigest);
+        }
         if !self.frame.timestamp_s.is_finite() || self.frame.timestamp_s < 0.0 {
             return Err(EvidenceReceiptError::InvalidTimestamp);
         }
@@ -387,6 +398,17 @@ mod tests {
     #[test]
     fn complete_source_linked_receipt_validates() {
         assert_eq!(receipt().validate(), Ok(()));
+    }
+
+    #[test]
+    fn placeholder_zero_digests_are_rejected() {
+        let mut item = receipt();
+        item.source_file_sha256 = Sha256Digest([0; 32]);
+        assert_eq!(item.validate(), Err(EvidenceReceiptError::InvalidDigest));
+
+        item = receipt();
+        item.processor_parameters_sha256 = Sha256Digest([0; 32]);
+        assert_eq!(item.validate(), Err(EvidenceReceiptError::InvalidDigest));
     }
 
     #[test]
