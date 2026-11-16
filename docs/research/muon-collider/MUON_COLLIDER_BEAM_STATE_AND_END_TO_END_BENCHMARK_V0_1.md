@@ -380,3 +380,15 @@ The first implementation is accepted only when:
 - software conformance is reported separately from code agreement and experimental correlation.
 
 This contract can establish reproducible interfaces, accounting, provenance and qualification boundaries. It cannot establish collider feasibility, real beam transmission, cooling performance, accelerator stability, detector readiness or safe operation without qualified specialist simulation and experimental evidence.
+
+## 18. Public source register
+
+The benchmark anchors above are traceable to these public sources:
+
+1. National Lab Accelerator Study Group, [Report of the National Lab Accelerator Study Group for a Muon Collider](https://arxiv.org/abs/2611.06680), 5 November 2026; Fermilab report FERMILAB-PUB-26-0741-TD.
+2. AI4MuC Workshop, [AI Acceleration of Muon Collider R&D](https://arxiv.org/abs/2610.14303), 9 October 2026. Particularly relevant are its challenge map, multi-objective metrics, stochastic cooling/tail requirements, BIB limitations, and call for public benchmarks with trusted validation samples.
+3. Lisa Soubirou and Antoine Chancé, [Impact of Rapid Acceleration on Beam Dynamics in the Rapid-Cycling Synchrotrons of a Muon Collider](https://arxiv.org/abs/2611.02865), 2 November 2026. Its RCS1 RF-distribution and 32-section energy–field mismatch results provide matched tracking cases.
+4. Wang et al., [Muon injection and acceleration via ultraintense electron beam-driven plasma wakefield](https://doi.org/10.1103/wq5g-mtjq), Physical Review Accelerators and Beams 29, 021302 (2026).
+5. Aubrey Zhang et al., [Optimizations of Performance Tradeoffs in a Rectilinear 6D Ionization Cooling Channel for a Muon Collider](https://indico.fnal.gov/event/73552/contributions/344908/), Fermilab 59th Annual Users and Affiliates Meeting, July 2026. This is a conference poster/abstract, not an independently replicated facility demonstration.
+
+Publication type and validation status are part of the evidence: a design report, conference poster, analytical screen, PIC result, code-to-code reproduction, and measured experiment are different evidence classes.
