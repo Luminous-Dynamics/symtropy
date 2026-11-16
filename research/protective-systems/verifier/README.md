@@ -270,8 +270,9 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin 
 
 The E2 gate checks the RO-Crate 1.3 descriptor, root Dataset, exact ten-file
 inventory, file byte lengths and SHA-256 values, embedded E1 envelope byte
-identity, E1 dataset IDs/directions/artifact paths, the explicit PROV binding
-manifest, rights and claim ceilings, and the sparse PROV-O graph. Each graph
+identity, the packaged Draft 2020-12 binding schema, E1 dataset IDs/directions/
+artifact paths, the explicit PROV binding manifest, rights and claim ceilings,
+and the sparse PROV-O graph. Each graph
 entity is labelled either E1_ENVELOPE_DATASET or SYNTHETIC_CONTROL_ONLY; a
 synthetic control has no provider artifact paths and cannot be promoted. The synthetic graph has two
 used inputs and two generated outputs, but exactly one explicitly declared
