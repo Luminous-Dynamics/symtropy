@@ -354,7 +354,8 @@ fn run_episode(
         hash_snapshot(&mut hasher, tick, &snapshot);
         if let Some(gate_handle) = gate_handle {
             for event in &snapshot.collision_events {
-                let package_gate_pair = (event.body_a == package_handle && event.body_b == gate_handle)
+                let package_gate_pair = (event.body_a == package_handle
+                    && event.body_b == gate_handle)
                     || (event.body_a == gate_handle && event.body_b == package_handle);
                 if package_gate_pair {
                     gate_contact_event_count += 1;
@@ -638,11 +639,10 @@ pub fn simulate_closed_gate_obstruction(
     let package_bottom_m =
         simulation.package_center_m[1] - simulation.package_world_aabb_half_extents_m[1];
     let tote_top_m = 2.0 * geometry.inner_half_m[1];
-    let physical_fault_effect_observed =
-        episode_trace.gate_contact_event_count > 0
-            && episode_trace.gate_contact_max_impulse_ns > 0.0
-            && !simulation.safe_inside_tote
-            && package_bottom_m > tote_top_m + 0.001;
+    let physical_fault_effect_observed = episode_trace.gate_contact_event_count > 0
+        && episode_trace.gate_contact_max_impulse_ns > 0.0
+        && !simulation.safe_inside_tote
+        && package_bottom_m > tote_top_m + 0.001;
     let reconciliation_required =
         simulation.transaction_state == PhysicalTransactionState::ReconciliationRequired;
     let false_completion_blocked = !simulation.accepted && reconciliation_required;
