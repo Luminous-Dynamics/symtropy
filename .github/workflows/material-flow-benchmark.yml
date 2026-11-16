@@ -73,6 +73,15 @@ jobs:
           grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-evidence-admission.json
           cat mfb-l1-evidence/procedure-evidence-admission.json
+      - name: Adjudicate false-positive receiver observation
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-adjudicate-presence -- tools/material-flow-benchmark/fixtures/false-positive-receiver-observation.json > mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"verdict": "contradictory"' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"positive_presence_confirmed": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"sensor_truth_established": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          grep -q '"custody_completion_permitted": false' mfb-l1-evidence/receiver-observation-adjudication.json
+          cat mfb-l1-evidence/receiver-observation-adjudication.json
       - name: Run analytical four-timestep free-fall convergence
         run: |
           mkdir -p mfb-l1-evidence
@@ -147,6 +156,9 @@ jobs:
             echo
             echo "[procedure_evidence_admission_digest]"
             sha256sum mfb-l1-evidence/procedure-evidence-admission.json
+            echo
+            echo "[receiver_observation_adjudication_digest]"
+            sha256sum mfb-l1-evidence/receiver-observation-adjudication.json
             echo
             echo "[gate_obstruction_fault_digest]"
             sha256sum mfb-l1-evidence/gate-obstruction-fault.json
