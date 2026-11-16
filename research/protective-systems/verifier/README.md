@@ -294,3 +294,34 @@ compact JSON-LD profile only. It does not implement all JSON-LD 1.1 processing
 algorithms or certify full W3C PROV-DM constraints/equivalence. The emitted
 report makes these limitations explicit. CI runs the separate
 `roc-validator==0.13.1` implementation against the RO-Crate 1.3 base profile.
+
+
+## E3 DataCite, OGC Records and OpenLineage portability gate
+
+The `protective-multiprovider-e3` binary validates the synthetic E3 package at
+`research/protective-systems/fixtures/protective-evidence-multiprovider-e3-v0.1/`.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-multiprovider-e3
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-multiprovider-e3
+```
+
+The E3 gate checks three static provider-native fixtures: DataCite REST JSON:API
+with selected Metadata Schema 4.7 field controls, OGC API - Records Core 1.0
+GeoJSON Feature semantics, and OpenLineage RunEvent 2.0.2 against a vendored
+official JSON Schema. It verifies native byte lengths and SHA-256, source
+identity/profile metadata, the exact E1 envelope bytes, the E3 manifest/schema,
+and the RO-Crate 1.3 file inventory.
+
+The E1 envelope stays `NOT_EXECUTED`; the OpenLineage START/COMPLETE pair
+belongs only to the synthetic E3 adapter conformance fixture. The DataCite
+and OGC adapters perform selected profile checks, not full XML/XSD or live
+server conformance. Unknown provider extension roots are retained in the
+native source snapshots and reported rather than flattened away.
+
+The E3 fixture has 26 unit tests written. Their result is pending exact-head
+hosted execution. The gate returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
