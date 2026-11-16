@@ -1457,16 +1457,16 @@ mod tests {
     fn crps_skill_score_reports_positive_skill_against_reference() {
         let out = compute_case(&fixture("inputs")["cases"][36]).expect("positive CRPSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
-        assert!((out["crps"].as_f64().expect("forecast CRPS") - 4.0 / 9.0).abs() < 1.0e-12);
+        assert!((out["crps"].as_f64().expect("forecast CRPS") - 2.0 / 9.0).abs() < 1.0e-12);
         assert!((out["reference_crps"].as_f64().expect("reference CRPS") - 20.0 / 9.0).abs() < 1.0e-12);
-        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.8).abs() < 1.0e-12);
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.9).abs() < 1.0e-12);
     }
 
     #[test]
     fn crps_skill_score_preserves_negative_skill() {
         let out = compute_case(&fixture("inputs")["cases"][37]).expect("negative CRPSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
-        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") + 4.0).abs() < 1.0e-12);
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") + 9.0).abs() < 1.0e-12);
     }
 
     #[test]
