@@ -235,3 +235,43 @@ Until these gates are satisfied, the right executable work is to improve the pub
 ## 11. Nonclaims
 
 This note does not define or implement an upstream API, dependency engine, capability registry, evidence store, equivalence authority, safety function, robot controller, commissioning workflow, maintenance ledger, physical test, certification or release decision. It is a proposed adapter contract for coordinating the existing owners.
+
+## 9. Robotics evidence-gap adapter to decision-sufficient acquisition
+
+Symthaea #12046 owns decision-sufficient evidence acquisition, competent-source selection, value-of-information assumptions and the request-planning method. #5488 must not create a second test-selection optimizer.
+
+The robotics adapter should translate claim-specific RCQ outputs into **read-only evidence-gap requests**. For each unresolved claim it may emit:
+- exact claim/profile binding and source→target configuration pair;
+- required evidence axis/dimension and the specific reason the previous evidence is not applicable;
+- a reference to an owner-approved test/inspection procedure and acceptance predicate;
+- minimum subject/configuration, ODD, calibration, frame, uncertainty and raw-artifact fields the procedure requires;
+- prerequisite claims, isolation/safe-state conditions and admissible sequence constraints;
+- competent source/laboratory/instrument class and its exact profile reference;
+- candidate cost, elapsed time, crew burden, disclosure scope and operational exposure when supplied by the owning procedure/source;
+- outcome semantics: which claim dimension the result can resolve, which claims it cannot resolve, and the accepted/failed/unknown/aborted dispositions.
+
+The adapter must not invent a test procedure from a disposition label. RequiresBenchReverification or RequiresPhysicalReverification is not itself a work instruction. If no exact competent procedure, acceptance profile or authorized source is pinned, return Unsupported/UnknownImpact and request owner review.
+
+### Minimum-competent-evidence policy
+
+The planning problem is a constrained coverage problem, not run-everything and not unconstrained cost minimization:
+
+1. Preserve all non-compensable safety, quality, legal, site and authority constraints. No expected-value or cost reduction can relax them.
+2. Cover every decision-required claim/evidence dimension with at least one competent, applicable procedure, unless the intended decision is an explicit safe abstention/hold.
+3. A single procedure may satisfy several claims only when its owner-published coverage contract explicitly lists those claims and the applicable configuration/ODD/acceptance profiles.
+4. Preserve common-mode lineage, metrology independence, calibration, event-time and raw-evidence prerequisites. Two tests sharing one unqualified reference do not become independent corroboration because they have different names.
+5. Keep candidate plans as a Pareto set over direct cost, elapsed time, total crew effort, disclosure exposure and physical risk. Do not collapse those axes to an opaque scalar.
+6. After each admissible result, re-evaluate remaining claim gaps and choose the next request adaptively. No request that contacts a source, discloses data, incurs cost, interrupts equipment or initiates a physical test occurs without the competent human/organizational approval required by its owner.
+
+For held-out evaluation, compare #12046's source-competence/dependency-aware planner with a fixed all-tests checklist, simple next-missing-field heuristic and expert human plan under the same source availability, time, cost and disclosure constraints. The robotics-specific loss should separately report critical false-clear, unnecessary retest, time to first accepted B output (#5411), accepted functional units (#3605), and maintenance/restoration context (#3628). It must not combine these into one score.
+
+### Explicit ownership split
+
+- #5488 computes only the finite fixture dispositions in v0.1 and, later, owner-integrated claim-specific applicability.
+- #10543/#4918 own generic semantic change impact and claim-relative dependency/common-mode lineage.
+- #3522/#3531/#3505 own physical trial receipts, metrology/ODD and evidence admissibility.
+- #12046 owns candidate evidence requests, source competence, decision sufficiency and value-of-information planning.
+- #5411 owns the operational A→B chronology through first accepted output.
+- #3605 owns functional-unit and independent-acceptance semantics.
+
+The adapter transports exact references and typed gaps. It is not a second evidence graph, procedure catalog, scheduling engine, safety authority or acquisition agent.
