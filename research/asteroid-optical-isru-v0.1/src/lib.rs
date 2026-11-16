@@ -1,11 +1,11 @@
-pub mod tournament;
-
 //! Minimal, deterministic accounting and geometry checks for the
 //! ASTEROID-OPTICAL-ISRU-001 benchmark.
 //!
 //! This crate deliberately does not simulate thermal spalling, chemistry,
 //! particle capture dynamics, orbital motion, or hardware safety. It checks
 //! declared boundaries and closed-form screening relationships only.
+
+pub mod tournament;
 
 use serde::Deserialize;
 use std::collections::BTreeSet;
