@@ -74,7 +74,7 @@ fn main() -> ExitCode {
                     println!("campaign_replicates={}", campaign.replicate_count);
                     for result in campaign.results {
                         println!(
-                            "campaign_policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_median={:.6} rmse_p95={:.6} rmse_max={:.6} coverage95_mean={:.4} paired_rmse_delta_mean={:.6} paired_rmse_delta_p95={:.6} cost_ms_mean={:.2}",
+                            "campaign_policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_median={:.6} rmse_p95={:.6} rmse_max={:.6} coverage95_mean={:.4} paired_rmse_delta_mean={:.6} paired_rmse_delta_p95={:.6} paired_rmse_delta_bootstrap95_low={:.6} paired_rmse_delta_bootstrap95_high={:.6} cost_ms_mean={:.2}",
                             result.policy_id,
                             result.source_reference_contacts,
                             result.target_reference_contacts,
@@ -85,6 +85,8 @@ fn main() -> ExitCode {
                             result.prediction_interval_coverage_95.mean,
                             result.paired_rmse_delta_vs_full_grid_n.mean,
                             result.paired_rmse_delta_vs_full_grid_n.p95,
+                            result.paired_rmse_delta_vs_full_grid_bootstrap_95.lower_95,
+                            result.paired_rmse_delta_vs_full_grid_bootstrap_95.upper_95,
                             result.total_estimated_fixture_cost_ms.mean,
                         );
                     }
