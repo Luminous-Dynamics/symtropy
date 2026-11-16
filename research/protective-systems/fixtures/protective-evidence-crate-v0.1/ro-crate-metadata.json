@@ -130,8 +130,8 @@
       "@type": "File",
       "name": "e2-sparse-derivation.jsonld",
       "encodingFormat": "application/ld+json",
-      "contentSize": "2209",
-      "sha256": "90ca7f5d29db2ef1e65d08e56cdc7d2452347ee53f6a8cd2d38258c04bb48b89",
+      "contentSize": "2251",
+      "sha256": "522e36e1bd48be5b497ae3822bb31e80898686d2742f2eff9ae33ed8785370ce",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
     },
