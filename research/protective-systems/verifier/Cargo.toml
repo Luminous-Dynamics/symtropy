@@ -40,3 +40,7 @@ path = "src/bin/protective_model_evidence.rs"
 [[bin]]
 name = "protective-evidence-portability"
 path = "src/bin/protective_evidence_portability.rs"
+
+[[bin]]
+name = "protective-multiprovider-e3"
+path = "src/bin/protective_multiprovider_e3.rs"
