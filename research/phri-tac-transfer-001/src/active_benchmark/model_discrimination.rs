@@ -80,9 +80,7 @@ fn validate_action(action: &CandidateActionForecast) -> Result<(), String> {
 
     for left in 0..action.model_predictions.len() {
         for right in (left + 1)..action.model_predictions.len() {
-            if action.model_predictions[left].model_id
-                == action.model_predictions[right].model_id
-            {
+            if action.model_predictions[left].model_id == action.model_predictions[right].model_id {
                 return Err("candidate action contains duplicate model IDs".to_owned());
             }
         }
@@ -99,20 +97,13 @@ fn prior_signature(action: &CandidateActionForecast) -> Vec<(String, f64)> {
     let mut signature: Vec<_> = action
         .model_predictions
         .iter()
-        .map(|prediction| {
-            (
-                prediction.model_id.clone(),
-                prediction.prior_weight / total,
-            )
-        })
+        .map(|prediction| (prediction.model_id.clone(), prediction.prior_weight / total))
         .collect();
     signature.sort_by(|left, right| left.0.cmp(&right.0));
     signature
 }
 
-fn predictive_masses(
-    predictions: &[GaussianModelPrediction],
-) -> Result<PredictiveMasses, String> {
+fn predictive_masses(predictions: &[GaussianModelPrediction]) -> Result<PredictiveMasses, String> {
     let total_prior = predictions
         .iter()
         .map(|prediction| prediction.prior_weight)
@@ -129,15 +120,13 @@ fn predictive_masses(
     let lower = predictions
         .iter()
         .map(|prediction| {
-            prediction.predictive_mean
-                - GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
+            prediction.predictive_mean - GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
         })
         .fold(f64::INFINITY, f64::min);
     let upper = predictions
         .iter()
         .map(|prediction| {
-            prediction.predictive_mean
-                + GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
+            prediction.predictive_mean + GAUSSIAN_TAIL_SIGMAS * prediction.predictive_std_dev
         })
         .fold(f64::NEG_INFINITY, f64::max);
     let width = upper - lower;
@@ -153,10 +142,9 @@ fn predictive_masses(
         let mut mass_total = 0.0;
         for bin in 0..GRID_BINS {
             let observation = lower + (bin as f64 + 0.5) * bin_width;
-            let standardized =
-                (observation - prediction.predictive_mean) / variance_scale;
-            let density = (-0.5 * standardized * standardized).exp()
-                / (variance_scale * SQRT_TWO_PI);
+            let standardized = (observation - prediction.predictive_mean) / variance_scale;
+            let density =
+                (-0.5 * standardized * standardized).exp() / (variance_scale * SQRT_TWO_PI);
             let mass = density * bin_width;
             masses.push(mass);
             mass_total += mass;
@@ -263,8 +251,7 @@ pub fn score_candidate_action(
         expected_information_gain_nats,
         minimum_pairwise_js_divergence_nats,
         identifiability_floor_nats,
-        pairwise_identifiable: minimum_pairwise_js_divergence_nats
-            >= identifiability_floor_nats,
+        pairwise_identifiable: minimum_pairwise_js_divergence_nats >= identifiability_floor_nats,
     })
 }
 
@@ -283,7 +270,10 @@ pub fn rank_candidate_actions(
     let mut action_ids = Vec::with_capacity(actions.len());
     for action in actions {
         validate_action(action)?;
-        if action_ids.iter().any(|existing| existing == &action.action_id) {
+        if action_ids
+            .iter()
+            .any(|existing| existing == &action.action_id)
+        {
             return Err("candidate action IDs must be unique".to_owned());
         }
         action_ids.push(action.action_id.clone());
@@ -293,12 +283,16 @@ pub fn rank_candidate_actions(
     for action in actions.iter().skip(1) {
         let signature = prior_signature(action);
         if signature.len() != expected_signature.len()
-            || signature.iter().zip(&expected_signature).any(|(left, right)| {
-                left.0 != right.0
-                    || (left.1 - right.1).abs() > PRIOR_COMPARISON_TOLERANCE
-            })
+            || signature
+                .iter()
+                .zip(&expected_signature)
+                .any(|(left, right)| {
+                    left.0 != right.0 || (left.1 - right.1).abs() > PRIOR_COMPARISON_TOLERANCE
+                })
         {
-            return Err("candidate actions must use the same model IDs and normalized priors".to_owned());
+            return Err(
+                "candidate actions must use the same model IDs and normalized priors".to_owned(),
+            );
         }
     }
 
@@ -324,20 +318,19 @@ pub fn rank_candidate_actions(
 mod tests {
     use super::*;
 
-    fn action(
-        action_id: &str,
-        predictions: &[(&str, f64, f64, f64)],
-    ) -> CandidateActionForecast {
+    fn action(action_id: &str, predictions: &[(&str, f64, f64, f64)]) -> CandidateActionForecast {
         CandidateActionForecast {
             action_id: action_id.to_owned(),
             model_predictions: predictions
                 .iter()
-                .map(|(model_id, prior_weight, mean, std_dev)| GaussianModelPrediction {
-                    model_id: (*model_id).to_owned(),
-                    prior_weight: *prior_weight,
-                    predictive_mean: *mean,
-                    predictive_std_dev: *std_dev,
-                })
+                .map(
+                    |(model_id, prior_weight, mean, std_dev)| GaussianModelPrediction {
+                        model_id: (*model_id).to_owned(),
+                        prior_weight: *prior_weight,
+                        predictive_mean: *mean,
+                        predictive_std_dev: *std_dev,
+                    },
+                )
                 .collect(),
         }
     }
@@ -346,10 +339,7 @@ mod tests {
     fn identical_models_are_not_declared_identifiable() {
         let candidate = action(
             "same-observation",
-            &[
-                ("rational", 1.0, 2.0, 0.2),
-                ("cubic", 1.0, 2.0, 0.2),
-            ],
+            &[("rational", 1.0, 2.0, 0.2), ("cubic", 1.0, 2.0, 0.2)],
         );
         let score = score_candidate_action(&candidate, 0.01).expect("score");
         assert!(score.expected_information_gain_nats < 1.0e-10);
@@ -370,10 +360,7 @@ mod tests {
         assert!(score.expected_information_gain_nats > 0.5);
         assert!(score.minimum_pairwise_js_divergence_nats > 0.5);
         assert!(score.pairwise_identifiable);
-        assert!(
-            score.expected_information_gain_nats
-                <= score.prior_model_entropy_nats + 1.0e-9
-        );
+        assert!(score.expected_information_gain_nats <= score.prior_model_entropy_nats + 1.0e-9);
     }
 
     #[test]
@@ -420,17 +407,11 @@ mod tests {
     fn prior_weights_are_normalized_and_scaling_does_not_change_the_score() {
         let first = action(
             "test",
-            &[
-                ("rational", 1.0, 0.0, 0.2),
-                ("cubic", 2.0, 0.5, 0.2),
-            ],
+            &[("rational", 1.0, 0.0, 0.2), ("cubic", 2.0, 0.5, 0.2)],
         );
         let second = action(
             "test",
-            &[
-                ("rational", 10.0, 0.0, 0.2),
-                ("cubic", 20.0, 0.5, 0.2),
-            ],
+            &[("rational", 10.0, 0.0, 0.2), ("cubic", 20.0, 0.5, 0.2)],
         );
         let left = score_candidate_action(&first, 0.01).expect("left");
         let right = score_candidate_action(&second, 0.01).expect("right");
@@ -439,8 +420,7 @@ mod tests {
                 < 1.0e-12
         );
         assert!(
-            (left.minimum_pairwise_js_divergence_nats
-                - right.minimum_pairwise_js_divergence_nats)
+            (left.minimum_pairwise_js_divergence_nats - right.minimum_pairwise_js_divergence_nats)
                 .abs()
                 < 1.0e-12
         );
@@ -450,19 +430,13 @@ mod tests {
     fn invalid_forecasts_fail_closed() {
         let zero_variance = action(
             "invalid",
-            &[
-                ("rational", 1.0, 0.0, 0.0),
-                ("cubic", 1.0, 0.5, 0.1),
-            ],
+            &[("rational", 1.0, 0.0, 0.0), ("cubic", 1.0, 0.5, 0.1)],
         );
         assert!(score_candidate_action(&zero_variance, 0.01).is_err());
 
         let duplicate_model = action(
             "duplicate",
-            &[
-                ("rational", 1.0, 0.0, 0.1),
-                ("rational", 1.0, 0.5, 0.1),
-            ],
+            &[("rational", 1.0, 0.0, 0.1), ("rational", 1.0, 0.5, 0.1)],
         );
         assert!(score_candidate_action(&duplicate_model, 0.01).is_err());
     }
@@ -471,17 +445,11 @@ mod tests {
     fn candidate_actions_must_share_the_same_model_priors() {
         let first = action(
             "first",
-            &[
-                ("rational", 1.0, 0.0, 0.1),
-                ("cubic", 1.0, 0.5, 0.1),
-            ],
+            &[("rational", 1.0, 0.0, 0.1), ("cubic", 1.0, 0.5, 0.1)],
         );
         let second = action(
             "second",
-            &[
-                ("rational", 1.0, 0.0, 0.1),
-                ("cubic", 3.0, 0.5, 0.1),
-            ],
+            &[("rational", 1.0, 0.0, 0.1), ("cubic", 3.0, 0.5, 0.1)],
         );
         assert!(rank_candidate_actions(&[first, second], 0.01).is_err());
     }
