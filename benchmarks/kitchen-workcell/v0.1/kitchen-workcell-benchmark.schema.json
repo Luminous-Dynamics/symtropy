@@ -87,7 +87,8 @@
             "enum": [
               "pressure_multicooker",
               "food_processor",
-              "integrated_cooking_machine"
+              "integrated_cooking_machine",
+              "stovetop_pressure_cooker"
             ]
           },
           "manufacturer": {
