@@ -64,6 +64,37 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+
+            match phri_tac_transfer_oracle::active_benchmark::run_active_calibration_campaign(
+                20261116,
+                50,
+            ) {
+                Ok(campaign) => {
+                    println!("active_calibration_campaign=paired_seed_v0_1");
+                    println!("campaign_first_seed={}", campaign.first_seed);
+                    println!("campaign_replicates={}", campaign.replicate_count);
+                    for result in campaign.results {
+                        println!(
+                            "campaign_policy={} source_contacts={} target_contacts={} rmse_mean={:.6} rmse_median={:.6} rmse_p95={:.6} rmse_max={:.6} coverage95_mean={:.4} paired_rmse_delta_mean={:.6} paired_rmse_delta_p95={:.6} cost_ms_mean={:.2}",
+                            result.policy_id,
+                            result.source_reference_contacts,
+                            result.target_reference_contacts,
+                            result.rmse_n.mean,
+                            result.rmse_n.median,
+                            result.rmse_n.p95,
+                            result.rmse_n.maximum,
+                            result.prediction_interval_coverage_95.mean,
+                            result.paired_rmse_delta_vs_full_grid_n.mean,
+                            result.paired_rmse_delta_vs_full_grid_n.p95,
+                            result.total_estimated_fixture_cost_ms.mean,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("active_calibration_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
