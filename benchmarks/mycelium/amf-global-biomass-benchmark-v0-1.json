@@ -1,0 +1,105 @@
+{
+  "schema_version": "myco.amf_global_biomass_benchmark.v0.1",
+  "suite_id": "AMF-GLOBAL-BIOMASS-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5566",
+  "source": {
+    "doi": "10.1126/science.adu4373",
+    "dryad_doi": "10.5061/dryad.p2ngf1w1f",
+    "publication_date": "2026-06-11",
+    "reported_study_count": 322,
+    "reported_soil_core_count": 16000,
+    "biomes": 9,
+    "robotic_hyphae_imaged": 300000,
+    "calibration_species_count": 2,
+    "data_downloaded": false,
+    "rights_status": "article uses Science default licence; Dryad files/code licences require file-level review"
+  },
+  "reported_global_estimates": {
+    "topsoil_living_hyphal_length_km": {
+      "mean": 110000000000000000,
+      "sd": 13000000000000000
+    },
+    "living_hyphal_biomass_megatons": {
+      "mean": 300,
+      "sd": 60
+    },
+    "biomass_relative_to_human_biomass_fold_range": [
+      4,
+      6
+    ]
+  },
+  "measurement_chain": [
+    "field_soil_core_observations",
+    "study_protocol_and_taxonomy_harmonization",
+    "biome_and_environmental_covariates",
+    "spatial_hyphal_density_machine_learning",
+    "robotic_lab_imaging_of_two_calibration_species",
+    "hyphal_length_to_biomass_calibration",
+    "global_total_extrapolation"
+  ],
+  "benchmark_tracks": [
+    {
+      "id": "T1",
+      "name": "source_data_reconciliation",
+      "metrics": [
+        "study_inventory_completeness",
+        "soil_core_inventory_completeness",
+        "protocol_harmonization_error"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "spatial_density_prediction",
+      "metrics": [
+        "study_blocked_rmse",
+        "biome_blocked_rmse",
+        "spatial_block_error",
+        "ood_detection"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "imaging_biomass_calibration",
+      "metrics": [
+        "centerline_length_error",
+        "diameter_distribution_error",
+        "mass_per_length_error",
+        "calibration_interval_coverage"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "global_uncertainty",
+      "metrics": [
+        "global_length_estimate_error",
+        "global_mass_estimate_error",
+        "interval_coverage",
+        "uncertainty_decomposition"
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "value_of_information",
+      "metrics": [
+        "uncertainty_reduction_per_core",
+        "uncertainty_reduction_per_imaging_hour",
+        "worst_biome_improvement"
+      ]
+    }
+  ],
+  "required_splits": [
+    "leave_study_out",
+    "leave_biome_out",
+    "spatial_block_holdout"
+  ],
+  "forbidden_splits": [
+    "random_core_split_within_same_study",
+    "calibration_species_leakage_across_train_and_test"
+  ],
+  "proposed_targets_not_results": {
+    "reproduction": "replicate published global estimates and uncertainty before modifying the model",
+    "calibration": "nominal 90% and 95% intervals assessed by study/biome holdout",
+    "generalization": "new models must improve held-out study and biome results, not only training fit"
+  },
+  "claim_ceiling": "A statistical spatial synthesis and biomass calibration; not direct observation of all underground networks or transfer flux."
+}
