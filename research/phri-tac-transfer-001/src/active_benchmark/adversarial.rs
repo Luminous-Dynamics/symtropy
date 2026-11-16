@@ -246,6 +246,44 @@ fn family_heldout_domain(seed: u64, family: ResponseFamily) -> HeldoutDomain {
     }
 }
 
+fn source_prior_diagnostic_only(source: &SyntheticDomain) -> Result<[f64; PARAMS], String> {
+    // Deliberately bypasses qualification only for counterfactual diagnostics.
+    let selected: Vec<_> = (0..source.candidates.len()).collect();
+    let fit = fit_model(
+        &source.candidates,
+        &source.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
+    Ok(fit.coefficients)
+}
+
+fn evaluate_source_transfer_diagnostic_only(
+    source: &SyntheticDomain,
+    heldout: &HeldoutDomain,
+) -> Result<PolicyResult, String> {
+    // Deliberately bypasses qualification only to quantify the consequence of
+    // ignoring an invalid reference chain. It cannot qualify any measurement.
+    let selected: Vec<_> = (0..source.candidates.len()).collect();
+    let fit = fit_model(
+        &source.candidates,
+        &source.reference_force_observations_n,
+        &selected,
+        None,
+        0.0,
+    )?;
+    evaluate(
+        "transfer_only_source_model",
+        &[],
+        &[],
+        source.candidates.len(),
+        candidate_cost_sum(&source.candidates)?,
+        &fit,
+        heldout,
+    )
+}
+
 fn evaluate_family_policy_arms(
     seed: u64,
     family: ResponseFamily,
@@ -352,9 +390,9 @@ fn evaluate_family_policy_arms(
         &heldout,
     )?);
 
-    results.push(evaluate_source_transfer(&source, &heldout)?);
+    results.push(evaluate_source_transfer_diagnostic_only(&source, &heldout)?);
 
-    let prior = source_prior(&source)?;
+    let prior = source_prior_diagnostic_only(&source)?;
     let transfer_fit = fit_model(
         candidates,
         &target.reference_force_observations_n,
