@@ -216,9 +216,7 @@
           "event_type": {
             "enum": [
               "ASSET_CONFIGURATION_CHANGED",
-              "EVIDENCE_VALIDITY_BOUNDARY_REACHED",
-              "EVIDENCE_REVOKED",
-              "SUPPLIER_IDENTITY_CHANGED"
+              "EVIDENCE_VALIDITY_BOUNDARY_REACHED"
             ]
           },
           "occurred_at": {
