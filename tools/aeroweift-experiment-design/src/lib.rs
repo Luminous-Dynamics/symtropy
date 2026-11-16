@@ -70,6 +70,53 @@ pub enum SemanticEquivalence {
     Rejected,
 }
 
+/// Owner evidence role used by an experiment candidate's admissibility gates.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum GateEvidenceRole {
+    /// External authorization for a test modality/campaign.
+    Authorization,
+    /// Affirmative safety and procedural clearance.
+    Safety,
+    /// Affirmative membership in the declared test envelope.
+    Envelope,
+    /// Availability and qualification of the independent reference measurement.
+    IndependentReference,
+    /// Semantic equivalence for cross-implementation comparison.
+    SemanticEquivalence,
+}
+
+/// Structurally scoped reference to an owner-provided gate receipt.
+///
+/// Digest syntax and exact scope binding are checked here. Signature authenticity,
+/// issuer authority, revocation and evidence truth remain with Track Q / Mycelix.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GateEvidenceReceipt {
+    /// Stable receipt identifier.
+    pub receipt_id: String,
+    /// Digest of the exact receipt payload.
+    pub payload_sha256: String,
+    /// Owner namespace that issued the receipt; not authenticated here.
+    pub issuer_id: String,
+    /// Admissibility gate this receipt is allowed to satisfy.
+    pub role: GateEvidenceRole,
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
+    /// Exact decision/question identity.
+    pub decision_question_id: String,
+    /// Exact experiment design digest.
+    pub design_sha256: String,
+    /// Exact scenario/initial-condition manifest digest.
+    pub scenario_manifest_sha256: String,
+    /// Exact measurement/reference protocol digest.
+    pub measurement_plan_sha256: String,
+    /// Exact selection policy manifest digest.
+    pub policy_sha256: String,
+}
+
 /// Dataset role used when selecting the proposed experiment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SelectionEvidenceRole {
@@ -90,6 +137,19 @@ pub struct HypothesisGroup {
     pub hypothesis_sha256: String,
     /// Stable model-family or genuinely independent hypothesis-group identity.
     pub group_id: String,
+}
+
+/// Explicit pairwise prediction contrast between two hypothesis variants.
+#[derive(Clone, Debug, PartialEq)]
+pub struct HypothesisContrast {
+    /// First exact hypothesis identity.
+    pub left_hypothesis_id: String,
+    /// Second exact hypothesis identity.
+    pub right_hypothesis_id: String,
+    /// Conservative lower bound on outcome separation under this experiment.
+    pub separation_lower_bound: f64,
+    /// Digest of the frozen contrast estimate and its assumptions.
+    pub contrast_estimate_sha256: String,
 }
 
 /// Candidate test/experiment and its expected decision-relevant utility vector.
@@ -121,6 +181,8 @@ pub struct ExperimentCandidate {
     pub authorization: AuthorizationState,
     /// Owner receipt for affirmative authorization, where required.
     pub authorization_receipt_sha256: Option<String>,
+    /// Structurally scope-bound owner gate receipts; authentication is external.
+    pub gate_evidence_receipts: Vec<GateEvidenceReceipt>,
     /// Whether all physical and procedural constraints are clear for this candidate.
     pub safety_constraints_clear: bool,
     /// Receipt proving the affirmative safety/procedure gate.
@@ -139,8 +201,10 @@ pub struct ExperimentCandidate {
     pub semantic_equivalence_receipt_sha256: Option<String>,
     /// Which data partition was inspected to select this experiment.
     pub selection_evidence_role: SelectionEvidenceRole,
-    /// Independent model-family groups actually distinguished by this experiment.
+    /// Exact hypothesis variants considered by this experiment.
     pub hypothesis_groups: Vec<HypothesisGroup>,
+    /// Explicit contrasts demonstrating which cross-family pairs may be distinguished.
+    pub hypothesis_contrasts: Vec<HypothesisContrast>,
     /// Conservative lower bound on decision-relevant predictive uncertainty reduction, normalized [0,1].
     pub expected_uncertainty_reduction: f64,
     /// Conservative lower bound on discrimination among the declared model hypotheses, normalized [0,1].
@@ -231,6 +295,10 @@ pub struct ExperimentDesignPolicy {
     pub minimum_worst_case_robust_reduction: f64,
     /// Minimum model discrimination required for ModelDiscrimination objectives.
     pub minimum_model_discrimination: f64,
+    /// Minimum per-pair conservative outcome separation.
+    pub minimum_pair_separation: f64,
+    /// Minimum number of distinct model-family pairs with qualified contrast estimates.
+    pub minimum_distinct_hypothesis_group_pairs: usize,
     /// Maximum acceptable upper bound on an uninformative result.
     pub maximum_probability_uninformative: f64,
     /// Minimum confidence level for utility bounds.
@@ -239,6 +307,11 @@ pub struct ExperimentDesignPolicy {
     pub required_estimator_build_sha256: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
+    /// Exact owner namespace expected for each structured evidence gate role.
+    /// These are identity bindings only; signature and authority checks remain external.
+    pub expected_gate_issuer_ids: BTreeMap<GateEvidenceRole, String>,
+    /// Modalities that require affirmative external authorization under this campaign.
+    pub authorization_required_modalities: Vec<ExperimentModality>,
     /// Per-dimension non-substitutable resource budget.
     pub resource_budget: ResourceBudget,
 }
@@ -262,6 +335,10 @@ pub enum RejectionReason {
     SealedEvidenceUsedForSelection,
     /// Too few independent model-family groups are distinguished.
     InsufficientIndependentHypothesisGroups,
+    /// Explicit pairwise contrast evidence is missing, duplicated or malformed.
+    InvalidHypothesisContrast,
+    /// Too few distinct model-family pairs meet the contrast-separation floor.
+    InsufficientQualifiedHypothesisContrasts,
     /// Candidate utility estimate is malformed or non-finite.
     InvalidUtilityVector,
     /// A positive gate is missing its owner evidence receipt.
@@ -300,6 +377,8 @@ pub struct ParetoCandidate {
     pub expected_uncertainty_reduction: f64,
     /// Expected discrimination among independent model hypotheses.
     pub expected_model_discrimination: f64,
+    /// Number of distinct model-family pairs with admitted contrast evidence.
+    pub independent_hypothesis_group_pair_count: usize,
     /// Worst-case robust uncertainty reduction.
     pub worst_case_robust_reduction: f64,
     /// Decision relevance.
@@ -362,24 +441,127 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
         || policy.minimum_estimate_confidence_level == 1.0
-        || policy.authorization_required_modalities.iter().collect::<BTreeSet<_>>().len()
+        || policy.expected_gate_issuer_ids.len() != 5
+        || [
+            GateEvidenceRole::Authorization,
+            GateEvidenceRole::Safety,
+            GateEvidenceRole::Envelope,
+            GateEvidenceRole::IndependentReference,
+            GateEvidenceRole::SemanticEquivalence,
+        ]
+        .iter()
+        .any(|role| {
+            policy
+                .expected_gate_issuer_ids
+                .get(role)
+                .is_none_or(|issuer| issuer.trim().is_empty())
+        })
+        || policy
+            .authorization_required_modalities
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
             != policy.authorization_required_modalities.len()
-        || policy.resource_budget.setup_minutes == 0
-        || policy.resource_budget.facility_minutes == 0
-        || policy.resource_budget.cpu_seconds == 0
-        || policy.resource_budget.accelerator_seconds == 0
-        || policy.resource_budget.energy_joules == 0
-        || policy.resource_budget.adjudication_person_minutes == 0
         || !is_sha256(&policy.policy_sha256)
         || policy.maximum_cost_units == 0
         || !bounded_unit_interval(policy.minimum_decision_relevance)
         || !bounded_unit_interval(policy.minimum_worst_case_robust_reduction)
         || !bounded_unit_interval(policy.minimum_model_discrimination)
+        || !bounded_unit_interval(policy.minimum_pair_separation)
+        || (policy.objective == ExperimentObjective::ModelDiscrimination
+            && policy.minimum_distinct_hypothesis_group_pairs == 0)
         || !bounded_unit_interval(policy.maximum_probability_uninformative)
     {
         return Err(DesignError::InvalidPolicy);
     }
     Ok(())
+}
+
+fn gate_receipt_matches_scope(
+    receipt: &GateEvidenceReceipt,
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+) -> bool {
+    !receipt.receipt_id.trim().is_empty()
+        && !receipt.issuer_id.trim().is_empty()
+        && is_sha256(&receipt.payload_sha256)
+        && receipt.campaign_sha256 == candidate.campaign_sha256
+        && receipt.model_scope_sha256 == candidate.model_scope_sha256
+        && receipt.intended_use_profile_sha256 == candidate.intended_use_profile_sha256
+        && receipt.decision_question_id == candidate.decision_question_id
+        && receipt.design_sha256 == candidate.design_sha256
+        && receipt.scenario_manifest_sha256 == candidate.scenario_manifest_sha256
+        && receipt.measurement_plan_sha256 == candidate.measurement_plan_sha256
+        && receipt.policy_sha256 == policy.policy_sha256
+        && policy
+            .expected_gate_issuer_ids
+            .get(&receipt.role)
+            .is_some_and(|expected_issuer| expected_issuer == &receipt.issuer_id)
+}
+
+fn gate_receipt_payload_matches(
+    candidate: &ExperimentCandidate,
+    role: GateEvidenceRole,
+    payload_sha256: &str,
+) -> bool {
+    let expected = match role {
+        GateEvidenceRole::Authorization => candidate.authorization_receipt_sha256.as_deref(),
+        GateEvidenceRole::Safety => candidate.safety_gate_receipt_sha256.as_deref(),
+        GateEvidenceRole::Envelope => candidate.envelope_receipt_sha256.as_deref(),
+        GateEvidenceRole::IndependentReference => {
+            candidate.independent_reference_receipt_sha256.as_deref()
+        }
+        GateEvidenceRole::SemanticEquivalence => {
+            candidate.semantic_equivalence_receipt_sha256.as_deref()
+        }
+    };
+    expected.is_some_and(|expected_digest| expected_digest == payload_sha256)
+}
+
+fn validate_gate_evidence_receipts(
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+    reasons: &mut BTreeSet<RejectionReason>,
+) {
+    let mut receipt_ids = BTreeSet::new();
+    let mut roles = BTreeSet::new();
+
+    for receipt in &candidate.gate_evidence_receipts {
+        if !receipt_ids.insert(receipt.receipt_id.as_str()) || !roles.insert(receipt.role) {
+            reasons.insert(RejectionReason::InvalidEvidenceBinding);
+        }
+        if !gate_receipt_matches_scope(receipt, candidate, policy)
+            || !gate_receipt_payload_matches(candidate, receipt.role, &receipt.payload_sha256)
+        {
+            reasons.insert(RejectionReason::InvalidEvidenceBinding);
+        }
+    }
+
+    let required_roles = [
+        (
+            GateEvidenceRole::Authorization,
+            candidate.authorization == AuthorizationState::Authorized,
+        ),
+        (GateEvidenceRole::Safety, candidate.safety_constraints_clear),
+        (
+            GateEvidenceRole::Envelope,
+            candidate.within_declared_envelope,
+        ),
+        (
+            GateEvidenceRole::IndependentReference,
+            candidate.independent_reference_available,
+        ),
+        (
+            GateEvidenceRole::SemanticEquivalence,
+            candidate.semantic_equivalence == SemanticEquivalence::Established,
+        ),
+    ];
+
+    for (role, required) in required_roles {
+        if required && !roles.contains(&role) {
+            reasons.insert(RejectionReason::MissingEvidenceReceipt);
+        }
+    }
 }
 
 fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
@@ -391,13 +573,111 @@ fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
         .len()
 }
 
+fn independent_group_pair_count(candidate: &ExperimentCandidate, minimum_separation: f64) -> usize {
+    if candidate.objective != ExperimentObjective::ModelDiscrimination {
+        return 0;
+    }
+    let hypotheses: std::collections::BTreeMap<&str, &str> = candidate
+        .hypothesis_groups
+        .iter()
+        .map(|item| (item.hypothesis_id.as_str(), item.group_id.as_str()))
+        .collect();
+    let mut pairs = BTreeSet::new();
+    for contrast in &candidate.hypothesis_contrasts {
+        if contrast.separation_lower_bound < minimum_separation {
+            continue;
+        }
+        let (Some(left_group), Some(right_group)) = (
+            hypotheses.get(contrast.left_hypothesis_id.as_str()),
+            hypotheses.get(contrast.right_hypothesis_id.as_str()),
+        ) else {
+            continue;
+        };
+        if left_group == right_group {
+            continue;
+        }
+        let pair = if left_group < right_group {
+            (*left_group, *right_group)
+        } else {
+            (*right_group, *left_group)
+        };
+        pairs.insert(pair);
+    }
+    pairs.len()
+}
+
+fn validate_hypothesis_contract(candidate: &ExperimentCandidate) -> bool {
+    let mut hypothesis_ids = BTreeSet::new();
+    let mut digest_to_group = std::collections::BTreeMap::new();
+    for hypothesis in &candidate.hypothesis_groups {
+        if hypothesis.hypothesis_id.trim().is_empty()
+            || hypothesis.group_id.trim().is_empty()
+            || !is_sha256(&hypothesis.hypothesis_sha256)
+            || !hypothesis_ids.insert(hypothesis.hypothesis_id.as_str())
+        {
+            return false;
+        }
+        if let Some(previous_group) = digest_to_group.insert(
+            hypothesis.hypothesis_sha256.as_str(),
+            hypothesis.group_id.as_str(),
+        ) && previous_group != hypothesis.group_id
+        {
+            // One exact model artifact cannot be relabelled as two independent families.
+            return false;
+        }
+    }
+
+    let mut pairs = BTreeSet::new();
+    for contrast in &candidate.hypothesis_contrasts {
+        if contrast.left_hypothesis_id.trim().is_empty()
+            || contrast.right_hypothesis_id.trim().is_empty()
+            || contrast.left_hypothesis_id == contrast.right_hypothesis_id
+            || !bounded_unit_interval(contrast.separation_lower_bound)
+            || !is_sha256(&contrast.contrast_estimate_sha256)
+        {
+            return false;
+        }
+        let (Some(left), Some(right)) = (
+            candidate
+                .hypothesis_groups
+                .iter()
+                .find(|h| h.hypothesis_id == contrast.left_hypothesis_id),
+            candidate
+                .hypothesis_groups
+                .iter()
+                .find(|h| h.hypothesis_id == contrast.right_hypothesis_id),
+        ) else {
+            return false;
+        };
+        if left.group_id == right.group_id {
+            return false;
+        }
+        let pair = if contrast.left_hypothesis_id < contrast.right_hypothesis_id {
+            (
+                contrast.left_hypothesis_id.as_str(),
+                contrast.right_hypothesis_id.as_str(),
+            )
+        } else {
+            (
+                contrast.right_hypothesis_id.as_str(),
+                contrast.left_hypothesis_id.as_str(),
+            )
+        };
+        if !pairs.insert(pair) {
+            return false;
+        }
+    }
+    true
+}
+
 fn candidate_rejection_reasons(
     candidate: &ExperimentCandidate,
     policy: &ExperimentDesignPolicy,
 ) -> Vec<RejectionReason> {
     let mut reasons = BTreeSet::new();
 
-    if candidate.campaign_sha256 != policy.campaign_sha256
+    if candidate.candidate_id.trim().is_empty()
+        || candidate.campaign_sha256 != policy.campaign_sha256
         || candidate.model_scope_sha256 != policy.model_scope_sha256
         || candidate.intended_use_profile_sha256 != policy.intended_use_profile_sha256
         || candidate.decision_question_id != policy.decision_question_id
@@ -407,13 +687,18 @@ fn candidate_rejection_reasons(
     }
     if (candidate.requires_external_authorization
         || candidate.modality == ExperimentModality::ControlledFlight
-        || policy.authorization_required_modalities.contains(&candidate.modality))
+        || policy
+            .authorization_required_modalities
+            .contains(&candidate.modality))
         && candidate.authorization != AuthorizationState::Authorized
     {
         reasons.insert(RejectionReason::AuthorizationNotGranted);
     }
     if candidate.safety_constraints_clear
-        && candidate.safety_gate_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .safety_gate_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -421,7 +706,10 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::SafetyConstraintNotClear);
     }
     if candidate.within_declared_envelope
-        && candidate.envelope_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .envelope_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -429,7 +717,10 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::OutsideDeclaredEnvelope);
     }
     if candidate.independent_reference_available
-        && candidate.independent_reference_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .independent_reference_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
@@ -437,15 +728,22 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::MissingIndependentReference);
     }
     if candidate.semantic_equivalence == SemanticEquivalence::Established
-        && candidate.semantic_equivalence_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .semantic_equivalence_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     if candidate.authorization == AuthorizationState::Authorized
-        && candidate.authorization_receipt_sha256.as_deref().is_none_or(|value| !is_sha256(value))
+        && candidate
+            .authorization_receipt_sha256
+            .as_deref()
+            .is_none_or(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
+    validate_gate_evidence_receipts(candidate, policy, &mut reasons);
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
     {
@@ -454,15 +752,18 @@ fn candidate_rejection_reasons(
     if candidate.selection_evidence_role != SelectionEvidenceRole::AdaptiveDevelopment {
         reasons.insert(RejectionReason::SealedEvidenceUsedForSelection);
     }
-    if candidate.objective == ExperimentObjective::ModelDiscrimination
-        && candidate.semantic_equivalence != SemanticEquivalence::Established
-    {
-        reasons.insert(RejectionReason::SemanticEquivalenceNotEstablished);
+    if !validate_hypothesis_contract(candidate) {
+        reasons.insert(RejectionReason::InvalidHypothesisContrast);
     }
-    if candidate.objective == ExperimentObjective::ModelDiscrimination
-        && independent_group_count(candidate) < 2
-    {
-        reasons.insert(RejectionReason::InsufficientIndependentHypothesisGroups);
+    if candidate.objective == ExperimentObjective::ModelDiscrimination {
+        if independent_group_count(candidate) < 2 {
+            reasons.insert(RejectionReason::InsufficientIndependentHypothesisGroups);
+        }
+        if independent_group_pair_count(candidate, policy.minimum_pair_separation)
+            < policy.minimum_distinct_hypothesis_group_pairs
+        {
+            reasons.insert(RejectionReason::InsufficientQualifiedHypothesisContrasts);
+        }
     }
 
     if !bounded_unit_interval(candidate.expected_uncertainty_reduction)
@@ -488,11 +789,26 @@ fn candidate_rejection_reasons(
         || !is_sha256(&candidate.design_sha256)
         || !is_sha256(&candidate.scenario_manifest_sha256)
         || !is_sha256(&candidate.measurement_plan_sha256)
-        || candidate.authorization_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.safety_gate_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.envelope_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.independent_reference_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
-        || candidate.semantic_equivalence_receipt_sha256.as_deref().is_some_and(|value| !is_sha256(value))
+        || candidate
+            .authorization_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .safety_gate_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .envelope_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .independent_reference_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
+        || candidate
+            .semantic_equivalence_receipt_sha256
+            .as_deref()
+            .is_some_and(|value| !is_sha256(value))
     {
         reasons.insert(RejectionReason::InvalidEvidenceBinding);
     }
@@ -536,9 +852,15 @@ fn candidate_rejection_reasons(
 ///
 /// Benefits are maximized, uninformative probability and cost are minimized.
 /// No scalar weighting or tie-breaking on different objective dimensions occurs.
-fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
+fn dominates(
+    left: &ExperimentCandidate,
+    right: &ExperimentCandidate,
+    minimum_pair_separation: f64,
+) -> bool {
     let no_worse = left.expected_uncertainty_reduction >= right.expected_uncertainty_reduction
         && left.expected_model_discrimination >= right.expected_model_discrimination
+        && independent_group_pair_count(left, minimum_pair_separation)
+            >= independent_group_pair_count(right, minimum_pair_separation)
         && left.worst_case_robust_reduction >= right.worst_case_robust_reduction
         && left.decision_relevance >= right.decision_relevance
         && left.probability_uninformative <= right.probability_uninformative
@@ -548,10 +870,14 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
         && left.resource_cost.cpu_seconds <= right.resource_cost.cpu_seconds
         && left.resource_cost.accelerator_seconds <= right.resource_cost.accelerator_seconds
         && left.resource_cost.energy_joules <= right.resource_cost.energy_joules
-        && left.resource_cost.adjudication_person_minutes <= right.resource_cost.adjudication_person_minutes;
+        && left.resource_cost.adjudication_person_minutes
+            <= right.resource_cost.adjudication_person_minutes;
 
-    let strictly_better = left.expected_uncertainty_reduction > right.expected_uncertainty_reduction
+    let strictly_better = left.expected_uncertainty_reduction
+        > right.expected_uncertainty_reduction
         || left.expected_model_discrimination > right.expected_model_discrimination
+        || independent_group_pair_count(left, minimum_pair_separation)
+            > independent_group_pair_count(right, minimum_pair_separation)
         || left.worst_case_robust_reduction > right.worst_case_robust_reduction
         || left.decision_relevance > right.decision_relevance
         || left.probability_uninformative < right.probability_uninformative
@@ -561,16 +887,21 @@ fn dominates(left: &ExperimentCandidate, right: &ExperimentCandidate) -> bool {
         || left.resource_cost.cpu_seconds < right.resource_cost.cpu_seconds
         || left.resource_cost.accelerator_seconds < right.resource_cost.accelerator_seconds
         || left.resource_cost.energy_joules < right.resource_cost.energy_joules
-        || left.resource_cost.adjudication_person_minutes < right.resource_cost.adjudication_person_minutes;
+        || left.resource_cost.adjudication_person_minutes
+            < right.resource_cost.adjudication_person_minutes;
 
     no_worse && strictly_better
 }
 
-fn to_pareto(candidate: &ExperimentCandidate) -> ParetoCandidate {
+fn to_pareto(candidate: &ExperimentCandidate, minimum_pair_separation: f64) -> ParetoCandidate {
     ParetoCandidate {
         candidate_id: candidate.candidate_id.clone(),
         expected_uncertainty_reduction: candidate.expected_uncertainty_reduction,
         expected_model_discrimination: candidate.expected_model_discrimination,
+        independent_hypothesis_group_pair_count: independent_group_pair_count(
+            candidate,
+            minimum_pair_separation,
+        ),
         worst_case_robust_reduction: candidate.worst_case_robust_reduction,
         decision_relevance: candidate.decision_relevance,
         probability_uninformative: candidate.probability_uninformative,
@@ -616,15 +947,17 @@ pub fn select_experiments(
         .iter()
         .copied()
         .filter(|candidate| {
-            !admissible
-                .iter()
-                .copied()
-                .any(|other| other.candidate_id != candidate.candidate_id && dominates(other, candidate))
+            !admissible.iter().copied().any(|other| {
+                other.candidate_id != candidate.candidate_id
+                    && dominates(other, candidate, policy.minimum_pair_separation)
+            })
         })
         .collect();
 
-    let mut pareto_front: Vec<ParetoCandidate> =
-        front.into_iter().map(to_pareto).collect();
+    let mut pareto_front: Vec<ParetoCandidate> = front
+        .into_iter()
+        .map(|candidate| to_pareto(candidate, policy.minimum_pair_separation))
+        .collect();
     pareto_front.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
     rejected.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
 
