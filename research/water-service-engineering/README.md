@@ -145,4 +145,6 @@ The T0 household-economics suite now has nine synthetic cases (026–034). It ex
 
 ## Modular greywater treatment architecture
 
-[WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md) and the machine-readable module interface, challenge profiles, preliminary BOM and P&ID tag schedule implement the concept in Symtropy #5713. The first product target is a contained, maintainable pilot skid with physically separate non-potable circuits and a hold/divert safe state. No train is selected or qualified; all mechanical/process dimensions remain TBD pending source characterization and qualified design review.
+[WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md) and the machine-readable module interface, challenge profiles, preliminary BOM, P&ID tag schedule and 12-hazard FMEA starter implement the concept in Symtropy #5713. The first product target is a contained, maintainable pilot skid with physically separate non-potable circuits and a hold/divert safe state. No train is selected or qualified; all mechanical/process dimensions remain TBD pending source characterization and qualified design review.
+
+Machine-readable starter risk register: [`WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json`](WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json). It is not a completed FMEA, HAZOP or safety case.
