@@ -42,6 +42,10 @@ Both frozen Fattahi1 text fixtures now match the raw upstream files exactly at F
 
 The independent upstream `flexible-jobshop/solutions/bks.json` record marks `fattahi1` as `closed`, with lower bound = upper bound = **66**. Its bound history attributes both values to OptalCP on an Intel i7-1185G7 on 2025-08-29 (the archive records no standalone certificate). The Rust complete enumeration and independent CP-SAT model are separate reproducibility checks against this archived reference. No timing superiority is implied.
 
+## Full corpus inventory
+
+See [corpus/README.md](corpus/README.md) and `corpus/fjsplib-index-2026-10-22.tsv` for the full logical-instance index, all 854 source-file representations, upstream Git blob IDs and class/format counts. The index is pinned to upstream revision `8a6e36ef31263d36975e56fb481e0ba04e188d6f`; CI checks the inventory's Git blob and aggregate counts. Full-corpus retrieval and benchmarking is tracked separately in Symtropy #5528.
+
 ## Independent CP-SAT cross-check
 
 A benchmark-only Python adapter at `reference/ortools_fattahi1_check.py` independently parses both frozen `fixtures/fattahi1.fjsp` and `fixtures/fattahi1.fajsp` inputs and builds an optional-interval CP-SAT model. CI installs the pinned OR-Tools 9.15.6755 package and requires each representation to return OPTIMAL with objective and best bound both equal to 66.
