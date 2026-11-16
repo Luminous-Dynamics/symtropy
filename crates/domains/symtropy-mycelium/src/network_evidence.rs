@@ -254,7 +254,8 @@ impl NetworkEvidenceAssessment {
                 .iter()
                 .find(|receipt| receipt.id == flow_id)
                 .expect("referenced flow receipt was resolved above");
-            if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
+            if self.cytoplasmic_flow.outcome
+                == CytoplasmicFlowEvidence::CytoplasmicFlowStreamObserved
                 && flow_receipt.subject
                     != crate::observation_evidence::ObservationSubject::CytoplasmicFlowStream
             {
@@ -426,7 +427,10 @@ impl fmt::Display for NetworkEvidenceError {
                 write!(f, "shared fungal link requires a stable reason code")
             }
             Self::MissingFlowReceipt => {
-                write!(f, "cytoplasmic-flow stream result requires a source receipt")
+                write!(
+                    f,
+                    "cytoplasmic-flow stream result requires a source receipt"
+                )
             }
             Self::FlowReceiptSubjectMismatch(id) => {
                 write!(
@@ -591,7 +595,10 @@ mod tests {
             result.claim_level,
             NetworkClaimLevel::CommonMycorrhizalNetworkHyphalContinuitySupported
         );
-        assert_eq!(result.cytoplasmic_flow, CytoplasmicFlowEvidence::NotEvaluated);
+        assert_eq!(
+            result.cytoplasmic_flow,
+            CytoplasmicFlowEvidence::NotEvaluated
+        );
     }
 
     #[test]
