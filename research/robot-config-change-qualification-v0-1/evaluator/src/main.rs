@@ -3,7 +3,7 @@
 
 use robot_config_change_reference_evaluator::{
     PACKAGE_DIR, read_json, repository_root,
-    validate_instance, validate_package,
+    validate_package,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
