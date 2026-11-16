@@ -1,0 +1,88 @@
+{
+  "schema_version": "myco.legacy_field_performance.v0.1",
+  "suite_id": "MYCELIUM-FIELD-PERF-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5499",
+  "status": "protocol_defined_not_run",
+  "implementation_under_test": {
+    "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
+    "changes": [
+      "cache global nutrient peak once per step",
+      "iterate four neighbors without per-cell Vec allocation"
+    ],
+    "exact_head": null,
+    "output_equivalence": "not_yet_measured"
+  },
+  "benchmark_matrix": {
+    "grid_sizes": [
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "occupancy_percent": [
+      1,
+      5,
+      20,
+      50,
+      90
+    ],
+    "nutrient_profiles": [
+      "uniform",
+      "single_peak",
+      "multiple_equal_peaks",
+      "noisy_gradient",
+      "flat_zero"
+    ],
+    "toxin_profiles": [
+      "none",
+      "barrier",
+      "sparse_hotspots",
+      "uniform_low"
+    ],
+    "repetitions_minimum": 30,
+    "warmup_runs": 5
+  },
+  "metrics": [
+    "wall_time_median",
+    "wall_time_p95",
+    "speedup_vs_preserved_baseline",
+    "peak_rss_bytes",
+    "allocation_count_if_available",
+    "active_cell_count",
+    "field_output_digest",
+    "per_cell_max_absolute_difference"
+  ],
+  "invariants": [
+    "neighbor order remains left,right,up,down",
+    "global nutrient peak first-maximum tie-breaker remains unchanged",
+    "no field mutation occurs until buffered deltas settle",
+    "all field outputs remain identical on the frozen equivalence corpus"
+  ],
+  "proposed_targets_not_results": {
+    "reference_case": "256x256 grid, 20 percent biomass occupancy",
+    "speedup": "at least 2x on reference case, only with no regression on sparse 1-5 percent occupancy",
+    "equivalence": "bitwise equality on frozen same-toolchain corpus",
+    "platforms": [
+      "Linux",
+      "macOS",
+      "Windows"
+    ],
+    "architectures": [
+      "x86_64",
+      "aarch64"
+    ]
+  },
+  "receipt_requirements": [
+    "baseline commit / source digest",
+    "optimized commit / source digest",
+    "toolchain and optimization profile",
+    "CPU / OS / RAM",
+    "grid size, occupancy, field distribution and seed",
+    "warmup and repetition counts",
+    "timing sample vector or raw benchmark artifact",
+    "peak memory and allocation data",
+    "output digests and equivalence result"
+  ],
+  "claim_ceiling": "software throughput and identical model-unit output only; no fungal biology validation"
+}
