@@ -202,6 +202,7 @@ fn positive_case() -> (Vec<AssuranceNode>, Vec<AssuranceEdge>) {
             "hazard-collision",
             EdgeKind::Mitigates,
         ),
+        edge("context-operation", "hazard-collision", EdgeKind::Contextualizes),
         edge(
             "hazard-collision",
             "authority-decision",
@@ -272,7 +273,11 @@ fn claim_without_support_or_decomposition_is_explicitly_blocked() {
 #[test]
 fn required_hazard_without_mitigation_blocks_review() {
     let (nodes, mut edges) = positive_case();
-    edges.retain(|item| item.to_node_id != "hazard-collision");
+    edges.retain(|item| {
+        !(item.from_node_id == "mitigation-conflict-screen"
+            && item.to_node_id == "hazard-collision"
+            && item.kind == EdgeKind::Mitigates)
+    });
     let result = evaluate(&nodes, &edges).unwrap();
     assert!(blocker(&result, BlockerReason::HazardWithoutMitigation));
 }
