@@ -232,12 +232,7 @@ mod tests {
         Capsule::new(p(x, -1.0, 0.0), p(x, 1.0, 0.0), radius_mm).unwrap()
     }
 
-    fn span(
-        x: f64,
-        translation_x: f64,
-        start_ms: u64,
-        end_ms: u64,
-    ) -> CapsuleMotionSpan {
+    fn span(x: f64, translation_x: f64, start_ms: u64, end_ms: u64) -> CapsuleMotionSpan {
         CapsuleMotionSpan {
             capsule_at_start: capsule(x, 0.5),
             translation: p(translation_x, 0.0, 0.0),
@@ -341,11 +336,8 @@ mod tests {
         let shifted_obstacle = span(10.0, -20.0, 50_250, 50_750);
 
         let original = timed_co_translating_capsule_vs_capsule(&moving, &obstacle).unwrap();
-        let shifted = timed_co_translating_capsule_vs_capsule(
-            &shifted_moving,
-            &shifted_obstacle,
-        )
-        .unwrap();
+        let shifted =
+            timed_co_translating_capsule_vs_capsule(&shifted_moving, &shifted_obstacle).unwrap();
 
         assert_eq!(shifted.overlap_start_ms, original.overlap_start_ms + 50_000);
         assert_eq!(shifted.overlap_end_ms, original.overlap_end_ms + 50_000);
@@ -366,7 +358,9 @@ mod tests {
         let original = timed_co_translating_capsule_vs_capsule(&moving, &obstacle).unwrap();
         let transformed = timed_co_translating_capsule_vs_capsule(&moved_a, &moved_b).unwrap();
         assert!((original.closest.distance_mm - transformed.closest.distance_mm).abs() < 1.0e-9);
-        assert!((original.closest_time_offset_ms - transformed.closest_time_offset_ms).abs() < 1.0e-9);
+        assert!(
+            (original.closest_time_offset_ms - transformed.closest_time_offset_ms).abs() < 1.0e-9
+        );
     }
 
     #[test]
