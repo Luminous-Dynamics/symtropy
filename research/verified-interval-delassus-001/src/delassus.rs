@@ -254,9 +254,9 @@ fn validate_mass<const N: usize>(
     if N == 0 {
         return Err(VerifiedDelassusErrorV1::ZeroDimension);
     }
-    for row in 0..N {
-        for column in 0..N {
-            if mass[row][column] != mass[column][row] {
+    for (row, values) in mass.iter().enumerate() {
+        for (column, value) in values.iter().enumerate() {
+            if *value != mass[column][row] {
                 return Err(VerifiedDelassusErrorV1::NonSymmetricMassIntervals);
             }
         }
@@ -292,8 +292,12 @@ fn cholesky_interval<const N: usize>(
     for row in 0..N {
         for column in 0..=row {
             let mut correction = Interval::zero();
-            for inner in 0..column {
-                correction = correction.add(lower[row][inner].mul(lower[column][inner])?)?;
+            for (left, right) in lower[row]
+                .iter()
+                .zip(lower[column].iter())
+                .take(column)
+            {
+                correction = correction.add(left.mul(*right)?)?;
             }
             let pivot = matrix[row][column].sub(correction)?;
             if row == column {
@@ -404,8 +408,8 @@ fn gram_w<const N: usize, const K: usize>(
     for row in 0..K {
         for column in 0..K {
             let mut sum = Interval::zero();
-            for inner in 0..N {
-                sum = sum.add(y[row][inner].mul(y[column][inner])?)?;
+            for (left, right) in y[row].iter().zip(y[column].iter()) {
+                sum = sum.add(left.mul(*right)?)?;
             }
             w[row][column] = sum;
         }
@@ -439,15 +443,6 @@ fn intersect_w<const K: usize>(
         }
     }
     Ok(w)
-}
-
-fn upper_l2<const N: usize>(values: &[Interval; N]) -> Result<f64, VerifiedDelassusErrorV1> {
-    let mut sum = Interval::zero();
-    for value in values {
-        let magnitude = Interval::point(value.max_abs())?;
-        sum = sum.add(magnitude.mul(magnitude)?)?;
-    }
-    finite_bound(sum.sqrt()?.upper())
 }
 
 fn upper_frobenius<const R: usize, const C: usize>(
@@ -623,19 +618,19 @@ mod tests {
             VerifiedDelassusStatusV1::VerifiedSpdFullRowRank
         );
         let expected_b = [[0.5, 0.0], [0.0, 2.0 / 3.0], [0.2, -0.2]];
-        for row in 0..3 {
-            for column in 0..2 {
+        for (row, expected_values) in expected_b.iter().enumerate() {
+            for (column, expected_value) in expected_values.iter().enumerate() {
                 assert!(
                     certificate.inverse_mass_jacobian_transpose()[row][column]
-                        .contains(expected_b[row][column])
+                        .contains(*expected_value)
                 );
             }
         }
         let expected_w = [[0.7, -0.2], [-0.2, 23.0 / 15.0]];
-        for row in 0..2 {
-            for column in 0..2 {
+        for (row, expected_values) in expected_w.iter().enumerate() {
+            for (column, expected_value) in expected_values.iter().enumerate() {
                 assert!(
-                    certificate.delassus_intervals()[row][column].contains(expected_w[row][column])
+                    certificate.delassus_intervals()[row][column].contains(*expected_value)
                 );
             }
         }
