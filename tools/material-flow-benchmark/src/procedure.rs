@@ -1,0 +1,591 @@
+// Copyright (C) 2024-2026 Luminous Dynamics
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+//! Typed, version-bound executable-procedure graph for MFB.
+//!
+//! The graph declares evidence dependencies and a safe ordering. It does not
+//! authenticate evidence, grant motion authority, emit physical commands,
+//! execute a robot, or attest task success. "Ready" means structurally ready
+//! for independent external review/execution, never self-authorized.
+
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+
+use serde::{Deserialize, Serialize};
+
+use crate::ScenarioManifest;
+
+pub const PROCEDURE_SCHEMA_VERSION: u16 = 1;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProcedureGraph {
+    pub schema_version: u16,
+    pub procedure_id: String,
+    pub procedure_version: u32,
+    pub binding: ProcedureBinding,
+    pub steps: Vec<ProcedureStep>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProcedureBinding {
+    pub scenario_id: String,
+    pub source_commit: String,
+    pub configuration_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProcedureStep {
+    pub step_id: String,
+    pub operation: ProcedureOperation,
+    pub depends_on: Vec<String>,
+    pub consumes: Vec<EvidenceKind>,
+    pub produces: EvidenceKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProcedureOperation {
+    ValidateManifest,
+    VerifyAuthorizationReceipt,
+    VerifyReceiverCapability,
+    VerifyPackageIdentity,
+    VerifyContainerFit,
+    VerifyPayloadMass,
+    VerifySealIntegrity,
+    VerifyTemperatureEnvelope,
+    VerifyTransferGateInterlock,
+    PrepareReleaseIntent,
+    ObserveSourceRelease,
+    ObserveReceiverArrival,
+    VerifyPlacement,
+    CollectCustodyAcknowledgement,
+    ReconcileUnknownOutcome,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceKind {
+    // Inputs that must arrive from an external, independently governed source.
+    ManifestSnapshot,
+    AuthorizationReceipt,
+    ReceiverCapabilityReceipt,
+    PackageIdentityObservation,
+    ContainerFitObservation,
+    PayloadMassObservation,
+    SealObservation,
+    TemperatureObservation,
+    TransferGateObservation,
+    ReleaseExecutionReceipt,
+    ReceiverPresenceObservation,
+    PlacementObservation,
+    CounterpartyCustodyReceipt,
+    AmbiguousOutcomeObservation,
+
+    // Derived evidence nodes emitted by validated procedure steps.
+    ManifestValidated,
+    AuthorizationValidated,
+    ReceiverCapabilityValidated,
+    PackageIdentityValidated,
+    ContainerFitValidated,
+    PayloadMassValidated,
+    SealValidated,
+    TemperatureValidated,
+    TransferGateInterlockValidated,
+    ReleaseIntentReady,
+    SourceReleaseObserved,
+    ReceiverArrivalObserved,
+    PlacementVerified,
+    CustodyEvidenceComplete,
+    ReconciliationRecord,
+}
+
+impl ProcedureOperation {
+    pub fn required_inputs(self) -> &'static [EvidenceKind] {
+        use EvidenceKind as E;
+        use ProcedureOperation as O;
+        match self {
+            O::ValidateManifest => &[E::ManifestSnapshot],
+            O::VerifyAuthorizationReceipt => &[E::AuthorizationReceipt],
+            O::VerifyReceiverCapability => &[E::ReceiverCapabilityReceipt],
+            O::VerifyPackageIdentity => &[E::PackageIdentityObservation],
+            O::VerifyContainerFit => &[E::ContainerFitObservation],
+            O::VerifyPayloadMass => &[E::PayloadMassObservation],
+            O::VerifySealIntegrity => &[E::SealObservation],
+            O::VerifyTemperatureEnvelope => &[E::TemperatureObservation],
+            O::VerifyTransferGateInterlock => &[E::TransferGateObservation],
+            O::PrepareReleaseIntent => &[
+                E::ManifestValidated,
+                E::AuthorizationValidated,
+                E::ReceiverCapabilityValidated,
+                E::PackageIdentityValidated,
+                E::ContainerFitValidated,
+                E::PayloadMassValidated,
+                E::SealValidated,
+                E::TemperatureValidated,
+                E::TransferGateInterlockValidated,
+            ],
+            O::ObserveSourceRelease => &[E::ReleaseIntentReady, E::ReleaseExecutionReceipt],
+            O::ObserveReceiverArrival => {
+                &[E::SourceReleaseObserved, E::ReceiverPresenceObservation]
+            }
+            O::VerifyPlacement => &[E::ReceiverArrivalObserved, E::PlacementObservation],
+            O::CollectCustodyAcknowledgement => {
+                &[E::PlacementVerified, E::CounterpartyCustodyReceipt]
+            }
+            O::ReconcileUnknownOutcome => {
+                &[E::ReleaseIntentReady, E::AmbiguousOutcomeObservation]
+            }
+        }
+    }
+
+    pub fn produced_output(self) -> EvidenceKind {
+        use EvidenceKind as E;
+        use ProcedureOperation as O;
+        match self {
+            O::ValidateManifest => E::ManifestValidated,
+            O::VerifyAuthorizationReceipt => E::AuthorizationValidated,
+            O::VerifyReceiverCapability => E::ReceiverCapabilityValidated,
+            O::VerifyPackageIdentity => E::PackageIdentityValidated,
+            O::VerifyContainerFit => E::ContainerFitValidated,
+            O::VerifyPayloadMass => E::PayloadMassValidated,
+            O::VerifySealIntegrity => E::SealValidated,
+            O::VerifyTemperatureEnvelope => E::TemperatureValidated,
+            O::VerifyTransferGateInterlock => E::TransferGateInterlockValidated,
+            O::PrepareReleaseIntent => E::ReleaseIntentReady,
+            O::ObserveSourceRelease => E::SourceReleaseObserved,
+            O::ObserveReceiverArrival => E::ReceiverArrivalObserved,
+            O::VerifyPlacement => E::PlacementVerified,
+            O::CollectCustodyAcknowledgement => E::CustodyEvidenceComplete,
+            O::ReconcileUnknownOutcome => E::ReconciliationRecord,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ProcedureReadinessReport {
+    pub schema_version: u16,
+    pub procedure_id: String,
+    pub procedure_version: u32,
+    pub bound_scenario_id: String,
+    pub bound_source_commit: String,
+    pub bound_configuration_digest: String,
+    pub topological_order: Vec<String>,
+    pub step_count: usize,
+    pub structurally_valid_for_external_review: bool,
+    pub motion_authority_granted: bool,
+    pub physical_command_emitted: bool,
+    pub task_success_attested: bool,
+    pub limitations: Vec<String>,
+}
+
+impl ProcedureGraph {
+    /// Validate the graph against an exact scenario identity and return a
+    /// deterministic topological order. A successful report is only a
+    /// structural plan check; it cannot authorize physical execution.
+    pub fn evaluate(
+        &self,
+        scenario: &ScenarioManifest,
+    ) -> Result<ProcedureReadinessReport, Vec<String>> {
+        let mut errors = Vec::new();
+
+        if self.schema_version != PROCEDURE_SCHEMA_VERSION {
+            errors.push(format!(
+                "procedure.schema_version: expected {PROCEDURE_SCHEMA_VERSION}, got {}",
+                self.schema_version
+            ));
+        }
+        if self.procedure_id.trim().is_empty()
+            || self.procedure_id.len() > 128
+            || !self
+                .procedure_id
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+        {
+            errors.push("procedure.procedure_id: invalid opaque identifier".into());
+        }
+        if self.procedure_version == 0 {
+            errors.push("procedure.procedure_version: must be non-zero".into());
+        }
+        if self.binding.scenario_id != scenario.scenario_id {
+            errors.push("procedure.binding.scenario_id: exact scenario mismatch".into());
+        }
+        if self.binding.source_commit != scenario.digests.source_commit {
+            errors.push("procedure.binding.source_commit: exact source commit mismatch".into());
+        }
+        if self.binding.configuration_digest != scenario.digests.configuration_digest {
+            errors.push("procedure.binding.configuration_digest: configuration mismatch".into());
+        }
+
+        if self.steps.is_empty() || self.steps.len() > 128 {
+            errors.push("procedure.steps: expected 1..=128 steps".into());
+        }
+
+        let mut step_ids = HashSet::new();
+        let mut operation_ids = HashSet::new();
+        let mut steps_by_id = HashMap::new();
+        for (index, step) in self.steps.iter().enumerate() {
+            let prefix = format!("procedure.steps[{index}]");
+            if step.step_id.trim().is_empty()
+                || step.step_id.len() > 96
+                || !step
+                    .step_id
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+            {
+                errors.push(format!("{prefix}.step_id: invalid opaque identifier"));
+            }
+            if !step_ids.insert(step.step_id.as_str()) {
+                errors.push(format!("{prefix}.step_id: duplicate step identifier"));
+            }
+            if !operation_ids.insert(step.operation) {
+                errors.push(format!(
+                    "{prefix}.operation: v1 procedure permits one step per operation"
+                ));
+            }
+            let declared_inputs = step.consumes.iter().copied().collect::<BTreeSet<_>>();
+            let expected_inputs = step
+                .operation
+                .required_inputs()
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>();
+            if declared_inputs.len() != step.consumes.len() {
+                errors.push(format!("{prefix}.consumes: duplicate evidence kind"));
+            }
+            if declared_inputs != expected_inputs {
+                errors.push(format!(
+                    "{prefix}.consumes: does not match the operation's typed input contract"
+                ));
+            }
+            if step.produces != step.operation.produced_output() {
+                errors.push(format!(
+                    "{prefix}.produces: does not match the operation's typed output contract"
+                ));
+            }
+            if !steps_by_id.insert(step.step_id.as_str(), step).is_none() {
+                errors.push(format!("{prefix}.step_id: duplicate lookup key"));
+            }
+        }
+
+        // Every v1 procedure is a complete receiving/put-away lifecycle,
+        // including a recovery branch. A partial graph is not executable.
+        const REQUIRED_OPERATIONS: [ProcedureOperation; 15] = [
+            ProcedureOperation::ValidateManifest,
+            ProcedureOperation::VerifyAuthorizationReceipt,
+            ProcedureOperation::VerifyReceiverCapability,
+            ProcedureOperation::VerifyPackageIdentity,
+            ProcedureOperation::VerifyContainerFit,
+            ProcedureOperation::VerifyPayloadMass,
+            ProcedureOperation::VerifySealIntegrity,
+            ProcedureOperation::VerifyTemperatureEnvelope,
+            ProcedureOperation::VerifyTransferGateInterlock,
+            ProcedureOperation::PrepareReleaseIntent,
+            ProcedureOperation::ObserveSourceRelease,
+            ProcedureOperation::ObserveReceiverArrival,
+            ProcedureOperation::VerifyPlacement,
+            ProcedureOperation::CollectCustodyAcknowledgement,
+            ProcedureOperation::ReconcileUnknownOutcome,
+        ];
+        for operation in REQUIRED_OPERATIONS {
+            if !operation_ids.contains(&operation) {
+                errors.push(format!(
+                    "procedure.steps: missing required operation {operation:?}"
+                ));
+            }
+        }
+
+        let mut indegree: HashMap<&str, usize> = HashMap::new();
+        let mut outgoing: HashMap<&str, Vec<&str>> = HashMap::new();
+        for step in &self.steps {
+            indegree.entry(step.step_id.as_str()).or_insert(0);
+            let mut dependencies = HashSet::new();
+            for dependency in &step.depends_on {
+                if !dependencies.insert(dependency.as_str()) {
+                    errors.push(format!(
+                        "procedure.step[{}].depends_on: duplicate dependency {dependency}",
+                        step.step_id
+                    ));
+                    continue;
+                }
+                if dependency == &step.step_id {
+                    errors.push(format!(
+                        "procedure.step[{}].depends_on: self-dependency",
+                        step.step_id
+                    ));
+                    continue;
+                }
+                if !steps_by_id.contains_key(dependency.as_str()) {
+                    errors.push(format!(
+                        "procedure.step[{}].depends_on: unknown step {dependency}",
+                        step.step_id
+                    ));
+                    continue;
+                }
+                *indegree.entry(step.step_id.as_str()).or_insert(0) += 1;
+                outgoing
+                    .entry(dependency.as_str())
+                    .or_default()
+                    .push(step.step_id.as_str());
+            }
+        }
+
+        let mut ready = self
+            .steps
+            .iter()
+            .filter(|step| indegree.get(step.step_id.as_str()).copied().unwrap_or(0) == 0)
+            .map(|step| step.step_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut topological_order = Vec::with_capacity(self.steps.len());
+        while let Some(next) = ready.pop_first() {
+            topological_order.push(next);
+            for dependent in outgoing.get(next).into_iter().flatten() {
+                if let Some(value) = indegree.get_mut(dependent) {
+                    *value -= 1;
+                    if *value == 0 {
+                        ready.insert(dependent);
+                    }
+                }
+            }
+        }
+        if topological_order.len() != self.steps.len() {
+            errors.push("procedure.steps: dependency cycle detected".into());
+        }
+
+        // Compute transitive dependency closure for every node. Typed evidence
+        // may be consumed only from a declared external input or an ancestor.
+        let mut ancestors: HashMap<&str, HashSet<&str>> = HashMap::new();
+        for step_id in &topological_order {
+            let step = steps_by_id[step_id];
+            let mut inherited = HashSet::new();
+            for dependency in &step.depends_on {
+                inherited.insert(dependency.as_str());
+                if let Some(parent_ancestors) = ancestors.get(dependency.as_str()) {
+                    inherited.extend(parent_ancestors.iter().copied());
+                }
+            }
+            ancestors.insert(step_id, inherited);
+        }
+
+        let external_inputs = [
+            EvidenceKind::ManifestSnapshot,
+            EvidenceKind::AuthorizationReceipt,
+            EvidenceKind::ReceiverCapabilityReceipt,
+            EvidenceKind::PackageIdentityObservation,
+            EvidenceKind::ContainerFitObservation,
+            EvidenceKind::PayloadMassObservation,
+            EvidenceKind::SealObservation,
+            EvidenceKind::TemperatureObservation,
+            EvidenceKind::TransferGateObservation,
+            EvidenceKind::ReleaseExecutionReceipt,
+            EvidenceKind::ReceiverPresenceObservation,
+            EvidenceKind::PlacementObservation,
+            EvidenceKind::CounterpartyCustodyReceipt,
+            EvidenceKind::AmbiguousOutcomeObservation,
+        ];
+        let external_inputs = external_inputs.into_iter().collect::<HashSet<_>>();
+
+        for step in &self.steps {
+            let ancestor_ids = ancestors.get(step.step_id.as_str());
+            for input in &step.consumes {
+                let externally_supplied = external_inputs.contains(input);
+                let produced_by_ancestor = ancestor_ids.is_some_and(|ids| {
+                    ids.iter().any(|ancestor_id| {
+                        steps_by_id
+                            .get(ancestor_id)
+                            .is_some_and(|ancestor| ancestor.produces == *input)
+                    })
+                });
+                if !externally_supplied && !produced_by_ancestor {
+                    errors.push(format!(
+                        "procedure.step[{}].consumes: {input:?} is not supplied by an external input or dependency ancestor",
+                        step.step_id
+                    ));
+                }
+            }
+        }
+
+        // The intent cannot be prepared until all independent preflight
+        // gates are ancestors. This prevents graph order from becoming a
+        // shortcut around authority, capability, identity or safety checks.
+        let preflight = [
+            ProcedureOperation::ValidateManifest,
+            ProcedureOperation::VerifyAuthorizationReceipt,
+            ProcedureOperation::VerifyReceiverCapability,
+            ProcedureOperation::VerifyPackageIdentity,
+            ProcedureOperation::VerifyContainerFit,
+            ProcedureOperation::VerifyPayloadMass,
+            ProcedureOperation::VerifySealIntegrity,
+            ProcedureOperation::VerifyTemperatureEnvelope,
+            ProcedureOperation::VerifyTransferGateInterlock,
+        ];
+        for (operation, required_ancestor_operations) in [
+            (
+                ProcedureOperation::PrepareReleaseIntent,
+                preflight.as_slice(),
+            ),
+            (
+                ProcedureOperation::ObserveSourceRelease,
+                &[ProcedureOperation::PrepareReleaseIntent][..],
+            ),
+            (
+                ProcedureOperation::ObserveReceiverArrival,
+                &[ProcedureOperation::ObserveSourceRelease][..],
+            ),
+            (
+                ProcedureOperation::VerifyPlacement,
+                &[ProcedureOperation::ObserveReceiverArrival][..],
+            ),
+            (
+                ProcedureOperation::CollectCustodyAcknowledgement,
+                &[ProcedureOperation::VerifyPlacement][..],
+            ),
+            (
+                ProcedureOperation::ReconcileUnknownOutcome,
+                &[ProcedureOperation::PrepareReleaseIntent][..],
+            ),
+        ] {
+            let Some(step) = self.steps.iter().find(|step| step.operation == operation) else {
+                continue;
+            };
+            let ancestor_ids = ancestors.get(step.step_id.as_str());
+            for required in required_ancestor_operations {
+                let exists = ancestor_ids.is_some_and(|ids| {
+                    ids.iter().any(|ancestor_id| {
+                        steps_by_id
+                            .get(ancestor_id)
+                            .is_some_and(|ancestor| ancestor.operation == *required)
+                    })
+                });
+                if !exists {
+                    errors.push(format!(
+                        "procedure.operation.{operation:?}: required predecessor {required:?} is not an ancestor"
+                    ));
+                }
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Ok(ProcedureReadinessReport {
+            schema_version: self.schema_version,
+            procedure_id: self.procedure_id.clone(),
+            procedure_version: self.procedure_version,
+            bound_scenario_id: self.binding.scenario_id.clone(),
+            bound_source_commit: self.binding.source_commit.clone(),
+            bound_configuration_digest: self.binding.configuration_digest.clone(),
+            topological_order: topological_order
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            step_count: self.steps.len(),
+            structurally_valid_for_external_review: true,
+            motion_authority_granted: false,
+            physical_command_emitted: false,
+            task_success_attested: false,
+            limitations: vec![
+                "Validates only procedure graph shape, typed evidence dependencies and exact scenario binding".into(),
+                "External evidence values, signatures, freshness and sensor truth are not authenticated".into(),
+                "The procedure graph cannot grant motion authority or emit a physical command".into(),
+                "An independent executor, safety authority and observer/evaluator remain mandatory".into(),
+            ],
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SCENARIO: &str = include_str!("../fixtures/nominal-stationary-carrier.json");
+    const PROCEDURE: &str = include_str!("../fixtures/nominal-receiving-procedure.json");
+
+    fn fixture() -> (ScenarioManifest, ProcedureGraph) {
+        let scenario = serde_json::from_str(SCENARIO).expect("scenario fixture");
+        let procedure = serde_json::from_str(PROCEDURE).expect("procedure fixture");
+        (scenario, procedure)
+    }
+
+    #[test]
+    fn nominal_procedure_is_structurally_ready_but_has_no_authority() {
+        let (scenario, procedure) = fixture();
+        let report = procedure.evaluate(&scenario).expect("valid procedure graph");
+        assert_eq!(report.step_count, 15);
+        assert_eq!(report.topological_order.len(), 15);
+        assert!(report.structurally_valid_for_external_review);
+        assert!(!report.motion_authority_granted);
+        assert!(!report.physical_command_emitted);
+        assert!(!report.task_success_attested);
+    }
+
+    #[test]
+    fn wrong_scenario_or_configuration_binding_is_rejected() {
+        let (scenario, mut procedure) = fixture();
+        procedure.binding.configuration_digest = format!("sha256:{}", "f".repeat(64));
+        assert!(procedure.evaluate(&scenario).is_err());
+    }
+
+    #[test]
+    fn release_intent_cannot_skip_any_preflight_gate() {
+        let (scenario, mut procedure) = fixture();
+        let gate_step = procedure
+            .steps
+            .iter_mut()
+            .find(|step| step.operation == ProcedureOperation::VerifyTransferGateInterlock)
+            .expect("gate step");
+        let gate_id = gate_step.step_id.clone();
+        procedure
+            .steps
+            .iter_mut()
+            .find(|step| step.operation == ProcedureOperation::PrepareReleaseIntent)
+            .expect("release intent step")
+            .depends_on
+            .retain(|dependency| dependency != &gate_id);
+        assert!(procedure.evaluate(&scenario).is_err());
+    }
+
+    #[test]
+    fn dependency_cycle_is_rejected() {
+        let (scenario, mut procedure) = fixture();
+        let first = procedure.steps[0].step_id.clone();
+        let last = procedure.steps[1].step_id.clone();
+        procedure.steps[0].depends_on.push(last);
+        procedure.steps[1].depends_on.push(first);
+        assert!(procedure.evaluate(&scenario).is_err());
+    }
+
+    #[test]
+    fn evidence_type_cannot_be_forged_or_relabelled() {
+        let (scenario, mut procedure) = fixture();
+        let manifest = procedure
+            .steps
+            .iter_mut()
+            .find(|step| step.operation == ProcedureOperation::ValidateManifest)
+            .expect("manifest step");
+        manifest.consumes = vec![EvidenceKind::AuthorizationReceipt];
+        assert!(procedure.evaluate(&scenario).is_err());
+    }
+
+    #[test]
+    fn custody_cannot_be_acknowledged_before_placement_verification() {
+        let (scenario, mut procedure) = fixture();
+        let placement_id = procedure
+            .steps
+            .iter()
+            .find(|step| step.operation == ProcedureOperation::VerifyPlacement)
+            .expect("placement step")
+            .step_id
+            .clone();
+        procedure
+            .steps
+            .iter_mut()
+            .find(|step| step.operation == ProcedureOperation::CollectCustodyAcknowledgement)
+            .expect("custody step")
+            .depends_on
+            .retain(|dependency| dependency != &placement_id);
+        assert!(procedure.evaluate(&scenario).is_err());
+    }
+}
