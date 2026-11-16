@@ -1,31 +1,73 @@
+use symtropy_freeflow_structure_lab::tetrahedral::{
+    TetrahedralAssembly, TetrahedralConfig,
+};
 use symtropy_freeflow_structure_lab::{Config, StructureGraph};
 
 fn main() {
-    let graph = StructureGraph::generate(Config::default()).expect("valid geometry fixture");
-    let metrics = graph
-        .audit()
-        .expect("generated graph should pass topology audit");
-
     println!("Symtropy Free-Flow Modular Structure Lab");
-    println!("nodes={}", metrics.node_count);
-    println!("members={}", metrics.member_count);
-    println!("connected_components={}", metrics.connected_components);
-    println!("cycle_rank={}", metrics.cycle_rank);
-    println!("maximum_node_degree={}", metrics.maximum_node_degree);
-    println!("total_member_length={:.9}", metrics.total_member_length);
-    println!("minimum_member_length={:.9}", metrics.minimum_member_length);
-    println!("maximum_member_length={:.9}", metrics.maximum_member_length);
+    println!("geometry/topology research only — no strength or flight qualification");
+
+    let branch_graph =
+        StructureGraph::generate(Config::default()).expect("valid branching geometry fixture");
+    let branch_metrics = branch_graph
+        .audit()
+        .expect("branching graph should pass topology audit");
+    println!("branching_motif.nodes={}", branch_metrics.node_count);
+    println!("branching_motif.members={}", branch_metrics.member_count);
     println!(
-        "bounds_min=({:.6},{:.6},{:.6})",
-        metrics.bounds_min.x, metrics.bounds_min.y, metrics.bounds_min.z
+        "branching_motif.cycle_rank={}",
+        branch_metrics.cycle_rank
     );
     println!(
-        "bounds_max=({:.6},{:.6},{:.6})",
-        metrics.bounds_max.x, metrics.bounds_max.y, metrics.bounds_max.z
+        "branching_motif.connected_components={}",
+        branch_metrics.connected_components
     );
     println!(
-        "digest_non_security={:016x}",
-        metrics.same_build_digest_non_security
+        "branching_motif.digest_non_security={:016x}",
+        branch_metrics.same_build_digest_non_security
     );
-    println!("claim_ceiling={}", metrics.claim_ceiling);
+
+    let tetrahedral =
+        TetrahedralAssembly::generate(TetrahedralConfig::default())
+            .expect("valid face-attached tetrahedral fixture");
+    let tetra_metrics = tetrahedral
+        .audit()
+        .expect("tetrahedral assembly should pass geometry/topology audit");
+
+    println!("tetrahedral.cells={}", tetra_metrics.cell_count);
+    println!("tetrahedral.nodes={}", tetra_metrics.node_count);
+    println!("tetrahedral.members={}", tetra_metrics.member_count);
+    println!(
+        "tetrahedral.cycle_rank={}",
+        tetra_metrics.cycle_rank
+    );
+    println!(
+        "tetrahedral.connected_components={}",
+        tetra_metrics.connected_components
+    );
+    println!(
+        "tetrahedral.maximum_node_degree={}",
+        tetra_metrics.maximum_node_degree
+    );
+    println!(
+        "tetrahedral.total_member_length_m={:.9}",
+        tetra_metrics.total_member_length_m
+    );
+    println!(
+        "tetrahedral.minimum_face_area_m2={:.9}",
+        tetra_metrics.minimum_attachment_face_area_m2
+    );
+    println!(
+        "tetrahedral.minimum_cell_volume_m3={:.9}",
+        tetra_metrics.minimum_cell_volume_m3
+    );
+    println!(
+        "tetrahedral.digest_non_security={:016x}",
+        tetra_metrics.same_build_digest_non_security
+    );
+    println!(
+        "tetrahedral.ideal_attachment_contract={}",
+        tetra_metrics.ideal_attachment_contract
+    );
+    println!("claim_ceiling={}", tetra_metrics.claim_ceiling);
 }
