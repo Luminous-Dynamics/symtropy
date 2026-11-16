@@ -1,0 +1,136 @@
+{
+  "schema_version": "myco.temporal_alignment_benchmark.v0.1",
+  "suite_id": "MYCO-TEMPORAL-ALIGN-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5631",
+  "implementation": "symtropy_mycelium::temporal_alignment::ExperimentTimeAligner",
+  "status": "protocol_defined_not_run",
+  "clock_model": {
+    "transform": "reference = reference_at_source_start + (source_time - source_valid_from) * rate",
+    "supported_mode": "direct_source_clock_to_reference_clock_only",
+    "source_receipt_subject": "ClockSynchronization",
+    "uncertainty_propagation": "linear conservative absolute-error bound: |rate|*raw_bound + anchor_bound + elapsed*rate_bound",
+    "no_gaussian_assumption": true,
+    "calibration_validity": "closed interval in source clock",
+    "chain_composition": "not_supported_in_v0_1"
+  },
+  "synthetic_cases": [
+    {
+      "id": "TIME-001",
+      "name": "reference_clock_identity",
+      "truth": "no transformation required",
+      "expected": "identity mapping and unchanged error bound"
+    },
+    {
+      "id": "TIME-002",
+      "name": "pure_offset",
+      "truth": "known non-zero clock offset",
+      "expected": "offset recovered within declared bound"
+    },
+    {
+      "id": "TIME-003",
+      "name": "pure_rate_drift",
+      "truth": "known rate error over 10 hour acquisition",
+      "expected": "drift is propagated into error bound"
+    },
+    {
+      "id": "TIME-004",
+      "name": "offset_plus_rate_drift",
+      "truth": "known affine transform",
+      "expected": "aligned event time within propagated bound"
+    },
+    {
+      "id": "TIME-005",
+      "name": "overlapping_uncertainty",
+      "truth": "event intervals overlap",
+      "expected": "IndeterminateOverlap"
+    },
+    {
+      "id": "TIME-006",
+      "name": "touching_closed_intervals",
+      "truth": "interval endpoints touch",
+      "expected": "IndeterminateOverlap"
+    },
+    {
+      "id": "TIME-007",
+      "name": "disjoint_event_intervals",
+      "truth": "event A strictly precedes B",
+      "expected": "FirstBeforeSecond"
+    },
+    {
+      "id": "TIME-008",
+      "name": "raw_time_order_reversed_by_drift",
+      "truth": "clock offsets make raw numeric times misleading",
+      "expected": "aligned order matches reference truth"
+    },
+    {
+      "id": "TIME-009",
+      "name": "missing_synchronization_receipt",
+      "truth": "no calibration evidence",
+      "expected": "reject independent clock alignment"
+    },
+    {
+      "id": "TIME-010",
+      "name": "wrong_subject_receipt",
+      "truth": "receipt is a Raman signal not a sync pulse",
+      "expected": "reject calibration"
+    },
+    {
+      "id": "TIME-011",
+      "name": "duplicate_sync_receipt",
+      "truth": "same receipt identity provided twice",
+      "expected": "reject calibration"
+    },
+    {
+      "id": "TIME-012",
+      "name": "out_of_calibration_range",
+      "truth": "timestamp beyond validated clock interval",
+      "expected": "reject alignment"
+    },
+    {
+      "id": "TIME-013",
+      "name": "dropped_frames",
+      "truth": "sampling cadence differs from observed frame indices",
+      "expected": "no assumed time interpolation without explicit calibration"
+    },
+    {
+      "id": "TIME-014",
+      "name": "long_duration_drift",
+      "truth": "small rate error accumulates over experiment",
+      "expected": "bound expands conservatively with elapsed time"
+    }
+  ],
+  "metrics": [
+    "reference_timestamp_absolute_error_s",
+    "error_bound_empirical_coverage",
+    "known_order_accuracy_on_disjoint_intervals",
+    "indeterminate_rate_on_overlapping_intervals",
+    "false_precedence_rate",
+    "rate_drift_estimation_error",
+    "cross_platform_alignment_digest_match"
+  ],
+  "proposed_targets_not_results": {
+    "false_precedence_rate_on_known_truth": 0,
+    "separated_event_order_accuracy": 0.99,
+    "conservative_bound_coverage": 0.99,
+    "exact_cross_platform_replay": true
+  },
+  "modality_tracks": [
+    "brightfield_and_confocal_microscopy",
+    "cytoplasmic_flow_video",
+    "raman_and_srs_spectroscopy",
+    "isotope_and_tracer_imaging",
+    "electrical_signalling",
+    "PET_and_fluorescent_nanoparticle_measurement"
+  ],
+  "claim_boundary": "temporal precedence is not biological causality; no causal claim without intervention and mechanism-specific evidence",
+  "receipt_requirements": [
+    "raw_device_clock_id",
+    "raw_timestamp_and_error_bound",
+    "calibration_id_and_source_receipt",
+    "source_validity_interval",
+    "rate_and_anchor_bounds",
+    "aligned_reference_timestamp_and_propagated_bound",
+    "comparison_interval_and_ordering_result",
+    "exact source and processing digests"
+  ]
+}
