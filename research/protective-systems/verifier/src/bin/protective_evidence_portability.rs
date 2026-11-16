@@ -29,6 +29,8 @@ const E1_SOURCE_ENVELOPE_BYTES: &[u8] =
 const E2_BINDING: &str = include_str!(
     "../../../fixtures/protective-evidence-crate-v0.1/provenance/e2-evidence-binding.json"
 );
+const BINDING_SCHEMA_SPEC: &str =
+    include_str!("../../../schemas/protect-evidence-binding-v0.1.schema.json");
 
 const RO_CONTEXT: &str = "https://w3id.org/ro/crate/1.3/context";
 const RO_SPEC: &str = "https://w3id.org/ro/crate/1.3";
@@ -219,6 +221,15 @@ fn validate_crate_with_binding(
     }
     let binding_root: Value = serde_json::from_str(binding_text)
         .map_err(|error| format!("E2 evidence binding JSON invalid: {error}"))?;
+    let binding_schema: Value = serde_json::from_str(BINDING_SCHEMA_SPEC)
+        .map_err(|error| format!("E2 binding schema JSON invalid: {error}"))?;
+    let binding_validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&binding_schema)
+        .map_err(|error| format!("E2 binding schema is invalid: {error}"))?;
+    binding_validator.validate(&binding_root).map_err(|error| {
+        format!("E2 evidence binding schema validation failed: {error}")
+    })?;
     if required_text(&binding_root, "schema_version", "E2 binding")?
         != "protect-evidence-binding/0.1"
         || required_text(&binding_root, "evidence_class", "E2 binding")? != "synthetic"
@@ -753,6 +764,34 @@ mod tests {
         assert!(report.json_ld_processing_scope.contains("not implemented"));
         assert!(report.prov_conformance_scope.contains("not certified"));
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
+    }
+
+    #[test]
+    fn binding_schema_rejects_unknown_properties() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["unrecognized"] = Value::Bool(true);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("binding schema additionalProperties=false");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn binding_schema_requires_synthetic_evidence_class() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["evidence_class"] = Value::String("external_observed".into());
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("binding class escalation");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
+    }
+
+    #[test]
+    fn binding_schema_rejects_artifacts_on_synthetic_control() {
+        let mut binding: Value = serde_json::from_str(E2_BINDING).expect("binding manifest");
+        binding["bindings"][1]["artifact_paths"] =
+            json!(["model-evidence-payloads/unknown-provider-data.json"]);
+        let error = validate_crate_with_binding(CRATE, PROV, &binding.to_string())
+            .expect_err("synthetic control has no provider artifacts");
+        assert!(error.contains("E2 evidence binding schema validation failed"));
     }
 
     #[test]
