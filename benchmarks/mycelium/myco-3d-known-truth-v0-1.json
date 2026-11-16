@@ -202,5 +202,32 @@
     "snt_docs": "https://imagej.net/plugins/snt/",
     "snt_paper": "https://doi.org/10.1038/s41592-021-01105-7",
     "skelpy_paper": "https://doi.org/10.1002/aps3.70049"
+  },
+  "crossing_hypothesis_contract": {
+    "implementation": "symtropy_mycelium::crossing_qualification::CrossingCandidate::topology_hypotheses",
+    "output_type": "CrossingTopologyHypotheses",
+    "fields": [
+      "separate_filaments",
+      "shared_3d_junction"
+    ],
+    "assessments": {
+      "depth_separated": {
+        "separate_filaments": true,
+        "shared_3d_junction": false
+      },
+      "ambiguous_depth": {
+        "separate_filaments": true,
+        "shared_3d_junction": true,
+        "requires_review": true
+      },
+      "missing_depth": {
+        "separate_filaments": true,
+        "shared_3d_junction": true,
+        "requires_review": true
+      }
+    },
+    "critical_boundary": "This is a set of admissible graph-topology hypotheses, not a probability distribution and not a positive fusion detector.",
+    "automatic_join_permitted": false,
+    "downstream_policy": "Preserve both topologies or request independent review; never convert the shared-junction hypothesis directly into a graph mutation."
   }
 }
