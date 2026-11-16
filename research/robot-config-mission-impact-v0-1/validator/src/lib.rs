@@ -579,7 +579,11 @@ pub fn outcome_metric_invariants(metrics: &Value, oracle: &Value) -> Vec<String>
             if attempted.is_none_or(|count| count > 1) {
                 errors.push(format!("functional_units_attempted_invalid:{pair_id}:{side}"));
             }
-            if (status == Some("not_started")) != (attempted == Some(0)) {
+            let status_allows_zero_attempts =
+                matches!(status, Some("not_started" | "unknown"));
+            if (attempted == Some(0) && !status_allows_zero_attempts)
+                || (status == Some("not_started") && attempted != Some(0))
+            {
                 errors.push(format!("not_started_attempt_denominator_mismatch:{pair_id}:{side}"));
             }
 
