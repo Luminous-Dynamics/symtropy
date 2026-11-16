@@ -1,0 +1,254 @@
+{
+  "schema_version": "waterloop-feed-study-manifest-v0.1",
+  "study_id": "WATERLOOP-FEED-CHAR-001",
+  "parent_issue": 5475,
+  "child_issue": 5545,
+  "status": "PREREGISTRATION_DESIGN_NOT_AUTHORIZED_FOR_COLLECTION",
+  "evidence_class": "design_only",
+  "claim_ceiling": "campaign_design_and_metadata_contract_only_no_samples_or_water_quality_assessment",
+  "initial_source_profile": {
+    "id": "SRC-BATH-01",
+    "name": "bath_and_shower_light_greywater",
+    "phase": "B_after_permissions_and_lab_method_admission",
+    "separate_capture": true,
+    "first_end_use": "none_during_characterisation"
+  },
+  "source_profiles": [
+    {
+      "id": "SRC-BATH-01",
+      "state": "first_candidate",
+      "include": [
+        "bath",
+        "shower"
+      ],
+      "separate_subsource_identity_if_measurable": true
+    },
+    {
+      "id": "SRC-BASIN-01",
+      "state": "deferred_separate_characterisation",
+      "include": [
+        "hand_basin"
+      ],
+      "may_mix_with_SRC_BATH_01": false
+    },
+    {
+      "id": "SRC-LAUNDRY-01",
+      "state": "deferred_separate_campaign",
+      "include": [
+        "laundry_wash",
+        "laundry_rinse"
+      ],
+      "may_mix_with_SRC_BATH_01": false,
+      "candidate_screening": [
+        "surfactants",
+        "sodium",
+        "boron",
+        "conductivity",
+        "salinity",
+        "pH",
+        "COD",
+        "TSS",
+        "microbial_indicators"
+      ]
+    },
+    {
+      "id": "SRC-KITCHEN-01",
+      "state": "excluded_from_v0_1",
+      "include": [
+        "kitchen_sink",
+        "dishwasher"
+      ]
+    },
+    {
+      "id": "SRC-BLACKWATER-01",
+      "state": "excluded_from_v0_1",
+      "include": [
+        "toilet",
+        "urinal",
+        "bidet",
+        "faecal_or_nappy_contamination"
+      ]
+    },
+    {
+      "id": "SRC-CHEM-01",
+      "state": "excluded_from_v0_1",
+      "include": [
+        "paint",
+        "solvent",
+        "vehicle",
+        "workshop",
+        "strong_chemical_cleaning"
+      ]
+    },
+    {
+      "id": "SRC-RAIN-01",
+      "state": "separate_future_campaign",
+      "include": [
+        "roof_rainwater"
+      ],
+      "may_mix_with_SRC_BATH_01": false
+    }
+  ],
+  "phases": [
+    {
+      "id": "A",
+      "name": "clean_water_measurement_shakedown",
+      "wastewater_connected": false,
+      "required": true,
+      "objectives": [
+        "source_flow_and_volume_meter",
+        "tank_level_volume_calibration",
+        "event_timebase",
+        "energy_boundary",
+        "sample_port_access",
+        "containment_and_reject_path"
+      ],
+      "exit_gate": "clean_water hydraulic and metrology boundaries reviewed"
+    },
+    {
+      "id": "B",
+      "name": "source_characterisation_no_reuse",
+      "wastewater_connected": true,
+      "collection_permitted_only_after": [
+        "site_permission",
+        "municipal_legal_review",
+        "qualified_plumbing_process_review",
+        "water_quality_professional_plan",
+        "laboratory_sampling_preservation_and_disposal_instructions"
+      ],
+      "end_use_connected": false,
+      "required": true
+    },
+    {
+      "id": "C",
+      "name": "contained_storage_transformation_optional",
+      "required": false,
+      "authorised_contained_test_cell_required": true,
+      "untreated_storage_never_exceeds_approved_limit": true,
+      "distinguish_process_residence_from_lab_sample_hold": true
+    },
+    {
+      "id": "D",
+      "name": "matched_batch_treatment_feed",
+      "required": false,
+      "requires_provisional_feed_envelope": true,
+      "matched_aliquots_from_same_batch": true,
+      "configuration_frozen": true
+    }
+  ],
+  "analyte_families": {
+    "core_screening_candidates": [
+      "temperature",
+      "pH",
+      "electrical_conductivity",
+      "turbidity",
+      "total_suspended_solids",
+      "COD_or_BOD_method_selected_by_lab",
+      "microbial_indicators_selected_by_risk_assessor"
+    ],
+    "hydraulic_candidates": [
+      "event_flow_rate",
+      "event_volume",
+      "event_duration",
+      "source_temperature",
+      "residence_time"
+    ],
+    "bathroom_source_additions": [
+      "surfactants_or_personal_care_indicators_if_professional_screening_requires"
+    ],
+    "laundry_future_additions": [
+      "surfactants",
+      "sodium",
+      "boron",
+      "conductivity_or_salinity",
+      "pH",
+      "COD",
+      "TSS",
+      "microbial_indicators"
+    ],
+    "irrigation_only_WRC_TT746_17_candidates": [
+      "EC",
+      "SAR",
+      "E_coli",
+      "pH",
+      "boron",
+      "COD",
+      "oil_and_grease",
+      "suspended_solids",
+      "total_inorganic_nitrogen",
+      "total_phosphorus"
+    ]
+  },
+  "quality_rules": [
+    "This manifest defines candidates, not mandatory analytical limits or toilet-flush acceptance criteria.",
+    "The qualified laboratory selects method, revision, sample containers, preservatives, holding times, transport, analytical ranges and quality-control acceptance criteria.",
+    "Mycelix #6100 owns raw sample/observation identity and versioned intended-use assessment; Symtropy references exact Mycelix observation IDs/digests only.",
+    "No raw values are copied into the Symtropy source event template; store observations with the Mycelix owner.",
+    "Below-detection and censored results remain qualified/censored and are never converted to zero.",
+    "Grab, time-composite and flow-proportional composite samples retain distinct collection-method identities.",
+    "A sample aliquot, lab split, duplicate, source event and household/site are different units; preserve their parent-child links.",
+    "Concentration-to-load transforms require admitted concentration, time-aligned admitted source volume/flow, unit conversion and propagated uncertainty.",
+    "Synthetic challenge feeds, actual greywater events and stored-age challenge samples remain distinct populations.",
+    "No collection or storage begins until required permission, professional and laboratory gates are signed."
+  ],
+  "statistical_plan": {
+    "sample_count": "NOT_SET_PENDING_PILOT_VARIANCE_AND_POWER_OR_QUANTILE_PRECISION_PLAN",
+    "design": "hierarchical_clustered_repeated_source_events",
+    "clusters": [
+      "coded_site",
+      "source_point"
+    ],
+    "repeated_units": [
+      "source_event",
+      "aliquot",
+      "sample"
+    ],
+    "report": [
+      "site_and_cluster_counts",
+      "independent_event_count",
+      "median",
+      "predeclared_quantiles",
+      "uncertainty_intervals",
+      "within_site_variability",
+      "between_site_variability",
+      "joint_covariance",
+      "outlier_and_exclusion_log",
+      "censoring_and_missingness"
+    ],
+    "stopping_rule": "predeclare precision target for critical quantiles after pilot; require stratum coverage, method/QC completeness and no unrepresented high-impact source stratum",
+    "forbidden": "do_not treat aliquots/repeats from one household as independent households; do not stop after a preferred module appears to win"
+  },
+  "quality_control": {
+    "plan_owner": "receiving laboratory and qualified water professionals",
+    "candidate_controls": [
+      "field_blank",
+      "equipment_blank",
+      "field_duplicate",
+      "laboratory_duplicate_or_split",
+      "reference_or_control_material"
+    ],
+    "frequencies_and_acceptance": "TO_BE_DEFINED_BY_METHOD_SPECIFIC_LABORATORY_QA_PLAN",
+    "chain_of_custody_required": true,
+    "invalid_or_missing_critical_custody": "EXCLUDE_FROM_DECISION_OR_INDETERMINATE_WITH_AUDIT_TRAIL"
+  },
+  "evidence_bindings": {
+    "raw_observation_and_assessment": "Mycelix #6100",
+    "instrument_capability_and_calibration": "Mycelix #6034",
+    "channel_and_measurand": "Mycelix #6029",
+    "uncertainty": "Mycelix #6048",
+    "timebase_and_stream_identity": "Mycelix #6054",
+    "condition_applicability": "Mycelix #6057",
+    "source_sampling_and_feed_envelope": "Symtropy #5545",
+    "treatment_tournament": "Symtropy #5475"
+  },
+  "nonclaims": [
+    "no samples acquired",
+    "no site selected",
+    "no lab selected",
+    "no sample count prescribed",
+    "no numeric quality limits set",
+    "no treatment train selected",
+    "no reuse or potable claim",
+    "no installation or collection authorization"
+  ]
+}

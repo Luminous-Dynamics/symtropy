@@ -1,0 +1,63 @@
+{
+  "schema_version": "waterloop-source-event-template-v0.1",
+  "study_id": "WATERLOOP-FEED-CHAR-001",
+  "status": "EMPTY_TEMPLATE_NO_REAL_OBSERVATION",
+  "source_event": {
+    "event_id": null,
+    "source_profile_id": "SRC-BATH-01",
+    "coded_site_id": null,
+    "coded_source_point_id": null,
+    "source_subtype": null,
+    "collection_method": null,
+    "event_start_time": null,
+    "event_end_time": null,
+    "timebase_profile_ref": null,
+    "total_event_volume_m3": null,
+    "flow_observation_refs": [],
+    "event_temperature_observation_refs": [],
+    "non_identifying_context": {
+      "time_of_day_band": null,
+      "season_band": null,
+      "occupancy_band": null,
+      "cleaning_product_class": null,
+      "unusual_source_event_flag": null
+    },
+    "permission_and_consent_ref": null,
+    "qualified_sampling_plan_ref": null,
+    "source_exclusion_screen_result": null
+  },
+  "samples": [
+    {
+      "sample_id": null,
+      "parent_event_id": null,
+      "aliquot_id": null,
+      "sample_role": null,
+      "collection_start_time": null,
+      "collection_end_time": null,
+      "collection_method_ref": null,
+      "sampler_competence_ref": null,
+      "chain_of_custody_ref": null,
+      "laboratory_ref": null,
+      "method_matrix_ref": null,
+      "preservation_and_holding_record_ref": null,
+      "mycelix_observation_refs": [],
+      "quality_control_disposition": null,
+      "exclusion_reason": null
+    }
+  ],
+  "provenance": {
+    "manifest_revision": null,
+    "source_event_digest": null,
+    "created_at": null,
+    "rights_and_retention_profile_ref": null,
+    "privacy_review_ref": null
+  },
+  "derived_feed_envelope": {
+    "status": "NOT_COMPUTED",
+    "observation_digest_refs": [],
+    "method_profile_refs": [],
+    "statistical_analysis_ref": null,
+    "uncertainty_analysis_ref": null,
+    "feed_profile_revision": null
+  }
+}

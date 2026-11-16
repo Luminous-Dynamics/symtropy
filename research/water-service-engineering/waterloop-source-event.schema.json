@@ -1,0 +1,412 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop-source-event.schema.json",
+  "title": "WaterLoop Source Event and Sample Reference",
+  "description": "Privacy-minimised metadata-only source event template; raw analytical results remain in Mycelix #6100.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "study_id",
+    "status",
+    "source_event",
+    "samples",
+    "provenance",
+    "derived_feed_envelope"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-source-event-template-v0.1"
+    },
+    "study_id": {
+      "const": "WATERLOOP-FEED-CHAR-001"
+    },
+    "status": {
+      "enum": [
+        "EMPTY_TEMPLATE_NO_REAL_OBSERVATION",
+        "DESIGN_ONLY",
+        "SAMPLE_METADATA_RECORDED"
+      ]
+    },
+    "source_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "source_profile_id",
+        "coded_site_id",
+        "coded_source_point_id",
+        "collection_method",
+        "event_start_time",
+        "event_end_time",
+        "timebase_profile_ref",
+        "flow_observation_refs",
+        "permission_and_consent_ref",
+        "qualified_sampling_plan_ref",
+        "source_exclusion_screen_result"
+      ],
+      "properties": {
+        "event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_profile_id": {
+          "enum": [
+            "SRC-BATH-01",
+            "SRC-BASIN-01",
+            "SRC-LAUNDRY-01",
+            "SRC-KITCHEN-01",
+            "SRC-BLACKWATER-01",
+            "SRC-CHEM-01",
+            "SRC-RAIN-01"
+          ]
+        },
+        "coded_site_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coded_source_point_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_subtype": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "collection_method": {
+          "enum": [
+            "GRAB",
+            "TIME_COMPOSITE",
+            "FLOW_PROPORTIONAL_COMPOSITE",
+            "NOT_SET",
+            null
+          ]
+        },
+        "event_start_time": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "event_end_time": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "timebase_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "total_event_volume_m3": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "flow_observation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "event_temperature_observation_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "non_identifying_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "time_of_day_band": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "season_band": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "occupancy_band": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cleaning_product_class": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unusual_source_event_flag": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "permission_and_consent_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qualified_sampling_plan_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_exclusion_screen_result": {
+          "enum": [
+            "PASS_FOR_SOURCE_STUDY",
+            "REJECTED_SOURCE",
+            "NOT_REVIEWED",
+            null
+          ]
+        }
+      }
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "parent_event_id",
+          "aliquot_id",
+          "sample_role",
+          "collection_method_ref",
+          "chain_of_custody_ref",
+          "laboratory_ref",
+          "method_matrix_ref",
+          "mycelix_observation_refs",
+          "quality_control_disposition"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent_event_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "aliquot_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sample_role": {
+            "enum": [
+              "SOURCE_GRAB",
+              "TIME_COMPOSITE",
+              "FLOW_COMPOSITE",
+              "FIELD_DUPLICATE",
+              "EQUIPMENT_BLANK",
+              "FIELD_BLANK",
+              "LAB_SPLIT",
+              "REFERENCE_CONTROL",
+              null
+            ]
+          },
+          "collection_start_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "collection_end_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "collection_method_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sampler_competence_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "chain_of_custody_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "laboratory_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method_matrix_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "preservation_and_holding_record_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mycelix_observation_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "quality_control_disposition": {
+            "enum": [
+              "ADMITTED_BY_METHOD_OWNER",
+              "REJECTED_BY_METHOD_OWNER",
+              "INDETERMINATE",
+              "NOT_REVIEWED",
+              null
+            ]
+          },
+          "exclusion_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_revision",
+        "source_event_digest",
+        "created_at",
+        "rights_and_retention_profile_ref",
+        "privacy_review_ref"
+      ],
+      "properties": {
+        "manifest_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_event_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "rights_and_retention_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "privacy_review_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "derived_feed_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "observation_digest_refs",
+        "method_profile_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_COMPUTED",
+            "PROVISIONAL",
+            "ADMITTED_FOR_DEFINED_TOURNAMENT",
+            "INDETERMINATE"
+          ]
+        },
+        "observation_digest_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "method_profile_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "statistical_analysis_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uncertainty_analysis_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "feed_profile_revision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

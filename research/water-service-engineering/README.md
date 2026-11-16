@@ -154,3 +154,16 @@ The source-aware architecture, process candidates, fail-safe boundary and matche
 This is a research reference and planning package only. The demonstrator matrix explicitly records `physical_testing_authorized: false`; qualified water-quality, plumbing and electrical review is required before physical work.
 
 - [safe-state-machine contract](waterloop-safe-state-machine-v0.1.json) and [schema](waterloop-safe-state-machine-v0.1.schema.json)
+
+
+## WaterLoop source characterisation campaign
+
+The campaign design is tracked by [#5545](https://github.com/Luminous-Dynamics/symtropy/issues/5545), as a child of [#5475](https://github.com/Luminous-Dynamics/symtropy/issues/5475). It supplies the source-property and feed-envelope evidence needed before selecting a treatment cassette.
+
+Artifacts on `research/waterloop-feed-characterisation-20261116`:
+- `WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md` — phases, source exclusions, representative sampling design, lab/QC roles, statistical stopping rules and treatment selection boundary.
+- `waterloop-feed-study-manifest-v0.1.json` — source profiles, analyte families, study phases, statistical plan and evidence ownership.
+- `waterloop-source-event-template-v0.1.json` — metadata-only event/sample template with Mycelix observation references; no raw analyte values are duplicated.
+- `waterloop-source-event.schema.json` — strict JSON Schema for that template.
+
+No samples are acquired, no site/laboratory selected, no sample count prescribed, and no quality limit established by this design.
