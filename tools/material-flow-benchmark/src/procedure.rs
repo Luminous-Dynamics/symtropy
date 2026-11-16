@@ -101,6 +101,46 @@ pub enum EvidenceKind {
     ReconciliationRecord,
 }
 
+impl EvidenceKind {
+    /// Maximum age of an external receipt at the latest plausible decision
+    /// time. These conservative v1 limits are part of the benchmark policy
+    /// and must be changed only with a versioned, reviewed policy update.
+    pub fn maximum_observation_age_ms(self) -> Option<u64> {
+        use EvidenceKind as E;
+        match self {
+            E::ManifestSnapshot => Some(300_000),
+            E::AuthorizationReceipt => Some(60_000),
+            E::ReceiverCapabilityReceipt => Some(86_400_000),
+            E::PackageIdentityObservation => Some(2_000),
+            E::ContainerFitObservation => Some(86_400_000),
+            E::PayloadMassObservation => Some(2_000),
+            E::SealObservation => Some(5_000),
+            E::TemperatureObservation => Some(2_000),
+            E::TransferGateObservation => Some(500),
+            E::ReleaseExecutionReceipt => Some(10_000),
+            E::ReceiverPresenceObservation => Some(500),
+            E::PlacementObservation => Some(1_000),
+            E::CounterpartyCustodyReceipt => Some(30_000),
+            E::AmbiguousOutcomeObservation => Some(5_000),
+            E::ManifestValidated
+            | E::AuthorizationValidated
+            | E::ReceiverCapabilityValidated
+            | E::PackageIdentityValidated
+            | E::ContainerFitValidated
+            | E::PayloadMassValidated
+            | E::SealValidated
+            | E::TemperatureValidated
+            | E::TransferGateInterlockValidated
+            | E::ReleaseIntentReady
+            | E::SourceReleaseObserved
+            | E::ReceiverArrivalObserved
+            | E::PlacementVerified
+            | E::CustodyEvidenceComplete
+            | E::ReconciliationRecord => None,
+        }
+    }
+}
+
 impl ProcedureOperation {
     pub fn required_inputs(self) -> &'static [EvidenceKind] {
         use EvidenceKind as E;
@@ -521,6 +561,7 @@ pub struct ProcedureEvidenceReceipt {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProcedureEvidenceAdmissionReport {
     pub schema_version: u16,
+    pub freshness_policy_version: u16,
     pub procedure_id: String,
     pub procedure_version: u32,
     pub scenario_id: String,
@@ -663,6 +704,16 @@ impl ProcedureGraph {
                     "{prefix}: expiry does not cover the full decision uncertainty window"
                 ));
             }
+            if let Some(maximum_age_ms) = receipt.kind.maximum_observation_age_ms() {
+                let worst_case_age_ms =
+                    latest_possible_decision_time.saturating_sub(receipt.observed_at_unix_ms);
+                if worst_case_age_ms > maximum_age_ms {
+                    errors.push(format!(
+                        "{prefix}: observation age {worst_case_age_ms} ms exceeds the v1 limit {maximum_age_ms} ms for {:?}",
+                        receipt.kind
+                    ));
+                }
+            }
         }
 
         for expected in &expected_external {
@@ -684,6 +735,7 @@ impl ProcedureGraph {
 
         Ok(ProcedureEvidenceAdmissionReport {
             schema_version: bundle.schema_version,
+            freshness_policy_version: 1,
             procedure_id: self.procedure_id.clone(),
             procedure_version: self.procedure_version,
             scenario_id: scenario.scenario_id.clone(),
@@ -862,6 +914,21 @@ mod tests {
                 .admit_evidence(&scenario, &expiry_inside_uncertainty)
                 .is_err()
         );
+    }
+
+    #[test]
+    fn evidence_admission_rejects_old_but_not_yet_expired_sensor_observation() {
+        let (scenario, procedure) = fixture();
+        let mut bundle = evidence_fixture();
+        let receipt = bundle
+            .receipts
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKind::TemperatureObservation)
+            .expect("temperature receipt");
+        receipt.observed_at_unix_ms = scenario.started_at_unix_ms - 3_000;
+        receipt.expires_at_unix_ms = scenario.started_at_unix_ms + 60_000;
+        assert!(receipt.expires_at_unix_ms > scenario.started_at_unix_ms);
+        assert!(procedure.admit_evidence(&scenario, &bundle).is_err());
     }
 
     #[test]
