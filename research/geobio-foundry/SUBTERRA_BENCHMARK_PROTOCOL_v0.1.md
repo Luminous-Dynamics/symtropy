@@ -147,7 +147,7 @@ The synthetic fixture contains two sites sharing calibration and environmental e
 
 ## 11. Site-evidence observation cross-reference fixtures
 
-Three synthetic, schema-conforming site-evidence records accompany the lineage manifest. Their observation ID sets exactly cover the six lineage records:
+Three synthetic site-evidence records constructed from the previously validated v0.1 fixture structure accompany the lineage manifest. Targeted JSON, required-field, modality/date-time and observation-mapping checks passed; full Draft 2020-12 validation of these three added variants has not been run. Their observation ID sets exactly cover the six lineage records:
 - Site A: two raw acquisitions, a mesh and a derived feature product.
 - Site B: one raw acquisition sharing instrument-calibration and environmental episodes with Site A.
 - Site C: one isolated raw acquisition used as the evaluation control.
