@@ -122,6 +122,8 @@ pub struct ExecutionPlan {
     pub authorization_required: bool,
     /// Exact authorization scope digest required by the plan.
     pub authorization_scope_sha256: String,
+    /// Exact authorization receipt digest pinned by the plan, when authorization is required.
+    pub expected_authorization_receipt_sha256: Option<String>,
     /// Permitted actual run-time interval.
     pub permitted_run_window: TimeWindow,
     /// Every data window required to support the full planned claim.
@@ -375,6 +377,8 @@ pub enum MismatchDimension {
     RawDataManifest,
     /// Capture software build differs from the pinned policy.
     CaptureBuild,
+    /// A deviation is explicitly outside the authority or approved test envelope.
+    OutsideAuthorityEnvelope,
     /// Execution-fidelity policy differs from the frozen plan.
     Policy,
 }
@@ -471,6 +475,15 @@ fn validate_plan(plan: &ExecutionPlan) -> Result<(), ExecutionError> {
         || !is_sha256(&plan.measurement_plan_sha256)
         || !plan.configuration.is_complete()
         || !is_sha256(&plan.authorization_scope_sha256)
+        || (plan.authorization_required
+            && plan
+                .expected_authorization_receipt_sha256
+                .as_deref()
+                .is_none_or(|digest| !is_sha256(digest)))
+        || plan
+            .expected_authorization_receipt_sha256
+            .as_deref()
+            .is_some_and(|digest| !is_sha256(digest))
         || !plan.permitted_run_window.is_valid()
         || !is_sha256(&plan.policy_sha256)
         || plan.allowed_environment_strata.is_empty()
@@ -668,6 +681,10 @@ fn evaluate_authority(
                 *unknown = true;
                 return true;
             }
+            if plan.expected_authorization_receipt_sha256.as_deref() != Some(receipt) {
+                mismatches.insert(MismatchDimension::Authorization);
+                return false;
+            }
             if record.authority.scope_sha256.as_deref()
                 != Some(plan.authorization_scope_sha256.as_str())
             {
@@ -852,7 +869,8 @@ pub fn evaluate_execution(
             DeviationSeverity::Documented => documented_deviation = true,
             DeviationSeverity::Unknown => unknown = true,
             DeviationSeverity::OutsideAuthorityEnvelope => {
-                outside_authority_envelope = true
+                outside_authority_envelope = true;
+                mismatches.insert(MismatchDimension::OutsideAuthorityEnvelope);
             }
         }
     }
