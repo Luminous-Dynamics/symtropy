@@ -18,8 +18,9 @@
       "exact_revisions": null,
       "file_inventory": null,
       "licenses": {
-        "code": "unverified",
-        "data": "unverified"
+        "code": "unverified; no root LICENSE file found at the inspected PC_2025 main/ LICENSE path",
+        "data": "unverified; data.zip contents and directory-level rights not inspected",
+        "paper": "CC-BY-4.0"
       },
       "downloaded": false,
       "evidence_basis": "morphology/ML-derived estimates unless linked to independent tracer measurement",
@@ -28,7 +29,29 @@
         "C/P exchange ratio nearly invariant across tested fungal strains within host context",
         "C/P ratio strongly affected by plant host genotype",
         "host-genotype swap shifts exploration/exploitation Pareto front"
-      ]
+      ],
+      "publication_date": "2026-02-06",
+      "publication_license": "CC-BY-4.0 as stated in the published PNAS article",
+      "repository_default_branch": "main",
+      "repository_readme_blob_sha1": "a0237eb192fa2b5de365c77acb9fe38585fa1522",
+      "repository_readme_observations": [
+        "README identifies final_figures notebooks for main and supplementary figures",
+        "README identifies data.zip as required table bundle",
+        "README identifies final_figures/simulator.py",
+        "README identifies MLmodel training code/data",
+        "README states datatables are created from raw data using Cocopyth/AMFTravellingWave"
+      ],
+      "repository_root_license_file": "not_found_on_main_at_checked_path",
+      "phenotype_plot": {
+        "objectives": [
+          "rho_S_hyphal_surface_area_density",
+          "v_wave_travelling_wave_speed"
+        ],
+        "objective_direction": "maximize_both",
+        "data_unit": "median values over successive 10-hour intervals in each plate",
+        "host_genotype": "separate fronts; genotype swaps shift the observed/predicted front",
+        "fungal_strain": "retain per sample; within-host exchange ratio reported nearly invariant across tested strains"
+      }
     },
     {
       "id": "ROOT_ANATOMY_2025",
@@ -324,5 +347,26 @@
     ],
     "rule": "never compare or pool unlike evidence bases as if they were interchangeable measured fluxes",
     "cpn_units": "store elemental flux, isotope enrichment, recovered fraction and estimated exchange ratio as distinct quantities with explicit units"
+  },
+  "pareto_analysis_implementation": {
+    "module": "crates/domains/symtropy-mycelium/src/pareto_front.rs",
+    "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
+    "current_commit": "fbe9e9aa80d1462f276f0b68caa8b9b83487575b",
+    "test_functions": 13,
+    "status": "authored_exact_head_ci_pending",
+    "outputs": [
+      "host-stratified nondominated phenotype fronts",
+      "normalized two-dimensional hypervolume",
+      "normalized additive epsilon indicator"
+    ],
+    "safeguards": [
+      "never pool plant host genotypes before front analysis",
+      "retain fungal strain and complete growth-unit identity",
+      "retain sequential 10-hour windows as repeated observations under one growth unit",
+      "reject overlapping time windows within a growth unit",
+      "require explicit objective scales and hypervolume reference point",
+      "reject epsilon comparison between mixed host genotypes"
+    ],
+    "claim_boundary": "descriptive geometry only; no bootstrap, p-value, independent replicate inference or PNAS data reproduction"
   }
 }
