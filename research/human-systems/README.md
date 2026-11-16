@@ -38,6 +38,7 @@ This gives us a non-clinical research target useful for human-centred robotics, 
 - [Dataset and model-resource register v0.1](DATASET_AND_MODEL_RESOURCE_REGISTER_V0_1.md) — dataset scope, access terms and external model engines.
 - [Human observation-process protocol v0.1](HUMAN_OBSERVATION_PROCESS_PROTOCOL_V0_1.md) — synthetic sensor worlds, missingness, delay, clock semantics, identifiability, transfer and SOTA comparison. Tracked by [#5664](https://github.com/Luminous-Dynamics/symtropy/issues/5664).
 - [Machine-readable 12-scenario catalogue](HUMAN_OBSERVATION_SCENARIOS_V0_1.json) — synthetic arbitrary-unit scenario definitions; not human data.
+- [Known-truth sampling-rate fixtures](HUMAN_SAMPLING_RATE_FIXTURES_V0_1.json) — exact task-band information-retention values across a six-rate anti-alias/downsample sweep.
 
 ### Fidelity labels
 
