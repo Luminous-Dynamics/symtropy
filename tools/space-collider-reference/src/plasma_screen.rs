@@ -57,7 +57,6 @@ fn evaluate(reference: PlasmaReference) -> Result<String, String> {
         / reference.collider_energy_spread_reference_percent_rms;
     let energy_gain_factor = reference.muon_final_energy_gev / reference.muon_injection_energy_gev;
     let energy_gain_gev = reference.muon_final_energy_gev - reference.muon_injection_energy_gev;
-        reference.muon_final_energy_gev - reference.muon_injection_energy_gev;
 
     let derived = [
         emittance_um_mrad,
