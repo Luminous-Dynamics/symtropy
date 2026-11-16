@@ -65,6 +65,7 @@ fn measure_robust(label: &str, mut operation: impl FnMut()) {
         percentile(&durations, 99).as_nanos()
     );
 }
+
 fn main() {
     let linear = AnalyticPath::Linear {
         start: Vec3::new(-1_000.0, 0.0, 0.0),
@@ -469,12 +470,10 @@ fn main() {
             .expect("generated adaptive certificate verifies");
     });
 
-    let interval_moving =
-        Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.6)
-            .expect("valid interval verifier moving capsule");
-    let interval_obstacle =
-        Capsule::new(Vec3::new(0.0, 0.9, 0.9), Vec3::new(0.0, 0.9, 0.9), 0.6)
-            .expect("valid interval verifier obstacle capsule");
+    let interval_moving = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.6)
+        .expect("valid interval verifier moving capsule");
+    let interval_obstacle = Capsule::new(Vec3::new(0.0, 0.9, 0.9), Vec3::new(0.0, 0.9, 0.9), 0.6)
+        .expect("valid interval verifier obstacle capsule");
     let interval_window = NormalizedTimeWindow {
         start_parameter: 0.0,
         end_parameter: 1.0,
@@ -569,18 +568,10 @@ fn main() {
             .expect("independent verifier confirms every adaptive no-contact leaf");
         },
     );
-    let robust_moving = Capsule::new(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        0.5,
-    )
-    .expect("valid robust verifier moving capsule");
-    let robust_obstacle = Capsule::new(
-        Vec3::new(2.0, 0.0, 0.0),
-        Vec3::new(2.0, 0.0, 0.0),
-        0.5,
-    )
-    .expect("valid robust verifier obstacle capsule");
+    let robust_moving = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.5)
+        .expect("valid robust verifier moving capsule");
+    let robust_obstacle = Capsule::new(Vec3::new(2.0, 0.0, 0.0), Vec3::new(2.0, 0.0, 0.0), 0.5)
+        .expect("valid robust verifier obstacle capsule");
     let robust_window = NormalizedTimeWindow {
         start_parameter: 0.0,
         end_parameter: 1.0,
@@ -617,10 +608,7 @@ fn main() {
             robust_config,
         )
         .expect("valid robust interval verification profile");
-        println!(
-            "robust-uncertainty-{name},status,{:?}",
-            receipt.status
-        );
+        println!("robust-uncertainty-{name},status,{:?}", receipt.status);
         println!(
             "robust-uncertainty-{name},nodes_visited,{}",
             receipt.parameter_boxes_visited
@@ -643,18 +631,12 @@ fn main() {
         });
     }
 
-    let guaranteed_moving = Capsule::new(
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        0.75,
-    )
-    .expect("valid guaranteed-contact moving capsule");
-    let guaranteed_obstacle = Capsule::new(
-        Vec3::new(0.5, 0.0, 0.0),
-        Vec3::new(0.5, 0.0, 0.0),
-        0.75,
-    )
-    .expect("valid guaranteed-contact obstacle capsule");
+    let guaranteed_moving =
+        Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.75)
+            .expect("valid guaranteed-contact moving capsule");
+    let guaranteed_obstacle =
+        Capsule::new(Vec3::new(0.5, 0.0, 0.0), Vec3::new(0.5, 0.0, 0.0), 0.75)
+            .expect("valid guaranteed-contact obstacle capsule");
     let guaranteed_uncertainty = CapsuleRelativeUncertainty {
         origin_relative_mm: Vec3::new(0.1, 0.1, 0.1),
         ..CapsuleRelativeUncertainty::zero()
@@ -689,5 +671,4 @@ fn main() {
         )
         .expect("valid guaranteed-contact uncertainty profile");
     });
-
 }
