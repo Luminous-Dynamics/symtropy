@@ -1,0 +1,32 @@
+{
+  "policy": {
+    "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+    "subject_id": "package-01",
+    "earliest_decision_time_unix_ms": 1000,
+    "latest_decision_time_unix_ms": 1050,
+    "maximum_observation_age_ms": 2000,
+    "minimum_independent_groups": 2
+  },
+  "observations": [
+    {
+      "event_id": "evt-receiver-presence-positive",
+      "source_id": "nestport-presence-sensor",
+      "common_cause_group": "nestport-presence-controller",
+      "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+      "subject_id": "package-01",
+      "reading": "present",
+      "observed_at_unix_ms": 900,
+      "expires_at_unix_ms": 1100
+    },
+    {
+      "event_id": "evt-independent-gate-contact-negative",
+      "source_id": "gate-contact-sensor",
+      "common_cause_group": "gate-interlock-controller",
+      "scenario_id": "mfb-homeops-stationary-carrier-nominal-v1",
+      "subject_id": "package-01",
+      "reading": "absent",
+      "observed_at_unix_ms": 910,
+      "expires_at_unix_ms": 1110
+    }
+  ]
+}
