@@ -1,0 +1,55 @@
+{
+  "schema_version": "protect-evidence-binding/0.1",
+  "evidence_class": "synthetic",
+  "analysis": {
+    "analysis_id": "synthetic.analysis.water-continuity.001",
+    "execution_status": "NOT_EXECUTED"
+  },
+  "source_envelope": {
+    "relative_path": "evidence/protective-model-evidence-envelope-v0.1.json",
+    "byte_length": 5399,
+    "sha256": "PENDING"
+  },
+  "bindings": [
+    {
+      "prov_entity_id": "ex:entity/input-water-demand",
+      "dataset_id": "synthetic.dataset.water.input.001",
+      "direction": "INPUT",
+      "binding_status": "E1_ENVELOPE_DATASET",
+      "source": "E1_ENVELOPE",
+      "artifact_paths": [
+        "model-evidence-metadata/synthetic-input-dataset.json",
+        "model-evidence-metadata/synthetic-input-files.json",
+        "model-evidence-payloads/synthetic-input.json"
+      ]
+    },
+    {
+      "prov_entity_id": "ex:entity/input-power-availability",
+      "dataset_id": "synthetic.dataset.power.input.control.001",
+      "direction": "INPUT",
+      "binding_status": "SYNTHETIC_CONTROL_ONLY",
+      "source": "E2_FIXTURE",
+      "artifact_paths": []
+    },
+    {
+      "prov_entity_id": "ex:entity/output-water-service",
+      "dataset_id": "synthetic.dataset.water.output.001",
+      "direction": "OUTPUT",
+      "binding_status": "E1_ENVELOPE_DATASET",
+      "source": "E1_ENVELOPE",
+      "artifact_paths": [
+        "model-evidence-metadata/synthetic-output-dataset.json",
+        "model-evidence-metadata/synthetic-output-files.json",
+        "model-evidence-payloads/synthetic-output.json"
+      ]
+    },
+    {
+      "prov_entity_id": "ex:entity/output-clinic-access",
+      "dataset_id": "synthetic.dataset.clinic.output.control.001",
+      "direction": "OUTPUT",
+      "binding_status": "SYNTHETIC_CONTROL_ONLY",
+      "source": "E2_FIXTURE",
+      "artifact_paths": []
+    }
+  ]
+}
