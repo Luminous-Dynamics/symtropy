@@ -1,106 +1,365 @@
 {
-  "schema_version":"0.1.0",
-  "program_id":"GARMENT-READY-001",
-  "status":"proposal_no_physical_measurements",
-  "claim_ceiling":"no_endpoint_robot_or_product_qualification_claim",
-  "endpoint_classes":["ready_to_wear","ready_to_store","ready_to_iron"],
-  "benchmark_suites":[
+  "schema_version": "0.1.0",
+  "program_id": "GARMENT-READY-001",
+  "status": "proposal_no_physical_measurements",
+  "claim_ceiling": "no_endpoint_robot_or_product_qualification_claim",
+  "endpoint_classes": [
+    "ready_to_wear",
+    "ready_to_store",
+    "ready_to_iron"
+  ],
+  "benchmark_suites": [
     {
-      "id":"standardized_commercial_textiles",
-      "cohort_scope":"Napkins, towels, hotel/workwear items with repeatable shape, size and material classes; frozen set includes clean/damp/creased state and batch handling.",
-      "first_pass_success_target":0.995,
-      "stretch_success_target":0.999,
-      "first_pass_human_throughput_ratio":0.8,
-      "stretch_human_throughput_ratio":1.0,
-      "human_baseline_required":true
+      "id": "standardized_commercial_textiles",
+      "cohort_scope": "Napkins, towels, hotel/workwear items with repeatable shape, size and material classes; fixed input presentation, folding recipe, assigned bin/stack positions and table-ready pickup requirement.",
+      "first_pass_success_target": 0.98,
+      "stretch_success_target": 0.995,
+      "first_pass_human_throughput_ratio": 0.8,
+      "stretch_human_throughput_ratio": 1,
+      "production_shift_hours": 18,
+      "first_pass_table_ready_items_per_hour_target": 100,
+      "stretch_table_ready_items_per_hour_target": 120,
+      "first_pass_table_ready_items_per_shift_target": 1800,
+      "stretch_table_ready_items_per_shift_target": 2160,
+      "first_pass_destination_accuracy_target": 0.995,
+      "stretch_destination_accuracy_target": 0.999,
+      "end_to_end_destination_required": true,
+      "human_baseline_required": true
     },
     {
-      "id":"diverse_household_garments",
-      "cohort_scope":"Shirts, trousers, jeans, blouses, knitwear and mixed piles/baskets across sizes, colours, fabrics, textures and unseen home environments.",
-      "first_pass_success_target":0.995,
-      "stretch_success_target":0.999,
-      "first_pass_human_throughput_ratio":0.5,
-      "stretch_human_throughput_ratio":1.0,
-      "human_baseline_required":true
+      "id": "diverse_household_garments",
+      "cohort_scope": "Shirts, trousers, jeans, blouses, knitwear and mixed piles/baskets across sizes, colours, fabrics, textures, inside-out and varied initial states in unseen home environments; correct fold, destination and ready-to-store placement.",
+      "first_pass_success_target": 0.995,
+      "stretch_success_target": 0.999,
+      "first_pass_human_throughput_ratio": 0.5,
+      "stretch_human_throughput_ratio": 1,
+      "production_shift_hours": null,
+      "first_pass_table_ready_items_per_hour_target": null,
+      "stretch_table_ready_items_per_hour_target": null,
+      "first_pass_table_ready_items_per_shift_target": null,
+      "stretch_table_ready_items_per_shift_target": null,
+      "first_pass_destination_accuracy_target": 0.995,
+      "stretch_destination_accuracy_target": 0.999,
+      "end_to_end_destination_required": true,
+      "human_baseline_required": true
     }
   ],
-  "external_comparators":[
+  "external_comparators": [
     {
-      "id":"DYNA-NAPKINS-24H",
-      "suite_id":"standardized_commercial_textiles",
-      "evidence_class":"external_analysis_of_company_report",
-      "reported_success_rate":0.994,
-      "reported_human_throughput_ratio":0.6,
-      "attempt_count":850,
-      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
-      "scope_note":"Epoch AI reports a DYNA-1 24-hour continuous run folding 850+ napkins at about 60% human speed, 99.4% success and zero interventions; company-origin result reviewed by Epoch, not an independent Luminous measurement.",
-      "is_our_result":false
+      "id": "DYNA-2-DIN-TAI-FUNG-AUG2026",
+      "suite_id": "standardized_commercial_textiles",
+      "evidence_class": "vendor_published_operational_report",
+      "reported_success_rate": 0.93,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": 95,
+      "reported_accepted_items_per_shift": 1590,
+      "reported_shift_hours": 18,
+      "reported_completion_scope": "fold_and_bin_stack_placement",
+      "attempt_count": null,
+      "source_uri": "https://www.dyna.co/research/scaling-customer-deployments",
+      "scope_note": "DYNA's August 2026 company report says Dyna-2 folds about 95 napkins/hour, 93% meet its table-ready quality bar, and about 1,590 table-ready napkins are produced in an 18-hour shift. Company-reported result, not independently audited by Luminous.",
+      "is_our_result": false
     },
     {
-      "id":"DYNA-TOWELS-COMMERCIAL",
-      "suite_id":"standardized_commercial_textiles",
-      "evidence_class":"external_analysis_of_company_report",
-      "reported_success_rate":0.99,
-      "reported_human_throughput_ratio":null,
-      "attempt_count":200000,
-      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
-      "scope_note":"Epoch AI reports a DYNA commercial Monster Laundry deployment folding 200,000+ towels across 10 clients in three months at 99% quality acceptance; not a matched household-clothing test.",
-      "is_our_result":false
+      "id": "DYNA-1-DIN-TAI-FUNG-2025",
+      "suite_id": "standardized_commercial_textiles",
+      "evidence_class": "vendor_published_operational_report",
+      "reported_success_rate": 0.75,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": 35,
+      "reported_accepted_items_per_shift": 480,
+      "reported_shift_hours": 18,
+      "reported_completion_scope": "fold_and_quality_assessed",
+      "attempt_count": null,
+      "source_uri": "https://www.dyna.co/research/scaling-customer-deployments",
+      "scope_note": "DYNA's August 2026 report retrospectively says Dyna-1 produced about 35 napkins/hour and 480 table-ready napkins per 18-hour shift, with 75% meeting its quality bar; historical company-reported baseline.",
+      "is_our_result": false
     },
     {
-      "id":"SUNDAY-ACT2-HOUSEHOLD",
-      "suite_id":"diverse_household_garments",
-      "evidence_class":"vendor_published_evaluation",
-      "reported_success_rate":0.991,
-      "reported_human_throughput_ratio":null,
-      "attempt_count":785,
-      "source_uri":"https://www.sunday.ai/blog/act-2-preview",
-      "scope_note":"Sunday Robotics vendor preview reports 99.1% zero-shot folding success over 785 attempts and nine garment types in unseen homes, with zero per-home adaptation; not independently replicated.",
-      "is_our_result":false
+      "id": "DYNA-TOWELS-COMMERCIAL",
+      "suite_id": "standardized_commercial_textiles",
+      "evidence_class": "external_analysis_of_company_report",
+      "reported_success_rate": 0.99,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": null,
+      "reported_accepted_items_per_shift": null,
+      "reported_shift_hours": null,
+      "reported_completion_scope": "fold_and_quality_assessed",
+      "attempt_count": 200000,
+      "source_uri": "https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note": "Epoch AI reports a DYNA commercial Monster Laundry deployment folding 200,000+ towels across 10 clients in three months at 99% quality acceptance; not a matched household-clothing test.",
+      "is_our_result": false
     },
     {
-      "id":"PI-TSHIRT-SHORTS",
-      "suite_id":"diverse_household_garments",
-      "evidence_class":"external_demo_report",
-      "reported_success_rate":0.95,
-      "reported_human_throughput_ratio":null,
-      "attempt_count":null,
-      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
-      "scope_note":"Epoch AI cites a Physical Intelligence demonstration reporting 95% folding success for T-shirts and shorts; cohort size and human-relative speed are not supplied in the review.",
-      "is_our_result":false
+      "id": "SUNDAY-ACT2-HOUSEHOLD",
+      "suite_id": "diverse_household_garments",
+      "evidence_class": "vendor_published_evaluation",
+      "reported_success_rate": 0.991,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": null,
+      "reported_accepted_items_per_shift": null,
+      "reported_shift_hours": null,
+      "reported_completion_scope": "fold_and_destination_placement",
+      "attempt_count": 785,
+      "source_uri": "https://www.sunday.ai/blog/act-2-preview",
+      "scope_note": "Sunday Robotics vendor preview reports 99.1% zero-shot folding success over 785 attempts and nine garment types in unseen homes, with zero per-home adaptation; not independently replicated.",
+      "is_our_result": false
     },
     {
-      "id":"PI-JEANS",
-      "suite_id":"diverse_household_garments",
-      "evidence_class":"external_demo_report",
-      "reported_success_rate":0.75,
-      "reported_human_throughput_ratio":null,
-      "attempt_count":null,
-      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
-      "scope_note":"Epoch AI cites a Physical Intelligence demonstration reporting 75% folding success for jeans; a harder garment subgroup, not a pooled household rate.",
-      "is_our_result":false
+      "id": "PI-TSHIRT-SHORTS",
+      "suite_id": "diverse_household_garments",
+      "evidence_class": "external_demo_report",
+      "reported_success_rate": 0.95,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": null,
+      "reported_accepted_items_per_shift": null,
+      "reported_shift_hours": null,
+      "reported_completion_scope": "fold_only",
+      "attempt_count": null,
+      "source_uri": "https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note": "Epoch AI cites a Physical Intelligence demonstration reporting 95% folding success for T-shirts and shorts; cohort size and human-relative speed are not supplied in the review.",
+      "is_our_result": false
+    },
+    {
+      "id": "PI-JEANS",
+      "suite_id": "diverse_household_garments",
+      "evidence_class": "external_demo_report",
+      "reported_success_rate": 0.75,
+      "reported_human_throughput_ratio": null,
+      "reported_items_per_hour": null,
+      "reported_accepted_items_per_shift": null,
+      "reported_shift_hours": null,
+      "reported_completion_scope": "fold_only",
+      "attempt_count": null,
+      "source_uri": "https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note": "Epoch AI cites a Physical Intelligence demonstration reporting 75% folding success for jeans; a harder garment subgroup, not a pooled household rate.",
+      "is_our_result": false
     }
   ],
-  "metrics":[
-    {"id":"ready_state_first_pass_acceptance","unit":"fraction","denominator":"per_accepted_garment","scope":"Garments meeting declared endpoint moisture and appearance on first pass.","target_hypothesis":">=0.95","status":"proposal_target_only","hard_guardrails":["cleaning_and_rinse_acceptance","appearance_and_component_integrity","moisture_distribution_acceptance"]},
-    {"id":"post_endpoint_energy","unit":"kWh","denominator":"per_accepted_garment","scope":"Energy after declared moisture endpoint, including needless continued drying and finishing.","target_hypothesis":">=20% lower than matched conventional endpoint control.","status":"proposal_target_only","hard_guardrails":["endpoint_quality_non_inferior","rewetting_counted"]},
-    {"id":"wrinkle_and_smoothness_grade","unit":"visual_grade","denominator":"per_accepted_garment","scope":"Garment appearance score with frozen ISO 15487 edition and rating procedure.","target_hypothesis":"Non-inferior to matched control; explore one-grade improvement in selected classes.","status":"proposal_target_only","hard_guardrails":["colour_and_strength","seam_and_component_integrity"]},
-    {"id":"fold_first_pass_success","unit":"fraction","denominator":"per_100_attempts","scope":"Robot completes declared fold geometry and correct placement without human intervention.","target_hypothesis":">=0.95 core cohort; stretch >=0.99 broader cohort.","status":"proposal_target_only","hard_guardrails":["same_cohort_human_comparison","failed_attempts_retained","zero_unacceptable_damage"]},
-    {"id":"fold_cycle_time_p50","unit":"seconds","denominator":"seconds_per_accepted_garment","scope":"Median end-to-end time including pick, singulation, manipulation, fold, place and recovery.","target_hypothesis":"<=2x skilled-human median on identical garment set.","status":"proposal_target_only","hard_guardrails":["same_task_definition","human_baseline_required"]},
-    {"id":"fold_cycle_time_p95","unit":"seconds","denominator":"seconds_per_accepted_garment","scope":"95th percentile accepted garment time including timeouts and recoveries.","target_hypothesis":"Report and improve without hiding timeouts or difficult garments.","status":"proposal_target_only","hard_guardrails":["failed_attempts_retained","intervention_accounting"]},
-    {"id":"human_interventions","unit":"count","denominator":"per_100_attempts","scope":"Human interventions for grasp, untangling, correction, reset, safety and placement.","target_hypothesis":"<=1 event per 100 simple garments.","status":"proposal_target_only","hard_guardrails":["all_interventions_counted","safe_manual_recovery"]},
-    {"id":"garment_damage_or_loss","unit":"count","denominator":"per_100_attempts","scope":"Lost, torn, stretched, snagged, stained or otherwise damaged garment/components.","target_hypothesis":"0 observed in frozen challenge set with statistical confidence reported.","status":"proposal_target_only","hard_guardrails":["all_garment_classes_scored","human_inspection_for_disputes"]},
-    {"id":"finish_energy_and_water","unit":"kWh_and_L","denominator":"per_accepted_garment","scope":"Steam, spray, ironing, pressing and finishing energy/water.","target_hypothesis":"Establish baseline and reduce total burden without appearance penalty.","status":"proposal_target_only","hard_guardrails":["include_rewetting_and_auxiliaries","no_hygiene_claim"]},
-    {"id":"accepted_throughput","unit":"garments_per_hour","denominator":"per_accepted_garment","scope":"Accepted garments per elapsed operating hour including rework, jams and human support.","target_hypothesis":"Improve only after quality and intervention gates pass.","status":"proposal_target_only","hard_guardrails":["include_rework_and_staff_time","no_damaged_or_lost_items"]}
+  "metrics": [
+    {
+      "id": "ready_state_first_pass_acceptance",
+      "unit": "fraction",
+      "denominator": "per_accepted_garment",
+      "scope": "Garments meeting declared endpoint moisture and appearance on first pass.",
+      "target_hypothesis": ">=0.95",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "cleaning_and_rinse_acceptance",
+        "appearance_and_component_integrity",
+        "moisture_distribution_acceptance"
+      ]
+    },
+    {
+      "id": "post_endpoint_energy",
+      "unit": "kWh",
+      "denominator": "per_accepted_garment",
+      "scope": "Energy after declared moisture endpoint, including needless continued drying and finishing.",
+      "target_hypothesis": ">=20% lower than matched conventional endpoint control.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "endpoint_quality_non_inferior",
+        "rewetting_counted"
+      ]
+    },
+    {
+      "id": "wrinkle_and_smoothness_grade",
+      "unit": "visual_grade",
+      "denominator": "per_accepted_garment",
+      "scope": "Garment appearance score with frozen ISO 15487 edition and rating procedure.",
+      "target_hypothesis": "Non-inferior to matched control; explore one-grade improvement in selected classes.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "colour_and_strength",
+        "seam_and_component_integrity"
+      ]
+    },
+    {
+      "id": "fold_first_pass_success",
+      "unit": "fraction",
+      "denominator": "per_100_attempts",
+      "scope": "Robot completes declared fold geometry, passes the quality bar and places the item in the correct assigned destination without human intervention.",
+      "target_hypothesis": ">=0.98 first-pass commercial textile quality acceptance and >=0.995 correct destination placement; >=0.995 household garment success; stretch >=0.995 commercial and >=0.999 household.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "same_cohort_human_comparison",
+        "failed_attempts_retained",
+        "correct_bin_stack_destination",
+        "zero_unacceptable_damage"
+      ]
+    },
+    {
+      "id": "fold_cycle_time_p50",
+      "unit": "seconds",
+      "denominator": "seconds_per_accepted_garment",
+      "scope": "Median end-to-end time including pick, singulation, manipulation, fold, place and recovery.",
+      "target_hypothesis": "<=2x skilled-human median on identical garment set.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "same_task_definition",
+        "human_baseline_required"
+      ]
+    },
+    {
+      "id": "fold_cycle_time_p95",
+      "unit": "seconds",
+      "denominator": "seconds_per_accepted_garment",
+      "scope": "95th percentile accepted garment time including timeouts and recoveries.",
+      "target_hypothesis": "Report and improve without hiding timeouts or difficult garments.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "failed_attempts_retained",
+        "intervention_accounting"
+      ]
+    },
+    {
+      "id": "human_interventions",
+      "unit": "count",
+      "denominator": "per_100_attempts",
+      "scope": "Human interventions for grasp, untangling, correction, reset, safety and placement.",
+      "target_hypothesis": "<=1 event per 100 simple garments.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "all_interventions_counted",
+        "safe_manual_recovery"
+      ]
+    },
+    {
+      "id": "garment_damage_or_loss",
+      "unit": "count",
+      "denominator": "per_100_attempts",
+      "scope": "Lost, torn, stretched, snagged, stained or otherwise damaged garment/components.",
+      "target_hypothesis": "0 observed in frozen challenge set with statistical confidence reported.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "all_garment_classes_scored",
+        "human_inspection_for_disputes"
+      ]
+    },
+    {
+      "id": "finish_energy_and_water",
+      "unit": "kWh_and_L",
+      "denominator": "accepted_items_per_hour",
+      "scope": "Accepted table-ready garments per operating hour after quality inspection and correct destination placement, including rework, jams, human support and stack correction.",
+      "target_hypothesis": "Commercial first target >=100 accepted table-ready items/hour and stretch >=120; household separately compared to human P50.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "include_rework_and_staff_time",
+        "correct_destination_placement",
+        "no_damaged_or_lost_items"
+      ]
+    },
+    {
+      "id": "accepted_throughput",
+      "unit": "garments_per_hour",
+      "denominator": "per_accepted_garment",
+      "scope": "Accepted garments per elapsed operating hour including rework, jams and human support.",
+      "target_hypothesis": "Improve only after quality and intervention gates pass.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "include_rework_and_staff_time",
+        "no_damaged_or_lost_items"
+      ]
+    },
+    {
+      "id": "table_ready_items_per_18h_shift",
+      "unit": "accepted_items",
+      "denominator": "per_18_hour_shift",
+      "scope": "Items that pass first-pass quality and are placed into the correct instructed bin/stack, organized for downstream pickup; fold-only outputs do not count.",
+      "target_hypothesis": "First target >=1800 accepted table-ready items per 18-hour commercial shift; stretch >=2160.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "quality_bar_passed",
+        "correct_bin_stack_placement",
+        "all_rework_and_interventions_counted",
+        "shift_availability_reported"
+      ]
+    },
+    {
+      "id": "correct_destination_placement_accuracy",
+      "unit": "fraction",
+      "denominator": "per_accepted_garment",
+      "scope": "Correct placement into assigned stack, bin, hanger or storage destination, including stack organization and orientation.",
+      "target_hypothesis": ">=0.995 commercial linens and >=0.995 household support envelope; stretch >=0.999.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "destination_assignment_ground_truth",
+        "misplaced_items_count_as_failures",
+        "no_manual_stack_correction_hidden"
+      ]
+    },
+    {
+      "id": "production_shift_availability",
+      "unit": "fraction",
+      "denominator": "per_18_hour_shift",
+      "scope": "Time available for accepted production excluding only declared planned maintenance; all jams, recovery, changeovers and unplanned stops included.",
+      "target_hypothesis": ">=0.95 of an 18-hour commercial shift; stretch >=0.98.",
+      "status": "proposal_target_only",
+      "hard_guardrails": [
+        "downtime_categorization",
+        "maintenance_included_in_cost",
+        "human_support_time_reported"
+      ]
+    }
   ],
-  "comparison_policy":{"same_garment_cohort_required":true,"same_task_definition_required":true,"human_baseline_required_for_robot_speed_claim":true,"failed_attempts_retained":true,"vendor_claims_are_external_only":true,"P50_P95_time_required":true,"intervention_and_damage_accounting_required":true},
-  "standard_watch":{"published_predecessor":"ISO 15487:2018","current_reference":"ISO/DIS 15487:2026 Edition 4","current_reference_status":"draft_under_development","published_standard":false},
-  "hard_gates":["parent_cleaning_and_rinse_acceptance","endpoint_moisture_distribution","appearance_and_fabric_integrity","no_lost_or_damaged_garments","independent_physical_guarding_and_interlocks","manual_recovery_and_emergency_stop","offline_essential_operation_and_privacy","no_hygiene_claim_from_steam_or_drying","symthaea_advisory_only"],
-  "governance":{"physical_observations":0,"product_claims":false,"symthaea_authority":"advisory_only_no_actuation","physical_interlocks":"independent_deterministic_device_controls","contract_receipt_scope":"benchmark_contract_only"},
-  "sources":[
-    {"id":"EC-LAUNDRY-FINISHING","uri":"https://ecodesign-washing-machines.eu/ewm-wAssets/docs/env-sr3-hh-washing-machine/20251210_EC_Report_ESPR_SR3_D3_Tasks1-7_v2.pdf","scope_note":"European Commission preparatory study discusses spin, residual moisture, wrinkles, ironing and storage delay."},
-    {"id":"ISO-DIS-15487","uri":"https://www.iso.org/standard/89247.html","scope_note":"2026 Draft International Standard under development for garment appearance after domestic washing and drying."},
-    {"id":"EPOCH-ROBOTICS-2026","uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026","scope_note":"External capability review describes laundry folding success and human time gap."},
-    {"id":"SUNDAY-ACT2-PREVIEW","uri":"https://www.sunday.ai/blog/act-2-preview","scope_note":"Vendor-reported robot folding preview; external claim only and not matched to other cohorts."}
+  "comparison_policy": {
+    "same_garment_cohort_required": true,
+    "same_task_definition_required": true,
+    "human_baseline_required_for_robot_speed_claim": true,
+    "failed_attempts_retained": true,
+    "vendor_claims_are_external_only": true,
+    "P50_P95_time_required": true,
+    "intervention_and_damage_accounting_required": true
+  },
+  "standard_watch": {
+    "published_predecessor": "ISO 15487:2018",
+    "current_reference": "ISO/DIS 15487:2026 Edition 4",
+    "current_reference_status": "draft_under_development",
+    "published_standard": false
+  },
+  "hard_gates": [
+    "parent_cleaning_and_rinse_acceptance",
+    "endpoint_moisture_distribution",
+    "appearance_and_fabric_integrity",
+    "no_lost_or_damaged_garments",
+    "independent_physical_guarding_and_interlocks",
+    "manual_recovery_and_emergency_stop",
+    "offline_essential_operation_and_privacy",
+    "no_hygiene_claim_from_steam_or_drying",
+    "symthaea_advisory_only"
+  ],
+  "governance": {
+    "physical_observations": 0,
+    "product_claims": false,
+    "symthaea_authority": "advisory_only_no_actuation",
+    "physical_interlocks": "independent_deterministic_device_controls",
+    "contract_receipt_scope": "benchmark_contract_only"
+  },
+  "sources": [
+    {
+      "id": "EC-LAUNDRY-FINISHING",
+      "uri": "https://ecodesign-washing-machines.eu/ewm-wAssets/docs/env-sr3-hh-washing-machine/20251210_EC_Report_ESPR_SR3_D3_Tasks1-7_v2.pdf",
+      "scope_note": "European Commission preparatory study discusses spin, residual moisture, wrinkles, ironing and storage delay."
+    },
+    {
+      "id": "ISO-DIS-15487",
+      "uri": "https://www.iso.org/standard/89247.html",
+      "scope_note": "2026 Draft International Standard under development for garment appearance after domestic washing and drying."
+    },
+    {
+      "id": "EPOCH-ROBOTICS-2026",
+      "uri": "https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note": "External capability review describes laundry folding success and human time gap."
+    },
+    {
+      "id": "SUNDAY-ACT2-PREVIEW",
+      "uri": "https://www.sunday.ai/blog/act-2-preview",
+      "scope_note": "Vendor-reported robot folding preview; external claim only and not matched to other cohorts."
+    },
+    {
+      "id": "DYNA-2-AUG2026",
+      "uri": "https://www.dyna.co/research/scaling-customer-deployments",
+      "scope_note": "Company-published August 2026 operational report for Dyna-2 napkin folding, quality bar, 18-hour shift table-ready output and assigned bin-stack placement."
+    }
   ]
 }
