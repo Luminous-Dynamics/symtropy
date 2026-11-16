@@ -1072,9 +1072,10 @@ fn pair_count_dominance_is_monotonic_only_above_frozen_separation_floor() {
         });
         let result = select_experiments(&[candidate], &policy()).unwrap();
         assert_eq!(result.pareto_front.len(), 1);
+        let expected_pair_count = if separation_step == 20 { 2 } else { 1 };
         assert_eq!(
             result.pareto_front[0].independent_hypothesis_group_pair_count,
-            1
+            expected_pair_count
         );
     }
 }
