@@ -13,7 +13,7 @@
     "endpoint_classes":{"type":"array","minItems":3,"maxItems":3,"uniqueItems":true,"items":{"enum":["ready_to_wear","ready_to_store","ready_to_iron"]}},
     "benchmark_suites":{"type":"array","minItems":2,"maxItems":2,"items":{
       "type":"object","additionalProperties":false,
-      "required":["id","cohort_scope","first_pass_success_target","stretch_success_target","first_pass_human_throughput_ratio","stretch_human_throughput_ratio","human_baseline_required"],
+      "required":["id","cohort_scope","first_pass_success_target","stretch_success_target","first_pass_human_throughput_ratio","stretch_human_throughput_ratio","production_shift_hours","first_pass_table_ready_items_per_hour_target","stretch_table_ready_items_per_hour_target","first_pass_table_ready_items_per_shift_target","stretch_table_ready_items_per_shift_target","first_pass_destination_accuracy_target","stretch_destination_accuracy_target","end_to_end_destination_required","human_baseline_required"],
       "properties":{
         "id":{"enum":["standardized_commercial_textiles","diverse_household_garments"]},
         "cohort_scope":{"type":"string","minLength":20},
@@ -21,18 +21,30 @@
         "stretch_success_target":{"type":"number","minimum":0.0,"maximum":1.0},
         "first_pass_human_throughput_ratio":{"type":"number","minimum":0.0},
         "stretch_human_throughput_ratio":{"type":"number","minimum":0.0},
+        "production_shift_hours":{"type":["number","null"],"minimum":0.0},
+        "first_pass_table_ready_items_per_hour_target":{"type":["number","null"],"minimum":0.0},
+        "stretch_table_ready_items_per_hour_target":{"type":["number","null"],"minimum":0.0},
+        "first_pass_table_ready_items_per_shift_target":{"type":["number","null"],"minimum":0.0},
+        "stretch_table_ready_items_per_shift_target":{"type":["number","null"],"minimum":0.0},
+        "first_pass_destination_accuracy_target":{"type":"number","minimum":0.0,"maximum":1.0},
+        "stretch_destination_accuracy_target":{"type":"number","minimum":0.0,"maximum":1.0},
+        "end_to_end_destination_required":{"const":true},
         "human_baseline_required":{"const":true}
       }
     }},
     "external_comparators":{"type":"array","minItems":4,"items":{
       "type":"object","additionalProperties":false,
-      "required":["id","suite_id","evidence_class","reported_success_rate","reported_human_throughput_ratio","attempt_count","source_uri","scope_note","is_our_result"],
+      "required":["id","suite_id","evidence_class","reported_success_rate","reported_human_throughput_ratio","reported_items_per_hour","reported_accepted_items_per_shift","reported_shift_hours","reported_completion_scope","attempt_count","source_uri","scope_note","is_our_result"],
       "properties":{
         "id":{"type":"string","minLength":4},
         "suite_id":{"enum":["standardized_commercial_textiles","diverse_household_garments"]},
-        "evidence_class":{"enum":["external_analysis_of_company_report","vendor_published_evaluation","external_demo_report"]},
+        "evidence_class":{"enum":["external_analysis_of_company_report","vendor_published_evaluation","vendor_published_operational_report","external_demo_report"]},
         "reported_success_rate":{"type":"number","minimum":0.0,"maximum":1.0},
         "reported_human_throughput_ratio":{"type":["number","null"],"minimum":0.0},
+        "reported_items_per_hour":{"type":["number","null"],"minimum":0.0},
+        "reported_accepted_items_per_shift":{"type":["number","null"],"minimum":0.0},
+        "reported_shift_hours":{"type":["number","null"],"minimum":0.0},
+        "reported_completion_scope":{"enum":["fold_only","fold_and_quality_assessed","fold_and_bin_stack_placement","fold_and_destination_placement"]},
         "attempt_count":{"type":["integer","null"],"minimum":0},
         "source_uri":{"type":"string","format":"uri","pattern":"^https://"},
         "scope_note":{"type":"string","minLength":20},
@@ -45,7 +57,7 @@
       "properties":{
         "id":{"type":"string","minLength":4},
         "unit":{"type":"string","minLength":1},
-        "denominator":{"enum":["per_accepted_garment","per_kg_accepted_dry_equivalent_textile","per_100_attempts","seconds_per_accepted_garment"]},
+        "denominator":{"enum":["per_accepted_garment","per_kg_accepted_dry_equivalent_textile","per_100_attempts","seconds_per_accepted_garment","per_18_hour_shift","accepted_items_per_hour"]},
         "scope":{"type":"string","minLength":15},
         "target_hypothesis":{"type":"string","minLength":3},
         "status":{"const":"proposal_target_only"},
