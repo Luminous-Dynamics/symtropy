@@ -28,31 +28,11 @@ jobs:
         uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Apply and verify Rust 1.96 formatting
-        run: |
-          cargo fmt --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
-          cargo fmt --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- --check
-      - name: Export exact formatted sources
-        run: |
-          echo "APPJ_LIB_BASE64_BEGIN"
-          base64 -w0 crates/tools/hybrid-appj-methane-evaluator/src/lib.rs
-          echo
-          echo "APPJ_LIB_BASE64_END"
-          echo "APPJ_MAIN_BASE64_BEGIN"
-          base64 -w0 crates/tools/hybrid-appj-methane-evaluator/src/main.rs
-          echo
-          echo "APPJ_MAIN_BASE64_END"
-      - name: Generate standalone lockfile
-        run: cargo generate-lockfile --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
-      - name: Export lockfile for repository pinning
-        run: |
-          echo "APPJ_LOCK_BASE64_BEGIN"
-          base64 -w0 crates/tools/hybrid-appj-methane-evaluator/Cargo.lock
-          echo
-          echo "APPJ_LOCK_BASE64_END"
+      - name: Strict format check
+        run: cargo fmt --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- --check
       - name: Unit tests
-        run: cargo test --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
+        run: cargo test --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
       - name: Strict Clippy
-        run: cargo clippy --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml --all-targets -- -D warnings
       - name: Audit APPJ process fixture
-        run: cargo run --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- benchmarks/plasma/appj-methane-process-v0.json
+        run: cargo run --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- benchmarks/plasma/appj-methane-process-v0.json
