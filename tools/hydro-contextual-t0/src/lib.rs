@@ -781,9 +781,14 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     let reference = numeric_array(input, "reference_probabilities")?;
     let outcomes = numeric_array(input, "observed_events")?;
     if probabilities.len() != reference.len() || probabilities.len() != outcomes.len() {
-        return Err("forecast, reference and observed-event arrays must have equal length".to_owned());
+        return Err(
+            "forecast, reference and observed-event arrays must have equal length".to_owned(),
+        );
     }
-    if let Some(index) = probabilities.iter().position(|value| !(0.0..=1.0).contains(value)) {
+    if let Some(index) = probabilities
+        .iter()
+        .position(|value| !(0.0..=1.0).contains(value))
+    {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
             "reason": "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE",
@@ -795,7 +800,10 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
             "brier_skill_score": null
         }));
     }
-    if let Some(index) = reference.iter().position(|value| !(0.0..=1.0).contains(value)) {
+    if let Some(index) = reference
+        .iter()
+        .position(|value| !(0.0..=1.0).contains(value))
+    {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
             "reason": "REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
@@ -807,7 +815,10 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
             "brier_skill_score": null
         }));
     }
-    if let Some(index) = outcomes.iter().position(|value| *value != 0.0 && *value != 1.0) {
+    if let Some(index) = outcomes
+        .iter()
+        .position(|value| *value != 0.0 && *value != 1.0)
+    {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
             "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
@@ -1255,14 +1266,23 @@ mod tests {
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
     }
 
-
     #[test]
     fn brier_skill_score_reports_positive_skill_against_declared_reference() {
         let out = compute_case(&fixture("inputs")["cases"][32]).expect("positive Brier skill");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
         assert!((out["brier_score"].as_f64().expect("Brier score") - 0.0575).abs() < 1.0e-12);
-        assert!((out["reference_brier_score"].as_f64().expect("reference score") - 0.24).abs() < 1.0e-12);
-        assert!((out["brier_skill_score"].as_f64().expect("skill score") - 0.7604166666666666).abs() < 1.0e-12);
+        assert!(
+            (out["reference_brier_score"]
+                .as_f64()
+                .expect("reference score")
+                - 0.24)
+                .abs()
+                < 1.0e-12
+        );
+        assert!(
+            (out["brier_skill_score"].as_f64().expect("skill score") - 0.7604166666666666).abs()
+                < 1.0e-12
+        );
         assert_eq!(out["observed_event_frequency"], 0.6);
     }
 
