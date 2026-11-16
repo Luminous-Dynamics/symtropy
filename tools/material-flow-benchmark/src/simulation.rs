@@ -533,7 +533,7 @@ fn custody_transaction(
 fn simulate_scene(
     scenario: &ScenarioManifest,
     closed_gate_obstruction: bool,
-) -> Result<(SimulationResult, bool), String> {
+) -> Result<(SimulationResult, bool, EpisodeTrace), String> {
     scenario.validate().map_err(|errors| errors.join("; "))?;
     if scenario.evidence_level != EvidenceLevel::L1Simulation {
         return Err("MFB simulation accepts only L1 simulation scenarios".into());
@@ -611,19 +611,20 @@ fn simulate_scene(
             safe_inside_tote,
             settled,
             replay_bitwise_equal,
-            physics_trace_digest: first.digest,
+            physics_trace_digest: first.digest.clone(),
             transaction_state,
             accepted,
             limitations,
         },
         blind_retry_blocked,
+        first,
     ))
 }
 
 /// Run the nominal stationary-carrier receiving scene twice and require a
 /// bitwise-identical replay before accepting custody completion.
 pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult, String> {
-    simulate_scene(scenario, false).map(|(result, _)| result)
+    simulate_scene(scenario, false).map(|(result, _, _)| result)
 }
 
 /// Execute a real L1 collision-geometry fault: a closed gate obstruction spans
@@ -632,8 +633,7 @@ pub fn simulate_nominal(scenario: &ScenarioManifest) -> Result<SimulationResult,
 pub fn simulate_closed_gate_obstruction(
     scenario: &ScenarioManifest,
 ) -> Result<FaultSimulationResult, String> {
-    let (simulation, blind_retry_blocked) = simulate_scene(scenario, true)?;
-    let (episode_trace, _) = (run_episode(scenario, true)?, run_episode(scenario, true)?);
+    let (simulation, blind_retry_blocked, episode_trace) = simulate_scene(scenario, true)?;
     let geometry = tote_geometry(scenario)?;
     let package_bottom_m =
         simulation.package_center_m[1] - simulation.package_world_aabb_half_extents_m[1];
