@@ -65,3 +65,46 @@ cargo clippy --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --
 5. Couple outputs to Symthaea through a qualified event-time / missingness / precision observation envelope (see [Symthaea #12407](https://github.com/Luminous-Dynamics/symthaea/issues/12407)).
 
 No raw participant data or dataset-specific parameters are included in this crate.
+
+
+## Synthetic observation-process fixtures
+
+The crate also exposes a deterministic, dependency-free synthetic observation generator in the observation module.
+
+It provides 12 arbitrary-unit scenarios for:
+- complete observations and irregular capture cadence;
+- MCAR, activity-linked MAR and latent-state MNAR missingness;
+- bias drift, clipping and quantisation;
+- sensor clock offset/drift and delayed availability;
+- packet loss, duplication and reordering;
+- common-cause sensor failure; and
+- distinct latent worlds with an identical composite observation stream.
+
+Minimal example:
+
+~~~rust
+use symtropy_human_systems::observation::{generate_scenario, ScenarioId};
+
+let run = generate_scenario(ScenarioId::McarDropout, 0x5EED_2026);
+
+// Only observations should be passed to an estimator.
+// Keep scorer_truth in a separate evaluator/runner boundary.
+let delivered_events = run.observations;
+let hidden_truth = run.scorer_truth;
+assert!(!delivered_events.is_empty());
+assert!(!hidden_truth.is_empty());
+~~~
+
+The generator uses a small deterministic SplitMix64 PRNG and no external crate dependencies. It is not cryptographic. For fixed scenario and seed it replays deterministically within the same floating-point execution environment. HOBS-09 is returned in availability order; use source-event identity to detect duplicates and capture/availability timestamps to reason about ordering.
+
+The implementation is a **synthetic software fixture only**. Its latent sinusoid, activity proxy, noise, dropout thresholds, clocks, transport delays and sensor gains are invented test parameters. They do not describe calibrated human physiology, a real wearable, or a clinical population. The distinct scorer-only Rust fields are not a process isolation boundary; a future benchmark runner must keep truth out of the estimator process.
+
+The machine-readable scenario specification lives at [research/human-systems/HUMAN_OBSERVATION_SCENARIOS_V0_1.json](../../../research/human-systems/HUMAN_OBSERVATION_SCENARIOS_V0_1.json). The code is a first executable implementation of the core cases, not yet a full interpreter for that JSON file.
+
+Run the isolated crate checks:
+
+~~~bash
+cargo fmt --manifest-path crates/domains/symtropy-human-systems/Cargo.toml -- --check
+cargo test --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --locked
+cargo clippy --manifest-path crates/domains/symtropy-human-systems/Cargo.toml --all-targets --locked -- -D warnings
+~~~
