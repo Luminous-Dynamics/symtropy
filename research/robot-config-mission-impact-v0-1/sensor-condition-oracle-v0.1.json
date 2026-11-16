@@ -1,0 +1,93 @@
+{
+  "schema_version": "robot-sensor-condition-state-oracle-v0.1",
+  "benchmark_id": "ROBOT-SENSOR-CONDITION-STATE-001",
+  "visibility": "public_development_oracle_not_hidden_holdout",
+  "note": "Public synthetic development oracle for the finite sensor-condition decision policy; not a physical sensor acceptance profile.",
+  "dispositions": [
+    {
+      "case_id": "SCS-001",
+      "expected_disposition": "WithinDeclaredEnvelope",
+      "reason_code": "REFERENCE_AND_CALIBRATION_CURRENT"
+    },
+    {
+      "case_id": "SCS-002",
+      "expected_disposition": "DegradedWithinDeclaredEnvelope",
+      "reason_code": "DEGRADED_BUT_WITHIN_PROFILE"
+    },
+    {
+      "case_id": "SCS-003",
+      "expected_disposition": "OutsideDeclaredEnvelope",
+      "reason_code": "CONTAMINATION_OUTSIDE_PROFILE"
+    },
+    {
+      "case_id": "SCS-004",
+      "expected_disposition": "UnknownOrUnmeasured",
+      "reason_code": "CONTAMINATION_SEVERITY_UNKNOWN"
+    },
+    {
+      "case_id": "SCS-005",
+      "expected_disposition": "RequiresCleaningOrInspection",
+      "reason_code": "SECTOR_REFERENCE_FAILURE"
+    },
+    {
+      "case_id": "SCS-006",
+      "expected_disposition": "RequiresApplicabilityReview",
+      "reason_code": "COMMON_CAUSE_REDUNDANCY_INVALID"
+    },
+    {
+      "case_id": "SCS-007",
+      "expected_disposition": "RequiresCleaningOrInspection",
+      "reason_code": "SELF_DIAGNOSTIC_CONTRADICTED_BY_REFERENCE"
+    },
+    {
+      "case_id": "SCS-008",
+      "expected_disposition": "RequiresReferenceRecheck",
+      "reason_code": "CLEANING_NOT_VERIFIED"
+    },
+    {
+      "case_id": "SCS-009",
+      "expected_disposition": "RequiresRecalibration",
+      "reason_code": "CALIBRATION_EXPIRED_AFTER_CLEANING"
+    },
+    {
+      "case_id": "SCS-010",
+      "expected_disposition": "RequiresRecalibration",
+      "reason_code": "SENSOR_IDENTITY_CHANGED"
+    },
+    {
+      "case_id": "SCS-011",
+      "expected_disposition": "UnknownOrUnmeasured",
+      "reason_code": "REFERENCE_ARTIFACT_INCOMPLETE"
+    },
+    {
+      "case_id": "SCS-012",
+      "expected_disposition": "WithinDeclaredEnvelope",
+      "reason_code": "POST_CLEAN_REFERENCE_AND_CALIBRATION_PASS"
+    },
+    {
+      "case_id": "SCS-013",
+      "expected_disposition": "RequiresCleaningOrInspection",
+      "reason_code": "REFERENCE_FAILURE_WITHOUT_CONTAMINATION"
+    },
+    {
+      "case_id": "SCS-014",
+      "expected_disposition": "RequiresReferenceRecheck",
+      "reason_code": "VERIFIER_CLASS_INSUFFICIENT"
+    },
+    {
+      "case_id": "SCS-015",
+      "expected_disposition": "DegradedWithinDeclaredEnvelope",
+      "reason_code": "LOW_RISK_SELF_DIAGNOSTIC_PROFILE"
+    },
+    {
+      "case_id": "SCS-016",
+      "expected_disposition": "RequiresApplicabilityReview",
+      "reason_code": "SHARED_EXPOSURE_CAUSE_REQUIRES_REVIEW"
+    }
+  ],
+  "nonclaims": [
+    "This oracle is public development data, not evaluator-held or independently adjudicated.",
+    "All contamination severities, calibration states, references and sensor IDs are synthetic fixture values.",
+    "No disposition establishes physical sensor fitness, operational safety, calibration validity or permission to resume work."
+  ]
+}
