@@ -38,11 +38,26 @@ fn policy() -> ExperimentDesignPolicy {
         required_estimator_build_sha256: digest('e'),
         required_estimate_method_sha256: digest('f'),
         expected_gate_issuer_ids: std::collections::BTreeMap::from([
-            (GateEvidenceRole::Authorization, expected_gate_issuer(GateEvidenceRole::Authorization).into()),
-            (GateEvidenceRole::Safety, expected_gate_issuer(GateEvidenceRole::Safety).into()),
-            (GateEvidenceRole::Envelope, expected_gate_issuer(GateEvidenceRole::Envelope).into()),
-            (GateEvidenceRole::IndependentReference, expected_gate_issuer(GateEvidenceRole::IndependentReference).into()),
-            (GateEvidenceRole::SemanticEquivalence, expected_gate_issuer(GateEvidenceRole::SemanticEquivalence).into()),
+            (
+                GateEvidenceRole::Authorization,
+                expected_gate_issuer(GateEvidenceRole::Authorization).into(),
+            ),
+            (
+                GateEvidenceRole::Safety,
+                expected_gate_issuer(GateEvidenceRole::Safety).into(),
+            ),
+            (
+                GateEvidenceRole::Envelope,
+                expected_gate_issuer(GateEvidenceRole::Envelope).into(),
+            ),
+            (
+                GateEvidenceRole::IndependentReference,
+                expected_gate_issuer(GateEvidenceRole::IndependentReference).into(),
+            ),
+            (
+                GateEvidenceRole::SemanticEquivalence,
+                expected_gate_issuer(GateEvidenceRole::SemanticEquivalence).into(),
+            ),
         ]),
         authorization_required_modalities: vec![ExperimentModality::ControlledFlight],
         resource_budget: ResourceBudget {
@@ -1164,7 +1179,6 @@ fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
     );
 }
 
-
 #[test]
 fn structured_gate_receipt_must_match_policy_pinned_issuer_namespace() {
     let frozen = policy();
@@ -1184,7 +1198,9 @@ fn structured_gate_receipt_must_match_policy_pinned_issuer_namespace() {
 #[test]
 fn policy_must_pin_each_gate_issuer_namespace() {
     let mut frozen = policy();
-    frozen.expected_gate_issuer_ids.remove(&GateEvidenceRole::Safety);
+    frozen
+        .expected_gate_issuer_ids
+        .remove(&GateEvidenceRole::Safety);
     assert_eq!(
         select_experiments(&[candidate("missing-issuer-policy")], &frozen),
         Err(DesignError::InvalidPolicy)
