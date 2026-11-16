@@ -1379,6 +1379,22 @@ mod tests {
         assert!(report.flatline_transition_count > 0);
         assert!(report.affected_condition_count > 0);
         assert!(report.first_flatline_start_force_n.is_some());
+
+        let mut decreasing = target_candidate_pool(20261116);
+        for candidate in &mut decreasing.candidates {
+            if candidate.force_setpoint_n == 8.0 {
+                candidate.features[1] = 7.0;
+            } else if candidate.force_setpoint_n == 10.0 {
+                candidate.features[1] = 6.0;
+            }
+        }
+        let decreasing_report = response_observability_check(
+            &decreasing.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )
+        .expect("decreasing response report");
+        assert!(decreasing_report.decreasing_transition_count > 0);
     }
 
     #[test]
