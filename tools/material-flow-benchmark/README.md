@@ -121,6 +121,14 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
 
 A successful result means **structurally valid for independent external review** only. The report hard-codes `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. It does not authenticate the underlying evidence values/signatures, execute a robot, assess live freshness, authorize movement or accept delivery. The procedure remains a plan submitted to separately governed authority, executor, observer and evaluator components.
 
+### Exact-head procedure graph qualification (2026-11-16)
+
+The new 15-step `mfb-validate-procedure` path passed inside dedicated workflow [43821500342](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43821500342), exact branch head `970ae35eb28d6ffaae0c4fbb141b5156b4a2312f`. The run passed **67 Rust tests**, strict formatting, Clippy `-D warnings`, nominal and ten-fault manifest validation, all ten executed protocol faults, procedure graph validation, analytical free-fall convergence, the 480 Hz L1 receiver/replay and evidence upload.
+
+The graph report confirms 15 steps and `structurally_valid_for_external_review=true`, while `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`. This verifies structural procedure composition—not evidence authenticity or execution authority.
+
+Evidence artifact: `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (ID `14204208667`), five files, ZIP SHA-256 `b8fcda86fad54b649148faae8c722970596b3716f3f92c0df26decb070fc0e4c`. It includes the procedure readiness report and SHA-256 bindings for the scenario, L1 result, convergence report, protocol campaign, procedure report and Cargo.lock.
+
 ## What it does not prove
 
 The contract validator does not authenticate grant signatures, query Hearth or Commons, inspect a live asset, solve general 3D packing, prove safety, or qualify HIL / field performance. The separate L1 simulator executes one reduced-order stationary receiving scene; a valid manifest or successful L1 episode is not a physical safety case or field qualification.
