@@ -230,3 +230,33 @@ Later:
 - second article, independent team/lab replication and public report.
 
 The public artifacts establish methodology and synthetic fixture semantics only. They do not establish robot performance, causal attribution, physical safety, calibration validity, qualification, construction productivity, conformity or vendor superiority.
+
+
+## 13. Event-time, arrival-time and stage identity
+
+The event trace carries **two different time observations**:
+- `event_time_tick` in an explicitly named event clock domain;
+- `arrival_time_tick` in an explicitly named receiver/ingestion clock domain.
+
+Never compare these ticks numerically as if they share an epoch. The trace also carries a clock-mapping reference and an admission state (`qualified`, `unqualified`, or `absent`). A target trace whose event and arrival domains differ and whose mapping is absent/unqualified must force temporal reconciliation and acceptance evidence to remain unknown; it cannot silently be sorted into a supposedly trustworthy timeline.
+
+Clock semantics and uncertainty are not owned here. Compose the exact event-time/multirate contract from Symtropy #4947; this protocol only requires both raw clock domains and the mapping/admission reference to survive into the mission receipt.
+
+Every event also binds a nullable `stage_id`. Null means the event is a precondition, cross-cutting record or mission disposition that is not an observation from a reached mission stage. The explicit `event-type-catalog-v0.1.json` binds each event type to its declared stage (or null) and allowed source class. The validator must reject:
+- unregistered event types;
+- event type/stage mismatches;
+- source classes not allowed for the event type;
+- stage events emitted from stages labelled `not_reached` or `not_run` in the target oracle;
+- missing clock domains or inconsistent clock-mapping reference/admission states.
+
+This avoids inferring stages from event-name prefixes and preserves the distinction between a referee's final mission disposition and an event emitted by an operational stage.
+
+## 14. New long-horizon benchmark comparators checked 16 November 2026
+
+- **RoboCasa-Shift**, arXiv:2610.27861 (20 October 2026), uses strictly matched clean/perturbed rollouts and stage-aware diagnostics. It reports an example where the aggregate success-rate delta is zero although 8 of 80 matched outcomes change, and different perturbations with the same aggregate degradation produce different first-stage failure rates. This is a direct methodological comparator for MIP's paired-outcome-sensitivity control. https://arxiv.org/abs/2610.27861
+- **MOST / RoboCasa-Long**, arXiv:2611.00734 (31 October 2026), reports that memory structured around object-state changes and subtask progress improves long-horizon mobile manipulation in its household tasks. MIP should retain task progress and world-state consequences, but it does not benchmark or claim a memory architecture. https://arxiv.org/abs/2611.00734
+- **LADDER**, arXiv:2610.18053 (13 October 2026), evaluates 145 long-horizon tasks across three suites with 1–10 subgoals and 2,024 simulated episodes per system; it explicitly measures subgoal progress and compares orchestration approaches. MIP should use task-progress and horizon strata, while adding configuration A/B pairing, physical accepted-output references and lifecycle/qualification joins. The public LADDER leaderboard's model/tool/cost comparisons are specific to its task suites and are not construction-robot performance baselines. https://arxiv.org/abs/2610.18053 and https://ladder.insait.ai
+- **Cracking Mobile Manipulation**, arXiv:2610.19600 (14 October 2026), reports an 80% atomic manipulation success rate falling to 19% when composed into mobile manipulation, with failure-guided interventions reaching 49% held-out RoboCasa365 success. MIP should retain stage-specific interventions and the point where failures enter the mission; it should not transplant these household-task percentages into construction claims. https://arxiv.org/abs/2610.19600
+- **Robot Manipulation Benchmark Audit**, arXiv:2606.04233 (2 June 2026), identifies shortcut solvability, insufficient statistical significance, creeping overfitting and data-source dependence. Its audit found that only 19.8% and 19.7% of SOTA claims on LIBERO and SimplerEnv, respectively, were provably significant under the authors' analysis. MIP therefore requires low-capacity probes, held-out seeds, per-seed effects and data-source disclosure before any benchmark claim. https://arxiv.org/abs/2606.04233 and https://ripl.github.io/manipulation_benchmark_audit/
+
+The benchmarks differ in robot embodiments, task families, simulator/physical evidence and denominators. Do not compare their success percentages to each other or to construction field productivity. The useful contribution is methodological transfer, not a leaderboard claim.
