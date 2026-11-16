@@ -59,6 +59,8 @@ jobs:
           jq -e '.muon_scaling.fixed_energy_lunar_ring.muon_decay_turns < 3 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns > 2700 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns < 2760 and .muon_scaling.fixed_field_sweep[3].synchrotron_loss_fraction_per_turn > 4.7' space-collider-reference.json >/dev/null
           jq -e '.muon_scaling.fixed_field_lunar_species_comparison.muon_quantum_chi < 0.001 and .muon_scaling.fixed_field_lunar_species_comparison.electron_quantum_chi > 1 and .muon_scaling.fixed_field_fractional_loss_thresholds.circumference_km_for_100_percent_loss_per_turn > 5000' space-collider-reference.json >/dev/null
           jq -e '.muon_scaling.rcs_chain_survival.evidence_class == "analytic_linear_energy_ramp_decay_integration" and (.muon_scaling.rcs_chain_survival.stages | length) == 4 and .muon_scaling.rcs_chain_survival.total_acceleration_time_ms == 10.18 and .muon_scaling.rcs_chain_survival.total_turns == 193 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction > 0.6563 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction < 0.6565' space-collider-reference.json >/dev/null
+          jq -e '.plasma_screen.evidence_class == "source_bound_plasma_acceleration_screen" and .plasma_screen.muon_energy_gain_factor > 133.3 and .plasma_screen.muon_energy_gain_factor < 133.4 and .plasma_screen.energy_spread_gap_ratio_if_definitions_match == 188.5 and .plasma_screen.conditional_emittance_gap_ratio_if_definitions_match == 354.4' space-collider-reference.json >/dev/null
+          jq -e '.plasma_screen.acceleration_result_initial_distribution == "zero initial energy spread and zero initial emittance" and (.plasma_screen.data_availability | contains("not publicly available at publication"))' space-collider-reference.json >/dev/null
           grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
           grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
           grep -q '"performance_closure"' space-collider-reference.json
@@ -75,6 +77,7 @@ jobs:
             sha256sum tools/space-collider-reference/src/main.rs
             sha256sum tools/space-collider-reference/src/luminosity.rs
             sha256sum tools/space-collider-reference/src/muon_scaling.rs
+            sha256sum tools/space-collider-reference/src/plasma_screen.rs
             sha256sum space-collider-reference.json
           } > evidence-manifest.txt
 
