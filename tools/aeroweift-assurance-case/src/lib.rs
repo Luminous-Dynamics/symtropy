@@ -62,9 +62,11 @@ impl AssuranceCaseScope {
             && !self.time_scale_id.trim().is_empty()
             && !self.horizontal_frame_id.trim().is_empty()
             && !self.vertical_datum_id.trim().is_empty()
+            && self.operation_start >= 0
             && self.operation_start < self.operation_end
             && self.operation_start <= self.effective_cutoff
             && self.effective_cutoff < self.operation_end
+            && self.knowledge_cutoff >= 0
     }
 }
 
@@ -879,7 +881,9 @@ pub fn evaluate_assurance_case(
         }
         if matches!(
             evidence.source_kind,
-            EvidenceSourceKind::GenericSoftwareCi | EvidenceSourceKind::TrackVPlanning
+            EvidenceSourceKind::GenericSoftwareCi
+                | EvidenceSourceKind::TrackVPlanning
+                | EvidenceSourceKind::Other
         ) {
             add_blocker(&mut blockers, &node.node_id, BlockerReason::NonOperationalEvidence);
         }
