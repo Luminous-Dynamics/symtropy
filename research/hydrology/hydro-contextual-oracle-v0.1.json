@@ -559,9 +559,15 @@
       "family": "probabilistic_skill",
       "expected": {
         "probabilistic_disposition": "NOT_COMPARABLE",
-        "reason": "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
         "event_definition_id": "daily_flow_exceeds_5_m3_s",
         "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
         "brier_score": null,
         "reference_brier_score": null,
         "brier_skill_score": null
@@ -577,6 +583,44 @@
         "forecast_probability": 0.8,
         "reference_probability": 1.5,
         "observed_event": 1,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-time-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "highveld-events-holdout-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 48,
+        "forecast_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-039-brier-skill-population-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "reference_valid_time_definition_id": "2026-07-01T00:00:00Z",
+        "evaluation_population_id": "highveld-events-holdout-v1",
+        "reference_evaluation_population_id": "different-catchment-event-population-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
         "brier_score": null,
         "reference_brier_score": null,
         "brier_skill_score": null
