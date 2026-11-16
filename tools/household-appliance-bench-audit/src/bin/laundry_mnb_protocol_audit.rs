@@ -83,7 +83,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         "controls_and_instrumentation",
     ];
     if !contains_all(profile.get("energy_boundary"), &required_energy) {
-        errors.push("complete-loop energy boundary must include generator, pump, heaters and controls/instrumentation".to_owned());
+        errors.push(
+            "complete-loop energy boundary must include generator, pump, heaters and controls/instrumentation"
+                .to_owned(),
+        );
     }
 
     let required_channels = [
@@ -103,7 +106,10 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         "textile_strength_colour_and_dimensions",
     ];
     if !contains_all(profile.get("measurement_channels"), &required_channels) {
-        errors.push("measurement channels omit a required bubble, hydraulic, energy or outcome observation".to_owned());
+        errors.push(
+            "measurement channels omit a required bubble, hydraulic, energy or outcome observation"
+                .to_owned(),
+        );
     }
 
     let required_gates = [
@@ -155,7 +161,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(governance.unwrap_or(&Value::Null), "safety_interlock_authority")
         != Some("independent_deterministic_device_controls")
     {
-        errors.push("safety interlocks must remain independent deterministic device controls".to_owned());
+        errors.push(
+            "safety interlocks must remain independent deterministic device controls".to_owned(),
+        );
     }
     if governance
         .and_then(|value| value.get("offline_protocol_required"))
