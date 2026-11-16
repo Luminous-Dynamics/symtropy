@@ -294,7 +294,7 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
         if required_text(file, "encodingFormat", path)? != media_type {
             return Err(format!("{path}.encodingFormat is inconsistent"));
         }
-        if required_text(file, "contentSize", path)? != format!("{} bytes", bytes.len()) {
+        if required_text(file, "contentSize", path)? != bytes.len().to_string() {
             return Err(format!("{path}.contentSize does not match artifact byte length"));
         }
         let actual_sha = format!("{:x}", Sha256::digest(bytes));
@@ -637,6 +637,23 @@ mod tests {
         let _ = root["hasPart"].as_array_mut().expect("parts").pop();
         let error = validate_crate(&metadata.to_string(), PROV).expect_err("missing file part");
         assert!(error.contains("root.hasPart does not exactly match"));
+    }
+
+    #[test]
+    fn content_size_uses_ro_crate_byte_count_representation() {
+        let mut metadata = crate_value();
+        let input = metadata["@graph"]
+            .as_array_mut()
+            .expect("graph")
+            .iter_mut()
+            .find(|node| {
+                node["@id"] == "model-evidence-payloads/synthetic-input.json"
+            })
+            .expect("input payload");
+        input["contentSize"] = Value::String("228 bytes".into());
+        let error = validate_crate(&metadata.to_string(), PROV)
+            .expect_err("human-readable suffix is not the profile byte-count representation");
+        assert!(error.contains(".contentSize does not match artifact byte length"));
     }
 
     #[test]
