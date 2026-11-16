@@ -54,7 +54,7 @@ Each claim binds only the dimensions it actually depends on, plus the owner/sour
 
 ## Bitemporal change event
 
-Each synthetic event carries event ID, owner/source ID, source sequence, dependency kind, exact prior and successor digest, effective time, recorded time, change class, owner-declared evidence state and an event commitment string.
+Each synthetic event carries event ID, owner/source ID, source sequence, dependency kind, exact prior and successor digest, effective time plus its explicit time-scale ID, recorded time plus a separate knowledge-time-scale ID, change class, owner-declared evidence state and an event commitment string. Claims, coverage receipts, evaluation cutoffs and frozen policies must agree on both time-scale identities. No clock conversion is performed by this crate.
 
 Only events visible under both requested cutoffs participate in historical event-integrity validation; a future-recorded malformed/duplicate event cannot rewrite an earlier as-known view. The evaluator does not authenticate or hash actual event bytes. OwnerQualified is an input state from the domain source contract; it is not a cryptographic guarantee. Source sequence orders causal digest succession; effective time and recorded/knowledge time independently determine whether each event is eligible at a requested cutoff.
 
@@ -104,7 +104,7 @@ The original claim and its historical evidence are never mutated or deleted. Eve
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 41 tests including:
+The Rust suite currently exercises 46 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -118,6 +118,7 @@ The Rust suite currently exercises 41 tests including:
 - late-recorded correction and historical/current reconstruction;
 - duplicate event IDs, source-sequence reuse/forks and duplicate coverage;
 - event-array permutation invariance;
+- effective-time and knowledge-time scale mismatches are rejected across claims, events, coverage receipts, cutoffs and policies;
 - future-recorded source-sequence forks and coverage duplicates do not poison earlier knowledge-cutoff views, but are rejected once they enter the knowledge window;
 - future-recorded duplicate events and coverage manifests do not poison an earlier as-known query but are rejected once they enter the knowledge cutoff;
 - future-effective and unrelated dependency coverage receipts do not poison the current claim's coverage assessment;
