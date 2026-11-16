@@ -82,12 +82,30 @@ fn check_unique_ids(values: &[Value], key: &str, prefix: &str, errors: &mut Vec<
     }
 }
 
-fn check_trace(pair_id: &str, side: &str, trace: &[Value], errors: &mut Vec<String>) {
+fn check_trace(
+    pair_id: &str,
+    side: &str,
+    trace: &[Value],
+    stage_ids: &[&str],
+    errors: &mut Vec<String>,
+) -> bool {
     let mut ids = BTreeSet::new();
-    let mut previous_time = None;
+    let mut previous_event_time = None;
+    let mut previous_arrival_time = None;
+    let mut event_clock_domain: Option<String> = None;
+    let mut arrival_clock_domain: Option<String> = None;
+    let mut has_unmapped_clock_relation = false;
+
     for (index, event) in trace.iter().enumerate() {
         let event_id = event.get("event_id").and_then(Value::as_str);
         let event_time = event.get("event_time_tick").and_then(Value::as_u64);
+        let arrival_time = event.get("arrival_time_tick").and_then(Value::as_u64);
+        let event_clock = string_at(event, &["event_time_clock_domain_ref"]);
+        let arrival_clock = string_at(event, &["arrival_time_clock_domain_ref"]);
+        let mapping_status = string_at(event, &["clock_mapping_status"]);
+        let mapping_ref = event.get("clock_mapping_ref");
+        let stage = event.get("stage_id");
+
         if let Some(id) = event_id {
             if !ids.insert(id.to_owned()) {
                 errors.push(format!("event_id_duplicate:{pair_id}:{side}:{id}"));
@@ -95,15 +113,77 @@ fn check_trace(pair_id: &str, side: &str, trace: &[Value], errors: &mut Vec<Stri
         } else {
             errors.push(format!("event_id_missing:{pair_id}:{side}:{index}"));
         }
+
         if let Some(time) = event_time {
-            if previous_time.is_some_and(|previous| time < previous) {
+            if previous_event_time.is_some_and(|previous| time < previous) {
                 errors.push(format!("event_time_decreased:{pair_id}:{side}:{index}"));
             }
-            previous_time = Some(time);
+            previous_event_time = Some(time);
         } else {
             errors.push(format!("event_time_missing:{pair_id}:{side}:{index}"));
         }
+
+        if let Some(time) = arrival_time {
+            if previous_arrival_time.is_some_and(|previous| time < previous) {
+                errors.push(format!("arrival_time_decreased:{pair_id}:{side}:{index}"));
+            }
+            previous_arrival_time = Some(time);
+        } else {
+            errors.push(format!("arrival_time_missing:{pair_id}:{side}:{index}"));
+        }
+
+        match event_clock {
+            Some(domain) if !domain.trim().is_empty() => {
+                if event_clock_domain
+                    .as_deref()
+                    .is_some_and(|previous| previous != domain)
+                {
+                    errors.push(format!("event_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"));
+                }
+                event_clock_domain = Some(domain.to_owned());
+            }
+            _ => errors.push(format!("event_clock_domain_missing:{pair_id}:{side}:{index}")),
+        }
+
+        match arrival_clock {
+            Some(domain) if !domain.trim().is_empty() => {
+                if arrival_clock_domain
+                    .as_deref()
+                    .is_some_and(|previous| previous != domain)
+                {
+                    errors.push(format!("arrival_clock_domain_changed_within_trace:{pair_id}:{side}:{index}"));
+                }
+                arrival_clock_domain = Some(domain.to_owned());
+            }
+            _ => errors.push(format!("arrival_clock_domain_missing:{pair_id}:{side}:{index}")),
+        }
+
+        match stage {
+            Some(Value::Null) => {}
+            Some(Value::String(stage_id)) if stage_ids.contains(&stage_id.as_str()) => {}
+            Some(Value::String(stage_id)) => {
+                errors.push(format!("event_stage_undeclared:{pair_id}:{side}:{index}:{stage_id}"));
+            }
+            _ => errors.push(format!("event_stage_missing_or_invalid:{pair_id}:{side}:{index}")),
+        }
+
+        match mapping_status {
+            Some("qualified") if mapping_ref.and_then(Value::as_str).is_some_and(|r| !r.is_empty()) => {}
+            Some("unqualified") if mapping_ref.and_then(Value::as_str).is_some_and(|r| !r.is_empty()) => {
+                if event_clock != arrival_clock {
+                    has_unmapped_clock_relation = true;
+                }
+            }
+            Some("absent") if mapping_ref.is_some_and(Value::is_null) => {
+                if event_clock != arrival_clock {
+                    has_unmapped_clock_relation = true;
+                }
+            }
+            _ => errors.push(format!("clock_mapping_status_reference_mismatch:{pair_id}:{side}:{index}")),
+        }
     }
+
+    has_unmapped_clock_relation
 }
 
 /// Cross-file invariants for the stage catalog, paired development corpus and public oracle.
@@ -183,11 +263,23 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
             }
         }
 
+        let mut source_clock_unmapped = false;
+        let mut target_clock_unmapped = false;
         for (side, path) in [("source", "source_trace"), ("target", "target_trace")] {
             match array_at(case, &[path]) {
-                Some(trace) if !trace.is_empty() => check_trace(pair_id, side, trace, &mut errors),
+                Some(trace) if !trace.is_empty() => {
+                    let unmapped = check_trace(pair_id, side, trace, &stage_ids, &mut errors);
+                    if side == "source" {
+                        source_clock_unmapped = unmapped;
+                    } else {
+                        target_clock_unmapped = unmapped;
+                    }
+                }
                 _ => errors.push(format!("trace_missing_or_empty:{pair_id}:{side}")),
             }
+        }
+        if source_clock_unmapped {
+            errors.push(format!("source_trace_clock_mapping_not_qualified:{pair_id}"));
         }
 
         let Some(disposition) = dispositions
@@ -196,6 +288,31 @@ pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Val
         else {
             continue;
         };
+
+        if target_clock_unmapped {
+            let progression = array_at(disposition, &["failure_progression"]);
+            let has_temporal_conflict = progression.is_some_and(|items| {
+                items.iter().any(|item| {
+                    matches!(
+                        item.as_str(),
+                        Some("event_time_arrival_time_conflict" | "temporal_reconciliation_unknown")
+                    )
+                })
+            });
+            let stage_status = array_at(disposition, &["target_stage_status"]);
+            let acceptance_or_reconciliation_unknown = stage_status.is_some_and(|rows| {
+                rows.iter().any(|row| {
+                    let stage_id = row.get(0).and_then(Value::as_str);
+                    let status = row.get(1).and_then(Value::as_str);
+                    matches!(stage_id, Some("S08" | "S10")) && status == Some("unknown")
+                })
+            });
+            if !has_temporal_conflict || !acceptance_or_reconciliation_unknown {
+                errors.push(format!(
+                    "target_unmapped_clock_not_reflected_as_temporal_unknown:{pair_id}"
+                ));
+            }
+        }
 
         let stage_status = array_at(disposition, &["target_stage_status"]);
         if stage_status.is_none_or(|rows| rows.len() != stage_ids.len()) {
@@ -378,6 +495,59 @@ mod tests {
             errors
                 .iter()
                 .any(|error| error == "localized_divergence_marked_unknown:MIP-008")
+        );
+    }
+
+    #[test]
+    fn non_monotonic_arrival_time_is_rejected() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let mut corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        corpus["cases"][0]["target_trace"][1]["arrival_time_tick"] = Value::from(0);
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        assert!(
+            cross_file_invariants(&stage, &corpus, &oracle)
+                .iter()
+                .any(|error| error.starts_with("arrival_time_decreased:"))
+        );
+    }
+
+    #[test]
+    fn event_stage_must_exist_in_the_stage_catalog() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let mut corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        corpus["cases"][0]["target_trace"][0]["stage_id"] = Value::String("S99".to_owned());
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        assert!(
+            cross_file_invariants(&stage, &corpus, &oracle)
+                .iter()
+                .any(|error| error.starts_with("event_stage_undeclared:"))
+        );
+    }
+
+    #[test]
+    fn missing_target_clock_mapping_requires_temporal_unknown_disposition() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        let mut oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
+        let entry = oracle["dispositions"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|entry| entry["pair_id"] == "MIP-005")
+            .unwrap();
+        entry["failure_progression"] = Value::Array(vec![Value::String(
+            "generic_failure".to_owned(),
+        )]);
+        assert!(
+            cross_file_invariants(&stage, &corpus, &oracle)
+                .iter()
+                .any(|error| error == "target_unmapped_clock_not_reflected_as_temporal_unknown:MIP-005")
         );
     }
 
