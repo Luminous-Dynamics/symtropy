@@ -529,7 +529,7 @@
         "common_cause_event_ref": null
       },
       "diagnostics": {
-        "self_diagnostic": "healthy",
+        "self_diagnostic": "degraded",
         "modality_quality": "within_profile",
         "cross_modal_consistency": "disagreement",
         "cross_modal_independence_asserted": false
