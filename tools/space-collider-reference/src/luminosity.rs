@@ -243,6 +243,7 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         stored_energy_current_vs_bunch_relative_residual,
         stored_energy_both_beams_j,
         ccm_to_fcc_stored_energy_ratio,
+        collision_crossing_rate_per_ip_hz,
         nominal_full_fill_slot_rate_hz,
         nominal_fill_fraction,
         gamma,
