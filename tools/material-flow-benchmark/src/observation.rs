@@ -168,8 +168,7 @@ pub fn adjudicate_receiver_presence(
         }
         events_by_id.insert(observation.event_id.as_str(), observation);
 
-        let fresh = observation.observed_at_unix_ms
-            < policy.earliest_decision_time_unix_ms
+        let fresh = observation.observed_at_unix_ms < policy.earliest_decision_time_unix_ms
             && observation.expires_at_unix_ms > policy.latest_decision_time_unix_ms
             && policy
                 .latest_decision_time_unix_ms
@@ -312,7 +311,12 @@ mod tests {
     #[test]
     fn one_positive_sensor_is_unknown_and_cannot_complete_custody() {
         let report = adjudicate_receiver_presence(
-            &[observation("evt-1", "sensor-1", Some("controller-a"), PresenceReading::Present)],
+            &[observation(
+                "evt-1",
+                "sensor-1",
+                Some("controller-a"),
+                PresenceReading::Present,
+            )],
             &policy(),
         )
         .expect("well-formed observation");
@@ -325,8 +329,18 @@ mod tests {
     fn two_fresh_positive_independent_groups_confirm_observation_not_delivery() {
         let report = adjudicate_receiver_presence(
             &[
-                observation("evt-1", "scale-1", Some("scale-chain"), PresenceReading::Present),
-                observation("evt-2", "beam-1", Some("optical-chain"), PresenceReading::Present),
+                observation(
+                    "evt-1",
+                    "scale-1",
+                    Some("scale-chain"),
+                    PresenceReading::Present,
+                ),
+                observation(
+                    "evt-2",
+                    "beam-1",
+                    Some("optical-chain"),
+                    PresenceReading::Present,
+                ),
             ],
             &policy(),
         )
@@ -389,8 +403,12 @@ mod tests {
 
     #[test]
     fn stale_negative_observation_cannot_be_used_to_erase_a_fresh_single_positive() {
-        let mut stale_negative =
-            observation("evt-2", "gate-contact", Some("gate-controller"), PresenceReading::Absent);
+        let mut stale_negative = observation(
+            "evt-2",
+            "gate-contact",
+            Some("gate-controller"),
+            PresenceReading::Absent,
+        );
         stale_negative.observed_at_unix_ms = 100;
         let report = adjudicate_receiver_presence(
             &[
