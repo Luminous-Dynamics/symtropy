@@ -670,3 +670,31 @@ fn authorization_receipt_substitution_is_not_admissible_even_when_scope_matches(
             .contains(&MismatchDimension::Authorization)
     );
 }
+
+
+#[test]
+fn later_segments_after_a_gap_remain_counted_but_window_stays_incomplete() {
+    let mut actual = record();
+    actual.segments = vec![
+        segment("segment-before-gap", 1, 10, 15, 5),
+        segment("segment-after-gap", 2, 20, 30, 10),
+    ];
+    let result = assess(&plan(), &actual).unwrap();
+    assert_eq!(result.status, ExecutionStatus::EvidenceIncomplete);
+    assert_eq!(result.window_coverage[0].covered_ticks, 15);
+    assert_eq!(result.window_coverage[0].sample_count, 15);
+    assert!(!result.window_coverage[0].complete);
+}
+
+#[test]
+fn overlapping_expected_windows_on_one_stream_are_rejected() {
+    let mut expected = plan();
+    let mut second = expected.expected_data_windows[0].clone();
+    second.window_id = "overlapping-window".into();
+    second.window = interval(20, 35);
+    expected.expected_data_windows.push(second);
+    assert_eq!(
+        assess(&expected, &record()),
+        Err(ExecutionError::OverlappingExpectedWindows)
+    );
+}
