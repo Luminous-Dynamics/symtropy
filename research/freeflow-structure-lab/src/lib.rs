@@ -282,22 +282,12 @@ impl StructureGraph {
         for _level in 0..config.depth {
             let mut next_branches = Vec::with_capacity(branches.len().saturating_mul(2));
             for branch in branches {
-                let offset = branch
-                    .frame_u
-                    .scale(cos_twist)
-                     + branch.frame_v.scale(sin_twist))
+                let offset = (branch.frame_u.scale(cos_twist)
+                    + branch.frame_v.scale(sin_twist))
                     .scale(sin_angle);
-                let left_direction = branch
-                    .direction
-                    .scale(cos_angle)
-                    .add(offset)
-                    .normalized()
+                let left_direction = (branch.direction.scale(cos_angle) + offset).normalized()
                     .ok_or(GenerationError::NonFiniteGeometry)?;
-                let right_direction = branch
-                    .direction
-                    .scale(cos_angle)
-                     - offset)
-                    .normalized()
+                let right_direction = (branch.direction.scale(cos_angle) - offset).normalized()
                     .ok_or(GenerationError::NonFiniteGeometry)?;
 
                 let child_length = branch.length * config.length_ratio;
@@ -307,8 +297,8 @@ impl StructureGraph {
                         "branch references unknown parent",
                     ))?
                     .position;
-                let left_position = parent_position.add(left_direction.scale(child_length));
-                let right_position = parent_position.add(right_direction.scale(child_length));
+                let left_position = parent_position + left_direction.scale(child_length);
+                let right_position = parent_position + right_direction.scale(child_length);
 
                 if !left_position.is_finite() || !right_position.is_finite() {
                     return Err(GenerationError::NonFiniteGeometry);
@@ -563,11 +553,11 @@ fn perpendicular_frame(
     preferred_u: Vec3,
     fallback_v: Vec3,
 ) -> Result<Vec3, GenerationError> {
-    let projected = preferred_u.sub(direction.scale(preferred_u.dot(direction)));
+    let projected = preferred_u - direction.scale(preferred_u.dot(direction));
     if let Some(unit) = projected.normalized() {
         return Ok(unit);
     }
-    let fallback = fallback_v.sub(direction.scale(fallback_v.dot(direction)));
+    let fallback = fallback_v - direction.scale(fallback_v.dot(direction));
     fallback
         .normalized()
         .ok_or(GenerationError::NonFiniteGeometry)
