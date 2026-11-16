@@ -418,6 +418,21 @@ fn project_datacite(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDec
             ));
         }
     }
+    for key in value
+        .as_object()
+        .ok_or_else(|| "DataCite JSON:API document must be an object".to_owned())?
+        .keys()
+        .filter(|key| !["data", "meta", "links", "jsonapi", "included"].contains(&key.as_str()))
+    {
+        decisions.push(decision(
+            "DATACITE",
+            &format!("/{key}"),
+            Some("/native_view/native_record"),
+            MappingClass::UnknownOrUnsupported,
+            None,
+            "Unknown JSON:API top-level member is retained in the complete native record and explicitly reported.",
+        ));
+    }
     Ok((ProviderNativeView::DataCite(view), decisions))
 }
 
@@ -553,6 +568,21 @@ fn project_ogc(value: &Value) -> Result<(ProviderNativeView, Vec<MappingDecision
             ));
         }
     }
+    for key in value
+        .as_object()
+        .ok_or_else(|| "OGC GeoJSON Feature must be an object".to_owned())?
+        .keys()
+        .filter(|key| !["type", "id", "conformsTo", "geometry", "properties", "extent", "links"].contains(&key.as_str()))
+    {
+        decisions.push(decision(
+            "OGC_API_RECORDS",
+            &format!("/{key}"),
+            Some("/native_view/native_record"),
+            MappingClass::UnknownOrUnsupported,
+            None,
+            "Unknown OGC record top-level member is retained in the complete native record and explicitly reported.",
+        ));
+    }
     Ok((ProviderNativeView::OgcRecords(view), decisions))
 }
 
@@ -576,12 +606,30 @@ fn project_openlineage(
     }
     let start_time = required_text(start, "eventTime", "OpenLineage START")?;
     let terminal_time = required_text(terminal, "eventTime", "OpenLineage terminal")?;
+    if !start_time.ends_with('Z') || !terminal_time.ends_with('Z') {
+        return Err("E4 OpenLineage fixture requires canonical UTC Z timestamps".to_owned());
+    }
     if terminal_time <= start_time {
         return Err("OpenLineage terminal event must follow START".to_owned());
     }
     let start_run = start.get("run").ok_or_else(|| "OpenLineage START run missing".to_owned())?;
     let terminal_run = terminal.get("run").ok_or_else(|| "OpenLineage terminal run missing".to_owned())?;
     let job = start.get("job").ok_or_else(|| "OpenLineage job missing".to_owned())?;
+    let terminal_job = terminal
+        .get("job")
+        .ok_or_else(|| "OpenLineage terminal job missing".to_owned())?;
+    if required_text(job, "namespace", "OpenLineage START job")?
+        != required_text(terminal_job, "namespace", "OpenLineage terminal job")?
+        || required_text(job, "name", "OpenLineage START job")?
+            != required_text(terminal_job, "name", "OpenLineage terminal job")?
+    {
+        return Err("OpenLineage START and terminal job identity must match".to_owned());
+    }
+    if required_text(start, "schemaURL", "OpenLineage START")?
+        != required_text(terminal, "schemaURL", "OpenLineage terminal")?
+    {
+        return Err("OpenLineage START and terminal schemaURL must match".to_owned());
+    }
     let inputs = start
         .get("inputs")
         .and_then(Value::as_array)
@@ -692,6 +740,21 @@ fn project_openlineage(
         decision("OPENLINEAGE", "/", Some("/native_view/native_record"), MappingClass::PreservedRawOnly, None, "Complete native event bundle is retained, including any future top-level provider fields."),
     ];
     for (index, event) in events.iter().enumerate() {
+        if let Some(object) = event.as_object() {
+            for key in object
+                .keys()
+                .filter(|key| !["eventType", "eventTime", "run", "job", "producer", "schemaURL", "inputs", "outputs"].contains(&key.as_str()))
+            {
+                decisions.push(decision(
+                    "OPENLINEAGE",
+                    &format!("/events/{index}/{key}"),
+                    Some("/native_view/preserved_native_events"),
+                    MappingClass::UnknownOrUnsupported,
+                    None,
+                    "Unknown RunEvent top-level member is retained in the native event snapshot and explicitly reported.",
+                ));
+            }
+        }
         if let Some(facets) = event
             .get("run")
             .and_then(|run| run.get("facets"))
@@ -889,10 +952,10 @@ mod tests {
         assert!(report.source_bytes_retained);
         assert_eq!(report.provider_count, 3);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_METADATA_ONLY");
-        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&35));
+        assert_eq!(report.class_counts.get("EXACT_NATIVE"), Some(&36));
         assert_eq!(report.class_counts.get("NORMALIZED_EQUIVALENT"), Some(&1));
         assert_eq!(report.class_counts.get("DERIVED"), Some(&1));
-        assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&10));
+        assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&14));
     }
 
     #[test]
@@ -1026,6 +1089,85 @@ mod tests {
         let error = project_openlineage(&lineage, &e1).expect_err("terminal before start");
         assert!(error.contains("terminal event must follow START"));
         let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn openlineage_event_times_must_be_canonical_utc() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][1]["eventTime"] =
+            Value::String("2026-11-16T12:00:00.000+02:00".into());
+        let error = project_openlineage(&lineage, &e1).expect_err("offset timestamp");
+        assert!(error.contains("canonical UTC Z timestamps"));
+        let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn openlineage_start_and_terminal_job_identity_must_match() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][1]["job"]["name"] =
+            Value::String("different-job".into());
+        let error = project_openlineage(&lineage, &e1).expect_err("job identity mismatch");
+        assert!(error.contains("START and terminal job identity must match"));
+        let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn openlineage_start_and_terminal_schema_url_must_match() {
+        let (datacite, ogc, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][1]["schemaURL"] =
+            Value::String("https://openlineage.io/spec/2-0-1/OpenLineage.json#/$defs/RunEvent".into());
+        let error = project_openlineage(&lineage, &e1).expect_err("schema version mismatch");
+        assert!(error.contains("START and terminal schemaURL must match"));
+        let _ = (datacite, ogc);
+    }
+
+    #[test]
+    fn unknown_datacite_top_level_member_is_reported() {
+        let (mut datacite, _, _) = parsed_fixtures();
+        datacite["futureApiEnvelopeMember"] = Value::String("retain".into());
+        let (view, decisions) = project_datacite(&datacite).expect("DataCite projection");
+        let ProviderNativeView::DataCite(view) = view else {
+            panic!("DataCite view expected")
+        };
+        assert_eq!(view.native_record["futureApiEnvelopeMember"], "retain");
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/futureApiEnvelopeMember"
+                && item.classification == MappingClass::UnknownOrUnsupported
+        }));
+    }
+
+    #[test]
+    fn unknown_ogc_top_level_member_is_reported() {
+        let (_, mut ogc, _) = parsed_fixtures();
+        ogc["futureRecordMember"] = Value::String("retain".into());
+        let (view, decisions) = project_ogc(&ogc).expect("OGC projection");
+        let ProviderNativeView::OgcRecords(view) = view else {
+            panic!("OGC projection expected")
+        };
+        assert_eq!(view.native_record["futureRecordMember"], "retain");
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/futureRecordMember"
+                && item.classification == MappingClass::UnknownOrUnsupported
+        }));
+    }
+
+    #[test]
+    fn unknown_openlineage_event_member_is_reported() {
+        let (_, _, mut lineage) = parsed_fixtures();
+        let e1 = parse(E1_CONTEXT, "E1 context").expect("E1 context");
+        lineage["events"][0]["futureEventMember"] = Value::String("retain".into());
+        let (view, decisions) = project_openlineage(&lineage, &e1).expect("OpenLineage projection");
+        let ProviderNativeView::OpenLineage(view) = view else {
+            panic!("OpenLineage projection expected")
+        };
+        assert_eq!(view.preserved_native_events[0]["futureEventMember"], "retain");
+        assert!(decisions.iter().any(|item| {
+            item.source_path == "/events/0/futureEventMember"
+                && item.classification == MappingClass::UnknownOrUnsupported
+        }));
     }
 
     #[test]
