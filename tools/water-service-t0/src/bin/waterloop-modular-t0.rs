@@ -39,6 +39,12 @@ fn strings(value: &Value, key: &str) -> Result<Vec<String>, String> {
         .collect()
 }
 
+fn boolean(value: &Value, key: &str) -> Result<bool, String> {
+    field(value, key)?
+        .as_bool()
+        .ok_or_else(|| format!("{key}: expected boolean"))
+}
+
 fn rows<'a>(value: &'a Value, key: &str) -> Result<&'a Vec<Value>, String> {
     field(value, key)?
         .as_array()
@@ -86,6 +92,7 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "SRC-TOILET-BIDET-FAECAL",
         "SRC-RAINWATER",
         "SRC-MAINS-BACKUP",
+        "SRC-BABY-NAPPY-WASH",
     ] {
         if !sources.contains(required) {
             return Err(format!("required source class missing: {required}"));
@@ -126,6 +133,18 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         return Err(
             "module substitution must change whole-train configuration identity".to_owned(),
         );
+    }
+
+    for required in [
+        "TRAIN-A-BATH-SHOWER-PASSIVE",
+        "TRAIN-B-BATH-SHOWER-UF",
+        "TRAIN-C-LAUNDRY-SEGREGATED",
+        "TRAIN-D-NATURE-BASED",
+        "TRAIN-E-BATH-SHOWER-OZONE-GAC",
+    ] {
+        if !trains.contains(required) {
+            return Err(format!("required candidate train missing: {required}"));
+        }
     }
 
     for module in rows(contract, "candidate_modules")? {
@@ -246,6 +265,124 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         }
     }
 
+    let separation = field(contract, "potable_nonpotable_separation")?;
+    for key in [
+        "separate_physical_circuits",
+        "common_tank_or_pipe_prohibited",
+        "cross_connection_test_required",
+        "future_makeup_requires_backflow_or_air_gap_review",
+        "local_authority_approval_required_before_any_plumbed_makeup",
+        "nonpotable_fixture_and_pipe_identification_required",
+    ] {
+        if !boolean(separation, key)? {
+            return Err(format!("potable/non-potable separation safeguard is false: {key}"));
+        }
+    }
+    if boolean(separation, "potable_makeup_connection_in_v0_1")? {
+        return Err("v0.1 must not enable a potable makeup connection".to_owned());
+    }
+    let protection_method = string(separation, "future_makeup_protection_method")?;
+    if !protection_method.contains("UNASSIGNED_PENDING")
+        || !protection_method.contains("LOCAL_AUTHORITY_APPROVAL")
+    {
+        return Err("future backflow/air-gap design must remain unassigned pending local approval".to_owned());
+    }
+    if !string(separation, "cross_connection_suspected_action")?.contains("LATCH_FAULT") {
+        return Err("cross-connection suspicion must latch a fault".to_owned());
+    }
+
+    let reject_routing = field(contract, "reject_and_overflow_routing")?;
+    if boolean(reject_routing, "bypass_to_product_permitted")?
+        || !boolean(reject_routing, "bypass_isolated_from_product")?
+    {
+        return Err("reject/bypass routing must be physically isolated from product".to_owned());
+    }
+    for key in ["reject_destination", "overflow_destination"] {
+        if !string(reject_routing, key)?.contains("UNASSIGNED_PENDING") {
+            return Err(format!("{key} must remain unassigned pending site approval"));
+        }
+    }
+    if !string(reject_routing, "blocked_reject_action")?.contains("STOP_FEED_AND_ALARM")
+        || string(reject_routing, "route_authorization")?
+            != "NOT_AUTHORIZED_BY_THIS_DESIGN_REFERENCE"
+    {
+        return Err("reject routing must fail closed and remain unauthorized".to_owned());
+    }
+
+    let release = field(contract, "batch_quality_release_policy")?;
+    for key in [
+        "source_batch_identity_required",
+        "module_configuration_identity_required",
+        "independent_laboratory_sample_required",
+        "sample_before_and_after_train_required",
+        "quality_assessment_must_match_exact_intended_use",
+        "sample_time_and_storage_age_required",
+    ] {
+        if !boolean(release, key)? {
+            return Err(format!("batch quality release safeguard is false: {key}"));
+        }
+    }
+    if boolean(release, "online_sensor_alone_can_unlock_release")?
+        || string(release, "batch_release_authority")?
+            != "INDEPENDENT_USE_SPECIFIC_QUALITY_ASSESSMENT_ONLY"
+    {
+        return Err("online sensors may not independently unlock batch release".to_owned());
+    }
+
+    let source_plan = field(contract, "source_characterization_protocol")?;
+    let source_populations = strings(source_plan, "source_populations")?;
+    for required in ["SRC-LGW-BATH-SHOWER", "SRC-LAUNDRY", "SRC-RAINWATER"] {
+        require_contains(&source_populations, required, "source_characterization_protocol.source_populations")?;
+        if !sources.contains(required) {
+            return Err(format!("source-characterization plan references unknown source: {required}"));
+        }
+    }
+    let survey_days = field(source_plan, "minimum_source_survey_days")?
+        .as_u64()
+        .ok_or_else(|| "minimum_source_survey_days: expected integer".to_owned())?;
+    let batches = field(source_plan, "minimum_independent_real_feed_batches_per_source_class")?
+        .as_u64()
+        .ok_or_else(|| "minimum_independent_real_feed_batches_per_source_class: expected integer".to_owned())?;
+    if survey_days < 7 || batches < 3 || !boolean(source_plan, "exploratory_only")? {
+        return Err("source characterization minima must remain exploratory and include >=7 survey days and >=3 independent batches".to_owned());
+    }
+    let sample_fields = strings(source_plan, "sample_identity_fields")?;
+    for required in ["source_id", "batch_id", "time_zone", "storage_age", "laboratory", "method_revision", "uncertainty", "chain_of_custody"] {
+        require_contains(&sample_fields, required, "source_characterization_protocol.sample_identity_fields")?;
+    }
+
+    let experiment = field(contract, "matched_train_experiment")?;
+    let experiment_trains = strings(experiment, "train_ids")?;
+    for required in [
+        "TRAIN-A-BATH-SHOWER-PASSIVE",
+        "TRAIN-B-BATH-SHOWER-UF",
+        "TRAIN-C-LAUNDRY-SEGREGATED",
+        "TRAIN-D-NATURE-BASED",
+        "TRAIN-E-BATH-SHOWER-OZONE-GAC",
+    ] {
+        require_contains(&experiment_trains, required, "matched_train_experiment.train_ids")?;
+        if !trains.contains(required) {
+            return Err(format!("matched experiment references unknown train: {required}"));
+        }
+    }
+    let replicate_count = field(experiment, "minimum_independent_runs_per_train_batch")?
+        .as_u64()
+        .ok_or_else(|| "minimum_independent_runs_per_train_batch: expected integer".to_owned())?;
+    if replicate_count < 3 {
+        return Err("matched train experiment needs at least three exploratory replicates".to_owned());
+    }
+    for key in [
+        "report_absolute_concentrations_and_mass_loads",
+        "report_microbiology_separately_from_turbidity_and_COD",
+        "report_energy_and_all_auxiliary_loads",
+        "report_reject_backwash_concentrate_and_spent_media",
+        "no_single_removal_score_may_select_the_train",
+    ] {
+        if !boolean(experiment, key)? {
+            return Err(format!("matched train experiment reporting requirement is false: {key}"));
+        }
+    }
+
     let hydraulic_sizing = string(field(contract, "boundaries")?, "hydraulic_sizing")?;
     if !hydraulic_sizing.contains("unassigned") {
         return Err("unverified hydraulic sizes must remain unassigned".to_owned());
@@ -267,7 +404,11 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         "module_references_checked": true,
         "laundry_reuse_credit_blocked": true,
         "potable_use_excluded": true,
-        "required_fail_safe_rules_checked": 5,
+        "required_fail_safe_rules_checked": 6,
+        "separation_and_reject_controls_checked": true,
+        "batch_quality_release_controls_checked": true,
+        "source_characterization_protocol_checked": true,
+        "matched_train_experiment_checked": true,
         "nonclaim_count": nonclaims.len(),
         "claim_ceiling": contract["claim_ceiling"]
     }))
@@ -378,9 +519,9 @@ mod tests {
     #[test]
     fn reference_architecture_passes_structural_contract() {
         let result = validate_architecture(&fixture()).expect("valid architecture");
-        assert_eq!(result["source_count"], 8);
+        assert_eq!(result["source_count"], 9);
         assert_eq!(result["module_count"], 10);
-        assert_eq!(result["train_count"], 4);
+        assert_eq!(result["train_count"], 5);
         assert_eq!(result["qualification_status"], "NotRun");
     }
 
@@ -436,6 +577,61 @@ mod tests {
                 .expect_err("reject port required")
                 .contains("required value missing: reject_out")
         );
+    }
+
+    #[test]
+    fn potable_nonpotable_separation_must_remain_physical() {
+        let mut contract = fixture();
+        contract["potable_nonpotable_separation"]["separate_physical_circuits"] = json!(false);
+        assert!(validate_architecture(&contract)
+            .expect_err("physical separation is mandatory")
+            .contains("potable/non-potable separation safeguard is false"));
+    }
+
+    #[test]
+    fn a_potable_makeup_connection_is_not_enabled_in_v0_1() {
+        let mut contract = fixture();
+        contract["potable_nonpotable_separation"]["potable_makeup_connection_in_v0_1"] = json!(true);
+        assert!(validate_architecture(&contract)
+            .expect_err("makeup connection not authorized")
+            .contains("must not enable a potable makeup connection"));
+    }
+
+    #[test]
+    fn failure_bypass_cannot_reach_product() {
+        let mut contract = fixture();
+        contract["reject_and_overflow_routing"]["bypass_to_product_permitted"] = json!(true);
+        assert!(validate_architecture(&contract)
+            .expect_err("bypass to product rejected")
+            .contains("reject/bypass routing must be physically isolated"));
+    }
+
+    #[test]
+    fn batch_quality_cannot_be_unlocked_by_online_sensor_alone() {
+        let mut contract = fixture();
+        contract["batch_quality_release_policy"]["online_sensor_alone_can_unlock_release"] = json!(true);
+        assert!(validate_architecture(&contract)
+            .expect_err("online sensor cannot authorize release")
+            .contains("online sensors may not independently unlock"));
+    }
+
+    #[test]
+    fn source_characterization_requires_independent_real_feed_batches() {
+        let mut contract = fixture();
+        contract["source_characterization_protocol"]["minimum_independent_real_feed_batches_per_source_class"] = json!(1);
+        assert!(validate_architecture(&contract)
+            .expect_err("minimum batch count")
+            .contains(">=3 independent batches"));
+    }
+
+    #[test]
+    fn ozone_gac_comparator_is_present_as_candidate_not_selected() {
+        let contract = fixture();
+        let train = contract["candidate_train_families"].as_array().unwrap()
+            .iter().find(|train| train["id"] == "TRAIN-E-BATH-SHOWER-OZONE-GAC")
+            .expect("ozone/GAC train");
+        assert!(train["selection"].as_str().unwrap().contains("candidate_for_matched_unoccupied_test_only"));
+        assert_eq!(train["candidate_sequence"][3], "M06-OZONE-GAC");
     }
 
     #[test]
