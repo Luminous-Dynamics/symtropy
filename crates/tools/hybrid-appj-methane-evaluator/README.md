@@ -5,9 +5,9 @@ Standalone, offline Rust evaluator for the hybrid APPJ methane-conversion source
 ## Commands
 
 ```sh
-cargo test --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
-cargo run --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- benchmarks/plasma/appj-methane-process-v0.json
-cargo clippy --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml
+cargo run --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml -- benchmarks/plasma/appj-methane-process-v0.json
+cargo clippy --locked --manifest-path crates/tools/hybrid-appj-methane-evaluator/Cargo.toml --all-targets -- -D warnings
 ```
 
 The crate has its own Cargo workspace boundary and does not join the Symtropy root workspace. It performs no network calls and launches no plasma solver.
