@@ -1,0 +1,41 @@
+name: Power Fabric Model Contract Schema
+
+on:
+  pull_request:
+    paths:
+      - "docs/schemas/power-fabric/**"
+      - "docs/research/fixtures/power-fabric/**"
+      - "tools/validate_power_fabric_contracts.py"
+      - ".github/workflows/power-fabric-model-contract-schema.yml"
+  push:
+    paths:
+      - "docs/schemas/power-fabric/**"
+      - "docs/research/fixtures/power-fabric/**"
+      - "tools/validate_power_fabric_contracts.py"
+      - ".github/workflows/power-fabric-model-contract-schema.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: power-fabric-model-contract-schema
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python for schema validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-input jsonschema==4.23.0
+
+      - name: Validate Draft 2020-12 schemas and fail-closed fixtures
+        run: python tools/validate_power_fabric_contracts.py

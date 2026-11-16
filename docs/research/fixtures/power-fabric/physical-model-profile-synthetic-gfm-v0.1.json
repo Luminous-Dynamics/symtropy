@@ -1,0 +1,274 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "synthetic-gfm-inverter-weak-grid-v0.1",
+  "record_status": "draft",
+  "owner": {
+    "organization": "Luminous Dynamics",
+    "system": "Symtropy Power Fabric"
+  },
+  "model": {
+    "model_id": "synthetic-gfm-inverter-model",
+    "family": "emt",
+    "revision": {
+      "state": "known",
+      "value": "synthetic-placeholder-v0.1"
+    },
+    "solver": {
+      "name": "not-run-synthetic-fixture",
+      "version": {
+        "state": "unknown",
+        "reason": "No solver has been selected or run."
+      },
+      "adapter_version": {
+        "state": "unknown",
+        "reason": "No solver adapter has been implemented."
+      }
+    },
+    "source_artifact": {
+      "state": "unknown",
+      "reason": "This fixture describes a future model profile; no model source artifact is supplied."
+    },
+    "build_artifact": {
+      "state": "unknown",
+      "reason": "No executable build exists for this structural fixture."
+    },
+    "dependency_artifact": {
+      "state": "unknown",
+      "reason": "No locked dependency set exists for this structural fixture."
+    },
+    "license_spdx": "NOASSERTION"
+  },
+  "target": {
+    "asset_id": {
+      "state": "known",
+      "value": "SYNTH-GFM-INVERTER-001"
+    },
+    "module_id": {
+      "state": "known",
+      "value": "SYNTH-CONVERTER-MODULE-001"
+    },
+    "hardware_revision": {
+      "state": "unknown",
+      "reason": "No physical test article or hardware revision is supplied."
+    },
+    "firmware_revision": {
+      "state": "unknown",
+      "reason": "No controller firmware or configuration has been selected."
+    },
+    "parameter_set": {
+      "state": "unknown",
+      "reason": "No calibrated parameter set is supplied."
+    },
+    "as_built_configuration": {
+      "state": "unknown",
+      "reason": "No as-built equipment record is supplied."
+    },
+    "service_graph_revision": {
+      "state": "unknown",
+      "reason": "No qualified electrical service graph is supplied."
+    }
+  },
+  "boundary": {
+    "boundary_id": "synthetic-gfm-boundary-001",
+    "description": "Synthetic inverter AC terminals, DC energy port and weak-grid equivalent boundary; structural fixture only.",
+    "topology_revision": {
+      "state": "unknown",
+      "reason": "No network topology has been admitted."
+    },
+    "reference_frame": "three-phase positive-sequence phasor frame; applicability unqualified",
+    "ports": [
+      {
+        "port_id": "ac-terminal",
+        "direction": "bidirectional",
+        "quantity": "three-phase AC voltage and current",
+        "unit": "V,A",
+        "sign_convention": "positive current into inverter boundary"
+      },
+      {
+        "port_id": "dc-link",
+        "direction": "bidirectional",
+        "quantity": "DC voltage and current",
+        "unit": "V,A",
+        "sign_convention": "positive power into inverter boundary"
+      },
+      {
+        "port_id": "thermal-boundary",
+        "direction": "input",
+        "quantity": "ambient/coolant temperature",
+        "unit": "K",
+        "sign_convention": "positive heat flow into thermal boundary"
+      }
+    ]
+  },
+  "formulation": {
+    "formulation_id": "synthetic-gfm-emt-placeholder",
+    "revision": {
+      "state": "known",
+      "value": "0.1-placeholder"
+    },
+    "description": "Placeholder only. No EMT equations, switching model, controller, protection model or numerical implementation is included.",
+    "unit_system": "SI"
+  },
+  "operating_envelope": {
+    "axes": [
+      {
+        "quantity": "grid_frequency",
+        "unit": "Hz",
+        "coverage": {
+          "state": "unknown",
+          "reason": "Frequency range and weak-grid operating domain have not been derived from a test article or approved requirement."
+        }
+      },
+      {
+        "quantity": "ac_terminal_voltage",
+        "unit": "V_rms",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No equipment voltage rating or measurement boundary is supplied."
+        }
+      },
+      {
+        "quantity": "active_power",
+        "unit": "W",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No continuous or transient P capability is qualified."
+        }
+      },
+      {
+        "quantity": "reactive_power",
+        "unit": "var",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No Q capability or P-Q envelope is qualified."
+        }
+      },
+      {
+        "quantity": "dc_link_voltage",
+        "unit": "V",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No DC source or capacitor operating envelope is supplied."
+        }
+      },
+      {
+        "quantity": "ambient_temperature",
+        "unit": "K",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No thermal environment or cooling boundary is qualified."
+        }
+      },
+      {
+        "quantity": "short_circuit_ratio",
+        "unit": "1",
+        "coverage": {
+          "state": "unknown",
+          "reason": "No grid-strength sweep or equivalent impedance is supplied."
+        }
+      }
+    ]
+  },
+  "numerical_envelope": {
+    "time_domain": "multi_rate",
+    "time_step": {
+      "state": "unknown",
+      "reason": "No EMT time step or switching model exists."
+    },
+    "sample_interval": {
+      "state": "unknown",
+      "reason": "No acquisition/observation cadence has been specified."
+    },
+    "coupling_interval": {
+      "state": "unknown",
+      "reason": "No RMS/EMT/thermal multi-rate coupling has been specified."
+    },
+    "precision": {
+      "state": "unknown",
+      "reason": "No numerical implementation or precision policy exists."
+    },
+    "tolerances": [],
+    "convergence_criteria": []
+  },
+  "outputs": [
+    {
+      "output_id": "ac-terminal-voltage",
+      "quantity": "AC terminal voltage waveform and RMS envelope",
+      "unit": "V",
+      "sampling_semantics": "instantaneous waveform plus explicitly windowed RMS; neither is available in this structural fixture",
+      "validity_axes": [
+        "grid_frequency",
+        "ac_terminal_voltage",
+        "active_power",
+        "reactive_power"
+      ],
+      "uncertainty": {
+        "state": "unknown",
+        "reason": "No metrology chain or validation data."
+      },
+      "claim_ceiling": "structural_only",
+      "required_evidence_classes": [
+        "Modelled",
+        "ReferenceDifferential",
+        "LaboratoryMeasured"
+      ]
+    },
+    {
+      "output_id": "inverter-current",
+      "quantity": "AC phase current including current-limit response",
+      "unit": "A",
+      "sampling_semantics": "instantaneous phase current; not provided",
+      "validity_axes": [
+        "grid_frequency",
+        "ac_terminal_voltage",
+        "active_power",
+        "reactive_power",
+        "short_circuit_ratio"
+      ],
+      "uncertainty": {
+        "state": "unknown",
+        "reason": "No test article, model or measurement."
+      },
+      "claim_ceiling": "structural_only",
+      "required_evidence_classes": [
+        "Modelled",
+        "ReferenceDifferential",
+        "HardwareInLoop"
+      ]
+    },
+    {
+      "output_id": "dc-link-energy",
+      "quantity": "DC-link stored energy",
+      "unit": "J",
+      "sampling_semantics": "time-indexed stored-energy trajectory; not provided",
+      "validity_axes": [
+        "dc_link_voltage",
+        "active_power",
+        "ambient_temperature"
+      ],
+      "uncertainty": {
+        "state": "unknown",
+        "reason": "No capacitor/source data or calibrated parameters."
+      },
+      "claim_ceiling": "structural_only",
+      "required_evidence_classes": [
+        "Modelled",
+        "AnalyticallyVerified",
+        "LaboratoryMeasured"
+      ]
+    }
+  ],
+  "assumptions": [
+    "This document is a synthetic schema fixture, not a physical device model.",
+    "No assumed equipment ratings, firmware, grid-code limits or calibrated parameters are implied."
+  ],
+  "exclusions": [
+    "No solver implementation.",
+    "No grid-code compliance, protection, black-start, islanding or transient-stability claim.",
+    "No hardware-in-loop, laboratory, field or utility acceptance evidence."
+  ],
+  "out_of_domain_policy": "abstain",
+  "evidence_classes_present": [
+    "Modelled"
+  ]
+}

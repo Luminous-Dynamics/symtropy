@@ -1,0 +1,114 @@
+{
+  "schema_version": "0.1.0",
+  "receipt_id": "synthetic-gfm-validation-not-evaluable-v0.1",
+  "profile_id": "synthetic-gfm-inverter-weak-grid-v0.1",
+  "profile_artifact": {
+    "state": "unknown",
+    "reason": "The profile is an in-repository synthetic fixture; no external immutable source package is referenced."
+  },
+  "target": {
+    "asset_id": {
+      "state": "known",
+      "value": "SYNTH-GFM-INVERTER-001"
+    },
+    "hardware_revision": {
+      "state": "unknown",
+      "reason": "No physical test article."
+    },
+    "firmware_revision": {
+      "state": "unknown",
+      "reason": "No firmware image."
+    },
+    "as_built_configuration": {
+      "state": "unknown",
+      "reason": "No as-built evidence."
+    }
+  },
+  "run": {
+    "run_id": "synthetic-no-run",
+    "started_at": "2026-11-16T00:00:00Z",
+    "model_revision": {
+      "state": "known",
+      "value": "synthetic-placeholder-v0.1"
+    },
+    "input_artifact": {
+      "state": "unknown",
+      "reason": "No model or measured input data supplied."
+    },
+    "run_artifact": {
+      "state": "unknown",
+      "reason": "No simulation or measurement run was performed."
+    },
+    "solver_status": {
+      "state": "not_applicable",
+      "reason": "This is a static contract fixture, not a solver run."
+    }
+  },
+  "protocol": {
+    "protocol_id": "synthetic-gfm-weak-grid-protocol",
+    "revision": {
+      "state": "known",
+      "value": "draft-0.1"
+    },
+    "protocol_artifact": {
+      "state": "unknown",
+      "reason": "No executable test protocol has been frozen."
+    }
+  },
+  "reference_methods": [],
+  "output_results": [
+    {
+      "output_id": "ac-terminal-voltage",
+      "quantity": "AC terminal voltage waveform and RMS envelope",
+      "unit": "V",
+      "status": "not_evaluable",
+      "reason": "No solver run, reference waveform or measurement exists."
+    },
+    {
+      "output_id": "inverter-current",
+      "quantity": "AC phase current including current-limit response",
+      "unit": "A",
+      "status": "not_evaluable",
+      "reason": "No current-limit model or measured test article exists."
+    },
+    {
+      "output_id": "dc-link-energy",
+      "quantity": "DC-link stored energy",
+      "unit": "J",
+      "status": "not_evaluable",
+      "reason": "No parameterized DC-link or source model exists."
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "stale-firmware-receipt-reuse",
+      "expected_disposition": "reject",
+      "observed_disposition": "not_run",
+      "status": "not_run",
+      "reason": "The schema fixture defines the required negative-control identity, but no runner or asset data is present."
+    },
+    {
+      "control_id": "dc-result-promoted-to-emt",
+      "expected_disposition": "reject",
+      "observed_disposition": "not_run",
+      "status": "not_run",
+      "reason": "No cross-regime promotion test has been executed."
+    },
+    {
+      "control_id": "unknown-short-circuit-ratio-treated-as-safe",
+      "expected_disposition": "abstain",
+      "observed_disposition": "not_run",
+      "status": "not_run",
+      "reason": "No model admission engine has been implemented."
+    }
+  ],
+  "overall_disposition": "not_evaluable",
+  "claim_ceiling": "structural_only",
+  "review": {
+    "status": "not_reviewed",
+    "evidence": []
+  },
+  "notes": [
+    "Synthetic contract fixture only. This receipt deliberately demonstrates that missing model, asset, firmware, calibration and reference evidence must remain not_evaluable rather than becoming a pass."
+  ]
+}
