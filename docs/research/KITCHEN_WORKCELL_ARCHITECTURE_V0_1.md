@@ -104,7 +104,19 @@ Measure output particle-size distribution, coefficient of variation, fines, yiel
 
 Include a Thermomix TM7 or comparable cooking machine as an architectural reference. Compare only functions it actually performs and retain separate function scores. Do not let its recipe ecosystem or number of automated modes replace matched measurement.
 
-### 4.4 Why feature-count benchmarking fails
+### 4.4 South African reference candidates
+
+Global laboratory comparators must be supplemented with equipment actually sold and serviced in the launch market. Candidate South African baselines discovered from manufacturer / retailer listings:
+
+- Russell Hobbs RHEP7, 6 L digital electric pressure cooker, listed at 1000 W with 16 menus: https://russellhobbs.co.za/products/6l-electric-pressure-cooker
+- Russell Hobbs RHEP6N, 6 L electric pressure cooker with enamel removable pot, listed at 1000 W with 17 menus: https://russellhobbs.co.za/products/russell-hobbs-6l-electronic-pressure-cooker
+- Russell Hobbs RHPC06, 6 L stovetop pressure cooker with manufacturer-listed 80 kPa operating valve: https://russellhobbs.co.za/products/russell-hobbs-stainless-steel-6l-pressure-cooker
+- Kenwood MultiPro Express FDP65.400WH, retail-listed 3 L / 1000 W processor: https://www.pricecheck.co.za/offers/220870801/Kenwood%2BFDP65.400WH%2B3L%2BMultipro%2BExpress%2BFood%2BProcessor
+- Magimix 5200XL, locally listed with 3.6 L / 2.6 L / 1.2 L bowls and 1100 W; regional retailer listings vary in stock and price: https://www.newworld.co.za/collections/all/products/magimix-5200xl-food-processor-chrome
+
+These are acquisition candidates, not independent ratings. Record the exact type plate, manufacturing revision, 230 V / 50 Hz compatibility, accessories, local warranty, spares and service route. Retail availability changes; do not treat a search listing as stock confirmation. Keep stovetop pressure cookers in a separate test class and include the hob's measured energy and heat source.
+
+### 4.5 Why feature-count benchmarking fails
 
 The incumbent market already contains strong specialists. A cooker may excel at pressure cooking but offer little time saving for rice; a processor may slice exceptionally well while delivering only average cheese grating. The product must outperform the relevant incumbent on the declared task, not on a summed feature checklist.
 
@@ -163,6 +175,8 @@ Starting references:
 - IEC 60335-2-15:2024 for household appliances heating liquids, including pressure cookers only within the scope stated by the standard (rated cooking pressure not exceeding 140 kPa and capacity not exceeding 10 L).
 - IEC 60335-2-14:2025 for household kitchen machines including food processors.
 - South African food-contact and hygiene requirements, including R638 where applicable.
+- For South Africa, classify the finished appliance against the current NRCS compulsory-specification scope. VC 8055 is the relevant starting route to investigate for safety of electrical/electronic apparatus; the NRCS material identifies the SANS IEC 60335 household-appliance series. Confirm the current VC text, accepted SANS editions, scope, required evidence and Letter of Authority with NRCS before manufacture/import/sale. Do not assume an IEC publication by itself is South African market approval.
+- IEC 60335-2-15:2024 itself notes that some countries impose additional national pressure-vessel requirements. Its stated household pressure-cooker scope is limited to rated cooking pressure not exceeding 140 kPa and rated capacity not exceeding 10 L; the finished product still needs a product-specific scope and conformity assessment.
 - Product-specific pressure-vessel, electrical, mechanical, material and market requirements identified with a competent test laboratory and relevant authority.
 
 First physical stage:
@@ -206,6 +220,10 @@ Every gate produces an exact revision, input manifest, receipts, failed/unknown 
 - ISO, [6658:2017 Sensory analysis — methodology](https://www.iso.org/standard/65519.html).
 - ISO, [11136:2014 Consumer hedonic testing](https://www.iso.org/standard/50125.html).
 - Symthaea, [CULINARY-BENCH-001 #7859](https://github.com/Luminous-Dynamics/symthaea/issues/7859), [CULINARY-TRANSFER-002 #8170](https://github.com/Luminous-Dynamics/symthaea/issues/8170), [COOKWARE-CRAFT-001 #8182](https://github.com/Luminous-Dynamics/symthaea/issues/8182).
+- Russell Hobbs South Africa, [RHEP7 product listing](https://russellhobbs.co.za/products/6l-electric-pressure-cooker), [RHEP6N product listing](https://russellhobbs.co.za/products/russell-hobbs-6l-electronic-pressure-cooker), [RHPC06 product listing](https://russellhobbs.co.za/products/russell-hobbs-stainless-steel-6l-pressure-cooker).
+- South African NRCS, [Compulsory Specifications overview](https://www.nrcs.org.za/compulsory-specifications/about-compulsory-specifications/) and [Letter of Authority administration procedure](https://www.nrcs.org.za/Documents/Electrotech/LOA%20Admin%20Procedure/LOA%20ADMIN%20Revised%2012_06%20May%202019.pdf).
+- Kenwood local candidate discovery, [FDP65.400WH retailer comparison](https://www.pricecheck.co.za/offers/220870801/Kenwood%2BFDP65.400WH%2B3L%2BMultipro%2BExpress%2BFood%2BProcessor).
+- Magimix local candidate, [5200XL product listing](https://www.newworld.co.za/collections/all/products/magimix-5200xl-food-processor-chrome).
 - Symtropy, [KITCHEN-OPS-001 #2227](https://github.com/Luminous-Dynamics/symtropy/issues/2227), [APPLIANCE-QUAL-001 #1805](https://github.com/Luminous-Dynamics/symtropy/issues/1805), [APPLIANCE-PORTFOLIO-001 #1825](https://github.com/Luminous-Dynamics/symtropy/issues/1825).
 
 ## 12. Nonclaims
