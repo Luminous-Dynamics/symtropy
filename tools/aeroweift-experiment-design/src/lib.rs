@@ -538,6 +538,11 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !is_sha256(&policy.campaign_sha256)
         || !is_sha256(&policy.model_scope_sha256)
         || !is_sha256(&policy.intended_use_profile_sha256)
+        || !is_sha256(&policy.decision_boundary_sha256)
+        || !is_sha256(&policy.hypothesis_manifest_sha256)
+        || !is_sha256(&policy.robust_uncertainty_set_sha256)
+        || !is_sha256(&policy.adaptive_data_manifest_sha256)
+        || policy.minimum_estimate_independent_units == 0
         || !is_sha256(&policy.required_estimator_build_sha256)
         || !is_sha256(&policy.required_estimate_method_sha256)
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
@@ -644,6 +649,68 @@ fn validate_gate_evidence_receipts(
         if required && !roles.contains(&role) {
             reasons.insert(RejectionReason::MissingEvidenceReceipt);
         }
+    }
+}
+
+fn validate_utility_estimate_receipt(
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+    reasons: &mut BTreeSet<RejectionReason>,
+) {
+    let Some(receipt) = candidate.utility_estimate_receipt.as_ref() else {
+        reasons.insert(RejectionReason::MissingUtilityEstimateReceipt);
+        return;
+    };
+
+    let scope_matches = !receipt.receipt_id.trim().is_empty()
+        && !receipt.issuer_id.trim().is_empty()
+        && is_sha256(&receipt.payload_sha256)
+        && receipt.candidate_id == candidate.candidate_id
+        && receipt.campaign_sha256 == candidate.campaign_sha256
+        && receipt.model_scope_sha256 == candidate.model_scope_sha256
+        && receipt.intended_use_profile_sha256 == candidate.intended_use_profile_sha256
+        && receipt.decision_question_id == candidate.decision_question_id
+        && receipt.design_sha256 == candidate.design_sha256
+        && receipt.scenario_manifest_sha256 == candidate.scenario_manifest_sha256
+        && receipt.measurement_plan_sha256 == candidate.measurement_plan_sha256
+        && receipt.decision_boundary_sha256 == candidate.decision_boundary_sha256
+        && receipt.hypothesis_manifest_sha256 == candidate.hypothesis_manifest_sha256
+        && receipt.robust_uncertainty_set_sha256 == candidate.robust_uncertainty_set_sha256
+        && receipt.adaptive_data_manifest_sha256 == candidate.adaptive_data_manifest_sha256
+        && receipt.estimator_build_sha256 == candidate.estimator_build_sha256
+        && receipt.estimate_method_sha256 == candidate.estimate_method_sha256
+        && receipt.confidence_level == candidate.estimate_confidence_level
+        && receipt.hypothesis_groups == candidate.hypothesis_groups
+        && receipt.hypothesis_contrasts == candidate.hypothesis_contrasts
+        && receipt.expected_uncertainty_reduction == candidate.expected_uncertainty_reduction
+        && receipt.expected_model_discrimination == candidate.expected_model_discrimination
+        && receipt.worst_case_robust_reduction == candidate.worst_case_robust_reduction
+        && receipt.decision_relevance == candidate.decision_relevance
+        && receipt.probability_uninformative == candidate.probability_uninformative
+        && receipt.campaign_sha256 == policy.campaign_sha256
+        && receipt.model_scope_sha256 == policy.model_scope_sha256
+        && receipt.intended_use_profile_sha256 == policy.intended_use_profile_sha256
+        && receipt.decision_question_id == policy.decision_question_id
+        && receipt.decision_boundary_sha256 == policy.decision_boundary_sha256
+        && receipt.hypothesis_manifest_sha256 == policy.hypothesis_manifest_sha256
+        && receipt.robust_uncertainty_set_sha256 == policy.robust_uncertainty_set_sha256
+        && receipt.adaptive_data_manifest_sha256 == policy.adaptive_data_manifest_sha256
+        && receipt.estimator_build_sha256 == policy.required_estimator_build_sha256
+        && receipt.estimate_method_sha256 == policy.required_estimate_method_sha256
+        && receipt.sample_unit == policy.required_estimate_sample_unit
+        && bounded_unit_interval(receipt.confidence_level)
+        && receipt.confidence_level > 0.0
+        && receipt.confidence_level < 1.0
+        && receipt.confidence_level >= policy.minimum_estimate_confidence_level
+        && receipt.independent_unit_count >= policy.minimum_estimate_independent_units;
+
+    if !scope_matches {
+        reasons.insert(RejectionReason::InvalidUtilityEstimateReceipt);
+    }
+    if receipt.independent_unit_count < policy.minimum_estimate_independent_units
+        || receipt.sample_unit != policy.required_estimate_sample_unit
+    {
+        reasons.insert(RejectionReason::InsufficientEstimateSamples);
     }
 }
 
@@ -827,6 +894,7 @@ fn candidate_rejection_reasons(
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
     validate_gate_evidence_receipts(candidate, policy, &mut reasons);
+    validate_utility_estimate_receipt(candidate, policy, &mut reasons);
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
     {
@@ -869,6 +937,10 @@ fn candidate_rejection_reasons(
     if !is_sha256(&candidate.campaign_sha256)
         || !is_sha256(&candidate.model_scope_sha256)
         || !is_sha256(&candidate.intended_use_profile_sha256)
+        || !is_sha256(&candidate.decision_boundary_sha256)
+        || !is_sha256(&candidate.hypothesis_manifest_sha256)
+        || !is_sha256(&candidate.robust_uncertainty_set_sha256)
+        || !is_sha256(&candidate.adaptive_data_manifest_sha256)
         || !is_sha256(&candidate.design_sha256)
         || !is_sha256(&candidate.scenario_manifest_sha256)
         || !is_sha256(&candidate.measurement_plan_sha256)
