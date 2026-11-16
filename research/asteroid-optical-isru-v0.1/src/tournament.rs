@@ -5,6 +5,7 @@
 //! intervals. It does not calculate physical process performance, validate an
 //! assay, simulate thermal/material response, or authorize an operation.
 
+use crate::MaterialBalance;
 use serde::Deserialize;
 
 const INTERVAL_EPSILON: f64 = 1.0e-12;
@@ -130,6 +131,8 @@ pub struct ProductAcceptanceEvidence {
     pub measured_purity_fraction: MetricInterval,
     pub minimum_purity_fraction: f64,
     pub independent_assay_id: Option<String>,
+    pub independent_assay_issuer_id: Option<String>,
+    pub independent_assay_record_sha256: Option<String>,
 }
 
 impl ProductAcceptanceEvidence {
@@ -161,9 +164,20 @@ impl ProductAcceptanceEvidence {
         {
             return Err(TournamentError::PurityBelowContract);
         }
-        match &self.independent_assay_id {
-            Some(id) if !id.trim().is_empty() => Ok(()),
-            _ => Err(TournamentError::IndependentAssayMissing),
+        if !self
+            .independent_assay_id
+            .as_deref()
+            .is_some_and(|id| !id.trim().is_empty())
+            || !self
+                .independent_assay_issuer_id
+                .as_deref()
+                .is_some_and(|id| !id.trim().is_empty())
+        {
+            return Err(TournamentError::IndependentAssayMissing);
+        }
+        match self.independent_assay_record_sha256.as_deref() {
+            Some(digest) if is_sha256_digest(digest) => Ok(()),
+            _ => Err(TournamentError::IndependentAssayRecordMissing),
         }
     }
 }
@@ -215,7 +229,17 @@ pub struct CandidateRun {
     /// Digest of this candidate's full configuration, not a shared campaign
     /// identity. Different architectures are expected to differ.
     pub architecture_config_sha256: String,
+    pub operator_entity_id: String,
+    /// Candidate-specific calibration evidence identity and declared status.
+    /// Authenticity/currentness must be independently resolved by the evidence
+    /// authority; these fields alone do not authenticate a calibration.
+    pub calibration_record_sha256: String,
+    pub calibration_status: CalibrationStatus,
     pub product: ProductAcceptanceEvidence,
+    /// The existing resource-to-product mass ledger is reused and independently
+    /// rechecked here before any captured stream receives product credit.
+    pub material_balance: MaterialBalance,
+    pub mass_balance_tolerance_kg: f64,
     pub source_energy: Option<EnergyEvidence>,
     /// Total deployed plus declared replacement/spares mass within the frozen
     /// lifecycle boundary. Unknown mass must not be represented as zero.
@@ -237,6 +261,23 @@ impl CandidateRun {
         if !is_sha256_digest(&self.architecture_config_sha256) {
             return Err(TournamentError::InvalidDigest("architecture_config_sha256"));
         }
+        if self.operator_entity_id.trim().is_empty() {
+            return Err(TournamentError::MissingIdentity("operator_entity_id"));
+        }
+        if !is_sha256_digest(&self.calibration_record_sha256) {
+            return Err(TournamentError::InvalidDigest("calibration_record_sha256"));
+        }
+        if self.calibration_status != CalibrationStatus::Current {
+            return Err(TournamentError::CalibrationNotCurrent);
+        }
+        if self
+            .product
+            .independent_assay_issuer_id
+            .as_deref()
+            .is_some_and(|issuer| issuer == self.operator_entity_id)
+        {
+            return Err(TournamentError::AssayIssuerNotIndependent);
+        }
         if self.campaign.comparability_track == ComparabilityTrack::ProcessIsolation {
             match &self.shared_test_fixture_id {
                 Some(id) if !id.trim().is_empty() => {}
@@ -245,6 +286,18 @@ impl CandidateRun {
         }
         self.campaign.validate()?;
         self.product.validate()?;
+        self.material_balance
+            .validate(self.mass_balance_tolerance_kg)
+            .map_err(|_| TournamentError::MaterialBalanceInvalid)?;
+        let captured_stream_mass_kg = match self.product.stream_kind {
+            ProductStreamKind::Gas => self.material_balance.captured_raw_gas_kg,
+            ProductStreamKind::Solid => self.material_balance.captured_solids_kg,
+        };
+        if self.product.captured_raw_mass_kg.upper
+            > captured_stream_mass_kg + INTERVAL_EPSILON
+        {
+            return Err(TournamentError::CapturedStreamExceedsMaterialBalance);
+        }
         self.lifecycle_system_mass_kg
             .validate_nonnegative("lifecycle_system_mass_kg")?;
         if self.lifecycle_system_mass_kg.lower <= 0.0 {
@@ -412,6 +465,15 @@ pub fn compare_pair(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CalibrationStatus {
+    Current,
+    Stale,
+    Revoked,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TournamentError {
     MissingIdentity(&'static str),
@@ -422,9 +484,14 @@ pub enum TournamentError {
     InvalidFraction(&'static str),
     NonPositiveDenominator(&'static str),
     ProductExceedsCapturedStream,
+    CapturedStreamExceedsMaterialBalance,
+    MaterialBalanceInvalid,
     NoAcceptedProduct,
     PurityBelowContract,
     IndependentAssayMissing,
+    IndependentAssayRecordMissing,
+    AssayIssuerNotIndependent,
+    CalibrationNotCurrent,
     DuplicateCandidateId,
 }
 
@@ -447,12 +514,27 @@ impl std::fmt::Display for TournamentError {
             Self::ProductExceedsCapturedStream => {
                 write!(f, "accepted product upper bound exceeds captured raw stream lower bound")
             }
+            Self::CapturedStreamExceedsMaterialBalance => {
+                write!(f, "captured product stream exceeds the corresponding closed mass-balance stream")
+            }
+            Self::MaterialBalanceInvalid => {
+                write!(f, "material balance does not close within its declared tolerance")
+            }
             Self::NoAcceptedProduct => write!(f, "accepted product must have positive upper bound"),
             Self::PurityBelowContract => {
                 write!(f, "conservative measured purity is below the product contract")
             }
             Self::IndependentAssayMissing => {
-                write!(f, "an independent product-assay identity is required")
+                write!(f, "an independent product-assay identity and issuer are required")
+            }
+            Self::IndependentAssayRecordMissing => {
+                write!(f, "a valid product-assay record digest is required")
+            }
+            Self::AssayIssuerNotIndependent => {
+                write!(f, "assay issuer must differ from the candidate operator")
+            }
+            Self::CalibrationNotCurrent => {
+                write!(f, "candidate calibration status is not current")
             }
             Self::DuplicateCandidateId => write!(f, "candidate identifiers must be unique"),
         }
@@ -501,14 +583,29 @@ mod tests {
             process_article_revision: "rev-1".to_string(),
             shared_test_fixture_id: Some("shared-rig-001".to_string()),
             architecture_config_sha256: digest('e'),
+            operator_entity_id: format!("operator-{id}"),
+            calibration_record_sha256: digest('f'),
+            calibration_status: CalibrationStatus::Current,
             product: ProductAcceptanceEvidence {
                 stream_kind: ProductStreamKind::Solid,
-                captured_raw_mass_kg: interval(3.0, 3.5),
+                captured_raw_mass_kg: interval(2.2, 2.5),
                 accepted_product_mass_kg: product_mass,
                 measured_purity_fraction: interval(0.995, 0.999),
                 minimum_purity_fraction: 0.99,
                 independent_assay_id: Some(format!("assay-{id}")),
+                independent_assay_issuer_id: Some("independent-lab-001".to_string()),
+                independent_assay_record_sha256: Some(digest('a')),
             },
+            material_balance: MaterialBalance {
+                feedstock_input_kg: 10.0,
+                solid_residue_kg: 5.5,
+                captured_solids_kg: 2.5,
+                escaped_solids_kg: 0.5,
+                captured_raw_gas_kg: 1.0,
+                escaped_gas_kg: 0.4,
+                other_accounted_mass_kg: 0.1,
+            },
+            mass_balance_tolerance_kg: 1.0e-9,
             source_energy: Some(EnergyEvidence {
                 boundary_id: "solar-incident-at-primary-collector".to_string(),
                 energy_form: EnergyForm::SolarRadiant,
@@ -668,6 +765,9 @@ mod tests {
         let a = strong_candidate();
         let mut b = weak_candidate();
         b.product.stream_kind = ProductStreamKind::Gas;
+        b.product.captured_raw_mass_kg = interval(2.2, 2.5);
+        b.material_balance.solid_residue_kg = 4.0;
+        b.material_balance.captured_raw_gas_kg = 2.5;
         assert_eq!(
             compare_pair(&a, &b).unwrap(),
             PairComparison::NotComparable("product stream kind differs")
@@ -741,6 +841,67 @@ mod tests {
         assert_eq!(
             candidate.validate().unwrap_err(),
             TournamentError::InvalidFraction("availability_fraction")
+        );
+    }
+
+    #[test]
+    fn captured_stream_cannot_exceed_closed_mass_balance_stream() {
+        let mut candidate = strong_candidate();
+        candidate.product.captured_raw_mass_kg = interval(2.6, 2.7);
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::CapturedStreamExceedsMaterialBalance
+        );
+    }
+
+    #[test]
+    fn unclosed_material_balance_blocks_product_acceptance() {
+        let mut candidate = strong_candidate();
+        candidate.material_balance.escaped_solids_kg = 0.0;
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::MaterialBalanceInvalid
+        );
+    }
+
+    #[test]
+    fn assay_issuer_must_differ_from_candidate_operator() {
+        let mut candidate = strong_candidate();
+        candidate.product.independent_assay_issuer_id =
+            Some(candidate.operator_entity_id.clone());
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::AssayIssuerNotIndependent
+        );
+    }
+
+    #[test]
+    fn assay_record_digest_is_required() {
+        let mut candidate = strong_candidate();
+        candidate.product.independent_assay_record_sha256 = None;
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::IndependentAssayRecordMissing
+        );
+    }
+
+    #[test]
+    fn stale_calibration_blocks_candidate() {
+        let mut candidate = strong_candidate();
+        candidate.calibration_status = CalibrationStatus::Stale;
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::CalibrationNotCurrent
+        );
+    }
+
+    #[test]
+    fn invalid_calibration_digest_is_rejected() {
+        let mut candidate = strong_candidate();
+        candidate.calibration_record_sha256 = "stale-calibration".to_string();
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::InvalidDigest("calibration_record_sha256")
         );
     }
 
