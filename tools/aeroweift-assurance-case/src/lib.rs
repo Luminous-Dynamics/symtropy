@@ -516,7 +516,10 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
     if !is_sha256(&policy.policy_sha256)
         || !is_sha256(&policy.verifier_build_sha256)
         || policy.required_hazards.is_empty()
-        || policy.required_hazards.iter().any(|value| value.trim().is_empty())
+        || policy
+            .required_hazards
+            .iter()
+            .any(|value| value.trim().is_empty())
         || policy.required_authorities.is_empty()
         || policy
             .required_authorities
@@ -562,7 +565,10 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
         }
         NodeKind::Assumption => {
             node.claim.is_none()
-                && node.assumption.as_ref().is_some_and(|x| !x.assumption_id.trim().is_empty())
+                && node
+                    .assumption
+                    .as_ref()
+                    .is_some_and(|x| !x.assumption_id.trim().is_empty())
                 && node.hazard_id.is_none()
                 && node.mitigation_state.is_none()
                 && node.evidence.is_none()
@@ -572,7 +578,10 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
         NodeKind::Hazard => {
             node.claim.is_none()
                 && node.assumption.is_none()
-                && node.hazard_id.as_ref().is_some_and(|x| !x.trim().is_empty())
+                && node
+                    .hazard_id
+                    .as_ref()
+                    .is_some_and(|x| !x.trim().is_empty())
                 && node.mitigation_state.is_none()
                 && node.evidence.is_none()
                 && node.defeater.is_none()
@@ -602,7 +611,10 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
                 && node.hazard_id.is_none()
                 && node.mitigation_state.is_none()
                 && node.evidence.is_none()
-                && node.defeater.as_ref().is_some_and(|x| !x.defeater_id.trim().is_empty())
+                && node
+                    .defeater
+                    .as_ref()
+                    .is_some_and(|x| !x.defeater_id.trim().is_empty())
                 && node.authority_decision.is_none()
         }
         NodeKind::AuthorityDecision => {
@@ -638,7 +650,10 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
         if evidence.source_receipt_id.trim().is_empty()
             || !is_sha256(&evidence.source_payload_sha256)
             || !is_sha256(&evidence.source_assessment_sha256)
-            || evidence.correlation_group_id.as_ref().is_some_and(|value| value.trim().is_empty())
+            || evidence
+                .correlation_group_id
+                .as_ref()
+                .is_some_and(|value| value.trim().is_empty())
         {
             return Err(EvaluationError::InvalidNode);
         }
@@ -657,39 +672,63 @@ fn edge_type_valid(edge: &AssuranceEdge, nodes: &BTreeMap<&str, &AssuranceNode>)
         EdgeKind::Decomposes => matches!(
             (from.kind, to.kind),
             (NodeKind::TopClaim | NodeKind::Claim, NodeKind::Strategy)
-                | (NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy, NodeKind::Claim)
+                | (
+                    NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy,
+                    NodeKind::Claim
+                )
         ),
         EdgeKind::Supports => {
             from.kind == NodeKind::Evidence
-                && matches!(to.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation | NodeKind::Assumption)
+                && matches!(
+                    to.kind,
+                    NodeKind::TopClaim
+                        | NodeKind::Claim
+                        | NodeKind::Mitigation
+                        | NodeKind::Assumption
+                )
         }
         EdgeKind::Contextualizes => {
             from.kind == NodeKind::Context
-                && matches!(to.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy | NodeKind::Hazard)
+                && matches!(
+                    to.kind,
+                    NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy | NodeKind::Hazard
+                )
         }
         EdgeKind::Assumes => {
             from.kind == NodeKind::Assumption
-                && matches!(to.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy)
+                && matches!(
+                    to.kind,
+                    NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy
+                )
         }
         EdgeKind::Mitigates => from.kind == NodeKind::Mitigation && to.kind == NodeKind::Hazard,
         EdgeKind::Discharges => from.kind == NodeKind::Evidence && to.kind == NodeKind::Defeater,
         EdgeKind::Challenges => {
             from.kind == NodeKind::Defeater
-                && matches!(to.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation)
+                && matches!(
+                    to.kind,
+                    NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation
+                )
         }
         EdgeKind::RequiresDecision => {
             to.kind == NodeKind::AuthorityDecision
                 && matches!(
                     from.kind,
-                    NodeKind::TopClaim | NodeKind::Claim | NodeKind::Hazard | NodeKind::Assumption | NodeKind::Defeater
+                    NodeKind::TopClaim
+                        | NodeKind::Claim
+                        | NodeKind::Hazard
+                        | NodeKind::Assumption
+                        | NodeKind::Defeater
                 )
         }
     }
 }
 
 fn graph_is_acyclic(nodes: &[AssuranceNode], edges: &[AssuranceEdge]) -> bool {
-    let mut indegree: BTreeMap<&str, usize> =
-        nodes.iter().map(|node| (node.node_id.as_str(), 0)).collect();
+    let mut indegree: BTreeMap<&str, usize> = nodes
+        .iter()
+        .map(|node| (node.node_id.as_str(), 0))
+        .collect();
     let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for edge in edges {
         *indegree.entry(edge.to_node_id.as_str()).or_default() += 1;
@@ -707,7 +746,9 @@ fn graph_is_acyclic(nodes: &[AssuranceNode], edges: &[AssuranceEdge]) -> bool {
         visited += 1;
         if let Some(children) = adjacency.get(id) {
             for child in children {
-                let degree = indegree.get_mut(child).expect("edge target was pre-validated");
+                let degree = indegree
+                    .get_mut(child)
+                    .expect("edge target was pre-validated");
                 *degree -= 1;
                 if *degree == 0 {
                     queue.push_back(child);
@@ -725,8 +766,14 @@ fn graph_is_root_connected(
 ) -> bool {
     let mut adjacency: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for edge in edges {
-        adjacency.entry(edge.from_node_id.as_str()).or_default().push(edge.to_node_id.as_str());
-        adjacency.entry(edge.to_node_id.as_str()).or_default().push(edge.from_node_id.as_str());
+        adjacency
+            .entry(edge.from_node_id.as_str())
+            .or_default()
+            .push(edge.to_node_id.as_str());
+        adjacency
+            .entry(edge.to_node_id.as_str())
+            .or_default()
+            .push(edge.from_node_id.as_str());
     }
     let mut reached = BTreeSet::new();
     let mut queue = VecDeque::from([root_id]);
@@ -773,7 +820,11 @@ pub fn evaluate_assurance_case(
             if !hazards.insert(hazard_id.as_str()) {
                 return Err(EvaluationError::DuplicateHazard);
             }
-            if !policy.required_hazards.iter().any(|required| required == hazard_id) {
+            if !policy
+                .required_hazards
+                .iter()
+                .any(|required| required == hazard_id)
+            {
                 return Err(EvaluationError::HazardNotInRequiredManifest);
             }
         }
@@ -797,7 +848,11 @@ pub fn evaluate_assurance_case(
         {
             return Err(EvaluationError::MissingNode);
         }
-        if !unique_edges.insert((edge.from_node_id.as_str(), edge.to_node_id.as_str(), edge.kind)) {
+        if !unique_edges.insert((
+            edge.from_node_id.as_str(),
+            edge.to_node_id.as_str(),
+            edge.kind,
+        )) {
             return Err(EvaluationError::DuplicateEdge);
         }
         if !edge_type_valid(edge, &by_id) {
@@ -818,9 +873,15 @@ pub fn evaluate_assurance_case(
     if !edges.iter().any(|edge| {
         edge.from_node_id == root_claim_id
             && edge.kind == EdgeKind::Decomposes
-            && by_id.get(edge.to_node_id.as_str()).is_some_and(|node| node.kind == NodeKind::Strategy)
+            && by_id
+                .get(edge.to_node_id.as_str())
+                .is_some_and(|node| node.kind == NodeKind::Strategy)
     }) {
-        add_blocker(&mut blockers, root_claim_id, BlockerReason::MissingDecompositionStrategy);
+        add_blocker(
+            &mut blockers,
+            root_claim_id,
+            BlockerReason::MissingDecompositionStrategy,
+        );
     }
 
     // Strategies must resolve into claims; claims must have a support path.
@@ -829,19 +890,37 @@ pub fn evaluate_assurance_case(
             && !edges.iter().any(|edge| {
                 edge.from_node_id == node.node_id
                     && edge.kind == EdgeKind::Decomposes
-                    && by_id.get(edge.to_node_id.as_str()).is_some_and(|child| child.kind == NodeKind::Claim)
+                    && by_id
+                        .get(edge.to_node_id.as_str())
+                        .is_some_and(|child| child.kind == NodeKind::Claim)
             })
         {
-            add_blocker(&mut blockers, &node.node_id, BlockerReason::StrategyWithoutSubclaim);
+            add_blocker(
+                &mut blockers,
+                &node.node_id,
+                BlockerReason::StrategyWithoutSubclaim,
+            );
         }
 
         if matches!(node.kind, NodeKind::TopClaim | NodeKind::Claim) {
             let claim = node.claim.as_ref().expect("node shape already validated");
             match claim.state {
                 ClaimState::Supported => {}
-                ClaimState::Contradicted => add_blocker(&mut blockers, &node.node_id, BlockerReason::ClaimContradicted),
-                ClaimState::Unsupported => add_blocker(&mut blockers, &node.node_id, BlockerReason::ClaimUnsupported),
-                ClaimState::Indeterminate => add_blocker(&mut blockers, &node.node_id, BlockerReason::ClaimIndeterminate),
+                ClaimState::Contradicted => add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::ClaimContradicted,
+                ),
+                ClaimState::Unsupported => add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::ClaimUnsupported,
+                ),
+                ClaimState::Indeterminate => add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::ClaimIndeterminate,
+                ),
             }
             let supporting_evidence: Vec<&AssuranceNode> = edges
                 .iter()
@@ -862,18 +941,25 @@ pub fn evaluate_assurance_case(
                     BlockerReason::InsufficientIndependentEvidenceGroups,
                 );
             }
-            let has_subclaim_strategy = edges.iter().any(|edge| {
-                edge.from_node_id == node.node_id && edge.kind == EdgeKind::Decomposes
-            });
+            let has_subclaim_strategy = edges
+                .iter()
+                .any(|edge| edge.from_node_id == node.node_id && edge.kind == EdgeKind::Decomposes);
             if supporting_evidence.is_empty() && !has_subclaim_strategy {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::ClaimWithoutSupportOrDecomposition);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::ClaimWithoutSupportOrDecomposition,
+                );
             }
         }
     }
 
     // Every evidence object remains distinct from its source authentication and physical truth.
     for node in nodes.iter().filter(|node| node.kind == NodeKind::Evidence) {
-        let evidence = node.evidence.as_ref().expect("node shape already validated");
+        let evidence = node
+            .evidence
+            .as_ref()
+            .expect("node shape already validated");
         if evidence.effective_cutoff != policy.expected_scope.effective_cutoff
             || evidence.knowledge_cutoff != policy.expected_scope.knowledge_cutoff
         {
@@ -882,16 +968,28 @@ pub fn evaluate_assurance_case(
         match evidence.disposition {
             EvidenceDisposition::Qualified => {}
             EvidenceDisposition::HistoricalOnly | EvidenceDisposition::RequalificationRequired => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::EvidenceNotCurrent);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::EvidenceNotCurrent,
+                );
             }
             EvidenceDisposition::Contradicted | EvidenceDisposition::Unsupported => {
                 add_blocker(&mut blockers, &node.node_id, BlockerReason::EvidenceInvalid);
             }
             EvidenceDisposition::Indeterminate => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::EvidenceIndeterminate);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::EvidenceIndeterminate,
+                );
             }
             EvidenceDisposition::PlanningOnly => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::NonOperationalEvidence);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::NonOperationalEvidence,
+                );
             }
         }
         if matches!(
@@ -900,7 +998,11 @@ pub fn evaluate_assurance_case(
                 | EvidenceSourceKind::TrackVPlanning
                 | EvidenceSourceKind::Other
         ) {
-            add_blocker(&mut blockers, &node.node_id, BlockerReason::NonOperationalEvidence);
+            add_blocker(
+                &mut blockers,
+                &node.node_id,
+                BlockerReason::NonOperationalEvidence,
+            );
         }
     }
 
@@ -910,7 +1012,11 @@ pub fn evaluate_assurance_case(
             node.kind == NodeKind::Hazard && node.hazard_id.as_deref() == Some(required.as_str())
         });
         let Some(hazard) = hazard else {
-            add_blocker(&mut blockers, required, BlockerReason::MissingRequiredHazard);
+            add_blocker(
+                &mut blockers,
+                required,
+                BlockerReason::MissingRequiredHazard,
+            );
             continue;
         };
         let mitigations: Vec<&AssuranceNode> = edges
@@ -920,75 +1026,126 @@ pub fn evaluate_assurance_case(
             .filter(|node| node.kind == NodeKind::Mitigation)
             .collect();
         if mitigations.is_empty() {
-            add_blocker(&mut blockers, required, BlockerReason::HazardWithoutMitigation);
+            add_blocker(
+                &mut blockers,
+                required,
+                BlockerReason::HazardWithoutMitigation,
+            );
         }
         for mitigation in mitigations {
             match mitigation.mitigation_state {
                 Some(ClaimState::Supported) => {}
                 Some(ClaimState::Indeterminate) => {
-                    add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationIndeterminate);
+                    add_blocker(
+                        &mut blockers,
+                        &mitigation.node_id,
+                        BlockerReason::MitigationIndeterminate,
+                    );
                 }
                 Some(ClaimState::Contradicted | ClaimState::Unsupported) | None => {
-                    add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationNotSupported);
+                    add_blocker(
+                        &mut blockers,
+                        &mitigation.node_id,
+                        BlockerReason::MitigationNotSupported,
+                    );
                 }
             }
             let has_evidence = edges.iter().any(|edge| {
                 edge.to_node_id == mitigation.node_id
                     && edge.kind == EdgeKind::Supports
-                    && by_id.get(edge.from_node_id.as_str()).is_some_and(|node| node.kind == NodeKind::Evidence)
+                    && by_id
+                        .get(edge.from_node_id.as_str())
+                        .is_some_and(|node| node.kind == NodeKind::Evidence)
             });
             if !has_evidence {
-                add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationWithoutEvidence);
+                add_blocker(
+                    &mut blockers,
+                    &mitigation.node_id,
+                    BlockerReason::MitigationWithoutEvidence,
+                );
             }
         }
     }
 
     // Every supplied mitigation must be attached to at least one required hazard.
-    for mitigation in nodes.iter().filter(|node| node.kind == NodeKind::Mitigation) {
+    for mitigation in nodes
+        .iter()
+        .filter(|node| node.kind == NodeKind::Mitigation)
+    {
         if !edges.iter().any(|edge| {
             edge.from_node_id == mitigation.node_id
                 && edge.kind == EdgeKind::Mitigates
                 && by_id.get(edge.to_node_id.as_str()).is_some_and(|target| {
                     target.kind == NodeKind::Hazard
-                        && target.hazard_id.as_ref().is_some_and(|id| policy.required_hazards.contains(id))
+                        && target
+                            .hazard_id
+                            .as_ref()
+                            .is_some_and(|id| policy.required_hazards.contains(id))
                 })
         }) {
-            add_blocker(&mut blockers, &mitigation.node_id, BlockerReason::MitigationNotAttachedToHazard);
+            add_blocker(
+                &mut blockers,
+                &mitigation.node_id,
+                BlockerReason::MitigationNotAttachedToHazard,
+            );
         }
     }
 
     // Assumptions must be supported or have an explicit authority decision.
-    for node in nodes.iter().filter(|node| node.kind == NodeKind::Assumption) {
-        let assumption = node.assumption.as_ref().expect("node shape already validated");
+    for node in nodes
+        .iter()
+        .filter(|node| node.kind == NodeKind::Assumption)
+    {
+        let assumption = node
+            .assumption
+            .as_ref()
+            .expect("node shape already validated");
         match assumption.state {
             AssumptionState::Supported => {
                 let has_evidence = edges.iter().any(|edge| {
                     edge.to_node_id == node.node_id
                         && edge.kind == EdgeKind::Supports
-                        && by_id.get(edge.from_node_id.as_str()).is_some_and(|n| n.kind == NodeKind::Evidence)
+                        && by_id
+                            .get(edge.from_node_id.as_str())
+                            .is_some_and(|n| n.kind == NodeKind::Evidence)
                 });
                 if !has_evidence {
-                    add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
+                    add_blocker(
+                        &mut blockers,
+                        &node.node_id,
+                        BlockerReason::AssumptionWithoutSupport,
+                    );
                 }
             }
             AssumptionState::AcceptedByAuthority => {
-                if !has_accepted_decision_edge(
-                    node,
-                    edges,
-                    &by_id,
-                    policy,
-                ) {
-                    add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
+                if !has_accepted_decision_edge(node, edges, &by_id, policy) {
+                    add_blocker(
+                        &mut blockers,
+                        &node.node_id,
+                        BlockerReason::AssumptionWithoutSupport,
+                    );
                 }
             }
             AssumptionState::Open => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::UnresolvedAssumption);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::UnresolvedAssumption,
+                );
             }
             AssumptionState::Unknown => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionUnknown);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::AssumptionUnknown,
+                );
             }
             AssumptionState::Expired => {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::EvidenceNotCurrent);
+                add_blocker(
+                    &mut blockers,
+                    &node.node_id,
+                    BlockerReason::EvidenceNotCurrent,
+                );
             }
         }
     }
@@ -999,12 +1156,22 @@ pub fn evaluate_assurance_case(
             edge.from_node_id == node.node_id
                 && edge.kind == EdgeKind::Challenges
                 && by_id.get(edge.to_node_id.as_str()).is_some_and(|target| {
-                    matches!(target.kind, NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation)
+                    matches!(
+                        target.kind,
+                        NodeKind::TopClaim | NodeKind::Claim | NodeKind::Mitigation
+                    )
                 })
         }) {
-            add_blocker(&mut blockers, &node.node_id, BlockerReason::DefeaterWithoutChallenge);
+            add_blocker(
+                &mut blockers,
+                &node.node_id,
+                BlockerReason::DefeaterWithoutChallenge,
+            );
         }
-        let defeater = node.defeater.as_ref().expect("node shape already validated");
+        let defeater = node
+            .defeater
+            .as_ref()
+            .expect("node shape already validated");
         match defeater.state {
             DefeaterState::Open | DefeaterState::Unknown => {
                 add_blocker(&mut blockers, &node.node_id, BlockerReason::OpenDefeater);
@@ -1015,16 +1182,26 @@ pub fn evaluate_assurance_case(
                         && edge.kind == EdgeKind::Discharges
                         && by_id.get(edge.from_node_id.as_str()).is_some_and(|n| {
                             n.kind == NodeKind::Evidence
-                                && n.evidence.as_ref().is_some_and(|e| e.disposition == EvidenceDisposition::Qualified)
+                                && n.evidence.as_ref().is_some_and(|e| {
+                                    e.disposition == EvidenceDisposition::Qualified
+                                })
                         })
                 });
                 if !has_discharge {
-                    add_blocker(&mut blockers, &node.node_id, BlockerReason::DefeaterWithoutDischarge);
+                    add_blocker(
+                        &mut blockers,
+                        &node.node_id,
+                        BlockerReason::DefeaterWithoutDischarge,
+                    );
                 }
             }
             DefeaterState::AcceptedByAuthority | DefeaterState::NotApplicableApproved => {
                 if !has_accepted_decision_edge(node, edges, &by_id) {
-                    add_blocker(&mut blockers, &node.node_id, BlockerReason::DefeaterWithoutAuthorityDecision);
+                    add_blocker(
+                        &mut blockers,
+                        &node.node_id,
+                        BlockerReason::DefeaterWithoutAuthorityDecision,
+                    );
                 }
             }
         }
@@ -1042,42 +1219,70 @@ pub fn evaluate_assurance_case(
             })
             .collect();
         if decisions.is_empty() {
-            add_blocker(&mut blockers, &required.role, BlockerReason::MissingAuthorityDecision);
+            add_blocker(
+                &mut blockers,
+                &required.role,
+                BlockerReason::MissingAuthorityDecision,
+            );
             outstanding_authority_roles.push(required.role.clone());
             continue;
         }
         if decisions.len() > 1 {
             return Err(EvaluationError::DuplicateAuthorityDecision);
         }
-        let decision = decisions[0].authority_decision.as_ref().expect("node shape already validated");
+        let decision = decisions[0]
+            .authority_decision
+            .as_ref()
+            .expect("node shape already validated");
         match decision.status {
             AuthorityDecisionStatus::Accepted
                 if decision.effective_at <= policy.expected_scope.operation_start
                     && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
-                    && decision.valid_until.is_none_or(|end| end >= policy.expected_scope.operation_end) => {}
+                    && decision
+                        .valid_until
+                        .is_none_or(|end| end >= policy.expected_scope.operation_end) => {}
             AuthorityDecisionStatus::Pending => {
                 outstanding_authority_roles.push(required.role.clone());
-                add_blocker(&mut blockers, &required.role, BlockerReason::AuthorityDecisionOutstanding);
+                add_blocker(
+                    &mut blockers,
+                    &required.role,
+                    BlockerReason::AuthorityDecisionOutstanding,
+                );
             }
             AuthorityDecisionStatus::Accepted => {
                 outstanding_authority_roles.push(required.role.clone());
-                add_blocker(&mut blockers, &required.role, BlockerReason::AuthorityDecisionOutstanding);
+                add_blocker(
+                    &mut blockers,
+                    &required.role,
+                    BlockerReason::AuthorityDecisionOutstanding,
+                );
             }
             AuthorityDecisionStatus::Rejected
             | AuthorityDecisionStatus::Revoked
             | AuthorityDecisionStatus::Expired => {
                 outstanding_authority_roles.push(required.role.clone());
-                add_blocker(&mut blockers, &required.role, BlockerReason::AuthorityDecisionRejectedOrExpired);
+                add_blocker(
+                    &mut blockers,
+                    &required.role,
+                    BlockerReason::AuthorityDecisionRejectedOrExpired,
+                );
             }
         }
     }
 
     // Every supplied decision node must be attached to an explicit dependent argument node.
-    for decision_node in nodes.iter().filter(|node| node.kind == NodeKind::AuthorityDecision) {
+    for decision_node in nodes
+        .iter()
+        .filter(|node| node.kind == NodeKind::AuthorityDecision)
+    {
         if !edges.iter().any(|edge| {
             edge.to_node_id == decision_node.node_id && edge.kind == EdgeKind::RequiresDecision
         }) {
-            add_blocker(&mut blockers, &decision_node.node_id, BlockerReason::AuthorityDecisionMismatch);
+            add_blocker(
+                &mut blockers,
+                &decision_node.node_id,
+                BlockerReason::AuthorityDecisionMismatch,
+            );
         }
     }
 
@@ -1111,20 +1316,25 @@ fn has_accepted_decision_edge(
     edges.iter().any(|edge| {
         edge.from_node_id == node.node_id
             && edge.kind == EdgeKind::RequiresDecision
-            && by_id.get(edge.to_node_id.as_str()).is_some_and(|decision_node| {
-                decision_node.authority_decision.as_ref().is_some_and(|decision| {
-                    decision.status == AuthorityDecisionStatus::Accepted
-                        && decision.effective_at <= policy.expected_scope.operation_start
-                        && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
-                        && decision.valid_until.is_none_or(|end| {
-                            end >= policy.expected_scope.operation_end
-                        })
-                        && policy.required_authorities.iter().any(|required| {
-                            required.role == decision.role
-                                && required.authority_id == decision.authority_id
+            && by_id
+                .get(edge.to_node_id.as_str())
+                .is_some_and(|decision_node| {
+                    decision_node
+                        .authority_decision
+                        .as_ref()
+                        .is_some_and(|decision| {
+                            decision.status == AuthorityDecisionStatus::Accepted
+                                && decision.effective_at <= policy.expected_scope.operation_start
+                                && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
+                                && decision
+                                    .valid_until
+                                    .is_none_or(|end| end >= policy.expected_scope.operation_end)
+                                && policy.required_authorities.iter().any(|required| {
+                                    required.role == decision.role
+                                        && required.authority_id == decision.authority_id
+                                })
                         })
                 })
-            })
     })
 }
 
@@ -1132,7 +1342,10 @@ fn select_status(blockers: &BTreeSet<(String, BlockerReason)>) -> AssuranceStatu
     if blockers.is_empty() {
         return AssuranceStatus::ReviewReadyOnly;
     }
-    if blockers.iter().any(|(_, reason)| *reason == BlockerReason::OpenDefeater) {
+    if blockers
+        .iter()
+        .any(|(_, reason)| *reason == BlockerReason::OpenDefeater)
+    {
         return AssuranceStatus::BlockedByOpenDefeater;
     }
     if blockers.iter().any(|(_, reason)| {
