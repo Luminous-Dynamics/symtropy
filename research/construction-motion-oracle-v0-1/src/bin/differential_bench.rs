@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AnalyticPath, Capsule, CapsuleMotionSpan, Vec3, chord_collision, endpoints_only_collision,
+    ClockUncertaintyDisposition, clock_uncertainty_aware_capsule_query,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
     timed_co_translating_capsule_vs_capsule,
     swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
@@ -367,4 +368,35 @@ fn main() {
             .expect("valid absolute-time capsule query"),
         );
     });
+    let mut uncertain_moving = timed_moving.clone();
+    let mut uncertain_obstacle = timed_obstacle.clone();
+    uncertain_moving.clock_uncertainty_ms = 25;
+    uncertain_obstacle.clock_uncertainty_ms = 10;
+    let uncertainty_result = clock_uncertainty_aware_capsule_query(
+        black_box(&uncertain_moving),
+        black_box(&uncertain_obstacle),
+    )
+    .expect("valid bounded clock-uncertainty query");
+    println!(
+        "clock-uncertainty-capsules,disposition,{:?}",
+        uncertainty_result.disposition
+    );
+    println!(
+        "clock-uncertainty-capsules,moving_margin_mm,{}",
+        uncertainty_result.moving_clock_margin_mm
+    );
+    println!(
+        "clock-uncertainty-capsules,obstacle_margin_mm,{}",
+        uncertainty_result.obstacle_clock_margin_mm
+    );
+    measure("clock-uncertainty-capsule-pair-outer-query", || {
+        black_box(
+            clock_uncertainty_aware_capsule_query(
+                black_box(&uncertain_moving),
+                black_box(&uncertain_obstacle),
+            )
+            .expect("valid bounded clock-uncertainty query"),
+        );
+    });
+
 }
