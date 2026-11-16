@@ -4,6 +4,12 @@
 //! upper-semicircle geometry families. This module does not call the envelope
 //! producer's geometric expansion helpers.
 
+mod external_ccd_query;
+pub use external_ccd_query::{
+    ExactPoint3, ExactRational, QueryKind, RationalCcdQuery, RationalQueryError,
+    parse_boolean_array, parse_rational_queries,
+};
+
 use construction_motion_envelope::{
     AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
 };
