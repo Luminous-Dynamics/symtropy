@@ -1,0 +1,186 @@
+{
+  "schema_version": "0.1.0",
+  "handoff_id": "synthetic-cooling-exit-mu-plus-001",
+  "stage": "cooling",
+  "run": {
+    "run_id": "synthetic-schema-test-only",
+    "created_utc": "2026-11-16T18:30:00Z",
+    "parent_handoff_ids": [
+      "synthetic-target-capture-mu-plus-001"
+    ],
+    "seed_set": [
+      "not-applicable-summary-only"
+    ],
+    "scenario_id": "synthetic-accounting-example",
+    "notes": "Synthetic schema fixture only; no beam simulation or physical dataset is represented."
+  },
+  "particle": {
+    "pdg_id": -13,
+    "charge_e": 1,
+    "rest_energy_MeV": 105.6583755
+  },
+  "coordinates": {
+    "frame_id": "synthetic-local-beam-frame",
+    "handedness": "right",
+    "reference_plane": "synthetic-cooling-exit",
+    "beam_direction": "+z",
+    "order": [
+      "x",
+      "px",
+      "y",
+      "py",
+      "z",
+      "pz"
+    ],
+    "position_unit": "m",
+    "momentum_unit": "GeV/c",
+    "longitudinal_origin": "synthetic-bunch-centroid",
+    "time_reference": "synthetic-run-clock",
+    "native_coordinate_mapping": "No native solver; this fixture tests the declared canonical interchange labels only."
+  },
+  "distribution": {
+    "representation": "summary_only",
+    "macro_particle_count": 0,
+    "weighted_population": 1000,
+    "effective_sample_size": 0,
+    "sampling_method": "none-summary-only",
+    "independent_sample": false,
+    "correlations_preserved": false,
+    "ancestry_preserved": false,
+    "summary": {
+      "mean_6d": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "covariance_6d": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "emittance_metrics": [],
+      "quantile_metrics": []
+    }
+  },
+  "population_ledger": {
+    "accounting_scope": "same_species_transport",
+    "input_weighted_count": 1200,
+    "generated_weighted_count": 0,
+    "surviving_weighted_count": 1000,
+    "losses": [
+      {
+        "cause": "decay",
+        "weighted_count": 100
+      },
+      {
+        "cause": "aperture",
+        "weighted_count": 50
+      },
+      {
+        "cause": "unknown",
+        "weighted_count": 50,
+        "notes": "Deliberately left unknown in the synthetic example."
+      }
+    ],
+    "balance_tolerance_relative": 1e-9,
+    "balance_residual_weighted_count": 0
+  },
+  "uncertainty": {
+    "components": [
+      {
+        "category": "monte_carlo",
+        "quantity": "transmission",
+        "status": "unquantified",
+        "reason_unquantified": "Summary-only synthetic fixture; no sampling distribution exists."
+      },
+      {
+        "category": "model_form",
+        "quantity": "cooling physics",
+        "status": "unquantified",
+        "reason_unquantified": "No physical model is represented."
+      }
+    ],
+    "dependence_notes": "No uncertainty propagation is performed by this fixture."
+  },
+  "qualification": {
+    "status": "not_evaluated",
+    "tier": "schema_only",
+    "validity_domain": "JSON schema conformance only; synthetic fixture.",
+    "reference_ids": [],
+    "excluded_regimes": [
+      "all physical beam dynamics",
+      "cooling performance",
+      "experimental comparison"
+    ],
+    "claim_ceiling": "No physical result, transmission, emittance or cooling claim."
+  },
+  "provenance": {
+    "source_dataset_id": "synthetic-no-physical-data",
+    "producer": "schema-fixture",
+    "producer_version": "0.1.0",
+    "repository_commit": null,
+    "configuration_sha256": null,
+    "toolchain_digest": null,
+    "physics_list": null,
+    "material_database": null,
+    "evidence_uri": null
+  },
+  "handoff": {
+    "acceptance_status": "not_evaluated",
+    "downstream_contract_id": null,
+    "reason": "Summary-only synthetic fixture; no downstream physics qualification is permitted.",
+    "blocked_requirements": [
+      "full 6D distribution",
+      "physical uncertainty",
+      "independent source provenance"
+    ]
+  }
+}
