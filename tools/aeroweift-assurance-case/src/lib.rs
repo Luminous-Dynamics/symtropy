@@ -169,6 +169,12 @@ pub struct DefeaterData {
 /// Source domain from which an assurance evidence reference originates.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EvidenceSourceKind {
+    /// Track L PNT/clock-to-reachability evidence.
+    TrackL,
+    /// Track M cooperative/non-cooperative surveillance observability evidence.
+    TrackM,
+    /// Track N operational-intent conformance evidence.
+    TrackN,
     /// Track P causal-receipt binding.
     TrackP,
     /// Track Q authenticated provenance/trust custody.
@@ -193,6 +199,60 @@ pub enum EvidenceSourceKind {
     GenericSoftwareCi,
     /// Other explicitly named owner/source domain.
     Other,
+}
+
+/// Proposition type an evidence receipt is asserted to support.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum EvidencePurpose {
+    /// Model artifact credibility within a declared aircraft/domain envelope.
+    ModelCredibility,
+    /// Physical effectiveness of an operational mitigation/control.
+    PhysicalMitigationEffectiveness,
+    /// Calibration/qualification of an independent reference measurement.
+    ReferenceMeasurement,
+    /// PNT, clock and reachable-initial-state qualification.
+    PntReachability,
+    /// Cooperative/non-cooperative surveillance observability.
+    SurveillanceObservability,
+    /// Operational-intent and authorization conformance.
+    IntentConformance,
+    /// Conflict-management performance envelope.
+    ConflictPerformance,
+    /// Multi-subject and traffic-population scope.
+    MultiSubjectScope,
+    /// Causal parent-receipt binding.
+    CausalReceiptBinding,
+    /// Authenticated source custody and trust-policy result.
+    AuthenticatedCustody,
+    /// Bitemporal model-evidence requalification result.
+    ModelRequalification,
+    /// Experiment plan only; never realized operational evidence.
+    ExperimentPlan,
+    /// Generic software workflow evidence; never operational evidence.
+    GenericSoftwareVerification,
+    /// External authority-issued record.
+    ExternalAuthorityRecord,
+    /// Other/unclassified proposition; no automatic operational credit.
+    Unclassified,
+}
+
+/// Frozen predicate requirement for one assurance claim node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClaimEvidenceRequirement {
+    /// Exact claim node ID.
+    pub claim_id: String,
+    /// Proposition types that must directly support this claim.
+    /// Empty is valid only where the claim is decomposed into evidenced subclaims.
+    pub required_purposes: Vec<EvidencePurpose>,
+}
+
+/// Frozen predicate requirement for one mitigation node.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MitigationEvidenceRequirement {
+    /// Exact mitigation node ID.
+    pub mitigation_id: String,
+    /// Proposition types required to support mitigation effectiveness.
+    pub required_purposes: Vec<EvidencePurpose>,
 }
 
 /// Disposition of evidence under its source owner's profile.
@@ -225,6 +285,8 @@ pub struct EvidenceReference {
     pub source_assessment_sha256: String,
     /// Source owner domain.
     pub source_kind: EvidenceSourceKind,
+    /// Exact evidentiary proposition asserted by this receipt.
+    pub purpose: EvidencePurpose,
     /// Owner-declared evidence disposition.
     pub disposition: EvidenceDisposition,
     /// Declared common-cause/correlation group.
@@ -353,6 +415,10 @@ pub struct AuthorityRequirement {
 pub struct AssuranceCasePolicy {
     /// Exact case scope expected on every node and evidence reference.
     pub expected_scope: AssuranceCaseScope,
+    /// Frozen claim-to-evidence-predicate obligations, independent of submitted nodes.
+    pub required_claim_evidence: Vec<ClaimEvidenceRequirement>,
+    /// Frozen mitigation-to-evidence-predicate obligations, independent of submitted nodes.
+    pub required_mitigation_evidence: Vec<MitigationEvidenceRequirement>,
     /// Frozen policy digest.
     pub policy_sha256: String,
     /// Exact verifier build digest.
@@ -433,6 +499,14 @@ pub enum BlockerReason {
     AuthorityDecisionRejectedOrExpired,
     /// An authority decision does not match the required role/identity.
     AuthorityDecisionMismatch,
+    /// A claim has no frozen evidence-predicate requirement.
+    MissingClaimEvidenceRequirement,
+    /// A mitigation has no frozen evidence-predicate requirement.
+    MissingMitigationEvidenceRequirement,
+    /// A required evidence-predicate target is absent or has the wrong node kind.
+    EvidenceRequirementTargetMissing,
+    /// A claim lacks one of its policy-required evidence propositions.
+    MissingRequiredEvidencePurpose,
 }
 
 /// One blocker tied to a stable node/requirement identity.
@@ -473,6 +547,8 @@ pub enum EvaluationError {
     DuplicateHazard,
     /// Duplicate authority decision for the same role/identity.
     DuplicateAuthorityDecision,
+    /// The declared evidence proposition is incompatible with its source owner kind.
+    EvidencePurposeSourceMismatch,
     /// A hazard is present but absent from the frozen hazard manifest.
     HazardNotInRequiredManifest,
     /// A node's validity does not cover the entire proposed operation window.
