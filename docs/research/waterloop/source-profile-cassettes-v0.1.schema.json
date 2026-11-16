@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/waterloop/source-profile-cassettes-v0.1.schema.json",
+  "title": "WaterLoop Source Profile and Treatment Cassette Architecture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "evidence_class",
+    "claim_ceiling",
+    "parent_issue",
+    "work_package_issue",
+    "source_profiles",
+    "candidate_trains",
+    "module_interfaces",
+    "fail_closed_conditions",
+    "safe_state",
+    "comparison_metrics",
+    "release_gates",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-source-profile-cassettes-v0.1"
+    },
+    "status": {
+      "const": "research_architecture_not_released_for_construction"
+    },
+    "evidence_class": {
+      "const": "literature_context_and_unqualified_design_candidates"
+    },
+    "claim_ceiling": {
+      "const": "source_segregation_module_interfaces_candidate_processes_and_test_protocol_only"
+    },
+    "parent_issue": {
+      "type": "integer",
+      "const": 5335
+    },
+    "work_package_issue": {
+      "type": "integer",
+      "const": 5671
+    },
+    "source_profiles": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "source_boundary",
+          "mixing_policy",
+          "notes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "source_boundary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mixing_policy": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "candidate_trains": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "stages",
+          "critical_evidence",
+          "residuals",
+          "risks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string"
+            }
+          },
+          "critical_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "residuals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "risks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "module_interfaces": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "string"
+      }
+    },
+    "fail_closed_conditions": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "string"
+      }
+    },
+    "safe_state": {
+      "type": "object",
+      "required": [
+        "product_use_outlet",
+        "process_flow",
+        "reset",
+        "return_to_service",
+        "autonomous_dosing",
+        "remote_actuation",
+        "municipal_connection",
+        "occupied_use",
+        "potable_use"
+      ],
+      "properties": {
+        "product_use_outlet": {
+          "const": "ISOLATED"
+        },
+        "process_flow": {
+          "const": "CONTAINED_QUARANTINE_OR_RESIDUAL_PATH"
+        },
+        "reset": {
+          "const": "INSPECTION_AND_AUTHORISED_MANUAL_RESET"
+        },
+        "return_to_service": {
+          "type": "string"
+        },
+        "autonomous_dosing": {
+          "const": false
+        },
+        "remote_actuation": {
+          "const": false
+        },
+        "municipal_connection": {
+          "const": false
+        },
+        "occupied_use": {
+          "const": false
+        },
+        "potable_use": {
+          "const": false
+        }
+      }
+    },
+    "comparison_metrics": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "string"
+      }
+    },
+    "release_gates": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
