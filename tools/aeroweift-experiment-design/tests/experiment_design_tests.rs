@@ -562,6 +562,9 @@ fn model_discrimination_can_compare_different_outputs_under_common_observables()
     alternative.modality = ExperimentModality::Simulation;
     alternative.semantic_equivalence = SemanticEquivalence::NotRequired;
     alternative.semantic_equivalence_receipt_sha256 = None;
+    alternative
+        .gate_evidence_receipts
+        .retain(|receipt| receipt.role != GateEvidenceRole::SemanticEquivalence);
     let result = select_experiments(&[alternative], &policy()).unwrap();
     assert_eq!(result.pareto_front[0].candidate_id, "different-model-forms");
 }
@@ -1018,6 +1021,9 @@ fn model_form_discrimination_uses_common_experiment_contract_not_output_equivale
     comparison.modality = ExperimentModality::Simulation;
     comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
     comparison.semantic_equivalence_receipt_sha256 = None;
+    comparison
+        .gate_evidence_receipts
+        .retain(|receipt| receipt.role != GateEvidenceRole::SemanticEquivalence);
     let result = select_experiments(&[comparison], &policy()).unwrap();
     assert_eq!(result.pareto_front[0].candidate_id, "model-form-comparison");
 }
@@ -1217,4 +1223,17 @@ fn gate_receipt_cannot_be_admitted_when_candidate_has_no_exact_payload_reference
         .clone();
     assert!(reasons.contains(&RejectionReason::MissingEvidenceReceipt));
     assert!(reasons.contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+
+#[test]
+fn no_longer_required_semantic_receipt_cannot_remain_as_an_unbound_extra() {
+    let mut comparison = candidate("stale-semantic-receipt");
+    comparison.modality = ExperimentModality::Simulation;
+    comparison.semantic_equivalence = SemanticEquivalence::NotRequired;
+    comparison.semantic_equivalence_receipt_sha256 = None;
+    let result = select_experiments(&[comparison], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "stale-semantic-receipt")
+        .contains(&RejectionReason::InvalidEvidenceBinding));
 }
