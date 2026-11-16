@@ -2,8 +2,10 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule, Vec3,
+    AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule,
+    IntervalVerificationStatus, IntervalVerifierConfig, NormalizedTimeWindow, Vec3,
     co_translating_capsule_adaptive_query_with_certificate, verify_adaptive_collision_certificate,
+    replay_interval_verification_receipt, verify_capsule_interval_no_contact,
     chord_collision, co_translating_capsule_adaptive_query,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
@@ -442,6 +444,81 @@ fn main() {
     measure("adaptive-certificate-verification", || {
         verify_adaptive_collision_certificate(black_box(&certificate))
             .expect("generated adaptive certificate verifies");
+    });
+
+
+    let interval_moving = Capsule::new(
+        Vec3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 0.0),
+        0.6,
+    )
+    .expect("valid interval verifier moving capsule");
+    let interval_obstacle = Capsule::new(
+        Vec3::new(0.0, 0.9, 0.9),
+        Vec3::new(0.0, 0.9, 0.9),
+        0.6,
+    )
+    .expect("valid interval verifier obstacle capsule");
+    let interval_window = NormalizedTimeWindow {
+        start_parameter: 0.0,
+        end_parameter: 1.0,
+    };
+    let interval_config = IntervalVerifierConfig::default();
+    let interval_receipt = verify_capsule_interval_no_contact(
+        black_box(interval_moving),
+        black_box(Vec3::new(0.0, 0.0, 0.0)),
+        black_box(interval_obstacle),
+        black_box(Vec3::new(0.0, 0.0, 0.0)),
+        interval_window,
+        interval_config,
+    )
+    .expect("valid independent interval verification");
+    assert_eq!(
+        interval_receipt.status,
+        IntervalVerificationStatus::Clear
+    );
+    replay_interval_verification_receipt(
+        interval_moving,
+        Vec3::new(0.0, 0.0, 0.0),
+        interval_obstacle,
+        Vec3::new(0.0, 0.0, 0.0),
+        interval_receipt,
+    )
+    .expect("independent interval receipt replays");
+    println!(
+        "independent-interval-verifier,status,{:?}",
+        interval_receipt.status
+    );
+    println!(
+        "independent-interval-verifier,visited_boxes,{}",
+        interval_receipt.parameter_boxes_visited
+    );
+    println!(
+        "independent-interval-verifier,pruned_boxes,{}",
+        interval_receipt.parameter_boxes_pruned
+    );
+    measure("independent-interval-verifier-generation", || {
+        black_box(
+            verify_capsule_interval_no_contact(
+                black_box(interval_moving),
+                black_box(Vec3::new(0.0, 0.0, 0.0)),
+                black_box(interval_obstacle),
+                black_box(Vec3::new(0.0, 0.0, 0.0)),
+                interval_window,
+                interval_config,
+            )
+            .expect("valid independent interval verification"),
+        );
+    });
+    measure("independent-interval-verifier-replay", || {
+        replay_interval_verification_receipt(
+            interval_moving,
+            Vec3::new(0.0, 0.0, 0.0),
+            interval_obstacle,
+            Vec3::new(0.0, 0.0, 0.0),
+            black_box(interval_receipt),
+        )
+        .expect("independent interval receipt replays");
     });
 
 }
