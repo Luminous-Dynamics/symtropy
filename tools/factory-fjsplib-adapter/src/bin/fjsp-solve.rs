@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Emit an exact tiny FJSP/FAJSP schedule certificate as TSV.
 
-use factory_fjsplib_adapter::exact::{solve_exact, ExactStatus};
-use factory_fjsplib_adapter::{parse_fajsp, parse_fjsp, FlexibleInstance};
+use factory_fjsplib_adapter::exact::{ExactStatus, solve_exact};
+use factory_fjsplib_adapter::{FlexibleInstance, parse_fajsp, parse_fjsp};
 use std::env;
 use std::fs;
 
@@ -22,14 +22,18 @@ const FAJSP_FATTAHI1: &str = "4 2 2
 
 fn emit(instance: &FlexibleInstance) {
     let result = solve_exact(instance);
-    println!("record_type\tinstance_id\tformat\tstatus\toptimality_proven\tmakespan\tassignment_combinations\tmachine_order_combinations\tcyclic\tfeasible\toperation_id\tmachine_id\tsequence_index\tstart_ticks\tend_ticks\tdetails");
+    println!(
+        "record_type\tinstance_id\tformat\tstatus\toptimality_proven\tmakespan\tassignment_combinations\tmachine_order_combinations\tcyclic\tfeasible\toperation_id\tmachine_id\tsequence_index\tstart_ticks\tend_ticks\tdetails"
+    );
 
     let status = match result.status {
         ExactStatus::Exact => "EXACT",
         ExactStatus::Inconclusive => "INCONCLUSIVE",
         ExactStatus::NoFeasibleSchedule => "NO_FEASIBLE_SCHEDULE",
     };
-    let makespan = result.schedule.as_ref()
+    let makespan = result
+        .schedule
+        .as_ref()
         .map(|schedule| schedule.makespan.to_string())
         .unwrap_or_else(|| "-".to_owned());
 
@@ -77,7 +81,12 @@ fn emit(instance: &FlexibleInstance) {
                 result.stats.machine_order_combinations,
                 result.stats.cyclic_combinations,
                 result.stats.feasible_combinations,
-                order.operation_ids.iter().map(usize::to_string).collect::<Vec<_>>().join(">")
+                order
+                    .operation_ids
+                    .iter()
+                    .map(usize::to_string)
+                    .collect::<Vec<_>>()
+                    .join(">")
             );
         }
     }
@@ -86,10 +95,15 @@ fn emit(instance: &FlexibleInstance) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let parsed = match args.as_slice() {
-        [_, flag] if flag == "--reference-fjsp" => parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1),
-        [_, flag] if flag == "--reference-fajsp" => parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1),
+        [_, flag] if flag == "--reference-fjsp" => {
+            parse_fjsp("fattahi1", Some("fattahi"), FJSP_FATTAHI1)
+        }
+        [_, flag] if flag == "--reference-fajsp" => {
+            parse_fajsp("fattahi1", Some("fattahi"), FAJSP_FATTAHI1)
+        }
         [_, format, instance_id, path] => {
-            let source = fs::read_to_string(path).expect("unable to read the supplied instance file");
+            let source =
+                fs::read_to_string(path).expect("unable to read the supplied instance file");
             match format.as_str() {
                 "fjsp" => parse_fjsp(instance_id, None, &source),
                 "fajsp" => parse_fajsp(instance_id, None, &source),
@@ -97,7 +111,9 @@ fn main() {
             }
         }
         _ => {
-            eprintln!("usage: fjsp-solve --reference-fjsp | --reference-fajsp | <fjsp|fajsp> <instance-id> <path>");
+            eprintln!(
+                "usage: fjsp-solve --reference-fjsp | --reference-fajsp | <fjsp|fajsp> <instance-id> <path>"
+            );
             std::process::exit(2);
         }
     };
