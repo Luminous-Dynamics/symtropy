@@ -740,6 +740,12 @@ mod tests {
     const FJSP_FATTAHI1: &str = include_str!("../fixtures/fattahi1.fjsp");
 
     const FAJSP_FATTAHI1: &str = include_str!("../fixtures/fattahi1.fajsp");
+    const FJSP_FATTAHI5: &str = include_str!("../fixtures/fattahi5.fjsp");
+    const FAJSP_FATTAHI5: &str = include_str!("../fixtures/fattahi5.fajsp");
+    const FJSP_FATTAHI10: &str = include_str!("../fixtures/fattahi10.fjsp");
+    const FAJSP_FATTAHI10: &str = include_str!("../fixtures/fattahi10.fajsp");
+    const FJSP_FATTAHI20: &str = include_str!("../fixtures/fattahi20.fjsp");
+    const FAJSP_FATTAHI20: &str = include_str!("../fixtures/fattahi20.fajsp");
 
     #[test]
     fn fjsp_fattahi_example_normalizes_one_based_machine_ids() {
@@ -835,6 +841,55 @@ mod tests {
             fjsp.canonical_fingerprint_fnv1a64,
             fajsp.canonical_fingerprint_fnv1a64
         );
+    }
+
+    #[test]
+    fn paired_fattahi_fjsp_fajsp_formats_preserve_normalized_operations_and_edges() {
+        let fixtures = [
+            ("fattahi5", FJSP_FATTAHI5, FAJSP_FATTAHI5, 6, 2, 3),
+            ("fattahi10", FJSP_FATTAHI10, FAJSP_FATTAHI10, 12, 5, 8),
+            ("fattahi20", FJSP_FATTAHI20, FAJSP_FATTAHI20, 48, 8, 36),
+        ];
+
+        for (instance_id, fjsp_input, fajsp_input, operation_count, machine_count, edge_count) in
+            fixtures
+        {
+            let fjsp = parse_fjsp(instance_id, Some("fattahi"), fjsp_input).unwrap();
+            let fajsp = parse_fajsp(instance_id, Some("fattahi"), fajsp_input).unwrap();
+
+            assert_eq!(fjsp.operations.len(), operation_count, "{instance_id}");
+            assert_eq!(fajsp.operations.len(), operation_count, "{instance_id}");
+            assert_eq!(fjsp.machine_count, machine_count, "{instance_id}");
+            assert_eq!(fajsp.machine_count, machine_count, "{instance_id}");
+            assert_eq!(fjsp.precedences.len(), edge_count, "{instance_id}");
+            assert_eq!(fajsp.precedences.len(), edge_count, "{instance_id}");
+            assert_eq!(
+                fjsp
+                    .operations
+                    .iter()
+                    .map(|operation| operation.alternatives.clone())
+                    .collect::<Vec<_>>(),
+                fajsp
+                    .operations
+                    .iter()
+                    .map(|operation| operation.alternatives.clone())
+                    .collect::<Vec<_>>(),
+                "operation alternatives differ for {instance_id}"
+            );
+            assert_eq!(
+                fjsp
+                    .precedences
+                    .iter()
+                    .map(|edge| (edge.before, edge.after))
+                    .collect::<Vec<_>>(),
+                fajsp
+                    .precedences
+                    .iter()
+                    .map(|edge| (edge.before, edge.after))
+                    .collect::<Vec<_>>(),
+                "precedence edges differ for {instance_id}"
+            );
+        }
     }
 
     #[test]
