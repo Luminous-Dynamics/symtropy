@@ -138,7 +138,18 @@
       "growth-condition transfer",
       "dry tissue density"
     ],
-    "prohibited_shortcut": "do not call geometric volume fraction dry biomass or carbon stock without separately calibrated tissue-density and carbon-fraction conversions"
+    "prohibited_shortcut": "do not call geometric volume fraction dry biomass or carbon stock without separately calibrated tissue-density and carbon-fraction conversions",
+    "uncertainty_propagation": {
+      "derived_formula": "f = pi * 1e-6 * r_um^2 * L_m_per_cm3",
+      "first_order_variance_if_both_inputs_reported": "Var(f) = (pi*1e-6*r_um^2*SE_L)^2 + (2*pi*1e-6*r_um*L*SD_r)^2",
+      "assumptions": [
+        "circular cylindrical geometry",
+        "length-density and effective-radius errors treated as independent",
+        "delta-method first-order approximation"
+      ],
+      "missingness": "combined standard deviation is unknown if either input uncertainty is missing; missing uncertainty is never treated as zero",
+      "claim_boundary": "geometry-only volume-fraction uncertainty; does not include radius sampling bias, branching overlap, wall/lumen, tissue density or carbon-fraction uncertainty"
+    }
   },
   "active_sampling": {
     "fixed_budget_units": [
@@ -187,5 +198,17 @@
     "biomass stock is not turnover or carbon flux",
     "hyphal abundance is not plant nutrient delivery",
     "a positive network-effect claim requires a distinct controlled outcome benchmark"
-  ]
+  ],
+  "validation_implementation": {
+    "catalog_type": "symtropy_mycelium::spatial_field_evidence::FieldObservationCatalog",
+    "grouping_key": "FieldStudyId",
+    "grouped_fold_method": "FieldObservationCatalog::grouped_study_folds",
+    "assignment": "sorted study IDs distributed round-robin into deterministic approximately balanced folds",
+    "row_identity_constraints": [
+      "FieldSampleId unique globally within catalog",
+      "(FieldStudyId, source_record_key) unique within study"
+    ],
+    "spatial_training_eligibility": "both geographic coordinate and sampling-depth interval required; rows lacking either remain in the catalog but are excluded from spatially supported iterator",
+    "warning": "study-grouped folds prevent within-study leakage but are not a replacement for spatial block or leave-biome-out holdouts"
+  }
 }
