@@ -724,15 +724,15 @@ pub fn evaluate_recoverability(
     } else if admissible_option_ids.is_empty() {
         if has_unknown || !inventory_complete {
             RecoverabilityStatus::Indeterminate
-        } else if has_reauthorization && !options.iter().any(|option| {
-            option.disposition == OptionDisposition::Rejected
-        }) {
+        } else if has_reauthorization {
             RecoverabilityStatus::ReauthorizationRequired
         } else {
             RecoverabilityStatus::NoAdmissibleOption
         }
     } else if exceeds_determinate_limit || has_unknown || !inventory_complete {
         RecoverabilityStatus::Indeterminate
+    } else if has_reauthorization {
+        RecoverabilityStatus::ReauthorizationRequired
     } else if case.required_independent_options == 2
         && admissible_option_ids.len() > 1
         && options
