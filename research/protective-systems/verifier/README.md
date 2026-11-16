@@ -169,9 +169,9 @@ A synthetic or not-executed envelope returns
 `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. A completed external run with missing
 software version, dataset revision, rights, coordinate reference or uncertainty
 metadata abstains. A fully populated envelope is labelled only
-`ENVELOPE_METADATA_COMPLETE_SOURCE_AUTHENTICITY_UNVERIFIED`: a byte digest
-proves local byte identity, not provider authenticity, model validity or
-physical truth.
+`ENVELOPE_METADATA_COMPLETE_SOURCE_AND_RIGHTS_AUTHENTICITY_UNVERIFIED`: declared
+rights metadata and a byte digest do not authenticate the provider, license
+grant or model validity, and do not prove physical truth.
 
 The v0.1 executable deliberately uses a tiny JSON-only artifact allow-list.
 It is a contract/negative-control tranche, not a live pyIncore/IN-CORE adapter,
