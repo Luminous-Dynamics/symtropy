@@ -11,6 +11,7 @@ pub mod conformal_kernel;
 pub mod coverage_inference_kernel;
 pub mod forecast_kernel;
 pub mod forecast_usefulness_kernel;
+pub mod forest_as_of_integrity_kernel;
 pub mod forest_corpus_receipts;
 pub mod model_set_kernel;
 pub mod support_kernel;
@@ -3924,6 +3925,11 @@ pub fn evaluate(raw: &[u8]) -> Result<Value, String> {
         return forecast_usefulness_kernel::validate_corpus(raw, &manifest);
     }
     if manifest.get("corpus_id").and_then(Value::as_str)
+        == Some("FOREST-AS-OF-FORECAST-INTEGRITY-001")
+    {
+        return forest_as_of_integrity_kernel::validate_corpus(raw, &manifest);
+    }
+    if manifest.get("corpus_id").and_then(Value::as_str)
         == Some("FOREST-MODEL-SET-KNOWN-TRUTH-DIAGNOSTICS-001")
     {
         return validate_executable_model_set_corpus(raw, &manifest);
@@ -5084,6 +5090,19 @@ mod tests {
         assert_eq!(results[0]["first_failure_horizon_days"], 180);
         assert_eq!(results[1]["useful_horizon_days"], 30);
         assert_eq!(results[1]["first_failure_horizon_days"], 90);
+        assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
+    }
+
+
+    #[test]
+    fn forest_as_of_forecast_integrity_dispatches_bitemporal_receipt() {
+        let bytes = include_str!("../../cases/forest-as-of-forecast-integrity-synthetic-v0.1.json").as_bytes();
+        let receipt = evaluate(bytes).expect("forest as-of integrity fixture dispatches");
+        assert_eq!(receipt["result"], "PASS_SYNTHETIC_AS_OF_FORECAST_INTEGRITY");
+        assert_eq!(receipt["case_count"], 12);
+        assert_eq!(receipt["valid_as_of_count"], 3);
+        assert_eq!(receipt["not_estimable_count"], 1);
+        assert_eq!(receipt["rights_refusal_count"], 1);
         assert_eq!(receipt["source_manifest_sha256"], sha256_hex(bytes));
     }
 
