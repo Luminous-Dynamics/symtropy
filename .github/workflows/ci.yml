@@ -122,6 +122,16 @@ jobs:
           test "$(wc -l < /tmp/fjsplib-fajsp.tsv)" -eq 16
           awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fjsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp.tsv
           awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fajsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp.tsv
+      - name: Import stratified Fattahi sample
+        shell: bash
+        run: |
+          for format in fjsp fajsp; do
+            for instance in fattahi1 fattahi5 fattahi10 fattahi20; do
+              path="tools/factory-fjsplib-adapter/fixtures/${instance}.${format}"
+              cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- "$format" "$instance" "$path" \
+                | awk -F '\\t' -v id="$instance" -v fmt="$format" '$1 == "SUMMARY" && $2 == id && $3 == fmt { found=1 } END { exit !found }'
+            done
+          done
       - name: Verify exact schedule certificates
         shell: bash
         run: |
