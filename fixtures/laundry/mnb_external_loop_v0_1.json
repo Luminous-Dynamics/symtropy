@@ -1,0 +1,60 @@
+{
+  "schema_version": "0.1.0",
+  "experiment_id": "LAUNDRY-MNB-LOOP-001",
+  "status": "protocol_proposed_no_physical_runs",
+  "claim_ceiling": "no_cleaning_energy_or_product_superiority_claim",
+  "system_boundary": {
+    "id": "external_recirculation_loop",
+    "description": "An external, reviewed laboratory recirculation loop used to characterize micro-/nanobubble conditioning and textile cleaning without integrating a generator into a domestic washer.",
+    "functional_unit": "kg_dry_equivalent_textile_accepted",
+    "includes": ["bubble generation", "liquid recirculation and pressure drop", "heating", "controls and measurement instrumentation", "textile preparation and treatment"],
+    "excludes": ["domestic washer integration", "downstream greywater reuse qualification", "ozone plasma solvent and ultrasound treatments"]
+  },
+  "control_arms": [
+    { "id": "C0", "role": "conventional_reference", "configuration": "Declared detergent and conventional mixing with no MNB generator or recirculation module." },
+    { "id": "C1", "role": "mnb_candidate", "configuration": "MNB-conditioned liquor with generator, pump, heater and controls separately metered." },
+    { "id": "C2", "role": "hydraulic_sham", "configuration": "Generator off with the same recirculation path, pump, pressure drop and operating duration as C1." },
+    { "id": "C3", "role": "reduced_detergent_control", "configuration": "Conventional reference with a predeclared reduced detergent dose and no MNB." },
+    { "id": "C4", "role": "mnb_reduced_detergent", "configuration": "MNB candidate using the exact reduced detergent dose declared for C3." },
+    { "id": "C5", "role": "mnb_reduced_mechanical_action", "configuration": "MNB candidate with predeclared reduced mechanical mixing, with mechanical action measured." }
+  ],
+  "energy_boundary": ["bubble_generator", "recirculation_pump", "heaters", "controls_and_instrumentation"],
+  "measurement_channels": [
+    "bubble_size_distribution", "bubble_number_concentration", "dissolved_gas_concentration", "gas_flow", "liquid_flow", "differential_pressure",
+    "generator_power_and_energy", "pump_power_and_energy", "heater_power_and_energy", "controls_power_and_energy", "total_loop_energy",
+    "water_mass_and_hardness", "water_temperature_time_series", "detergent_identity_and_mass", "stain_specific_cleaning_measurement",
+    "rinse_residue", "textile_strength_colour_and_dimensions", "microfiber_mass_balance",
+    "foam_fouling_clogging_leakage_and_cavitation", "elapsed_time_and_maintenance_burden"
+  ],
+  "acceptance_gates": [
+    "cleaning_acceptance_by_stain_and_fabric", "rinse_residue_acceptance", "textile_gentleness_non_inferiority",
+    "calibrated_complete_loop_energy_accounting", "stable_bubble_characterization_and_hydraulics",
+    "safe_pressure_electrical_thermal_and_gas_containment", "microfiber_wastewater_and_service_burden"
+  ],
+  "analysis": {
+    "randomized_blocking_required": true,
+    "pilot_variance_before_confirmatory_sample_size": true,
+    "preregistered_analysis_before_unblinding": true,
+    "blinded_cleaning_measurement_where_practicable": true,
+    "report_confidence_intervals_and_uncertainty": true
+  },
+  "governance": {
+    "physical_run_count": 0,
+    "result_records": [],
+    "symthaea_authority": "advisory_only_no_actuation",
+    "safety_interlock_authority": "independent_deterministic_device_controls",
+    "offline_protocol_required": true,
+    "product_claims": false
+  },
+  "decision_hypotheses": [
+    "Explore at least 10 percent lower complete-loop electrical energy per kg accepted textile at matched cleaning, rinse and fabric care.",
+    "Alternatively explore at least 20 percent lower detergent mass at the same accepted outcome without a resource or fabric-care penalty.",
+    "Alternatively explore at least 10 percent shorter treatment time at the same accepted outcome without increased total energy."
+  ],
+  "sources": [
+    { "id": "MNB-TEXTILE-2026", "uri": "https://doi.org/10.1080/00405000.2026.2668156", "scope_note": "Two textile substrates and five stains; 5.6-fold oil-removal result is experimental context only, not a household product claim." },
+    { "id": "MNB-REVIEW-2025", "uri": "https://doi.org/10.3390/nano15070480", "scope_note": "Review of MNB cleaning mechanisms and application constraints, not household appliance qualification." },
+    { "id": "ULTRASONIC-HOUSEHOLD-2023", "uri": "https://doi.org/10.1007/s12053-023-10115-7", "scope_note": "Household ultrasonic comparison used to bound ultrasound as an adjunct rather than a replacement." },
+    { "id": "MICROBUBBLE-FLOTATION-2024", "uri": "https://doi.org/10.1021/acsestwater.3c00802", "scope_note": "Bench/pilot wastewater flotation evidence; not a compact household washing loop result." }
+  ]
+}

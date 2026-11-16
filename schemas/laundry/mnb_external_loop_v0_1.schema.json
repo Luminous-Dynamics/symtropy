@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:mnb-external-loop:0.1.0",
+  "title": "MNB External-Loop Experiment Contract v0.1",
+  "description": "A proposed research protocol and measurement contract. It contains no physical run observations or product claims.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "experiment_id", "status", "claim_ceiling", "system_boundary", "control_arms", "energy_boundary", "measurement_channels", "acceptance_gates", "analysis", "governance", "decision_hypotheses", "sources"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "experiment_id": { "const": "LAUNDRY-MNB-LOOP-001" },
+    "status": { "const": "protocol_proposed_no_physical_runs" },
+    "claim_ceiling": { "const": "no_cleaning_energy_or_product_superiority_claim" },
+    "system_boundary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "description", "functional_unit", "includes", "excludes"],
+      "properties": {
+        "id": { "const": "external_recirculation_loop" },
+        "description": { "type": "string", "minLength": 80 },
+        "functional_unit": { "const": "kg_dry_equivalent_textile_accepted" },
+        "includes": { "type": "array", "minItems": 4, "uniqueItems": true, "items": { "type": "string", "minLength": 3 } },
+        "excludes": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "string", "minLength": 3 } }
+      }
+    },
+    "control_arms": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "role", "configuration"],
+        "properties": {
+          "id": { "enum": ["C0", "C1", "C2", "C3", "C4", "C5"] },
+          "role": { "type": "string", "minLength": 8 },
+          "configuration": { "type": "string", "minLength": 20 }
+        }
+      }
+    },
+    "energy_boundary": {
+      "type": "array", "minItems": 4, "uniqueItems": true,
+      "items": { "enum": ["bubble_generator", "recirculation_pump", "heaters", "controls_and_instrumentation"] }
+    },
+    "measurement_channels": {
+      "type": "array", "minItems": 15, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "acceptance_gates": {
+      "type": "array", "minItems": 7, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 4 }
+    },
+    "analysis": {
+      "type": "object", "additionalProperties": false,
+      "required": ["randomized_blocking_required", "pilot_variance_before_confirmatory_sample_size", "preregistered_analysis_before_unblinding", "blinded_cleaning_measurement_where_practicable", "report_confidence_intervals_and_uncertainty"],
+      "properties": {
+        "randomized_blocking_required": { "const": true },
+        "pilot_variance_before_confirmatory_sample_size": { "const": true },
+        "preregistered_analysis_before_unblinding": { "const": true },
+        "blinded_cleaning_measurement_where_practicable": { "const": true },
+        "report_confidence_intervals_and_uncertainty": { "const": true }
+      }
+    },
+    "governance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["physical_run_count", "result_records", "symthaea_authority", "safety_interlock_authority", "offline_protocol_required", "product_claims"],
+      "properties": {
+        "physical_run_count": { "const": 0 },
+        "result_records": { "type": "array", "maxItems": 0 },
+        "symthaea_authority": { "const": "advisory_only_no_actuation" },
+        "safety_interlock_authority": { "const": "independent_deterministic_device_controls" },
+        "offline_protocol_required": { "const": true },
+        "product_claims": { "const": false }
+      }
+    },
+    "decision_hypotheses": {
+      "type": "array", "minItems": 3, "uniqueItems": true,
+      "items": { "type": "string", "minLength": 20 }
+    },
+    "sources": {
+      "type": "array", "minItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "uri", "scope_note"],
+        "properties": {
+          "id": { "type": "string", "minLength": 4 },
+          "uri": { "type": "string", "format": "uri", "pattern": "^https://" },
+          "scope_note": { "type": "string", "minLength": 15 }
+        }
+      }
+    }
+  }
+}
