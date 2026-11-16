@@ -292,11 +292,7 @@ fn cholesky_interval<const N: usize>(
     for row in 0..N {
         for column in 0..=row {
             let mut correction = Interval::zero();
-            for (left, right) in lower[row]
-                .iter()
-                .zip(lower[column].iter())
-                .take(column)
-            {
+            for (left, right) in lower[row].iter().zip(lower[column].iter()).take(column) {
                 correction = correction.add(left.mul(*right)?)?;
             }
             let pivot = matrix[row][column].sub(correction)?;
@@ -629,9 +625,7 @@ mod tests {
         let expected_w = [[0.7, -0.2], [-0.2, 23.0 / 15.0]];
         for (row, expected_values) in expected_w.iter().enumerate() {
             for (column, expected_value) in expected_values.iter().enumerate() {
-                assert!(
-                    certificate.delassus_intervals()[row][column].contains(*expected_value)
-                );
+                assert!(certificate.delassus_intervals()[row][column].contains(*expected_value));
             }
         }
         assert!(certificate.delassus_minimum_eigenvalue_lower() > 0.0);
