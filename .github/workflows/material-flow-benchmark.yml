@@ -73,6 +73,16 @@ jobs:
           grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-evidence-admission.json
           cat mfb-l1-evidence/procedure-evidence-admission.json
+      - name: Admit reconciliation-branch evidence receipts
+        run: |
+          cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/reconciliation-receiving-evidence.json > mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"execution_branch": "reconciliation"' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"admitted_receipt_count": 10' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"motion_authority_granted": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"physical_command_emitted": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          grep -q '"task_success_attested": false' mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
+          cat mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
       - name: Adjudicate false-positive receiver observation
         run: |
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-adjudicate-presence -- tools/material-flow-benchmark/fixtures/false-positive-receiver-observation.json > mfb-l1-evidence/receiver-observation-adjudication.json
@@ -169,6 +179,9 @@ jobs:
             echo
             echo "[procedure_evidence_admission_digest]"
             sha256sum mfb-l1-evidence/procedure-evidence-admission.json
+            echo
+            echo "[procedure_reconciliation_admission_digest]"
+            sha256sum mfb-l1-evidence/procedure-reconciliation-evidence-admission.json
             echo
             echo "[receiver_observation_adjudication_digest]"
             sha256sum mfb-l1-evidence/receiver-observation-adjudication.json
