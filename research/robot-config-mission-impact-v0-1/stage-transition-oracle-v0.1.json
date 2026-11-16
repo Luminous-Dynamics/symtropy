@@ -1,0 +1,93 @@
+{
+  "schema_version": "robot-mission-stage-transition-oracle-v0.1",
+  "benchmark_id": "ROBOT-MISSION-IMPACT-001",
+  "visibility": "public_development_oracle_not_hidden_holdout",
+  "note": "Public fixture labels for the finite evidence-gated stage-transition policy; not independent custody or physical evidence.",
+  "dispositions": [
+    {
+      "case_id": "MST-001",
+      "expected_disposition": "held",
+      "reason_code": "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE"
+    },
+    {
+      "case_id": "MST-002",
+      "expected_disposition": "held",
+      "reason_code": "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE"
+    },
+    {
+      "case_id": "MST-003",
+      "expected_disposition": "advance",
+      "reason_code": "POSTCONDITION_VERIFIED"
+    },
+    {
+      "case_id": "MST-004",
+      "expected_disposition": "held",
+      "reason_code": "REQUIRED_VERIFIER_EVIDENCE_MISSING"
+    },
+    {
+      "case_id": "MST-005",
+      "expected_disposition": "failed",
+      "reason_code": "POSTCONDITION_VIOLATED"
+    },
+    {
+      "case_id": "MST-006",
+      "expected_disposition": "held",
+      "reason_code": "STALE_CONFIGURATION_EVIDENCE"
+    },
+    {
+      "case_id": "MST-007",
+      "expected_disposition": "held",
+      "reason_code": "STALE_FRAME_EVIDENCE"
+    },
+    {
+      "case_id": "MST-008",
+      "expected_disposition": "held",
+      "reason_code": "EXPIRED_CALIBRATION_EVIDENCE"
+    },
+    {
+      "case_id": "MST-009",
+      "expected_disposition": "held",
+      "reason_code": "CLOCK_MAPPING_UNQUALIFIED"
+    },
+    {
+      "case_id": "MST-010",
+      "expected_disposition": "advance",
+      "reason_code": "POSTCONDITION_VERIFIED"
+    },
+    {
+      "case_id": "MST-011",
+      "expected_disposition": "skipped_by_policy",
+      "reason_code": "OPTIONAL_STAGE_SKIP_AUTHORIZED"
+    },
+    {
+      "case_id": "MST-012",
+      "expected_disposition": "held",
+      "reason_code": "MANDATORY_STAGE_SKIP_NOT_AUTHORIZED"
+    },
+    {
+      "case_id": "MST-013",
+      "expected_disposition": "held",
+      "reason_code": "RESUME_CONFIGURATION_MISMATCH"
+    },
+    {
+      "case_id": "MST-014",
+      "expected_disposition": "held",
+      "reason_code": "DUPLICATE_ACCEPTED_OUTPUT"
+    },
+    {
+      "case_id": "MST-015",
+      "expected_disposition": "held",
+      "reason_code": "CONFLICTING_POSTCONDITION_EVIDENCE"
+    },
+    {
+      "case_id": "MST-016",
+      "expected_disposition": "held",
+      "reason_code": "POSTCONDITION_UNKNOWN"
+    }
+  ],
+  "nonclaims": [
+    "This public oracle is visible development data and is not a sealed holdout.",
+    "Passing these cases establishes only fixture conformance, not physical safety or qualification.",
+    "Source classes and profile references are synthetic and are not admitted real-world authorities."
+  ]
+}
