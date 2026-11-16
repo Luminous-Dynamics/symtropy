@@ -108,11 +108,7 @@ fn check_trace(pair_id: &str, side: &str, trace: &[Value], errors: &mut Vec<Stri
 
 /// Cross-file invariants for the stage catalog, paired development corpus and public oracle.
 /// The checks concern package integrity only; the oracle labels remain human-authored fixtures.
-pub fn cross_file_invariants(
-    stage_catalog: &Value,
-    corpus: &Value,
-    oracle: &Value,
-) -> Vec<String> {
+pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Value) -> Vec<String> {
     let mut errors = Vec::new();
     let stages = match array_at(stage_catalog, &["stages"]) {
         Some(stages) => stages,
@@ -187,19 +183,17 @@ pub fn cross_file_invariants(
             }
         }
 
-        for (side, path) in [
-            ("source", "source_trace"),
-            ("target", "target_trace"),
-        ] {
+        for (side, path) in [("source", "source_trace"), ("target", "target_trace")] {
             match array_at(case, &[path]) {
                 Some(trace) if !trace.is_empty() => check_trace(pair_id, side, trace, &mut errors),
                 _ => errors.push(format!("trace_missing_or_empty:{pair_id}:{side}")),
             }
         }
 
-        let Some(disposition) = dispositions.iter().find(|entry| {
-            entry.get("pair_id").and_then(Value::as_str) == Some(pair_id)
-        }) else {
+        let Some(disposition) = dispositions
+            .iter()
+            .find(|entry| entry.get("pair_id").and_then(Value::as_str) == Some(pair_id))
+        else {
             continue;
         };
 
@@ -224,7 +218,9 @@ pub fn cross_file_invariants(
             has_unlocalized_unknown = true;
         } else if let Some(stage_id) = divergence.and_then(Value::as_str) {
             if !stage_ids.contains(&stage_id) {
-                errors.push(format!("oracle_divergence_stage_undeclared:{pair_id}:{stage_id}"));
+                errors.push(format!(
+                    "oracle_divergence_stage_undeclared:{pair_id}:{stage_id}"
+                ));
             }
             if attribution != Some("stage_localized_not_root_cause") {
                 errors.push(format!("localized_divergence_marked_unknown:{pair_id}"));
@@ -259,18 +255,25 @@ pub fn cross_file_invariants(
 pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     let base = root.join("research/robot-config-mission-impact-v0-1");
     let files = [
-        ("stage-catalog-v0.1.json", "schemas/stage-catalog-v0.1.schema.json"),
-        ("mission-pair-corpus-v0.1.json", "schemas/mission-pair-corpus-v0.1.schema.json"),
-        ("development-oracle-v0.1.json", "schemas/development-oracle-v0.1.schema.json"),
+        (
+            "stage-catalog-v0.1.json",
+            "schemas/stage-catalog-v0.1.schema.json",
+        ),
+        (
+            "mission-pair-corpus-v0.1.json",
+            "schemas/mission-pair-corpus-v0.1.schema.json",
+        ),
+        (
+            "development-oracle-v0.1.json",
+            "schemas/development-oracle-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
 
     for (instance_name, schema_name) in files {
-        let instance = read_json(&base.join(instance_name))
-            .map_err(|error| vec![error])?;
-        let schema = read_json(&base.join(schema_name))
-            .map_err(|error| vec![error])?;
+        let instance = read_json(&base.join(instance_name)).map_err(|error| vec![error])?;
+        let schema = read_json(&base.join(schema_name)).map_err(|error| vec![error])?;
         if !schema_is_valid(&schema) {
             errors.push(format!("schema_meta_invalid:{schema_name}"));
         }
@@ -309,7 +312,10 @@ mod tests {
             "schemas/development-oracle-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
-            assert!(schema_is_valid(&schema), "{name} must satisfy Draft 2020-12");
+            assert!(
+                schema_is_valid(&schema),
+                "{name} must satisfy Draft 2020-12"
+            );
         }
     }
 
@@ -337,13 +343,15 @@ mod tests {
         let mut corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
         let duplicate = corpus["cases"][0].clone();
         corpus["cases"].as_array_mut().unwrap().push(duplicate);
-        assert!(cross_file_invariants(
-            &stage,
-            &corpus,
-            &read_json(&base.join("development-oracle-v0.1.json")).unwrap()
-        )
-        .iter()
-        .any(|error| error.starts_with("pair_id_duplicate:")));
+        assert!(
+            cross_file_invariants(
+                &stage,
+                &corpus,
+                &read_json(&base.join("development-oracle-v0.1.json")).unwrap()
+            )
+            .iter()
+            .any(|error| error.starts_with("pair_id_duplicate:"))
+        );
     }
 
     #[test]
@@ -381,8 +389,10 @@ mod tests {
         let mut corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
         corpus["cases"][0]["target_trace"][1]["event_time_tick"] = Value::from(0);
         let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
-        assert!(cross_file_invariants(&stage, &corpus, &oracle)
-            .iter()
-            .any(|error| error.starts_with("event_time_decreased:")));
+        assert!(
+            cross_file_invariants(&stage, &corpus, &oracle)
+                .iter()
+                .any(|error| error.starts_with("event_time_decreased:"))
+        );
     }
 }
