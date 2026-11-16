@@ -64,9 +64,9 @@ jobs:
             (.properties.samples.items.additionalProperties == false) and
             (.properties.samples.items.properties.mycelix_observation_refs.uniqueItems == true)
           ' research/water-service-engineering/waterloop-source-event.schema.json
-          grep -q "no numeric toilet-flush acceptance limit" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
-          grep -q "no universal minimum sample count" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
-          grep -q "qualified laboratory" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+          grep -qi "No numeric effluent limit" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+          grep -qi "do not invent a universal sample count" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+          grep -qi "qualified laboratory" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
       - name: Emit design input digests
         run: |
           set -euo pipefail
