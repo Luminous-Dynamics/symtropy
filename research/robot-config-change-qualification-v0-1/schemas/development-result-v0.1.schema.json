@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-change-development-result:v0.1",
+  "title": "ROBOT-CONFIG-CHANGE-QUAL-001 computed development result v0.1",
+  "description": "Closed result schema for the finite public synthetic RCQ v0.1 fixture evaluator. Not a qualification certificate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evaluator_id",
+    "benchmark_id",
+    "visibility",
+    "oracle_comparison",
+    "summary",
+    "cases",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-change-development-result-v0.1"
+    },
+    "evaluator_id": {
+      "const": "robot-config-change-reference-evaluator/0.1"
+    },
+    "benchmark_id": {
+      "const": "ROBOT-CONFIG-CHANGE-QUAL-001"
+    },
+    "visibility": {
+      "const": "public_development_fixture_only"
+    },
+    "oracle_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_visibility",
+        "agreement_count",
+        "expected_count",
+        "exact_disposition_and_reason_agreement",
+        "mismatches"
+      ],
+      "properties": {
+        "oracle_visibility": {
+          "const": "public_development_oracle_not_hidden_holdout"
+        },
+        "agreement_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exact_disposition_and_reason_agreement": {
+          "type": "boolean"
+        },
+        "mismatches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "case_id",
+              "claim_id",
+              "expected_disposition",
+              "expected_reason_code",
+              "actual_disposition",
+              "actual_reason_code"
+            ],
+            "properties": {
+              "case_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "claim_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_disposition": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "PreservedByExactIdentity",
+                      "PreservedByQualifiedEquivalence",
+                      "PreservedByExactRecomputation",
+                      "RequiresApplicabilityReview",
+                      "RequiresBenchReverification",
+                      "RequiresPhysicalReverification",
+                      "RequiresIndependentAdjudication",
+                      "NotPreserved",
+                      "UnknownImpact",
+                      "Unsupported"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expected_reason_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "actual_disposition": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "PreservedByExactIdentity",
+                      "PreservedByQualifiedEquivalence",
+                      "PreservedByExactRecomputation",
+                      "RequiresApplicabilityReview",
+                      "RequiresBenchReverification",
+                      "RequiresPhysicalReverification",
+                      "RequiresIndependentAdjudication",
+                      "NotPreserved",
+                      "UnknownImpact",
+                      "Unsupported"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "actual_reason_code": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "claim_result_count",
+        "disposition_counts",
+        "safety_critical_changed_dependency_preserved_count",
+        "incomplete_dependency_claim_count"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "claim_result_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disposition_counts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "disposition",
+              "count"
+            ],
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "PreservedByExactIdentity",
+                  "PreservedByQualifiedEquivalence",
+                  "PreservedByExactRecomputation",
+                  "RequiresApplicabilityReview",
+                  "RequiresBenchReverification",
+                  "RequiresPhysicalReverification",
+                  "RequiresIndependentAdjudication",
+                  "NotPreserved",
+                  "UnknownImpact",
+                  "Unsupported"
+                ]
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "safety_critical_changed_dependency_preserved_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete_dependency_claim_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "mutation_family",
+          "dependency_snapshot_complete",
+          "claims"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^RCQ-[0-9]{3}$"
+          },
+          "mutation_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "dependency_snapshot_complete": {
+            "type": "boolean"
+          },
+          "claims": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "claim_id",
+                "changed_dependencies",
+                "disposition",
+                "reason_code",
+                "rationale"
+              ],
+              "properties": {
+                "claim_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "changed_dependencies": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "disposition": {
+                  "enum": [
+                    "PreservedByExactIdentity",
+                    "PreservedByQualifiedEquivalence",
+                    "PreservedByExactRecomputation",
+                    "RequiresApplicabilityReview",
+                    "RequiresBenchReverification",
+                    "RequiresPhysicalReverification",
+                    "RequiresIndependentAdjudication",
+                    "NotPreserved",
+                    "UnknownImpact",
+                    "Unsupported"
+                  ]
+                },
+                "reason_code": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Z0-9_]*$"
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
