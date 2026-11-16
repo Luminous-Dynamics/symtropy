@@ -127,6 +127,8 @@ UnknownImpact / DEPENDENCY_CLOSURE_INCOMPLETE
 
 The public oracle remains development-visible, and this correction is not a candidate performance result.
 
+The same audit also made two missing claim-catalog relationships explicit: `process.output_quality` now depends on sensor mount, sensor calibration and frame transform for the inspection/acceptance-frame cases; `stopping.distance` now depends on the battery module's mass-distribution/interface state. These are synthetic claim-profile assumptions for this corpus, not universal laws for every robot. They must be replaced or confirmed by the exact profile supplied by the capability and evidence owners before any real platform assessment.
+
 ## Claim-profile binding before evaluator implementation
 
 The corpus currently contains a small local claim catalog and symbolic `target_claim_profile_ref` values. Those are useful development fixtures, but they are not yet pinned, consumable upstream claim contracts. A dependency intersection alone cannot decide whether the competent next step is applicability review, bench reverification, physical reverification, or independent adjudication.
