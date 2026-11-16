@@ -138,9 +138,27 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
             }
             if id == "WOOL-WAVE-RIDING-PROTEASE-2025" {
                 have_pure_wool_enzyme = true;
-                if family != "enzyme_only" || !auxiliaries.is_empty() || !enzyme_only_claim {
-                    errors.push("protease-only wool comparator must remain enzyme-only".to_owned());
+                if family != "enzyme_only"
+                    || !auxiliaries.is_empty()
+                    || !enzyme_only_claim
+                    || text_at(comparator, "source_uri")
+                        != Some("https://doi.org/10.1039/D5GC01614B")
+                {
+                    errors.push(
+                        "wave-riding pure-protease wool comparator must retain its separate Green Chemistry source"
+                            .to_owned(),
+                    );
                 }
+            }
+            if id == "WOOL-BISULFITE-PROTEASE-2025"
+                && (family != "enzyme_plus_reductant"
+                    || text_at(comparator, "source_uri")
+                        != Some("https://doi.org/10.1016/j.ijbiomac.2025.142160"))
+            {
+                errors.push(
+                    "sodium-bisulfite comparator must remain a separate reductant-assisted study"
+                        .to_owned(),
+                );
             }
             if family == "enzyme_plus_reductant" {
                 have_reductant = true;
@@ -444,6 +462,14 @@ mod tests {
     }
 
     #[test]
+    fn wave_riding_pure_enzyme_paper_must_not_be_aliased_to_bisulfite_paper() {
+        let (schema, mut profile) = fixture();
+        profile["external_comparators"][1]["source_uri"] =
+            Value::String("https://doi.org/10.1016/j.ijbiomac.2025.142160".to_owned());
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
     fn reductant_assisted_treatment_must_disclose_auxiliary() {
         let (schema, mut profile) = fixture();
         profile["external_comparators"][2]["auxiliary_chemistry"] = json!([]);
@@ -474,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn ISO_colour_fastness_method_is_not_a_stain_removal_metric() {
+    fn iso_colour_fastness_method_is_not_a_stain_removal_metric() {
         let (schema, mut profile) = fixture();
         profile["standards"]["colour_fastness_role"] =
             Value::String("stain_removal_index".to_owned());
