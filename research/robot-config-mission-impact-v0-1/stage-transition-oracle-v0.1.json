@@ -88,6 +88,11 @@
       "case_id": "MST-017",
       "expected_disposition": "advance",
       "reason_code": "POSTCONDITION_VERIFIED"
+    },
+    {
+      "case_id": "MST-018",
+      "expected_disposition": "held",
+      "reason_code": "REQUIRED_VERIFIER_EVIDENCE_MISSING"
     }
   ],
   "nonclaims": [
