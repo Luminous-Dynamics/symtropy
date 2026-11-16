@@ -5,6 +5,7 @@
 //! producer's geometric expansion helpers.
 
 mod capsule;
+mod clock_uncertainty_ccd;
 mod co_translation_ccd;
 mod timed_co_translation_ccd;
 mod translation_ccd;
@@ -12,6 +13,10 @@ pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
     endpoints_only_sphere_capsule_collision, moving_sphere_capsule_collision,
     moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
+};
+pub use clock_uncertainty_ccd::{
+    ClockUncertaintyCcdResult, ClockUncertaintyDisposition, ClockUncertaintyError,
+    clock_uncertainty_aware_capsule_query,
 };
 pub use co_translation_ccd::{
     CoTranslatingCapsuleClosestApproach, TimeSlicedAabbCandidates,
