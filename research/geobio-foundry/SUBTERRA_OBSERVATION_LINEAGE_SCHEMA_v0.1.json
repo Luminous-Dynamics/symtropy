@@ -34,7 +34,7 @@
           "record_id",
           "site_id",
           "observation_id",
-          "acquisition_lineage_id",
+          "acquisition_lineage_ids",
           "artifact_kind",
           "source_record_ids",
           "shared_cause_groups",
@@ -50,10 +50,6 @@
             "minLength": 1
           },
           "observation_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "acquisition_lineage_id": {
             "type": "string",
             "minLength": 1
           },
@@ -104,6 +100,15 @@
           "provenance_ref": {
             "type": "string",
             "minLength": 1
+          },
+          "acquisition_lineage_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         },
         "allOf": [

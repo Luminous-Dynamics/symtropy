@@ -20,7 +20,7 @@
 | `SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json` | Separate morphology, origin, connectivity, accessibility, engineering and preservation claims |
 | `SUBTERRA_PROFILE_SCHEMA_v0.1.json` | Non-uniform profile intervals with explicit unobserved geometry |
 | `SUBTERRA_NETWORK_SCHEMA_v0.1.json` | Cave network graph separating candidate, geophysically supported, directly observed and contradicted links, with traversal and direction states |
-| `SUBTERRA_OBSERVATION_LINEAGE_SCHEMA_v0.1.json` | Dataset-level manifest linking site observations and derived products to physical acquisitions and declared common-cause episodes |
+| `SUBTERRA_OBSERVATION_LINEAGE_SCHEMA_v0.1.json` | Dataset-level manifest linking site observations and derived products to one or more physical acquisitions and declared common-cause episodes |
 | `fixtures/subterra-observation-lineage-synthetic.json` | Synthetic multisite fixture with repeated derived products, shared calibration/environment episodes and an isolated control site |
 | `fixtures/subterra-site-evidence-synthetic.json` | Synthetic Mars candidate record preserving unknown origin, connectivity, accessibility and use qualification |
 | `fixtures/subterra-nonuniform-profile-synthetic.json` | Synthetic profile with a deliberately unobserved interval |
@@ -64,7 +64,7 @@
 | Subterra site/profile schema meta-validation | **PASS** | Python jsonschema `Draft202012Validator.check_schema` |
 | Subterra site/profile synthetic fixtures | **PASS** | Both fixture records validate against their respective schemas with format checking |
 | Subterra network schema/fixture JSON syntax | **PASS** | Both committed files parse as JSON; Draft 2020-12 meta-validation/fixture validation not yet executed for this new schema |
-| Observation-lineage schema/fixture | **AUTHORED** | Schema and synthetic manifest added in this increment; meta-validation, fixture validation and graph-reference validation pending |
+| Observation-lineage schema/fixture | **PASS (schema + fixture)** | Draft 2020-12 meta-validation and fixture validation were executed against the exact committed blobs; source-graph referential integrity/cycle checks and site observation cross-reference validation remain pending |
 | Synthetic fixture against schema | **PASS** | Format checker enabled; zero validation errors |
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |

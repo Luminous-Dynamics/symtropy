@@ -125,8 +125,8 @@ The new dataset-level observation-lineage manifest links site observation IDs an
 
 The manifest captures:
 - one record per raw acquisition or derived evidence product;
-- stable record, site, observation and physical-acquisition IDs;
-- derived-product source-record references;
+- stable record, site and observation IDs plus one or more contributing physical-acquisition IDs;
+- derived-product source-record references, including products that fuse multiple physical acquisitions;
 - shared instrument-calibration, environmental-episode, processing-lineage and reference-label-campaign groups;
 - opaque provenance references, without claiming that reference presence authenticates the underlying source.
 
