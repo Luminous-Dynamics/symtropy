@@ -152,7 +152,11 @@ fn candidate_identity_mismatch_is_not_admissible() {
     actual.candidate_id = "other-candidate".into();
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SelectionIdentity));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SelectionIdentity)
+    );
 }
 
 #[test]
@@ -160,7 +164,11 @@ fn candidate_payload_digest_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.candidate_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SelectionIdentity));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SelectionIdentity)
+    );
 }
 
 #[test]
@@ -168,7 +176,11 @@ fn track_v_selection_policy_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.selection_policy_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SelectionIdentity));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SelectionIdentity)
+    );
 }
 
 #[test]
@@ -176,7 +188,11 @@ fn experiment_design_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.design_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::ExperimentDesign));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::ExperimentDesign)
+    );
 }
 
 #[test]
@@ -184,7 +200,11 @@ fn procedure_revision_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.procedure_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Procedure));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Procedure)
+    );
 }
 
 #[test]
@@ -192,7 +212,11 @@ fn scenario_or_initial_condition_manifest_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.scenario_manifest_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::ScenarioManifest));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::ScenarioManifest)
+    );
 }
 
 #[test]
@@ -200,7 +224,11 @@ fn measurement_plan_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.measurement_plan_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::MeasurementPlan));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::MeasurementPlan)
+    );
 }
 
 #[test]
@@ -209,7 +237,11 @@ fn actual_model_artifact_change_cannot_inherit_plan_credit() {
     actual.configuration.model_artifact_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::ModelArtifact));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::ModelArtifact)
+    );
 }
 
 #[test]
@@ -217,7 +249,11 @@ fn sensor_recalibration_during_run_invalidates_the_planned_measurement_scope() {
     let mut actual = record();
     actual.configuration.sensor_stack_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SensorStack));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SensorStack)
+    );
 }
 
 #[test]
@@ -225,7 +261,11 @@ fn changed_control_stack_cannot_inherit_execution_credit() {
     let mut actual = record();
     actual.configuration.control_stack_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::ControlStack));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::ControlStack)
+    );
 }
 
 #[test]
@@ -233,7 +273,11 @@ fn changed_reference_measurement_profile_cannot_be_silently_accepted() {
     let mut actual = record();
     actual.configuration.reference_measurement_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::ReferenceMeasurement));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::ReferenceMeasurement)
+    );
 }
 
 #[test]
@@ -263,7 +307,11 @@ fn explicitly_denied_authority_is_not_admissible() {
     actual.authority.state = AuthorityState::NotAuthorized;
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Authorization));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Authorization)
+    );
 }
 
 #[test]
@@ -283,7 +331,11 @@ fn authorization_expiry_mid_run_is_not_admissible() {
     actual.authority.valid_window = Some(interval(0, 20));
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Authorization));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Authorization)
+    );
 }
 
 #[test]
@@ -291,7 +343,11 @@ fn authorization_scope_must_match_the_exact_experiment_scope() {
     let mut actual = record();
     actual.authority.scope_sha256 = Some(digest('0'));
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Authorization));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Authorization)
+    );
 }
 
 #[test]
@@ -301,7 +357,11 @@ fn actual_run_outside_the_permitted_time_window_is_not_admissible() {
     actual.segments[0].window = interval(10, 30);
     actual.authority.valid_window = Some(interval(0, 50));
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::RunTimeWindow));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::RunTimeWindow)
+    );
 }
 
 #[test]
@@ -309,7 +369,11 @@ fn unexpected_environment_stratum_is_not_admissible() {
     let mut actual = record();
     actual.actual_environment_strata = vec!["unplanned-icing".into()];
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::EnvironmentStratum));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::EnvironmentStratum)
+    );
 }
 
 #[test]
@@ -324,7 +388,10 @@ fn documented_noncritical_deviation_is_retained_and_changes_status() {
     });
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::ExecutionDeviated);
-    assert_eq!(result.deviation_ids, vec!["operator-override-1".to_string()]);
+    assert_eq!(
+        result.deviation_ids,
+        vec!["operator-override-1".to_string()]
+    );
     assert!(!result.full_plan_evidence_complete);
 }
 
@@ -398,7 +465,11 @@ fn segment_measurement_profile_mismatch_is_not_admissible() {
     actual.segments[0].measurement_profile_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SegmentMeasurementBasis));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SegmentMeasurementBasis)
+    );
 }
 
 #[test]
@@ -406,7 +477,11 @@ fn segment_time_frame_or_datum_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.segments[0].horizontal_frame_id = "OTHER-FRAME".into();
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::SegmentMeasurementBasis));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::SegmentMeasurementBasis)
+    );
 }
 
 #[test]
@@ -463,7 +538,11 @@ fn unexpected_raw_data_stream_is_not_admissible_for_the_plan() {
     let mut actual = record();
     actual.segments[0].source_stream_id = "unplanned-stream".into();
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::DataStream));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::DataStream)
+    );
 }
 
 #[test]
@@ -482,7 +561,11 @@ fn execution_policy_mismatch_is_not_admissible() {
     actual.policy_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Policy));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Policy)
+    );
 }
 
 #[test]
@@ -490,7 +573,11 @@ fn capture_build_mismatch_is_not_admissible() {
     let mut actual = record();
     actual.capture_build_sha256 = digest('0');
     let result = assess(&plan(), &actual).unwrap();
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::CaptureBuild));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::CaptureBuild)
+    );
 }
 
 #[test]
@@ -533,14 +620,17 @@ fn record_and_segment_permutation_preserves_canonical_assessment() {
     assert_eq!(actual_result, expected);
 }
 
-
 #[test]
 fn capture_segment_must_bind_the_planned_calibration_receipt() {
     let mut actual = record();
     actual.segments[0].calibration_receipt_sha256 = digest('1');
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::CalibrationEvidence));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::CalibrationEvidence)
+    );
 }
 
 #[test]
@@ -548,13 +638,14 @@ fn segments_for_one_window_must_share_the_exact_raw_data_manifest() {
     let mut actual = record();
     let mut second = segment("segment-002", 2, 20, 30, 10);
     second.raw_data_manifest_sha256 = digest('1');
-    actual.segments = vec![
-        segment("segment-001", 1, 10, 20, 10),
-        second,
-    ];
+    actual.segments = vec![segment("segment-001", 1, 10, 20, 10), second];
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::RawDataManifest));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::RawDataManifest)
+    );
 }
 
 #[test]
@@ -567,12 +658,15 @@ fn capture_receipt_digest_is_required_for_every_raw_segment() {
     );
 }
 
-
 #[test]
 fn authorization_receipt_substitution_is_not_admissible_even_when_scope_matches() {
     let mut actual = record();
     actual.authority.receipt_sha256 = Some(digest('0'));
     let result = assess(&plan(), &actual).unwrap();
     assert_eq!(result.status, ExecutionStatus::NotAdmissibleForClaim);
-    assert!(result.mismatch_dimensions.contains(&MismatchDimension::Authorization));
+    assert!(
+        result
+            .mismatch_dimensions
+            .contains(&MismatchDimension::Authorization)
+    );
 }
