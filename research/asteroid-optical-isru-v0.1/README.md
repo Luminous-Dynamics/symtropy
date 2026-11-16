@@ -42,11 +42,11 @@ The Rust library currently implements:
 3. ideal circular-aperture aperture-to-solar-image concentration ratio;
 4. ideal focal-plane irradiance from the inverse-square solar flux and heliocentric finite-Sun geometry;
 5. ideal circular-aperture Airy first-null diameter for a declared far-field laser aperture/range/wavelength;
-5. monotone source-to-optical-to-receiver-to-process energy meter-plane validation;
-6. explicit solid/gas material stream mass closure;
-7. product acceptance requiring a separate captured stream, contract purity and independent assay;
-8. accepted product yield per declared source-energy meter plane;
-9. stable corpus source/case identity and cross-reference checks.
+6. monotone source-to-optical-to-receiver-to-process energy meter-plane validation;
+7. explicit solid/gas material stream mass closure;
+8. product acceptance requiring a separate captured stream, contract purity and independent assay;
+9. accepted product yield per declared source-energy meter plane;
+10. stable corpus source/case identity and cross-reference checks.
 
 The calculations are screening relationships, not full engineering models. In particular:
 - solar-image diameter and ideal concentration ratio are not a full collector/aberration/flux-profile model and scale with heliocentric distance;
