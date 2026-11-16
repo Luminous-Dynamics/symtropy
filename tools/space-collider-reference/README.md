@@ -226,3 +226,26 @@ References:
 - Wang et al., *Muon injection and acceleration via ultraintense electron beam-driven plasma wakefield*, PRAB 29, 021302 (2026): https://doi.org/10.1103/wq5g-mtjq
 - MuCol Consolidated Parameters, 2025: https://doi.org/10.5281/zenodo.17476875
 - Follow-on qualification owner: [SPACE-COLLIDER-MUON-PLASMA-ACCEL-001 #5641](https://github.com/Luminous-Dynamics/symtropy/issues/5641)
+
+
+## Four-stage RCS horizontal-emittance budget screen
+
+The report now includes a separate source-table arithmetic object for the Soubirou–Chancé 2026 RCS energy–magnetic-field mismatch study (arXiv:2611.02865, Table III).
+
+Its 32-arc case reports horizontal emittance growth of 6.8%, 0.4%, 1.0% and 1.5% across RCS1–RCS4. If those stage-local percentages are applied sequentially to the same propagated emittance definition, the conditional composition is:
+
+- additive first-order sum: 9.700000%;
+- multiplicative composition: **9.92396408%**;
+- share of the 10% nominal budget consumed: **99.2396408%**;
+- remaining arithmetic headroom: **0.07603592 percentage points**.
+
+This is deliberately marked "conditional_sequential_composition" and "physical_qualification_status: not_evaluated". It is not a full start-to-end tracking result: inter-stage matching, corrections, distribution changes, losses and correlations may invalidate direct compounding.
+
+The report keeps the separate source cases distinct:
+- the 8-arc RF-distribution comparison (>500% horizontal emittance growth);
+- the 32-arc RF-distribution comparison (~13% under the stated linear-matching setup);
+- the Table III 32-arc energy–magnetic-field mismatch values used for the conditional arithmetic.
+
+Negative vertical/longitudinal changes are preserved as source observations and are not treated as evidence of true beam cooling. Ramp-jitter observations are carried separately; negligible extra emittance growth at 100 ppm does not mean zero orbit or optics perturbation.
+
+The source-bound component qualifies transcription and arithmetic only. It does not replace RCS lattice tracking or prove that the full chain meets the physical emittance budget.
