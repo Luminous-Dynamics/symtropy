@@ -1,0 +1,432 @@
+{
+  "schema_version": "0.1.0",
+  "suite_id": "MEGASTRUCTURE-DESIGN-QUALITY-SYNTHETIC-001",
+  "claim_class": "SYNTHETIC_REVIEW_POLICY_ONLY",
+  "aggregation_policy": "NO_UNIVERSAL_AESTHETIC_SCORE",
+  "hard_gate_precedence": [
+    "structural_safety",
+    "operational_safety",
+    "accessibility",
+    "maintainability",
+    "rights",
+    "environment",
+    "ecology"
+  ],
+  "dimension_vocabulary": [
+    "formal_coherence_legibility",
+    "human_experience_dignity",
+    "material_honesty_repairability",
+    "ecological_planetary_orbital_relationship",
+    "pluralism_place_cultural_authorship"
+  ],
+  "cases": [
+    {
+      "case_id": "POLISHED_BUT_STRUCTURALLY_UNSAFE",
+      "asset_family": "orbital_ring_service_node",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-ORS-NODE-A",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-A1",
+        "design_intent": "Visually coherent landmark node with a polished exterior composition.",
+        "hard_gates": {
+          "structural_safety": "fail",
+          "operational_safety": "unknown",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "complete",
+          "views_complete": true,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity",
+            "material_honesty_repairability",
+            "ecological_planetary_orbital_relationship",
+            "pluralism_place_cultural_authorship"
+          ],
+          "stakeholder_groups": [
+            "crew",
+            "operations",
+            "maintenance",
+            "affected_public"
+          ],
+          "dissent_preserved": true
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "Exterior visual quality does not change the failed structural gate.",
+          "Operational safety remains unknown."
+        ]
+      },
+      "expected_disposition": "blocked_hard_gate",
+      "expected_reason_codes": [
+        "STRUCTURAL_SAFETY_FAIL",
+        "OPERATIONAL_SAFETY_UNKNOWN",
+        "AESTHETIC_REVIEW_NONCOMPENSATORY"
+      ]
+    },
+    {
+      "case_id": "MAJORITY_PREFERENCE_CANNOT_OVERRIDE_RIGHTS",
+      "asset_family": "terrestrial_spaceport_ecosystem",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-SPACEPORT-B",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-B1",
+        "design_intent": "A monumental gateway design receives broad visitor enthusiasm but has not completed customary-rights and affected-community review.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "unknown",
+          "environment": "unknown",
+          "ecology": "unknown"
+        },
+        "review": {
+          "status": "complete",
+          "views_complete": true,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity",
+            "pluralism_place_cultural_authorship"
+          ],
+          "stakeholder_groups": [
+            "visitors",
+            "operators",
+            "local_community",
+            "customary_rights_holders"
+          ],
+          "dissent_preserved": false
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "A majority preference result is not consent.",
+          "Dissent was not retained in the review record."
+        ]
+      },
+      "expected_disposition": "blocked_hard_gate",
+      "expected_reason_codes": [
+        "RIGHTS_UNKNOWN",
+        "ENVIRONMENT_UNKNOWN",
+        "ECOLOGY_UNKNOWN",
+        "DISSENT_NOT_PRESERVED",
+        "PREFERENCE_CANNOT_SUBSTITUTE_FOR_CONSENT"
+      ]
+    },
+    {
+      "case_id": "TECHNICALLY_ADMISSIBLE_BUT_DESIGN_REVIEW_MISSING",
+      "asset_family": "orbital_shipyard",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-SHIPYARD-C",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-C1",
+        "design_intent": "A functional modular shipyard layout is technically admissible, but the team has only supplied engineering schematics.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "incomplete",
+          "views_complete": false,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility"
+          ],
+          "stakeholder_groups": [
+            "operators"
+          ],
+          "dissent_preserved": false
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "Technical admissibility is not a complete design-quality review."
+        ]
+      },
+      "expected_disposition": "design_review_incomplete",
+      "expected_reason_codes": [
+        "REQUIRED_VIEWS_MISSING",
+        "HUMAN_EXPERIENCE_NOT_REVIEWED",
+        "STAKEHOLDER_COVERAGE_INCOMPLETE"
+      ]
+    },
+    {
+      "case_id": "PLURALISTIC_CONTEXTUAL_REVIEW_COMPLETE",
+      "asset_family": "rotating_habitat_commons",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-HABITAT-D",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-D1",
+        "design_intent": "A commons concept is adapted through crew and resident co-design; more than one coherent architectural language remains viable.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "complete",
+          "views_complete": true,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity",
+            "material_honesty_repairability",
+            "ecological_planetary_orbital_relationship",
+            "pluralism_place_cultural_authorship"
+          ],
+          "stakeholder_groups": [
+            "crew",
+            "residents",
+            "maintenance",
+            "medical",
+            "operations"
+          ],
+          "dissent_preserved": true
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "No single style is privileged.",
+          "Preference distributions and minority reports are retained separately.",
+          "This is admissible for further multi-criteria review, not a construction or human-rating approval."
+        ]
+      },
+      "expected_disposition": "admissible_for_multicriteria_review",
+      "expected_reason_codes": [
+        "HARD_GATES_PASS",
+        "DESIGN_REVIEW_COMPLETE",
+        "DISSENT_PRESERVED",
+        "NO_UNIVERSAL_STYLE_ASSUMED"
+      ]
+    },
+    {
+      "case_id": "AESTHETIC_FEATURE_WITH_PHYSICAL_LIFECYCLE_BURDEN",
+      "asset_family": "orbital_shipyard",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-SHIPYARD-E",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-E1",
+        "design_intent": "An expressive illuminated canopy is added to improve arrival experience.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "complete",
+          "views_complete": true,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity",
+            "material_honesty_repairability",
+            "ecological_planetary_orbital_relationship",
+            "pluralism_place_cultural_authorship"
+          ],
+          "stakeholder_groups": [
+            "crew",
+            "visitors",
+            "operations",
+            "maintenance",
+            "environmental_review"
+          ],
+          "dissent_preserved": true
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 12000,
+          "power_delta_kw": 85,
+          "thermal_delta_kw": 110,
+          "maintenance_time_delta_pct": 18
+        },
+        "synthetic_notes": [
+          "All deltas are synthetic design-comparison values.",
+          "The added mass, electrical demand, rejected heat and maintenance burden require a matched trade study.",
+          "The feature is not automatically rejected or accepted because it is visually valued."
+        ]
+      },
+      "expected_disposition": "trade_study_required",
+      "expected_reason_codes": [
+        "AESTHETIC_PHYSICAL_DELTA_RECORDED",
+        "LIFECYCLE_TRADE_STUDY_REQUIRED",
+        "NO_COMPENSATORY_SCORE"
+      ]
+    },
+    {
+      "case_id": "EMERGENCY_DESIGN_DEFERRAL_WITH_EXPIRY",
+      "asset_family": "terrestrial_launch_integration_facility",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-INTEGRATION-F",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-F1",
+        "design_intent": "A temporary emergency integration shelter prioritizes immediate safe operations and records a bounded path to later architectural improvement.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "deferred",
+          "views_complete": false,
+          "reviewed_dimensions": [
+            "human_experience_dignity"
+          ],
+          "stakeholder_groups": [
+            "workers",
+            "operators",
+            "site_community"
+          ],
+          "dissent_preserved": true,
+          "deferment": {
+            "reason": "Temporary emergency deployment with a documented post-response design review.",
+            "expires_at": "2027-03-31",
+            "improvement_owner": "facility-design-authority"
+          }
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "Deferral does not waive safety, accessibility or rights.",
+          "The expiry and improvement owner are part of the acceptance record."
+        ]
+      },
+      "expected_disposition": "time_limited_deferment",
+      "expected_reason_codes": [
+        "EMERGENCY_DEFERRAL_RECORDED",
+        "EXPIRY_REQUIRED",
+        "IMPROVEMENT_OWNER_REQUIRED"
+      ]
+    },
+    {
+      "case_id": "BEAUTIFUL_BUT_UNMAINTAINABLE",
+      "asset_family": "orbital_ring_support_station",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-SUPPORT-G",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-G1",
+        "design_intent": "A sculptural station conceals critical service access behind non-removable decorative panels.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "unknown",
+          "accessibility": "pass",
+          "maintainability": "fail",
+          "rights": "pass",
+          "environment": "pass",
+          "ecology": "pass"
+        },
+        "review": {
+          "status": "complete",
+          "views_complete": true,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity",
+            "material_honesty_repairability",
+            "ecological_planetary_orbital_relationship",
+            "pluralism_place_cultural_authorship"
+          ],
+          "stakeholder_groups": [
+            "crew",
+            "operations",
+            "maintenance"
+          ],
+          "dissent_preserved": true
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 4500,
+          "power_delta_kw": 0,
+          "thermal_delta_kw": 0,
+          "maintenance_time_delta_pct": 240
+        },
+        "synthetic_notes": [
+          "The maintenance gate fails because critical inspection and replacement access is obstructed.",
+          "Aesthetic quality cannot compensate for an unserviceable safety-critical asset."
+        ]
+      },
+      "expected_disposition": "blocked_hard_gate",
+      "expected_reason_codes": [
+        "MAINTAINABILITY_FAIL",
+        "OPERATIONAL_SAFETY_UNKNOWN",
+        "REPAIR_ACCESS_OBSTRUCTED"
+      ]
+    },
+    {
+      "case_id": "ECOLOGICAL_AND_NIGHT_SKY_EVIDENCE_UNKNOWN",
+      "asset_family": "terrestrial_spaceport_ecosystem",
+      "candidate": {
+        "candidate_id": "SYNTHETIC-SPACEPORT-H",
+        "design_identity": "SYNTHETIC-DESIGN-GENERATION-H1",
+        "design_intent": "A brightly illuminated launch and visitor complex is proposed near a sensitive landscape without completed lighting and ecological review.",
+        "hard_gates": {
+          "structural_safety": "pass",
+          "operational_safety": "pass",
+          "accessibility": "pass",
+          "maintainability": "pass",
+          "rights": "pass",
+          "environment": "unknown",
+          "ecology": "unknown"
+        },
+        "review": {
+          "status": "incomplete",
+          "views_complete": false,
+          "reviewed_dimensions": [
+            "formal_coherence_legibility",
+            "human_experience_dignity"
+          ],
+          "stakeholder_groups": [
+            "operators",
+            "visitors",
+            "local_community"
+          ],
+          "dissent_preserved": true
+        },
+        "physical_deltas": {
+          "mass_delta_kg": 0,
+          "power_delta_kw": 240,
+          "thermal_delta_kw": 15,
+          "maintenance_time_delta_pct": 0
+        },
+        "synthetic_notes": [
+          "No actual ecological or night-sky survey is represented.",
+          "Lighting demand and spill must be assessed before site admission."
+        ]
+      },
+      "expected_disposition": "blocked_hard_gate",
+      "expected_reason_codes": [
+        "ENVIRONMENT_UNKNOWN",
+        "ECOLOGY_UNKNOWN",
+        "LIGHTING_REVIEW_MISSING"
+      ]
+    }
+  ]
+}
