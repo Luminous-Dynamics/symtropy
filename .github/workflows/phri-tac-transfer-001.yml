@@ -1,0 +1,63 @@
+name: PHRI Tactile Transfer Synthetic Oracle
+
+on:
+  push:
+    paths:
+      - "research/phri-tac-transfer-001/**"
+      - ".github/workflows/phri-tac-transfer-001.yml"
+  pull_request:
+    paths:
+      - "research/phri-tac-transfer-001/**"
+      - ".github/workflows/phri-tac-transfer-001.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: phri-tac-transfer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  transfer-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          persist-credentials: true
+      - name: Install Rust 1.96, rustfmt and Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Resolve locked dependency graph
+        run: cargo generate-lockfile --manifest-path research/phri-tac-transfer-001/Cargo.toml
+      - name: Format Rust sources
+        run: cargo fmt --manifest-path research/phri-tac-transfer-001/Cargo.toml --all
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/phri-tac-transfer-001/Cargo.toml --all -- --check
+      - name: Fetch locked dependencies
+        run: cargo fetch --locked --manifest-path research/phri-tac-transfer-001/Cargo.toml
+      - name: Run offline mutation and known-answer tests
+        run: cargo test --locked --offline --manifest-path research/phri-tac-transfer-001/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --offline --manifest-path research/phri-tac-transfer-001/Cargo.toml --all-targets -- -D warnings
+      - name: Validate tracked transfer corpus
+        run: cargo run --locked --offline --manifest-path research/phri-tac-transfer-001/Cargo.toml
+      - name: Commit runner-resolved lock and rustfmt output
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/phri-tac-transfer-001/Cargo.lock research/phri-tac-transfer-001/src/lib.rs research/phri-tac-transfer-001/src/main.rs
+          if git diff --cached --quiet; then
+            echo "generated_files_already_current=true"
+          else
+            git commit -m "chore(phri): commit runner-resolved lock and rustfmt output"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi

@@ -1,0 +1,529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/phri-tac-transfer-corpus-001-v0.1.schema.json",
+  "title": "PHRI-TAC-TRANSFER-001 synthetic transfer qualification corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "phri.tactile-transfer-corpus/1.0"
+    },
+    "corpus_id": {
+      "const": "PHRI-TAC-TRANSFER-CORPUS-001"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_reference_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 34,
+      "maxItems": 34,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "family",
+          "candidate_input",
+          "evaluator_only"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^PTT-[0-9]{3}$"
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_input": {
+            "$ref": "#/$defs/candidate_input"
+          },
+          "evaluator_only": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fault_kind",
+              "expected"
+            ],
+            "properties": {
+              "fault_kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "split_integrity",
+                  "transfer_eligibility",
+                  "metrology_disposition",
+                  "recalibration_disposition"
+                ],
+                "properties": {
+                  "split_integrity": {
+                    "enum": [
+                      "valid",
+                      "leaked"
+                    ]
+                  },
+                  "transfer_eligibility": {
+                    "enum": [
+                      "eligible",
+                      "blocked_split",
+                      "blocked_method",
+                      "blocked_source_calibration",
+                      "requires_adaptation",
+                      "blocked_budget",
+                      "out_of_profile"
+                    ]
+                  },
+                  "metrology_disposition": {
+                    "enum": [
+                      "model_estimate_only",
+                      "target_qualified_estimate",
+                      "invalid_measurement_claim"
+                    ]
+                  },
+                  "recalibration_disposition": {
+                    "enum": [
+                      "not_indicated",
+                      "required",
+                      "unknown"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "family": {
+      "enum": [
+        "pressure_array",
+        "vision_tactile",
+        "magnetic_skin",
+        "capacitive_skin",
+        "piezoresistive_skin"
+      ]
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_ids",
+        "lot_ids",
+        "sample_ids",
+        "sequence_ids",
+        "article_ids"
+      ],
+      "properties": {
+        "unit_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lot_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sample_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sequence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "article_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "candidate_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "regime",
+        "source",
+        "target",
+        "transfer_method",
+        "splits",
+        "holdout_materials",
+        "target_calibration",
+        "transfer_validation",
+        "model",
+        "output_claim"
+      ],
+      "properties": {
+        "regime": {
+          "enum": [
+            "within_device",
+            "cross_unit_zero_shot",
+            "cross_unit_few_shot",
+            "cross_family_zero_shot",
+            "cross_revision",
+            "aging"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit_id",
+            "lot_id",
+            "family",
+            "profile_digest",
+            "calibration_id",
+            "calibration_state"
+          ],
+          "properties": {
+            "unit_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "family": {
+              "$ref": "#/$defs/family"
+            },
+            "profile_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "calibration_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "calibration_state": {
+              "enum": [
+                "current",
+                "missing",
+                "expired",
+                "invalidated"
+              ]
+            }
+          }
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit_id",
+            "lot_id",
+            "family",
+            "profile_digest",
+            "firmware_revision",
+            "skin_revision",
+            "age_cycles",
+            "temperature_c"
+          ],
+          "properties": {
+            "unit_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "family": {
+              "$ref": "#/$defs/family"
+            },
+            "profile_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "firmware_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "skin_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "age_cycles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "temperature_c": {
+              "type": "number"
+            }
+          }
+        },
+        "transfer_method": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method_id",
+            "enabled",
+            "source_family",
+            "target_family",
+            "source_profile_digest",
+            "target_profile_digest",
+            "maximum_target_age_cycles",
+            "minimum_temperature_c",
+            "maximum_temperature_c",
+            "maximum_target_adaptation_samples",
+            "requires_target_adaptation"
+          ],
+          "properties": {
+            "method_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "source_family": {
+              "$ref": "#/$defs/family"
+            },
+            "target_family": {
+              "$ref": "#/$defs/family"
+            },
+            "source_profile_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "target_profile_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "maximum_target_age_cycles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minimum_temperature_c": {
+              "type": "number"
+            },
+            "maximum_temperature_c": {
+              "type": "number"
+            },
+            "maximum_target_adaptation_samples": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "requires_target_adaptation": {
+              "type": "boolean"
+            }
+          }
+        },
+        "splits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_train",
+            "target_adaptation",
+            "target_validation",
+            "target_test"
+          ],
+          "properties": {
+            "source_train": {
+              "$ref": "#/$defs/group"
+            },
+            "target_adaptation": {
+              "$ref": "#/$defs/group"
+            },
+            "target_validation": {
+              "$ref": "#/$defs/group"
+            },
+            "target_test": {
+              "$ref": "#/$defs/group"
+            }
+          }
+        },
+        "holdout_materials": {
+          "type": "boolean"
+        },
+        "target_calibration": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "calibration_id",
+            "device_id",
+            "state",
+            "profile_digest",
+            "firmware_revision",
+            "skin_revision",
+            "maximum_age_cycles",
+            "minimum_temperature_c",
+            "maximum_temperature_c"
+          ],
+          "properties": {
+            "calibration_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "device_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "state": {
+              "enum": [
+                "current",
+                "missing",
+                "expired",
+                "invalidated"
+              ]
+            },
+            "profile_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "firmware_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "skin_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maximum_age_cycles": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minimum_temperature_c": {
+              "type": "number"
+            },
+            "maximum_temperature_c": {
+              "type": "number"
+            }
+          }
+        },
+        "transfer_validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "target_unit_id",
+            "target_lot_id",
+            "model_digest",
+            "validation_receipt_id",
+            "reference_calibration_id",
+            "reference_calibration_state",
+            "independent_reference",
+            "uncertainty_state",
+            "guard_band_state"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "not_validated",
+                "development_only",
+                "heldout_pass",
+                "failed"
+              ]
+            },
+            "target_unit_id": {
+              "type": "string"
+            },
+            "target_lot_id": {
+              "type": "string"
+            },
+            "model_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "validation_receipt_id": {
+              "type": "string"
+            },
+            "reference_calibration_id": {
+              "type": "string"
+            },
+            "reference_calibration_state": {
+              "enum": [
+                "current",
+                "missing",
+                "expired",
+                "invalidated"
+              ]
+            },
+            "independent_reference": {
+              "type": "boolean"
+            },
+            "uncertainty_state": {
+              "enum": [
+                "pass",
+                "fail",
+                "unresolved"
+              ]
+            },
+            "guard_band_state": {
+              "enum": [
+                "pass",
+                "fail",
+                "unresolved"
+              ]
+            }
+          }
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "model_digest",
+            "source_calibration_id",
+            "target_calibration_id"
+          ],
+          "properties": {
+            "model_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "source_calibration_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_calibration_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "output_claim": {
+          "enum": [
+            "model_estimate",
+            "measurement"
+          ]
+        }
+      }
+    }
+  }
+}
