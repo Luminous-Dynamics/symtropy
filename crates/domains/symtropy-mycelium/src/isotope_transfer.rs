@@ -18,7 +18,7 @@ use std::fmt;
 
 use crate::network_evidence::{
     CytoplasmicFlowEvidence, EvidenceOutcome, FungalNetworkIdentity, NetworkClaimLevel,
-    NetworkEvidenceAssessment, NetworkEvidenceError, NetworkCriterion,
+    NetworkCriterion, NetworkEvidenceAssessment, NetworkEvidenceError,
 };
 use crate::observation_evidence::{
     EvidenceReceiptError, ObservationEvidenceId, ObservationEvidenceReceipt, ObservationSubject,
@@ -130,11 +130,7 @@ impl IsotopeTracerObservation {
         ) {
             (None, None) => {}
             (Some(mass), Some(error)) => {
-                if !mass.is_finite()
-                    || mass <= 0.0
-                    || !error.is_finite()
-                    || error < 0.0
-                {
+                if !mass.is_finite() || mass <= 0.0 || !error.is_finite() || error < 0.0 {
                     return Err(IsotopeTransferError::InvalidElementPool(self.evidence));
                 }
             }
@@ -292,7 +288,11 @@ impl fmt::Display for IsotopeTransferError {
                 write!(f, "required control arm {:?} is duplicated", arm)
             }
             Self::MissingArmEvidence(arm) => {
-                write!(f, "intervention {:?} has no source-linked design receipt", arm)
+                write!(
+                    f,
+                    "intervention {:?} has no source-linked design receipt",
+                    arm
+                )
             }
             Self::DuplicateArmEvidence(arm) => {
                 write!(f, "intervention {:?} has duplicate design receipts", arm)
@@ -306,28 +306,56 @@ impl fmt::Display for IsotopeTransferError {
                 write!(f, "receipt {:?} is invalid: {}", id, source)
             }
             Self::WrongSampleReceiptSubject(id) => {
-                write!(f, "sample receipt {:?} is not an isotope-tracer observation", id)
+                write!(
+                    f,
+                    "sample receipt {:?} is not an isotope-tracer observation",
+                    id
+                )
             }
             Self::WrongArmReceiptSubject(id) => {
-                write!(f, "intervention receipt {:?} is not a matched-condition record", id)
+                write!(
+                    f,
+                    "intervention receipt {:?} is not a matched-condition record",
+                    id
+                )
             }
             Self::ReceiptTimestampMismatch(id) => {
                 write!(f, "receipt {:?} and raw instrument timestamp disagree", id)
             }
             Self::InvalidAtomFraction(id) => {
-                write!(f, "atom fraction or its error bound is invalid for {:?}", id)
+                write!(
+                    f,
+                    "atom fraction or its error bound is invalid for {:?}",
+                    id
+                )
             }
             Self::InvalidElementPool(id) => {
-                write!(f, "element pool mass or error bound is invalid for {:?}", id)
+                write!(
+                    f,
+                    "element pool mass or error bound is invalid for {:?}",
+                    id
+                )
             }
             Self::IncompleteElementPool(id) => {
-                write!(f, "element pool mass and error bound must be both present or both absent for {:?}", id)
+                write!(
+                    f,
+                    "element pool mass and error bound must be both present or both absent for {:?}",
+                    id
+                )
             }
             Self::InvalidSampleRole(id) => {
-                write!(f, "baseline sample {:?} must be from the receiver plant", id)
+                write!(
+                    f,
+                    "baseline sample {:?} must be from the receiver plant",
+                    id
+                )
             }
             Self::UnexpectedFungalBridgeSample(id) => {
-                write!(f, "fungal bridge sample {:?} is only valid in the intact arm", id)
+                write!(
+                    f,
+                    "fungal bridge sample {:?} is only valid in the intact arm",
+                    id
+                )
             }
             Self::MixedExperiment(id) => {
                 write!(f, "observation {:?} belongs to another experiment", id)
@@ -336,14 +364,24 @@ impl fmt::Display for IsotopeTransferError {
                 write!(f, "observation {:?} uses a different isotope", id)
             }
             Self::MissingBlock(id) => write!(f, "matched block {:?} has no observations", id),
-            Self::MissingArm { block, intervention } => {
+            Self::MissingArm {
+                block,
+                intervention,
+            } => {
                 write!(f, "block {:?} is missing arm {:?}", block, intervention)
             }
             Self::DuplicateSampleSlot(id) => {
                 write!(f, "duplicate compartment/phase sample slot at {:?}", id)
             }
-            Self::InconsistentReplicate { block, intervention } => {
-                write!(f, "block {:?} arm {:?} mixes replicate identities", block, intervention)
+            Self::InconsistentReplicate {
+                block,
+                intervention,
+            } => {
+                write!(
+                    f,
+                    "block {:?} arm {:?} mixes replicate identities",
+                    block, intervention
+                )
             }
             Self::MissingSample {
                 block,
@@ -355,8 +393,15 @@ impl fmt::Display for IsotopeTransferError {
                 "block {:?} arm {:?} lacks {:?} sample in phase {:?}",
                 block, intervention, compartment, phase
             ),
-            Self::UnexpectedSampleRole { block, intervention } => {
-                write!(f, "block {:?} arm {:?} contains an unsupported sample role", block, intervention)
+            Self::UnexpectedSampleRole {
+                block,
+                intervention,
+            } => {
+                write!(
+                    f,
+                    "block {:?} arm {:?} contains an unsupported sample role",
+                    block, intervention
+                )
             }
             Self::TemporalAlignment(error) => write!(f, "temporal alignment failed: {}", error),
             Self::NetworkEvidence(error) => write!(f, "network evidence is invalid: {}", error),
@@ -418,8 +463,7 @@ fn receiver_inventory_estimate(
     let atom_excess = post.atom_fraction - baseline.atom_fraction;
     let atom_error = post.atom_fraction_error_bound + baseline.atom_fraction_error_bound;
     let estimate = atom_excess * mass;
-    let error_bound =
-        atom_error * (mass + mass_error) + atom_excess.abs() * mass_error;
+    let error_bound = atom_error * (mass + mass_error) + atom_excess.abs() * mass_error;
     (estimate.is_finite() && error_bound.is_finite()).then_some(ExcessIsotopeInventoryEstimate {
         estimate_mg: estimate,
         error_bound_mg: error_bound,
@@ -465,10 +509,7 @@ impl IsotopeTransferExperiment {
             TracerBlockId,
             BTreeMap<
                 TracerIntervention,
-                BTreeMap<
-                    (TracerCompartment, TracerPhase),
-                    &IsotopeTracerObservation,
-                >,
+                BTreeMap<(TracerCompartment, TracerPhase), &IsotopeTracerObservation>,
             >,
         >::new();
 
@@ -500,8 +541,7 @@ impl IsotopeTransferExperiment {
                     observation.evidence,
                 ));
             }
-            if receipt.frame.timestamp_s.to_bits() != observation.raw_timestamp.seconds.to_bits()
-            {
+            if receipt.frame.timestamp_s.to_bits() != observation.raw_timestamp.seconds.to_bits() {
                 return Err(IsotopeTransferError::ReceiptTimestampMismatch(
                     observation.evidence,
                 ));
@@ -562,22 +602,14 @@ impl IsotopeTransferExperiment {
 
             let mut control_contrasts = Vec::with_capacity(self.required_control_arms.len());
             for control in &self.required_control_arms {
-                let samples = Self::arm_samples(
-                    *block_id,
-                    *control,
-                    arms,
-                    &aligned_by_id,
-                    false,
-                )?;
+                let samples = Self::arm_samples(*block_id, *control, arms, &aligned_by_id, false)?;
                 let control_excess = excess_bounds(samples.receiver, samples.baseline);
-                let control_order = Self::baselines_precede_donor(
-                    samples.donor_baseline_time,
-                    samples.baseline_time,
-                    samples.donor_time,
-                )? && Self::order_is_confirmed_pair(
-                    samples.donor_time,
-                    samples.receiver_time,
-                )?;
+                let control_order =
+                    Self::baselines_precede_donor(
+                        samples.donor_baseline_time,
+                        samples.baseline_time,
+                        samples.donor_time,
+                    )? && Self::order_is_confirmed_pair(samples.donor_time, samples.receiver_time)?;
                 control_contrasts.push(TracerControlContrast {
                     intervention: *control,
                     control_receiver_excess_upper_bound: control_excess.upper,
@@ -595,7 +627,9 @@ impl IsotopeTransferExperiment {
             let donor_bridge_receiver_order_confirmed = baseline_donor_order
                 && Self::order_is_confirmed(
                     intact.donor_time,
-                    intact.bridge_time.expect("intact bridge timestamp is present"),
+                    intact
+                        .bridge_time
+                        .expect("intact bridge timestamp is present"),
                     intact.receiver_time,
                 )?;
 
@@ -704,10 +738,11 @@ impl IsotopeTransferExperiment {
             if !arm_receipt_ids.insert(arm.evidence) {
                 return Err(IsotopeTransferError::DuplicateReceipt(arm.evidence));
             }
-            if arm_receipts.insert(arm.intervention, arm.evidence).is_some() {
-                return Err(IsotopeTransferError::DuplicateArmEvidence(
-                    arm.intervention,
-                ));
+            if arm_receipts
+                .insert(arm.intervention, arm.evidence)
+                .is_some()
+            {
+                return Err(IsotopeTransferError::DuplicateArmEvidence(arm.intervention));
             }
         }
         for intervention in TracerIntervention::ALL {
@@ -723,17 +758,17 @@ impl IsotopeTransferExperiment {
         intervention: TracerIntervention,
         arms: &'a BTreeMap<
             TracerIntervention,
-            BTreeMap<
-                (TracerCompartment, TracerPhase),
-                &'a IsotopeTracerObservation,
-            >,
+            BTreeMap<(TracerCompartment, TracerPhase), &'a IsotopeTracerObservation>,
         >,
         aligned: &BTreeMap<ObservationEvidenceId, AlignedExperimentTimestamp>,
         require_bridge: bool,
     ) -> Result<ArmSamples<'a>, IsotopeTransferError> {
         let samples = arms
             .get(&intervention)
-            .ok_or(IsotopeTransferError::MissingArm { block, intervention })?;
+            .ok_or(IsotopeTransferError::MissingArm {
+                block,
+                intervention,
+            })?;
 
         let get = |compartment, phase| {
             samples
@@ -751,10 +786,7 @@ impl IsotopeTransferExperiment {
             TracerCompartment::ReceiverPlant,
             TracerPhase::PreLabelBaseline,
         )?;
-        let donor_baseline = get(
-            TracerCompartment::DonorPlant,
-            TracerPhase::PreLabelBaseline,
-        )?;
+        let donor_baseline = get(TracerCompartment::DonorPlant, TracerPhase::PreLabelBaseline)?;
         let donor = get(TracerCompartment::DonorPlant, TracerPhase::PostLabel)?;
         let receiver = get(TracerCompartment::ReceiverPlant, TracerPhase::PostLabel)?;
         let bridge = if require_bridge {
@@ -764,10 +796,7 @@ impl IsotopeTransferExperiment {
             )?)
         } else {
             samples
-                .get(&(
-                    TracerCompartment::FungalBridge,
-                    TracerPhase::PostLabel,
-                ))
+                .get(&(TracerCompartment::FungalBridge, TracerPhase::PostLabel))
                 .copied()
         };
 
@@ -827,23 +856,23 @@ impl IsotopeTransferExperiment {
         receiver_baseline: AlignedExperimentTimestamp,
         donor: AlignedExperimentTimestamp,
     ) -> Result<bool, IsotopeTransferError> {
-        let donor_baseline_before_label =
-            ExperimentTimeAligner::compare(donor_baseline, donor)
-                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let donor_baseline_before_label = ExperimentTimeAligner::compare(donor_baseline, donor)
+            .map_err(IsotopeTransferError::TemporalAlignment)?;
         let receiver_baseline_before_label =
             ExperimentTimeAligner::compare(receiver_baseline, donor)
                 .map_err(IsotopeTransferError::TemporalAlignment)?;
-        Ok(donor_baseline_before_label == TemporalOrdering::FirstBeforeSecond
-            && receiver_baseline_before_label == TemporalOrdering::FirstBeforeSecond)
+        Ok(
+            donor_baseline_before_label == TemporalOrdering::FirstBeforeSecond
+                && receiver_baseline_before_label == TemporalOrdering::FirstBeforeSecond,
+        )
     }
 
     fn order_is_confirmed_pair(
         donor: AlignedExperimentTimestamp,
         receiver: AlignedExperimentTimestamp,
     ) -> Result<bool, IsotopeTransferError> {
-        let donor_before_receiver =
-            ExperimentTimeAligner::compare(donor, receiver)
-                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let donor_before_receiver = ExperimentTimeAligner::compare(donor, receiver)
+            .map_err(IsotopeTransferError::TemporalAlignment)?;
         Ok(donor_before_receiver == TemporalOrdering::FirstBeforeSecond)
     }
 
@@ -852,12 +881,10 @@ impl IsotopeTransferExperiment {
         bridge: AlignedExperimentTimestamp,
         receiver: AlignedExperimentTimestamp,
     ) -> Result<bool, IsotopeTransferError> {
-        let donor_before_bridge =
-            ExperimentTimeAligner::compare(donor, bridge)
-                .map_err(IsotopeTransferError::TemporalAlignment)?;
-        let bridge_before_receiver =
-            ExperimentTimeAligner::compare(bridge, receiver)
-                .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let donor_before_bridge = ExperimentTimeAligner::compare(donor, bridge)
+            .map_err(IsotopeTransferError::TemporalAlignment)?;
+        let bridge_before_receiver = ExperimentTimeAligner::compare(bridge, receiver)
+            .map_err(IsotopeTransferError::TemporalAlignment)?;
         Ok(donor_before_bridge == TemporalOrdering::FirstBeforeSecond
             && bridge_before_receiver == TemporalOrdering::FirstBeforeSecond)
     }
@@ -889,8 +916,7 @@ impl IsotopeTransferExperiment {
         }
         match evidence.fungal_identity {
             FungalNetworkIdentity::ArbuscularMycorrhizal => {
-                claim_level
-                    == NetworkClaimLevel::CommonMycorrhizalNetworkHyphalContinuitySupported
+                claim_level == NetworkClaimLevel::CommonMycorrhizalNetworkHyphalContinuitySupported
                     && outcome(NetworkCriterion::AllLinkedPlantsAmColonized)
                         == EvidenceOutcome::Pass
             }
@@ -952,8 +978,7 @@ mod tests {
 
     fn network_evidence() -> NetworkEvidenceAssessment {
         use crate::network_evidence::{
-            CriterionEvidence, CytoplasmicFlowReceipt, NetworkCriterion,
-            SharedFungalLinkEvidence,
+            CriterionEvidence, CytoplasmicFlowReceipt, NetworkCriterion, SharedFungalLinkEvidence,
         };
         let criteria = [
             NetworkCriterion::AtLeastTwoPlantUnits,
@@ -990,7 +1015,11 @@ mod tests {
         }
     }
 
-    fn build_experiment() -> (IsotopeTransferExperiment, Vec<ObservationEvidenceReceipt>, ExperimentTimeAligner) {
+    fn build_experiment() -> (
+        IsotopeTransferExperiment,
+        Vec<ObservationEvidenceReceipt>,
+        ExperimentTimeAligner,
+    ) {
         let id = TracerExperimentId(7);
         let mut receipts = vec![receipt(
             899,
@@ -1004,11 +1033,7 @@ mod tests {
                 0.0,
             ));
         }
-        receipts.push(receipt(
-            900,
-            ObservationSubject::CytoplasmicFlowStream,
-            2.0,
-        ));
+        receipts.push(receipt(900, ObservationSubject::CytoplasmicFlowStream, 2.0));
 
         let arm_evidence = all_arms
             .iter()
@@ -1113,7 +1138,11 @@ mod tests {
             network_evidence: network_evidence(),
             minimum_matched_blocks: 3,
         };
-        (experiment, receipts, ExperimentTimeAligner::new(ExperimentClockId(1)))
+        (
+            experiment,
+            receipts,
+            ExperimentTimeAligner::new(ExperimentClockId(1)),
+        )
     }
 
     #[test]
@@ -1129,9 +1158,10 @@ mod tests {
         assert!(!report.causal_claim_permitted);
         assert!(!report.statistical_inference_performed);
         assert!(report.blocks.iter().all(|block| {
-            block.control_contrasts.iter().all(|contrast| {
-                contrast.intact_minus_control_lower_bound > 0.0
-            })
+            block
+                .control_contrasts
+                .iter()
+                .all(|contrast| contrast.intact_minus_control_lower_bound > 0.0)
         }));
     }
 
@@ -1150,7 +1180,10 @@ mod tests {
                 .iter()
                 .find(|receipt| receipt.id == observation.evidence)
                 .unwrap();
-            assert_eq!(receipt.frame.timestamp_s.to_bits(), observation.raw_timestamp.seconds.to_bits());
+            assert_eq!(
+                receipt.frame.timestamp_s.to_bits(),
+                observation.raw_timestamp.seconds.to_bits()
+            );
         }
         let report = experiment.assess(&receipts, &aligner).unwrap();
         assert_eq!(report.status, IsotopeTransferStatus::DonorLabelNotResolved);
@@ -1221,7 +1254,10 @@ mod tests {
     fn sample_receipt_subject_must_be_isotope_tracer_transfer() {
         let (experiment, mut receipts, aligner) = build_experiment();
         let id = experiment.observations[0].evidence;
-        let receipt = receipts.iter_mut().find(|receipt| receipt.id == id).unwrap();
+        let receipt = receipts
+            .iter_mut()
+            .find(|receipt| receipt.id == id)
+            .unwrap();
         receipt.subject = ObservationSubject::FluorescenceRoi;
         assert_eq!(
             experiment.assess(&receipts, &aligner),
@@ -1256,8 +1292,14 @@ mod tests {
         bridge.raw_timestamp.seconds = 1.0;
         bridge.raw_timestamp.error_bound_s = 0.001;
         let bridge_id = bridge.evidence;
-        let receipt = receipts.iter().find(|receipt| receipt.id == bridge_id).unwrap();
-        assert_ne!(receipt.frame.timestamp_s.to_bits(), bridge.raw_timestamp.seconds.to_bits());
+        let receipt = receipts
+            .iter()
+            .find(|receipt| receipt.id == bridge_id)
+            .unwrap();
+        assert_ne!(
+            receipt.frame.timestamp_s.to_bits(),
+            bridge.raw_timestamp.seconds.to_bits()
+        );
         // Source and sample timestamps must first agree; a true overlap case is
         // represented by equal, source-matched values and non-zero time bounds.
         let mut receipts = receipts;
@@ -1291,8 +1333,7 @@ mod tests {
     #[test]
     fn non_am_fungal_identity_remains_cfn_not_cmn() {
         let (mut experiment, receipts, aligner) = build_experiment();
-        experiment.network_evidence.fungal_identity =
-            FungalNetworkIdentity::OtherFilamentousFungus;
+        experiment.network_evidence.fungal_identity = FungalNetworkIdentity::OtherFilamentousFungus;
         experiment.network_evidence.criteria[1].outcome = EvidenceOutcome::NotApplicable;
         experiment.network_evidence.criteria[1].observation = None;
         let mut receipts = receipts;
