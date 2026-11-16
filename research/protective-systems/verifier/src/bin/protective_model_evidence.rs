@@ -569,12 +569,32 @@ mod tests {
     }
 
     #[test]
-    fn intended_use_must_match_the_dataset_rights_grant() {
+    fn intended_use_must_match_the_evidence_class() {
         let mut root = fixture_value();
         root["intended_use"] = Value::String("PUBLICATION_REVIEW".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("rights use mismatch");
         assert!(error.contains("intended_use conflicts"));
+    }
+
+    #[test]
+    fn license_scope_mismatch_fails_closed() {
+        let mut root = fixture_value();
+        root["evidence_class"] = Value::String("external_observed".into());
+        root["intended_use"] = Value::String("INTEROPERABILITY_EVALUATION".into());
+        root["claim_ceiling"] =
+            Value::String("EXTERNAL_MODEL_METADATA_AND_ARTIFACT_INTEGRITY_ONLY".into());
+        root["source"]["provider_kind"] = Value::String("EXTERNAL_MODEL".into());
+        for dataset in root["datasets"].as_array_mut().expect("datasets") {
+            dataset["rights"] = json!({
+                "status":"LICENSED",
+                "license_id":"TEST-LICENSE-ONLY",
+                "permitted_use":"RESEARCH_EVALUATION"
+            });
+        }
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("license purpose does not cover intended use");
+        assert!(error.contains("unsupported rights status"));
     }
 
     #[test]
@@ -706,7 +726,7 @@ mod tests {
             Value::String("../../../../secret.txt".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("path traversal");
-        assert!(error.contains("path outside frozen fixture allow-list"));
+        assert!(error.contains("artifact path does not match dataset direction"));
     }
 
     #[test]
