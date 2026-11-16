@@ -13,6 +13,7 @@
     "oracle_comparison",
     "summary",
     "cases",
+    "input_digests",
     "nonclaims"
   ],
   "properties": {
@@ -287,6 +288,33 @@
       "items": {
         "type": "string",
         "minLength": 1
+      }
+    },
+    "input_digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonicalization",
+        "corpus_canonical_json_sha256",
+        "oracle_canonical_json_sha256",
+        "result_schema_canonical_json_sha256"
+      ],
+      "properties": {
+        "canonicalization": {
+          "const": "serde_json-1.0.154-default-map-order-compact-utf8-no-trailing-newline-v1"
+        },
+        "corpus_canonical_json_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "oracle_canonical_json_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "result_schema_canonical_json_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     }
   }
