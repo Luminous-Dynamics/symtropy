@@ -424,7 +424,6 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
     let indexes = header_indexes(&headers);
 
     let mut identity_counts: BTreeMap<String, usize> = BTreeMap::new();
-    let mut row_count = 0usize;
     {
         let mut reader = csv::ReaderBuilder::new()
             .flexible(false)
@@ -432,7 +431,6 @@ pub(crate) fn audit_csv_to_writer<W: Write>(
         for result in reader.records() {
             let record =
                 result.map_err(|error| vec![format!("malformed ORDS CSV row: {error}")])?;
-            row_count += 1;
             if let Some(identity) = source_identity(&record, &indexes) {
                 *identity_counts.entry(identity).or_default() += 1;
             }
