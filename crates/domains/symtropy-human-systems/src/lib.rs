@@ -15,6 +15,9 @@ use std::fmt;
 /// Synthetic observation-process generator and scorer-only truth fixtures.
 pub mod observation;
 
+/// Known-truth sampling-rate and task-bandwidth reference fixtures.
+pub mod sampling_rate;
+
 /// Number of harmonics in the reference circadian expansion.
 pub const C_MAX_HARMONICS: usize = 5;
 
