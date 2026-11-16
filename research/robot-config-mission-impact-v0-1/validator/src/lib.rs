@@ -200,6 +200,110 @@ fn check_trace(
     has_unmapped_clock_relation
 }
 
+/// Validate the explicit event-type-to-stage and event-source mapping catalog.
+/// This prevents the validator from inferring stage semantics from event-name strings.
+pub fn event_type_catalog_invariants(
+    stage_catalog: &Value,
+    event_catalog: &Value,
+    corpus: &Value,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    let Some(stages) = array_at(stage_catalog, &["stages"]) else {
+        return vec!["event_catalog_stage_catalog_missing".to_owned()];
+    };
+    let Some(specs) = array_at(event_catalog, &["events"]) else {
+        return vec!["event_catalog_events_missing".to_owned()];
+    };
+    let Some(cases) = array_at(corpus, &["cases"]) else {
+        return vec!["event_catalog_corpus_cases_missing".to_owned()];
+    };
+
+    check_unique_ids(specs, "event_type", "event_type", &mut errors);
+    let stage_ids = stages
+        .iter()
+        .filter_map(|stage| stage.get("stage_id").and_then(Value::as_str))
+        .collect::<BTreeSet<_>>();
+    let mut observed_types = BTreeSet::new();
+
+    for spec in specs {
+        let Some(event_type) = string_at(spec, &["event_type"]) else {
+            continue;
+        };
+        match spec.get("stage_id") {
+            Some(Value::Null) => {}
+            Some(Value::String(stage_id)) if stage_ids.contains(stage_id.as_str()) => {}
+            _ => errors.push(format!("event_catalog_stage_undeclared:{event_type}")),
+        }
+        let allowed = array_at(spec, &["allowed_source_classes"])
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .collect::<BTreeSet<_>>();
+        if allowed.is_empty() {
+            errors.push(format!("event_catalog_allowed_sources_empty:{event_type}"));
+        }
+    }
+
+    for case in cases {
+        let pair_id = string_at(case, &["pair_id"]).unwrap_or("unknown_pair");
+        for (side, trace_name) in [("source", "source_trace"), ("target", "target_trace")] {
+            let Some(trace) = array_at(case, &[trace_name]) else {
+                continue;
+            };
+            for (index, event) in trace.iter().enumerate() {
+                let Some(event_type) = string_at(event, &["event_type"]) else {
+                    errors.push(format!("event_type_missing:{pair_id}:{side}:{index}"));
+                    continue;
+                };
+                observed_types.insert(event_type.to_owned());
+                let Some(spec) = specs
+                    .iter()
+                    .find(|spec| string_at(spec, &["event_type"]) == Some(event_type))
+                else {
+                    errors.push(format!(
+                        "event_type_not_catalogued:{pair_id}:{side}:{index}:{event_type}"
+                    ));
+                    continue;
+                };
+
+                if spec.get("stage_id") != event.get("stage_id") {
+                    errors.push(format!(
+                        "event_type_stage_mapping_mismatch:{pair_id}:{side}:{index}:{event_type}"
+                    ));
+                }
+
+                let source_class = string_at(event, &["source_class"]);
+                let allowed = array_at(spec, &["allowed_source_classes"])
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .collect::<BTreeSet<_>>();
+                if source_class.is_none_or(|source| !allowed.contains(source)) {
+                    errors.push(format!(
+                        "event_type_source_class_not_allowed:{pair_id}:{side}:{index}:{event_type}"
+                    ));
+                }
+            }
+        }
+    }
+
+    let catalog_types = specs
+        .iter()
+        .filter_map(|spec| string_at(spec, &["event_type"]))
+        .map(str::to_owned)
+        .collect::<BTreeSet<_>>();
+    for missing in observed_types.difference(&catalog_types) {
+        errors.push(format!("event_type_catalog_missing:{missing}"));
+    }
+    for unused in catalog_types.difference(&observed_types) {
+        errors.push(format!("event_type_catalog_unused:{unused}"));
+    }
+
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
 /// Cross-file invariants for the stage catalog, paired development corpus and public oracle.
 /// The checks concern package integrity only; the oracle labels remain human-authored fixtures.
 pub fn cross_file_invariants(stage_catalog: &Value, corpus: &Value, oracle: &Value) -> Vec<String> {
@@ -424,6 +528,10 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             "development-oracle-v0.1.json",
             "schemas/development-oracle-v0.1.schema.json",
         ),
+        (
+            "event-type-catalog-v0.1.json",
+            "schemas/event-type-catalog-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
@@ -444,6 +552,7 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
 
     if errors.is_empty() {
         errors.extend(cross_file_invariants(&values[0], &values[1], &values[2]));
+        errors.extend(event_type_catalog_invariants(&values[0], &values[3], &values[1]));
     }
 
     if errors.is_empty() {
@@ -479,6 +588,56 @@ mod tests {
     #[test]
     fn all_development_artifacts_validate_and_reconcile() {
         validate_package(&repository_root()).expect("mission-impact package must validate");
+    }
+
+    #[test]
+    fn event_catalog_matches_every_event_stage_and_source_class() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let catalog = read_json(&base.join("event-type-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        assert!(event_type_catalog_invariants(&stage, &catalog, &corpus).is_empty());
+    }
+
+    #[test]
+    fn event_catalog_rejects_stage_mapping_drift() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let mut catalog = read_json(&base.join("event-type-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        let item = catalog["events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["event_type"] == "tool_identity_read")
+            .unwrap();
+        item["stage_id"] = Value::String("S05".to_owned());
+        assert!(event_type_catalog_invariants(&stage, &catalog, &corpus)
+            .iter()
+            .any(|error| error.starts_with("event_type_stage_mapping_mismatch:")));
+    }
+
+    #[test]
+    fn event_catalog_rejects_unapproved_source_class() {
+        let root = repository_root();
+        let base = root.join("research/robot-config-mission-impact-v0-1");
+        let stage = read_json(&base.join("stage-catalog-v0.1.json")).unwrap();
+        let mut catalog = read_json(&base.join("event-type-catalog-v0.1.json")).unwrap();
+        let corpus = read_json(&base.join("mission-pair-corpus-v0.1.json")).unwrap();
+        let item = catalog["events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|item| item["event_type"] == "tool_identity_read")
+            .unwrap();
+        item["allowed_source_classes"] = Value::Array(vec![Value::String(
+            "independent_referee".to_owned(),
+        )]);
+        assert!(event_type_catalog_invariants(&stage, &catalog, &corpus)
+            .iter()
+            .any(|error| error.starts_with("event_type_source_class_not_allowed:")));
     }
 
     #[test]
