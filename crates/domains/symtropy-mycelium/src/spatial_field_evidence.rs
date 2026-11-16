@@ -388,23 +388,76 @@ impl EffectiveHyphalRadiusUm {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct GeometricHyphalVolumeFraction(pub f64);
 
+/// First-order uncertainty estimate for the geometry-only volume fraction.
+///
+/// The delta-method propagation assumes independent length-density and
+/// effective-radius errors. If either input uncertainty is missing, the
+/// combined standard deviation is None rather than treating the missing term
+/// as zero. This result is geometric uncertainty only, not biomass/carbon
+/// uncertainty.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GeometricHyphalVolumeEstimate {
+    pub mean: GeometricHyphalVolumeFraction,
+    pub standard_deviation: Option<f64>,
+    pub uncertainty_status: GeometricUncertaintyStatus,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GeometricUncertaintyStatus {
+    FirstOrderIndependentInputs,
+    MissingInputUncertainty,
+}
+
 impl GeometricHyphalVolumeFraction {
     pub fn from_length_density_and_radius(
         density: HyphalLengthDensity,
         radius: EffectiveHyphalRadiusUm,
     ) -> Result<Self, SpatialFieldError> {
+        Ok(Self::estimate_from_length_density_and_radius(density, &radius)?.mean)
+    }
+
+    pub fn estimate_from_length_density_and_radius(
+        density: HyphalLengthDensity,
+        radius: &EffectiveHyphalRadiusUm,
+    ) -> Result<GeometricHyphalVolumeEstimate, SpatialFieldError> {
         density.validate()?;
         radius.validate()?;
 
-        let radius_m = radius.mean_radius_um * 1.0e-6;
-        let hyphal_volume_m3_per_cm3_soil =
-            std::f64::consts::PI * radius_m * radius_m * density.metres_per_cm3_soil;
-        // One cubic centimetre of bulk soil is 1e-6 cubic metres.
-        let fraction = hyphal_volume_m3_per_cm3_soil / 1.0e-6;
+        // For L in m/cm^3 soil and r in micrometres:
+        // fraction = pi * (r * 1e-6 m)^2 * L / (1e-6 m^3/cm^3)
+        //          = pi * 1e-6 * r_um^2 * L.
+        let scale = std::f64::consts::PI * 1.0e-6;
+        let radius_um = radius.mean_radius_um;
+        let length_density = density.metres_per_cm3_soil;
+        let fraction = scale * radius_um * radius_um * length_density;
         if !fraction.is_finite() || fraction < 0.0 {
             return Err(SpatialFieldError::NonFiniteDerivedQuantity);
         }
-        Ok(Self(fraction))
+
+        let (standard_deviation, uncertainty_status) =
+            match (density.standard_error, radius.standard_deviation_um) {
+                (Some(length_se), Some(radius_sd)) => {
+                    let derivative_length = scale * radius_um * radius_um;
+                    let derivative_radius = 2.0 * scale * radius_um * length_density;
+                    let variance = (derivative_length * length_se).powi(2)
+                        + (derivative_radius * radius_sd).powi(2);
+                    let standard_deviation = variance.sqrt();
+                    if !standard_deviation.is_finite() {
+                        return Err(SpatialFieldError::NonFiniteDerivedQuantity);
+                    }
+                    (
+                        Some(standard_deviation),
+                        GeometricUncertaintyStatus::FirstOrderIndependentInputs,
+                    )
+                }
+                _ => (None, GeometricUncertaintyStatus::MissingInputUncertainty),
+            };
+
+        Ok(GeometricHyphalVolumeEstimate {
+            mean: Self(fraction),
+            standard_deviation,
+            uncertainty_status,
+        })
     }
 }
 
@@ -839,6 +892,69 @@ mod tests {
         let expected = std::f64::consts::PI * (1.5e-6_f64).powi(2) / 1.0e-6;
         assert!((volume.0 - expected).abs() < 1.0e-15);
         assert!(volume.0 > 0.0 && volume.0 < 1.0);
+    }
+
+    #[test]
+    fn geometric_volume_fraction_propagates_radius_and_density_uncertainty() {
+        let density = HyphalLengthDensity {
+            metres_per_cm3_soil: 2.5,
+            standard_error: Some(0.2),
+        };
+        let radius = radius();
+        let estimate =
+            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+                density, &radius,
+            )
+            .unwrap();
+
+        let scale = std::f64::consts::PI * 1.0e-6;
+        let derivative_length = scale * 1.5_f64.powi(2);
+        let derivative_radius = 2.0 * scale * 1.5 * 2.5;
+        let expected_sd = ((derivative_length * 0.2).powi(2)
+            + (derivative_radius * 0.3).powi(2))
+        .sqrt();
+
+        assert_eq!(
+            estimate.uncertainty_status,
+            GeometricUncertaintyStatus::FirstOrderIndependentInputs
+        );
+        assert!((estimate.standard_deviation.unwrap() - expected_sd).abs() < 1.0e-15);
+    }
+
+    #[test]
+    fn missing_radius_or_density_uncertainty_is_not_treated_as_zero() {
+        let density = HyphalLengthDensity {
+            metres_per_cm3_soil: 2.5,
+            standard_error: Some(0.2),
+        };
+        let mut radius = radius();
+        radius.standard_deviation_um = None;
+        let estimate =
+            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+                density, &radius,
+            )
+            .unwrap();
+        assert_eq!(estimate.standard_deviation, None);
+        assert_eq!(
+            estimate.uncertainty_status,
+            GeometricUncertaintyStatus::MissingInputUncertainty
+        );
+    }
+
+    #[test]
+    fn zero_mean_density_can_retain_nonzero_measurement_uncertainty() {
+        let density = HyphalLengthDensity {
+            metres_per_cm3_soil: 0.0,
+            standard_error: Some(0.1),
+        };
+        let radius = radius();
+        let estimate =
+            GeometricHyphalVolumeFraction::estimate_from_length_density_and_radius(
+                density, &radius,
+            )
+            .unwrap();
+        assert_eq!(estimate.mean.0, 0.0);
+        assert!(estimate.standard_deviation.unwrap() > 0.0);
     }
 
     #[test]
