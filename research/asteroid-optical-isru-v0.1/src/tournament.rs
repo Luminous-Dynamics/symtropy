@@ -11,16 +11,25 @@ const INTERVAL_EPSILON: f64 = 1.0e-12;
 const SECONDS_PER_DAY: f64 = 86_400.0;
 const SECONDS_PER_YEAR: f64 = 31_557_600.0; // Julian year (365.25 days)
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ComparabilityTrack {
+    ProcessIsolation,
+    WholeSystem,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct CampaignIdentity {
     pub campaign_id: String,
+    pub comparability_track: ComparabilityTrack,
     pub target_body: String,
     pub site_frame_epoch_id: String,
     pub feedstock_batch_sha256: String,
     pub environment_sha256: String,
     pub product_contract_sha256: String,
-    pub receiver_process_article_id: String,
-    pub measurement_config_sha256: String,
+    /// Shared metrology protocol; candidate-specific calibration artifacts
+    /// remain attached to each run and are not treated as one common device.
+    pub measurement_protocol_sha256: String,
     pub campaign_duration_seconds: u64,
 }
 
@@ -30,7 +39,6 @@ impl CampaignIdentity {
             ("campaign_id", self.campaign_id.as_str()),
             ("target_body", self.target_body.as_str()),
             ("site_frame_epoch_id", self.site_frame_epoch_id.as_str()),
-            ("receiver_process_article_id", self.receiver_process_article_id.as_str()),
         ] {
             if value.trim().is_empty() {
                 return Err(TournamentError::MissingIdentity(field));
@@ -42,8 +50,8 @@ impl CampaignIdentity {
             ("environment_sha256", self.environment_sha256.as_str()),
             ("product_contract_sha256", self.product_contract_sha256.as_str()),
             (
-                "measurement_config_sha256",
-                self.measurement_config_sha256.as_str(),
+                "measurement_protocol_sha256",
+                self.measurement_protocol_sha256.as_str(),
             ),
         ] {
             if !is_sha256_digest(digest) {
@@ -197,6 +205,16 @@ impl EnergyEvidence {
 pub struct CandidateRun {
     pub candidate_id: String,
     pub campaign: CampaignIdentity,
+    /// Candidate-specific article identity. Whole-system comparisons permit
+    /// different articles and architectures.
+    pub process_article_id: String,
+    pub process_article_revision: String,
+    /// Process-isolation comparisons require the same declared test fixture.
+    /// Whole-system campaigns may leave this absent.
+    pub shared_test_fixture_id: Option<String>,
+    /// Digest of this candidate's full configuration, not a shared campaign
+    /// identity. Different architectures are expected to differ.
+    pub architecture_config_sha256: String,
     pub product: ProductAcceptanceEvidence,
     pub source_energy: Option<EnergyEvidence>,
     /// Total deployed plus declared replacement/spares mass within the frozen
@@ -209,6 +227,21 @@ impl CandidateRun {
     pub fn validate(&self) -> Result<(), TournamentError> {
         if self.candidate_id.trim().is_empty() {
             return Err(TournamentError::MissingIdentity("candidate_id"));
+        }
+        if self.process_article_id.trim().is_empty() {
+            return Err(TournamentError::MissingIdentity("process_article_id"));
+        }
+        if self.process_article_revision.trim().is_empty() {
+            return Err(TournamentError::MissingIdentity("process_article_revision"));
+        }
+        if !is_sha256_digest(&self.architecture_config_sha256) {
+            return Err(TournamentError::InvalidDigest("architecture_config_sha256"));
+        }
+        if self.campaign.comparability_track == ComparabilityTrack::ProcessIsolation {
+            match &self.shared_test_fixture_id {
+                Some(id) if !id.trim().is_empty() => {}
+                _ => return Err(TournamentError::MissingIdentity("shared_test_fixture_id")),
+            }
         }
         self.campaign.validate()?;
         self.product.validate()?;
@@ -342,6 +375,13 @@ pub fn compare_pair(
     if a.campaign != b.campaign {
         return Ok(PairComparison::NotComparable("campaign identity differs"));
     }
+    if a.campaign.comparability_track == ComparabilityTrack::ProcessIsolation
+        && a.shared_test_fixture_id != b.shared_test_fixture_id
+    {
+        return Ok(PairComparison::NotComparable(
+            "process-isolation test fixture differs",
+        ));
+    }
     if a.product.stream_kind != b.product.stream_kind {
         return Ok(PairComparison::NotComparable(
             "product stream kind differs",
@@ -436,13 +476,13 @@ mod tests {
     fn campaign() -> CampaignIdentity {
         CampaignIdentity {
             campaign_id: "synthetic-campaign-001".to_string(),
+            comparability_track: ComparabilityTrack::WholeSystem,
             target_body: "Moon".to_string(),
             site_frame_epoch_id: "synthetic-site-frame-epoch".to_string(),
             feedstock_batch_sha256: digest('a'),
             environment_sha256: digest('b'),
             product_contract_sha256: digest('c'),
-            receiver_process_article_id: "receiver-rev-1".to_string(),
-            measurement_config_sha256: digest('d'),
+            measurement_protocol_sha256: digest('d'),
             campaign_duration_seconds: 86_400,
         }
     }
@@ -457,6 +497,10 @@ mod tests {
         CandidateRun {
             candidate_id: id.to_string(),
             campaign: campaign(),
+            process_article_id: format!("article-{id}"),
+            process_article_revision: "rev-1".to_string(),
+            shared_test_fixture_id: Some("shared-rig-001".to_string()),
+            architecture_config_sha256: digest('e'),
             product: ProductAcceptanceEvidence {
                 stream_kind: ProductStreamKind::Solid,
                 captured_raw_mass_kg: interval(3.0, 3.5),
@@ -558,6 +602,40 @@ mod tests {
         assert_eq!(
             compare_pair(&a, &b).unwrap(),
             PairComparison::NotComparable("campaign identity differs")
+        );
+    }
+
+    #[test]
+    fn whole_system_candidates_may_use_different_process_articles() {
+        let a = strong_candidate();
+        let b = weak_candidate();
+        assert_eq!(
+            compare_pair(&a, &b).unwrap(),
+            PairComparison::A_Robustly_Dominates
+        );
+    }
+
+    #[test]
+    fn process_isolation_requires_a_shared_test_fixture() {
+        let mut a = strong_candidate();
+        let mut b = weak_candidate();
+        a.campaign.comparability_track = ComparabilityTrack::ProcessIsolation;
+        b.campaign.comparability_track = ComparabilityTrack::ProcessIsolation;
+        b.shared_test_fixture_id = Some("different-rig".to_string());
+        assert_eq!(
+            compare_pair(&a, &b).unwrap(),
+            PairComparison::NotComparable("process-isolation test fixture differs")
+        );
+    }
+
+    #[test]
+    fn process_isolation_requires_fixture_identity() {
+        let mut candidate = strong_candidate();
+        candidate.campaign.comparability_track = ComparabilityTrack::ProcessIsolation;
+        candidate.shared_test_fixture_id = None;
+        assert_eq!(
+            candidate.validate().unwrap_err(),
+            TournamentError::MissingIdentity("shared_test_fixture_id")
         );
     }
 
