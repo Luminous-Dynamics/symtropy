@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "research/protect-threat-portfolio-v0-1"
+      - "research/protect-resilience-e0-oracle-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -11,6 +12,7 @@ on:
     branches:
       - "main"
       - "research/protective-systems-benchmark-v0-1"
+      - "research/protect-threat-portfolio-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -64,3 +66,6 @@ jobs:
 
       - name: Run defensive resilience-bridge gate
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-bridge
+
+      - name: Run exact E0 resilience reference oracle
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-resilience-e0

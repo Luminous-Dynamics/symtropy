@@ -225,7 +225,7 @@ References:
 
 ISO 22301 is a business-continuity management-system standard, not a physical hazard simulator or a guarantee that a facility will never be disrupted. Treat it as an organizational capability / process evidence comparator: business-impact analysis, continuity objectives, roles, plans, exercises, monitoring, management review and continual improvement. A certificate's scope and audit evidence must be inspected; the existence of a certificate alone does not prove a particular service trajectory.
 
-For South African deployments, the SABS catalogue lists SANS 22301 (version 2.00). The exact adopted edition, amendment, scope and applicable sector rules must be confirmed for each deployment rather than inferred from a generic ISO reference. The South African Disaster Management Act 57 of 2002 and the 2023 National Disaster Management Framework review establish a multi-level disaster-planning context; local/provincial/municipal applicability requires competent local review.
+For South African deployments, the current adopted SANS identifier, edition, amendment, scope and applicable sector rules must be confirmed from the authoritative SABS catalogue and competent local authorities for each deployment rather than inferred from a generic ISO reference. This crosswalk does not assert a specific current SANS edition. The South African Disaster Management Act 57 of 2002 and the 2023 National Disaster Management Framework review establish a multi-level disaster-planning context; local/provincial/municipal applicability requires competent local review.
 
 References:
 - SABS standards catalogue: https://www.sabs.co.za/sabs-standards
@@ -287,3 +287,30 @@ A superiority claim requires:
 - disclosure of cases where the Luminous bridge loses or abstains.
 
 Synthetic case success demonstrates software contract conformance only. It is not evidence that a real protective system, facility or community is more resilient.
+
+
+## 13. November 2026 SOTA crosswalk
+
+The detailed research and industry comparison is now recorded in `PROTECTIVE_RESILIENCE_SOTA_CROSSWALK_2026_11.md`.
+
+A comparative study published 7 November 2026 evaluates 24 infrastructure interdependency tools and identifies seven within its explicit cross-sector modelling scope. It finds no single tool dominates every dimension and highlights the trade-off between model complexity, data requirements and practical usability. IN-CORE is a serious external reference, not a system to recreate.
+
+The crosswalk positions Luminous as an evidence-preserving integration and assurance layer. It records what the current tools already do, the limits of the published comparison, the less fully represented organizational/social/governance dependencies, and measurable assurance properties for a fair comparison.
+
+Source: Shamsi, Helmrich & Deegan, *Toward system-of-systems resilience: a comparative framework for infrastructure interdependency assessment tools* (7 November 2026), https://doi.org/10.1007/s10669-026-10162-2.
+
+## 14. E0 exact resilience reference oracle
+
+The first exact E0 case is implemented in `fixtures/protective-resilience-e0-reference-v0.1.json` and the isolated Rust executable `protective-resilience-e0`.
+
+The oracle consumes predeclared synthetic service trajectories; it does not generate hazards or simulate infrastructure. It independently recomputes per-stratum service deficit and sustained recovery, checks matched context/boundary/demand/horizon/cost basis, reconciles unique cost and benefit identities, and enforces separate safety and buffer dispositions.
+
+The current frozen reference contains one synthetic potable-water service, two beneficiary strata and three portfolios:
+- persistence baseline;
+- continuity-core portfolio with safety and buffer evidence passing;
+- reserve-depletion control with identical service output but buffer recovery failing;
+- unsafe cheap control with zero modelled service deficit but a violated mandatory safety floor.
+
+Expected values are frozen for the baseline and every candidate. The measured service-deficit unit is milli-beneficiary-minutes and is kept separate by service ID; unlike services are not aggregated. The fixture and outputs are synthetic only.
+
+The verifier has 13 unit tests written. Compilation, formatting, Clippy and test execution remain pending until a Rust toolchain or hosted workflow result is available.

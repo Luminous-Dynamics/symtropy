@@ -1,0 +1,502 @@
+{
+  "schema_version": "protective-resilience-e0/0.1",
+  "snapshot_date": "2026-11-16",
+  "evidence_class": "synthetic",
+  "intended_use": "exact deterministic reference case for portfolio evidence accounting and service-trajectory metric checking; no real-world forecast, physical hazard model, probability or protection claim",
+  "evaluation_contract": {
+    "sustained_recovery_intervals": 2,
+    "service_limits": [
+      {
+        "service_id": "POTABLE_WATER",
+        "maximum_deficit_milli_beneficiary_minutes": 1200000,
+        "maximum_recovery_minutes_per_stratum": 120
+      }
+    ]
+  },
+  "scope": {
+    "context_id": "SYNTHETIC-SA-COMMUNITY-WATER-001",
+    "jurisdiction_context": "ZA synthetic context only; no real location, legal determination or asset is represented",
+    "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+    "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+    "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+    "demand_profile_id": "SYNTHETIC-WATER-DEMAND-001",
+    "horizon_intervals": 4,
+    "interval_minutes": 60,
+    "currency": "ZAR",
+    "minor_unit_scale": 100,
+    "cost_basis": "PRESENT_VALUE_LIFECYCLE",
+    "price_year": 2026,
+    "lifecycle_horizon_years": 10
+  },
+  "baseline": {
+    "portfolio_id": "PERSISTENCE_NO_NEW_INTERVENTION",
+    "role": "BASELINE_REFERENCE_ONLY",
+    "scope": {
+      "context_id": "SYNTHETIC-SA-COMMUNITY-WATER-001",
+      "jurisdiction_context": "ZA synthetic context only; no real location, legal determination or asset is represented",
+      "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+      "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+      "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+      "demand_profile_id": "SYNTHETIC-WATER-DEMAND-001",
+      "horizon_intervals": 4,
+      "interval_minutes": 60,
+      "currency": "ZAR",
+      "minor_unit_scale": 100,
+      "cost_basis": "PRESENT_VALUE_LIFECYCLE",
+      "price_year": 2026,
+      "lifecycle_horizon_years": 10
+    },
+    "cost_items": [],
+    "service_outcomes": [
+      {
+        "outcome_id": "BASELINE-WATER-GENERAL-001",
+        "service_id": "POTABLE_WATER",
+        "beneficiary_stratum": "GENERAL_RESIDENTS",
+        "beneficiary_unit": "PERSON",
+        "beneficiary_count": 100,
+        "minimum_service_permille": 800,
+        "delivered_service_permille": [
+          300,
+          500,
+          800,
+          800
+        ],
+        "origin": {
+          "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+          "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+          "source_receipt": "SYNTHETIC-BASELINE-GENERAL-001",
+          "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+        }
+      },
+      {
+        "outcome_id": "BASELINE-WATER-ASSISTED-001",
+        "service_id": "POTABLE_WATER",
+        "beneficiary_stratum": "ASSISTED_ACCESS_RESIDENTS",
+        "beneficiary_unit": "PERSON",
+        "beneficiary_count": 20,
+        "minimum_service_permille": 800,
+        "delivered_service_permille": [
+          200,
+          400,
+          600,
+          800
+        ],
+        "origin": {
+          "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+          "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+          "source_receipt": "SYNTHETIC-BASELINE-ASSISTED-001",
+          "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+        }
+      }
+    ]
+  },
+  "portfolios": [
+    {
+      "portfolio_id": "CONTINUITY_CORE",
+      "scope": {
+        "context_id": "SYNTHETIC-SA-COMMUNITY-WATER-001",
+        "jurisdiction_context": "ZA synthetic context only; no real location, legal determination or asset is represented",
+        "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+        "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+        "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+        "demand_profile_id": "SYNTHETIC-WATER-DEMAND-001",
+        "horizon_intervals": 4,
+        "interval_minutes": 60,
+        "currency": "ZAR",
+        "minor_unit_scale": 100,
+        "cost_basis": "PRESENT_VALUE_LIFECYCLE",
+        "price_year": 2026,
+        "lifecycle_horizon_years": 10
+      },
+      "mandatory_safety": {
+        "status": "PASS",
+        "evidence_ref": "SYNTHETIC-SAFETY-FLOOR-CHECK-CORE-001",
+        "owner_contract": "PROTECTIVE-SYSTEMS-001 #5246"
+      },
+      "buffer_recovery": {
+        "status": "PASS",
+        "evidence_ref": "SYNTHETIC-BUFFER-RECOVERY-CORE-001",
+        "owner_contract": "CIVDYN-RES-002 #3739"
+      },
+      "cost_items": [
+        {
+          "cost_id": "CORE-BACKUP-CAPITAL-001",
+          "capability_id": "RESILIENT-POWER-COMMS",
+          "category": "CAPITAL_AND_INSTALLATION",
+          "present_value_minor_units": 72000000
+        },
+        {
+          "cost_id": "CORE-INSPECTION-TRAINING-001",
+          "capability_id": "RESILIENT-POWER-COMMS",
+          "category": "INSPECTION_TRAINING_AND_MAINTENANCE",
+          "present_value_minor_units": 18000000
+        }
+      ],
+      "service_outcomes": [
+        {
+          "outcome_id": "CORE-WATER-GENERAL-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "GENERAL_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 100,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            700,
+            800,
+            900,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-CORE-GENERAL-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        },
+        {
+          "outcome_id": "CORE-WATER-ASSISTED-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "ASSISTED_ACCESS_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 20,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            600,
+            800,
+            800,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-CORE-ASSISTED-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        }
+      ],
+      "benefit_claims": [
+        {
+          "claim_id": "CORE-WATER-GENERAL-BENEFIT-001",
+          "outcome_id": "CORE-WATER-GENERAL-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        },
+        {
+          "claim_id": "CORE-WATER-ASSISTED-BENEFIT-001",
+          "outcome_id": "CORE-WATER-ASSISTED-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        }
+      ],
+      "expected_report": {
+        "portfolio_id": "CONTINUITY_CORE",
+        "disposition": "FEASIBLE",
+        "lifecycle_cost_minor_units": 90000000,
+        "service_totals": [
+          {
+            "service_id": "POTABLE_WATER",
+            "deficit_milli_beneficiary_minutes": 840000,
+            "baseline_deficit_milli_beneficiary_minutes": 6240000,
+            "deficit_reduction_basis_points": 8653,
+            "within_declared_limits": true,
+            "all_strata_recovered": true
+          }
+        ],
+        "service_outcomes": [
+          {
+            "outcome_id": "CORE-WATER-GENERAL-001",
+            "deficit_milli_beneficiary_minutes": 600000,
+            "minimum_delivery_permille": 700,
+            "intervals_below_floor": 1,
+            "sustained_recovery_start_minutes": 60
+          },
+          {
+            "outcome_id": "CORE-WATER-ASSISTED-001",
+            "deficit_milli_beneficiary_minutes": 240000,
+            "minimum_delivery_permille": 600,
+            "intervals_below_floor": 1,
+            "sustained_recovery_start_minutes": 60
+          }
+        ]
+      }
+    },
+    {
+      "portfolio_id": "RESERVE_DEPLETION_CONTROL",
+      "scope": {
+        "context_id": "SYNTHETIC-SA-COMMUNITY-WATER-001",
+        "jurisdiction_context": "ZA synthetic context only; no real location, legal determination or asset is represented",
+        "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+        "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+        "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+        "demand_profile_id": "SYNTHETIC-WATER-DEMAND-001",
+        "horizon_intervals": 4,
+        "interval_minutes": 60,
+        "currency": "ZAR",
+        "minor_unit_scale": 100,
+        "cost_basis": "PRESENT_VALUE_LIFECYCLE",
+        "price_year": 2026,
+        "lifecycle_horizon_years": 10
+      },
+      "mandatory_safety": {
+        "status": "PASS",
+        "evidence_ref": "SYNTHETIC-SAFETY-FLOOR-CHECK-RESERVE-001",
+        "owner_contract": "PROTECTIVE-SYSTEMS-001 #5246"
+      },
+      "buffer_recovery": {
+        "status": "FAIL",
+        "evidence_ref": "SYNTHETIC-BUFFER-RECOVERY-RESERVE-001",
+        "owner_contract": "CIVDYN-RES-002 #3739"
+      },
+      "cost_items": [
+        {
+          "cost_id": "RESERVE-DRAW-CAPITAL-001",
+          "capability_id": "EMERGENCY-RESERVE-DRAW",
+          "category": "CAPITAL_AND_INSTALLATION",
+          "present_value_minor_units": 68000000
+        }
+      ],
+      "service_outcomes": [
+        {
+          "outcome_id": "RESERVE-WATER-GENERAL-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "GENERAL_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 100,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            700,
+            800,
+            900,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-RESERVE-GENERAL-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        },
+        {
+          "outcome_id": "RESERVE-WATER-ASSISTED-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "ASSISTED_ACCESS_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 20,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            600,
+            800,
+            800,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-RESERVE-ASSISTED-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        }
+      ],
+      "benefit_claims": [
+        {
+          "claim_id": "RESERVE-WATER-GENERAL-BENEFIT-001",
+          "outcome_id": "RESERVE-WATER-GENERAL-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        },
+        {
+          "claim_id": "RESERVE-WATER-ASSISTED-BENEFIT-001",
+          "outcome_id": "RESERVE-WATER-ASSISTED-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        }
+      ],
+      "expected_report": {
+        "portfolio_id": "RESERVE_DEPLETION_CONTROL",
+        "disposition": "MIXED_SERVICE_BUFFER_RECOVERY",
+        "lifecycle_cost_minor_units": 68000000,
+        "service_totals": [
+          {
+            "service_id": "POTABLE_WATER",
+            "deficit_milli_beneficiary_minutes": 840000,
+            "baseline_deficit_milli_beneficiary_minutes": 6240000,
+            "deficit_reduction_basis_points": 8653,
+            "within_declared_limits": true,
+            "all_strata_recovered": true
+          }
+        ],
+        "service_outcomes": [
+          {
+            "outcome_id": "RESERVE-WATER-GENERAL-001",
+            "deficit_milli_beneficiary_minutes": 600000,
+            "minimum_delivery_permille": 700,
+            "intervals_below_floor": 1,
+            "sustained_recovery_start_minutes": 60
+          },
+          {
+            "outcome_id": "RESERVE-WATER-ASSISTED-001",
+            "deficit_milli_beneficiary_minutes": 240000,
+            "minimum_delivery_permille": 600,
+            "intervals_below_floor": 1,
+            "sustained_recovery_start_minutes": 60
+          }
+        ]
+      }
+    },
+    {
+      "portfolio_id": "UNSAFE_CHEAP_CONTROL",
+      "scope": {
+        "context_id": "SYNTHETIC-SA-COMMUNITY-WATER-001",
+        "jurisdiction_context": "ZA synthetic context only; no real location, legal determination or asset is represented",
+        "system_boundary_id": "SYNTHETIC-WATER-BOUNDARY-001",
+        "scenario_id": "SYNTHETIC-BOUNDED-POWER-COMMS-INTERRUPTION-001",
+        "scenario_basis": "BOUNDED_DETERMINISTIC_NOT_PROBABILISTIC",
+        "demand_profile_id": "SYNTHETIC-WATER-DEMAND-001",
+        "horizon_intervals": 4,
+        "interval_minutes": 60,
+        "currency": "ZAR",
+        "minor_unit_scale": 100,
+        "cost_basis": "PRESENT_VALUE_LIFECYCLE",
+        "price_year": 2026,
+        "lifecycle_horizon_years": 10
+      },
+      "mandatory_safety": {
+        "status": "VIOLATED",
+        "evidence_ref": "SYNTHETIC-SAFETY-FLOOR-CHECK-UNSAFE-001",
+        "owner_contract": "PROTECTIVE-SYSTEMS-001 #5246"
+      },
+      "buffer_recovery": {
+        "status": "PASS",
+        "evidence_ref": "SYNTHETIC-BUFFER-RECOVERY-UNSAFE-001",
+        "owner_contract": "CIVDYN-RES-002 #3739"
+      },
+      "cost_items": [
+        {
+          "cost_id": "UNSAFE-CHEAP-CAPITAL-001",
+          "capability_id": "UNSAFE-CONTROL",
+          "category": "CAPITAL_AND_INSTALLATION",
+          "present_value_minor_units": 5000000
+        }
+      ],
+      "service_outcomes": [
+        {
+          "outcome_id": "UNSAFE-WATER-GENERAL-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "GENERAL_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 100,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            900,
+            900,
+            900,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-UNSAFE-GENERAL-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        },
+        {
+          "outcome_id": "UNSAFE-WATER-ASSISTED-001",
+          "service_id": "POTABLE_WATER",
+          "beneficiary_stratum": "ASSISTED_ACCESS_RESIDENTS",
+          "beneficiary_unit": "PERSON",
+          "beneficiary_count": 20,
+          "minimum_service_permille": 800,
+          "delivered_service_permille": [
+            900,
+            900,
+            900,
+            900
+          ],
+          "origin": {
+            "kind": "SYNTHETIC_REFERENCE_TRAJECTORY",
+            "upstream_owner": "CIVDYN-CASCADE-001 #3894",
+            "source_receipt": "SYNTHETIC-UNSAFE-ASSISTED-001",
+            "claim_ceiling": "synthetic trajectory only; not actual upstream model output"
+          }
+        }
+      ],
+      "benefit_claims": [
+        {
+          "claim_id": "UNSAFE-WATER-GENERAL-BENEFIT-001",
+          "outcome_id": "UNSAFE-WATER-GENERAL-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        },
+        {
+          "claim_id": "UNSAFE-WATER-ASSISTED-BENEFIT-001",
+          "outcome_id": "UNSAFE-WATER-ASSISTED-001",
+          "related_hazard_families": [
+            "PNT-COMMS-DIGITAL-DISRUPTION"
+          ]
+        }
+      ],
+      "expected_report": {
+        "portfolio_id": "UNSAFE_CHEAP_CONTROL",
+        "disposition": "INFEASIBLE",
+        "lifecycle_cost_minor_units": 5000000,
+        "service_totals": [
+          {
+            "service_id": "POTABLE_WATER",
+            "deficit_milli_beneficiary_minutes": 0,
+            "baseline_deficit_milli_beneficiary_minutes": 6240000,
+            "deficit_reduction_basis_points": 10000,
+            "within_declared_limits": true,
+            "all_strata_recovered": true
+          }
+        ],
+        "service_outcomes": [
+          {
+            "outcome_id": "UNSAFE-WATER-GENERAL-001",
+            "deficit_milli_beneficiary_minutes": 0,
+            "minimum_delivery_permille": 900,
+            "intervals_below_floor": 0,
+            "sustained_recovery_start_minutes": 0
+          },
+          {
+            "outcome_id": "UNSAFE-WATER-ASSISTED-001",
+            "deficit_milli_beneficiary_minutes": 0,
+            "minimum_delivery_permille": 900,
+            "intervals_below_floor": 0,
+            "sustained_recovery_start_minutes": 0
+          }
+        ]
+      }
+    }
+  ],
+  "expected_baseline_report": {
+    "portfolio_id": "PERSISTENCE_NO_NEW_INTERVENTION",
+    "lifecycle_cost_minor_units": 0,
+    "service_totals": [
+      {
+        "service_id": "POTABLE_WATER",
+        "deficit_milli_beneficiary_minutes": 6240000
+      }
+    ],
+    "service_outcomes": [
+      {
+        "outcome_id": "BASELINE-WATER-GENERAL-001",
+        "deficit_milli_beneficiary_minutes": 4800000,
+        "minimum_delivery_permille": 300,
+        "intervals_below_floor": 2,
+        "sustained_recovery_start_minutes": 120
+      },
+      {
+        "outcome_id": "BASELINE-WATER-ASSISTED-001",
+        "deficit_milli_beneficiary_minutes": 1440000,
+        "minimum_delivery_permille": 200,
+        "intervals_below_floor": 3,
+        "sustained_recovery_start_minutes": null
+      }
+    ]
+  }
+}

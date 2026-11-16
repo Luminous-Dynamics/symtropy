@@ -27,3 +27,7 @@ path = "src/bin/threat_portfolio.rs"
 [[bin]]
 name = "protective-resilience-bridge"
 path = "src/bin/protective_resilience_bridge.rs"
+
+[[bin]]
+name = "protective-resilience-e0"
+path = "src/bin/protective_resilience_e0.rs"

@@ -93,7 +93,9 @@ fn validate_case_semantics(case: &Value, path: &str, disposition: &str) -> Resul
     match id {
         "WATER_UTILITY_SERVICE_CONTINUITY_001" => {
             if disposition != "ABSTAIN_MISSING_UPSTREAM_EVIDENCE" {
-                return Err(format!("{path}: missing service/provenance receipts must abstain"));
+                return Err(format!(
+                    "{path}: missing service/provenance receipts must abstain"
+                ));
             }
         }
         "SERVICE_RECOVERED_BUFFER_DEPLETED_002" => {
@@ -133,11 +135,15 @@ fn validate_case_semantics(case: &Value, path: &str, disposition: &str) -> Resul
                 .ok_or_else(|| format!("{path}.synthetic_state is required"))?;
             let safety_pass = text(state, "mandatory_human_safety_floor") == Some("PASS");
             let service_pass = text(state, "service_floor_status") == Some("PASS");
-            let feasible_unchanged = state.get("feasible_set_changed").and_then(Value::as_bool)
+            let feasible_unchanged =
+                state.get("feasible_set_changed").and_then(Value::as_bool) == Some(false);
+            let action_unchanged = state
+                .get("selected_portfolio_changed")
+                .and_then(Value::as_bool)
                 == Some(false);
-            let action_unchanged = state.get("selected_portfolio_changed").and_then(Value::as_bool)
-                == Some(false);
-            let service_unchanged = state.get("service_trajectory_changed").and_then(Value::as_bool)
+            let service_unchanged = state
+                .get("service_trajectory_changed")
+                .and_then(Value::as_bool)
                 == Some(false);
             if !(safety_pass
                 && service_pass
@@ -175,7 +181,11 @@ fn validate_case_semantics(case: &Value, path: &str, disposition: &str) -> Resul
                 ));
             }
         }
-        _ => return Err(format!("{path}.case_id is not in the v0.1 frozen fixture set")),
+        _ => {
+            return Err(format!(
+                "{path}.case_id is not in the v0.1 frozen fixture set"
+            ));
+        }
     }
     Ok(())
 }
@@ -233,7 +243,9 @@ fn validate(fixture: &str, registry: &str) -> Result<GateReport, String> {
             .as_str()
             .ok_or_else(|| "each decision disposition must be text".to_owned())?;
         if !DISPOSITIONS.contains(&disposition) || !allowed.insert(disposition.to_owned()) {
-            return Err(format!("unsupported or duplicate disposition: {disposition}"));
+            return Err(format!(
+                "unsupported or duplicate disposition: {disposition}"
+            ));
         }
     }
 
@@ -315,8 +327,8 @@ fn validate(fixture: &str, registry: &str) -> Result<GateReport, String> {
 
     reject_unqualified_numeric_claims(&root, "fixture")?;
 
-    let canonical =
-        serde_json::to_vec(&root).map_err(|error| format!("fixture serialization failed: {error}"))?;
+    let canonical = serde_json::to_vec(&root)
+        .map_err(|error| format!("fixture serialization failed: {error}"))?;
     let digest = format!("{:x}", Sha256::digest(canonical));
 
     Ok(GateReport {
@@ -382,8 +394,7 @@ mod tests {
     #[test]
     fn observation_without_action_or_service_change_has_no_service_benefit() {
         let mut root = fixture_value();
-        root["cases"][3]["synthetic_state"]["service_trajectory_changed"] =
-            Value::Bool(true);
+        root["cases"][3]["synthetic_state"]["service_trajectory_changed"] = Value::Bool(true);
         assert!(validate(&root.to_string(), REGISTRY).is_err());
     }
 
@@ -397,16 +408,14 @@ mod tests {
     #[test]
     fn unknown_event_frequency_cannot_gain_numeric_probability() {
         let mut root = fixture_value();
-        root["cases"][5]["scenario_semantics"]["numeric_probability"] =
-            serde_json::json!(0.01);
+        root["cases"][5]["scenario_semantics"]["numeric_probability"] = serde_json::json!(0.01);
         assert!(validate(&root.to_string(), REGISTRY).is_err());
     }
 
     #[test]
     fn unknown_hazard_family_reference_fails_closed() {
         let mut root = fixture_value();
-        root["cases"][0]["hazard_family_ids"][0] =
-            Value::String("UNREGISTERED-HAZARD".into());
+        root["cases"][0]["hazard_family_ids"][0] = Value::String("UNREGISTERED-HAZARD".into());
         assert!(validate(&root.to_string(), REGISTRY).is_err());
     }
 }
