@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
     AdaptiveCollisionStatus, AdaptiveSubdivisionConfig, AnalyticPath, Capsule, Vec3,
+    co_translating_capsule_adaptive_query_with_certificate, verify_adaptive_collision_certificate,
     chord_collision, co_translating_capsule_adaptive_query,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
@@ -379,5 +380,45 @@ fn main() {
             black_box(common_translation),
         )
         .expect("valid full interval asynchronous pair");
+    });
+    let certificate = co_translating_capsule_adaptive_query_with_certificate(
+        black_box(moving_pair_a),
+        black_box(moving_pair_a_delta),
+        black_box(moving_pair_b),
+        black_box(moving_pair_b_delta),
+        AdaptiveSubdivisionConfig {
+            maximum_depth: 8,
+            minimum_window_width: 1.0 / 256.0,
+        },
+    )
+    .expect("valid certificate-producing adaptive query");
+    verify_adaptive_collision_certificate(black_box(&certificate))
+        .expect("generated adaptive certificate verifies");
+    println!(
+        "adaptive-certificate,leaf_count,{}",
+        certificate.leaves.len()
+    );
+    println!(
+        "adaptive-certificate,status,{:?}",
+        certificate.report.status
+    );
+    measure("adaptive-certificate-generation", || {
+        black_box(
+            co_translating_capsule_adaptive_query_with_certificate(
+                black_box(moving_pair_a),
+                black_box(moving_pair_a_delta),
+                black_box(moving_pair_b),
+                black_box(moving_pair_b_delta),
+                AdaptiveSubdivisionConfig {
+                    maximum_depth: 8,
+                    minimum_window_width: 1.0 / 256.0,
+                },
+            )
+            .expect("valid certificate-producing adaptive query"),
+        );
+    });
+    measure("adaptive-certificate-verification", || {
+        verify_adaptive_collision_certificate(black_box(&certificate))
+            .expect("generated adaptive certificate verifies");
     });
 }
