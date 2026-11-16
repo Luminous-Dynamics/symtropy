@@ -7,6 +7,7 @@
 mod capsule;
 mod co_translation_ccd;
 mod independent_interval_verifier;
+mod robust_interval_certificate;
 mod translation_ccd;
 pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
@@ -30,6 +31,10 @@ pub use independent_interval_verifier::{
     IntervalVerificationStatus, IntervalVerifierConfig, IntervalVerifierError,
     replay_interval_verification_receipt, verify_adaptive_no_contact_independently,
     verify_capsule_interval_no_contact, verify_capsule_interval_no_contact_with_uncertainty,
+};
+pub use robust_interval_certificate::{
+    RobustCertificateError, RobustIntervalBinding, RobustIntervalVerificationCertificate,
+    create_robust_interval_certificate, replay_robust_interval_certificate,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
