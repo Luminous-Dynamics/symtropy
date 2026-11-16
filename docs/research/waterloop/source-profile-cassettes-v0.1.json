@@ -203,6 +203,52 @@
         "seasonal_instability",
         "microbial_barrier"
       ]
+    },
+    {
+      "id": "train_d_ec_hybrid_laundry_challenge_v0",
+      "status": "optional_laundry_challenge_only_not_selected",
+      "stages": [
+        "separate_laundry_feed_batch",
+        "screen_and_equalisation",
+        "continuous_flow_electrocoagulation_test_skid",
+        "solid_floc_separation",
+        "downstream_barrier_selection_pending"
+      ],
+      "critical_evidence": [
+        "current",
+        "voltage",
+        "charge_loading",
+        "electrode_material_lot",
+        "electrode_mass_loss",
+        "polarity_schedule",
+        "hydraulic_residence_time_distribution",
+        "flow",
+        "pH",
+        "conductivity",
+        "COD",
+        "TSS",
+        "surfactant_measurement",
+        "residual_metal_assessment",
+        "independent_product_sample_after_downstream_barrier"
+      ],
+      "residuals": [
+        "electrode_sludge",
+        "spent_electrodes",
+        "cleaning_waste",
+        "purge",
+        "downstream_backwash_or_reject"
+      ],
+      "risks": [
+        "electrode_passivation",
+        "electrode_consumption",
+        "metal_residual",
+        "sludge_handling",
+        "energy_cost",
+        "electrical_safety",
+        "dissolved_organics_or_salts_not_removed",
+        "microbial_barrier_not_established"
+      ],
+      "notes": "Industrial laundry studies support only a separately scoped experimental challenge. EC alone is not admitted as a finished reuse train; a downstream barrier and source-specific quality assessment remain mandatory."
     }
   ],
   "module_interfaces": [
@@ -248,7 +294,12 @@
     "media_consumption_and_breakthrough_interval",
     "availability_downtime_failure_and_abstention_rate",
     "operator_labour_maintenance_and_changeout_time",
-    "lifecycle_cost_per_verified_useful_m3"
+    "lifecycle_cost_per_verified_useful_m3",
+    "quality_verification_continuity_fraction_and_gap_duration",
+    "required_barrier_operational_fraction_and_isolation_latency",
+    "verified_useful_volume_by_quality_verification_period",
+    "operator_minutes_specialist_hours_and_training_burden",
+    "spares_consumables_and_laboratory_support_continuity"
   ],
   "release_gates": [
     "source_batch_characterisation_and_method_admission",
@@ -257,7 +308,8 @@
     "matched_train_tests_with_independent_analytical_results",
     "water_and_contaminant_mass_balance_with_uncertainty",
     "fail_safe_negative_controls_and_repeatable_return_to_service",
-    "first_article_manufacturing_review"
+    "first_article_manufacturing_review",
+    "longitudinal_quality_verification_and_maintenance_support_plan"
   ],
   "nonclaims": [
     "no treatment train is selected or qualified",
