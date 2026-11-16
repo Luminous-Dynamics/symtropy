@@ -860,6 +860,17 @@ fn stage_transition_decision(case: &Value) -> (&'static str, &'static str) {
     let required_raw =
         string_list_contains(case, &["required_evidence_axes"], "raw_artifact");
 
+    let available_sources = evidence
+        .iter()
+        .filter_map(|item| string_at(item, &["source_class"]))
+        .collect::<BTreeSet<_>>();
+    if required_sources
+        .iter()
+        .any(|required| !available_sources.contains(required))
+    {
+        return ("held", "REQUIRED_VERIFIER_EVIDENCE_MISSING");
+    }
+
     let relevant = evidence
         .iter()
         .filter(|item| {
@@ -1217,6 +1228,23 @@ mod tests {
         assert_eq!(
             stage_transition_decision(self_report_only),
             ("held", "NO_ADMISSIBLE_POSTCONDITION_EVIDENCE")
+        );
+    }
+
+    #[test]
+    fn every_required_verifier_source_class_must_be_present() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let mut corpus = read_json(&base.join("stage-transition-challenges-v0.1.json")).unwrap();
+        let conflict = corpus["cases"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|case| string_at(case, &["case_id"]) == Some("MST-015"))
+            .unwrap();
+        conflict["evidence"].as_array_mut().unwrap().pop();
+        assert_eq!(
+            stage_transition_decision(conflict),
+            ("held", "REQUIRED_VERIFIER_EVIDENCE_MISSING")
         );
     }
 
