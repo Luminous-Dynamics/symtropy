@@ -320,12 +320,12 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 36-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 32 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 36 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -396,3 +396,19 @@ Use event-block bootstrap or another predeclared dependence-aware uncertainty me
 Sources:
 - WMO, *Guidelines on the Verification of Hydrological Forecasts*, WMO-No. 1364 (2025): https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
 - Ruparell et al., *A Hydrologist's Guide to the CRPS*, ECMWF Technical Memorandum 935 (December 2025), DOI 10.21957/16101872b5: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
+
+
+### Paired Brier skill and rare-event interpretation (cases 033–036)
+
+The Brier score alone does not show whether a probability forecast improves on a declared reference. The evaluator now computes paired Brier skill:
+
+`BSS = 1 - BS_forecast / BS_reference`
+
+Requirements:
+- the subject and reference must use the exact same event ID, threshold, units, forecast lead and valid-time semantics;
+- raw subject and reference Brier scores, event count, observed frequency and sample count remain visible;
+- negative skill is retained, never clipped;
+- if the reference Brier score is zero/within tolerance, BSS is Undefined, not infinite;
+- mismatched event definitions return NOT_COMPARABLE.
+
+WMO-No. 1364 (2025) gives an explicit caution that Brier skill for rare events can lead to counterintuitive interpretations when the reference event climatology is not considered. The 36-case suite therefore keeps BSS subordinate to raw scores, reference definition, event prevalence, uncertainty and the decision threshold. A BSS value alone is not evidence of flood-warning value or rare-event skill.
