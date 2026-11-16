@@ -284,3 +284,27 @@ The benchmark must retain **distance to the acceptance boundary**, not only pass
 No combined score is computed from energy, quality, labour, safety, downtime or requalification effort. Report a vector and its uncertainty. A hard acceptance or safety failure remains non-compensable by throughput.
 
 All numeric values in the current file are fictional fixtures designed to test the contract. They are not measurements, baseline data, or evidence of improved productivity.
+
+
+## 16. Owner crosswalk and exact interface boundary
+
+`owner-crosswalk-v0.1.json` relates the eight MIP development pairs to the corresponding public RCQ change families:
+
+| MIP pair | RCQ case | Relationship |
+| --- | --- | --- |
+| MIP-001 camera serial replacement | RCQ-007 | Related change family |
+| MIP-002 tool geometry changed | RCQ-004 | Related change family |
+| MIP-003 battery health unmeasured | RCQ-009 | Related change family |
+| MIP-004 drive module changed | RCQ-010 | Related change family |
+| MIP-005 timebase replaced | RCQ-014 | Related change family |
+| MIP-006 payload CoM changed | RCQ-005 | Related change family |
+| MIP-007 safety chain revision | RCQ-011 | Related change family |
+| MIP-008 unknown module | RCQ-016 | Related change family |
+
+Every row is labelled `family_related_not_case_equivalence`. These are not identical conditions, expected dispositions, physical cases or claims. The crosswalk pins the source RCQ corpus by its exact Git blob SHA `9e38da798173c653bd01fc1ceb648fd0ff8a6dff`, not merely by a mutable branch URL.
+
+The other two owner joins are deliberately unresolved:
+- #5411's required last-accepted-A to first-accepted-B transition receipt is not yet pinned as a machine-readable artifact in this tranche; `transition_receipt_ref` remains null.
+- #3605's accepted functional-unit/inspection contract is not yet pinned as a machine-readable owner artifact here; the current layout acceptance profile is a synthetic fixture only.
+
+The validator enforces these nonclaims. It rejects changing either unresolved owner link into a synthetic "receipt" and rejects mission-to-qualification mappings whose declared mission family no longer matches the MIP corpus. Later owner acceptance should replace these explicit unresolved states with exact, revision/digest-pinned references—not reinterpret the current fixture URIs as real owner contracts.
