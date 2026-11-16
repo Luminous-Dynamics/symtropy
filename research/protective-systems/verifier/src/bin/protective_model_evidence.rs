@@ -5,7 +5,7 @@
 //! upstream model is correct or that a physical system is safe.
 
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use std::process;
@@ -69,6 +69,13 @@ fn required_text<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a str,
         .map(str::trim)
         .filter(|item| !item.is_empty())
         .ok_or_else(|| format!("{path}.{key} must be non-empty text"))
+}
+
+fn required_u64(value: &Value, key: &str, path: &str) -> Result<u64, String> {
+    value
+        .get(key)
+        .and_then(Value::as_u64)
+        .ok_or_else(|| format!("{path}.{key} must be a non-negative integer"))
 }
 
 fn validate_version_field(value: &Value, path: &str) -> Result<bool, String> {
@@ -209,6 +216,10 @@ fn validate_envelope(
     let schema_required = schema_value["required"]
         .as_array()
         .ok_or_else(|| "embedded JSON Schema required fields must be an array".to_owned())?;
+    let schema_validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema_value)
+        .map_err(|error| format!("embedded JSON Schema is invalid: {error}"))?;
     for key in [
         "schema_version",
         "evidence_class",
@@ -231,6 +242,9 @@ fn validate_envelope(
 
     let root: Value = serde_json::from_str(envelope_text)
         .map_err(|error| format!("envelope JSON invalid: {error}"))?;
+    schema_validator
+        .validate(&root)
+        .map_err(|error| format!("envelope schema validation failed: {error}"))?;
     if required_text(&root, "schema_version", "root")? != SCHEMA {
         return Err(format!("schema_version must equal {SCHEMA}"));
     }
@@ -859,6 +873,33 @@ mod tests {
 
     fn fixture_value() -> Value {
         serde_json::from_str(FIXTURE).expect("embedded fixture JSON")
+    }
+
+    #[test]
+    fn schema_rejects_unrecognized_top_level_properties() {
+        let mut root = fixture_value();
+        root["unrecognized_claim"] = Value::String("must not be silently accepted".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("additionalProperties=false");
+        assert!(error.contains("envelope schema validation failed"));
+    }
+
+    #[test]
+    fn schema_validates_uri_format_for_documentation_reference() {
+        let mut root = fixture_value();
+        root["source"]["documentation_uri"] = Value::String("not a URI".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("invalid URI format");
+        assert!(error.contains("envelope schema validation failed"));
+    }
+
+    #[test]
+    fn schema_enforces_integer_artifact_lengths_before_semantic_checks() {
+        let mut root = fixture_value();
+        root["datasets"][0]["artifacts"][0]["byte_length"] = Value::String("824".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("string cannot replace JSON integer");
+        assert!(error.contains("envelope schema validation failed"));
     }
 
     #[test]
