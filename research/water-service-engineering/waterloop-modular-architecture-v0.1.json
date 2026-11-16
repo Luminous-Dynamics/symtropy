@@ -1,0 +1,566 @@
+{
+  "schema_version": "waterloop-modular-architecture-v0.1",
+  "architecture_id": "WATERLOOP-MODULAR-T0-REF-001",
+  "revision": "0.1",
+  "date": "2026-11-16",
+  "evidence_class": "design_reference_only",
+  "qualification_status": "NotRun",
+  "claim_ceiling": "source_segregation_and_module_interface_design_only_no_treatment_or_use_qualification",
+  "design_principle": "source properties + intended use + exposure pathway determine a versioned process configuration; no single universal greywater train",
+  "nonclaims": [
+    "No module or process train is validated or selected for deployment.",
+    "No treated-water quality or public-health safety is established.",
+    "No plumbing installation, backflow arrangement, discharge route or regulatory compliance is approved.",
+    "No water-saving, treatment-energy, lifecycle-cost or service-availability result is measured."
+  ],
+  "boundaries": {
+    "system_scope": "source capture through use-specific fixture boundary and all residual/reject paths",
+    "separate_authorities": [
+      "water quality and use admission: Mycelix #6100",
+      "measurands, instrument capability, calibration and uncertainty: Mycelix #6034/#6029/#6048/#6054/#6057",
+      "water/material/energy/residual closure: Symtropy #2152",
+      "service continuity: Symtropy #5364/#5368",
+      "household water economics: Symtropy #5425",
+      "whole-household affordability: Sol-Atlas #816"
+    ],
+    "hydraulic_sizing": "unassigned_pending_site_demand_feed_characterization_and_professional_design",
+    "local_regulatory_review": "required_before_T1_site_connection_or_domestic_installation"
+  },
+  "source_classes": [
+    {
+      "id": "SRC-LGW-BATH-SHOWER",
+      "status": "candidate_conditional",
+      "description": "Bath and shower flows; retain source identity and batch/time context.",
+      "admission_requirements": [
+        "source_identity",
+        "site_hygiene_review",
+        "batch_characterization",
+        "intended_use_review"
+      ],
+      "default_action": "segregated_collection_only_until_screened"
+    },
+    {
+      "id": "SRC-LGW-HANDBASIN",
+      "status": "conditional_excluded_by_default",
+      "description": "Hand-basin flows; source-specific hygiene and cleaning chemistry can differ.",
+      "admission_requirements": [
+        "source_identity",
+        "cleaning_chemical_profile",
+        "site_hygiene_review",
+        "batch_characterization"
+      ],
+      "default_action": "isolated_hold_for_review"
+    },
+    {
+      "id": "SRC-LAUNDRY",
+      "status": "segregated_challenge_only",
+      "description": "Laundry wash/rinse batches; surfactants, fibres, suspended solids and detergent variation require a separate challenge population.",
+      "admission_requirements": [
+        "cycle_phase_identity",
+        "detergent_profile",
+        "surfactant_characterization",
+        "TSS_characterization",
+        "batch_identity"
+      ],
+      "default_action": "separate_hold_no_blending_into_LGW_train"
+    },
+    {
+      "id": "SRC-KITCHEN-DISHWASHER",
+      "status": "excluded_from_initial_reference_train",
+      "description": "Kitchen and dishwasher flows have food solids, grease and stronger/variable cleaning chemistry.",
+      "admission_requirements": [
+        "separate_process_design_and_risk_assessment"
+      ],
+      "default_action": "separate_drainage"
+    },
+    {
+      "id": "SRC-TOILET-BIDET-FAECAL",
+      "status": "prohibited_from_greywater_inlet",
+      "description": "Toilet/bidet and faecally contaminated flows are not greywater feed for this reference architecture.",
+      "admission_requirements": [],
+      "default_action": "sanitary_waste_route"
+    },
+    {
+      "id": "SRC-ANIMAL-CHEMICAL-TRADE",
+      "status": "prohibited_from_initial_reference",
+      "description": "Animal wash, paint/solvent/vehicle/machinery cleaning and other trade/chemical flows are excluded.",
+      "admission_requirements": [],
+      "default_action": "separate_approved_waste_route"
+    },
+    {
+      "id": "SRC-RAINWATER",
+      "status": "separate_source_family",
+      "description": "Roof rainwater/stormwater has its own first-flush, roof-material and microbial/chemical source risks; do not mix upstream with greywater.",
+      "admission_requirements": [
+        "roof_and_catchment_identity",
+        "first_flush_and_storage_review",
+        "source_quality_profile"
+      ],
+      "default_action": "separate_rainwater_process"
+    },
+    {
+      "id": "SRC-MAINS-BACKUP",
+      "status": "separate_potable_network",
+      "description": "Mains backup remains physically separated from reclaimed-water tank and network.",
+      "admission_requirements": [
+        "professional_backflow_airgap_design",
+        "local_authority_approval"
+      ],
+      "default_action": "isolated_potable_supply"
+    }
+  ],
+  "intended_use_classes": [
+    {
+      "id": "USE-TOILET-FLUSH",
+      "status": "candidate_future_use_not_qualified",
+      "exposure": "indoor_nonpotable_contact_and_aerosol_pathway_requires_risk_review",
+      "barriers": [
+        "independent_quality_admission",
+        "dedicated_nonpotable_distribution",
+        "cross_connection_prevention",
+        "point_of_use_service_verification"
+      ]
+    },
+    {
+      "id": "USE-SUBSURFACE-IRRIGATION",
+      "status": "candidate_future_use_not_qualified",
+      "exposure": "restricted_subsurface_application_with_soil_crop_groundwater_and_access_review",
+      "barriers": [
+        "independent_quality_admission",
+        "application_site_review",
+        "runoff_and_ponding_controls",
+        "dedicated_distribution"
+      ]
+    },
+    {
+      "id": "USE-DRINKING-COOKING",
+      "status": "excluded",
+      "exposure": "potable",
+      "barriers": []
+    },
+    {
+      "id": "USE-SHOWER-BATH-HANDWASH",
+      "status": "excluded_from_initial_reference_train",
+      "exposure": "direct_human_contact",
+      "barriers": []
+    },
+    {
+      "id": "USE-FOOD-CROP-IRRIGATION",
+      "status": "excluded_from_initial_reference_train",
+      "exposure": "food_chain",
+      "barriers": []
+    }
+  ],
+  "module_interface": {
+    "interface_revision": "0.1",
+    "mandatory_identity": [
+      "module_id",
+      "module_revision",
+      "manufacturer_or_lab_build_id",
+      "serial_or_test_article_id",
+      "configuration_sha256"
+    ],
+    "hydraulic_ports": [
+      "feed_in",
+      "qualified_product_out",
+      "reject_out",
+      "purge_drain",
+      "sample_in",
+      "sample_out",
+      "isolation_bypass"
+    ],
+    "energy_ports": [
+      "electrical_supply_if_required",
+      "electrical_energy_meter_boundary_if_required"
+    ],
+    "telemetry_fields": [
+      "timestamp_and_timebase",
+      "flow",
+      "pressure_or_headloss_where_relevant",
+      "temperature",
+      "level_where_relevant",
+      "state",
+      "alarm_code"
+    ],
+    "mandatory_engineering_data": [
+      "design_flow_min_max",
+      "design_pressure_min_max",
+      "temperature_min_max",
+      "allowable_solids_range",
+      "chemistry_compatibility",
+      "residence_time_range",
+      "cleaning_method",
+      "replacement_interval_basis",
+      "reject_fraction",
+      "maintenance_access_envelope"
+    ],
+    "unknown_required_field_policy": "UNASSIGNED_DO_NOT_INFER_OR_DEPLOY",
+    "module_change_effect": "any module revision or process order change creates a new whole-train configuration identity and requires impact review"
+  },
+  "candidate_modules": [
+    {
+      "id": "M01-SOURCE-SELECTOR",
+      "function": "source routing and batch identity",
+      "inputs": [
+        "source_id",
+        "batch_id",
+        "flow"
+      ],
+      "outputs": [
+        "selected_feed_or_reject"
+      ],
+      "hazards": [
+        "wrong_source_route",
+        "stuck_diverter"
+      ],
+      "required_controls": [
+        "physical_source_separation",
+        "position_feedback",
+        "fail_to_reject_state"
+      ],
+      "qualification": "T0 state-machine then unoccupied rig"
+    },
+    {
+      "id": "M02-COARSE-SCREEN",
+      "function": "removable hair/lint/fibre screening",
+      "inputs": [
+        "raw_feed"
+      ],
+      "outputs": [
+        "screened_feed",
+        "captured_solids"
+      ],
+      "hazards": [
+        "clogging",
+        "bypass",
+        "operator_contact"
+      ],
+      "required_controls": [
+        "headloss_or_blockage_observation",
+        "safe_isolation",
+        "captured_solids_accounting"
+      ],
+      "qualification": "challenge TSS/fibre profile and maintenance trial"
+    },
+    {
+      "id": "M03-EQUALIZATION",
+      "function": "batch equalization and controlled short-hold buffer",
+      "inputs": [
+        "screened_feed"
+      ],
+      "outputs": [
+        "conditioned_batch",
+        "overflow",
+        "purge"
+      ],
+      "hazards": [
+        "stagnation",
+        "overflow",
+        "untracked_dilution"
+      ],
+      "required_controls": [
+        "level",
+        "temperature",
+        "batch_age",
+        "overflow_metering",
+        "purge_route"
+      ],
+      "qualification": "residence-time and warm-storage challenge; limit not assigned"
+    },
+    {
+      "id": "M04-PASSIVE-MEDIA",
+      "function": "media/sand/biofilter candidate",
+      "inputs": [
+        "conditioned_batch"
+      ],
+      "outputs": [
+        "filtered_stream",
+        "backwash_or_spent_media"
+      ],
+      "hazards": [
+        "headloss",
+        "clogging",
+        "media_exhaustion",
+        "biofilm_shedding"
+      ],
+      "required_controls": [
+        "headloss",
+        "flow",
+        "maintenance_state",
+        "media_lot_identity"
+      ],
+      "qualification": "matched-feed loading and long-duration fouling trial"
+    },
+    {
+      "id": "M05-UF-MEMBRANE",
+      "function": "ultrafiltration barrier candidate",
+      "inputs": [
+        "pretreated_feed"
+      ],
+      "outputs": [
+        "permeate",
+        "concentrate",
+        "backwash"
+      ],
+      "hazards": [
+        "membrane_integrity_loss",
+        "fouling",
+        "pressure_excursion"
+      ],
+      "required_controls": [
+        "integrity_test",
+        "TMP_or_pressure",
+        "flux",
+        "backwash_mass_balance",
+        "fail_closed_valve"
+      ],
+      "qualification": "integrity challenge, normalized flux and reject accounting"
+    },
+    {
+      "id": "M06-OZONE-GAC",
+      "function": "oxidation and adsorptive/biological carbon candidate",
+      "inputs": [
+        "pretreated_feed"
+      ],
+      "outputs": [
+        "treated_stream",
+        "offgas_or_residual_control_stream",
+        "spent_carbon"
+      ],
+      "hazards": [
+        "ozone_exposure",
+        "offgas",
+        "carbon_breakthrough",
+        "biofilm_detachment"
+      ],
+      "required_controls": [
+        "professional_ozone_engineering",
+        "offgas_interlock",
+        "contact_validation",
+        "carbon_lot_and_age",
+        "downstream_microbiology"
+      ],
+      "qualification": "controlled ozone contact, carbon maturation/breakthrough and biofilm challenge"
+    },
+    {
+      "id": "M07-NATURE-BASED-CELL",
+      "function": "constructed wetland or biofiltration polishing candidate",
+      "inputs": [
+        "pretreated_feed"
+      ],
+      "outputs": [
+        "polished_stream",
+        "solids_or_vegetation_residual"
+      ],
+      "hazards": [
+        "clogging",
+        "vectors",
+        "temperature_sensitive_performance",
+        "hydraulic_short_circuit"
+      ],
+      "required_controls": [
+        "hydraulic_loading",
+        "distribution_uniformity",
+        "maintenance_access",
+        "seasonal_sampling"
+      ],
+      "qualification": "pilot cell with hydraulic and seasonal performance evidence"
+    },
+    {
+      "id": "M08-FINAL-DISINFECTION",
+      "function": "use-specific final disinfection barrier candidate",
+      "inputs": [
+        "treated_feed"
+      ],
+      "outputs": [
+        "disinfected_candidate_stream"
+      ],
+      "hazards": [
+        "dose_or_contact_failure",
+        "lamp_or_sensor_failure",
+        "post-treatment_regrowth"
+      ],
+      "required_controls": [
+        "validated_dose_or_contact",
+        "interlock",
+        "downstream_sample_point",
+        "storage_residence_control"
+      ],
+      "qualification": "independent microbiological and barrier challenge"
+    },
+    {
+      "id": "M09-NONPOTABLE-RESERVOIR",
+      "function": "dedicated treated-water buffer",
+      "inputs": [
+        "admitted_product_stream"
+      ],
+      "outputs": [
+        "use_supply",
+        "overflow",
+        "drain"
+      ],
+      "hazards": [
+        "regrowth",
+        "stagnation",
+        "cross_connection",
+        "unaccounted_overflow"
+      ],
+      "required_controls": [
+        "separate_tank",
+        "level_and_turnover",
+        "drainable_cleanable_design",
+        "nonpotable_identification",
+        "backflow_or_airgap_review"
+      ],
+      "qualification": "storage-age and cross-connection inspection/testing"
+    },
+    {
+      "id": "M10-USE-DELIVERY",
+      "function": "dedicated non-potable fixture distribution",
+      "inputs": [
+        "admitted_reservoir_supply"
+      ],
+      "outputs": [
+        "point_of_use_service",
+        "return_or_reject_if_designed"
+      ],
+      "hazards": [
+        "cross_connection",
+        "pressure_or_flow_failure",
+        "unintended_outlet"
+      ],
+      "required_controls": [
+        "labelled_dedicated_pipes",
+        "fixture_boundary_metering",
+        "approved_backflow_protection",
+        "service_floor_interlock"
+      ],
+      "qualification": "plumbing inspection and fixture-boundary service trial"
+    }
+  ],
+  "candidate_train_families": [
+    {
+      "id": "TRAIN-A-BATH-SHOWER-PASSIVE",
+      "sources": [
+        "SRC-LGW-BATH-SHOWER"
+      ],
+      "candidate_sequence": [
+        "M01-SOURCE-SELECTOR",
+        "M02-COARSE-SCREEN",
+        "M03-EQUALIZATION",
+        "M04-PASSIVE-MEDIA",
+        "M08-FINAL-DISINFECTION",
+        "M09-NONPOTABLE-RESERVOIR",
+        "M10-USE-DELIVERY"
+      ],
+      "selection": "candidate_for_matched_unoccupied_test_only"
+    },
+    {
+      "id": "TRAIN-B-BATH-SHOWER-UF",
+      "sources": [
+        "SRC-LGW-BATH-SHOWER"
+      ],
+      "candidate_sequence": [
+        "M01-SOURCE-SELECTOR",
+        "M02-COARSE-SCREEN",
+        "M03-EQUALIZATION",
+        "M05-UF-MEMBRANE",
+        "M08-FINAL-DISINFECTION",
+        "M09-NONPOTABLE-RESERVOIR",
+        "M10-USE-DELIVERY"
+      ],
+      "selection": "candidate_for_matched_unoccupied_test_only"
+    },
+    {
+      "id": "TRAIN-C-LAUNDRY-SEGREGATED",
+      "sources": [
+        "SRC-LAUNDRY"
+      ],
+      "candidate_sequence": [
+        "M01-SOURCE-SELECTOR",
+        "M02-COARSE-SCREEN",
+        "M03-EQUALIZATION",
+        "M04-PASSIVE-MEDIA_OR_M05_UF_OR_M06_OZONE-GAC"
+      ],
+      "selection": "challenge_population_only_no_reuse_credit_until_profile_and_train_qualified"
+    },
+    {
+      "id": "TRAIN-D-NATURE-BASED",
+      "sources": [
+        "SRC-LGW-BATH-SHOWER"
+      ],
+      "candidate_sequence": [
+        "M01-SOURCE-SELECTOR",
+        "M02-COARSE-SCREEN",
+        "M03-EQUALIZATION",
+        "M07-NATURE-BASED-CELL",
+        "M08-FINAL-DISINFECTION"
+      ],
+      "selection": "site_and_land_dependent_pilot_only"
+    }
+  ],
+  "fail_safe_state": {
+    "on_invalid_quality_evidence": "ISOLATE_NONPOTABLE_DELIVERY_AND_HOLD_OR_REJECT_PRODUCT",
+    "on_power_loss": "STOP_TREATMENT_AND_REUSE_DELIVERY; MAINS_REMAINS_PHYSICALLY_SEPARATE",
+    "on_barrier_fault": "FAIL_CLOSED_NO_QUALITY_CREDIT",
+    "on_unknown_source": "REJECT_OR_HOLD_BATCH",
+    "on_overflow_or_blocked_reject": "STOP_FEED_AND_ALARM",
+    "on_configuration_change": "REVOKE_PRIOR_TRAIN_QUALIFICATION_UNTIL_IMPACT_REVIEW",
+    "note": "A reject/drain route may be used only after site-specific hydraulic and legal permission is reviewed."
+  },
+  "qualification_stages": [
+    {
+      "stage": "T0",
+      "purpose": "typed architecture and failure-state contract; synthetic-only",
+      "acceptance": [
+        "all source IDs explicit",
+        "all modules have typed ports and required data",
+        "unknown engineering values remain unassigned",
+        "faults transition to defined fail-safe state",
+        "configuration identity changes on module substitution"
+      ]
+    },
+    {
+      "stage": "T1",
+      "purpose": "unoccupied modular skid; no domestic connection and no potable outlet",
+      "acceptance": [
+        "matched aliquot comparison",
+        "independent laboratory programme",
+        "full water/energy/residual balance",
+        "fault injection and restart",
+        "maintenance access and time recording"
+      ]
+    },
+    {
+      "stage": "T2",
+      "purpose": "site-specific design and approved trial",
+      "acceptance": [
+        "legal and standards review",
+        "licensed/qualified professional design",
+        "sample and result admission",
+        "resident/owner consent",
+        "incident and maintenance coverage"
+      ]
+    }
+  ],
+  "benchmark_targets": {
+    "safety": [
+      "zero unsafe-use false accepts in predeclared negative controls",
+      "100% fail-closed response to seeded critical evidence/barrier faults",
+      "zero potable/non-potable cross-connections under adopted professional test protocol"
+    ],
+    "service": [
+      ">=95% matched-batch service within the independently defined use-quality envelope in declared rig scenarios",
+      ">=99% non-potable service availability only after T1/T2 envelope has been validated"
+    ],
+    "reliability": [
+      "report time-to-fouling/breakthrough and restart recovery",
+      "candidate maintenance hypothesis <=30 operator minutes per 30 days; validate, do not promise"
+    ],
+    "resource": [
+      "report kWh per use-qualified delivered m3",
+      "report mains backup/reject/backwash/spent media per useful m3",
+      "report lifecycle cost per verified useful m3 and critical person-day"
+    ]
+  }
+}
