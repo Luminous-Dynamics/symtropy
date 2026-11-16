@@ -36,7 +36,9 @@ pub fn validate_files(
     let envelope: Value = serde_json::from_slice(&envelope_bytes)
         .map_err(|error| vec![format!("handoff is not valid JSON: {error}")])?;
 
-    let validator = jsonschema::validator_for(&schema)
+    let validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
         .map_err(|error| vec![format!("cannot compile JSON Schema: {error}")])?;
     let base_dir = envelope_path.parent().unwrap_or_else(|| Path::new("."));
 
@@ -91,6 +93,16 @@ fn validate_document(
     if representation == "summary_only" {
         checks.push("summary-only representation remains explicitly non-particle-resolved".to_owned());
     } else {
+        let correlations_preserved = envelope
+            .get("distribution")
+            .and_then(|value| value.get("correlations_preserved"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if !correlations_preserved {
+            return Err(vec![
+                "full/reduced distribution handoff must explicitly preserve joint phase-space correlations".to_owned(),
+            ]);
+        }
         checks.push("distribution asset path is confined to the envelope directory".to_owned());
         checks.push("asset byte length and SHA-256 digest match".to_owned());
         checks.push("CSV particle identities, weights and ancestry passed".to_owned());
@@ -210,7 +222,7 @@ fn validate_population_ledger(envelope: &Value) -> Result<(), Vec<String>> {
     let computed_residual = source_population - accounted_population;
     let allowed_residual = tolerance * source_population.abs().max(1.0);
 
-    if !close_relative(computed_residual, declared_residual, tolerance) {
+    if (computed_residual - declared_residual).abs() > allowed_residual {
         return Err(vec![format!(
             "declared balance residual {declared_residual} differs from computed residual {computed_residual}"
         )]);
@@ -681,7 +693,10 @@ mod tests {
         let schema: Value =
             serde_json::from_slice(&fs::read(schema_path).expect("schema must be readable"))
                 .expect("schema JSON must parse");
-        jsonschema::validator_for(&schema).expect("schema must compile")
+        jsonschema::draft202012::options()
+            .should_validate_formats(true)
+            .build(&schema)
+            .expect("schema must compile")
     }
 
     #[test]
