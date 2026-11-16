@@ -1,0 +1,300 @@
+{
+  "schema_version": "myco.exchange_tradeoff_benchmark.v0.1",
+  "suite_id": "MYCO-EXCHANGE-TRADEOFF-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5521",
+  "status": "protocol_defined_not_run",
+  "source_register": [
+    {
+      "id": "PNAS_2026_CP_PARETO",
+      "doi": "10.1073/pnas.2512182123",
+      "url": "https://doi.org/10.1073/pnas.2512182123",
+      "code_repository": "https://github.com/Cocopyth/PC_2025",
+      "repository_readme_claims": [
+        "coarse-grained network observables",
+        "main and supplementary figure notebooks",
+        "simulator.py",
+        "ML training code/data"
+      ],
+      "exact_revisions": null,
+      "file_inventory": null,
+      "licenses": {
+        "code": "unverified",
+        "data": "unverified"
+      },
+      "downloaded": false,
+      "evidence_basis": "morphology/ML-derived estimates unless linked to independent tracer measurement",
+      "key_findings": [
+        "approximately 100 million hyphal-shape measurements",
+        "C/P exchange ratio nearly invariant across tested fungal strains within host context",
+        "C/P ratio strongly affected by plant host genotype",
+        "host-genotype swap shifts exploration/exploitation Pareto front"
+      ]
+    },
+    {
+      "id": "ROOT_ANATOMY_2025",
+      "doi": "10.1038/s41467-025-64553-1",
+      "url": "https://doi.org/10.1038/s41467-025-64553-1",
+      "comparator_type": "theoretical mechanistic model",
+      "equations_to_crosswalk": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "dimensions_to_parameterize": [
+        "root radius",
+        "stele radius",
+        "ToS thickness",
+        "ToS cell layer thickness",
+        "arbuscule position layer",
+        "nutrient arrival rate",
+        "ATP per carbon",
+        "root uptake energy cost",
+        "fungal carbon-to-nutrient exchange"
+      ],
+      "data_downloaded": false,
+      "validation_status": "theory reproduction required"
+    },
+    {
+      "id": "FIELD_HYPHOSPHERE_CN_2026",
+      "doi": "10.1111/nph.71576",
+      "url": "https://doi.org/10.1111/nph.71576",
+      "bExIS_dataset_id": "32469",
+      "bExIS_doi": "10.71615/bexis.32469",
+      "sra_bioproject": "PRJNA1415267",
+      "design": {
+        "hyphoboxes_installed": 36,
+        "layout": "randomized",
+        "label_treatments": 3,
+        "sampling_timepoints_days": [
+          1,
+          3,
+          7
+        ],
+        "nominal_replicates_per_treatment_timepoint": 4,
+        "reduced_15N_replicates": {
+          "timepoint_day": 3,
+          "actual_n": 3,
+          "reason": "one labelled box was damaged and replaced with an unlabeled spare"
+        }
+      },
+      "key_observations_to_reproduce": {
+        "plant_13CO2_pulse": true,
+        "hyphal_13C_in_fungal_biomarkers_day_1": true,
+        "hyphal_13C_in_hyphosphere_bacterial_biomarkers_by_day_7": true,
+        "15N_urea_supplied_to_hyphal_compartment": true,
+        "reported_15N_recovery_in_plants_percent": 16.9
+      },
+      "raw_amplicon_data_license": "check SRA terms and source submission",
+      "other_data_license": "check BExIS dataset terms",
+      "downloaded": false
+    },
+    {
+      "id": "CMN_EVIDENCE_MAP_2024",
+      "doi": "10.1002/ppp3.10618",
+      "url": "https://doi.org/10.1002/ppp3.10618",
+      "reviewed_studies": 123,
+      "studies_meeting_all_five_criteria": 9,
+      "criteria": [
+        "at least two plant units",
+        "all linked plants AM colonized",
+        "root systems spatially separated",
+        "hyphal linking treatment",
+        "hyphal continuity tested"
+      ],
+      "caveat": "hyphal continuity test is not itself proof of continuous cytoplasmic flow"
+    },
+    {
+      "id": "CEN_ENDOPHYTE_2026",
+      "doi": "10.1038/s41598-026-56653-9",
+      "url": "https://doi.org/10.1038/s41598-026-56653-9",
+      "code_and_data_repository": "https://gitlab.com/fungalecology/cen",
+      "article_license": "CC-BY-4.0",
+      "repository_code_data_license": "unverified",
+      "fungal_profiles": [
+        "Trichoderma viride",
+        "Mucor hiemalis",
+        "Fusarium temperatum"
+      ],
+      "host": "Arabidopsis thaliana Col-0",
+      "caveat": "distinct endophyte transfer phenotype; do not merge into AMF C:P model"
+    }
+  ],
+  "network_evidence_contract": {
+    "network_classes": [
+      "CFN",
+      "CMN",
+      "CMN_HC"
+    ],
+    "criterion_statuses": [
+      "PASS",
+      "FAIL",
+      "UNREPORTED",
+      "NOT_APPLICABLE"
+    ],
+    "criteria": [
+      {
+        "id": 1,
+        "name": "at_least_two_plant_units",
+        "scope": "CFN and CMN"
+      },
+      {
+        "id": 2,
+        "name": "all_linked_plants_AM_colonized",
+        "scope": "CMN"
+      },
+      {
+        "id": 3,
+        "name": "root_systems_spatially_separated",
+        "scope": "causal pathway control"
+      },
+      {
+        "id": 4,
+        "name": "hyphal_linking_treatment",
+        "scope": "network effect attribution"
+      },
+      {
+        "id": 5,
+        "name": "hyphal_continuity_tested",
+        "scope": "CMN_HC"
+      }
+    ],
+    "classification_policy": {
+      "CFN": "requires evidence for a shared filamentous fungal network linking at least two plants; organism identity must be explicit",
+      "CMN_effect": "criteria 1-4 PASS with AM fungal identity and source-linked evidence",
+      "CMN_HC_effect": "criteria 1-5 PASS with AM fungal identity and source-linked evidence",
+      "missing": "UNREPORTED never upgrades a claim class",
+      "criterion_5_caveat": "does not by itself prove continuous cytoplasmic flow",
+      "flow_claim": "requires separate flow/transport evidence"
+    }
+  },
+  "evaluation_tracks": [
+    {
+      "id": "T1",
+      "name": "PNAS_C_P_reproduction",
+      "metrics": [
+        "C_to_P_flux_error",
+        "strain_within_host_ratio_variance",
+        "host_genotype_ratio_effect",
+        "front_shift_error"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "exploration_exploitation_pareto",
+      "metrics": [
+        "front_distance",
+        "hypervolume",
+        "epsilon_indicator",
+        "attainment_probability",
+        "heldout_front_prediction_error"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "root_anatomy_energy_model",
+      "metrics": [
+        "dimensional_residual",
+        "equation_reference_error",
+        "energy_per_nutrient",
+        "arbuscule_layer_sensitivity"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "field_C_N_reproduction",
+      "metrics": [
+        "13C_atom_percent_excess_error",
+        "15N_recovery_error",
+        "treatment_effect_error",
+        "timecourse_error",
+        "microbial_attribution_uncertainty"
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "network_evidence_qualification",
+      "metrics": [
+        "five_criterion_pass_coverage",
+        "unsupported_CMN_HC_claim_rate",
+        "false_pathway_attribution_rate"
+      ]
+    },
+    {
+      "id": "T6",
+      "name": "causal_pathway_discrimination",
+      "metrics": [
+        "heldout_log_score",
+        "calibration",
+        "abstention",
+        "negative_control_specificity"
+      ]
+    },
+    {
+      "id": "T7",
+      "name": "cross_study_generalization",
+      "metrics": [
+        "leave_host_genotype_out",
+        "leave_fungal_strain_out",
+        "leave_study_out",
+        "OOD_detection"
+      ]
+    }
+  ],
+  "baselines": [
+    "constant_C_to_P_exchange_ratio",
+    "host_genotype_blind_model",
+    "fungal_strain_blind_model",
+    "morphology_only_flux_estimator",
+    "root_only_no_mycorrhiza_theory",
+    "fixed_arbuscule_layer_model",
+    "soil_diffusion_only_pathway",
+    "hyphal_continuity_only_pathway",
+    "bacterial_mediation_pathway",
+    "no_transfer_null"
+  ],
+  "split_contract": {
+    "units": [
+      "complete_growth_unit",
+      "complete_field_hyphobox",
+      "host_genotype",
+      "fungal_strain",
+      "study"
+    ],
+    "required": [
+      "leave_host_genotype_out",
+      "leave_fungal_strain_out",
+      "leave_study_out"
+    ],
+    "forbidden": [
+      "random_subsample_split_within_growth_unit",
+      "random_timepoint_split_within_destructive_replicates"
+    ]
+  },
+  "proposed_targets_not_results": {
+    "calibration": "90% and 95% predictive intervals within ±3 percentage points empirical coverage on held-out experimental units",
+    "evidence": "zero CMN-HC classification when any of criteria 1-5 is UNREPORTED or FAIL",
+    "pareto": "reproduce source front before any front-superiority claim",
+    "performance": "compare at equal data, compute and measurement budget"
+  },
+  "receipt_requirements": [
+    "exact_source_revision_and_file_digest",
+    "file_level_license_and_rights_status",
+    "host_genotype_and_fungal_strain_ids",
+    "experimental_unit_and_randomization_block",
+    "timepoint_and_destructive_sampling_metadata",
+    "isotope_tracer_species_and_labeling_treatment",
+    "direct_measurement_vs_morphology_estimate_vs_simulation_evidence_basis",
+    "five_network_criterion_statuses_and_source_refs",
+    "flux_units_and_conversion_audit",
+    "prediction_intervals_and_worst_stratum",
+    "PASS_FAIL_UNREPORTED_NOT_RUN_INSUFFICIENT_EVIDENCE"
+  ],
+  "claim_ceiling": "Source-specific C/P/N exchange and network-evidence benchmark; no universal exchange ratio, direct cytoplasmic flow from isotope enrichment, or field generalization without independent holdouts."
+}
