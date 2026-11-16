@@ -640,8 +640,7 @@ mod tests {
 
     #[test]
     fn public_golden_vector_matches_exact_manifest_digest_and_strata() {
-        let root = crate::repository_root()
-            .join("research/robot-config-mission-impact-v0-1");
+        let root = crate::repository_root().join("research/robot-config-mission-impact-v0-1");
         let profile = profile();
         let golden = crate::read_json(&root.join("golden-vectors-v0.1.json"))
             .expect("golden vector artifact parses");
