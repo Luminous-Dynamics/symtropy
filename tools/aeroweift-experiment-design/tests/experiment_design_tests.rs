@@ -951,3 +951,56 @@ fn reported_hypothesis_pair_count_uses_the_frozen_separation_floor() {
         1
     );
 }
+
+
+#[test]
+fn below_floor_pairwise_contrast_cannot_create_pareto_advantage() {
+    let baseline = candidate("baseline-pair-count");
+    let mut extra_weak_pair = candidate("extra-weak-pair");
+    extra_weak_pair.hypothesis_groups.push(HypothesisGroup {
+        hypothesis_id: "hypothesis-c".into(),
+        hypothesis_sha256: digest('0'),
+        group_id: "model-family-c".into(),
+    });
+    extra_weak_pair.hypothesis_contrasts.push(HypothesisContrast {
+        left_hypothesis_id: "hypothesis-a".into(),
+        right_hypothesis_id: "hypothesis-c".into(),
+        separation_lower_bound: 0.19,
+        contrast_estimate_sha256: digest('a'),
+    });
+
+    let result = select_experiments(&[baseline, extra_weak_pair], &policy()).unwrap();
+    assert_eq!(result.pareto_front.len(), 2);
+    assert_eq!(
+        result
+            .pareto_front
+            .iter()
+            .map(|item| item.independent_hypothesis_group_pair_count)
+            .collect::<Vec<_>>(),
+        vec![1, 1]
+    );
+}
+
+#[test]
+fn pair_count_dominance_is_monotonic_only_above_frozen_separation_floor() {
+    for separation_step in 0..=20 {
+        let mut candidate = candidate("pair-count-monotonic");
+        candidate.hypothesis_groups.push(HypothesisGroup {
+            hypothesis_id: "hypothesis-c".into(),
+            hypothesis_sha256: digest('0'),
+            group_id: "model-family-c".into(),
+        });
+        candidate.hypothesis_contrasts.push(HypothesisContrast {
+            left_hypothesis_id: "hypothesis-a".into(),
+            right_hypothesis_id: "hypothesis-c".into(),
+            separation_lower_bound: separation_step as f64 / 100.0,
+            contrast_estimate_sha256: digest('a'),
+        });
+        let result = select_experiments(&[candidate], &policy()).unwrap();
+        assert_eq!(result.pareto_front.len(), 1);
+        assert_eq!(
+            result.pareto_front[0].independent_hypothesis_group_pair_count,
+            1
+        );
+    }
+}
