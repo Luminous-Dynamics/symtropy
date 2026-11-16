@@ -4,7 +4,7 @@
 **Owner:** PROTECT-EVIDENCE-SEMANTIC-PROJECTION-001 #5643  
 **Branch:** `research/protect-evidence-semantic-projection-e4-v0-1`  
 **Parent:** E3 multi-provider adapters #5598 / PR #5637  
-**Status:** Rust tagged-union projection prototype, 22 unit tests written, Cargo/CI integration authored; exact-head hosted execution pending
+**Status:** Rust tagged-union projection prototype, 32 unit tests written, Cargo/CI integration authored; exact-head hosted execution pending
 
 ## 1. Paradigm shift: a typed federation, not a universal flat schema
 
@@ -67,7 +67,7 @@ It constructs three tagged provider views, classifies the explicit mappings, ret
 - DataCite DOI/rights/schema/related-identifier distinctions;
 - DataCite raw metadata and unrecognized native attribute preservation;
 - OGC record/geometry/extent/CRS/link semantics and extension retention;
-- OpenLineage terminal-state derivation and preservation of full native events/facets;
+- OpenLineage terminal-state derivation, canonical UTC timestamp ordering, matching start/terminal job+schema identity, and preservation of full native events/facets;
 - E1 context receipt identity and E1 NOT_EXECUTED isolation;
 - explicit normalized-equivalent and derived mapping rule IDs;
 - semantic equality vs raw-byte digest change under whitespace rewriting;
@@ -82,6 +82,7 @@ Formatting, Clippy, compilation, tests and executable output must be evidenced o
 | Typed projection serialize/deserialize equality | 100% on frozen corpus |
 | Required native mapped-field preservation | 100% |
 | Every consumed field has a mapping class | 100% |
+| Baseline mapping ledger completeness | 52 explicit decisions, 0 unclassified fixture fields |
 | Unknown/unmapped provider fields retained or explicitly reported | 100% |
 | Silent default coercions | 0 |
 | DOI/provider identity drift | 0 |
