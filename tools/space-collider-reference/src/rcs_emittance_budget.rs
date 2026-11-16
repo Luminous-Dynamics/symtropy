@@ -94,8 +94,14 @@ fn validate_stage_set(stages: &[StageGrowth]) -> Result<(), String> {
             ("horizontal emittance growth", stage.horizontal_pct),
             ("vertical emittance growth", stage.vertical_pct),
             ("longitudinal emittance growth", stage.longitudinal_pct),
-            ("horizontal orbit offset", stage.max_horizontal_orbit_offset_mm),
-            ("horizontal beta beating", stage.max_horizontal_beta_beating_pct),
+            (
+                "horizontal orbit offset",
+                stage.max_horizontal_orbit_offset_mm,
+            ),
+            (
+                "horizontal beta beating",
+                stage.max_horizontal_beta_beating_pct,
+            ),
             ("vertical beta beating", stage.max_vertical_beta_beating_pct),
         ] {
             if !value.is_finite() {
@@ -151,7 +157,10 @@ fn compute_budget_closure(
         let factor_before = multiplicative_factor;
         let stage_factor = 1.0 + stage.horizontal_pct / 100.0;
         if !stage_factor.is_finite() || stage_factor <= 0.0 {
-            return Err(format!("{} produces an invalid multiplicative factor", stage.id));
+            return Err(format!(
+                "{} produces an invalid multiplicative factor",
+                stage.id
+            ));
         }
 
         multiplicative_factor *= stage_factor;
@@ -303,7 +312,10 @@ mod tests {
 
     #[test]
     fn table_iii_stage_values_match_source_transcription() {
-        assert_eq!(STAGES.map(|stage| stage.id), ["RCS1", "RCS2", "RCS3", "RCS4"]);
+        assert_eq!(
+            STAGES.map(|stage| stage.id),
+            ["RCS1", "RCS2", "RCS3", "RCS4"]
+        );
         assert_eq!(
             STAGES.map(|stage| stage.horizontal_pct),
             [6.8, 0.4, 1.0, 1.5]
