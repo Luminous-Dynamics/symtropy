@@ -1,7 +1,8 @@
 use aeroweift_experiment_design::{
     AuthorizationState, DesignDisposition, ExperimentCandidate, ExperimentDesignPolicy,
-    ExperimentModality, ExperimentObjective, HypothesisContrast, HypothesisGroup, RejectionReason,
-    ResourceBudget, ResourceCost, SelectionEvidenceRole, SemanticEquivalence, select_experiments,
+    ExperimentModality, ExperimentObjective, GateEvidenceReceipt, GateEvidenceRole,
+    HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget, ResourceCost,
+    SelectionEvidenceRole, SemanticEquivalence, select_experiments,
 };
 
 fn digest(ch: char) -> String {
@@ -38,8 +39,72 @@ fn policy() -> ExperimentDesignPolicy {
     }
 }
 
+fn gate_evidence_receipt(
+    candidate: &ExperimentCandidate,
+    frozen_policy: &ExperimentDesignPolicy,
+    role: GateEvidenceRole,
+    receipt_id: &str,
+    payload_sha256: String,
+) -> GateEvidenceReceipt {
+    GateEvidenceReceipt {
+        receipt_id: receipt_id.into(),
+        payload_sha256,
+        issuer_id: format!("owner-{receipt_id}"),
+        role,
+        campaign_sha256: candidate.campaign_sha256.clone(),
+        model_scope_sha256: candidate.model_scope_sha256.clone(),
+        intended_use_profile_sha256: candidate.intended_use_profile_sha256.clone(),
+        decision_question_id: candidate.decision_question_id.clone(),
+        design_sha256: candidate.design_sha256.clone(),
+        scenario_manifest_sha256: candidate.scenario_manifest_sha256.clone(),
+        measurement_plan_sha256: candidate.measurement_plan_sha256.clone(),
+        policy_sha256: frozen_policy.policy_sha256.clone(),
+    };
+    let frozen_policy = policy();
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::Safety,
+        "safety-receipt",
+        digest('4'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::Envelope,
+        "envelope-receipt",
+        digest('5'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::IndependentReference,
+        "reference-receipt",
+        digest('6'),
+    );
+    add_gate_evidence_receipt(
+        &mut result,
+        &frozen_policy,
+        GateEvidenceRole::SemanticEquivalence,
+        "semantic-receipt",
+        digest('7'),
+    );
+    result
+}
+
+fn add_gate_evidence_receipt(
+    candidate: &mut ExperimentCandidate,
+    frozen_policy: &ExperimentDesignPolicy,
+    role: GateEvidenceRole,
+    receipt_id: &str,
+    payload_sha256: String,
+) {
+    let receipt = gate_evidence_receipt(candidate, frozen_policy, role, receipt_id, payload_sha256);
+    candidate.gate_evidence_receipts.push(receipt);
+}
+
 fn candidate(id: &str) -> ExperimentCandidate {
-    ExperimentCandidate {
+    let mut result = ExperimentCandidate {
         candidate_id: id.into(),
         campaign_sha256: digest('b'),
         model_scope_sha256: digest('c'),
@@ -53,6 +118,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
         requires_external_authorization: false,
         authorization: AuthorizationState::NotRequired,
         authorization_receipt_sha256: None,
+        gate_evidence_receipts: Vec::new(),
         safety_constraints_clear: true,
         safety_gate_receipt_sha256: Some(digest('4')),
         within_declared_envelope: true,
@@ -605,6 +671,13 @@ fn authorized_hardware_in_the_loop_requires_an_owner_receipt() {
     hil.modality = ExperimentModality::HardwareInLoop;
     hil.authorization = AuthorizationState::Authorized;
     hil.authorization_receipt_sha256 = Some(digest('a'));
+    add_gate_evidence_receipt(
+        &mut hil,
+        &frozen,
+        GateEvidenceRole::Authorization,
+        "hil-authorization-receipt",
+        digest('a'),
+    );
     let result = select_experiments(&[hil], &frozen).unwrap();
     assert_eq!(result.pareto_front.len(), 1);
 }
@@ -1006,4 +1079,56 @@ fn pair_count_dominance_is_monotonic_only_above_frozen_separation_floor() {
             1
         );
     }
+}
+
+
+#[test]
+fn gate_evidence_receipt_is_bound_to_exact_experiment_design() {
+    let mut candidate = candidate("receipt-scope-splice");
+    candidate.gate_evidence_receipts[0].design_sha256 = digest('9');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "receipt-scope-splice").contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+#[test]
+fn gate_evidence_receipt_is_bound_to_frozen_policy_manifest() {
+    let mut candidate = candidate("receipt-policy-splice");
+    candidate.gate_evidence_receipts[0].policy_sha256 = digest('9');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "receipt-policy-splice").contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+#[test]
+fn duplicate_gate_receipt_identifier_is_rejected() {
+    let mut candidate = candidate("duplicate-gate-receipt");
+    let duplicate = candidate.gate_evidence_receipts[0].clone();
+    candidate.gate_evidence_receipts.push(duplicate);
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "duplicate-gate-receipt").contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+#[test]
+fn duplicate_gate_receipt_role_is_rejected() {
+    let mut candidate = candidate("duplicate-gate-role");
+    let mut duplicate = candidate.gate_evidence_receipts[0].clone();
+    duplicate.receipt_id = "second-safety-receipt".into();
+    candidate.gate_evidence_receipts.push(duplicate);
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "duplicate-gate-role").contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+#[test]
+fn missing_structured_gate_receipt_cannot_be_replaced_by_a_digest_string() {
+    let mut candidate = candidate("missing-structured-receipt");
+    candidate.gate_evidence_receipts.retain(|receipt| receipt.role != GateEvidenceRole::Safety);
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "missing-structured-receipt").contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
+    let mut candidate = candidate("gate-payload-splice");
+    candidate.gate_evidence_receipts[0].payload_sha256 = digest('9');
+    let result = select_experiments(&[candidate], &policy()).unwrap();
+    assert!(reason(&result, "gate-payload-splice").contains(&RejectionReason::InvalidEvidenceBinding));
 }
