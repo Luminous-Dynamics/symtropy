@@ -472,9 +472,9 @@ pub fn compare_pair(
     let a_metrics = a.metrics()?;
     let b_metrics = b.metrics()?;
     if robustly_dominates(&a_metrics, &b_metrics) {
-        Ok(PairComparison::A_Robustly_Dominates)
+        Ok(PairComparison::FirstRobustlyDominates)
     } else if robustly_dominates(&b_metrics, &a_metrics) {
-        Ok(PairComparison::B_Robustly_Dominates)
+        Ok(PairComparison::SecondRobustlyDominates)
     } else {
         Ok(PairComparison::Incomparable)
     }
@@ -679,7 +679,7 @@ mod tests {
     fn robustly_separated_candidate_dominates_all_objectives() {
         assert_eq!(
             compare_pair(&strong_candidate(), &weak_candidate()).unwrap(),
-            PairComparison::A_Robustly_Dominates
+            PairComparison::FirstRobustlyDominates
         );
     }
 
@@ -734,7 +734,7 @@ mod tests {
         let b = weak_candidate();
         assert_eq!(
             compare_pair(&a, &b).unwrap(),
-            PairComparison::A_Robustly_Dominates
+            PairComparison::FirstRobustlyDominates
         );
     }
 
