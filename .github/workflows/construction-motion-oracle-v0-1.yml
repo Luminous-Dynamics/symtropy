@@ -3,6 +3,7 @@ name: Construction Motion Oracle v0.1
 on:
   pull_request:
     branches:
+      - research/construction-relative-motion-ccd-v0-2
       - research/construction-motion-envelope-v0-1
       - research/construction-motion-oracle-bench-v0-1
       - research/construction-capsule-oracle-v0-1
