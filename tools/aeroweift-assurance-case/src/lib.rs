@@ -244,6 +244,8 @@ pub struct ClaimEvidenceRequirement {
     /// Proposition types that must directly support this claim.
     /// Empty is valid only where the claim is decomposed into evidenced subclaims.
     pub required_purposes: Vec<EvidencePurpose>,
+    /// Frozen minimum number of distinct qualified correlation groups.
+    pub minimum_independent_evidence_groups: usize,
 }
 
 /// Frozen predicate requirement for one mitigation node.
@@ -253,6 +255,8 @@ pub struct MitigationEvidenceRequirement {
     pub mitigation_id: String,
     /// Proposition types required to support mitigation effectiveness.
     pub required_purposes: Vec<EvidencePurpose>,
+    /// Frozen minimum number of distinct qualified evidence correlation groups.
+    pub minimum_independent_evidence_groups: usize,
 }
 
 /// Disposition of evidence under its source owner's profile.
@@ -475,6 +479,8 @@ pub enum BlockerReason {
     MitigationNotSupported,
     /// Mitigation effectiveness is indeterminate.
     MitigationIndeterminate,
+    /// Mitigation evidence lacks the policy-required independent correlation groups.
+    MitigationInsufficientIndependentEvidenceGroups,
     /// A mitigation is present but is not attached to any identified hazard.
     MitigationNotAttachedToHazard,
     /// A defeater is present but does not challenge a claim or mitigation.
@@ -1187,7 +1193,13 @@ pub fn evaluate_assurance_case(
                 .collect();
             let group_count = independent_groups.len();
             groups_by_claim.push((node.node_id.clone(), group_count));
-            if group_count < claim.minimum_independent_evidence_groups {
+            let frozen_minimum = requirement
+                .map(|item| item.minimum_independent_evidence_groups)
+                .unwrap_or(usize::MAX);
+            let minimum_groups = claim
+                .minimum_independent_evidence_groups
+                .max(frozen_minimum);
+            if group_count < minimum_groups {
                 add_blocker(
                     &mut blockers,
                     &node.node_id,
@@ -1332,6 +1344,45 @@ pub fn evaluate_assurance_case(
                     &mut blockers,
                     &mitigation.node_id,
                     BlockerReason::MitigationWithoutEvidence,
+                );
+            }
+            let requirement = policy
+                .required_mitigation_evidence
+                .iter()
+                .find(|item| item.mitigation_id == mitigation.node_id);
+            let eligible_evidence: Vec<&AssuranceNode> = edges
+                .iter()
+                .filter(|edge| {
+                    edge.to_node_id == mitigation.node_id && edge.kind == EdgeKind::Supports
+                })
+                .filter_map(|edge| by_id.get(edge.from_node_id.as_str()).copied())
+                .filter(|evidence_node| {
+                    evidence_node.evidence.as_ref().is_some_and(|evidence| {
+                        evidence.disposition == EvidenceDisposition::Qualified
+                            && requirement.is_some_and(|required| {
+                                required.required_purposes.contains(&evidence.purpose)
+                            })
+                    })
+                })
+                .collect();
+            let independent_groups: BTreeSet<&str> = eligible_evidence
+                .iter()
+                .filter_map(|evidence_node| {
+                    evidence_node
+                        .evidence
+                        .as_ref()?
+                        .correlation_group_id
+                        .as_deref()
+                })
+                .collect();
+            let required_groups = requirement
+                .map(|item| item.minimum_independent_evidence_groups)
+                .unwrap_or(usize::MAX);
+            if independent_groups.len() < required_groups {
+                add_blocker(
+                    &mut blockers,
+                    &mitigation.node_id,
+                    BlockerReason::MitigationInsufficientIndependentEvidenceGroups,
                 );
             }
         }
