@@ -6,6 +6,7 @@
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
+use std::ops::{Add, Sub};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Vec3 {
@@ -41,17 +42,27 @@ impl Vec3 {
     pub fn scale(self, factor: f64) -> Self {
         Self::new(self.x * factor, self.y * factor, self.z * factor)
     }
-    pub fn add(self, other: Self) -> Self {
-        Self::new(self.x + other.x, self.y + other.y, self.z + other.z)
-    }
-    pub fn sub(self, other: Self) -> Self {
-        Self::new(self.x - other.x, self.y - other.y, self.z - other.z)
-    }
     pub fn distance(self, other: Self) -> f64 {
-        self.sub(other).norm()
+        (self - other).norm()
     }
     pub fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite()
+    }
+}
+
+impl Add for Vec3 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
+    }
+}
+
+impl Sub for Vec3 {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
     }
 }
 
@@ -136,7 +147,7 @@ impl fmt::Display for GenerationError {
             Self::InvalidDepth => write!(f, "depth must be in 1..=10"),
             Self::InvalidLength => write!(f, "root_member_length must be finite and positive"),
             Self::InvalidAngle => write!(f, "branch_angle_rad must be finite and in (0.05, 1.2)"),
-            Self::InvalidTwist => write!(f, "twist_rad must be finite and in [-3.14, 3.14]"),
+            Self::InvalidTwist => write!(f, "twist_rad must be finite and in [-PI, PI]"),
             Self::InvalidLengthRatio => write!(f, "length_ratio must be finite and in (0, 1)"),
             Self::InvalidMemberMinimum => {
                 write!(f, "min_member_length must be finite and positive")
@@ -220,7 +231,7 @@ impl Config {
         if !self.branch_angle_rad.is_finite() || !(0.05..=1.2).contains(&self.branch_angle_rad) {
             return Err(GenerationError::InvalidAngle);
         }
-        if !self.twist_rad.is_finite() || self.twist_rad.abs() > 3.14 {
+        if !self.twist_rad.is_finite() || self.twist_rad.abs() > std::f64::consts::PI {
             return Err(GenerationError::InvalidTwist);
         }
         if !self.length_ratio.is_finite() || !(0.0..1.0).contains(&self.length_ratio) {
@@ -274,7 +285,7 @@ impl StructureGraph {
                 let offset = branch
                     .frame_u
                     .scale(cos_twist)
-                    .add(branch.frame_v.scale(sin_twist))
+                     + branch.frame_v.scale(sin_twist))
                     .scale(sin_angle);
                 let left_direction = branch
                     .direction
@@ -285,7 +296,7 @@ impl StructureGraph {
                 let right_direction = branch
                     .direction
                     .scale(cos_angle)
-                    .sub(offset)
+                     - offset)
                     .normalized()
                     .ok_or(GenerationError::NonFiniteGeometry)?;
 
@@ -617,28 +628,38 @@ mod tests {
 
     #[test]
     fn invalid_depth_angle_ratio_and_non_finite_values_are_rejected() {
-        let mut config = Config::default();
-        config.depth = 0;
+        let config = Config {
+            depth: 0,
+            ..Config::default()
+        };
         assert_eq!(config.validate(), Err(GenerationError::InvalidDepth));
 
-        let mut config = Config::default();
-        config.branch_angle_rad = f64::NAN;
+        let config = Config {
+            branch_angle_rad: f64::NAN,
+            ..Config::default()
+        };
         assert_eq!(config.validate(), Err(GenerationError::InvalidAngle));
 
-        let mut config = Config::default();
-        config.length_ratio = 1.0;
+        let config = Config {
+            length_ratio: 1.0,
+            ..Config::default()
+        };
         assert_eq!(config.validate(), Err(GenerationError::InvalidLengthRatio));
 
-        let mut config = Config::default();
-        config.root_member_length = f64::INFINITY;
+        let config = Config {
+            root_member_length: f64::INFINITY,
+            ..Config::default()
+        };
         assert_eq!(config.validate(), Err(GenerationError::InvalidLength));
     }
 
     #[test]
     fn node_budget_is_enforced_before_geometry_allocation() {
-        let mut config = Config::default();
-        config.depth = 8;
-        config.max_nodes = 100;
+        let config = Config {
+            depth: 8,
+            max_nodes: 100,
+            ..Config::default()
+        };
         assert!(matches!(
             config.validate(),
             Err(GenerationError::NodeBudgetExceeded {
@@ -650,9 +671,11 @@ mod tests {
 
     #[test]
     fn too_short_cross_brace_is_rejected_by_minimum_member_contract() {
-        let mut config = Config::default();
-        config.branch_angle_rad = 0.051;
-        config.min_member_length = 0.1;
+        let config = Config {
+            branch_angle_rad: 0.051,
+            min_member_length: 0.1,
+            ..Config::default()
+        };
         assert!(matches!(
             StructureGraph::generate(config),
             Err(GenerationError::DegenerateMember { .. })
