@@ -9,7 +9,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Physical or computational modality of a proposed validation experiment.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
