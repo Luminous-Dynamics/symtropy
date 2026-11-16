@@ -26,9 +26,11 @@ Replace a fixed huge Monte Carlo campaign with sequential, decision-aware experi
 
 No opaque weighted score. A test may be information-rich but decision-irrelevant; a cheap test may be useful but not sufficient; a safe experiment may still be non-discriminating. Keep these dimensions explicit.
 
-## Ownership
+## Ownership and composition boundaries
 
-Track V owns the aviation-specific experiment design profile, frozen candidate/utility schema, Pareto selector, sealed-holdout controls and model-discrimination benchmark. It does not own:
+Track V owns the aviation-specific experiment design profile, frozen candidate/utility schema, scope-bound gate receipt checks, Pareto selector, sealed-holdout controls and model-discrimination benchmark. It does not own:
+- sequential finite-horizon policy/tree optimization or an anytime-valid evidence primitive; compose the existing constrained sequential planner [#3588](https://github.com/Luminous-Dynamics/symtropy/pull/3588), which itself composes #3375/#3547;
+- counterexample-guided model-family expansion, adversarial falsification and calibrated ambiguity sets; compose [SIM-REL-029 #3171](https://github.com/Luminous-Dynamics/symtropy/issues/3171);
 - simulator/solver backends or multi-fidelity physics model selection (#4487);
 - the single canonical physics qualification corpus (#460);
 - semantic-equivalence policy (#4366);
@@ -71,7 +73,7 @@ Only after eligibility is established does Pareto ranking happen. Benefits are m
 
 ## Frozen benchmark suite
 
-The dependency-free Rust suite currently contains 58 adversarial tests:
+The dependency-free Rust suite currently contains 66 adversarial tests (pending exact-head verification):
 - positive control, dominated-option removal and genuine cost/utility tradeoffs;
 - high-information but decision-irrelevant experiment rejection;
 - missing/denied/unknown authority;
