@@ -18,6 +18,9 @@ pub mod observation;
 /// Known-truth sampling-rate and task-bandwidth reference fixtures.
 pub mod sampling_rate;
 
+/// Typed synthetic action-assignment, delivery and exposure event chain.
+pub mod intervention;
+
 /// Number of harmonics in the reference circadian expansion.
 pub const C_MAX_HARMONICS: usize = 5;
 
