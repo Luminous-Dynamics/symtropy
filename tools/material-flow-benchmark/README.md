@@ -35,6 +35,23 @@ Evidence artifact: `mfb-l1-evidence-c1a388ab592d2bbbd07ced65662aea827b77e26e` (I
 
 **Limitations:** the gate is a static collision geometry proxy present in the scene. This does not simulate gate motion, controller/interlock timing, actuator power, sensor perception or firmware. It is not HIL or a real-world safety test. The detailed physical fault-injection programme remains #5500.
 
+## 30-seed L1 gate-obstruction sweep
+
+The `mfb-simulate-gate-fault-sweep` CLI executes the closed-gate collision proxy for a deterministic consecutive seed range (default 30; supported range 1..=256). Each seed gets its own full physics episode and bitwise replay.
+
+The report retains every requested seed. A simulation error is recorded as a failed case with a reason; it is never dropped. The summary reports requested/executed/passed/failed counts, per-seed trace digests, package↔gate event counts, maximum impact impulse, worst contact penetration, reconciliation coverage, old-command retry blocking and false-completion blocking.
+
+Run it from the repository root:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-simulate-gate-fault-sweep -- \
+  tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json 30
+```
+
+A passing 30-seed sweep is a robustness check across the scenario's deterministic initial package offsets only. The robot, package/tote configuration, static gate geometry, physics engine, timestep, scene and site are unchanged. It is not 30 independent homes, robots, sensors or hardware units, and it does not support a field-reliability confidence claim. Moving gate timing, sensor/firmware, power loss and HIL are still separate milestones.
+
+Exact-head CI qualification for the first 30-seed runner is pending.
+
 ## Distributed physical handoff reference state machine
 
 `src/transaction.rs` supplies a deterministic reference state machine for:
