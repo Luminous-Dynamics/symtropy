@@ -1,0 +1,102 @@
+{
+  "schema_version": "myco.hyphal_spectral_benchmark.v0.1",
+  "suite_id": "MYCO-HYPHAL-SPECTRAL-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5568",
+  "source": {
+    "doi": "10.1016/j.funbio.2026.101749",
+    "title": "Raman spectroscopy in microfluidic chips reveals hyphal scale stress-associated metabolic responses in filamentous soil fungi",
+    "journal": "Fungal Biology 130(3), 2026, article 101749",
+    "publication_month": "2026-05",
+    "organism": "Psilocybe cf. subviscida",
+    "platform": "microfluidic soil chip",
+    "raw_dataset_downloaded": false,
+    "supplementary_code_and_data_inventory": "not yet admitted",
+    "reuse_rights": "verify exact article and external source data terms before reuse"
+  },
+  "modalities": [
+    {
+      "id": "SIP-RAMAN",
+      "name": "stable-isotope-probing spontaneous Raman",
+      "observables": [
+        "deuterated_glucose_bands",
+        "cytochrome_c_spectral_signal",
+        "background_and_reference_bands"
+      ],
+      "caveats": [
+        "spectral intensity is not a flux without calibration",
+        "repeated laser exposure may damage hyphae"
+      ]
+    },
+    {
+      "id": "SRS",
+      "name": "stimulated Raman scattering",
+      "observables": [
+        "spatial_deuterated_glucose_map",
+        "inner_edge_localization",
+        "putative_vacuole_like_structures"
+      ],
+      "caveats": [
+        "higher speed/sensitivity in the study; chip transparency and sterility improvements remain future requirements"
+      ]
+    }
+  ],
+  "experimental_context": {
+    "label": "deuterated glucose",
+    "stressor": "excess copper",
+    "organism": "Psilocybe cf. subviscida",
+    "reported_effects": [
+      "Cu reduced glucose metabolic activity and growth",
+      "Cu-associated cytochrome-c Raman signal was reduced",
+      "thin exploratory hyphae and Cu-stressed hyphae were more vulnerable to repeated spontaneous Raman exposure",
+      "SRS localized uptaken glucose near inner hyphal edges"
+    ],
+    "photodamage": "reported; cumulative effects under repeated irradiation can include cytoplasm spillage, reduced growth and growth arrest"
+  },
+  "required_observation_fields": [
+    "source_file_sha256",
+    "acquisition_frame_and_roi",
+    "graph_segment_id_if_known",
+    "timepoint",
+    "modality",
+    "isotope_label_and_substrate",
+    "stressor_and_concentration",
+    "wavenumber_calibration",
+    "spectral_band_values_and_units",
+    "background_and_baseline_correction_revision",
+    "laser_wavelength_nm",
+    "laser_power_mw",
+    "integration_time_ms",
+    "repeat_count",
+    "illumination_history_for_same_roi",
+    "pixel_or_spatial_calibration",
+    "independent_growth_or_viability_observation"
+  ],
+  "metrics": [
+    "isotope_band_signal_to_background",
+    "labelled_vs_unlabelled_discrimination",
+    "band_position_error",
+    "calibrated_metabolic_activity_error_if_reference_exists",
+    "chemical_map_localization_error",
+    "growth_change_after_illumination",
+    "photodamage_detection_precision_recall",
+    "spectral_interval_coverage",
+    "heldout_chip_and_timepoint_generalization"
+  ],
+  "rules": [
+    "spectral band intensity is not elemental flux without calibration",
+    "deuterated-glucose uptake is not plant-to-plant transfer",
+    "cytochrome-c spectral change is not a viability label",
+    "spontaneous Raman and SRS are different acquisition modalities",
+    "incident laser energy is not absorbed dose without optical/spot geometry",
+    "every repeated exposure to the same ROI is part of experimental history",
+    "local hyphal metabolism does not imply whole-network resource allocation"
+  ],
+  "proposed_targets_not_results": {
+    "reproduce": "source-reported glucose uptake and Cu stress effects before model extension",
+    "modality_separation": "zero pooling of SIP-Raman and SRS measures without an explicit calibration bridge",
+    "phototoxicity": "predict or detect illumination-induced growth changes on held-out chips",
+    "viability": "zero cell-death classification from cytochrome-c Raman signal alone",
+    "calibration": "nominal 90/95% intervals on held-out chip/time groups when sample size supports them"
+  },
+  "claim_ceiling": "Source-specific SIP-Raman/SRS observations for P. cf. subviscida under published microfluidic soil-chip conditions only."
+}
