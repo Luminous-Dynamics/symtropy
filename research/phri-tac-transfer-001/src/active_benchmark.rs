@@ -21,11 +21,16 @@ const RIDGE: f64 = 1.0e-8;
 pub const SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N: f64 = 0.02;
 /// Synthetic-only raw-response resolution used by the observability fixture.
 pub const SYNTHETIC_RESPONSE_RESOLUTION: f64 = 1.0e-12;
+/// Required synthetic force-setpoint manifest. Physical operating ranges are
+/// supplied by the measurement/phantom owner, never inferred from this array.
+pub const SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N: [f64; 6] = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0];
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ResponseObservabilityReport {
     pub accepted: bool,
     pub condition_count: usize,
+    pub expected_force_setpoint_count: usize,
+    pub incomplete_condition_count: usize,
     pub checked_transition_count: usize,
     pub flatline_transition_count: usize,
     pub decreasing_transition_count: usize,
@@ -43,13 +48,17 @@ pub struct ResponseObservabilityReport {
 /// presented as a calibrated force-range certificate.
 pub fn response_observability_check(
     candidates: &[Candidate],
+    required_force_setpoints_n: &[f64],
     raw_response_resolution: f64,
 ) -> Result<ResponseObservabilityReport, String> {
     if candidates.is_empty()
+        || required_force_setpoints_n.len() < 2
+        || required_force_setpoints_n.iter().any(|value| !value.is_finite())
+        || required_force_setpoints_n.windows(2).any(|pair| pair[1] <= pair[0])
         || !raw_response_resolution.is_finite()
         || raw_response_resolution < 0.0
     {
-        return Err("observability check requires candidates and a finite nonnegative response resolution".to_owned());
+        return Err("observability check requires candidates, an increasing finite force manifest and a finite nonnegative response resolution".to_owned());
     }
 
     let mut conditions: Vec<((u64, u64, u64), Vec<&Candidate>)> = Vec::new();
@@ -79,11 +88,22 @@ pub fn response_observability_check(
     let mut checked_transition_count = 0;
     let mut flatline_transition_count = 0;
     let mut decreasing_transition_count = 0;
+    let mut incomplete_condition_count = 0;
     let mut affected_condition_count = 0;
     let mut first_flatline_start_force_n: Option<f64> = None;
 
     for (_, group) in &mut conditions {
         group.sort_by(|left, right| left.force_setpoint_n.total_cmp(&right.force_setpoint_n));
+        let observed_setpoints: Vec<_> =
+            group.iter().map(|candidate| candidate.force_setpoint_n).collect();
+        let condition_incomplete = required_force_setpoints_n.iter().any(|required| {
+            !observed_setpoints
+                .iter()
+                .any(|observed| observed.total_cmp(required).is_eq())
+        });
+        if condition_incomplete {
+            incomplete_condition_count += 1;
+        }
         let mut condition_affected = false;
         for pair in group.windows(2) {
             let lower = pair[0];
@@ -111,8 +131,10 @@ pub fn response_observability_check(
     }
 
     Ok(ResponseObservabilityReport {
-        accepted: flatline_transition_count == 0,
+        accepted: flatline_transition_count == 0 && incomplete_condition_count == 0,
         condition_count: conditions.len(),
+        expected_force_setpoint_count: required_force_setpoints_n.len(),
+        incomplete_condition_count,
         checked_transition_count,
         flatline_transition_count,
         decreasing_transition_count,
@@ -548,7 +570,11 @@ fn fit_qualified_domain(
     prior_strength: f64,
 ) -> Result<Fit, String> {
     let observability =
-        response_observability_check(&domain.candidates, SYNTHETIC_RESPONSE_RESOLUTION)?;
+        response_observability_check(
+            &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
+            SYNTHETIC_RESPONSE_RESOLUTION,
+        )?;
     if !observability.accepted {
         return Err(format!(
             "response observability gate failed: {} flatline transitions across {} conditions; first plateau starts at {:?} N",
@@ -1313,6 +1339,7 @@ mod tests {
         let domain = target_candidate_pool(20261116);
         let report = response_observability_check(
             &domain.candidates,
+            &SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N,
             SYNTHETIC_RESPONSE_RESOLUTION,
         )
         .expect("nominal observability report");
