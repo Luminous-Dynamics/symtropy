@@ -20,7 +20,7 @@ The `mfb-adjudicate-presence` CLI exercises a typed receiver-observation contrac
 
 The v1 policy requires at least two fresh observations from distinct declared common-cause groups. A group may identify shared controller, power, firmware, calibration or clock dependencies. Two devices in one group count as one source; missing group membership is unknown and does not count as independent.
 
-The adjudicator reports `ConfirmedPresent`, `ConfirmedAbsent`, `Unknown`, `Contradictory` or `Stale`. It rejects exact scenario/subject mismatches, event replay and contradictory source identities. It checks declared observation time/expiry against a strict decision-time interval and a maximum age.
+The adjudicator reports `ConfirmedPresent`, `ConfirmedAbsent`, `Unknown`, `Contradictory` or `Stale`. It rejects exact scenario/subject mismatches and contradictory source identities. Identical event-ID replay is idempotently suppressed; reuse of an event ID with different content is contradictory. It checks declared observation time/expiry against a strict decision-time interval and a maximum age.
 
 Run the adversarial false-positive fixture:
 
