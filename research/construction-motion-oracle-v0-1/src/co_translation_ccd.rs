@@ -13,6 +13,20 @@ use crate::{
 
 const CONTACT_EPSILON_MM: f64 = 1.0e-9;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct TimeSlicedAabbCandidates {
+    /// Number of equal-width time slabs evaluated.
+    pub subdivision_count: u32,
+    /// Number of slabs whose conservative space-time AABBs overlap.
+    pub candidate_slab_count: u32,
+}
+
+impl TimeSlicedAabbCandidates {
+    pub fn has_candidate(self) -> bool {
+        self.candidate_slab_count > 0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CoTranslatingCapsuleClosestApproach {
     pub time_parameter: f64,
@@ -122,6 +136,111 @@ pub fn co_translating_capsule_swept_aabb_candidate(
     let moving_swept = swept_bounds(moving, moving_translation)?;
     let obstacle_swept = swept_bounds(obstacle, obstacle_translation)?;
     Ok(moving_swept.overlaps(obstacle_swept))
+}
+
+/// Time-coherent broad phase for two linearly translating, fixed-orientation
+/// capsules. Each equal-width time slab uses the union of each body's AABBs
+/// at the two slab endpoints. Since each coordinate of a fixed-orientation
+/// capsule translates linearly, that union encloses the body's AABB throughout
+/// the slab. Any synchronized collision must therefore appear in at least one
+/// overlapping slab candidate.
+///
+/// The returned count is diagnostic, not a collision verdict. Increasing the
+/// subdivision count along a nested 1,2,4,8,... sequence can only remove
+/// candidates; it cannot turn a no-candidate result into a candidate. A
+/// positive result still requires the continuous narrow phase.
+pub fn co_translating_capsule_time_sliced_aabb_candidates(
+    moving: Capsule,
+    moving_translation: Vec3,
+    obstacle: Capsule,
+    obstacle_translation: Vec3,
+    subdivisions: u32,
+) -> Result<TimeSlicedAabbCandidates, TranslationCcdError> {
+    if subdivisions == 0 {
+        return Err(TranslationCcdError::InvalidSubdivisionCount);
+    }
+    validate_translating_capsule(moving, moving_translation)?;
+    validate_translating_capsule(obstacle, obstacle_translation)?;
+
+    let mut candidate_slab_count = 0_u32;
+    let denominator = f64::from(subdivisions);
+    for slab in 0..subdivisions {
+        let t0 = f64::from(slab) / denominator;
+        let t1 = f64::from(slab + 1) / denominator;
+        let moving_bounds = slab_swept_bounds(moving, moving_translation, t0, t1)?;
+        let obstacle_bounds = slab_swept_bounds(obstacle, obstacle_translation, t0, t1)?;
+        if moving_bounds.overlaps(obstacle_bounds) {
+            candidate_slab_count += 1;
+        }
+    }
+
+    Ok(TimeSlicedAabbCandidates {
+        subdivision_count: subdivisions,
+        candidate_slab_count,
+    })
+}
+
+fn validate_translating_capsule(
+    capsule: Capsule,
+    translation: Vec3,
+) -> Result<(), TranslationCcdError> {
+    if !is_finite(translation) {
+        return Err(TranslationCcdError::NonFiniteTranslation);
+    }
+    if !capsule.radius_mm.is_finite() || capsule.radius_mm < 0.0 {
+        return Err(TranslationCcdError::InvalidRadius);
+    }
+    if !is_finite(capsule.start) || !is_finite(capsule.end) {
+        return Err(TranslationCcdError::NonFiniteCoordinate);
+    }
+    Ok(())
+}
+
+fn slab_swept_bounds(
+    capsule: Capsule,
+    translation: Vec3,
+    t0: f64,
+    t1: f64,
+) -> Result<CapsuleAabb3, TranslationCcdError> {
+    let shift0 = translation.scale(t0);
+    let shift1 = translation.scale(t1);
+    let start0 = capsule.start.add(shift0);
+    let end0 = capsule.end.add(shift0);
+    let start1 = capsule.start.add(shift1);
+    let end1 = capsule.end.add(shift1);
+
+    if !is_finite(start0) || !is_finite(end0) || !is_finite(start1) || !is_finite(end1) {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+
+    let bounds0 = Capsule {
+        start: start0,
+        end: end0,
+        radius_mm: capsule.radius_mm,
+    }
+    .aabb();
+    let bounds1 = Capsule {
+        start: start1,
+        end: end1,
+        radius_mm: capsule.radius_mm,
+    }
+    .aabb();
+    let bounds = CapsuleAabb3 {
+        min: Vec3::new(
+            bounds0.min.x.min(bounds1.min.x),
+            bounds0.min.y.min(bounds1.min.y),
+            bounds0.min.z.min(bounds1.min.z),
+        ),
+        max: Vec3::new(
+            bounds0.max.x.max(bounds1.max.x),
+            bounds0.max.y.max(bounds1.max.y),
+            bounds0.max.z.max(bounds1.max.z),
+        ),
+    };
+    if !is_finite(bounds.min) || !is_finite(bounds.max) {
+        return Err(TranslationCcdError::NumericalOverflow);
+    }
+    Ok(bounds)
 }
 
 fn swept_bounds(capsule: Capsule, translation: Vec3) -> Result<CapsuleAabb3, TranslationCcdError> {
@@ -293,6 +412,109 @@ mod tests {
                 .unwrap();
         assert!((closest.distance_mm - 5.0).abs() < 1.0e-9);
         assert!(!closest.is_contact(0.25, 0.25));
+    }
+
+    #[test]
+    fn time_sliced_broad_phase_prunes_asynchronous_swept_aabb_overlap() {
+        let moving = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.25);
+        let obstacle = capsule(p(5.0, 0.0, 0.0), p(5.0, 0.0, 0.0), 0.25);
+        let shared_delta = p(10.0, 0.0, 0.0);
+
+        assert!(co_translating_capsule_swept_aabb_candidate(
+            moving,
+            shared_delta,
+            obstacle,
+            shared_delta,
+        )
+        .unwrap());
+
+        let one = co_translating_capsule_time_sliced_aabb_candidates(
+            moving, shared_delta, obstacle, shared_delta, 1,
+        )
+        .unwrap();
+        let two = co_translating_capsule_time_sliced_aabb_candidates(
+            moving, shared_delta, obstacle, shared_delta, 2,
+        )
+        .unwrap();
+        let four = co_translating_capsule_time_sliced_aabb_candidates(
+            moving, shared_delta, obstacle, shared_delta, 4,
+        )
+        .unwrap();
+        let eight = co_translating_capsule_time_sliced_aabb_candidates(
+            moving, shared_delta, obstacle, shared_delta, 8,
+        )
+        .unwrap();
+
+        assert!(one.has_candidate());
+        assert!(two.has_candidate());
+        assert!(!four.has_candidate());
+        assert!(!eight.has_candidate());
+        assert!(!co_translating_capsule_capsule_collision(
+            moving, shared_delta, obstacle, shared_delta,
+        )
+        .unwrap());
+    }
+
+    #[test]
+    fn time_sliced_broad_phase_never_drops_mid_interval_contact() {
+        let moving = capsule(p(-10.0, -2.0, 0.0), p(-10.0, 2.0, 0.0), 0.5);
+        let obstacle = capsule(p(10.0, -2.0, 0.0), p(10.0, 2.0, 0.0), 0.5);
+        let moving_delta = p(20.0, 0.0, 0.0);
+        let obstacle_delta = p(-20.0, 0.0, 0.0);
+
+        assert!(co_translating_capsule_capsule_collision(
+            moving, moving_delta, obstacle, obstacle_delta,
+        )
+        .unwrap());
+        for subdivisions in [1, 2, 4, 8, 16, 32] {
+            let candidates = co_translating_capsule_time_sliced_aabb_candidates(
+                moving,
+                moving_delta,
+                obstacle,
+                obstacle_delta,
+                subdivisions,
+            )
+            .unwrap();
+            assert!(candidates.has_candidate(), "subdivisions={subdivisions}");
+        }
+    }
+
+    #[test]
+    fn time_sliced_broad_phase_is_monotone_under_dyadic_refinement() {
+        let moving = capsule(p(0.0, -1.0, 0.0), p(0.0, 1.0, 0.0), 0.2);
+        let obstacle = capsule(p(10.0, -1.0, 2.0), p(10.0, 1.0, 2.0), 0.2);
+        let moving_delta = p(12.0, 3.0, 0.0);
+        let obstacle_delta = p(-3.0, -1.0, 0.0);
+        let counts: Vec<u32> = [1, 2, 4, 8, 16]
+            .into_iter()
+            .map(|n| {
+                co_translating_capsule_time_sliced_aabb_candidates(
+                    moving,
+                    moving_delta,
+                    obstacle,
+                    obstacle_delta,
+                    n,
+                )
+                .unwrap()
+                .candidate_slab_count
+            })
+            .collect();
+        assert!(counts.windows(2).all(|pair| pair[1] <= pair[0]));
+    }
+
+    #[test]
+    fn time_sliced_broad_phase_rejects_zero_subdivisions() {
+        let valid = capsule(p(0.0, 0.0, 0.0), p(1.0, 0.0, 0.0), 0.5);
+        assert_eq!(
+            co_translating_capsule_time_sliced_aabb_candidates(
+                valid,
+                p(1.0, 0.0, 0.0),
+                valid,
+                p(-1.0, 0.0, 0.0),
+                0,
+            ),
+            Err(TranslationCcdError::InvalidSubdivisionCount)
+        );
     }
 
     #[test]
