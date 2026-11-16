@@ -219,7 +219,6 @@ pub fn swept_sphere_capsule_aabb_candidate(
     Ok(moving.overlaps(obstacle.aabb()))
 }
 
-
 fn unbounded_aabb() -> CapsuleAabb3 {
     CapsuleAabb3 {
         min: Vec3::new(f64::NEG_INFINITY, f64::NEG_INFINITY, f64::NEG_INFINITY),
@@ -248,12 +247,7 @@ mod tests {
 
     #[test]
     fn static_capsule_aabb_rounds_outward() {
-        let capsule = Capsule::new(
-            p(1.0, -1.0, 0.5),
-            p(1.0, -1.0, 0.5),
-            0.25,
-        )
-        .unwrap();
+        let capsule = Capsule::new(p(1.0, -1.0, 0.5), p(1.0, -1.0, 0.5), 0.25).unwrap();
         let bounds = capsule.aabb();
         assert!(bounds.min.x < 0.75);
         assert!(bounds.min.y < -1.25);
