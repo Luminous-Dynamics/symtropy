@@ -62,6 +62,8 @@ jobs:
       - name: Admit scoped procedure evidence receipts
         run: |
           cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-admit-procedure-evidence -- tools/material-flow-benchmark/fixtures/nominal-stationary-carrier.json tools/material-flow-benchmark/fixtures/nominal-receiving-procedure.json tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json > mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"execution_branch": "normal_completion"' mfb-l1-evidence/procedure-evidence-admission.json
+          grep -q '"admitted_receipt_count": 13' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"evidence_envelopes_structurally_admitted": true' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"declared_freshness_policy_passed": true' mfb-l1-evidence/procedure-evidence-admission.json
           grep -q '"content_digest_verified": false' mfb-l1-evidence/procedure-evidence-admission.json
