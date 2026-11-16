@@ -725,7 +725,8 @@ impl ProcedureGraph {
         }
         if receipt_kinds.len() != expected_external.len() {
             errors.push(
-                "evidence_bundle.receipts: evidence kind set is incomplete or contains extras".into(),
+                "evidence_bundle.receipts: evidence kind set is incomplete or contains extras"
+                    .into(),
             );
         }
 
@@ -894,10 +895,8 @@ mod tests {
         let (scenario, procedure) = fixture();
 
         let mut observation_too_recent = evidence_fixture();
-        observation_too_recent.receipts[0].observed_at_unix_ms =
-            scenario.started_at_unix_ms - 10;
-        observation_too_recent.receipts[0].expires_at_unix_ms =
-            scenario.started_at_unix_ms + 100;
+        observation_too_recent.receipts[0].observed_at_unix_ms = scenario.started_at_unix_ms - 10;
+        observation_too_recent.receipts[0].expires_at_unix_ms = scenario.started_at_unix_ms + 100;
         assert!(
             procedure
                 .admit_evidence(&scenario, &observation_too_recent)
@@ -907,8 +906,7 @@ mod tests {
         let mut expiry_inside_uncertainty = evidence_fixture();
         expiry_inside_uncertainty.receipts[0].observed_at_unix_ms =
             scenario.started_at_unix_ms - 1_000;
-        expiry_inside_uncertainty.receipts[0].expires_at_unix_ms =
-            scenario.started_at_unix_ms + 10;
+        expiry_inside_uncertainty.receipts[0].expires_at_unix_ms = scenario.started_at_unix_ms + 10;
         assert!(
             procedure
                 .admit_evidence(&scenario, &expiry_inside_uncertainty)
