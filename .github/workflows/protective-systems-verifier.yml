@@ -6,7 +6,6 @@ on:
       - "research/protect-threat-portfolio-v0-1"
       - "research/protect-resilience-e0-oracle-v0-1"
       - "research/protect-model-evidence-e1-v0-1"
-      - "research/protect-model-evidence-e1-v0-1"
       - "research/protect-evidence-portability-e2-review-v0-1"
     paths:
       - "research/protective-systems/**"
@@ -17,6 +16,7 @@ on:
       - "research/protective-systems-benchmark-v0-1"
       - "research/protect-threat-portfolio-v0-1"
       - "research/protect-resilience-e0-oracle-v0-1"
+      - "research/protect-model-evidence-e1-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
