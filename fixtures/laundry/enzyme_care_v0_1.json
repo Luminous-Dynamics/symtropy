@@ -240,7 +240,7 @@
       "unit": "delta_e_cmc",
       "denominator": "matched_unwashed_and_unsoiled_reference",
       "scope": "Colour difference and staining on dyed wool after treatment and repeated laundering.",
-      "target_hypothesis": "<=1.0",
+      "target_hypothesis": "<=0.8 ΔE_CMC; stretch <=0.5, subject to validated repeatability and method uncertainty.",
       "status": "proposal_target_only",
       "hard_guardrails": [
         "ISO_105_C06_colour_fastness_separate_from_stain_removal",
