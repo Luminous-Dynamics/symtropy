@@ -48,6 +48,7 @@ This work is an adapter and benchmark. It must consume these owners' stable cont
 - `robot-config-change-corpus-v0.1.json`: 16 candidate-visible synthetic cases plus a small claim catalog. References such as `fixture://robot/base/A` are symbolic, not URLs to hardware and not cryptographic digests.
 - `development-oracle-v0.1.json`: public expected dispositions for the development cases. This is a debug oracle, not hidden test data.
 - `schemas/robot-config-change-corpus-v0.1.schema.json`: closed JSON Schema Draft 2020-12 for the corpus package.
+- `stochastic-challenge-protocol-v0.1.md`: design for seeded configuration distributions, cross-lab sampling, statistical power, benchmark-validity diagnostics and later guarded physical trials.
 
 All robot identities, module identifiers, evidence references, units and witness names in these files are fabricated. No vendor capability or physical measurement is asserted.
 
