@@ -19,6 +19,7 @@
 | `fixtures/water-electrolysis-reference.json` | Synthetic stoichiometric/schema fixture; energy values are illustrative |
 | `kernel/Cargo.toml` | Standalone, dependency-free Rust package with its own workspace |
 | `kernel/src/lib.rs` | Elemental balance, uncertainty handling, evidence validation and nominal resource intensities |
+| `kernel/src/pressure.rs` | Single-species ideal-gas compartment reference, prescribed mass transfer and observed-pressure comparison |
 | `kernel/README.md` | Kernel scope, command and limitations |
 
 ## Implemented in the reference kernel
@@ -34,6 +35,7 @@
 - Gross energy and recovered energy reported separately.
 - Nominal feedstock-origin and gross-energy intensity per kilogram of a nominated product.
 - Numerical overflow and non-finite input rejection.
+- Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
 - Complete-composition reconciliation and non-finite resource-intensity ratio rejection.
 
 ## Validation evidence
@@ -45,7 +47,7 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 13 unit tests | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 18 unit tests (13 resource + 5 pressure) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
 
@@ -54,9 +56,10 @@
 1. Correlation groups model perfect correlation within a group and independence between groups. A general covariance matrix, partial correlations and shared calibration covariance are not implemented.
 2. Resource-intensity ratios are nominal point estimates; ratio uncertainty is not propagated. The report explicitly returns `uncertainty_propagated = false`.
 3. Detection limits, censored values, elemental ontology/chemical speciation, isotopes, heat and exergy balances, water-specific accounting, product purity, downstream recovery, lifecycle cost and JSON deserialization remain future work.
-4. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
+4. The pressure module assumes a single ideal-gas species, fixed volume and uniform fixed temperature; it applies prescribed mass transfers and does not calculate leak conductance, compressible flow, heat transfer, structural stress or rock-mass interaction. It is an analytical bookkeeping reference only.
+5. The kernel is not a bioprocess model, geomechanics solver, pressure-vessel solver, ECLSS controller, or actuator.
 6. Named correlation groups are a conservative simple model only for the stated assumption of perfect positive correlation; they are not a substitute for the covariance structure of a real analytical instrument or shared calibration chain.
-5. The synthetic electrolysis fixture is not an empirical performance datum.
+7. The synthetic electrolysis fixture is not an empirical performance datum.
 
 ## Immediate next increments
 
