@@ -295,7 +295,6 @@ fn minimize_box_quadratic(
         .ok_or(TranslationCcdError::NumericallyUnresolved)
 }
 
-
 /// Classify the geometric rank of the free columns before forming normal
 /// equations. Pairwise normalized cross products detect near-parallel axes;
 /// the normalized scalar triple product detects a near-coplanar 3-column
