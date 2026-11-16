@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WaterLoop Source Cassette Functional BOM v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "evidence_class",
+    "parent_issue",
+    "design_pr",
+    "design_strategy",
+    "source_segregation",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-source-cassette-functional-bom-v0.1"
+    },
+    "status": {
+      "const": "functional_planning_bom_not_procurement_release"
+    },
+    "evidence_class": {
+      "const": "design_hypothesis_and_open_requirements"
+    },
+    "parent_issue": {
+      "const": 5671
+    },
+    "design_pr": {
+      "const": 5673
+    },
+    "design_strategy": {
+      "const": "one_train_at_a_time_shared_test_skid"
+    },
+    "source_segregation": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string"
+      }
+    },
+    "items": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "item_id",
+          "group",
+          "description",
+          "quantity_basis",
+          "design_status",
+          "release_evidence",
+          "notes"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "quantity_basis": {
+            "type": "string"
+          },
+          "design_status": {
+            "type": "string"
+          },
+          "release_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
