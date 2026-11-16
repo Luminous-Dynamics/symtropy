@@ -430,7 +430,8 @@ fn validate_crate(crate_text: &str, prov_text: &str) -> Result<GateReport, Strin
     )? != INPUT_WATER
     {
         return Err(
-            "water-service output derivation differs from the sparse provider declaration".to_owned(),
+            "water-service output derivation differs from the sparse provider declaration"
+                .to_owned(),
         );
     }
     if prov_entities[OUTPUT_CLINIC].get("prov:wasDerivedFrom").is_some() {
