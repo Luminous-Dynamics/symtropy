@@ -687,7 +687,7 @@ mod tests {
             }
         }
 
-        assert_eq!(rows, 17);
+        assert_eq!(rows, 18);
         assert_eq!(hidden_future_results.len(), 2);
         assert_eq!(hidden_future_results[0], hidden_future_results[1]);
     }
