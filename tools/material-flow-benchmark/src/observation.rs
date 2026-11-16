@@ -75,6 +75,7 @@ pub struct PresenceAdjudicationReport {
     pub independent_common_cause_group_count: usize,
     pub stale_observation_count: usize,
     pub duplicate_event_count: usize,
+    pub duplicate_event_conflict_count: usize,
     pub conflicting_source_count: usize,
     pub positive_presence_confirmed: bool,
     pub sensor_truth_established: bool,
@@ -149,16 +150,23 @@ pub fn adjudicate_receiver_presence(
         return Err(errors);
     }
 
-    let mut event_ids = HashSet::new();
+    let mut events_by_id: BTreeMap<&str, &ReceiverPresenceObservation> = BTreeMap::new();
     let mut duplicate_event_count = 0_usize;
+    let mut duplicate_event_conflict_count = 0_usize;
     let mut fresh_observations = Vec::new();
     let mut stale_observation_count = 0_usize;
 
     for observation in observations {
-        if !event_ids.insert(observation.event_id.as_str()) {
+        if let Some(previous) = events_by_id.get(observation.event_id.as_str()) {
             duplicate_event_count += 1;
+            if *previous != observation {
+                duplicate_event_conflict_count += 1;
+            }
+            // An identical replay is idempotently ignored. Reuse of an event
+            // ID for different content is retained as a contradiction below.
             continue;
         }
+        events_by_id.insert(observation.event_id.as_str(), observation);
 
         let fresh = observation.observed_at_unix_ms
             < policy.earliest_decision_time_unix_ms
@@ -217,7 +225,7 @@ pub fn adjudicate_receiver_presence(
     let contradictory = group_conflict || cross_group_conflict || conflicting_source;
 
     let independent_group_count = group_readings.len();
-    let verdict = if duplicate_event_count > 0 || contradictory {
+    let verdict = if duplicate_event_conflict_count > 0 || contradictory {
         PresenceVerdict::Contradictory
     } else if independent_group_count >= policy.minimum_independent_groups
         && !fresh_observations.is_empty()
@@ -248,6 +256,7 @@ pub fn adjudicate_receiver_presence(
         independent_common_cause_group_count: independent_group_count,
         stale_observation_count,
         duplicate_event_count,
+        duplicate_event_conflict_count,
         conflicting_source_count,
         positive_presence_confirmed: verdict == PresenceVerdict::ConfirmedPresent,
         sensor_truth_established: false,
@@ -386,17 +395,28 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_event_id_is_contradictory_not_a_second_vote() {
-        let report = adjudicate_receiver_presence(
-            &[
-                observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present),
-                observation("evt-1", "sensor-2", Some("sensor-b"), PresenceReading::Present),
-            ],
-            &policy(),
-        )
-        .expect("well-formed observations");
+    fn identical_event_replay_is_suppressed_without_counting_a_second_vote() {
+        let first = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let second = observation("evt-2", "sensor-2", Some("sensor-b"), PresenceReading::Present);
+        let duplicate = first.clone();
+        let report = adjudicate_receiver_presence(&[first, second, duplicate], &policy())
+            .expect("well-formed observations");
+        assert_eq!(report.verdict, PresenceVerdict::ConfirmedPresent);
+        assert_eq!(report.duplicate_event_count, 1);
+        assert_eq!(report.duplicate_event_conflict_count, 0);
+        assert_eq!(report.fresh_observation_count, 2);
+    }
+
+    #[test]
+    fn reused_event_id_with_different_payload_is_contradictory() {
+        let first = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let mut conflicting = first.clone();
+        conflicting.reading = PresenceReading::Absent;
+        let report = adjudicate_receiver_presence(&[first, conflicting], &policy())
+            .expect("well-formed observations");
         assert_eq!(report.verdict, PresenceVerdict::Contradictory);
         assert_eq!(report.duplicate_event_count, 1);
+        assert_eq!(report.duplicate_event_conflict_count, 1);
     }
 
     #[test]
