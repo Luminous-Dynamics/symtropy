@@ -151,7 +151,10 @@ pub enum EvidenceReceiptError {
 impl fmt::Display for EvidenceReceiptError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidDigest => write!(f, "source and processor digests must not be placeholder zero values"),
+            Self::InvalidDigest => write!(
+                f,
+                "source and processor digests must not be placeholder zero values"
+            ),
             Self::InvalidTimestamp => write!(f, "image timestamp must be finite and non-negative"),
             Self::InvalidPixelCalibration => {
                 write!(
@@ -197,7 +200,11 @@ impl fmt::Display for EvidenceReceiptError {
                 )
             }
             Self::MissingGraphEvent(id) => {
-                write!(f, "evidence references graph event {:?} that has not been applied", id)
+                write!(
+                    f,
+                    "evidence references graph event {:?} that has not been applied",
+                    id
+                )
             }
         }
     }
