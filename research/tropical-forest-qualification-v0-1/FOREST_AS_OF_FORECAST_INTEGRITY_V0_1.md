@@ -97,3 +97,10 @@ A historic collection date does not imply the data were then available. If sourc
 ## 7. Claim ceiling
 
 Synthetic PASS validates the as-of policy only. It does not establish actual AFEX data latency, a historical forecast reconstruction, rights clearance, forecasting accuracy or ecological process validity. A real hindcast requires versioned source files and evidence of when each exact value was released, quality-approved, permitted and ingested.
+
+
+## 8. Cadence design must use admitted availability times
+
+The [#5492 observation-cadence benchmark](https://github.com/Luminous-Dynamics/symtropy/issues/5492) uses the same separation between sample/event time and availability time. A nominal daily observation cadence is not a daily information cadence when data take seven or ten days to be released and ingested. Cadence optimization must therefore operate only after the source-specific availability contract here has qualified the input stream.
+
+The synthetic cadence adapter is [FOREST_OBSERVATION_CADENCE_V0_1.md](FOREST_OBSERVATION_CADENCE_V0_1.md); its latency/cost profiles are invented, not AFEX timing estimates.
