@@ -35,11 +35,7 @@ struct Rule {
     rationale: &'static str,
 }
 
-fn rule(
-    disposition: &'static str,
-    reason_code: &'static str,
-    rationale: &'static str,
-) -> Rule {
+fn rule(disposition: &'static str, reason_code: &'static str, rationale: &'static str) -> Rule {
     Rule {
         disposition,
         reason_code,
@@ -136,10 +132,7 @@ fn unique_strings(values: &[Value], context: &str, errors: &mut Vec<String>) -> 
     seen
 }
 
-fn claim_catalog<'a>(
-    corpus: &'a Value,
-    errors: &mut Vec<String>,
-) -> BTreeMap<String, &'a Value> {
+fn claim_catalog<'a>(corpus: &'a Value, errors: &mut Vec<String>) -> BTreeMap<String, &'a Value> {
     let Some(claims) = array_at(corpus, &["claim_catalog"]) else {
         errors.push("claim_catalog_missing".to_owned());
         return BTreeMap::new();
@@ -203,7 +196,9 @@ pub fn corpus_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
                 continue;
             };
             if !changed_ids.insert(component_id.to_owned()) {
-                errors.push(format!("changed_component_duplicate:{case_id}:{component_id}"));
+                errors.push(format!(
+                    "changed_component_duplicate:{case_id}:{component_id}"
+                ));
             }
             for field in ["source_ref", "target_ref", "declared_scope"] {
                 if !nonempty_string(component.get(field)) {
@@ -214,7 +209,9 @@ pub fn corpus_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
             }
         }
 
-        let witnesses = array_at(case, &["equivalence_witnesses"]).cloned().unwrap_or_default();
+        let witnesses = array_at(case, &["equivalence_witnesses"])
+            .cloned()
+            .unwrap_or_default();
         let mut witness_ids = BTreeSet::new();
         for witness in &witnesses {
             let Some(witness_id) = string_at(witness, &["witness_id"]) else {
@@ -225,7 +222,9 @@ pub fn corpus_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
                 errors.push(format!("witness_id_duplicate:{case_id}:{witness_id}"));
             }
             if string_at(witness, &["status"]) != Some(FIXTURE_WITNESS_STATUS) {
-                errors.push(format!("witness_status_not_admitted_synthetic:{case_id}:{witness_id}"));
+                errors.push(format!(
+                    "witness_status_not_admitted_synthetic:{case_id}:{witness_id}"
+                ));
             }
             let covers = array_at(witness, &["covers_claims"]);
             if covers.is_none_or(Vec::is_empty) {
@@ -254,7 +253,9 @@ pub fn corpus_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
                 errors.push(format!("evaluated_claim_duplicate:{case_id}:{claim_id}"));
             }
             if !catalog.contains_key(claim_id) {
-                errors.push(format!("evaluated_claim_not_in_catalog:{case_id}:{claim_id}"));
+                errors.push(format!(
+                    "evaluated_claim_not_in_catalog:{case_id}:{claim_id}"
+                ));
             }
             for field in ["prior_evidence_ref", "target_claim_profile_ref"] {
                 if !nonempty_string(claim.get(field)) {
@@ -305,7 +306,10 @@ pub fn corpus_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
                 if !matches!(disposition, Some("UnknownImpact" | "Unsupported")) {
                     errors.push(format!(
                         "incomplete_dependency_oracle_not_conservative:{case_id}:{}",
-                        tuple.get(0).and_then(Value::as_str).unwrap_or("unknown_claim")
+                        tuple
+                            .get(0)
+                            .and_then(Value::as_str)
+                            .unwrap_or("unknown_claim")
                     ));
                 }
             }
@@ -373,21 +377,13 @@ fn witness_admitted(case: &Value, family: &str, claim_id: &str) -> bool {
 fn unaffected_reason(family: &str, claim_id: &str) -> &'static str {
     match (family, claim_id) {
         ("representation_preserving", _) => "DEPENDENCY_CLOSURE_UNCHANGED",
-        ("camera_mount_extrinsic_change", "measurement.synchronization") => {
-            "TIMEBASE_UNCHANGED"
-        }
+        ("camera_mount_extrinsic_change", "measurement.synchronization") => "TIMEBASE_UNCHANGED",
         ("battery_replacement_same_mechanical_envelope", "reach.envelope") => {
             "GEOMETRIC_DEPENDENCIES_UNCHANGED"
         }
-        ("firmware_change_scope_unproven", "reach.envelope") => {
-            "MECHANICAL_DEPENDENCIES_UNCHANGED"
-        }
-        ("timebase_replaced", "reach.envelope") => {
-            "TIMEBASE_UNRELATED_TO_GEOMETRIC_REACH"
-        }
-        ("site_frame_epoch_changed", "reach.envelope") => {
-            "INTRINSIC_GEOMETRY_UNCHANGED"
-        }
+        ("firmware_change_scope_unproven", "reach.envelope") => "MECHANICAL_DEPENDENCIES_UNCHANGED",
+        ("timebase_replaced", "reach.envelope") => "TIMEBASE_UNRELATED_TO_GEOMETRIC_REACH",
+        ("site_frame_epoch_changed", "reach.envelope") => "INTRINSIC_GEOMETRY_UNCHANGED",
         _ => "UNRELATED_DEPENDENCY_CLOSURE",
     }
 }
@@ -395,19 +391,11 @@ fn unaffected_reason(family: &str, claim_id: &str) -> &'static str {
 /// The rule table is intentionally finite and specific to the 16 public RCQ
 /// fixtures. It is not generalized to arbitrary robot configurations.
 fn affected_rule(family: &str, claim_id: &str) -> Option<Rule> {
-    let physical = |reason, rationale| {
-        rule("RequiresPhysicalReverification", reason, rationale)
-    };
-    let bench = |reason, rationale| {
-        rule("RequiresBenchReverification", reason, rationale)
-    };
-    let review = |reason, rationale| {
-        rule("RequiresApplicabilityReview", reason, rationale)
-    };
+    let physical = |reason, rationale| rule("RequiresPhysicalReverification", reason, rationale);
+    let bench = |reason, rationale| rule("RequiresBenchReverification", reason, rationale);
+    let review = |reason, rationale| rule("RequiresApplicabilityReview", reason, rationale);
     let not_preserved = |reason, rationale| rule("NotPreserved", reason, rationale);
-    let qualified = |reason, rationale| {
-        rule("PreservedByQualifiedEquivalence", reason, rationale)
-    };
+    let qualified = |reason, rationale| rule("PreservedByQualifiedEquivalence", reason, rationale);
 
     match (family, claim_id) {
         ("hmi_scope_unproven", "operator.recovery.observability") => Some(review(
@@ -470,10 +458,12 @@ fn affected_rule(family: &str, claim_id: &str) -> Option<Rule> {
             "INSPECTION_FRAME_CHANGED",
             "The output acceptance frame depends on the changed sensor mount and extrinsic.",
         )),
-        ("battery_replacement_same_mechanical_envelope", "energy.return_reserve") => Some(physical(
-            "BATTERY_HEALTH_UNMEASURED",
-            "The replacement battery serial has no measured health or usable-capacity evidence.",
-        )),
+        ("battery_replacement_same_mechanical_envelope", "energy.return_reserve") => {
+            Some(physical(
+                "BATTERY_HEALTH_UNMEASURED",
+                "The replacement battery serial has no measured health or usable-capacity evidence.",
+            ))
+        }
         ("drive_module_replacement", "mobility.surface_envelope") => Some(physical(
             "DRIVE_MODULE_CHANGED",
             "Traction and terrain mobility depend on the changed drive module.",
@@ -534,12 +524,7 @@ fn affected_rule(family: &str, claim_id: &str) -> Option<Rule> {
     }
 }
 
-fn evaluate_claim(
-    family: &str,
-    case: &Value,
-    claim: &Value,
-    catalog_claim: &Value,
-) -> Value {
+fn evaluate_claim(family: &str, case: &Value, claim: &Value, catalog_claim: &Value) -> Value {
     let claim_id = string_at(claim, &["claim_id"]).unwrap_or("unknown_claim");
     if bool_at(case, &["dependency_snapshot_complete"]) != Some(true) {
         return json!({
@@ -604,11 +589,22 @@ fn oracle_map(oracle: &Value) -> Result<BTreeMap<(String, String), (String, Stri
             continue;
         };
         for tuple in claims {
-            let claim_id = tuple.get(0).and_then(Value::as_str).unwrap_or("unknown_claim");
-            let disposition = tuple.get(1).and_then(Value::as_str).unwrap_or("invalid_disposition");
-            let reason = tuple.get(2).and_then(Value::as_str).unwrap_or("invalid_reason");
+            let claim_id = tuple
+                .get(0)
+                .and_then(Value::as_str)
+                .unwrap_or("unknown_claim");
+            let disposition = tuple
+                .get(1)
+                .and_then(Value::as_str)
+                .unwrap_or("invalid_disposition");
+            let reason = tuple
+                .get(2)
+                .and_then(Value::as_str)
+                .unwrap_or("invalid_reason");
             if !RCQ_DISPOSITIONS.contains(&disposition) {
-                errors.push(format!("oracle_disposition_invalid:{case_id}:{claim_id}:{disposition}"));
+                errors.push(format!(
+                    "oracle_disposition_invalid:{case_id}:{claim_id}:{disposition}"
+                ));
             }
             let key = (case_id.to_owned(), claim_id.to_owned());
             if expected
@@ -661,22 +657,24 @@ pub fn evaluate_against_oracle(corpus: &Value, oracle: &Value) -> Result<Value, 
         for claim in &claims {
             let claim_id = string_at(claim, &["claim_id"]).unwrap_or("unknown_claim");
             let Some(catalog_claim) = catalog.get(claim_id) else {
-                return Err(vec![format!("evaluated_claim_not_in_catalog:{case_id}:{claim_id}")]);
+                return Err(vec![format!(
+                    "evaluated_claim_not_in_catalog:{case_id}:{claim_id}"
+                )]);
             };
             let result = evaluate_claim(family, case, claim, catalog_claim);
             let disposition = string_at(&result, &["disposition"]).unwrap_or("Unsupported");
             let reason = string_at(&result, &["reason_code"]).unwrap_or("UNSPECIFIED");
             let key = (case_id.to_owned(), claim_id.to_owned());
-            actual.insert(
-                key.clone(),
-                (disposition.to_owned(), reason.to_owned()),
-            );
-            if expected.get(&key).is_some_and(|tuple| {
-                tuple.0 == disposition && tuple.1 == reason
-            }) {
+            actual.insert(key.clone(), (disposition.to_owned(), reason.to_owned()));
+            if expected
+                .get(&key)
+                .is_some_and(|tuple| tuple.0 == disposition && tuple.1 == reason)
+            {
                 agreement_count += 1;
             }
-            *disposition_counts.entry(disposition.to_owned()).or_default() += 1;
+            *disposition_counts
+                .entry(disposition.to_owned())
+                .or_default() += 1;
 
             if bool_at(case, &["dependency_snapshot_complete"]) == Some(false) {
                 incomplete_case_claims += 1;
@@ -814,10 +812,10 @@ pub fn validate_package(
         return Err(sorted(errors));
     }
     let mut result = evaluate_against_oracle(corpus, oracle)?;
-    let canonical_corpus = serde_json::to_vec(corpus)
-        .map_err(|error| vec![format!("corpus_canonicalize:{error}")])?;
-    let canonical_oracle = serde_json::to_vec(oracle)
-        .map_err(|error| vec![format!("oracle_canonicalize:{error}")])?;
+    let canonical_corpus =
+        serde_json::to_vec(corpus).map_err(|error| vec![format!("corpus_canonicalize:{error}")])?;
+    let canonical_oracle =
+        serde_json::to_vec(oracle).map_err(|error| vec![format!("oracle_canonicalize:{error}")])?;
     let canonical_result_schema = serde_json::to_vec(result_schema)
         .map_err(|error| vec![format!("result_schema_canonicalize:{error}")])?;
     result["input_digests"] = json!({
@@ -844,21 +842,16 @@ mod tests {
 
     fn fixtures() -> (Value, Value, Value, Value, Value) {
         let base = repository_root().join(PACKAGE_DIR);
-        let corpus = read_json(&base.join("robot-config-change-corpus-v0.1.json"))
-            .expect("corpus parses");
-        let oracle = read_json(&base.join("development-oracle-v0.1.json"))
-            .expect("oracle parses");
-        let corpus_schema = read_json(
-            &base.join("schemas/robot-config-change-corpus-v0.1.schema.json"),
-        )
-        .expect("corpus schema parses");
-        let oracle_schema = read_json(
-            &base.join("schemas/development-oracle-v0.1.schema.json"),
-        )
-        .expect("oracle schema parses");
-        let result_schema =
-            read_json(&base.join("schemas/development-result-v0.1.schema.json"))
-                .expect("result schema parses");
+        let corpus =
+            read_json(&base.join("robot-config-change-corpus-v0.1.json")).expect("corpus parses");
+        let oracle = read_json(&base.join("development-oracle-v0.1.json")).expect("oracle parses");
+        let corpus_schema =
+            read_json(&base.join("schemas/robot-config-change-corpus-v0.1.schema.json"))
+                .expect("corpus schema parses");
+        let oracle_schema = read_json(&base.join("schemas/development-oracle-v0.1.schema.json"))
+            .expect("oracle schema parses");
+        let result_schema = read_json(&base.join("schemas/development-result-v0.1.schema.json"))
+            .expect("result schema parses");
         (corpus, oracle, corpus_schema, oracle_schema, result_schema)
     }
 
@@ -877,14 +870,16 @@ mod tests {
             string_at(&result_schema, &["$schema"]),
             Some("https://json-schema.org/draft/2020-12/schema")
         );
-        assert!(validate_package(
-            &corpus,
-            &oracle,
-            &corpus_schema,
-            &oracle_schema,
-            &result_schema
-        )
-        .is_ok());
+        assert!(
+            validate_package(
+                &corpus,
+                &oracle,
+                &corpus_schema,
+                &oracle_schema,
+                &result_schema
+            )
+            .is_ok()
+        );
     }
 
     #[test]
@@ -898,12 +893,18 @@ mod tests {
             &result_schema,
         )
         .unwrap();
-        assert_eq!(result["oracle_comparison"]["exact_disposition_and_reason_agreement"], true);
+        assert_eq!(
+            result["oracle_comparison"]["exact_disposition_and_reason_agreement"],
+            true
+        );
         assert_eq!(result["oracle_comparison"]["agreement_count"], 51);
         assert_eq!(result["oracle_comparison"]["expected_count"], 51);
         assert_eq!(result["summary"]["case_count"], 16);
-        assert_eq!(result["summary"]["claim_result_count"], 49);
-        assert_eq!(result["summary"]["safety_critical_changed_dependency_preserved_count"], 0);
+        assert_eq!(result["summary"]["claim_result_count"], 51);
+        assert_eq!(
+            result["summary"]["safety_critical_changed_dependency_preserved_count"],
+            0
+        );
         assert_eq!(result["summary"]["incomplete_dependency_claim_count"], 4);
     }
 
@@ -930,7 +931,8 @@ mod tests {
         let rows = changed["cases"].as_array_mut().unwrap();
         rows.reverse();
         for case in rows {
-            case["description"] = Value::String("renamed product and scenario marketing prose".to_owned());
+            case["description"] =
+                Value::String("renamed product and scenario marketing prose".to_owned());
         }
         let replay = evaluate_against_oracle(&changed, &oracle).unwrap();
         assert_eq!(
@@ -955,7 +957,10 @@ mod tests {
             .unwrap();
         witness["covers_claims"] = json!(["mobility.surface_envelope", "stopping.distance"]);
         let result = evaluate_against_oracle(&corpus, &oracle).unwrap();
-        assert_eq!(result["oracle_comparison"]["exact_disposition_and_reason_agreement"], false);
+        assert_eq!(
+            result["oracle_comparison"]["exact_disposition_and_reason_agreement"],
+            false
+        );
         let rcq005_result = array_at(&result, &["cases"])
             .unwrap()
             .iter()
@@ -967,7 +972,10 @@ mod tests {
             .find(|claim| string_at(claim, &["claim_id"]) == Some("payload.handling"))
             .unwrap();
         assert_eq!(payload["disposition"], "RequiresPhysicalReverification");
-        assert_eq!(payload["reason_code"], "QUALIFIED_ENVELOPE_WITNESS_NOT_ADMITTED");
+        assert_eq!(
+            payload["reason_code"],
+            "QUALIFIED_ENVELOPE_WITNESS_NOT_ADMITTED"
+        );
     }
 
     #[test]
@@ -1003,13 +1011,21 @@ mod tests {
         let (mut corpus, oracle, _, _, _) = fixtures();
         corpus["cases"][1]["case_id"] = Value::String("RCQ-001".to_owned());
         let errors = corpus_invariants(&corpus, &oracle);
-        assert!(errors.iter().any(|error| error == "case_id_duplicate:RCQ-001"));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error == "case_id_duplicate:RCQ-001")
+        );
 
         let (mut corpus, oracle, _, _, _) = fixtures();
         corpus["cases"][0]["claims_to_evaluate"][0]["claim_id"] =
             Value::String("unregistered.claim".to_owned());
         let errors = corpus_invariants(&corpus, &oracle);
-        assert!(errors.iter().any(|error| error.contains("evaluated_claim_not_in_catalog")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("evaluated_claim_not_in_catalog"))
+        );
     }
 
     #[test]
@@ -1020,13 +1036,22 @@ mod tests {
             .unwrap()
             .pop();
         let errors = corpus_invariants(&corpus, &oracle);
-        assert!(errors.iter().any(|error| error.starts_with("oracle_claim_coverage_mismatch:")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.starts_with("oracle_claim_coverage_mismatch:"))
+        );
 
         let (corpus, mut oracle, _, _, _) = fixtures();
         oracle["dispositions"][0]["claims"]
             .as_array_mut()
             .unwrap()
-            .push(json!(["unexpected.claim", "UnknownImpact", "UNKNOWN", "fixture"]));
+            .push(json!([
+                "unexpected.claim",
+                "UnknownImpact",
+                "UNKNOWN",
+                "fixture"
+            ]));
         let errors = corpus_invariants(&corpus, &oracle);
         assert!(errors.iter().any(|error| error.starts_with("oracle_claim_coverage_mismatch:")));
     }
