@@ -172,7 +172,11 @@ pub fn sampling_rate_profile(
         .filter(|component| component.task_critical && component.frequency_hz <= nyquist_hz)
         .map(|component| component.amplitude * component.amplitude / 2.0)
         .sum::<f64>();
-    let retention = (retained_power / TASK_BAND_TOTAL_POWER).clamp(0.0, 1.0);
+    let retention = if retained_power >= TASK_BAND_TOTAL_POWER * (1.0 - 1.0e-12) {
+        1.0
+    } else {
+        (retained_power / TASK_BAND_TOTAL_POWER).clamp(0.0, 1.0)
+    };
     let regime = if (sampling_rate_hz - NATIVE_SAMPLE_RATE_HZ).abs() < f64::EPSILON {
         SamplingRegime::NativeReference
     } else if retention >= 1.0 - f64::EPSILON {
@@ -216,7 +220,12 @@ pub fn sample_ideal_lowpass(
     if !requested_count.is_finite() || requested_count.ceil() > 2_000_000.0 {
         return Err(SamplingRateError::TooManySamples);
     }
-    let sample_count = requested_count.ceil() as usize;
+    let nearest_count = requested_count.round();
+    let sample_count = if (requested_count - nearest_count).abs() <= 1.0e-9 {
+        nearest_count as usize
+    } else {
+        requested_count.ceil() as usize
+    };
     let nyquist_hz = sampling_rate_hz / 2.0;
     let retained: Vec<_> = SIGNAL_COMPONENTS
         .iter()
