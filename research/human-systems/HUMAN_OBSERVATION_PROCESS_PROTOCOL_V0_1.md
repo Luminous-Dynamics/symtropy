@@ -178,6 +178,8 @@ A recent 2026 Sleep-EDF sleep-staging paper reports 89.72% accuracy / 85.46% mac
 
 ## 8. Circadian model portfolio: preserve a baseline, add a dynamic comparator
 
+The dedicated source-audit and implementation track is [HUMAN-CIRCADIAN-LIGHT-001 / #5666](https://github.com/Luminous-Dynamics/symtropy/issues/5666).
+
 The existing fixed-period five-harmonic Process C is useful as a transparent periodic baseline. It does not model light entrainment.
 
 A separate next candidate is the human circadian pacemaker family that separates a dynamic light-stimulus processor (Process L) from a self-sustaining pacemaker oscillator (Process P). Kronauer, Forger and Jewett (1999) describe this structure and its response to brief, extended and repeated light exposures. Their paper reports Process-L timescales and also explicitly notes that further experimental data were needed to refine predictions at lower light intensities and brief stimuli.
