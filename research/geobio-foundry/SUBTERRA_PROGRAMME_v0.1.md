@@ -134,6 +134,9 @@ Stores non-uniform cross-section profiles, chambers, branches, bottlenecks, boul
 ### Subterra Explorer
 Plans sensing and multi-robot exploration, including descent, tether/anchor assessment, local SLAM, communication relays, store-and-forward, scientific target inspection and verified retreat.
 
+### Subterra Network Model
+Represents cave nodes and links as an evidence-preserving graph. Candidate and geophysically supported links remain hypotheses; only directly observed links enter confirmed topology. Traversability is a separate claim from physical connectivity. Directed links allow inbound access and retreat to be assessed independently. A missing demonstrated route is recorded as `NoDemonstratedRoute`, not as proof that no physical route exists.
+
 ### Subterra Engineering
 Evaluates geomechanics, thermal conditions, radiation shielding, pressure-module siting, engineered support, penetrations, fire/contamination zoning, utilities and construction logistics within explicit model domains.
 
