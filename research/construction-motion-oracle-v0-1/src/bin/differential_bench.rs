@@ -2,14 +2,14 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, Capsule, Vec3, chord_collision, endpoints_only_collision,
+    AnalyticPath, Capsule, Vec3, chord_collision, co_translating_capsule_capsule_collision,
+    co_translating_capsule_swept_aabb_candidate,
+    co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
+    endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
     endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
     swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
     translating_capsule_capsule_collision, translating_capsule_vs_capsule,
-    co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
-    co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
-    endpoints_only_co_translating_capsule_collision,
-};
+}
 
 const BATCH_SIZE: usize = 10_000;
 const SAMPLES: usize = 101;
