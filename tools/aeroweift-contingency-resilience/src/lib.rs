@@ -220,7 +220,7 @@ pub struct RecoveryOption {
 }
 
 /// Typed rejection reason for a candidate option.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum RejectionReason {
     /// The option references a different contingency.
     WrongContingency,
@@ -249,7 +249,7 @@ pub enum RejectionReason {
 }
 
 /// Typed reason a candidate cannot yet be fully assessed.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum UncertaintyReason {
     /// Owner evidence state is unresolved.
     EvidenceUnknown,
