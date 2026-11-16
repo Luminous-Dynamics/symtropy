@@ -218,12 +218,10 @@ fn main() {
         )
         .expect("valid translating capsule broad-phase query");
     });
-    let moving_pair_a =
-        Capsule::new(Vec3::new(-10.0, -2.0, 0.0), Vec3::new(-10.0, 2.0, 0.0), 0.5)
-            .expect("valid co-translating capsule A");
-    let moving_pair_b =
-        Capsule::new(Vec3::new(10.0, -2.0, 0.0), Vec3::new(10.0, 2.0, 0.0), 0.5)
-            .expect("valid co-translating capsule B");
+    let moving_pair_a = Capsule::new(Vec3::new(-10.0, -2.0, 0.0), Vec3::new(-10.0, 2.0, 0.0), 0.5)
+        .expect("valid co-translating capsule A");
+    let moving_pair_b = Capsule::new(Vec3::new(10.0, -2.0, 0.0), Vec3::new(10.0, 2.0, 0.0), 0.5)
+        .expect("valid co-translating capsule B");
     let moving_pair_a_delta = Vec3::new(20.0, 0.0, 0.0);
     let moving_pair_b_delta = Vec3::new(-20.0, 0.0, 0.0);
     let pair_closest = co_translating_capsule_vs_capsule(
