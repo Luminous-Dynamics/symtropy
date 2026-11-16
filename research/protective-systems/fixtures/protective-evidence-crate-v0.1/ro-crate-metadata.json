@@ -56,7 +56,7 @@
         }
       ],
       "publisher": {
-        "@id": "#synthetic-provider"
+        "@id": "ex:agent/synthetic-provider"
       },
       "isBasedOn": {
         "@id": "https://github.com/Luminous-Dynamics/symtropy/issues/5524"
@@ -136,7 +136,7 @@
       "permittedUse": "SYNTHETIC_TEST_ONLY"
     },
     {
-      "@id": "#synthetic-provider",
+      "@id": "ex:agent/synthetic-provider",
       "@type": "Organization",
       "name": "Synthetic E2 fixture provider",
       "description": "Nonexistent test identity used only to validate graph structure; not an authenticated provider."
