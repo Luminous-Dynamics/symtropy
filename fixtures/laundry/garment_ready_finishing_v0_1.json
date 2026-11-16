@@ -4,6 +4,83 @@
   "status":"proposal_no_physical_measurements",
   "claim_ceiling":"no_endpoint_robot_or_product_qualification_claim",
   "endpoint_classes":["ready_to_wear","ready_to_store","ready_to_iron"],
+  "benchmark_suites":[
+    {
+      "id":"standardized_commercial_textiles",
+      "cohort_scope":"Napkins, towels, hotel/workwear items with repeatable shape, size and material classes; frozen set includes clean/damp/creased state and batch handling.",
+      "first_pass_success_target":0.995,
+      "stretch_success_target":0.999,
+      "first_pass_human_throughput_ratio":0.8,
+      "stretch_human_throughput_ratio":1.0,
+      "human_baseline_required":true
+    },
+    {
+      "id":"diverse_household_garments",
+      "cohort_scope":"Shirts, trousers, jeans, blouses, knitwear and mixed piles/baskets across sizes, colours, fabrics, textures and unseen home environments.",
+      "first_pass_success_target":0.995,
+      "stretch_success_target":0.999,
+      "first_pass_human_throughput_ratio":0.5,
+      "stretch_human_throughput_ratio":1.0,
+      "human_baseline_required":true
+    }
+  ],
+  "external_comparators":[
+    {
+      "id":"DYNA-NAPKINS-24H",
+      "suite_id":"standardized_commercial_textiles",
+      "evidence_class":"external_analysis_of_company_report",
+      "reported_success_rate":0.994,
+      "reported_human_throughput_ratio":0.6,
+      "attempt_count":850,
+      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note":"Epoch AI reports a DYNA-1 24-hour continuous run folding 850+ napkins at about 60% human speed, 99.4% success and zero interventions; company-origin result reviewed by Epoch, not an independent Luminous measurement.",
+      "is_our_result":false
+    },
+    {
+      "id":"DYNA-TOWELS-COMMERCIAL",
+      "suite_id":"standardized_commercial_textiles",
+      "evidence_class":"external_analysis_of_company_report",
+      "reported_success_rate":0.99,
+      "reported_human_throughput_ratio":null,
+      "attempt_count":200000,
+      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note":"Epoch AI reports a DYNA commercial Monster Laundry deployment folding 200,000+ towels across 10 clients in three months at 99% quality acceptance; not a matched household-clothing test.",
+      "is_our_result":false
+    },
+    {
+      "id":"SUNDAY-ACT2-HOUSEHOLD",
+      "suite_id":"diverse_household_garments",
+      "evidence_class":"vendor_published_evaluation",
+      "reported_success_rate":0.991,
+      "reported_human_throughput_ratio":null,
+      "attempt_count":785,
+      "source_uri":"https://www.sunday.ai/blog/act-2-preview",
+      "scope_note":"Sunday Robotics vendor preview reports 99.1% zero-shot folding success over 785 attempts and nine garment types in unseen homes, with zero per-home adaptation; not independently replicated.",
+      "is_our_result":false
+    },
+    {
+      "id":"PI-TSHIRT-SHORTS",
+      "suite_id":"diverse_household_garments",
+      "evidence_class":"external_demo_report",
+      "reported_success_rate":0.95,
+      "reported_human_throughput_ratio":null,
+      "attempt_count":null,
+      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note":"Epoch AI cites a Physical Intelligence demonstration reporting 95% folding success for T-shirts and shorts; cohort size and human-relative speed are not supplied in the review.",
+      "is_our_result":false
+    },
+    {
+      "id":"PI-JEANS",
+      "suite_id":"diverse_household_garments",
+      "evidence_class":"external_demo_report",
+      "reported_success_rate":0.75,
+      "reported_human_throughput_ratio":null,
+      "attempt_count":null,
+      "source_uri":"https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026",
+      "scope_note":"Epoch AI cites a Physical Intelligence demonstration reporting 75% folding success for jeans; a harder garment subgroup, not a pooled household rate.",
+      "is_our_result":false
+    }
+  ],
   "metrics":[
     {"id":"ready_state_first_pass_acceptance","unit":"fraction","denominator":"per_accepted_garment","scope":"Garments meeting declared endpoint moisture and appearance on first pass.","target_hypothesis":">=0.95","status":"proposal_target_only","hard_guardrails":["cleaning_and_rinse_acceptance","appearance_and_component_integrity","moisture_distribution_acceptance"]},
     {"id":"post_endpoint_energy","unit":"kWh","denominator":"per_accepted_garment","scope":"Energy after declared moisture endpoint, including needless continued drying and finishing.","target_hypothesis":">=20% lower than matched conventional endpoint control.","status":"proposal_target_only","hard_guardrails":["endpoint_quality_non_inferior","rewetting_counted"]},
