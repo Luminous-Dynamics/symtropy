@@ -72,3 +72,9 @@ It separates synchronized continuous narrow-phase distance/contact, endpoint-onl
 Tests cover head-on mid-interval contact with clear endpoints, equal-velocity co-motion, unequal same-direction velocities, tangency, swept-AABB false positive, skew 3D axes, swapping symmetry, rigid transforms, scaling, invalid inputs and deterministic dense-sampling sanity checks.
 
 This is not arbitrary continuous-to-continuous collision checking: both bodies must retain fixed orientation and share the same time parameter. Rotation, joint-space interpolation, articulated robots, deformable geometry, asynchronous clocks and physical safety are outside this API. See [#5453](https://github.com/Luminous-Dynamics/symtropy/issues/5453).
+
+### Time-coherent broad phase
+
+For two translating capsules, the full swept-AABB union ignores whether the bodies occupy overlapping coordinates at the same time. The new dyadic time-sliced candidate query partitions the shared normalized interval and computes a conservative swept AABB for each body within each slab. It returns the number of candidate slabs, not a collision verdict. Narrow phase remains mandatory for positive candidates.
+
+The construction invariant is one-sided: if the exact synchronized continuous narrow phase reports contact, at least one slab must remain a candidate for any positive subdivision count. For nested 1, 2, 4, 8, ... refinements, candidate slab count is non-increasing. More subdivisions tighten broad-phase selectivity but cost more tests; benchmark both cost and candidate reduction. This is still an AABB broad phase, not a safety guarantee or exact dynamic collision result.
