@@ -9,6 +9,16 @@ fn digest(ch: char) -> String {
     std::iter::repeat_n(ch, 64).collect()
 }
 
+fn expected_gate_issuer(role: GateEvidenceRole) -> &'static str {
+    match role {
+        GateEvidenceRole::Authorization => "authorization-authority",
+        GateEvidenceRole::Safety => "safety-owner",
+        GateEvidenceRole::Envelope => "envelope-owner",
+        GateEvidenceRole::IndependentReference => "reference-owner",
+        GateEvidenceRole::SemanticEquivalence => "semantics-owner",
+    }
+}
+
 fn policy() -> ExperimentDesignPolicy {
     ExperimentDesignPolicy {
         campaign_sha256: digest('b'),
@@ -27,6 +37,13 @@ fn policy() -> ExperimentDesignPolicy {
         minimum_estimate_confidence_level: 0.95,
         required_estimator_build_sha256: digest('e'),
         required_estimate_method_sha256: digest('f'),
+        expected_gate_issuer_ids: std::collections::BTreeMap::from([
+            (GateEvidenceRole::Authorization, expected_gate_issuer(GateEvidenceRole::Authorization).into()),
+            (GateEvidenceRole::Safety, expected_gate_issuer(GateEvidenceRole::Safety).into()),
+            (GateEvidenceRole::Envelope, expected_gate_issuer(GateEvidenceRole::Envelope).into()),
+            (GateEvidenceRole::IndependentReference, expected_gate_issuer(GateEvidenceRole::IndependentReference).into()),
+            (GateEvidenceRole::SemanticEquivalence, expected_gate_issuer(GateEvidenceRole::SemanticEquivalence).into()),
+        ]),
         authorization_required_modalities: vec![ExperimentModality::ControlledFlight],
         resource_budget: ResourceBudget {
             setup_minutes: 100,
@@ -49,7 +66,7 @@ fn gate_evidence_receipt(
     GateEvidenceReceipt {
         receipt_id: receipt_id.into(),
         payload_sha256,
-        issuer_id: format!("owner-{receipt_id}"),
+        issuer_id: expected_gate_issuer(role).into(),
         role,
         campaign_sha256: candidate.campaign_sha256.clone(),
         model_scope_sha256: candidate.model_scope_sha256.clone(),
@@ -1145,4 +1162,53 @@ fn structured_gate_receipt_payload_must_match_legacy_gate_reference() {
     assert!(
         reason(&result, "gate-payload-splice").contains(&RejectionReason::InvalidEvidenceBinding)
     );
+}
+
+
+#[test]
+fn structured_gate_receipt_must_match_policy_pinned_issuer_namespace() {
+    let frozen = policy();
+    let mut candidate = candidate("wrong-gate-issuer");
+    candidate.gate_evidence_receipts.push(gate_evidence_receipt(
+        &candidate,
+        &frozen,
+        GateEvidenceRole::Safety,
+        "safety-receipt-wrong-issuer",
+        candidate.safety_gate_receipt_sha256.clone().unwrap(),
+    ));
+    candidate.gate_evidence_receipts.last_mut().unwrap().issuer_id =
+        "attacker-controlled-issuer".into();
+    let reasons = select_experiments(&[candidate], &frozen).unwrap().rejected[0]
+        .reasons
+        .clone();
+    assert!(reasons.contains(&RejectionReason::InvalidEvidenceBinding));
+}
+
+#[test]
+fn policy_must_pin_each_gate_issuer_namespace() {
+    let mut frozen = policy();
+    frozen.expected_gate_issuer_ids.remove(&GateEvidenceRole::Safety);
+    assert_eq!(
+        select_experiments(&[candidate("missing-issuer-policy")], &frozen),
+        Err(DesignError::InvalidPolicy)
+    );
+}
+
+#[test]
+fn gate_receipt_cannot_be_admitted_when_candidate_has_no_exact_payload_reference() {
+    let frozen = policy();
+    let mut candidate = candidate("orphan-gate-receipt");
+    candidate.safety_gate_receipt_sha256 = None;
+    candidate.gate_evidence_receipts.push(gate_evidence_receipt(
+        &candidate,
+        &frozen,
+        GateEvidenceRole::Safety,
+        "unreferenced-safety-receipt",
+        digest('9'),
+    ));
+    let reasons = select_experiments(&[candidate], &frozen).unwrap().rejected[0]
+        .reasons
+        .clone();
+    assert!(reasons.contains(&RejectionReason::MissingEvidenceReceipt));
+    assert!(reasons.contains(&RejectionReason::InvalidEvidenceBinding));
 }
