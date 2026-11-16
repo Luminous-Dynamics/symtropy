@@ -55,6 +55,8 @@ pub struct LiquidPatch {
     pub centroid_x_um: f64,
     pub centroid_y_um: f64,
     pub segmented_area_um2: Option<f64>,
+    /// Receipt for the observation that established this patch's identity.
+    pub observation: Option<ObservationEvidenceId>,
 }
 
 impl LiquidPatch {
@@ -129,6 +131,9 @@ pub struct BacterialTransitObservation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HighwayUnresolvedReason {
     MissingPatchInPath(LiquidPatchId),
+    MissingPatchObservation(LiquidPatchId),
+    MissingPatchReceipt(ObservationEvidenceId),
+    WrongPatchReceiptSubject(ObservationEvidenceId),
     MissingLiquidPatchLink {
         from: LiquidPatchId,
         to: LiquidPatchId,
@@ -151,7 +156,7 @@ pub enum HighwayUnresolvedReason {
     MissingHyphalReceipt(ObservationEvidenceId),
     MissingLiquidReceipt(ObservationEvidenceId),
     WrongHyphalReceiptSubject(ObservationEvidenceId),
-    WrongLiquidReceiptSubject(ObservationEvidenceId),
+    WrongLiquidBridgeReceiptSubject(ObservationEvidenceId),
     HyphalReceiptTargetMismatch(ObservationEvidenceId),
     UnresolvedFilamentDomain(HyphalHighwayLinkId),
 }
@@ -349,6 +354,37 @@ impl HyphalHighwayNetwork {
         for hop in transit.path.windows(2) {
             let from = hop[0];
             let to = hop[1];
+
+            // Each endpoint patch is independently source-linked. A bridge
+            // observation cannot silently stand in for both patch identities.
+            for patch_id in [from, to] {
+                let patch = self
+                    .patches
+                    .get(&patch_id)
+                    .expect("every path patch was checked above");
+                let Some(observation_id) = patch.observation else {
+                    return Ok(unresolved(
+                        HighwayUnresolvedReason::MissingPatchObservation(patch_id),
+                    ));
+                };
+                let Some(patch_receipt) = receipt_map.get(&observation_id) else {
+                    return Ok(unresolved(
+                        HighwayUnresolvedReason::MissingPatchReceipt(observation_id),
+                    ));
+                };
+                patch_receipt.validate().map_err(|source| {
+                    HyphalHighwayError::InvalidObservationReceipt {
+                        id: observation_id,
+                        source,
+                    }
+                })?;
+                if patch_receipt.subject != ObservationSubject::LiquidFilmPatch {
+                    return Ok(unresolved(
+                        HighwayUnresolvedReason::WrongPatchReceiptSubject(observation_id),
+                    ));
+                }
+            }
+
             let candidates: Vec<_> = self
                 .links
                 .values()
@@ -434,8 +470,9 @@ impl HyphalHighwayNetwork {
                         source,
                     }
                 })?;
-                if liquid_receipt.subject != ObservationSubject::LiquidFilmPatch {
-                    best_reason = HighwayUnresolvedReason::WrongLiquidReceiptSubject(liquid_id);
+                if liquid_receipt.subject != ObservationSubject::LiquidFilmBridge {
+                    best_reason =
+                        HighwayUnresolvedReason::WrongLiquidBridgeReceiptSubject(liquid_id);
                     continue;
                 }
 
@@ -598,6 +635,7 @@ mod tests {
                 centroid_x_um: 0.0,
                 centroid_y_um: 0.0,
                 segmented_area_um2: Some(100.0),
+                observation: Some(ObservationEvidenceId(20)),
             })
             .unwrap();
         network
@@ -606,6 +644,7 @@ mod tests {
                 centroid_x_um: 100.0,
                 centroid_y_um: 0.0,
                 segmented_area_um2: Some(100.0),
+                observation: Some(ObservationEvidenceId(21)),
             })
             .unwrap();
         network
@@ -638,7 +677,7 @@ mod tests {
                 ObservationSubject::HyphalSegmentTrace,
                 Some(EvidenceGraphTarget::Segment(SegmentId(7))),
             ),
-            receipt(11, ObservationSubject::LiquidFilmPatch, None),
+            receipt(11, ObservationSubject::LiquidFilmBridge, None),
             receipt(12, ObservationSubject::BacterialTrajectory, None),
         ];
         (network, transit, receipts)
@@ -678,6 +717,7 @@ mod tests {
                     centroid_x_um: id as f64,
                     centroid_y_um: 0.0,
                     segmented_area_um2: Some(10.0),
+                    observation: Some(ObservationEvidenceId(200 + id)),
                 })
                 .unwrap();
         }
@@ -732,8 +772,11 @@ mod tests {
                 ObservationSubject::HyphalSegmentTrace,
                 Some(EvidenceGraphTarget::Segment(SegmentId(8))),
             ),
-            receipt(14, ObservationSubject::LiquidFilmPatch, None),
+            receipt(14, ObservationSubject::LiquidFilmBridge, None),
             receipt(12, ObservationSubject::BacterialTrajectory, None),
+            receipt(201, ObservationSubject::LiquidFilmPatch, None),
+            receipt(202, ObservationSubject::LiquidFilmPatch, None),
+            receipt(203, ObservationSubject::LiquidFilmPatch, None),
         ];
         let result = network.assess_transit(&graph, &transit, &receipts).unwrap();
         assert_eq!(
@@ -899,6 +942,7 @@ mod tests {
                 centroid_x_um: f64::NAN,
                 centroid_y_um: 0.0,
                 segmented_area_um2: None,
+                observation: None,
             }),
             Err(HyphalHighwayError::InvalidPatchGeometry(LiquidPatchId(1)))
         );
@@ -908,6 +952,7 @@ mod tests {
                 centroid_x_um: 0.0,
                 centroid_y_um: 0.0,
                 segmented_area_um2: None,
+                observation: Some(ObservationEvidenceId(22)),
             })
             .unwrap();
         assert_eq!(
