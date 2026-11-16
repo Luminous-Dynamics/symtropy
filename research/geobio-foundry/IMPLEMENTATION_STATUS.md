@@ -19,8 +19,10 @@
 | `SUBTERRA_BENCHMARK_PROTOCOL_v0.1.md` | Evidence-separated subterranean exploration, mapping, communications and qualification benchmarks |
 | `SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json` | Separate morphology, origin, connectivity, accessibility, engineering and preservation claims |
 | `SUBTERRA_PROFILE_SCHEMA_v0.1.json` | Non-uniform profile intervals with explicit unobserved geometry |
+| `SUBTERRA_NETWORK_SCHEMA_v0.1.json` | Cave network graph separating candidate, geophysically supported, directly observed and contradicted links, with traversal and direction states |
 | `fixtures/subterra-site-evidence-synthetic.json` | Synthetic Mars candidate record preserving unknown origin, connectivity, accessibility and use qualification |
 | `fixtures/subterra-nonuniform-profile-synthetic.json` | Synthetic profile with a deliberately unobserved interval |
+| `fixtures/subterra-cave-network-synthetic.json` | Synthetic cave graph separating observed topology from demonstrated traversal |
 | `BIOASTEROID_REPLICATION_PROTOCOL_v0.1.md` | Reproduction-first biological/abiotic/hybrid protocol with process accounting, sample sizes and statistical significance controls |
 | `PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md` | Ideal-gas analytical reference assumptions, equations, exclusions, S0/S1 tests and physical qualification boundary |
 | `RESOURCE_GRAPH_SCHEMA_v0.2.json` | JSON Schema for evidence-aware resource-process records |
@@ -30,6 +32,7 @@
 | `kernel/src/pressure.rs` | Single-species ideal-gas compartment reference, prescribed mass transfer and observed-pressure comparison |
 | `kernel/src/subterra.rs` | Non-uniform profile morphometry with observation coverage and uncertainty-aware weighted dimensions |
 | `kernel/src/subterra_evidence.rs` | Typed cross-field semantic validator for morphology, origin, connectivity, access, survey, use qualification and preservation claims |
+| `kernel/src/subterra_network.rs` | Evidence-preserving cave graph, directly observed components and directional demonstrated-route/retreat queries |
 | `kernel/README.md` | Kernel scope, command and limitations |
 
 ## Implemented in the reference kernel
@@ -49,6 +52,7 @@
 - Bounded single-species ideal-gas model for rigid, isothermal compartments; prescribed gas-mass transfer; observed-pressure residual classification.
 - Non-uniform subterranean profile summary with explicit unobserved intervals, coverage, length-weighted geometry, measurement uncertainty and variability.
 - Cross-field claim-consistency checks so direct connectivity requires demonstrated access and interior survey; survey/qualified pressurized use requires prerequisite evidence; non-Earth authorized activity requires planetary-protection authorization, named authorization-case reference and basis record. Earth may declare planetary protection not applicable but still requires an activity basis.
+- Evidence-preserving cave network: unconfirmed hypotheses do not join confirmed topology; traversability is separate from physical connection; directed routes support distinct entry and retreat checks.
 
 ## Validation evidence
 
@@ -61,7 +65,7 @@
 | Negative control: missing uncertainty property | **REJECTED** | Schema correctly rejects |
 | Negative control: malformed input digest | **REJECTED** | Schema correctly rejects |
 | Negative control: unknown evidence state | **REJECTED** | Schema correctly rejects |
-| Rust source and 47 unit tests (16 resource + 5 pressure + 11 morphometry + 15 evidence semantics) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
+| Rust source and 60 unit tests (16 resource + 5 pressure + 11 morphometry + 15 evidence semantics + 13 network) | **AUTHORED, NOT EXECUTED** | No `rustc` or `cargo` in the available execution environment |
 | GitHub Actions / CI | **NOT CHECKED** | No runner wait or pass claim |
 | Cross-field semantic validation | **PARTIALLY IMPLEMENTED** | Typed validator covers core connectivity/access/survey/engineering/preservation dependencies; JSON-to-typed adapter and exhaustive state-combination tests remain outstanding |
 | Physical, laboratory, field, orbital or flight test | **NOT PERFORMED** | No physical qualification claim |
@@ -81,7 +85,7 @@
 ## Immediate next increments
 
 1. Add schema-to-Rust deserialization only after choosing a minimal, reviewed serialization dependency policy.
-2. Add a versioned JSON-to-typed Subterra evidence adapter and adversarial fixtures for every semantic rule.
+2. Add a versioned JSON-to-typed Subterra evidence/network adapter and adversarial fixtures for every semantic rule and route-state combination.
 3. Replace the perfect-correlation group approximation with an explicit covariance/correlation representation and validate ratio uncertainty against Monte Carlo reference cases.
 4. Add a separate, validated leak-flow reference model for a declared continuum or rarefied-flow regime, plus independent isolation-state tests.
 5. Add blind multi-site synthetic cave geometry and sensor fixtures, then implement SubterraBench scoring.
