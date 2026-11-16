@@ -20,10 +20,12 @@ The defensible research opportunity is a **site-to-capability assurance loop**: 
 
 NASA's Lunar Surface Technology portfolio reports:
 - **Molten Regolith Electrolysis (MRE):** vacuum testing of a reactor that extracted oxygen from lunar-regolith simulant; metal-rich slag is a potential manufacturing feedstock.
-- **Large-scale MRE demonstration:** the NASA NTRS record for the late-2024 test reports 25 kg simulant processed, 0.07 kg oxygen/hour average production, and 9 hours of sustained molten operation under vacuum. The public presentation summary does not provide a complete process-energy denominator, so it cannot by itself establish kg-O2/kWh.
+- **Large-scale MRE demonstration:** the NASA NTRS record for the late-2024 test reports 25 kg simulant processed, 0.07 kg oxygen/hour average production, and 9 hours of sustained molten operation under vacuum.
+- **Stage-specific MRE energy results:** NASA's 2025 public performance sheet reports a measured 0.3 mol O2/kWh for the electrolysis-stage energy metric, below its listed threshold of 0.6 and goal of 1.0 mol O2/kWh. It separately reports melt-phase energy of 11,877 kJ/kg at 1,200 °C and 24,692 kJ/kg at 1,300 °C, compared with a 3,100 kJ/kg theoretical goal in that project table. These are separate stage metrics, not a complete plant-level energy balance; auxiliary loads, thermal integration, gas cleanup, liquefaction/storage and operating duty must still be accounted for.
+- **MRE maturity boundary:** the NASA public release labels the vacuum test as a TRL 4 component/breadboard validation in a relevant environment. A reactor test is not equivalent to an integrated lunar surface production system.
 - **Carbothermal Reduction Demonstration (CaRD):** NASA reports a 2025 thermal-vacuum reactor demonstration and 2026 integrated prototype testing with concentrated solar energy, carbon-monoxide extraction and oxygen production from simulated regolith.
 - **Blue Alchemist:** NASA describes integrated, autonomous operation of eight technologies processing regolith simulant into silicon solar cells, aluminium wires, oxygen, iron and slag. NASA TechPort describes the integrated system as reaching TRL 6.
-- **Infrastructure Pilot Excavator (IPEx):** NASA states an engineering objective of delivering on the order of 20 metric tonnes of regolith over a mission. This is a design capability statement, not a demonstrated lunar excavation rate.
+- **Infrastructure Pilot Excavator (IPEx):** NASA's current page describes an engineering goal of moving 10 metric tonnes over 100 m in 11 days in its overview, and separately says the design is engineered to move on the order of 20 metric tonnes over one mission. These are design statements on the same public page, not demonstrated lunar excavation results; GeoBio should preserve the distinction and seek a controlled design-basis reference before using either as a throughput comparator.
 - **CADRE:** NASA describes a flight-demonstration architecture with three small rovers and a base station for cooperative mapping, obstacle avoidance and ground-penetrating-radar surveys.
 - **ARMADAS:** NASA is developing autonomous robotic assembly of reconfigurable structures from lightweight modular voxels.
 - **M-Coor:** NASA reports TRL 6 and flight heritage for slip/embedding-detection algorithms incorporated into VIPER flight software.
@@ -33,19 +35,20 @@ NASA's Lunar Surface Technology portfolio reports:
 Sources:
 - NASA Lunar Surface Technology: https://www.nasa.gov/lunar-surface-technology/
 - NASA NTRS, Large-Scale Demonstration of Molten Regolith Electrolysis for Oxygen Production (ICES 2026): https://ntrs.nasa.gov/citations/20260006167
+- NASA, MRE Public Release technical performance sheet (2025, including stage-specific measured KPPs): https://ntrs.nasa.gov/api/citations/20250003208/downloads/MRE_PublicRelease4072025.pdf
 - NASA TechPort, ISRU-Based Power on the Moon: https://techport.nasa.gov/projects/146991
 - NASA, Overview: In-Situ Resource Utilization: https://www.nasa.gov/overview-in-situ-resource-utilization/
 
 ### 2.2 BioAsteroid: microgravity proof of principle, not an asteroid factory
 
-The January 2026 npj Microgravity BioAsteroid paper reports microgravity bioleaching tests of 44 elements from L-chondrite meteorite material on the ISS. It reports a 5.5-fold palladium-release effect for Penicillium simplicissimum relative to the abiotic control, with the reported yield at 549.3 ± 234.4% of the non-biological control.
+The January 2026 npj Microgravity BioAsteroid paper reports microgravity bioleaching tests of 44 elements from L-chondrite meteorite material on the ISS. The paper reports a 5.5-fold **mean** palladium-release ratio for Penicillium simplicissimum relative to the non-biological control (549.3 ± 234.4% of control), but this must not be presented as a statistically established palladium advantage: the paper's ISS Tukey pairwise comparisons for Ru, Pd and Pt were non-significant (p > 0.05) across the pairwise tests, except for Pt differences between organisms. For the wider 44-element comparisons, only phosphorus for P. simplicissimum versus the non-biological control reached p = 0.049 in the ISS samples. The headline fold-change is therefore a promising, high-variance exploratory signal—not a validated industrial palladium effect.
 
 Critical experimental context:
 - meteorite sample aliquots averaged 0.79 ± 0.14 g;
 - the material was crushed to approximately 1–3.5 mm fragments;
 - each sample received 5 mL of 50% v/v R2A medium;
 - the medium included yeast extract, peptone, casamino acids, glucose, starch, sodium pyruvate and mineral salts;
-- the authors report substantial variability and limited replicates;
+- the flight comparison used n = 3 ISS samples for each relevant sample group in the ICP-MS statistical analysis (the paper reports n = 3 ISS, n = 4 biological Earth, and n = 6 abiotic Earth samples); the authors report substantial variability and explicitly acknowledge limited replicate counts;
 - the paper's economic illustration estimated only about $10 of palladium value for a hypothetical 1000 m³ scaled tank under its experimental assumptions, and states that near-term profitability is unlikely under terrestrial economic comparison.
 
 **GeoBio response**
