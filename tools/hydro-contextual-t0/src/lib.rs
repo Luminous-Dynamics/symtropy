@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 39;
+pub const CASE_COUNT: usize = 40;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1221,7 +1221,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_nine_cases_match_separate_oracle() {
+    fn all_forty_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1408,6 +1408,15 @@ mod tests {
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
         assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_SCOPE_DIFFER");
         assert_eq!(out["brier_skill_score"], Value::Null);
+    }
+
+
+    #[test]
+    fn zero_reference_brier_makes_brier_skill_undefined() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("zero reference Brier");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["brier_skill_score"], Value::Null);
+        assert_eq!(out["reference_forecast_id"], "B0-seasonal-climatology-v1");
     }
 
     #[test]
