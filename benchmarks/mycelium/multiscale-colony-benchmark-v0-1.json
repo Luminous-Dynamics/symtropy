@@ -1,0 +1,344 @@
+{
+  "schema_version": "myco.multiscale.benchmark.v0.1",
+  "suite_id": "MYCO-MULTISCALE-001",
+  "title": "Hyphal graph-to-wave reduction and adaptive fidelity tournament",
+  "evidence_class": "benchmark_protocol_with_synthetic_design",
+  "result_status": "not_run",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5413",
+  "biological_claim_ceiling": "No biological validation, SOTA superiority, or universal fungal-growth law is established by this protocol.",
+  "scientific_references": [
+    {
+      "id": "bmx-physical-review-e-2025",
+      "doi": "10.1103/xbjp-zqj1",
+      "role": "explicit 3D hyphal morphology and transport reference",
+      "source_release_doi": "10.5281/zenodo.13851660",
+      "source_license_reported": "BSD-2-Clause",
+      "admission_status": "pin_and_verify_artifact_before_reproduction"
+    },
+    {
+      "id": "sbare-biorxiv-2026",
+      "doi": "10.64898/2026.11.05.764668",
+      "role": "stochastic traveling-wave surrogate challenger",
+      "peer_reviewed": false,
+      "admission_status": "preprint_only_map_equations_and_artifacts_before_claiming_reproduction"
+    },
+    {
+      "id": "amf-travelling-wave-nature-2025",
+      "doi": "10.1038/s41586-025-08614-x",
+      "data_doi": "10.6084/m9.figshare.27889143",
+      "code_repository": "https://github.com/Cocopyth/AMFTravellingWave",
+      "role": "time-resolved AMF topology plus measured intra-hyphal cytoplasmic flow",
+      "scope": "three AMF profiles in a 2D-constrained in-vitro root-organ-culture system",
+      "admission_status": "pin_code_and_figshare_data_rights_before_reproduction"
+    }
+  ],
+  "units": {
+    "time": "source_defined; must be normalized explicitly",
+    "length": "source_defined; must be normalized explicitly",
+    "biomass": "source_defined; never infer from image intensity",
+    "transport": "source_defined; element-specific SI or declared compatible units",
+    "compute": "wall_clock_seconds; hardware_metadata_required"
+  },
+  "model_families": [
+    {
+      "id": "bmx_explicit",
+      "description": "Pinned published BMX high-detail discrete hyphal model",
+      "status": "baseline_to_admit"
+    },
+    {
+      "id": "sbare_surrogate",
+      "description": "Source-faithful sBARE reduction derived from the preprint",
+      "status": "not_reproduced"
+    },
+    {
+      "id": "symtropy_field_v0",
+      "description": "Existing scalar-field Mycelium V0",
+      "status": "stylized_internal_baseline"
+    },
+    {
+      "id": "hyphal_graph_fixed",
+      "description": "Explicit topology graph with fixed high-detail fidelity",
+      "status": "topology_only_until_growth_and_transport_added"
+    },
+    {
+      "id": "colony_reduced_fixed",
+      "description": "Declared colony-scale coarse state",
+      "status": "not_implemented"
+    },
+    {
+      "id": "adaptive_graph_wave",
+      "description": "Residual/process-sufficiency adaptive hybrid",
+      "status": "research_target"
+    },
+    {
+      "id": "measured_graph_flow_observation",
+      "description": "Source-derived dynamic graphs and ROI-linked measured cytoplasmic flow",
+      "status": "source_admission_required"
+    }
+  ],
+  "task_families": [
+    {
+      "id": "MS-01",
+      "name": "homogeneous_nutrient_replete",
+      "intervention": "uniform nutrient field",
+      "holdout": false
+    },
+    {
+      "id": "MS-02",
+      "name": "resource_patch_depletion",
+      "intervention": "localized nutrient depletion",
+      "holdout": false
+    },
+    {
+      "id": "MS-03",
+      "name": "obstacle_and_heterogeneous_substrate",
+      "intervention": "spatially bounded obstruction / substrate heterogeneity",
+      "holdout": false
+    },
+    {
+      "id": "MS-04",
+      "name": "branch_fusion_sensitivity",
+      "intervention": "paired branching/fusion rule conditions",
+      "holdout": false
+    },
+    {
+      "id": "MS-05",
+      "name": "drift_diffusion_nonidentifiability",
+      "intervention": "paired micro-parameter sets with matched mean front speed and different front variance",
+      "holdout": false
+    },
+    {
+      "id": "MS-06",
+      "name": "held_out_environment_transfer",
+      "intervention": "unseen nutrient / geometry combinations within a declared envelope",
+      "holdout": true
+    },
+    {
+      "id": "MS-07",
+      "name": "out_of_domain_stress",
+      "intervention": "outside declared coarse-model applicability envelope",
+      "holdout": true
+    },
+    {
+      "id": "MS-08",
+      "name": "amf_graph_flow_coevolution",
+      "intervention": "time-resolved graph and ROI-linked flow observations from the admitted AMF travelling-wave study",
+      "holdout": true
+    }
+  ],
+  "shared_scenario_contract": {
+    "frozen_inputs": [
+      "model_version_and_source_commit",
+      "initial_graph_or_field_digest",
+      "initial_state_and_boundary_conditions",
+      "parameter_manifest_and_units",
+      "seed_and_rng_algorithm",
+      "time_step_and_observation_cadence",
+      "hardware_and_solver_backend",
+      "stopping_condition"
+    ],
+    "fairness_rules": [
+      "same initial conditions and intervention for every compared model",
+      "same observation operators and spatial/temporal support",
+      "same held-out cases and scoring code",
+      "compare at matched observable error and uncertainty coverage, not just equal step count",
+      "report preprocessing, compilation, warm-up and solver costs separately",
+      "do not treat model-generated pseudo-observations as independent ground truth"
+    ]
+  },
+  "observables": [
+    {
+      "id": "front_position",
+      "metric": [
+        "MAE",
+        "RMSE",
+        "distributional_distance"
+      ],
+      "unit": "declared_length"
+    },
+    {
+      "id": "front_speed",
+      "metric": [
+        "bias",
+        "MAE",
+        "interval_coverage"
+      ],
+      "unit": "declared_length_per_time"
+    },
+    {
+      "id": "front_width",
+      "metric": [
+        "profile_error",
+        "distributional_distance"
+      ],
+      "unit": "declared_length"
+    },
+    {
+      "id": "front_advance_variance",
+      "metric": [
+        "absolute_error",
+        "relative_error"
+      ],
+      "unit": "declared_length_squared_per_time"
+    },
+    {
+      "id": "drift_diffusion_identifiability",
+      "metric": [
+        "parameter_recovery_error",
+        "posterior_coverage",
+        "nonidentifiability_detection"
+      ],
+      "unit": "declared_model_parameter"
+    },
+    {
+      "id": "radial_density_profile",
+      "metric": [
+        "profile_RMSE",
+        "integrated_absolute_error",
+        "worst_radius_bin_error"
+      ],
+      "unit": "declared_biomass_density"
+    },
+    {
+      "id": "hyphal_topology",
+      "metric": [
+        "branch_count_error",
+        "component_count_error",
+        "degree_distribution_distance",
+        "path_recall"
+      ],
+      "unit": "count_or_dimensionless"
+    },
+    {
+      "id": "transport_budget",
+      "metric": [
+        "element_budget_residual",
+        "flux_error",
+        "transfer_time_error"
+      ],
+      "unit": "element_specific"
+    },
+    {
+      "id": "uncertainty_and_ood",
+      "metric": [
+        "CRPS",
+        "interval_coverage",
+        "interval_width",
+        "OOD_AUROC",
+        "abstention_coverage"
+      ],
+      "unit": "declared"
+    },
+    {
+      "id": "compute_cost",
+      "metric": [
+        "wall_clock_seconds",
+        "peak_memory_bytes",
+        "energy_joules_if_measured",
+        "high_fidelity_step_fraction"
+      ],
+      "unit": "declared_compute"
+    },
+    {
+      "id": "root_global_efficiency_cost",
+      "metric": [
+        "normalized_root_efficiency_error",
+        "normalized_global_efficiency_error",
+        "network_cost_error",
+        "pareto_hypervolume_if_admitted"
+      ],
+      "unit": "dimensionless_or_source_declared"
+    },
+    {
+      "id": "measured_cytoplasmic_flow",
+      "metric": [
+        "direction_accuracy",
+        "velocity_distribution_error",
+        "temporal_stability_error",
+        "radius_centrality_flow_association_error"
+      ],
+      "unit": "declared_velocity_and_flux"
+    },
+    {
+      "id": "graph_flow_temporal_alignment",
+      "metric": [
+        "edge_identity_persistence",
+        "flow_to_edge_association_precision_recall",
+        "time_lag_error"
+      ],
+      "unit": "declared_time_and_dimensionless"
+    }
+  ],
+  "adaptive_refinement_policies": [
+    {
+      "id": "fixed_high",
+      "purpose": "high-detail upper reference"
+    },
+    {
+      "id": "fixed_coarse",
+      "purpose": "reduced-model lower-cost reference"
+    },
+    {
+      "id": "random_refinement",
+      "purpose": "equal-budget non-informed policy"
+    },
+    {
+      "id": "presentation_distance",
+      "purpose": "negative/control baseline only; not an admissible authority"
+    },
+    {
+      "id": "residual_triggered",
+      "purpose": "refine when per-observable error/residual crosses declared limits"
+    },
+    {
+      "id": "process_sufficiency",
+      "purpose": "refine before an enabled process requires unrepresented information"
+    },
+    {
+      "id": "combined_residual_process",
+      "purpose": "candidate adaptive policy"
+    }
+  ],
+  "promotion_contract": {
+    "promote_before_use_when": [
+      "enabled process requires segment-level topology or identity",
+      "root/fungal interface calculation requires graph-resolved geometry",
+      "topology or transport residual exceeds preregistered bound",
+      "uncertainty exceeds declared decision-relevant limit",
+      "candidate is outside the reduced model validity envelope"
+    ],
+    "demotion_allowed_only_when": [
+      "all enabled processes have a qualified sufficient coarse representation",
+      "future-bearing state and history have a reconstruction/preservation contract",
+      "conservation and selected observables remain within declared bounds"
+    ],
+    "forbidden_shortcuts": [
+      "camera_distance_or_visual_lod_as_fidelity_authority",
+      "silent_graph_reconstruction_from_rendered_mesh",
+      "silently_imputed_missing_fluxes",
+      "coarse_prediction_promoted_to_physical_truth",
+      "averaging_away_worst_condition_failures"
+    ]
+  },
+  "preregistered_stretch_targets": {
+    "speedup_target": "at least 10x lower wall-clock on at least one larger workload vs pinned explicit mechanics",
+    "comparability_condition": "only count if matched preregistered observable error and uncertainty coverage are achieved",
+    "worst_stratum": "no material degradation in worst-condition front, density, topology or transport metrics",
+    "invariants": "100% pass on non-negotiable deterministic topology, source, mass/element-balance and event-idempotency fixtures",
+    "status": "targets_not_results"
+  },
+  "receipt_requirements": [
+    "exact source revisions and artifact checksums",
+    "scenario manifest and complete input/configuration digests",
+    "seed and RNG identity",
+    "observation operator and metric implementation revision",
+    "per-observable prediction errors and uncertainty",
+    "per-observable coarse-model validity envelope",
+    "promotion/demotion events and triggering evidence",
+    "runtime/memory/energy telemetry and hardware metadata",
+    "explicit PASS/FAIL/NOT_RUN/INSUFFICIENT_EVIDENCE status",
+    "flow observation to graph edge / ROI / replicate / timepoint association identity",
+    "root/global efficiency normalization method and MST/DT reference revisions",
+    "separate flow velocity, volumetric flow, graph efficiency and tracer-delivery observables"
+  ]
+}

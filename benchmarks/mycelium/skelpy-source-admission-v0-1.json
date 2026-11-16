@@ -1,0 +1,86 @@
+{
+  "schema_version": "myco.source-admission.v0.1",
+  "source_id": "SKELPY-BOTRYTIS-2026",
+  "publication": {
+    "title": "SkelPy: A graphic user interface-based approach for skeletonizing fungal networks",
+    "doi": "10.1002/aps3.70049",
+    "url": "https://doi.org/10.1002/aps3.70049",
+    "published": "2026-03-24",
+    "publication_license": "CC BY-NC 4.0",
+    "publication_license_is_not_code_or_dataset_license": true
+  },
+  "software": {
+    "repository_url": "https://github.com/AaronMoseley/SkelPy",
+    "source_revision": null,
+    "repository_root_license_file_found": false,
+    "code_license": "unverified",
+    "executable_release": "verify exact release and platform build",
+    "reproduction_status": "not_run"
+  },
+  "data": {
+    "described_images": 180,
+    "species": [
+      "Botrytis cinerea"
+    ],
+    "isolates": 3,
+    "duration_hours": 72,
+    "imaging_interval_hours": 4,
+    "imaging_plane": "fixed bottom-well focal plane; 2D image projection",
+    "complete_raw_images_downloaded": false,
+    "data_license": "unverified_at_file_level",
+    "example_images_in_code_repository": true,
+    "full_dataset_availability": "must be verified",
+    "checksum": null
+  },
+  "published_validation": {
+    "manual_trace_images": 15,
+    "manual_trace_isolate_count": 1,
+    "mean_normalized_trace_distance": 0.0046,
+    "normalized_trace_distance_sd": 0.0009,
+    "maximum_normalized_nearest_point_distance": 0.0195,
+    "predicted_node_true_fraction": 0.808,
+    "predicted_node_false_fraction": 0.191,
+    "node_presence_absence_sampled_cells": 30,
+    "node_presence_absence_accuracy": 0.862,
+    "node_presence_absence_sensitivity": 0.905,
+    "node_presence_absence_specificity": 0.75,
+    "node_presence_absence_precision": 0.905,
+    "node_presence_absence_f1": 0.905,
+    "throughput": {
+      "images": 180,
+      "elapsed_minutes": 102,
+      "peak_memory_mb": 234,
+      "hardware": "Apple M4 MacBook Pro (2024)"
+    }
+  },
+  "evidence_limits": [
+    "manual geometric comparison is only 15 images from one isolate",
+    "node-level and presence/absence metrics use small samples",
+    "audit whether node reference construction is independent of preprocessing output",
+    "2D fixed-focal-plane images cannot establish 3D geometry",
+    "geometric trace proximity does not establish connected-component or cycle correctness",
+    "skeleton topology does not establish a living or transport-capable conduit",
+    "full image corpus and source rights must be separately verified"
+  ],
+  "proposed_extended_metrics": [
+    "skeleton_precision_recall_f1",
+    "cldice",
+    "average_symmetric_centerline_distance",
+    "hausdorff_distance",
+    "node_precision_recall",
+    "tip_and_junction_degree_error",
+    "connected_component_count_error",
+    "cycle_count_error",
+    "graph_edit_distance",
+    "temporal_topology_continuity",
+    "physical_length_and_branch_density_error_after_calibration",
+    "runtime_memory_and_hardware"
+  ],
+  "status": {
+    "downloaded": false,
+    "ingested": false,
+    "reproduced": false,
+    "rights_admitted": false
+  },
+  "claim_ceiling": "Source-specific 2D skeletonization benchmark only. No 3D biological structure, transport competence or fungal physiology claim is established."
+}

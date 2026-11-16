@@ -1,0 +1,137 @@
+{
+  "schema_version": "myco.source-admission.v0.1",
+  "source_id": "CEN-WASCHK-2026",
+  "title": "Common endophyte network resource-exchange study",
+  "publication": {
+    "citation": "Waschk et al., Resource exchange through common endophyte networks formed by non-mycorrhizal fungi, Scientific Reports, 8 June 2026",
+    "doi": "10.1038/s41598-026-56653-9",
+    "url": "https://doi.org/10.1038/s41598-026-56653-9",
+    "publication_license": "CC BY 4.0",
+    "publication_license_is_not_dataset_license": true
+  },
+  "code_and_data": {
+    "repository_url": "https://gitlab.com/fungalecology/cen",
+    "repository_revision": null,
+    "exact_archive_sha256": null,
+    "data_files_inventory": [],
+    "data_license": "unverified",
+    "code_license": "unverified",
+    "redistribution_status": "not_authorized_until_independently_verified",
+    "downloaded": false,
+    "ingested": false
+  },
+  "study_profile": {
+    "host_species": [
+      "Arabidopsis thaliana"
+    ],
+    "fungal_species": [
+      "Trichoderma viride",
+      "Mucor hiemalis",
+      "Fusarium temperatum"
+    ],
+    "system": "controlled triple-compartment Petri dish / common endophyte network",
+    "treatment_notes": "isotope-labelled nutrient / carbon assays under study-specific compartment conditions",
+    "evidence_class": "published controlled experiment",
+    "treatment_matrix": [
+      {
+        "code": "+E/+I/+R",
+        "meaning": "endophyte + isotope + receiver plant; donor and receiver plants both present",
+        "replicates": "6 per fungal species and isotope treatment"
+      },
+      {
+        "code": "+E/+I/-R",
+        "meaning": "endophyte + isotope + no receiver plant; donor plant remains present",
+        "replicates": "4 per fungal species; one isotope treatment (alpha) only"
+      },
+      {
+        "code": "-E/+I/+R",
+        "meaning": "no inoculated endophyte + isotope + receiver plant; tests non-inoculated isotope movement",
+        "replicates": "5 per isotope treatment"
+      },
+      {
+        "code": "-E/-I/+R",
+        "meaning": "no endophyte + no isotope; natural-abundance control",
+        "replicates": "10"
+      }
+    ],
+    "isotopes": [
+      {
+        "id": "15N_amino_acid",
+        "role": "organic nitrogen source tracer"
+      },
+      {
+        "id": "15N_ammonium",
+        "role": "inorganic nitrogen source tracer"
+      },
+      {
+        "id": "13C_amino_acid",
+        "role": "carbon tracer; must not be used to impute 15N movement"
+      },
+      {
+        "id": "D2O",
+        "role": "water tracer; plant isotope-only control showed an abiotic signal relative to natural abundance"
+      }
+    ],
+    "reported_observations": [
+      {
+        "species": "Fusarium temperatum",
+        "tracer": "15N_amino_acid",
+        "observation": "receiver plant 15N enrichment reported 55% above control; receiver soil 15N also increased",
+        "interpretation_limit": "cannot separate direct hyphal transfer from fungal exudate/necromass followed by receiver-root uptake"
+      },
+      {
+        "species": "Mucor hiemalis",
+        "tracer": "15N_amino_acid",
+        "observation": "receiver soil 15N increased; receiver plant 15N did not significantly increase",
+        "interpretation_limit": "soil enrichment is not direct plant uptake or proof of segment-level translocation"
+      },
+      {
+        "species": "Trichoderma viride",
+        "tracer": "13C_amino_acid",
+        "observation": "receiver plant 13C increased; receiver soil 13C did not significantly increase",
+        "interpretation_limit": "study-specific evidence; does not establish a universal carbon-transfer mechanism"
+      },
+      {
+        "species": "all tested endophytes",
+        "tracer": "15N_ammonium",
+        "observation": "no significant receiver-soil or receiver-plant 15N transfer reported",
+        "interpretation_limit": "retain as an explicit negative result, not a missing datum"
+      },
+      {
+        "species": "all tested endophytes",
+        "tracer": "D2O",
+        "observation": "plant D2O isotope-only control was elevated over natural abundance; fungal-treatment plant levels were not distinguishable from the isotope-only control",
+        "interpretation_limit": "evaporation/condensation or another abiotic pathway remains plausible for plant signal"
+      }
+    ]
+  },
+  "admission_gaps": [
+    "verify exact GitLab revision and archive file inventory",
+    "verify data and script licensing separately from article licence",
+    "record exact checksums, metadata, scripts and analysis environment",
+    "preserve each treatment, replicate, compartment, isotope, timepoint and damaged-sample exclusion",
+    "reproduce at least one figure or table from exact admitted bytes",
+    "retain the published four treatment arms and the missing factorial cells as explicit design properties",
+    "keep carbon-13, nitrogen-15 amino acid, nitrogen-15 ammonium and D2O as separate observations",
+    "distinguish receiver-soil enrichment from receiver-plant enrichment",
+    "assess abiotic diffusion/evaporation and fungal exudate/necromass alternatives",
+    "do not infer universal transfer coefficients or field-scale rates"
+  ],
+  "reproduction_requirements": [
+    "reproduce one paper figure or table from the exact admitted data and scripts",
+    "report each isotope and compartment separately",
+    "run a control completeness audit before causal transfer attribution",
+    "preserve per-replicate data and uncertainty; do not only transcribe treatment means",
+    "state where the experiment cannot identify direct hyphal-mediated transfer",
+    "do not infer universal transfer coefficients or field-scale rates"
+  ],
+  "claim_ceiling": "The publication reports study-specific isotope enrichment in a four-arm controlled Petri-dish experiment. It includes a no-receiver arm, an isotope-only non-inoculated receiver arm and a natural-abundance arm, but no donorless arm and not the full isotope-control factorial for the no-receiver condition. 15N-amino-acid enrichment in receiver plants can reflect root uptake from fungal exudates/necromass; it is not identified as direct hyphal transport. D2O plant enrichment is confounded by an abiotic signal in isotope controls. No universal CEN law or field-scale rate is established.",
+  "control_gaps": [
+    "No donorless treatment was included, so donor-plant dependence cannot be measured directly.",
+    "The +E/+I/-R no-receiver arm did not have the full isotope-control set (examples identified by the authors: -E/-I/-R and -E/+I/-R).",
+    "The -E/+I/+R isotope control and -E/-I/+R natural-abundance control do not fill the missing no-receiver factorial cells.",
+    "13C and 15N moved independently; 13C cannot be used as a proxy to estimate amino-acid-derived 15N movement.",
+    "F. temperatum receiver-soil 15N enrichment means direct hyphal transfer cannot be separated from fungal exudate / necromass and receiver-root uptake.",
+    "Plant D2O enrichment also occurred in isotope controls; fungal treatment differences relative to that isotope control were not significant."
+  ]
+}

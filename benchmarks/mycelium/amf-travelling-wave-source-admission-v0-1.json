@@ -1,0 +1,81 @@
+{
+  "schema_version": "myco.source-admission.v0.1",
+  "source_id": "AMF-TRAVELLING-WAVE-NATURE-2025",
+  "publication": {
+    "title": "A travelling-wave strategy for plant–fungal trade",
+    "doi": "10.1038/s41586-025-08614-x",
+    "url": "https://doi.org/10.1038/s41586-025-08614-x",
+    "journal": "Nature",
+    "volume": 639,
+    "pages": "172-180",
+    "publication_date": "2025-02-26",
+    "article_license": "open access; verify exact reuse terms on article record",
+    "peer_reviewed": true
+  },
+  "code": {
+    "repository": "Cocopyth/AMFTravellingWave",
+    "url": "https://github.com/Cocopyth/AMFTravellingWave",
+    "default_branch": "master",
+    "pinned_revision": null,
+    "repository_readme_sha": "6a99480d9b55fdc7d8250f18579bb91b8e3992d0",
+    "python_version_requirement": ">=3.11",
+    "code_license": "MIT as stated by article",
+    "code_license_file_verification": "root LICENSE path unresolved in current API inspection; verify actual file tree",
+    "repository_dependencies": [
+      "Python",
+      "Poetry",
+      "MATLAB for some figure 4 network efficiency/BAS analysis"
+    ],
+    "data_note": "README states Figshare includes source data for main figures plus a subsample of raw data; cloning GitHub alone does not fetch the Figshare data archive."
+  },
+  "data": {
+    "figshare_doi": "10.6084/m9.figshare.27889143",
+    "figshare_url": "https://doi.org/10.6084/m9.figshare.27889143",
+    "exact_archive_version": null,
+    "file_inventory": [],
+    "data_license": "unverified_at_file_level",
+    "downloaded": false,
+    "ingested": false,
+    "checksums": {}
+  },
+  "experiment_profile": {
+    "fungi": [
+      "Rhizophagus irregularis A5 (DAOM664344)",
+      "Rhizophagus irregularis C2 (DAOM664346)",
+      "Rhizophagus aggregatum"
+    ],
+    "host": "Daucus carota in-vitro root organ culture",
+    "geometry": "split Petri plate; root compartment separated from fungus-only compartment; 2D constrained growth imaging",
+    "typical_imaging": "about 150 images per replicate at 2-hour intervals",
+    "replicates": "up to 40 in vitro ROC plant-fungal replicates; figure-specific graph statistics report 12 replicates",
+    "tracked_nodes": ">500000 across replicate dataset",
+    "flow_trajectories": "about 100000",
+    "flow_videos": ">1600 high-resolution videos",
+    "flow_recording": "bright-field microscopy at 20-25 frames per second for 20-60 seconds"
+  },
+  "reported_observations_to_reproduce": [
+    "growing-tip pulse ahead of trailing hyphal filament-density wave",
+    "approximately translating front and saturating trailing filament density",
+    "density regulation associated with hyphal fusion/anastomosis",
+    "root-directed network efficiency remains approximately constant while global efficiency increases",
+    "edge radius correlates with betweenness centrality",
+    "bidirectional and antiparallel cytoplasmic flow",
+    "early tipward velocity about 30 percent faster; directional bias falls below significance around day 10",
+    "average flow speeds are stable over about 20 days while network length grows by nearly two orders of magnitude"
+  ],
+  "evidence_limits": [
+    "in-vitro root-organ-culture Petri-plate model",
+    "full graph extraction was enabled by constraining growth to 2D; it is not a 3D soil reconstruction",
+    "flow videos cover selected ROIs and manually screened maximum-speed outliers",
+    "strain and species coverage is limited to the three named AMF profiles",
+    "flow, graph efficiency, nutrient delivery and plant uptake are separate observables"
+  ],
+  "status": {
+    "code_downloaded": false,
+    "figshare_data_downloaded": false,
+    "exact_revision_pinned": false,
+    "data_rights_admitted": false,
+    "figure_reproduction": false
+  },
+  "claim_ceiling": "This source can qualify a 2D in-vitro AMF graph and flow benchmark. It does not establish 3D soil networks, all fungal guilds, universal trade strategies or a general fungal transport law."
+}

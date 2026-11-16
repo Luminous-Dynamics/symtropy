@@ -1,0 +1,99 @@
+{
+  "schema_version": "myco.source-admission.v0.1",
+  "source_id": "STEN-3D-ZSTACK-GRAPH-2025",
+  "publication": {
+    "title": "Three-dimensional graph reconstruction of filamentous structures from z-stack images",
+    "doi": "10.1016/j.ecoinf.2025.103317",
+    "url": "https://doi.org/10.1016/j.ecoinf.2025.103317",
+    "journal": "Ecological Informatics",
+    "volume": 90,
+    "article_number": 103317,
+    "publication_date": "2025-12",
+    "peer_reviewed": true,
+    "article_license": "open access; confirm exact Creative Commons variant before reusing article figures"
+  },
+  "software_release": {
+    "title": "Three-dimensional graph reconstruction of filamentous structures from z-stack images: Code and data",
+    "current_zenodo_doi": "10.5281/zenodo.15780623",
+    "current_version": "v2",
+    "published": "2025-07-01",
+    "previous_version_doi": "10.5281/zenodo.15382388",
+    "archive_filename": "software_package_Sten_et_al_2025.zip",
+    "archive_size_mb": 427.4,
+    "archive_md5": "ff058ffc51796b71154b1572d9eddbac",
+    "software_license": "MIT-style license as stated in Zenodo record",
+    "full_archive_downloaded": false,
+    "exact_sha256": null
+  },
+  "algorithm_steps": [
+    "per-focal-plane filament detection and binary skeleton extraction",
+    "dense skeleton to sparse homeomorphic graph",
+    "optimal matching of node coordinates across focal planes",
+    "shape-from-focus depth estimate per node",
+    "steerable-filter / orientation analysis for shallow overlaps",
+    "graph merge and topology correction"
+  ],
+  "reproducibility_files": [
+    "src/mycelium_3D_reconstruction.m",
+    "src/overlap_detection_in_2D.m",
+    "src/printed_filament_3D_reconstruction.m",
+    "src/printed_filaments_3D_reconstruction_more_complex.m",
+    "src/qualitative_results.m",
+    "src/time_lapse_plotting.m",
+    "src/fcn/"
+  ],
+  "reported_results_to_reproduce": {
+    "printed_filament_geometry": "RMSE below 0.5 mm filament radius for most prototypes",
+    "fungal_overlap_detection": {
+      "species": "Rhizophagus irregularis",
+      "annotated_image_count": 6,
+      "reported_f1_range": [
+        0.91,
+        0.92
+      ]
+    },
+    "human_intervention": "Some branch/crossing cases require manual adjudication; the Zenodo record documents an additional false negative for crossing in image o.jpg."
+  },
+  "data_rights": {
+    "code": "MIT-style license on Zenodo record",
+    "external_functions": "Some fcn/external functions were authored by third parties; inspect their notices separately.",
+    "z_stack_images": "Copyright 2024 Oscar Sten per Zenodo description; verify reuse scope.",
+    "prototype_images_and_cad": "Copyright 2024 Oscar Sten per Zenodo description; verify reuse scope.",
+    "two_dimensional_fungal_images": "Attributed to Cardini et al. 2020 HyLength paper; separate original rights apply.",
+    "annotations": "Verify terms separately from software license.",
+    "admission_status": "rights_review_required_per_directory"
+  },
+  "human_assistance": {
+    "automated_only_result_available": false,
+    "manual_annotations_needed": true,
+    "documented_false_negative": "image o.jpg top-right crossing; original configuration misses this and asks user to add one false negative manually",
+    "required_scoring_modes": [
+      "automated_only",
+      "automated_with_abstention",
+      "human_assisted",
+      "independently_adjudicated"
+    ]
+  },
+  "future_dataset": {
+    "doi": "10.5281/zenodo.23135747",
+    "described_publication": "Bright-Field Microscopy Dataset of Fungal Filament Networks for Detection, Focus Modeling, and 3D Reconstruction",
+    "images_zstacks": 21,
+    "annotated_slices": 1205,
+    "retained_mosaics": 7657,
+    "time_lapse_stacks": 48,
+    "time_lapse_duration_hours": 25,
+    "time_lapse_interval_minutes": 30,
+    "z_step_micrometres": 5,
+    "total_size_tb": 2.6,
+    "publicly_available_after": "2027-10-08",
+    "status": "embargoed_not_available",
+    "use_before_release": "not_permitted"
+  },
+  "status": {
+    "code_downloaded": false,
+    "data_downloaded": false,
+    "paper_reproduced": false,
+    "rights_admitted": false
+  },
+  "claim_ceiling": "The comparator is source-specific bright-field Z-stack graph reconstruction for Rhizophagus irregularis and 3D-printed prototypes. It includes manual crossing corrections and does not validate true biological anastomosis, transport or soil-scale 3D topology."
+}

@@ -1,0 +1,190 @@
+{
+  "schema_version": "myco.topology_resilience.v0.1",
+  "suite_id": "MYCO-TOPO-RESILIENCE-001",
+  "status": "protocol_not_run",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5461",
+  "algorithm": {
+    "name": "active_graph_criticality",
+    "complexity": "O(V + E)",
+    "iterative": true,
+    "outputs": [
+      "active_bridge_segment_ids",
+      "active_articulation_node_ids"
+    ],
+    "excludes_inactive_segments": true,
+    "multigraph_semantics": "parallel edges are distinct; a single edge in a parallel pair is not a bridge"
+  },
+  "known_truth_cases": [
+    {
+      "id": "RES-001",
+      "name": "three_node_chain",
+      "nodes": 3,
+      "edges": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "expected_bridges": [
+        1,
+        2
+      ],
+      "expected_articulation_nodes": [
+        2
+      ],
+      "expected_components_after_removal": {
+        "edge_1": 2,
+        "edge_2": 2,
+        "node_2": 2
+      }
+    },
+    {
+      "id": "RES-002",
+      "name": "three_node_cycle",
+      "nodes": 3,
+      "edges": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "expected_bridges": [],
+      "expected_articulation_nodes": [],
+      "expected_components_after_removal": {
+        "any_single_edge": 1,
+        "any_single_node": 1
+      }
+    },
+    {
+      "id": "RES-003",
+      "name": "parallel_edges",
+      "nodes": 2,
+      "edges": [
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          2
+        ]
+      ],
+      "expected_bridges": [],
+      "expected_articulation_nodes": [],
+      "expected_components_after_removal": {
+        "one_edge": 1
+      }
+    },
+    {
+      "id": "RES-004",
+      "name": "inactive_single_edge",
+      "nodes": 2,
+      "edges": [
+        {
+          "id": 1,
+          "from": 1,
+          "to": 2,
+          "state": "inactive"
+        }
+      ],
+      "expected_bridges": [],
+      "expected_articulation_nodes": [],
+      "expected_active_components": 2
+    },
+    {
+      "id": "RES-005",
+      "name": "cycle_with_single_tail",
+      "nodes": 4,
+      "edges": [
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "expected_bridges": [
+        4
+      ],
+      "expected_articulation_nodes": [
+        3
+      ]
+    }
+  ],
+  "perturbation_policies": [
+    {
+      "id": "random",
+      "purpose": "unbiased structural damage baseline"
+    },
+    {
+      "id": "betweenness_targeted",
+      "purpose": "centrality-based targeted removal"
+    },
+    {
+      "id": "bridge_targeted",
+      "purpose": "single-point-of-failure targeted removal"
+    },
+    {
+      "id": "degree_radius_age_matched",
+      "purpose": "control for edge degree, size and age"
+    },
+    {
+      "id": "articulation_node_targeted",
+      "purpose": "node loss control"
+    },
+    {
+      "id": "measured_flow_targeted",
+      "purpose": "use only when source-admitted flow exists"
+    }
+  ],
+  "metrics": [
+    "root_reachable_node_fraction",
+    "root_reachable_biomass_fraction_if_admitted",
+    "component_count",
+    "largest_component_ratio",
+    "normalized_root_efficiency",
+    "normalized_global_efficiency",
+    "new_bridge_and_articulation_counts",
+    "alternate_path_count",
+    "edge_node_survival_curve",
+    "runtime_and_peak_memory"
+  ],
+  "non_goals": [
+    "graph centrality is not a transport law",
+    "structural bridge is not necessarily high-flow edge",
+    "synthetic deletion is not a biological damage experiment",
+    "no recovery claim without controlled longitudinal re-growth data",
+    "no resource-delivery claim without concentration/flux/tracer observations"
+  ],
+  "receipt_requirements": [
+    "source graph digest and active-edge status",
+    "algorithm revision and deterministic ordering",
+    "perturbation seed / policy / exact removed identities",
+    "pre/post graph digest and component counts",
+    "root / host anchor definition",
+    "per-policy metric distribution and worst-case results",
+    "explicit PASS/FAIL/NOT_RUN status"
+  ]
+}

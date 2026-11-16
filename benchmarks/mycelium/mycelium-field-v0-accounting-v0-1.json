@@ -1,0 +1,149 @@
+{
+  "schema_version": "myco.legacy_field_accounting.v0.1",
+  "suite_id": "MYCELIUM-FIELD-V0-ACCOUNTING-001",
+  "evidence_class": "source_level_legacy_behavior_audit",
+  "execution_status": "not_run_against_physical_observations",
+  "source": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "path": "crates/domains/symtropy-mycelium/src/lib.rs",
+    "function": "MyceliumWorld::step / step_with_report",
+    "branch": "feat/mycelium-hyphal-graph-kernel-v0-2",
+    "source_scope": "stylized deterministic field simulation"
+  },
+  "units": {
+    "biomass": "legacy_model_units",
+    "nutrient": "legacy_model_units",
+    "toxin": "legacy_model_units",
+    "time": "legacy_ticks",
+    "physical_unit_mapping": "none",
+    "status": "dimensionless_heuristics_not_physical_quantities"
+  },
+  "legacy_rules": [
+    {
+      "id": "assimilation",
+      "condition": "biomass >= 0.25 and local_toxin < 5.0",
+      "formula": "assimilation = max(0, min(local_nutrient * 0.08, biomass * 0.04))",
+      "nutrient_debit": "assimilation",
+      "local_biomass_credit": "assimilation",
+      "secondary_origin_credit": "assimilation * 0.25",
+      "paired_source_debit_for_origin_credit": 0,
+      "interpretation": "potential duplicate/unpaired biomass credit in the legacy heuristic"
+    },
+    {
+      "id": "growth",
+      "formula": "growth = min(0.08 + target_nutrient * 0.06, source_biomass * 0.25)",
+      "target_biomass_credit": "growth",
+      "source_biomass_debit": "growth * 0.05",
+      "nutrient_debit": "growth * 0.35",
+      "source": "no explicit stoichiometric yield or unit conversion"
+    },
+    {
+      "id": "biomass_decay",
+      "formula": "FieldGrid biomass diffusion=0.0, decay=0.002, dt=1.0",
+      "destination": "untyped / not represented in an explicit detrital or nutrient pool"
+    },
+    {
+      "id": "unreachable_threshold",
+      "condition_a": "if biomass < 0.25 then continue",
+      "condition_b": "later if biomass < 0.05 then continue",
+      "consequence": "the second threshold is unreachable for cells that reach it"
+    }
+  ],
+  "synthetic_cases": [
+    {
+      "id": "LEGACY-FIELD-001",
+      "name": "non_origin_assimilation",
+      "inputs": {
+        "biomass": 10,
+        "nutrient": 100,
+        "toxin": 0,
+        "cell_role": "non_origin",
+        "dt_ticks": 1
+      },
+      "expected": {
+        "assimilation": 0.4,
+        "nutrient_debit": 0.4,
+        "local_biomass_credit": 0.4,
+        "extra_origin_biomass_credit": 0.1,
+        "paired_biomass_debit_for_origin_credit": 0,
+        "extra_credit_fraction": 0.25
+      },
+      "claim_ceiling": "single-cell arithmetic under the legacy formula; growth competition and field decay are evaluated separately"
+    },
+    {
+      "id": "LEGACY-FIELD-002",
+      "name": "origin_assimilation",
+      "inputs": {
+        "biomass": 10,
+        "nutrient": 100,
+        "toxin": 0,
+        "cell_role": "origin",
+        "dt_ticks": 1
+      },
+      "expected": {
+        "assimilation": 0.4,
+        "local_biomass_credit": 0.4,
+        "extra_origin_biomass_credit": 0.1,
+        "note": "same-cell extra credit remains unpaired"
+      }
+    },
+    {
+      "id": "LEGACY-FIELD-003",
+      "name": "toxin_blocks_assimilation",
+      "inputs": {
+        "biomass": 10,
+        "nutrient": 100,
+        "toxin": 5,
+        "cell_role": "non_origin"
+      },
+      "expected": {
+        "assimilation": 0,
+        "local_biomass_credit": 0,
+        "extra_origin_biomass_credit": 0
+      }
+    },
+    {
+      "id": "LEGACY-FIELD-004",
+      "name": "decay_has_no_typed_destination",
+      "inputs": {
+        "biomass": 10,
+        "decay": 0.002,
+        "dt": 1
+      },
+      "expected": {
+        "observed_biomass_loss_to_be_reported": true,
+        "detrital_credit": 0,
+        "typed_destination": false
+      }
+    }
+  ],
+  "diagnostic_api": {
+    "step": "legacy API remains unchanged and returns unit",
+    "step_with_report": "executes the same legacy field path and returns LegacyMyceliumStepReport",
+    "report_fields": [
+      "biomass_before",
+      "biomass_before_decay",
+      "biomass_after_decay",
+      "nutrient_before",
+      "nutrient_after_diffusion_decay",
+      "nutrient_after_step",
+      "assimilation_nutrient_debit",
+      "assimilation_local_biomass_credit",
+      "origin_biomass_extra_credit",
+      "growth_target_biomass_credit",
+      "growth_source_biomass_debit",
+      "growth_nutrient_debit",
+      "observed_biomass_decay_loss"
+    ],
+    "regression_test": "legacy_step_and_reported_step_preserve_identical_field_behavior"
+  },
+  "required_future_controls": [
+    "source/target debit-credit pairs for every claimed internal transfer",
+    "nutrient-to-biomass stoichiometric yield with explicit unit contract",
+    "typed detrital/turnover destination for decay",
+    "origin and non-origin assimilation and concurrent multi-site inputs",
+    "field cap/saturation and sanitization boundary behavior",
+    "exact-head parity test against preserved legacy baseline"
+  ],
+  "claim_ceiling": "The diagnostic report exposes legacy model-unit arithmetic. It does not prove physical mass conservation, fungal biomass stoichiometry, ecological realism or biological validation."
+}

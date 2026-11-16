@@ -1,0 +1,206 @@
+{
+  "schema_version": "myco.3d_known_truth_benchmark.v0.1",
+  "suite_id": "MYCO-3D-KNOWN-TRUTH-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5494",
+  "status": "protocol_defined_execution_not_run",
+  "seeds": {
+    "rng": "ChaCha20-256",
+    "master_seed": 20261116,
+    "per_case_seed": "sha256(master_seed || case_id) truncated to 64 bits"
+  },
+  "units": {
+    "coordinates": "micrometres",
+    "voxel_spacing": "micrometres",
+    "velocity": "not included unless separately measured",
+    "time": "seconds"
+  },
+  "default_geometry": {
+    "voxel_spacing_um": [
+      0.25,
+      0.25,
+      1
+    ],
+    "field_of_view_um": [
+      1000,
+      1000,
+      100
+    ],
+    "centerline_sampling_um": 0.5,
+    "filament_radius_um": 2
+  },
+  "observation_model": {
+    "modalities": [
+      "brightfield_zstack_synthetic",
+      "skeleton_per_plane",
+      "focus_measure_per_node"
+    ],
+    "factors": [
+      "point_spread_function",
+      "anisotropic_voxel_spacing",
+      "photon_noise",
+      "background_gradient",
+      "contrast_variation",
+      "slice_dropout",
+      "in_plane_occlusion",
+      "focal_bias",
+      "coordinate_jitter"
+    ],
+    "truth_preservation": "store source centerline graph and exact generator parameters independently of derived observations"
+  },
+  "cases": [
+    {
+      "id": "3D-KT-001",
+      "name": "depth_separated_projection_crossing",
+      "truth": "two independent filaments share an XY projection but have non-overlapping Z intervals",
+      "expected": "separate_components_no_junction"
+    },
+    {
+      "id": "3D-KT-002",
+      "name": "shallow_ambiguous_projection_crossing",
+      "truth": "uncertainty intervals overlap and projection is ambiguous",
+      "expected": "abstain_or_candidate_set_no_forced_fusion"
+    },
+    {
+      "id": "3D-KT-003",
+      "name": "true_y_junction",
+      "truth": "three centerlines meet at a shared 3D node",
+      "expected": "one_degree_three_junction"
+    },
+    {
+      "id": "3D-KT-004",
+      "name": "true_four_way_junction",
+      "truth": "four centerlines meet at a shared 3D node",
+      "expected": "one_degree_four_junction"
+    },
+    {
+      "id": "3D-KT-005",
+      "name": "near_touch_without_connection",
+      "truth": "centerlines approach within image resolution but do not touch in 3D",
+      "expected": "no_junction"
+    },
+    {
+      "id": "3D-KT-006",
+      "name": "partial_z_slice_dropout",
+      "truth": "true graph retained but selected focal planes absent",
+      "expected": "preserve_truth_or_abstain"
+    },
+    {
+      "id": "3D-KT-007",
+      "name": "low_contrast_edge_dropout",
+      "truth": "one edge weakly observed or absent in selected slices",
+      "expected": "uncertainty_not_invented_edge"
+    },
+    {
+      "id": "3D-KT-008",
+      "name": "antiparallel_flow_without_fusion",
+      "truth": "separate streams with opposite flow direction and no topological connection",
+      "expected": "no_junction"
+    },
+    {
+      "id": "3D-KT-009",
+      "name": "depth_unresolved_parallel_filaments",
+      "truth": "parallel filaments are optically indistinguishable at current Z-step",
+      "expected": "abstain_or_multiple_hypotheses"
+    },
+    {
+      "id": "3D-KT-010",
+      "name": "focus_depth_bias",
+      "truth": "shape-from-focus estimate is systematically displaced from true z",
+      "expected": "calibrated_interval_or_detected_bias"
+    },
+    {
+      "id": "3D-KT-011",
+      "name": "crossing_near_branch_node",
+      "truth": "projection crossing lies close to a genuine branch on one filament",
+      "expected": "preserve_branch_and_separation"
+    },
+    {
+      "id": "3D-KT-012",
+      "name": "multi_cycle_topology_ambiguity",
+      "truth": "multiple overlapping graph cycles; local edge deletion can alter global connectivity",
+      "expected": "global_graph_consistency_and_review"
+    }
+  ],
+  "method_baselines": [
+    "Sten_2025_source_faithful_automated",
+    "Sten_2025_human_assisted",
+    "SNT_Fiji_cross_domain_3D_trace",
+    "max_intensity_projection_2D_skeleton",
+    "nearest_neighbor_cross_plane_graph_merge",
+    "shape_from_focus_graph_matching",
+    "uncertainty_aware_multi_hypothesis_abstention",
+    "symtropy_evidence_carrying_graph_events"
+  ],
+  "metrics": {
+    "geometry": [
+      "3d_centerline_chamfer_um",
+      "3d_centerline_hausdorff_um",
+      "per_node_depth_error_um",
+      "depth_interval_coverage",
+      "segment_length_relative_error"
+    ],
+    "topology": [
+      "node_identity_precision_recall",
+      "edge_identity_precision_recall",
+      "branch_degree_accuracy",
+      "component_count_error",
+      "cycle_rank_error",
+      "false_fusion_rate",
+      "missed_true_junction_rate",
+      "topology_changing_review_rate"
+    ],
+    "uncertainty": [
+      "candidate_set_topology_coverage",
+      "selective_risk_coverage_curve",
+      "abstention_precision_recall",
+      "reviewer_workload",
+      "calibration_brier_if_probability_admitted"
+    ],
+    "systems": [
+      "wall_time",
+      "peak_memory_bytes",
+      "bytes_processed",
+      "voxel_throughput",
+      "deterministic_replay",
+      "output_digest_match"
+    ]
+  },
+  "splits": {
+    "unit": "complete generated scene and all of its noisy/blurred variants",
+    "required": [
+      "leave_geometry_family_out",
+      "leave_psf_and_noise_regime_out",
+      "leave_voxel_anisotropy_out"
+    ],
+    "leakage_prohibited": [
+      "same source graph in train and test",
+      "same seed/config sibling split across train and test"
+    ]
+  },
+  "acceptance_targets_not_results": {
+    "false_fusion": "zero on known depth-separated and near-touch controls at the preregistered operating point",
+    "ambiguous_depth": "abstain or preserve multiple hypotheses; do not force a single junction",
+    "performance": "compare geometry error at matched topology error, compute and memory",
+    "calibration": "selective risk/coverage and interval coverage on held-out generator families",
+    "biology_claim": "none without admitted external biological image benchmark"
+  },
+  "receipt_schema": [
+    "generator_version_and_source_sha",
+    "master_seed_and_case_seed",
+    "scene_source_graph_digest",
+    "voxel_grid_and_acquisition_config",
+    "observation_digest",
+    "candidate_hypotheses_and_probability_calibration_status",
+    "abstention_and_human_review_events",
+    "reconstructed_graph_digest",
+    "geometry_metrics_and_topology_metrics",
+    "runtime_and_memory",
+    "PASS_FAIL_NOT_RUN_INSUFFICIENT_EVIDENCE"
+  ],
+  "source_baselines": {
+    "sten_2025": "https://doi.org/10.5281/zenodo.15780623",
+    "snt_docs": "https://imagej.net/plugins/snt/",
+    "snt_paper": "https://doi.org/10.1038/s41592-021-01105-7",
+    "skelpy_paper": "https://doi.org/10.1002/aps3.70049"
+  }
+}
