@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 38;
+pub const CASE_COUNT: usize = 40;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1246,7 +1246,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_eight_cases_match_separate_oracle() {
+    fn all_forty_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1427,6 +1427,21 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][37]).expect("lead mismatch");
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
         assert_eq!(out["reason"], "FORECAST_LEAD_TIME_MISMATCH");
+    }
+
+
+    #[test]
+    fn crps_skill_rejects_different_verification_case_identity() {
+        let out = compute_case(&fixture("inputs")["cases"][38]).expect("case identity mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "VERIFICATION_CASE_IDENTITY_MISMATCH");
+    }
+
+    #[test]
+    fn brier_skill_rejects_different_event_definition() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("event definition mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "EVENT_DEFINITION_MISMATCH");
     }
 
     #[test]
