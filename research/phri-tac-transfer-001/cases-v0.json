@@ -1,0 +1,4507 @@
+{
+  "schema_version": "phri.tactile-transfer-corpus/1.0",
+  "corpus_id": "PHRI-TAC-TRANSFER-CORPUS-001",
+  "version": "0.1.0",
+  "status": "synthetic_reference_only",
+  "claim_ceiling": "Only split-integrity, transfer-applicability and calibration-claim contract semantics; no physical transfer performance or calibration traceability is established.",
+  "cases": [
+    {
+      "id": "PTT-001",
+      "family": "within_device",
+      "candidate_input": {
+        "regime": "within_device",
+        "source": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": false
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "src-w-1"
+            ],
+            "sequence_ids": [
+              "seq-w-1"
+            ],
+            "article_ids": [
+              "article-w-1"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [],
+            "lot_ids": [],
+            "sample_ids": [],
+            "sequence_ids": [],
+            "article_ids": []
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "not_validated",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "model_estimate"
+      },
+      "evaluator_only": {
+        "fault_kind": "within_device_heldout_contacts",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "model_estimate_only",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-002",
+      "family": "cross_unit_zero_shot",
+      "candidate_input": {
+        "regime": "cross_unit_zero_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": false
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [],
+            "lot_ids": [],
+            "sample_ids": [],
+            "sequence_ids": [],
+            "article_ids": []
+          },
+          "target_validation": {
+            "unit_ids": [],
+            "lot_ids": [],
+            "sample_ids": [],
+            "sequence_ids": [],
+            "article_ids": []
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": null,
+        "transfer_validation": {
+          "state": "not_validated",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": null
+        },
+        "output_claim": "model_estimate"
+      },
+      "evaluator_only": {
+        "fault_kind": "zero_shot_cross_unit_no_target_labels",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "model_estimate_only",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-003",
+      "family": "cross_unit_few_shot",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "few_shot_target_heldout_validation",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "target_qualified_estimate",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-004",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02",
+              "src-sample-01"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "source_target_sample_overlap",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-005",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01",
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "contact_sequence_overlap",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-006",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01",
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_unit_leaked_into_source_training",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-007",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01",
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_lot_leaked_into_source_training",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-008",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01",
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "adaptation_test_sequence_overlap",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-009",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01",
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "validation_test_sequence_overlap",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-010",
+      "family": "split_integrity",
+      "candidate_input": {
+        "regime": "cross_unit_zero_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": false
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "zero_shot_contains_target_adaptation",
+        "expected": {
+          "split_integrity": "leaked",
+          "transfer_eligibility": "blocked_split",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "unknown"
+        }
+      }
+    },
+    {
+      "id": "PTT-011",
+      "family": "adaptation",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [],
+            "lot_ids": [],
+            "sample_ids": [],
+            "sequence_ids": [],
+            "article_ids": []
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "few_shot_without_target_labels",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "requires_adaptation",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-012",
+      "family": "adaptation",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02",
+              "adapt-3",
+              "adapt-4",
+              "adapt-5",
+              "adapt-6",
+              "adapt-7",
+              "adapt-8",
+              "adapt-9",
+              "adapt-10",
+              "adapt-11"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_adaptation_budget_exceeded",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "blocked_budget",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-013",
+      "family": "source_calibration",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "expired"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "source_calibration_stale",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "blocked_source_calibration",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-014",
+      "family": "target_calibration",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-source-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-source-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "source_certificate_reused_for_target_unit",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-015",
+      "family": "target_calibration",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": null,
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": null
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_calibration_missing",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-016",
+      "family": "target_calibration",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "expired",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_calibration_expired",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-017",
+      "family": "revision_transfer",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-2",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "firmware_revision_changed_after_calibration",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-018",
+      "family": "revision_transfer",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-2",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "skin_revision_changed_after_calibration",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-019",
+      "family": "modality_transfer",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "magnetic_skin",
+          "profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "unsupported_sensor_family_pair",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "out_of_profile",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-020",
+      "family": "profile_transfer",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "unsupported_target_profile_digest",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "out_of_profile",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-021",
+      "family": "aging",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 1500,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_age_exceeds_transfer_envelope",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "out_of_profile",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-022",
+      "family": "environment",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 55
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "target_temperature_outside_transfer_envelope",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "out_of_profile",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    },
+    {
+      "id": "PTT-023",
+      "family": "reference_independence",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": false,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "transfer_validation_reference_not_independent",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-024",
+      "family": "uncertainty",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "fail",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "heldout_uncertainty_coverage_failed",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-025",
+      "family": "conformity",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "unresolved"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "guard_band_not_qualified",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-026",
+      "family": "validation",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "development_only",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "only_development_validation_available",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-027",
+      "family": "validation",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-other-99",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "validation_receipt_binds_other_sensor_unit",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-028",
+      "family": "model_lineage",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-old-target"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "model_binds_wrong_target_calibration",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-029",
+      "family": "claim_boundary",
+      "candidate_input": {
+        "regime": "cross_unit_few_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "pressure_array",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "pressure_array",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": true
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "adapt-sample-01",
+              "adapt-sample-02"
+            ],
+            "sequence_ids": [
+              "adapt-sequence-01"
+            ],
+            "article_ids": [
+              "adapt-article-01"
+            ]
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-sample-01",
+              "val-sample-02"
+            ],
+            "sequence_ids": [
+              "val-sequence-01"
+            ],
+            "article_ids": [
+              "val-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "model_estimate"
+      },
+      "evaluator_only": {
+        "fault_kind": "qualified_transfer_remains_model_estimate_when_claimed_as_such",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "model_estimate_only",
+          "recalibration_disposition": "not_indicated"
+        }
+      }
+    },
+    {
+      "id": "PTT-030",
+      "family": "cross_family",
+      "candidate_input": {
+        "regime": "cross_family_zero_shot",
+        "source": {
+          "unit_id": "sensor-source-01",
+          "lot_id": "lot-source-01",
+          "family": "pressure_array",
+          "profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "calibration_id": "cal-source-01",
+          "calibration_state": "current"
+        },
+        "target": {
+          "unit_id": "sensor-target-01",
+          "lot_id": "lot-target-01",
+          "family": "vision_tactile",
+          "profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "age_cycles": 200,
+          "temperature_c": 23
+        },
+        "transfer_method": {
+          "method_id": "M2M-TRANSFER-001",
+          "enabled": true,
+          "source_family": "pressure_array",
+          "target_family": "vision_tactile",
+          "source_profile_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "target_profile_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "maximum_target_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40,
+          "maximum_target_adaptation_samples": 8,
+          "requires_target_adaptation": false
+        },
+        "splits": {
+          "source_train": {
+            "unit_ids": [
+              "sensor-source-01"
+            ],
+            "lot_ids": [
+              "lot-source-01"
+            ],
+            "sample_ids": [
+              "src-sample-01",
+              "src-sample-02"
+            ],
+            "sequence_ids": [
+              "src-sequence-01"
+            ],
+            "article_ids": [
+              "src-article-01"
+            ]
+          },
+          "target_adaptation": {
+            "unit_ids": [],
+            "lot_ids": [],
+            "sample_ids": [],
+            "sequence_ids": [],
+            "article_ids": []
+          },
+          "target_validation": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "val-vbts-01"
+            ],
+            "sequence_ids": [
+              "val-vbts-seq-01"
+            ],
+            "article_ids": [
+              "val-vbts-article-01"
+            ]
+          },
+          "target_test": {
+            "unit_ids": [
+              "sensor-target-01"
+            ],
+            "lot_ids": [
+              "lot-target-01"
+            ],
+            "sample_ids": [
+              "test-sample-01",
+              "test-sample-02"
+            ],
+            "sequence_ids": [
+              "test-sequence-01"
+            ],
+            "article_ids": [
+              "test-article-01"
+            ]
+          }
+        },
+        "holdout_materials": true,
+        "target_calibration": {
+          "calibration_id": "cal-target-01",
+          "device_id": "sensor-target-01",
+          "state": "current",
+          "profile_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "firmware_revision": "fw-1",
+          "skin_revision": "skin-1",
+          "maximum_age_cycles": 1000,
+          "minimum_temperature_c": 10,
+          "maximum_temperature_c": 40
+        },
+        "transfer_validation": {
+          "state": "heldout_pass",
+          "target_unit_id": "sensor-target-01",
+          "target_lot_id": "lot-target-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "validation_receipt_id": "receipt-validation-01",
+          "reference_calibration_id": "ref-cal-target-01",
+          "reference_calibration_state": "current",
+          "independent_reference": true,
+          "uncertainty_state": "pass",
+          "guard_band_state": "pass"
+        },
+        "model": {
+          "model_id": "tactile-transfer-model-01",
+          "model_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_calibration_id": "cal-source-01",
+          "target_calibration_id": "cal-target-01"
+        },
+        "output_claim": "measurement"
+      },
+      "evaluator_only": {
+        "fault_kind": "qualified_cross_family_transfer",
+        "expected": {
+          "split_integrity": "valid",
+          "transfer_eligibility": "eligible",
+          "metrology_disposition": "invalid_measurement_claim",
+          "recalibration_disposition": "required"
+        }
+      }
+    }
+  ]
+}
