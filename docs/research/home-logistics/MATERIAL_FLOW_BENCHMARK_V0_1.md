@@ -572,7 +572,9 @@ The L1 physics module now includes `simulate_closed_gate_obstruction` and the `m
 - a retry against the old logical command is blocked;
 - no false delivery completion is emitted.
 
-The report is accepted as a *fault-oracle pass* only when the above conditions hold. The nested nominal-delivery `accepted` flag must be false. This keeps “the system responded correctly to a fault” distinct from “the delivery succeeded.”
+The report is accepted as a *fault-oracle pass* only when the above conditions hold, including a non-zero package↔gate collision-event count and measured impact impulse. The nested nominal-delivery `accepted` flag must be false. This keeps “the system responded correctly to a fault” distinct from “the delivery succeeded.”
+
+The physics engine now records one finalized `CollisionEvent` per resolved contact manifold after the solver loop. The event vector is captured into `WorldSnapshot`, hashed into the replay trace and exposed in the fault report by exact body handles. A regression test in `symtropy-physics/src/world.rs` checks that a falling sphere produces one finalized event and that the replay snapshot retains the same body pair. This repairs an event-channel gap: the `collision_events` vector was previously cleared at each step but never populated.
 
 **Claim ceiling:** the gate is static collision geometry in the L1 scene. It is not a moving door, physical interlock, actuator/power fault, sensor timing, perception/firmware test or HIL. The report is evidence about the reduced-order rigid-body model and software response only. Further fault timing, dynamic gate, power-loss and sensor-channel work remains in #5500.
 
