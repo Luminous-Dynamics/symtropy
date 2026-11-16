@@ -268,19 +268,23 @@ cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protective-evidence-portability
 ```
 
-The E2 gate checks the RO-Crate 1.3 descriptor, root Dataset, exact file
-inventory, file byte lengths and SHA-256 values, E1 manifest agreement, rights
-and claim ceilings, plus the sparse PROV-O graph. The synthetic graph has two
+The E2 gate checks the RO-Crate 1.3 descriptor, root Dataset, exact nine-file
+inventory, file byte lengths and SHA-256 values, embedded E1 envelope byte
+identity, E1 dataset IDs/directions/artifact paths, the explicit PROV binding
+manifest, rights and claim ceilings, and the sparse PROV-O graph. Each graph
+entity is labelled either E1_ENVELOPE_DATASET or SYNTHETIC_CONTROL_ONLY; a
+synthetic control has no provider artifact paths and cannot be promoted. The synthetic graph has two
 used inputs and two generated outputs, but exactly one explicitly declared
 per-output derivation. Duplicate input edges, extra generation edges and
 invented derivations are rejected.
 
 CI also runs the independently maintained `roc-validator==0.13.1` package
 against the crate's base RO-Crate 1.3 profile. This is a test-only external
-oracle; the production verifier remains Rust. An independent validator pass
+oracle; the production verifier remains Rust. CI selects `ro-crate-1.3`
+explicitly and enables advisory extra checks. An independent validator pass
 does not authenticate a provider, grant a license or establish physical truth.
 
-The E2 fixture has 20 unit tests written. Their result is pending exact-head
+The E2 fixture has 24 unit tests written. Their result is pending exact-head
 hosted execution. The gate returns `ABSTAIN_SYNTHETIC_NOT_EXECUTED`.
 
 
