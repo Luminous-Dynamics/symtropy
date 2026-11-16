@@ -12,6 +12,7 @@
 
 pub mod adversarial;
 pub mod model_forms;
+pub mod lifecycle;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
