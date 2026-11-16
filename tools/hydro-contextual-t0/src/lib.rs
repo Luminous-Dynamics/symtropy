@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 32;
+pub const CASE_COUNT: usize = 37;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -721,6 +721,152 @@ fn ensemble_crps(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn empirical_crps(observed: f64, members: &[f64]) -> f64 {
+    let member_count = members.len() as f64;
+    let first_term = members
+        .iter()
+        .map(|value| (value - observed).abs())
+        .sum::<f64>()
+        / member_count;
+    let pairwise_sum = members
+        .iter()
+        .flat_map(|left| members.iter().map(move |right| (left - right).abs()))
+        .sum::<f64>();
+    first_term - pairwise_sum / (2.0 * member_count * member_count)
+}
+
+fn crps_skill_score(input: &Value) -> Result<Value, String> {
+    let observed = number(input, "observed")?;
+    let target = text(input, "target_definition_id")?;
+    let reference_target = text(input, "reference_target_definition_id")?;
+    let forecast_members = numeric_array(input, "forecast_ensemble_members")?;
+    let reference_members = numeric_array(input, "reference_ensemble_members")?;
+    if target != reference_target {
+        return Ok(json!({
+            "probabilistic_disposition": "NOT_COMPARABLE",
+            "reason": "FORECAST_AND_REFERENCE_TARGET_DEFINITIONS_DIFFER",
+            "target_definition_id": target,
+            "reference_target_definition_id": reference_target,
+            "forecast_crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    if observed < 0.0
+        || forecast_members.iter().any(|value| *value < 0.0)
+        || reference_members.iter().any(|value| *value < 0.0)
+    {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "NEGATIVE_STREAMFLOW_VALUE",
+            "target_definition_id": target,
+            "forecast_member_count": forecast_members.len(),
+            "reference_member_count": reference_members.len(),
+            "forecast_crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    let forecast_crps = empirical_crps(observed, &forecast_members);
+    let reference_crps = empirical_crps(observed, &reference_members);
+    if reference_crps <= 1.0e-12 {
+        return Ok(json!({
+            "probabilistic_disposition": "UNDEFINED",
+            "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+            "target_definition_id": target,
+            "forecast_member_count": forecast_members.len(),
+            "reference_member_count": reference_members.len(),
+            "forecast_crps": forecast_crps,
+            "reference_crps": reference_crps,
+            "crps_skill_score": null
+        }));
+    }
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
+        "target_definition_id": target,
+        "forecast_member_count": forecast_members.len(),
+        "reference_member_count": reference_members.len(),
+        "forecast_crps": forecast_crps,
+        "reference_crps": reference_crps,
+        "crps_skill_score": 1.0 - forecast_crps / reference_crps
+    }))
+}
+
+fn brier_skill_score(input: &Value) -> Result<Value, String> {
+    let event_id = text(input, "event_definition_id")?;
+    let reference_event_id = text(input, "reference_event_definition_id")?;
+    let probability = number(input, "forecast_probability")?;
+    let reference_probability = number(input, "reference_probability")?;
+    let observed_event = number(input, "observed_event")?;
+    if event_id != reference_event_id {
+        return Ok(json!({
+            "probabilistic_disposition": "NOT_COMPARABLE",
+            "reason": "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER",
+            "event_definition_id": event_id,
+            "reference_event_definition_id": reference_event_id,
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    if !(0.0..=1.0).contains(&probability)
+        || !(0.0..=1.0).contains(&reference_probability)
+    {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+            "event_definition_id": event_id,
+            "forecast_probability": probability,
+            "reference_probability": reference_probability,
+            "observed_event": observed_event,
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    if observed_event != 0.0 && observed_event != 1.0 {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
+            "event_definition_id": event_id,
+            "forecast_probability": probability,
+            "reference_probability": reference_probability,
+            "observed_event": observed_event,
+            "brier_score": null,
+            "reference_brier_score": null,
+            "brier_skill_score": null
+        }));
+    }
+    let brier = (probability - observed_event).powi(2);
+    let reference_brier = (reference_probability - observed_event).powi(2);
+    if reference_brier <= 1.0e-12 {
+        return Ok(json!({
+            "probabilistic_disposition": "UNDEFINED",
+            "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+            "event_definition_id": event_id,
+            "forecast_probability": probability,
+            "reference_probability": reference_probability,
+            "observed_event": observed_event,
+            "brier_score": brier,
+            "reference_brier_score": reference_brier,
+            "brier_skill_score": null
+        }));
+    }
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BSS_AGAINST_MATCHED_REFERENCE_PROBABILITY",
+        "event_definition_id": event_id,
+        "forecast_probability": probability,
+        "reference_probability": reference_probability,
+        "observed_event": observed_event,
+        "brier_score": brier,
+        "reference_brier_score": reference_brier,
+        "brier_skill_score": 1.0 - brier / reference_brier
+    }))
+}
+
 fn brier_score(input: &Value) -> Result<Value, String> {
     let probability = number(input, "forecast_probability")?;
     let observed_event = number(input, "observed_event")?;
@@ -873,6 +1019,12 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-029-threshold-event-brier" => brier_score(input),
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
+
+        "HC-T0-033-crps-skill-score"
+        | "HC-T0-035-crps-skill-zero-reference-undefined" => crps_skill_score(input),
+        "HC-T0-034-brier-skill-score"
+        | "HC-T0-036-brier-skill-event-mismatch"
+        | "HC-T0-037-brier-skill-reference-probability-reject" => brier_skill_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1015,7 +1167,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_two_cases_match_separate_oracle() {
+    fn all_thirty_seven_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1149,6 +1301,42 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][31]).expect("negative ensemble member");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
+    }
+
+
+    #[test]
+    fn crps_skill_uses_matched_reference_ensemble() {
+        let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPSS");
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.625).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn brier_skill_uses_matched_reference_event() {
+        let out = compute_case(&fixture("inputs")["cases"][33]).expect("BSS");
+        assert!((out["brier_skill_score"].as_f64().expect("BSS") - (8.0 / 9.0)).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn zero_reference_crps_makes_crps_skill_undefined() {
+        let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference CRPS");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["crps_skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn brier_skill_rejects_mismatched_event_definitions() {
+        let out = compute_case(&fixture("inputs")["cases"][35]).expect("event mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "FORECAST_AND_REFERENCE_EVENT_DEFINITIONS_DIFFER");
+        assert_eq!(out["brier_skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn brier_skill_rejects_invalid_reference_probability() {
+        let out = compute_case(&fixture("inputs")["cases"][36]).expect("invalid reference probability");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE");
+        assert_eq!(out["brier_skill_score"], Value::Null);
     }
 
     #[test]
