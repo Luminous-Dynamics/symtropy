@@ -404,6 +404,19 @@ The intended differentiation is **composition, process-driven multiscale fidelit
 
 A comparison is fair only when species, scale, initial conditions, forcing, observations, splits, runtime budget and metrics match. Published benchmark numbers must be distinguished from reproduced numbers.
 
+
+### T11 — isotope-tracer route discrimination and matched controls
+
+The new Rust implementation is in `crates/domains/symtropy-mycelium/src/isotope_transfer.rs` (PR #5388); its machine-readable protocol is `benchmarks/mycelium/isotope-transfer-causal-benchmark-v0-1.json`; implementation/reproduction work is tracked in [MYCO-ISOTOPE-CAUSAL-001 #5667](https://github.com/Luminous-Dynamics/symtropy/issues/5667).
+
+The evidence base makes this an unusually important gap. Lehmann & Rillig's systematic map of AM-CMN experiments included 123 articles, but only 9 met all five strict criteria for a CMN with hyphal continuity ([DOI 10.1002/ppp3.10618](https://doi.org/10.1002/ppp3.10618)). Their later meta-analysis found small, inconsistent and context-dependent effects, often around ±10% in the model outcomes, and recommends larger, better-controlled studies ([DOI 10.1111/1365-2435.70125](https://doi.org/10.1111/1365-2435.70125)). The 2026 common-endophyte-network study adds C/N/water isotope results, but its alternative abiotic and microbial pathways reinforce the need for explicit donorless, severed-hypha, diffusion-only, no-fungus and microbial-only controls ([DOI 10.1038/s41598-026-56653-9](https://doi.org/10.1038/s41598-026-56653-9)).
+
+The new API composes existing source-linked observation receipts, clock alignment and network evidence. It requires donor and receiver pre-label baselines, donor post-label samples, an intact-arm fungal-bridge sample and receiver post-label samples. Donor enrichment is compared with the donor's own baseline; receiver enrichment and control contrasts use receiver-specific baselines. It preserves each isotope as a distinct measurement dimension, and it does not estimate elemental transfer mass without a measured elemental pool.
+
+For a route-consistent candidate, every matched block must contain the intact arm plus hyphae-severed, diffusion-only, no-fungus, microbial-only and no-donor-label controls; all source receipts must resolve; network continuity and an observed flow stream must be supported; donor → bridge → receiver order must have non-overlapping time uncertainty intervals; the intact receiver-excess lower bound must exceed every control's receiver-excess upper bound; and at least three independent matched blocks must be present. Uncertainty bounds are added conservatively.
+
+The output is intentionally `RouteConsistentEvidenceCandidate`, not proof of causal transfer. It does not calculate statistical significance, power, a causal effect estimate or a universal transport coefficient. The CEN paper's source data remain subject to separate code/data rights and exact-revision admission under [#5416](https://github.com/Luminous-Dynamics/symtropy/issues/5416).
+
 ## 7. Research targets (not achieved results)
 
 Freeze numeric superiority targets only after reproducing each comparator's exact release, hardware, data split and evaluation metric. Until then, these are proposed research targets, not achieved results or committed acceptance thresholds:
