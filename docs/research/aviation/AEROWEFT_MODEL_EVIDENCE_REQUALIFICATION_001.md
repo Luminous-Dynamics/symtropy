@@ -54,7 +54,7 @@ Each claim binds only the dimensions it actually depends on, plus the owner/sour
 
 ## Bitemporal change event
 
-Each synthetic event carries event ID, owner/source ID, source sequence, dependency kind, exact prior and successor digest, effective time, recorded time, change class, owner-declared evidence state and an event commitment string.
+Each synthetic event carries event ID, owner/source ID, exact source-stream ID, stream-local sequence, dependency kind, exact prior and successor digest, effective time, recorded time, change class, owner-declared evidence state and an event commitment string. Each claim dependency binds both the expected owner namespace and exact stream ID.
 
 Only events visible under both requested cutoffs participate in historical event-integrity validation; a future-recorded malformed/duplicate event cannot rewrite an earlier as-known view. The evaluator does not authenticate or hash actual event bytes. OwnerQualified is an input state from the domain source contract; it is not a cryptographic guarantee. Source sequence orders causal digest succession; effective time and recorded/knowledge time independently determine whether each event is eligible at a requested cutoff.
 
@@ -67,14 +67,15 @@ Change classes:
 ## Coverage contract
 
 Every dependency requires a matching coverage record with:
-- source namespace and dependency kind;
+- source namespace, exact stream ID and dependency kind;
 - effective-time interval beginning no later than the original qualification time and ending no earlier than the requested effective cutoff;
 - knowledge-time interval beginning no later than the original claim-recorded time and ending no earlier than the requested knowledge cutoff;
 - recorded/availability time at which this coverage manifest itself became known;
 - sequence interval;
 - completeness state;
 - owner-declared evidence state;
-- source sequence interval containing each supplied event used in the assessment;
+- stream-local source sequence interval containing each supplied event used in the assessment;
+- uniqueness keyed by source + stream + sequence, not just by namespace;
 - manifest digest.
 
 A missing, partial, unknown or unqualified coverage receipt produces an indeterminate dimension. Absence of a change event is not proof of no change unless the declared coverage is complete through both requested cutoffs.
@@ -104,7 +105,7 @@ The original claim and its historical evidence are never mutated or deleted. Eve
 
 ## Frozen synthetic adversarial corpus
 
-The Rust suite currently exercises 41 tests including:
+The Rust suite currently exercises 43 tests including:
 - positive control with complete coverage;
 - sensor-only recalibration leaves the model-artifact digest unchanged;
 - model-only change leaves the sensor dimension unchanged;
@@ -126,7 +127,8 @@ The Rust suite currently exercises 41 tests including:
 - assessment output binds the exact claim package, effective cutoff, knowledge cutoff and policy digest;
 - claim-relevant coverage receipts are filtered by dependency/source and effective/knowledge overlap before structural validation;
 - claim dependency permutation produces a canonical identical result;
-- source-sequence digest succession remains deterministic even when a corrective event has an earlier effective time than its predecessor.
+- source-sequence digest succession remains deterministic even when a corrective event has an earlier effective time than its predecessor;
+- the same sequence number in separate streams is not a fork, while a claim-bound wrong stream is rejected.
 - evaluation before claim existence;
 - coverage deletion monotonicity;
 - known contradiction not hidden by an unrelated coverage gap;
