@@ -403,8 +403,7 @@ mod tests {
 
     #[test]
     fn circadian_phase_is_normalized_without_changing_periodicity() {
-        let normalized =
-            CircadianParameters::new(24.0, 27.0, REFERENCE_C_HARMONICS).unwrap();
+        let normalized = CircadianParameters::new(24.0, 27.0, REFERENCE_C_HARMONICS).unwrap();
         assert!((normalized.phase_offset_hours - 3.0).abs() < 1.0e-12);
     }
 
