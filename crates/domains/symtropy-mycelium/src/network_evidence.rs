@@ -220,7 +220,9 @@ impl NetworkEvidenceAssessment {
         let mut seen_receipt_ids = BTreeSet::new();
         for receipt in receipts {
             if !seen_receipt_ids.insert(receipt.id) {
-                return Err(NetworkEvidenceError::DuplicateObservationReceipt(receipt.id));
+                return Err(NetworkEvidenceError::DuplicateObservationReceipt(
+                    receipt.id,
+                ));
             }
         }
 
@@ -399,15 +401,23 @@ impl fmt::Display for NetworkEvidenceError {
             }
             Self::MissingSharedLinkReceipt => {
                 write!(f, "shared fungal link requires a source receipt")
-            },
+            }
             Self::MissingObservationReceipt(id) => {
-                write!(f, "observation {:?} does not resolve to a source receipt", id)
+                write!(
+                    f,
+                    "observation {:?} does not resolve to a source receipt",
+                    id
+                )
             }
             Self::DuplicateObservationReceipt(id) => {
                 write!(f, "source receipt ID {:?} is duplicated", id)
             }
             Self::InvalidObservationReceipt { id, source } => {
-                write!(f, "observation {:?} has an invalid source receipt: {}", id, source)
+                write!(
+                    f,
+                    "observation {:?} has an invalid source receipt: {}",
+                    id, source
+                )
             }
             Self::UnexpectedSharedLinkReceipt => {
                 write!(f, "unreported shared fungal link must not carry a receipt")
@@ -417,9 +427,13 @@ impl fmt::Display for NetworkEvidenceError {
             }
             Self::MissingFlowReceipt => {
                 write!(f, "plant-to-plant flow result requires a source receipt")
-            },
+            }
             Self::FlowReceiptSubjectMismatch(id) => {
-                write!(f, "flow observation {:?} is not typed as a cytoplasmic flow stream", id)
+                write!(
+                    f,
+                    "flow observation {:?} is not typed as a cytoplasmic flow stream",
+                    id
+                )
             }
             Self::FlowWithoutSharedNetwork => write!(
                 f,
@@ -507,7 +521,10 @@ mod tests {
             NetworkClaimLevel::CommonMycorrhizalNetworkHyphalContinuitySupported
         );
         assert!(result.all_five_criteria_pass);
-        assert_eq!(result.cytoplasmic_flow, CytoplasmicFlowEvidence::NotEvaluated);
+        assert_eq!(
+            result.cytoplasmic_flow,
+            CytoplasmicFlowEvidence::NotEvaluated
+        );
     }
 
     #[test]
@@ -727,13 +744,7 @@ mod tests {
     #[test]
     fn unresolved_criterion_receipt_id_is_rejected() {
         let assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
-        let receipts = vec![
-            receipt(90),
-            receipt(1),
-            receipt(2),
-            receipt(4),
-            receipt(5),
-        ];
+        let receipts = vec![receipt(90), receipt(1), receipt(2), receipt(4), receipt(5)];
         assert_eq!(
             assessment.validate_against_receipts(&receipts),
             Err(NetworkEvidenceError::MissingObservationReceipt(
