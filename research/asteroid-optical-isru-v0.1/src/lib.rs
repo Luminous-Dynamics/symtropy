@@ -563,4 +563,48 @@ mod tests {
             serde_json::from_str(include_str!("../fixtures/cases-v0.1.json")).unwrap();
         assert!(validate_corpus(&corpus).is_ok());
     }
+
+    fn valid_corpus() -> BenchmarkCorpus {
+        serde_json::from_str(include_str!("../fixtures/cases-v0.1.json")).unwrap()
+    }
+
+    #[test]
+    fn rejects_duplicate_source_ids() {
+        let mut corpus = valid_corpus();
+        corpus.source_records.push(corpus.source_records[0].clone());
+        assert!(matches!(
+            validate_corpus(&corpus),
+            Err(AuditError::DuplicateSourceId(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_duplicate_case_ids() {
+        let mut corpus = valid_corpus();
+        corpus.cases.push(corpus.cases[0].clone());
+        assert!(matches!(
+            validate_corpus(&corpus),
+            Err(AuditError::DuplicateCaseId(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_dangling_source_reference() {
+        let mut corpus = valid_corpus();
+        corpus.cases[0].source_id = Some("unknown-source".to_string());
+        assert_eq!(
+            validate_corpus(&corpus).unwrap_err(),
+            AuditError::UnknownSource("unknown-source".to_string())
+        );
+    }
+
+    #[test]
+    fn rejects_missing_claim_ceiling() {
+        let mut corpus = valid_corpus();
+        corpus.claim_ceiling.clear();
+        assert_eq!(
+            validate_corpus(&corpus).unwrap_err(),
+            AuditError::MissingClaimCeiling
+        );
+    }
 }
