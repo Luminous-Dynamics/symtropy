@@ -85,6 +85,9 @@ impl CcmInputs {
         {
             return Err("effective luminosity fraction must be finite and in [0, 1]".to_owned());
         }
+        if self.colliding_bunch_pairs_per_ip > self.total_bunches_per_beam {
+            return Err("colliding bunch pairs per IP cannot exceed total stored bunches".to_owned());
+        }
         if self.beam_beam_tune_shift_per_ip >= 1.0 {
             return Err("beam-beam tune shift must be less than one".to_owned());
         }
@@ -129,6 +132,9 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
     let nominal_full_fill_slot_rate_hz = 1.0 / inputs.nominal_bunch_spacing_s;
     let slots_per_turn = nominal_full_fill_slot_rate_hz / revolution_frequency_hz;
     let nominal_fill_fraction = inputs.total_bunches_per_beam / slots_per_turn;
+    if nominal_fill_fraction > 1.0 {
+        return Err("stored bunch count exceeds the declared nominal bunch-spacing slots".to_owned());
+    }
 
     let gamma = inputs.beam_energy_tev * 1_000.0 / PROTON_REST_ENERGY_GEV;
     let luminosity_scale_m2_s = gamma
@@ -171,6 +177,9 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         * inputs.effective_luminosity_fraction
         / CM2_PER_AB_INV;
 
+    let beam_current_relative_residual = (beam_current_from_bunches_a
+        - inputs.beam_current_reported_a)
+        / inputs.beam_current_reported_a;
     let values = [
         revolution_frequency_hz,
         beam_current_from_bunches_a,
