@@ -1,7 +1,9 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use robot_mission_impact_package_check::{generator, read_json, repository_root, schema_is_valid, validate_instance, validate_package};
+use robot_mission_impact_package_check::{
+    generator, read_json, repository_root, schema_is_valid, validate_instance, validate_package,
+};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::env;
@@ -56,10 +58,7 @@ fn parse_options(args: &[String]) -> Result<BTreeMap<String, String>, String> {
     Ok(options)
 }
 
-fn take_option(
-    options: &mut BTreeMap<String, String>,
-    name: &str,
-) -> Option<String> {
+fn take_option(options: &mut BTreeMap<String, String>, name: &str) -> Option<String> {
     options.remove(name)
 }
 
@@ -94,9 +93,7 @@ fn generate(args: &[String]) -> Result<(), String> {
         .unwrap_or_else(|| default_base.join("challenge-distribution-v0.1.json"));
     let schema_path = take_option(&mut options, "--profile-schema")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            default_base.join("schemas/challenge-distribution-v0.1.schema.json")
-        });
+        .unwrap_or_else(|| default_base.join("schemas/challenge-distribution-v0.1.schema.json"));
     if !options.is_empty() {
         return Err(format!(
             "unknown_options:{}",
@@ -124,10 +121,9 @@ fn generate(args: &[String]) -> Result<(), String> {
         ));
     }
 
-    let manifest = generator::generate_manifest(&profile, seed, count)
-        .map_err(|errors| errors.join("\n"))?;
-    let manifest_schema_path =
-        default_base.join("schemas/challenge-manifest-v0.1.schema.json");
+    let manifest =
+        generator::generate_manifest(&profile, seed, count).map_err(|errors| errors.join("\n"))?;
+    let manifest_schema_path = default_base.join("schemas/challenge-manifest-v0.1.schema.json");
     let manifest_schema: Value =
         read_json(&manifest_schema_path).map_err(|error| error.to_string())?;
     if !schema_is_valid(&manifest_schema) {
@@ -141,8 +137,8 @@ fn generate(args: &[String]) -> Result<(), String> {
         ));
     }
 
-    let mut bytes =
-        serde_json::to_vec_pretty(&manifest).map_err(|error| format!("manifest_serialize:{error}"))?;
+    let mut bytes = serde_json::to_vec_pretty(&manifest)
+        .map_err(|error| format!("manifest_serialize:{error}"))?;
     bytes.push(b'\n');
     if let Some(parent) = output.parent().filter(|path| !path.as_os_str().is_empty()) {
         fs::create_dir_all(parent)
