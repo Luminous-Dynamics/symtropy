@@ -74,7 +74,7 @@ Typed edges are explicit:
 - defeater discharge/challenge;
 - required external authority decision.
 
-Every node has a unique identity, exact case scope, owner role, revision/digest and a validity interval. Every evidence node points to an exact source receipt and source-assessment digest. Node validity and accepted authority-decision validity must cover the entire proposed operation interval, not merely the review timestamp.
+Every node has a unique identity, exact case scope, owner role, revision/digest and a validity interval. Every evidence node points to an exact source receipt and source-assessment digest, declares a typed evidentiary purpose, and must use a purpose compatible with its source owner. The frozen case policy independently lists the required evidence purposes for each claim and mitigation; a qualified receipt of the wrong purpose cannot satisfy the obligation or contribute to the claim's independent-evidence count. Node validity and accepted authority-decision validity must cover the entire proposed operation interval, not merely the review timestamp.
 
 ## Hard structural rules
 
@@ -83,17 +83,18 @@ Every node has a unique identity, exact case scope, owner role, revision/digest 
 3. Evidence scope and effective/knowledge cutoffs match the exact case.
 4. Required hazards must all be present; extra/unregistered hazards are rejected rather than silently omitted.
 5. Every required hazard is explicitly linked from a claim or strategy using an AddressesHazard relation and has at least one mitigation; every mitigation must attach to a registered hazard and have qualified evidence.
-6. Contradicted, unsupported or indeterminate claims/mitigations remain negative/unknown; no aggregate score can conceal them.
-7. Every assumption is explicit and owned. It is supported by qualified evidence, accepted through a current policy-pinned authority decision, open, expired or unknown. Unknown is indeterminate; open is an unresolved argument.
-8. Every defeater explicitly challenges a claim or mitigation. It is open, unknown, discharged by qualified evidence, or accepted/not-applicable under a current matching authority decision.
-9. Evidence with declared common-cause groups is not double-counted. Missing correlation identity gives no independence credit.
-10. Generic software CI and Track V experiment plans are not realized operational evidence.
-11. Each required authority role/identity has exactly one supplied external decision record. Pending, rejected, revoked, expired, late-recorded or insufficiently long-lived decisions block review readiness.
-12. Effective time and knowledge time remain separate. A later-recorded decision cannot be used in an earlier as-known view.
-13. The argument graph is acyclic, duplicate-free and root-connected. Orphan nodes are rejected.
-14. A Track U stale, contradicted or indeterminate dependency cannot be silently represented as qualified current evidence.
-15. A Track V plan or expected information-gain estimate is planning evidence only; it cannot be promoted to a realized validation result.
-16. The result's permission_granted field is always false.
+6. Every claim and mitigation has a frozen, policy-pinned list of required evidence purposes. Evidence purpose must be compatible with the source owner (for example, a Track T model-credibility receipt cannot masquerade as a Track R performance receipt or physical mitigation-effectiveness test).
+7. Contradicted, unsupported or indeterminate claims/mitigations remain negative/unknown; no aggregate score can conceal them.
+8. Every assumption is explicit and owned. It is supported by qualified evidence, accepted through a current policy-pinned authority decision, open, expired or unknown. Unknown is indeterminate; open is an unresolved argument.
+9. Every defeater explicitly challenges a claim or mitigation. It is open, unknown, discharged by qualified evidence, or accepted/not-applicable under a current matching authority decision.
+10. Evidence with declared common-cause groups is not double-counted. Missing correlation identity gives no independence credit.
+11. Generic software CI and Track V experiment plans are not realized operational evidence.
+12. Each required authority role/identity has exactly one supplied external decision record. Pending, rejected, revoked, expired, late-recorded or insufficiently long-lived decisions block review readiness.
+13. Effective time and knowledge time remain separate. A later-recorded decision cannot be used in an earlier as-known view.
+14. The argument graph is acyclic, duplicate-free and root-connected. Orphan nodes are rejected.
+15. A Track U stale, contradicted or indeterminate dependency cannot be silently represented as qualified current evidence.
+16. A Track V plan or expected information-gain estimate is planning evidence only; it cannot be promoted to a realized validation result.
+17. The result's permission_granted field is always false.
 
 ## Non-compensatory result model
 
