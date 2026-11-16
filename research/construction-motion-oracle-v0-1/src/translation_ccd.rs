@@ -27,6 +27,7 @@ pub enum TranslationCcdError {
     /// A nonzero but ill-conditioned free face cannot support a reliable clear verdict.
     /// Callers must preserve this as UNRESOLVED rather than treating it as no collision.
     NumericallyUnresolved,
+    InvalidSubdivisionCount,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
