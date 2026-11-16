@@ -30,6 +30,7 @@ pub enum IntervalVerifierError {
     NonFiniteInput,
     InvalidTimeWindow,
     InvalidConfiguration,
+    InvalidUncertainty,
     ArithmeticOverflow,
 }
 
@@ -38,6 +39,53 @@ pub enum IntervalVerificationStatus {
     Clear,
     ContactWitness,
     Unresolved,
+}
+
+/// Deterministic axis-aligned bounds on the relative-motion coefficients.
+///
+/// These are set-membership bounds, not standard deviations or probabilities.
+/// They widen coefficient intervals; correlations are discarded conservatively.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CapsuleRelativeUncertainty {
+    /// Bound on A.start - B.start, in millimetres per axis.
+    pub origin_relative_mm: Vec3,
+    /// Bound on delta_A - delta_B, in millimetres per axis.
+    pub relative_translation_mm: Vec3,
+    /// Bound on A.end - A.start, in millimetres per axis.
+    pub moving_axis_mm: Vec3,
+    /// Bound on B.end - B.start, in millimetres per axis.
+    pub obstacle_axis_mm: Vec3,
+}
+
+impl CapsuleRelativeUncertainty {
+    pub fn zero() -> Self {
+        Self {
+            origin_relative_mm: Vec3::new(0.0, 0.0, 0.0),
+            relative_translation_mm: Vec3::new(0.0, 0.0, 0.0),
+            moving_axis_mm: Vec3::new(0.0, 0.0, 0.0),
+            obstacle_axis_mm: Vec3::new(0.0, 0.0, 0.0),
+        }
+    }
+
+    fn validate(self) -> Result<(), IntervalVerifierError> {
+        for bound in [
+            self.origin_relative_mm,
+            self.relative_translation_mm,
+            self.moving_axis_mm,
+            self.obstacle_axis_mm,
+        ] {
+            if !is_finite(bound) || bound.x < 0.0 || bound.y < 0.0 || bound.z < 0.0 {
+                return Err(IntervalVerifierError::InvalidUncertainty);
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Default for CapsuleRelativeUncertainty {
+    fn default() -> Self {
+        Self::zero()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -291,6 +339,35 @@ pub fn verify_capsule_interval_no_contact(
     window: NormalizedTimeWindow,
     config: IntervalVerifierConfig,
 ) -> Result<IntervalVerificationReceipt, IntervalVerifierError> {
+    verify_capsule_interval_no_contact_with_uncertainty(
+        moving,
+        moving_translation,
+        obstacle,
+        obstacle_translation,
+        CapsuleRelativeUncertainty::zero(),
+        window,
+        config,
+    )
+}
+
+/// Verify no contact for every realization inside the declared deterministic
+/// axis-aligned coefficient uncertainty set.
+///
+/// `Clear` means the complete time × axis-parameter domain is separated for
+/// every admissible coefficient realization. `ContactWitness` is emitted only
+/// when every realization at one parameter sample is within the contact
+/// threshold. Otherwise the result remains `Unresolved` when the widened
+/// intervals cannot prove either statement.
+pub fn verify_capsule_interval_no_contact_with_uncertainty(
+    moving: Capsule,
+    moving_translation: Vec3,
+    obstacle: Capsule,
+    obstacle_translation: Vec3,
+    uncertainty: CapsuleRelativeUncertainty,
+    window: NormalizedTimeWindow,
+    config: IntervalVerifierConfig,
+) -> Result<IntervalVerificationReceipt, IntervalVerifierError> {
+    uncertainty.validate()?;
     validate_inputs(
         moving,
         moving_translation,
@@ -299,8 +376,13 @@ pub fn verify_capsule_interval_no_contact(
         window,
         config,
     )?;
-    let coefficients =
-        build_coefficients(moving, moving_translation, obstacle, obstacle_translation)?;
+    let coefficients = build_coefficients(
+        moving,
+        moving_translation,
+        obstacle,
+        obstacle_translation,
+        uncertainty,
+    )?;
 
     let mut stack = vec![ParameterBox {
         time: Interval::exact(window.start_parameter, window.end_parameter),
@@ -443,11 +525,24 @@ fn build_coefficients(
     moving_translation: Vec3,
     obstacle: Capsule,
     obstacle_translation: Vec3,
+    uncertainty: CapsuleRelativeUncertainty,
 ) -> Result<GeometryCoefficients, IntervalVerifierError> {
-    let origin = vector_difference(moving.start, obstacle.start)?;
-    let relative_translation = vector_difference(moving_translation, obstacle_translation)?;
-    let moving_axis = vector_difference(moving.end, moving.start)?;
-    let obstacle_axis = vector_difference(obstacle.end, obstacle.start)?;
+    let mut origin = vector_difference(moving.start, obstacle.start)?;
+    let mut relative_translation = vector_difference(moving_translation, obstacle_translation)?;
+    let mut moving_axis = vector_difference(moving.end, moving.start)?;
+    let mut obstacle_axis = vector_difference(obstacle.end, obstacle.start)?;
+
+    for axis in 0..3 {
+        origin[axis] = widen_interval(origin[axis], component(uncertainty.origin_relative_mm, axis))?;
+        relative_translation[axis] = widen_interval(
+            relative_translation[axis],
+            component(uncertainty.relative_translation_mm, axis),
+        )?;
+        moving_axis[axis] =
+            widen_interval(moving_axis[axis], component(uncertainty.moving_axis_mm, axis))?;
+        obstacle_axis[axis] =
+            widen_interval(obstacle_axis[axis], component(uncertainty.obstacle_axis_mm, axis))?;
+    }
     let negative_obstacle_axis = obstacle_axis.map(Interval::neg);
 
     let radius_sum = moving.radius_mm + obstacle.radius_mm;
@@ -472,6 +567,35 @@ fn build_coefficients(
         contact_squared_lower_mm2: contact_squared_lower,
         contact_squared_upper_mm2: contact_squared_upper,
     })
+}
+
+fn component(value: Vec3, axis: usize) -> f64 {
+    match axis {
+        0 => value.x,
+        1 => value.y,
+        _ => value.z,
+    }
+}
+
+/// Widen a coefficient interval by a nonnegative input uncertainty, with
+/// outward rounding after both bound operations.
+fn widen_interval(
+    value: Interval,
+    margin: f64,
+) -> Result<Interval, IntervalVerifierError> {
+    let lower = value.lower - margin;
+    let upper = value.upper + margin;
+    if !lower.is_finite() || !upper.is_finite() {
+        return Err(IntervalVerifierError::ArithmeticOverflow);
+    }
+    let widened = Interval {
+        lower: next_down(lower),
+        upper: next_up(upper),
+    };
+    if !widened.lower.is_finite() || !widened.upper.is_finite() {
+        return Err(IntervalVerifierError::ArithmeticOverflow);
+    }
+    Ok(widened)
 }
 
 fn vector_difference(left: Vec3, right: Vec3) -> Result<[Interval; 3], IntervalVerifierError> {
@@ -858,6 +982,96 @@ mod tests {
             assert!(next_down(value) <= value);
             assert!(next_up(value) >= value);
         }
+    }
+
+    #[test]
+    fn zero_uncertainty_reproduces_the_nominal_receipt_exactly() {
+        let moving = point_capsule(0.0, 0.0, 0.0, 0.5);
+        let obstacle = point_capsule(5.0, 0.0, 0.0, 0.5);
+        let nominal = verify_capsule_interval_no_contact(
+            moving, p(0.0, 0.0, 0.0), obstacle, p(0.0, 0.0, 0.0),
+            window(), IntervalVerifierConfig::default(),
+        ).unwrap();
+        let robust = verify_capsule_interval_no_contact_with_uncertainty(
+            moving, p(0.0, 0.0, 0.0), obstacle, p(0.0, 0.0, 0.0),
+            CapsuleRelativeUncertainty::zero(), window(), IntervalVerifierConfig::default(),
+        ).unwrap();
+        assert_eq!(nominal, robust);
+    }
+
+    #[test]
+    fn bounded_uncertainty_that_remains_separated_can_still_prove_clear() {
+        let result = verify_capsule_interval_no_contact_with_uncertainty(
+            point_capsule(0.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            point_capsule(5.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: p(1.0, 0.2, 0.2),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+            window(), IntervalVerifierConfig::default(),
+        ).unwrap();
+        assert_eq!(result.status, IntervalVerificationStatus::Clear);
+    }
+
+    #[test]
+    fn nominal_clear_path_with_uncertainty_overlap_is_never_clear() {
+        let result = verify_capsule_interval_no_contact_with_uncertainty(
+            point_capsule(0.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            point_capsule(2.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: p(1.5, 0.0, 0.0),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+            window(), IntervalVerifierConfig { maximum_nodes: 128, maximum_depth: 16 },
+        ).unwrap();
+        assert_eq!(result.status, IntervalVerificationStatus::Unresolved);
+    }
+
+    #[test]
+    fn small_uncertainty_inside_contact_radius_produces_guaranteed_contact_witness() {
+        let result = verify_capsule_interval_no_contact_with_uncertainty(
+            point_capsule(0.0, 0.0, 0.0, 0.75), p(0.0, 0.0, 0.0),
+            point_capsule(0.5, 0.0, 0.0, 0.75), p(0.0, 0.0, 0.0),
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: p(0.1, 0.1, 0.1),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+            window(), IntervalVerifierConfig::default(),
+        ).unwrap();
+        assert_eq!(result.status, IntervalVerificationStatus::ContactWitness);
+    }
+
+    #[test]
+    fn negative_and_nonfinite_uncertainty_reject() {
+        let moving = point_capsule(0.0, 0.0, 0.0, 0.5);
+        let obstacle = point_capsule(5.0, 0.0, 0.0, 0.5);
+        for uncertainty in [
+            CapsuleRelativeUncertainty { origin_relative_mm: p(-1.0, 0.0, 0.0), ..CapsuleRelativeUncertainty::zero() },
+            CapsuleRelativeUncertainty { moving_axis_mm: p(0.0, f64::NAN, 0.0), ..CapsuleRelativeUncertainty::zero() },
+            CapsuleRelativeUncertainty { obstacle_axis_mm: p(f64::INFINITY, 0.0, 0.0), ..CapsuleRelativeUncertainty::zero() },
+        ] {
+            assert_eq!(
+                verify_capsule_interval_no_contact_with_uncertainty(
+                    moving, p(0.0, 0.0, 0.0), obstacle, p(0.0, 0.0, 0.0),
+                    uncertainty, window(), IntervalVerifierConfig::default(),
+                ),
+                Err(IntervalVerifierError::InvalidUncertainty)
+            );
+        }
+    }
+
+    #[test]
+    fn uncertainty_overflow_is_an_error_not_clear() {
+        let result = verify_capsule_interval_no_contact_with_uncertainty(
+            point_capsule(0.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            point_capsule(5.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            CapsuleRelativeUncertainty {
+                origin_relative_mm: p(f64::MAX, 0.0, 0.0),
+                ..CapsuleRelativeUncertainty::zero()
+            },
+            window(), IntervalVerifierConfig::default(),
+        );
+        assert_eq!(result, Err(IntervalVerifierError::ArithmeticOverflow));
     }
 
     #[test]
