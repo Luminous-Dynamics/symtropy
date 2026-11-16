@@ -171,7 +171,10 @@ fn validate_qcm(reading: &QcmReading) -> Result<(), EvidenceError> {
     if !reading.absolute_uncertainty_g_cm2.is_finite() || reading.absolute_uncertainty_g_cm2 < 0.0 {
         return Err(EvidenceError::InvalidUncertainty);
     }
-    validate_calibration(reading.calibration_eligibility, &reading.calibration_receipt_id)
+    validate_calibration(
+        reading.calibration_eligibility,
+        &reading.calibration_receipt_id,
+    )
 }
 
 fn assess_change(
