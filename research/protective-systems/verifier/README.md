@@ -280,7 +280,7 @@ against the crate's base RO-Crate 1.3 profile. This is a test-only external
 oracle; the production verifier remains Rust. An independent validator pass
 does not authenticate a provider, grant a license or establish physical truth.
 
-The E2 fixture has 18 unit tests written. Their result is pending exact-head
+The E2 fixture has 19 unit tests written. Their result is pending exact-head
 hosted execution. The gate returns `ABSTAIN_SYNTHETIC_NOT_EXECUTED`.
 
 
