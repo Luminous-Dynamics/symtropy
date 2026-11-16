@@ -47,6 +47,12 @@
         },
         {
           "@id": "provenance/e2-sparse-derivation.jsonld"
+        },
+        {
+          "@id": "provenance/e2-evidence-binding.json"
+        },
+        {
+          "@id": "evidence/protective-model-evidence-envelope-v0.1.json"
         }
       ],
       "publisher": {
@@ -124,8 +130,8 @@
       "@type": "File",
       "name": "e2-sparse-derivation.jsonld",
       "encodingFormat": "application/ld+json",
-      "contentSize": "1426",
-      "sha256": "c23b531ccd322eb176c3da85607976f635e3c2925f133e0b1fd29e76d5f6d8f5",
+      "contentSize": "2209",
+      "sha256": "90ca7f5d29db2ef1e65d08e56cdc7d2452347ee53f6a8cd2d38258c04bb48b89",
       "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
       "permittedUse": "SYNTHETIC_TEST_ONLY"
     },
@@ -134,6 +140,28 @@
       "@type": "Organization",
       "name": "Synthetic E2 fixture provider",
       "description": "Nonexistent test identity used only to validate graph structure; not an authenticated provider."
+    },
+    {
+      "@id": "provenance/e2-evidence-binding.json",
+      "@type": "File",
+      "name": "e2-evidence-binding.json",
+      "encodingFormat": "application/json",
+      "contentSize": "1892",
+      "sha256": "38e096a737d2a017c92f08a2ac4e34df323a13edffac26a23ec60f39aaae55b7",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
+    },
+    {
+      "@id": "evidence/protective-model-evidence-envelope-v0.1.json",
+      "@type": "File",
+      "name": "protective-model-evidence-envelope-v0.1.json",
+      "encodingFormat": "application/json",
+      "contentSize": "5399",
+      "sha256": "530af9e09e5bd38b0be070e2193ec76e99a58f756f52034aaab4ef5347962676",
+      "rightsStatus": "SYNTHETIC_OPEN_FIXTURE",
+      "permittedUse": "SYNTHETIC_TEST_ONLY",
+      "claimCeiling": "SYNTHETIC_ENVELOPE_AND_ARTIFACT_INTEGRITY_ONLY"
     }
   ]
 }
