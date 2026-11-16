@@ -451,8 +451,14 @@ pub enum AssuranceStatus {
 }
 
 /// Specific reason why a case is not review-ready.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum BlockerReason {
+    /// The top-level claim has no strategy decomposition.
+    MissingDecompositionStrategy,
+    /// A strategy does not resolve into at least one subclaim.
+    StrategyWithoutSubclaim,
+    /// A claim has neither qualified direct evidence nor a decomposition path.
+    ClaimWithoutSupportOrDecomposition,
     /// Claim is contradicted.
     ClaimContradicted,
     /// Claim is explicitly unsupported.
@@ -1562,7 +1568,7 @@ pub fn evaluate_assurance_case(
                 }
             }
             DefeaterState::AcceptedByAuthority | DefeaterState::NotApplicableApproved => {
-                if !has_accepted_decision_edge(node, edges, &by_id) {
+                if !has_accepted_decision_edge(node, edges, &by_id, policy) {
                     add_blocker(
                         &mut blockers,
                         &node.node_id,
