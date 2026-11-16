@@ -393,13 +393,13 @@ impl CaveNetwork {
                             let mut path_edges = Vec::new();
                             let mut cursor = goal_node.to_string();
 
-                            while cursor != start_node {
+                            while cursor.as_str() != start_node {
                                 let Some((previous, used_edge)) = predecessor.get(&cursor) else {
                                     return Ok(RouteKnowledge::NoDemonstratedRoute);
                                 };
                                 path_edges.push(used_edge.clone());
-                                path_nodes.push(previous.clone());
-                                cursor = previous.clone();
+                                path_nodes.push(previous.to_string());
+                                cursor = previous.to_string();
                             }
 
                             path_nodes.reverse();
