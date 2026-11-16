@@ -105,13 +105,14 @@ fn main() -> ExitCode {
                     println!("adversarial_replicates={}", campaign.replicate_count);
                     for family in campaign.families {
                         println!(
-                            "reference_integrity family={} accepted={} samples={} max_abs_disagreement_n={:.6} rms_disagreement_n={:.6} tolerance_n={:.6} agreement_proves_independence={} shared_common_cause_injected={}",
+                            "reference_integrity family={} accepted={} samples={} max_abs_disagreement_n={:.6} rms_disagreement_n={:.6} tolerance_n={:.6} ancestry_attested={} agreement_proves_independence={} shared_common_cause_injected={}",
                             family.family_id,
                             family.reference_integrity.accepted,
                             family.reference_integrity.sample_count,
                             family.reference_integrity.max_abs_disagreement_n,
                             family.reference_integrity.rms_disagreement_n,
                             family.reference_integrity.tolerance_n,
+                            family.reference_integrity.independent_reference_ancestry_attested,
                             family.reference_integrity.agreement_proves_independence,
                             family.shared_reference_common_cause_injected,
                         );
