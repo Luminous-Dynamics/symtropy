@@ -66,10 +66,8 @@ impl ConnectorFitSpec {
             return Err(ManufacturingError::InvalidClearanceBounds);
         }
 
-        let minimum_diametral =
-            self.bore_diameter.minimum_mm() - self.pin_diameter.maximum_mm();
-        let maximum_diametral =
-            self.bore_diameter.maximum_mm() - self.pin_diameter.minimum_mm();
+        let minimum_diametral = self.bore_diameter.minimum_mm() - self.pin_diameter.maximum_mm();
+        let maximum_diametral = self.bore_diameter.maximum_mm() - self.pin_diameter.minimum_mm();
         let minimum_radial = minimum_diametral * 0.5;
         let maximum_radial = maximum_diametral * 0.5;
 
@@ -156,7 +154,10 @@ pub enum ManufacturingError {
 impl fmt::Display for ManufacturingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidDimension => write!(f, "connector dimensions and tolerances must be finite and positive"),
+            Self::InvalidDimension => write!(
+                f,
+                "connector dimensions and tolerances must be finite and positive"
+            ),
             Self::InvalidClearanceBounds => write!(f, "radial clearance bounds are invalid"),
             Self::InterferenceOrInsufficientClearance {
                 minimum_radial_clearance_mm,
@@ -172,9 +173,15 @@ impl fmt::Display for ManufacturingError {
                 f,
                 "maximum radial clearance {maximum_radial_clearance_mm} mm exceeds allowed {allowed_mm} mm"
             ),
-            Self::EmptyToleranceStack => write!(f, "tolerance stack must contain at least one interface"),
-            Self::InvalidTolerance => write!(f, "tolerance half-width must be finite and non-negative"),
-            Self::NonFiniteResult => write!(f, "manufacturing analysis produced a non-finite value"),
+            Self::EmptyToleranceStack => {
+                write!(f, "tolerance stack must contain at least one interface")
+            }
+            Self::InvalidTolerance => {
+                write!(f, "tolerance half-width must be finite and non-negative")
+            }
+            Self::NonFiniteResult => {
+                write!(f, "manufacturing analysis produced a non-finite value")
+            }
         }
     }
 }
