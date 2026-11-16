@@ -1225,7 +1225,6 @@ fn gate_receipt_cannot_be_admitted_when_candidate_has_no_exact_payload_reference
     assert!(reasons.contains(&RejectionReason::InvalidEvidenceBinding));
 }
 
-
 #[test]
 fn no_longer_required_semantic_receipt_cannot_remain_as_an_unbound_extra() {
     let mut comparison = candidate("stale-semantic-receipt");
@@ -1234,6 +1233,8 @@ fn no_longer_required_semantic_receipt_cannot_remain_as_an_unbound_extra() {
     comparison.semantic_equivalence_receipt_sha256 = None;
     let result = select_experiments(&[comparison], &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
-    assert!(reason(&result, "stale-semantic-receipt")
-        .contains(&RejectionReason::InvalidEvidenceBinding));
+    assert!(
+        reason(&result, "stale-semantic-receipt")
+            .contains(&RejectionReason::InvalidEvidenceBinding)
+    );
 }
