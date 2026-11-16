@@ -168,6 +168,7 @@ enum ProviderNativeView {
 struct ProjectionEnvelope {
     schema_version: String,
     claim_ceiling: String,
+    context_source_receipt: SourceReceipt,
     source_receipts: Vec<SourceReceipt>,
     provider_views: Vec<ProviderNativeView>,
     mapping_decisions: Vec<MappingDecision>,
@@ -184,6 +185,7 @@ struct ProjectionReport {
     mapping_decision_count: usize,
     class_counts: BTreeMap<String, usize>,
     envelope_sha256: String,
+    context_source_receipt: SourceReceipt,
     source_receipts: Vec<SourceReceipt>,
     provider_views: Vec<ProviderNativeView>,
     mapping_decisions: Vec<MappingDecision>,
@@ -574,6 +576,25 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         .and_then(|facets| facets.get("e3_evidence_context"))
         .cloned()
         .ok_or_else(|| "OpenLineage terminal E3 facet missing".to_owned())?;
+    let e1_context = parse(E1_CONTEXT, "E1 context")?;
+    let e1_analysis = e1_context
+        .get("analysis")
+        .ok_or_else(|| "E1 context analysis is required".to_owned())?;
+    let e1_analysis_id = required_text(e1_analysis, "analysis_id", "E1 context")?;
+    let e1_execution_status = required_text(e1_analysis, "execution_status", "E1 context")?;
+    if e1_execution_status != E1_STATUS || !e1_analysis.get("run_id").is_some_and(Value::is_null) {
+        return Err("E4 E1 context must remain NOT_EXECUTED with null run_id".to_owned());
+    }
+    if required_text(&start_facet, "sourceE1AnalysisId", "OpenLineage E3 facet")?
+        != e1_analysis_id
+        || required_text(&start_facet, "sourceE1ExecutionStatus", "OpenLineage E3 facet")?
+            != e1_execution_status
+        || required_text(&start_facet, "sourceBinding", "OpenLineage E3 facet")?
+            != "CONTEXT_ONLY"
+        || start_facet.get("notASourceExecution").and_then(Value::as_bool) != Some(true)
+    {
+        return Err("OpenLineage E3 facet must match the exact E1 NOT_EXECUTED source context".to_owned());
+    }
     let view = OpenLineageRunView {
         run_id: required_text(start_run, "runId", "OpenLineage START run")?.to_owned(),
         job_namespace: required_text(job, "namespace", "OpenLineage job")?.to_owned(),
@@ -587,14 +608,8 @@ fn project_openlineage(value: &Value) -> Result<(ProviderNativeView, Vec<Mapping
         outputs,
         preserved_run_facets: vec![start_facet.clone(), terminal_facet.clone()],
         preserved_native_events: events.to_vec(),
-        source_e1_analysis_id: required_text(&start_facet, "sourceE1AnalysisId", "OpenLineage facet")?
-            .to_owned(),
-        source_e1_execution_status: required_text(
-            &start_facet,
-            "sourceE1ExecutionStatus",
-            "OpenLineage facet",
-        )?
-        .to_owned(),
+        source_e1_analysis_id: e1_analysis_id.to_owned(),
+        source_e1_execution_status: e1_execution_status.to_owned(),
         source_e1_relationship: required_text(&start_facet, "sourceBinding", "OpenLineage facet")?
             .to_owned(),
     };
@@ -663,9 +678,21 @@ fn build_envelope_with_source_bytes(
         _ => unreachable!("OpenLineage projection constructor"),
     };
     let views = vec![datacite_view, ogc_view, lineage_view];
+    let e1_context = parse(E1_CONTEXT, "E1 source context")?;
+    let e1_analysis_id = required_text(
+        e1_context.get("analysis").ok_or_else(|| "E1 context analysis missing".to_owned())?,
+        "analysis_id",
+        "E1 context analysis",
+    )?;
     Ok(ProjectionEnvelope {
         schema_version: "protective-evidence-semantic-projection/0.1".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
+        context_source_receipt: receipt(
+            "E1_CONTEXT",
+            "Protective Systems E1 evidence envelope (NOT_EXECUTED context only)",
+            e1_analysis_id,
+            E1_CONTEXT,
+        ),
         source_receipts: vec![
             receipt(
                 "DATACITE",
@@ -721,7 +748,8 @@ fn build_report() -> Result<ProjectionReport, String> {
         receipt.source_byte_length > 0
             && receipt.source_sha256.len() == 64
             && receipt.retrieval_mode == "SYNTHETIC_STATIC_FIXTURE"
-    });
+    }) && envelope.context_source_receipt.source_byte_length == E1_CONTEXT.len() as u64
+        && envelope.context_source_receipt.source_sha256 == hash(E1_CONTEXT);
     Ok(ProjectionReport {
         schema_version: "protective-evidence-semantic-projection/0.1".to_owned(),
         claim_ceiling: CLAIM_CEILING.to_owned(),
@@ -732,6 +760,7 @@ fn build_report() -> Result<ProjectionReport, String> {
         mapping_decision_count: envelope.mapping_decisions.len(),
         class_counts,
         envelope_sha256: hash(&encoded),
+        context_source_receipt: envelope.context_source_receipt,
         source_receipts: envelope.source_receipts,
         provider_views: envelope.provider_views,
         mapping_decisions: envelope.mapping_decisions,
