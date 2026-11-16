@@ -845,7 +845,6 @@ fn brier_reliability(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn empirical_crps(observed: f64, members: &[f64]) -> Result<f64, String> {
     if members.is_empty() {
         return Err("ensemble member array must not be empty".to_owned());
@@ -942,8 +941,13 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
     let observed = numeric_array(input, "observed")?;
     let forecast_rows = array(input, "forecast_ensembles")?;
     let reference_rows = array(input, "reference_ensembles")?;
-    if observed.len() < 2 || observed.len() != forecast_rows.len() || observed.len() != reference_rows.len() {
-        return Err("observed and forecast/reference ensemble rows must have equal length >= 2".to_owned());
+    if observed.len() < 2
+        || observed.len() != forecast_rows.len()
+        || observed.len() != reference_rows.len()
+    {
+        return Err(
+            "observed and forecast/reference ensemble rows must have equal length >= 2".to_owned(),
+        );
     }
     let mut forecast_scores = Vec::with_capacity(observed.len());
     let mut reference_scores = Vec::with_capacity(observed.len());
@@ -952,17 +956,23 @@ fn crps_skill_score(input: &Value) -> Result<Value, String> {
             .as_array()
             .ok_or_else(|| format!("forecast_ensembles[{index}]: expected array"))?
             .iter()
-            .map(|value| value.as_f64().filter(|value| value.is_finite()).ok_or_else(|| {
-                format!("forecast_ensembles[{index}]: expected finite member")
-            }))
+            .map(|value| {
+                value
+                    .as_f64()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| format!("forecast_ensembles[{index}]: expected finite member"))
+            })
             .collect::<Result<Vec<_>, _>>()?;
         let reference = reference_rows[index]
             .as_array()
             .ok_or_else(|| format!("reference_ensembles[{index}]: expected array"))?
             .iter()
-            .map(|value| value.as_f64().filter(|value| value.is_finite()).ok_or_else(|| {
-                format!("reference_ensembles[{index}]: expected finite member")
-            }))
+            .map(|value| {
+                value
+                    .as_f64()
+                    .filter(|value| value.is_finite())
+                    .ok_or_else(|| format!("reference_ensembles[{index}]: expected finite member"))
+            })
             .collect::<Result<Vec<_>, _>>()?;
         forecast_scores.push(empirical_crps(observed[index], &forecast)?);
         reference_scores.push(empirical_crps(observed[index], &reference)?);
@@ -1007,7 +1017,9 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     let reference = numeric_array(input, "reference_probabilities")?;
     let outcomes = numeric_array(input, "observed_events")?;
     if forecast.len() < 2 || forecast.len() != reference.len() || forecast.len() != outcomes.len() {
-        return Err("forecast, reference and outcome arrays must have equal length >= 2".to_owned());
+        return Err(
+            "forecast, reference and outcome arrays must have equal length >= 2".to_owned(),
+        );
     }
     for (name, values) in [
         ("forecast_probabilities", &forecast),
@@ -1023,7 +1035,10 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
             }));
         }
     }
-    if let Some(index) = outcomes.iter().position(|value| *value != 0.0 && *value != 1.0) {
+    if let Some(index) = outcomes
+        .iter()
+        .position(|value| *value != 0.0 && *value != 1.0)
+    {
         return Ok(json!({
             "probabilistic_disposition": "REJECT",
             "reason": "OBSERVED_EVENT_MUST_BE_BINARY_ZERO_OR_ONE",
@@ -1099,7 +1114,8 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
 
-        "HC-T0-033-crps-skill-matched-reference" | "HC-T0-037-crps-skill-zero-reference-undefined"
+        "HC-T0-033-crps-skill-matched-reference"
+        | "HC-T0-037-crps-skill-zero-reference-undefined"
         | "HC-T0-038-crps-skill-lead-mismatch-not-comparable" => crps_skill_score(input),
         "HC-T0-034-brier-skill-matched-reference"
         | "HC-T0-036-brier-skill-zero-reference-undefined" => brier_skill_score(input),
@@ -1382,13 +1398,15 @@ mod tests {
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
     }
 
-
     #[test]
     fn crps_skill_is_computed_against_same_population_reference() {
         let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
         assert_eq!(out["case_count"], 3);
-        assert_eq!(out["comparison_context"]["reference_forecast_id"], "persistence-v1");
+        assert_eq!(
+            out["comparison_context"]["reference_forecast_id"],
+            "persistence-v1"
+        );
         assert!(out["crps_skill_score"].as_f64().expect("CRPSS") > 0.0);
         assert_eq!(out["skill_score_unclipped"], true);
     }
@@ -1398,7 +1416,10 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][33]).expect("BSS");
         assert_eq!(out["probabilistic_disposition"], "ADMITTED");
         assert_eq!(out["event_definition_id"], "daily_flow_exceeds_5_m3_s");
-        assert_eq!(out["comparison_context"]["reference_forecast_id"], "seasonal-climatology-train-only-v1");
+        assert_eq!(
+            out["comparison_context"]["reference_forecast_id"],
+            "seasonal-climatology-train-only-v1"
+        );
         assert!(out["brier_skill_score"].as_f64().expect("BSS") > 0.0);
     }
 
@@ -1430,7 +1451,6 @@ mod tests {
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
         assert_eq!(out["reason"], "FORECAST_LEAD_TIME_MISMATCH");
     }
-
 
     #[test]
     fn crps_skill_rejects_different_verification_case_identity() {
