@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous-dynamics:robot-config-mission-golden-vectors:v0.1",
+  "title": "ROBOT-CONFIG-MISSION-IMPACT-001 generator golden vectors v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generator_id",
+    "vectors",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robot-config-mission-golden-vectors-v0.1"
+    },
+    "generator_id": {
+      "const": "robot-stochastic-challenge-generator/0.1"
+    },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "vector_id",
+          "visibility",
+          "profile_id",
+          "profile_sha256",
+          "seed_hex",
+          "challenge_count",
+          "expected_manifest_sha256",
+          "expected_stratum_counts"
+        ],
+        "properties": {
+          "vector_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visibility": {
+            "const": "public_synthetic_development"
+          },
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "seed_hex": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16}$"
+          },
+          "challenge_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "expected_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expected_stratum_counts": {
+            "type": "array",
+            "minItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "stratum_id",
+                "count"
+              ],
+              "properties": {
+                "stratum_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

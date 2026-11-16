@@ -1,0 +1,54 @@
+{
+  "schema_version": "robot-config-mission-golden-vectors-v0.1",
+  "generator_id": "robot-stochastic-challenge-generator/0.1",
+  "vectors": [
+    {
+      "vector_id": "mip-v0.1-public-128-seed-0123456789abcdef",
+      "visibility": "public_synthetic_development",
+      "profile_id": "ROBOT-CONFIG-MISSION-IMPACT-001-DISTRIBUTION-DEV-001",
+      "profile_sha256": "03e604e0af5242e9161f2097f687683ed4acd8018202b561e69ba811d5d4b8df",
+      "seed_hex": "0123456789abcdef",
+      "challenge_count": 128,
+      "expected_manifest_sha256": "37059e33d960c69c912ef753e5392cf902bc1a7bb232e11406c597f4eef5b633",
+      "expected_stratum_counts": [
+        {
+          "stratum_id": "camera_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "tool_geometry_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "payload_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "battery_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "drive_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "timebase_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "safety_chain_change",
+          "count": 16
+        },
+        {
+          "stratum_id": "unknown_dependency_change",
+          "count": 16
+        }
+      ]
+    }
+  ],
+  "nonclaims": [
+    "This is a public synthetic development golden vector, not an evaluator-held blind seed.",
+    "Digest equality establishes deterministic output identity under the declared canonicalization, not physical realism, generator correctness or independent custody.",
+    "The profile uses symbolic factor bundles and is not a physically validated scenario distribution."
+  ]
+}

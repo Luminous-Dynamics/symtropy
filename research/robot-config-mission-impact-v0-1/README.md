@@ -24,13 +24,17 @@ The benchmark combines:
 - `development-oracle-v0.1.json`: separate public development labels for target mission disposition, first observed divergence, stage progression and outcome sensitivity. This is not a hidden holdout.
 - `mission-outcome-metrics-v0.1.json`: separate synthetic source/target outcome measures for accepted/rejected/held/aborted/unknown units, robot time, total crew time, energy, intervention, reinspection and uncertainty-guarded quality.
 - `owner-crosswalk-v0.1.json`: proposed MIP-pair to #5488 RCQ-case family crosswalk pinned to the RCQ corpus blob SHA; #5411 transition receipt and #3605 owner acceptance artifact remain explicitly unpinned.
+- `commercial-benchmark-crosswalk-v0.1.md`: public-source comparison and fair test tracks for Dusty FieldPrinter 2, HP SitePrint and Built Robotics RPD35/RPS25.
+- `challenge-distribution-v0.1.json`: public synthetic development profile with eight change-family strata and 23 atomic named factor bundles. Bundles are symbolic; they do not yet provide physically qualified parameter ranges.
+- `schemas/challenge-distribution-v0.1.schema.json` and `schemas/challenge-manifest-v0.1.schema.json`: closed schemas for the distribution profile and generated challenge manifest.
+- `golden-vectors-v0.1.json` and `schemas/golden-vectors-v0.1.schema.json`: a public 128-challenge known-answer vector pinned to the cross-platform manifest digest.
 - `schemas/mission-pair-corpus-v0.1.schema.json`: closed Draft 2020-12 schema for paired cases and event traces.
 - `schemas/stage-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for the stage vocabulary.
 - `schemas/event-type-catalog-v0.1.schema.json`: closed Draft 2020-12 schema for event-to-stage/source mappings.
 - `schemas/development-oracle-v0.1.schema.json`: closed Draft 2020-12 schema for public development labels.
 - `schemas/mission-outcome-metrics-v0.1.schema.json`: closed Draft 2020-12 schema for synthetic per-pair outcome measurements.
 - `schemas/owner-crosswalk-v0.1.schema.json`: closed Draft 2020-12 schema for owner references and conservative family-level case mappings.
-- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and checks cross-file corpus/oracle/event-to-stage/source/outcome/owner-crosswalk invariants. It does not score robot performance or determine qualification.
+- `validator/`: isolated Rust 1.96 package that validates Draft 2020-12 schemas and cross-file corpus/oracle/event-to-stage/source/outcome/owner-crosswalk invariants; it also contains the deterministic public-development challenge generator and CLI. It does not score robot performance or determine qualification.
 - `.github/workflows/robot-config-mission-impact-validation.yml`: focused Ubuntu/Windows/macOS schema, fixture, format, Clippy and CLI workflow.
 
 All article IDs, configurations, task references, event IDs, timestamps and outcome-shaped values are invented fixtures. They are not measured robot outcomes or vendor performance data.
@@ -64,7 +68,9 @@ No second capability engine, evidence graph, accepted-output ledger, maintenance
 
 ## Current verification
 
-This tranche contains documentation, JSON fixtures and structural schemas only. It has no Rust evaluator, blind holdout, robot connection, HIL campaign or physical test. JSON parsing and cross-file checks must be reported separately from independent JSON Schema validation, CI and physical qualification.
+The isolated Rust 1.96 package validates the public schemas and cross-file invariants, and now generates deterministic public synthetic challenge manifests from a pinned distribution profile. Its default `validate` command is separate from the `generate` command. The public development generator uses domain-separated SHA-256 seed derivation and SplitMix64 sampling; this is reproducible but not cryptographically secure. The focused Linux/macOS/Windows workflow is being extended to generate identical 128-challenge manifests on each platform.
+
+This is not an evaluator-held blind set, a cryptographic custody system, a physical-scene generator, a simulator, a robot connection, HIL, or a physical test. Named factor bundles are symbolic synthetic labels and do not yet contain validated physical ranges. CI success proves package conformance only.
 
 ## Nonclaims
 
