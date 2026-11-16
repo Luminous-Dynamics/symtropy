@@ -46,3 +46,10 @@ The target response profile is deliberately shifted from the source response pro
 The active-policy API receives only `&[Candidate]`. A candidate contains a commanded stimulus setpoint and a sensor-derived feature vector; it does not contain a reference-force label. Reference-force observations live in a separate `SyntheticDomain` used by model fitting after selection. Held-out target truth lives in `HeldoutDomain` and is passed only to the evaluator after every policy selection is frozen. The synthetic reference channel also has a separate deterministic noise term. This is a code-level data boundary, not merely a statement that the selector promises not to read labels.
 
 The candidate setpoint is a declared stimulus, not an independently measured force. The held-out evaluator compares predictions with its separate synthetic truth. The regression prediction interval still does not constitute a metrological uncertainty budget.
+
+
+## Single-seed policy comparison — preliminary only
+
+The first hosted execution on 16 November 2026 completed the Rust test suite, strict Clippy and tracked-corpus CLI. For the one frozen seed in v0.1, the 16-contact D-optimal arm produced a 0.004986 N synthetic RMSE versus 0.004234 N for the 72-contact target-grid reference. Uniform and maximin were substantially worse on this response surface; the source-only arm was poor under the declared source/target shift; the transfer-prior arm traded somewhat better worst-case error/interval diagnostic coverage against greater total source+target contact cost. These are deterministic synthetic results, not physical calibration measurements or a stable policy ranking.
+
+This result is deliberately not the campaign conclusion. [PHRI-TAC-ROBUST-001 #5591](https://github.com/Luminous-Dynamics/symtropy/issues/5591) now owns paired multi-seed statistics, model-misspecification families, reference-channel common-mode/noise injection and per-stratum failure analysis. No policy should be selected from this single seed.
