@@ -1,0 +1,83 @@
+{
+  "schema_version": "myco.isotope_transfer_benchmark.v0.1",
+  "suite_id": "MYCO-ISOTOPE-CAUSAL-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5667",
+  "scientific_sources": [
+    {
+      "doi": "10.1002/ppp3.10618",
+      "role": "systematic mapping of AM-CMN experimental criteria",
+      "finding": "123 mapped studies; nine met all five CMN-HC criteria"
+    },
+    {
+      "doi": "10.1111/1365-2435.70125",
+      "role": "AM-CMN effects meta-analysis",
+      "finding": "small and context-dependent effects; cautious interpretation and stronger control/power needed"
+    },
+    {
+      "doi": "10.1038/s41598-026-56653-9",
+      "role": "2026 common endophyte network isotope experiment",
+      "finding": "13C/15N/D2O tracer observations; alternative pathways and incomplete control arms need explicit treatment"
+    }
+  ],
+  "required_interventions": [
+    "intact_hyphal_connection",
+    "hyphae_severed",
+    "diffusion_only_barrier",
+    "no_fungus",
+    "microbial_only",
+    "no_donor_label"
+  ],
+  "required_samples_per_block_and_arm": {
+    "all_arms": [
+      "donor_source_post_label",
+      "receiver_prelabel_baseline",
+      "receiver_post_label"
+    ],
+    "intact_hyphal_connection": [
+      "fungal_bridge_post_label"
+    ]
+  },
+  "isotopes": [
+    "13C",
+    "15N",
+    "2H_or_D2O",
+    "18O",
+    "other_isotope_separately_declared"
+  ],
+  "measurements": [
+    "atom_fraction",
+    "absolute_error_bound",
+    "optional_total_element_pool_mass",
+    "raw_clock_timestamp",
+    "source_receipt"
+  ],
+  "alignment": {
+    "clocks": "all non-reference clocks require calibration with a source-linked ClockSynchronization receipt",
+    "ordering": "donor-before-bridge-before-receiver is accepted only for disjoint conservative time intervals"
+  },
+  "controls": {
+    "matching": "all required arms occur in each independent matched block",
+    "default_minimum_independent_blocks": 3,
+    "required_control_receipt_subject": "MatchedControlCondition"
+  },
+  "inference": {
+    "deterministic_uncertainty": "worst-case additive absolute bounds",
+    "route_consistent_candidate_requires": [
+      "all five fungal network criteria pass",
+      "cytoplasmic flow stream observed and source-linked",
+      "donor enrichment lower bound above receiver baseline",
+      "fungal bridge tracer enrichment lower bound above receiver baseline",
+      "receiver enrichment lower bound above baseline",
+      "disjoint donor-bridge-receiver temporal ordering",
+      "intact receiver excess lower bound exceeds every control receiver excess upper bound in every matched block",
+      "minimum matched block count"
+    ],
+    "never_claims": [
+      "statistical_significance",
+      "definitive_causal_transfer",
+      "universal_fungal_transport_law"
+    ],
+    "mass_reporting": "do not report transferred elemental mass without measured total element pool mass and uncertainty"
+  },
+  "status": "protocol_defined_not_run"
+}
