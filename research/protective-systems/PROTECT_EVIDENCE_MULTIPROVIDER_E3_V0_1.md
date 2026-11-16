@@ -4,7 +4,7 @@
 **Owner:** PROTECT-EVIDENCE-MULTIPROVIDER-001 #5598  
 **Branch:** `research/protect-evidence-multiprovider-e3-v0-1`  
 **Parent:** E2 semantic portability #5524 / PR #5556  
-**Status:** three synthetic provider fixtures, pinned source manifest, RO-Crate 1.3 package, OpenLineage 2.0.2 schema snapshot, Rust adapter gate and 26 tests written; exact-head hosted CI pending
+**Status:** three synthetic provider fixtures, pinned source manifest, RO-Crate 1.3 package, OpenLineage 2.0.2 schema snapshot, Rust adapter gate and 30 tests written; exact-head hosted CI pending
 
 ## 1. The paradigm shift: multi-standard semantics without flattening
 
@@ -31,7 +31,7 @@ DataCite Metadata Schema 4.7 was released on 3 March 2026. E3 specifically exerc
 - `Other` as a `relationType`;
 - `relationTypeInformation` for explanatory text when `Other` is used.
 
-The DataCite REST payload's `schemaVersion` remains the generic `http://datacite.org/schema/kernel-4` URI; it does not by itself encode the 4.7 minor version. The E3 manifest therefore declares the 4.7 field-profile target separately. The Rust gate checks the REST JSON:API envelope and the selected 4.7 fields. It does **not** claim full XML/XSD validation of a DataCite registration.
+The DataCite REST payload's `schemaVersion` remains the generic `http://datacite.org/schema/kernel-4` URI; it does not by itself encode the 4.7 minor version. The E3 manifest therefore declares the 4.7 field-profile target separately. The Rust gate checks the REST JSON:API envelope, the selected 4.7 fields, and core SWHID syntax (`swh:1:<object-type>:<40 lowercase hex>`). The all-zero SWHID fixture value is a syntactic sentinel only; it is not asserted to resolve in Software Heritage. The gate does **not** claim full XML/XSD validation of a DataCite registration.
 
 References:
 - DataCite REST API and JSON:API response format: https://support.datacite.org/docs/rest-api
@@ -70,6 +70,8 @@ The official OpenLineage 2.0.2 JSON Schema is vendored without modification, pin
 - the run UUID and job identity are stable;
 - START precedes COMPLETE;
 - input/output dataset namespace and names are retained;
+- the exact OpenLineage 2.0.2 `schemaURL` fragment is retained on both events;
+- event timestamps use canonical UTC `Z` form for deterministic ordering;
 - the custom E3 evidence facet is retained on both events;
 - the facet records the E1 analysis ID and its `NOT_EXECUTED` state as context only, with `notASourceExecution=true`.
 
@@ -135,7 +137,7 @@ A genuine SOTA comparison requires at least three independently maintained live/
 
 - Three provider fixtures, E1 context, manifest, schemas and RO-Crate package are committed.
 - OpenLineage events are checked against the vendored official 2.0.2 schema.
-- The E3 Rust gate has 26 unit tests written.
+- The E3 Rust gate has 30 unit tests written.
 - Formatting, Clippy, Rust compilation, test execution, executable output and independent RO-Crate validation need exact-head hosted CI evidence. No E3 pass is claimed yet.
 - The DataCite adapter is a JSON:API + selected Schema 4.7 field-profile check, not full XSD validation.
 - The OGC adapter is a selected Core/GeoJSON record-profile check, not full server conformance.
