@@ -850,31 +850,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn synthetic_candidate_and_holdout_domains_are_distinct() {
-        let candidates = target_candidate_pool(20261116);
+    fn selector_stimuli_do_not_contain_reference_labels_or_heldout_truth() {
+        let target = target_candidate_pool(20261116);
         let heldout = heldout_target_pool(20261116);
-        assert_eq!(candidates.len(), 72);
-        assert_eq!(heldout.len(), 60);
+        assert_eq!(target.candidates.len(), 72);
+        assert_eq!(target.reference_force_observations_n.len(), 72);
+        assert_eq!(heldout.candidates.len(), 60);
+        assert_eq!(heldout.evaluator_truth_force_n.len(), 60);
         assert!(
-            candidates
-                .iter()
-                .all(|candidate| { [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_n) })
+            target.candidates.iter().all(|candidate| {
+                [0.0, 2.0, 4.0, 6.0, 8.0, 10.0].contains(&candidate.force_setpoint_n)
+            })
         );
         assert!(
-            heldout
-                .iter()
-                .all(|candidate| { [1.0, 3.0, 5.0, 7.0, 9.0].contains(&candidate.force_n) })
+            heldout.candidates.iter().all(|candidate| {
+                [1.0, 3.0, 5.0, 7.0, 9.0].contains(&candidate.force_setpoint_n)
+            })
         );
+        assert!(target.reference_force_observations_n.iter().any(|observed| {
+            (*observed - 2.0).abs() > 0.0
+        }));
     }
 
     #[test]
     fn all_equal_budget_policies_cover_every_required_stratum() {
-        let candidates = target_candidate_pool(20261116);
+        let domain = target_candidate_pool(20261116);
         for selected in [
-            select_uniform(&candidates).expect("uniform selection"),
-            select_random_stratified(&candidates, 20261116).expect("random selection"),
-            select_maximin(&candidates).expect("maximin selection"),
-            select_d_optimal(&candidates).expect("D-optimal selection"),
+            select_uniform(&domain.candidates).expect("uniform selection"),
+            select_random_stratified(&domain.candidates, 20261116).expect("random selection"),
+            select_maximin(&domain.candidates).expect("maximin selection"),
+            select_d_optimal(&domain.candidates).expect("D-optimal selection"),
         ] {
             assert_eq!(selected.len(), TARGET_BUDGET);
             let mut counts = [0_usize; STRATA];
@@ -883,7 +888,7 @@ mod tests {
             unique.dedup();
             assert_eq!(unique.len(), TARGET_BUDGET);
             for index in selected {
-                counts[candidates[index].stratum] += 1;
+                counts[domain.candidates[index].stratum] += 1;
             }
             assert_eq!(counts, [4, 4, 4, 4]);
         }
@@ -891,10 +896,10 @@ mod tests {
 
     #[test]
     fn random_stratified_selection_is_seed_reproducible_and_seed_sensitive() {
-        let candidates = target_candidate_pool(20261116);
-        let first = select_random_stratified(&candidates, 42).expect("first seed");
-        let replay = select_random_stratified(&candidates, 42).expect("replay seed");
-        let other = select_random_stratified(&candidates, 43).expect("other seed");
+        let domain = target_candidate_pool(20261116);
+        let first = select_random_stratified(&domain.candidates, 42).expect("first seed");
+        let replay = select_random_stratified(&domain.candidates, 42).expect("replay seed");
+        let other = select_random_stratified(&domain.candidates, 43).expect("other seed");
         assert_eq!(first, replay);
         assert_ne!(first, other);
     }
