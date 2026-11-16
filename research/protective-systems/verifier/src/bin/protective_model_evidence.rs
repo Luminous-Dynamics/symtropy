@@ -14,6 +14,14 @@ const FIXTURE: &str =
     include_str!("../../../fixtures/protective-model-evidence-envelope-v0.1.json");
 const SCHEMA_SPEC: &str =
     include_str!("../../../schemas/protective-model-evidence-envelope-v0.1.schema.json");
+const INPUT_DATASET_METADATA_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/model-evidence-metadata/synthetic-input-dataset.json");
+const INPUT_FILE_METADATA_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/model-evidence-metadata/synthetic-input-files.json");
+const OUTPUT_DATASET_METADATA_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/model-evidence-metadata/synthetic-output-dataset.json");
+const OUTPUT_FILE_METADATA_BYTES: &[u8] =
+    include_bytes!("../../../fixtures/model-evidence-metadata/synthetic-output-files.json");
 const INPUT_BYTES: &[u8] =
     include_bytes!("../../../fixtures/model-evidence-payloads/synthetic-input.json");
 const OUTPUT_BYTES: &[u8] =
@@ -23,7 +31,11 @@ const SCHEMA: &str = "protective-model-evidence-envelope/0.1";
 #[derive(Debug, Serialize)]
 struct ArtifactReceipt {
     dataset_id: String,
+    role: String,
     relative_path: String,
+    provider_file_id: Option<String>,
+    file_name: Option<String>,
+    media_type: Option<String>,
     byte_length: usize,
     sha256: String,
     integrity_verified: bool,
@@ -40,6 +52,9 @@ struct GateReport {
     dataset_count: usize,
     input_dataset_count: usize,
     output_dataset_count: usize,
+    dataset_metadata_snapshot_count: usize,
+    file_metadata_snapshot_count: usize,
+    data_payload_count: usize,
     artifact_receipts: Vec<ArtifactReceipt>,
     envelope_sha256: String,
     disposition: &'static str,
@@ -76,6 +91,14 @@ fn validate_version_field(value: &Value, path: &str) -> Result<bool, String> {
         }
         other => Err(format!("{path}.status is unsupported: {other}")),
     }
+}
+
+fn media_type_for_dataset_payload(dataset: &Value, payload_media_type: &str) -> Result<String, String> {
+    let declared = required_text(dataset, "data_type", "dataset")?;
+    if declared != payload_media_type {
+        return Err("dataset data_type does not match provider payload MIME type".to_owned());
+    }
+    Ok(declared.to_owned())
 }
 
 fn validate_rights(
@@ -320,9 +343,30 @@ fn validate_envelope(
             .and_then(Value::as_array)
             .filter(|items| !items.is_empty())
             .ok_or_else(|| format!("{path}.artifacts must be non-empty"))?;
+        let mut roles = BTreeSet::new();
+        let mut dataset_file_ids = BTreeSet::new();
+        let mut endpoint_file_ids = BTreeSet::new();
+        let mut payload_descriptor: Option<(String, String, String, u64)> = None;
+        let mut dataset_metadata_seen = false;
+        let mut file_metadata_seen = false;
+        let mut payload_seen = false;
+
         for (artifact_index, artifact) in artifacts.iter().enumerate() {
             let artifact_path = format!("{path}.artifacts[{artifact_index}]");
+            let role = required_text(artifact, "role", &artifact_path)?;
+            if !roles.insert(role.to_owned()) {
+                return Err(format!("{artifact_path}: duplicate artifact role {role}"));
+            }
             let relative_path = required_text(artifact, "relative_path", &artifact_path)?;
+            let file_name = required_text(artifact, "file_name", &artifact_path)?;
+            let media_type = required_text(artifact, "media_type", &artifact_path)?;
+            let provider_file_id = match artifact.get("provider_file_id") {
+                Some(Value::Null) => None,
+                Some(Value::String(value)) if !value.trim().is_empty() => {
+                    Some(value.trim().to_owned())
+                }
+                _ => return Err(format!("{artifact_path}.provider_file_id must be non-empty text or null")),
+            };
             let expected_length = artifact
                 .get("byte_length")
                 .and_then(Value::as_u64)
@@ -336,15 +380,57 @@ fn validate_envelope(
                 return Err(format!("{artifact_path}.sha256 must be lowercase hexadecimal SHA-256"));
             }
 
-            let (expected_path, bytes) = match direction {
-                "INPUT" => ("model-evidence-payloads/synthetic-input.json", input_bytes),
-                "OUTPUT" => ("model-evidence-payloads/synthetic-output.json", output_bytes),
-                _ => unreachable!("direction was validated above"),
-            };
-            if relative_path != expected_path {
-                return Err(format!(
-                    "{artifact_path}: artifact path does not match dataset direction"
-                ));
+            let (expected_path, expected_name, expected_media, expected_file_id, bytes) =
+                match (direction, role) {
+                    ("INPUT", "DATASET_METADATA") => (
+                        "model-evidence-metadata/synthetic-input-dataset.json",
+                        "synthetic-input-dataset.json",
+                        "application/json",
+                        None,
+                        INPUT_DATASET_METADATA_BYTES,
+                    ),
+                    ("INPUT", "FILE_METADATA") => (
+                        "model-evidence-metadata/synthetic-input-files.json",
+                        "synthetic-input-files.json",
+                        "application/json",
+                        None,
+                        INPUT_FILE_METADATA_BYTES,
+                    ),
+                    ("INPUT", "DATA_PAYLOAD") => (
+                        "model-evidence-payloads/synthetic-input.json",
+                        "synthetic-input.json",
+                        "application/json",
+                        Some("synthetic-file-water-input-001"),
+                        input_bytes,
+                    ),
+                    ("OUTPUT", "DATASET_METADATA") => (
+                        "model-evidence-metadata/synthetic-output-dataset.json",
+                        "synthetic-output-dataset.json",
+                        "application/json",
+                        None,
+                        OUTPUT_DATASET_METADATA_BYTES,
+                    ),
+                    ("OUTPUT", "FILE_METADATA") => (
+                        "model-evidence-metadata/synthetic-output-files.json",
+                        "synthetic-output-files.json",
+                        "application/json",
+                        None,
+                        OUTPUT_FILE_METADATA_BYTES,
+                    ),
+                    ("OUTPUT", "DATA_PAYLOAD") => (
+                        "model-evidence-payloads/synthetic-output.json",
+                        "synthetic-output.json",
+                        "application/json",
+                        Some("synthetic-file-water-output-001"),
+                        output_bytes,
+                    ),
+                    _ => return Err(format!("{artifact_path}: unsupported direction/role pair")),
+                };
+            if relative_path != expected_path || file_name != expected_name || media_type != expected_media {
+                return Err(format!("{artifact_path}: artifact path/name/media type does not match its direction and role"));
+            }
+            if provider_file_id.as_deref() != expected_file_id {
+                return Err(format!("{artifact_path}: provider file ID does not match dataset metadata role"));
             }
             if !artifact_paths.insert(relative_path.to_owned()) {
                 return Err(format!("{artifact_path}: duplicate artifact path"));
@@ -357,26 +443,105 @@ fn validate_envelope(
             }
             let digest = format!("{:x}", Sha256::digest(bytes));
             if digest != expected_digest {
-                return Err(format!(
-                    "{artifact_path}: SHA-256 mismatch for {relative_path}"
-                ));
+                return Err(format!("{artifact_path}: SHA-256 mismatch for {relative_path}"));
             }
-            serde_json::from_slice::<Value>(bytes)
+            let parsed: Value = serde_json::from_slice(bytes)
                 .map_err(|error| format!("{artifact_path}: artifact JSON invalid: {error}"))?;
+
+            match role {
+                "DATASET_METADATA" => {
+                    if required_text(&parsed, "id", &artifact_path)? != id {
+                        return Err(format!("{artifact_path}: provider dataset ID differs from envelope dataset_id"));
+                    }
+                    if required_text(&parsed, "dataType", &artifact_path)?
+                        != required_text(dataset, "semantic_type", &path)?
+                    {
+                        return Err(format!("{artifact_path}: provider dataType differs from envelope semantic_type"));
+                    }
+                    let descriptors = parsed
+                        .get("fileDescriptors")
+                        .and_then(Value::as_array)
+                        .filter(|items| !items.is_empty())
+                        .ok_or_else(|| format!("{artifact_path}.fileDescriptors must be non-empty"))?;
+                    for descriptor in descriptors {
+                        let file_id = required_text(descriptor, "id", &artifact_path)?;
+                        if !dataset_file_ids.insert(file_id.to_owned()) {
+                            return Err(format!("{artifact_path}: duplicate provider file ID {file_id}"));
+                        }
+                    }
+                    dataset_metadata_seen = true;
+                }
+                "FILE_METADATA" => {
+                    let descriptors = parsed
+                        .as_array()
+                        .filter(|items| !items.is_empty())
+                        .ok_or_else(|| format!("{artifact_path}: file metadata response must be a non-empty array"))?;
+                    for descriptor in descriptors {
+                        let file_id = required_text(descriptor, "id", &artifact_path)?;
+                        if !endpoint_file_ids.insert(file_id.to_owned()) {
+                            return Err(format!("{artifact_path}: duplicate file ID in provider file-metadata response"));
+                        }
+                    }
+                    file_metadata_seen = true;
+                }
+                "DATA_PAYLOAD" => {
+                    let file_id = provider_file_id.clone().expect("payload file ID validated above");
+                    payload_descriptor = Some((
+                        file_id,
+                        file_name.to_owned(),
+                        media_type.to_owned(),
+                        expected_length,
+                    ));
+                    payload_seen = true;
+                }
+                _ => unreachable!("role was validated by direction/role match"),
+            }
+
             artifact_receipts.push(ArtifactReceipt {
                 dataset_id: id.to_owned(),
+                role: role.to_owned(),
                 relative_path: relative_path.to_owned(),
+                provider_file_id,
+                file_name: Some(file_name.to_owned()),
+                media_type: Some(media_type.to_owned()),
                 byte_length: bytes.len(),
                 sha256: digest,
                 integrity_verified: true,
             });
         }
+
+        let expected_roles: BTreeSet<String> = [
+            "DATASET_METADATA".to_owned(),
+            "FILE_METADATA".to_owned(),
+            "DATA_PAYLOAD".to_owned(),
+        ]
+        .into_iter()
+        .collect();
+        if roles != expected_roles
+            || !dataset_metadata_seen
+            || !file_metadata_seen
+            || !payload_seen
+        {
+            return Err(format!("{path}: exactly one dataset metadata, file metadata and data payload artifact are required"));
+        }
+        if dataset_file_ids != endpoint_file_ids {
+            return Err(format!("{path}: embedded fileDescriptors IDs do not match the separate file-metadata endpoint"));
+        }
+        let (payload_file_id, payload_file_name, payload_media_type, payload_size) =
+            payload_descriptor.expect("payload role validated above");
+        if !dataset_file_ids.contains(&payload_file_id) {
+            return Err(format!("{path}: data payload file ID is absent from provider file metadata"));
+        }
+        if media_type_for_dataset_payload(dataset, &payload_media_type)? != payload_media_type {
+            return Err(format!("{path}: data payload MIME type is inconsistent"));
+        }
+        let _ = (payload_file_name, payload_size);
     }
     if input_ids.is_empty() || output_ids.is_empty() {
         return Err("at least one INPUT and one OUTPUT dataset are required".to_owned());
     }
-    if artifact_receipts.len() != 2 || artifact_paths.len() != 2 {
-        return Err("E1 v0.1 frozen fixture requires one distinct artifact per dataset".to_owned());
+    if artifact_receipts.len() != 6 || artifact_paths.len() != 6 {
+        return Err("E1 v0.1 frozen fixture requires three distinct provider/payload artifacts per dataset".to_owned());
     }
 
     let edges = root
@@ -473,6 +638,9 @@ fn validate_envelope(
         dataset_count: datasets.len(),
         input_dataset_count: input_ids.len(),
         output_dataset_count: output_ids.len(),
+        dataset_metadata_snapshot_count: datasets.len(),
+        file_metadata_snapshot_count: datasets.len(),
+        data_payload_count: datasets.len(),
         artifact_receipts,
         envelope_sha256: format!("{:x}", Sha256::digest(canonical)),
         disposition,
@@ -513,7 +681,10 @@ mod tests {
         assert_eq!(report.dataset_count, 2);
         assert_eq!(report.input_dataset_count, 1);
         assert_eq!(report.output_dataset_count, 1);
-        assert_eq!(report.artifact_receipts.len(), 2);
+        assert_eq!(report.artifact_receipts.len(), 6);
+        assert_eq!(report.dataset_metadata_snapshot_count, 2);
+        assert_eq!(report.file_metadata_snapshot_count, 2);
+        assert_eq!(report.data_payload_count, 2);
         assert_eq!(report.disposition, "ABSTAIN_SYNTHETIC_NOT_EXECUTED");
         assert!(report.artifact_receipts.iter().all(|item| item.integrity_verified));
     }
@@ -602,6 +773,35 @@ mod tests {
         let tampered = b"{\"fixture_id\":\"tampered\"}\n";
         let error = validate_envelope(FIXTURE, tampered, OUTPUT_BYTES).expect_err("digest mismatch");
         assert!(error.contains("byte length mismatch") || error.contains("SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn provider_dataset_id_must_match_native_metadata_snapshot() {
+        let mut root = fixture_value();
+        root["datasets"][0]["dataset_id"] = Value::String("wrong-provider-dataset-id".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("provider dataset ID mismatch");
+        assert!(error.contains("provider dataset ID differs"));
+    }
+
+    #[test]
+    fn payload_file_id_must_match_dataset_and_file_metadata_descriptors() {
+        let mut root = fixture_value();
+        root["datasets"][0]["artifacts"][2]["provider_file_id"] =
+            Value::String("unregistered-provider-file".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("unregistered provider file ID");
+        assert!(error.contains("provider file ID does not match"));
+    }
+
+    #[test]
+    fn semantic_type_must_match_provider_native_data_type() {
+        let mut root = fixture_value();
+        root["datasets"][0]["semantic_type"] =
+            Value::String("different:providerDataType".into());
+        let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
+            .expect_err("semantic type mismatch");
+        assert!(error.contains("provider dataType differs"));
     }
 
     #[test]
