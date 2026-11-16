@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 36;
+pub const CASE_COUNT: usize = 44;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -755,6 +755,184 @@ fn brier_score(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn empirical_crps(observed: f64, members: &[f64]) -> f64 {
+    let member_count = members.len() as f64;
+    let first_term = members
+        .iter()
+        .map(|value| (value - observed).abs())
+        .sum::<f64>()
+        / member_count;
+    let pairwise_sum = members
+        .iter()
+        .flat_map(|left| members.iter().map(move |right| (left - right).abs()))
+        .sum::<f64>();
+    first_term - pairwise_sum / (2.0 * member_count * member_count)
+}
+
+fn crps_skill_score(input: &Value) -> Result<Value, String> {
+    let target_id = text(input, "target_definition_id")?;
+    let reference_target_id = text(input, "reference_target_definition_id")?;
+    let tolerance = number(input, "denominator_tolerance")?;
+    if tolerance < 0.0 {
+        return Err("denominator_tolerance must be non-negative".to_owned());
+    }
+    if target_id != reference_target_id {
+        return Ok(json!({
+            "probabilistic_disposition": "NOT_COMPARABLE",
+            "reason": "REFERENCE_TARGET_DEFINITION_MISMATCH",
+            "target_definition_id": target_id,
+            "reference_target_definition_id": reference_target_id,
+            "observed": null,
+            "forecast_member_count": null,
+            "reference_member_count": null,
+            "crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    let observed = number(input, "observed")?;
+    let forecast = numeric_array(input, "ensemble_members")?;
+    let reference = numeric_array(input, "reference_ensemble_members")?;
+    if observed < 0.0 || forecast.iter().chain(reference.iter()).any(|value| *value < 0.0) {
+        return Ok(json!({
+            "probabilistic_disposition": "REJECT",
+            "reason": "NEGATIVE_STREAMFLOW_VALUE",
+            "target_definition_id": target_id,
+            "observed": observed,
+            "forecast_member_count": forecast.len(),
+            "reference_member_count": reference.len(),
+            "crps": null,
+            "reference_crps": null,
+            "crps_skill_score": null
+        }));
+    }
+    let forecast_crps = empirical_crps(observed, &forecast);
+    let reference_crps = empirical_crps(observed, &reference);
+    let skill = if reference_crps <= tolerance {
+        None
+    } else {
+        Some(1.0 - forecast_crps / reference_crps)
+    };
+    Ok(json!({
+        "probabilistic_disposition": if skill.is_some() { "ADMITTED" } else { "UNDEFINED" },
+        "reason": if skill.is_some() { "CRPS_SKILL_AGAINST_DECLARED_REFERENCE" } else { "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE" },
+        "target_definition_id": target_id,
+        "reference_target_definition_id": reference_target_id,
+        "observed": observed,
+        "forecast_member_count": forecast.len(),
+        "reference_member_count": reference.len(),
+        "crps": forecast_crps,
+        "reference_crps": reference_crps,
+        "crps_skill_score": skill,
+        "skill_warning": "Always report raw forecast and reference CRPS, member counts, target definition, lead time and sample population. A CRPSS value is not comparable across different target/lead definitions or observation populations."
+    }))
+}
+
+fn weighted_interval_score(input: &Value) -> Result<Value, String> {
+    let target_id = text(input, "target_definition_id")?;
+    let observed = number(input, "observed")?;
+    let median_forecast = number(input, "median_forecast")?;
+    let intervals = array(input, "intervals")?;
+    if intervals.is_empty() {
+        return Err("intervals: at least one central interval is required".to_owned());
+    }
+    let mut scores = Vec::with_capacity(intervals.len());
+    let mut weighted_interval_sum = 0.0;
+    let mut previous_alpha: Option<f64> = None;
+    let mut previous_lower: Option<f64> = None;
+    let mut previous_upper: Option<f64> = None;
+    for (index, interval) in intervals.iter().enumerate() {
+        let alpha = number(interval, "alpha")?;
+        let lower = number(interval, "lower")?;
+        let upper = number(interval, "upper")?;
+        if !(0.0 < alpha && alpha < 1.0) {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "INTERVAL_ALPHA_OUTSIDE_ZERO_ONE",
+                "target_definition_id": target_id,
+                "invalid_interval_index": index,
+                "weighted_interval_score": null,
+                "interval_scores": null
+            }));
+        }
+        if lower > upper {
+            return Ok(json!({
+                "probabilistic_disposition": "REJECT",
+                "reason": "LOWER_BOUND_EXCEEDS_UPPER_BOUND",
+                "target_definition_id": target_id,
+                "invalid_interval_index": index,
+                "weighted_interval_score": null,
+                "interval_scores": null
+            }));
+        }
+        if let Some(prior_alpha) = previous_alpha {
+            if alpha <= prior_alpha {
+                return Ok(json!({
+                    "probabilistic_disposition": "REJECT",
+                    "reason": "INTERVAL_ALPHA_NOT_STRICTLY_INCREASING",
+                    "target_definition_id": target_id,
+                    "invalid_interval_index": index,
+                    "weighted_interval_score": null,
+                    "interval_scores": null
+                }));
+            }
+            if lower < previous_lower.expect("previous interval lower exists")
+                || upper > previous_upper.expect("previous interval upper exists")
+            {
+                return Ok(json!({
+                    "probabilistic_disposition": "REJECT",
+                    "reason": "CENTRAL_INTERVALS_NOT_NESTED_OR_QUANTILES_CROSS",
+                    "target_definition_id": target_id,
+                    "invalid_interval_index": index,
+                    "weighted_interval_score": null,
+                    "interval_scores": null
+                }));
+            }
+        }
+        let width = upper - lower;
+        let penalty = if observed < lower {
+            (2.0 / alpha) * (lower - observed)
+        } else if observed > upper {
+            (2.0 / alpha) * (observed - upper)
+        } else {
+            0.0
+        };
+        let interval_score = width + penalty;
+        let weighted_contribution = (alpha / 2.0) * interval_score;
+        weighted_interval_sum += weighted_contribution;
+        scores.push(json!({
+            "alpha": alpha,
+            "nominal_central_coverage": 1.0 - alpha,
+            "lower": lower,
+            "upper": upper,
+            "width": width,
+            "interval_score": interval_score,
+            "weighted_contribution": weighted_contribution,
+            "miss_side": if observed < lower { "LOWER" } else if observed > upper { "UPPER" } else { "COVERED" }
+        }));
+        previous_alpha = Some(alpha);
+        previous_lower = Some(lower);
+        previous_upper = Some(upper);
+    }
+    let median_absolute_error = (observed - median_forecast).abs();
+    let wis = (0.5 * median_absolute_error + weighted_interval_sum)
+        / (intervals.len() as f64 + 0.5);
+    Ok(json!({
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "WEIGHTED_INTERVAL_SCORE_WITH_NESTED_CENTRAL_INTERVALS",
+        "target_definition_id": target_id,
+        "observed": observed,
+        "median_forecast": median_forecast,
+        "median_absolute_error": median_absolute_error,
+        "interval_count": intervals.len(),
+        "weighted_interval_contributions": weighted_interval_sum,
+        "weighted_interval_score": wis,
+        "interval_scores": scores,
+        "wis_warning": "WIS is only comparable for the same target definition, quantile/interval levels and verification population; publish those identities and sample counts."
+    }))
+}
+
 fn brier_skill_score(input: &Value) -> Result<Value, String> {
     let event_id = text(input, "event_definition_id")?;
     let reference_event_id = text(input, "reference_event_definition_id")?;
@@ -987,6 +1165,15 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         | "HC-T0-034-brier-skill-score-negative"
         | "HC-T0-035-brier-skill-zero-reference-undefined"
         | "HC-T0-036-brier-skill-event-definition-mismatch" => brier_skill_score(input),
+
+        "HC-T0-037-crps-skill-positive"
+        | "HC-T0-038-crps-skill-negative"
+        | "HC-T0-039-crps-skill-zero-reference-undefined"
+        | "HC-T0-040-crps-skill-target-mismatch" => crps_skill_score(input),
+        "HC-T0-041-weighted-interval-score-contained"
+        | "HC-T0-042-weighted-interval-score-upper-miss"
+        | "HC-T0-043-weighted-interval-crossed-bounds-reject"
+        | "HC-T0-044-weighted-interval-quantile-crossing-reject" => weighted_interval_score(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1129,7 +1316,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_six_cases_match_separate_oracle() {
+    fn all_forty_four_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1263,6 +1450,66 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][31]).expect("negative ensemble member");
         assert_eq!(out["probabilistic_disposition"], "REJECT");
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
+    }
+
+
+    #[test]
+    fn crps_skill_score_reports_positive_skill_against_reference() {
+        let out = compute_case(&fixture("inputs")["cases"][36]).expect("positive CRPSS");
+        assert_eq!(out["probabilistic_disposition"], "ADMITTED");
+        assert!((out["crps"].as_f64().expect("forecast CRPS") - 4.0 / 9.0).abs() < 1.0e-12);
+        assert!((out["reference_crps"].as_f64().expect("reference CRPS") - 20.0 / 9.0).abs() < 1.0e-12);
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.8).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn crps_skill_score_preserves_negative_skill() {
+        let out = compute_case(&fixture("inputs")["cases"][37]).expect("negative CRPSS");
+        assert_eq!(out["probabilistic_disposition"], "ADMITTED");
+        assert!((out["crps_skill_score"].as_f64().expect("CRPSS") + 4.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn crps_skill_score_is_undefined_for_perfect_reference() {
+        let out = compute_case(&fixture("inputs")["cases"][38]).expect("perfect CRPS reference");
+        assert_eq!(out["probabilistic_disposition"], "UNDEFINED");
+        assert_eq!(out["reference_crps"], 0.0);
+        assert_eq!(out["crps_skill_score"], Value::Null);
+    }
+
+    #[test]
+    fn crps_skill_score_rejects_target_definition_mismatch() {
+        let out = compute_case(&fixture("inputs")["cases"][39]).expect("target mismatch");
+        assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "REFERENCE_TARGET_DEFINITION_MISMATCH");
+    }
+
+    #[test]
+    fn weighted_interval_score_combines_sharpness_and_misses() {
+        let out = compute_case(&fixture("inputs")["cases"][40]).expect("contained WIS");
+        assert_eq!(out["interval_count"], 2);
+        assert!((out["weighted_interval_score"].as_f64().expect("WIS") - 0.28).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn weighted_interval_score_penalizes_upper_miss() {
+        let out = compute_case(&fixture("inputs")["cases"][41]).expect("upper-miss WIS");
+        assert!((out["weighted_interval_score"].as_f64().expect("WIS") - 2.08).abs() < 1.0e-12);
+        assert_eq!(out["interval_scores"][0]["miss_side"], "UPPER");
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_crossed_bounds() {
+        let out = compute_case(&fixture("inputs")["cases"][42]).expect("crossed bounds");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "LOWER_BOUND_EXCEEDS_UPPER_BOUND");
+    }
+
+    #[test]
+    fn weighted_interval_score_rejects_crossing_quantile_intervals() {
+        let out = compute_case(&fixture("inputs")["cases"][43]).expect("crossing quantiles");
+        assert_eq!(out["probabilistic_disposition"], "REJECT");
+        assert_eq!(out["reason"], "CENTRAL_INTERVALS_NOT_NESTED_OR_QUANTILES_CROSS");
     }
 
     #[test]
