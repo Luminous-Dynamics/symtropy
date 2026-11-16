@@ -861,9 +861,8 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
         let manifest_schema_path = base.join("schemas/challenge-manifest-v0.1.schema.json");
         match read_json(&manifest_schema_path) {
             Ok(schema) if schema_is_valid(&schema) => {}
-            Ok(_) => errors.push(
-                "schema_meta_invalid:schemas/challenge-manifest-v0.1.schema.json".to_owned(),
-            ),
+            Ok(_) => errors
+                .push("schema_meta_invalid:schemas/challenge-manifest-v0.1.schema.json".to_owned()),
             Err(error) => errors.push(error),
         }
     }
