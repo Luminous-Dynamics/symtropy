@@ -53,7 +53,10 @@ fn main() {
             comparison.id, comparison.disposition, comparison.expected_disposition
         );
         if let Some(delta) = comparison.candidate_vs_reference_energy_delta_fraction {
-            println!("  synthetic candidate/reference energy delta: {:.2}%", delta * 100.0);
+            println!(
+                "  synthetic candidate/reference energy delta: {:.2}%",
+                delta * 100.0
+            );
         }
     }
 
