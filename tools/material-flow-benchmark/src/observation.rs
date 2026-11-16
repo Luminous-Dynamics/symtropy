@@ -342,8 +342,18 @@ mod tests {
     fn two_sensors_sharing_one_common_cause_group_are_not_independent() {
         let report = adjudicate_receiver_presence(
             &[
-                observation("evt-1", "sensor-1", Some("shared-controller"), PresenceReading::Present),
-                observation("evt-2", "sensor-2", Some("shared-controller"), PresenceReading::Present),
+                observation(
+                    "evt-1",
+                    "sensor-1",
+                    Some("shared-controller"),
+                    PresenceReading::Present,
+                ),
+                observation(
+                    "evt-2",
+                    "sensor-2",
+                    Some("shared-controller"),
+                    PresenceReading::Present,
+                ),
             ],
             &policy(),
         )
@@ -356,8 +366,18 @@ mod tests {
     fn false_positive_conflicting_with_independent_absence_is_contradictory() {
         let report = adjudicate_receiver_presence(
             &[
-                observation("evt-1", "receiver-presence", Some("receiver-device"), PresenceReading::Present),
-                observation("evt-2", "gate-contact", Some("gate-controller"), PresenceReading::Absent),
+                observation(
+                    "evt-1",
+                    "receiver-presence",
+                    Some("receiver-device"),
+                    PresenceReading::Present,
+                ),
+                observation(
+                    "evt-2",
+                    "gate-contact",
+                    Some("gate-controller"),
+                    PresenceReading::Absent,
+                ),
             ],
             &policy(),
         )
@@ -374,7 +394,12 @@ mod tests {
         stale_negative.observed_at_unix_ms = 100;
         let report = adjudicate_receiver_presence(
             &[
-                observation("evt-1", "receiver-presence", Some("receiver-device"), PresenceReading::Present),
+                observation(
+                    "evt-1",
+                    "receiver-presence",
+                    Some("receiver-device"),
+                    PresenceReading::Present,
+                ),
                 stale_negative,
             ],
             &policy(),
@@ -386,7 +411,12 @@ mod tests {
 
     #[test]
     fn stale_positive_observation_cannot_contribute_to_quorum() {
-        let mut stale = observation("evt-1", "sensor-1", Some("sensor-a"), PresenceReading::Present);
+        let mut stale = observation(
+            "evt-1",
+            "sensor-1",
+            Some("sensor-a"),
+            PresenceReading::Present,
+        );
         stale.observed_at_unix_ms = 100;
         let report = adjudicate_receiver_presence(&[stale], &policy())
             .expect("well-formed stale observation");
