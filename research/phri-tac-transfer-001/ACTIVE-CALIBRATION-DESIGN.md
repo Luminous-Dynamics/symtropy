@@ -158,3 +158,45 @@ The executable comparison now separates three data objects:
 Every selection policy accepts only the candidate slice. Model fitting receives the selected candidate indices and separately supplied reference observations. Held-out truth is passed only to the evaluator after policy selection completes. This prevents a future selector from accidentally reading reference labels through a shared candidate record, and is stronger than an informal "no leakage" promise.
 
 A deterministic reference-channel noise term is separate from the sensor readout noise. This is synthetic reference error, not a real instrument calibration or covariance model.
+
+
+## Paired multi-seed reproducibility tranche
+
+The executable robustness follow-on requires at least 50 preregistered paired seeds. Each seed reuses the same generated data across policy arms, and each arm is compared with the full-grid reference under the same seed. The summary preserves mean, median, p95 and maximum error, synthetic interval diagnostic, generated contact-cost proxy and paired RMSE delta against full-grid.
+
+This establishes whether the first policy ordering is seed-stable enough to justify further study. It does not yet provide bootstrap confidence intervals, cluster-robust statistical inference or model-family robustness; those remain required before any physical-policy selection. The source/target split and selector/evaluator type boundary remain intact across every seed.
+
+
+## Paired bootstrap interval
+
+For each policy, the campaign forms one RMSE difference per seed against the full-grid reference from the same seed. It then performs a deterministic 2,000-resample percentile bootstrap over those paired seed-level differences and reports the 95% interval for the mean difference. Each bootstrap draw resamples seed-level pairs; contact samples within a seed are never treated as independent replicates.
+
+The interval is conditional on the frozen synthetic generator and seed-selection mechanism. It quantifies seed-to-seed variability for this generator; it does not establish uncertainty for a physical sensor population, an uncertainty budget, or performance transfer to different hardware/model families. Model-family robustness and real article/lot replication remain required.
+
+
+## First hosted 50-seed campaign — 16 November 2026
+
+Workflow #78 on source head `a419a63a1a8aa9335d6a2ee0dbcde9f4f7c5d5c6` completed with 40 Rust tests passing, rustfmt passing, strict Clippy passing, the 34-case transfer oracle passing and the 50-seed campaign CLI completing.
+
+First 50-seed campaign output (all values are synthetic model estimates; force units are N):
+
+| Policy | Target refs | RMSE mean | RMSE median | RMSE p95 | RMSE max | Prediction-interval diagnostic mean | Paired RMSE delta mean | Paired bootstrap 95% interval | Synthetic cost ms mean |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Full target grid | 72 | 0.004234 | 0.004234 | 0.004234 | 0.004234 | 1.0000 | 0.000000 | [0.000000, 0.000000] | 45,240 |
+| Uniform stratified | 16 | 0.033170 | 0.033170 | 0.033170 | 0.033170 | 1.0000 | 0.028936 | [0.028936, 0.028936] | 10,480 |
+| Random stratified | 16 | 0.005848 | 0.005460 | 0.008348 | 0.010340 | 0.9610 | 0.001615 | [0.001273, 0.001995] | 10,019.4 |
+| Maximin stratified | 16 | 0.062137 | 0.062137 | 0.062137 | 0.062137 | 1.0000 | 0.057903 | [0.057903, 0.057903] | 10,480 |
+| D-optimal stratified | 16 | 0.004986 | 0.004986 | 0.004986 | 0.004986 | 0.9833 | 0.000752 | [0.000752, 0.000752] | 10,400 |
+| Source-only transfer | 0 | 0.530757 | 0.530757 | 0.530757 | 0.530757 | 0.1000 | 0.526523 | [0.526523, 0.526523] | 45,240 |
+| Transfer + D-optimal adaptation | 16 | 0.005161 | 0.005161 | 0.005161 | 0.005161 | 1.0000 | 0.000928 | [0.000928, 0.000928] | 55,640 |
+
+### Interpretation and limits
+
+- On this single synthetic response family, target-only D-optimal is the strongest sparse policy by mean and worst-case RMSE; it uses 16 rather than 72 target reference contacts and approaches the full-grid reference.
+- Seeded random stratification is less stable: lower mean RMSE than a poor fixed design, but higher p95/worst errors and a lower mean regression prediction-interval diagnostic than D-optimal.
+- Uniform and maximin are poor for this response basis and candidate geometry. A coverage metric alone does not guarantee parameter identifiability or good inverse-response prediction.
+- Source-only transfer fails under the deliberately shifted sensor profile. Transfer plus target adaptation recovers but consumes 72 source and 16 target reference contacts, costs more than target-only D-optimal and does not improve its mean or worst-case RMSE. It is not a calibration saving in this test.
+- Several seed-level distributions and bootstrap intervals collapse to a single value because this generator has fixed model coefficients, fixed stimulus geometry and only small deterministic noise changes. This does **not** establish policy stability across sensor articles, lots, response families or real physical units.
+- The bootstrap resamples paired seed-level differences, but these seeds are not independent physical instruments. The interval is conditional on this synthetic generator. The pseudo prediction interval is not a GUM uncertainty budget, and the cost values are not measured fixture time.
+
+The next required campaign changes the physical/model response family and introduces model misspecification, nonlinearity, hysteresis, reference common-mode faults, aging/remount and unit/lot variation. No physical acceptance decision should be based on this first campaign.
