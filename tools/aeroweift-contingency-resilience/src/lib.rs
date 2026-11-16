@@ -371,6 +371,10 @@ pub struct RecoverabilityAssessment {
     pub independent_option_witness: Vec<String>,
     /// Whether the candidate-option inventory is complete at both cutoffs.
     pub inventory_complete: bool,
+    /// Required number of pairwise-independent options in the frozen profile.
+    pub required_independent_options: usize,
+    /// Whether the returned witness satisfies the required option count.
+    pub required_diversity_met: bool,
     /// Exact failed/degraded domains.
     pub failed_domains: Vec<String>,
     /// Exact profile digest used for the decision.
@@ -660,8 +664,12 @@ pub fn evaluate_recoverability(
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
             inventory_complete: inventory.state == InventoryState::Complete
+                && inventory.effective_from <= case.effective_at
                 && inventory.effective_through >= case.effective_at
+                && inventory.knowledge_from <= case.known_at
                 && inventory.knowledge_through >= case.known_at,
+            required_independent_options: case.required_independent_options,
+            required_diversity_met: false,
             failed_domains: case.failed_domains.clone(),
             policy_sha256: policy.policy_sha256.clone(),
         });
@@ -675,6 +683,8 @@ pub fn evaluate_recoverability(
             admissible_option_ids: Vec::new(),
             independent_option_witness: Vec::new(),
             inventory_complete: false,
+            required_independent_options: case.required_independent_options,
+            required_diversity_met: false,
             failed_domains: case.failed_domains.clone(),
             policy_sha256: policy.policy_sha256.clone(),
         });
@@ -740,6 +750,14 @@ pub fn evaluate_recoverability(
         } else {
             RecoverabilityStatus::CoveredWithRequiredDiversity
         }
+    } else if !admissible_option_ids.is_empty()
+        && witness.len() == 1
+        && admissible_option_ids.len() == 1
+        && !has_unknown
+        && !has_reauthorization
+        && inventory_complete
+    {
+        RecoverabilityStatus::CoveredSingleOption
     } else if admissible_option_ids.is_empty() {
         if has_unknown || !inventory_complete {
             RecoverabilityStatus::Indeterminate
@@ -786,6 +804,8 @@ pub fn evaluate_recoverability(
         admissible_option_ids,
         independent_option_witness: witness,
         inventory_complete,
+        required_independent_options: case.required_independent_options,
+        required_diversity_met: witness.len() >= case.required_independent_options,
         failed_domains,
         policy_sha256: policy.policy_sha256.clone(),
     })
