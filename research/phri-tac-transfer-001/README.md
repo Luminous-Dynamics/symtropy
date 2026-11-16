@@ -168,3 +168,21 @@ The checker also requires all six declared force setpoints (0, 2, 4, 6, 8, 10 N)
 Tests cover nominal response, injected upper-range plateau, decreasing response, a truncated force range and a missing operating-condition stratum. The adversarial campaign reports observability per response family; diagnostic-only policy fits still execute under saturation to expose how models behave when the gate is ignored. The ordinary active-calibration runner uses the guard and refuses the fit if it fails.
 
 The 1e-12 raw-response resolution, six-point force manifest and twelve-condition manifest are synthetic fixture declarations only. They are not physical ADC resolution, force range or a calibration tolerance. A monotonic response test is not a complete observability proof for real multi-axis, nonlinear, hysteretic or mechanically coupled tactile systems.
+
+
+## TouchWGNN-style 113-taxel rational calibration model-form campaign
+
+The new executable module `src/active_benchmark/model_forms.rs` adds a deterministic synthetic 113-taxel array with heterogeneous taxel response parameters. It fits and compares:
+- per-taxel rational inverse calibration (F(V)=bV/(a-V)+c) using the complete 11-point grid (0–5 N, 0.5 N steps);
+- the same per-taxel rational model with six and four reference contacts per taxel;
+- one pooled/shared rational curve trained on the same six-per-taxel contact budget;
+- independent per-taxel affine calibration with the six-contact budget.
+
+Every model is evaluated on ten interleaved held-out force values per taxel. The scorecard reports pooled field RMSE, mean/p95/worst per-taxel RMSE, worst taxel identity, and total/per-taxel reference-contact counts. This is a model-form comparison; it does not yet include a hierarchical partial-pooling estimator, cross-taxel mechanical coupling, field geometry reconstruction or active selection per taxel.
+
+The fitted rational form is a deterministic grid search over the saturation asymptote (a), with conditional linear least squares for (b,c). It is not intended as a production metrology fitter. The synthetic taxel transfer functions and noise are deliberately heterogeneous and are not fitted from the TouchWGNN hardware.
+
+TouchWGNN paper comparator (not a reproduced result): seven piezoresistive modules, 113 taxels, per-taxel normal-force calibration, rational inverse form (F(V)=bV/(a-V)+c), reported calibration RMSE 0.0892 N and (R^2=0.9985), with 0–5 N in 0.5 N force steps. The paper reports these values for its own hardware, force gauge, fixture and protocol. They are not thresholds or a direct Luminous result.
+
+Paper: https://doi.org/10.3389/frobt.2026.1791424
+Full text: https://pmc.ncbi.nlm.nih.gov/articles/PMC13351857/
