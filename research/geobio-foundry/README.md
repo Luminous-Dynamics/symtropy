@@ -36,7 +36,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [PressureForge analytical reference protocol](PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
 - [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
-- [Reference kernel](kernel/) — elemental/resource accounting, bounded ideal-gas pressure reference and non-uniform subterranean morphometry
+- [Reference kernel](kernel/) — elemental/resource accounting, bounded ideal-gas pressure reference, non-uniform subterranean morphometry and cross-field site-evidence validation
 - [Implementation and validation status](IMPLEMENTATION_STATUS.md)
 
 ## Evidence contract
