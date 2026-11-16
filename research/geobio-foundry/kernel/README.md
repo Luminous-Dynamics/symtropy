@@ -24,6 +24,8 @@ The package has its own Cargo workspace and is intentionally not a member of Sym
 - Independent-witness requirement for independently reproduced and qualified claims.
 - Nominal resource intensity per kg of declared primary product, with gross and recovered energy kept separate.
 - Numerical overflow checks and negative/non-finite input rejection.
+- Numerical overflow checks and negative/non-finite input rejection.
+- Complete-composition mass reconciliation and origin-intensity ratio overflow rejection.
 
 ## Important limitations
 
