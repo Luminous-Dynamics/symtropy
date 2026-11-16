@@ -314,6 +314,29 @@ fn validate_ogc(value: &Value) -> Result<ProviderProjection, String> {
             return Err("OGC GeoJSON coordinates are outside CRS84 longitude/latitude bounds".to_owned());
         }
     }
+    let extent = value
+        .get("extent")
+        .ok_or_else(|| "OGC GeoJSON record extent is required by the selected JSON conformance class".to_owned())?;
+    let spatial = extent
+        .get("spatial")
+        .ok_or_else(|| "OGC record extent.spatial is required".to_owned())?;
+    let bbox = spatial
+        .get("bbox")
+        .and_then(Value::as_array)
+        .filter(|items| items.len() == 4)
+        .ok_or_else(|| "OGC spatial bbox must have four coordinates".to_owned())?;
+    let bbox_values = bbox
+        .iter()
+        .map(|item| item.as_f64().ok_or_else(|| "OGC bbox coordinates must be numeric".to_owned()))
+        .collect::<Result<Vec<_>, _>>()?;
+    if bbox_values != vec![0.0, 0.0, 1.0, 1.0] {
+        return Err("OGC bbox must match the fictional unit-square geometry".to_owned());
+    }
+    if required_text(spatial, "crs", "OGC extent.spatial")?
+        != "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+    {
+        return Err("OGC fixture must explicitly preserve its declared CRS84 identifier".to_owned());
+    }
     if value.get("crs").is_some() || geometry.get("crs").is_some() {
         return Err("E3 OGC adapter must not invent a legacy GeoJSON CRS member".to_owned());
     }
@@ -888,6 +911,22 @@ mod tests {
         value["geometry"]["coordinates"][0][1] = json!([500.0, 0.0]);
         let error = validate_ogc(&value).expect_err("invalid longitude");
         assert!(error.contains("CRS84 longitude/latitude bounds"));
+    }
+
+    #[test]
+    fn ogc_extent_bbox_must_match_geometry() {
+        let mut value = ogc_value();
+        value["extent"]["spatial"]["bbox"] = json!([0.0, 0.0, 2.0, 2.0]);
+        let error = validate_ogc(&value).expect_err("bbox/geometry mismatch");
+        assert!(error.contains("bbox must match"));
+    }
+
+    #[test]
+    fn ogc_extent_crs_must_remain_explicit() {
+        let mut value = ogc_value();
+        value["extent"]["spatial"].as_object_mut().expect("spatial").remove("crs");
+        let error = validate_ogc(&value).expect_err("CRS missing");
+        assert!(error.contains("extent.spatial.crs"));
     }
 
     #[test]
