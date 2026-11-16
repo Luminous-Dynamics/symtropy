@@ -755,7 +755,6 @@ fn brier_score(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn brier_skill_score(input: &Value) -> Result<Value, String> {
     let event_id = text(input, "event_definition_id")?;
     let reference_event_id = text(input, "reference_event_definition_id")?;
