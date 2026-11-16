@@ -927,7 +927,23 @@
       "data_ingested": false,
       "intended_use": "direct root exploration morphology and size/geometry response under randomized nutrients",
       "disallowed_inference": "Morphological traits are proxies for root strategy, not direct nutrient flux or uptake. Keep depth strata; do not collapse five points into five randomized plot units.",
-      "mechanism_issue": 5445
+      "mechanism_issue": 5445,
+      "archive_access": {
+        "record_url": "https://catalogue.ceh.ac.uk/documents/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+        "supporting_documentation_url": "https://data-package.ceh.ac.uk/sd/4ccaab66-2818-41b8-8b31-1a710766c5d6.zip",
+        "full_data_download_url": "https://data-package.ceh.ac.uk/data/4ccaab66-2818-41b8-8b31-1a710766c5d6",
+        "access_terms": "Open Government Licence stated by EIDC; download requires acceptance of applicable access terms",
+        "programmatic_authentication": "EIDC documentation states a Personal Access Token is required for programmatic wget/curl downloads; PAT migration effective 2026-10-05",
+        "retrieval_attempt_date": "2026-11-16",
+        "supporting_documentation_retrieval": "ATTEMPTED_FROM_CATALOGUE_LINK; BINARY_ZIP_NOT_RETRIEVABLE_IN_CURRENT_RUNTIME",
+        "full_data_retrieval": "NOT_ATTEMPTED_WITHOUT_EIDC_AUTHENTICATION",
+        "data_downloaded": false,
+        "data_ingested": false,
+        "bytes_verified": false,
+        "sha256": null,
+        "raw_file_list": null,
+        "claim_ceiling": "URLs and catalogue metadata verified; no archive bytes or CSV values admitted"
+      }
     },
     {
       "source_id": "CENTRAL-AMAZON-AFEX-ROOT-PHOSPHATASE-2018",
@@ -973,7 +989,23 @@
       "data_ingested": false,
       "intended_use": "biochemical P-mining/acquisition proxy under randomized nutrient perturbation",
       "disallowed_inference": "Potential ex-situ enzyme activity is not in-situ P uptake, realised P flux or proof of P limitation. Retain the assay method, dry-mass denominator and depth.",
-      "mechanism_issue": 5445
+      "mechanism_issue": 5445,
+      "archive_access": {
+        "record_url": "https://catalogue.ceh.ac.uk/documents/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+        "supporting_documentation_url": "https://data-package.ceh.ac.uk/sd/6529004d-b6e8-429d-ac68-0f5324d7e5d0.zip",
+        "full_data_download_url": "https://data-package.ceh.ac.uk/data/6529004d-b6e8-429d-ac68-0f5324d7e5d0",
+        "access_terms": "Open Government Licence stated by EIDC; download requires acceptance of applicable access terms",
+        "programmatic_authentication": "EIDC documentation states a Personal Access Token is required for programmatic wget/curl downloads; PAT migration effective 2026-10-05",
+        "retrieval_attempt_date": "2026-11-16",
+        "supporting_documentation_retrieval": "ATTEMPTED_FROM_CATALOGUE_LINK; BINARY_ZIP_NOT_RETRIEVABLE_IN_CURRENT_RUNTIME",
+        "full_data_retrieval": "NOT_ATTEMPTED_WITHOUT_EIDC_AUTHENTICATION",
+        "data_downloaded": false,
+        "data_ingested": false,
+        "bytes_verified": false,
+        "sha256": null,
+        "raw_file_list": null,
+        "claim_ceiling": "URLs and catalogue metadata verified; no archive bytes or CSV values admitted"
+      }
     },
     {
       "source_id": "CENTRAL-AMAZON-AFEX-ROOT-NUTRIENT-CONCENTRATION-2018",
