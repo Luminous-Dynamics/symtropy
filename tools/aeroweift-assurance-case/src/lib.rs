@@ -477,6 +477,8 @@ pub enum BlockerReason {
     EvidenceIndeterminate,
     /// No hazard node exists for a required hazard identity.
     MissingRequiredHazard,
+    /// Required hazard is not explicitly connected to a claim or strategy.
+    HazardNotLinkedToArgument,
     /// Hazard has no mitigation edge.
     HazardWithoutMitigation,
     /// Mitigation has no qualified evidence.
