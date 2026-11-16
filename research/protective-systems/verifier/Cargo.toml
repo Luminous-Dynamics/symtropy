@@ -11,6 +11,7 @@ description = "Synthetic-only evidence record conformance verifier for PROTECTIV
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+jsonschema = "=0.61.2"
 
 [[bin]]
 name = "protective-voi"
@@ -31,3 +32,7 @@ path = "src/bin/protective_resilience_bridge.rs"
 [[bin]]
 name = "protective-resilience-e0"
 path = "src/bin/protective_resilience_e0.rs"
+
+[[bin]]
+name = "protective-model-evidence"
+path = "src/bin/protective_model_evidence.rs"

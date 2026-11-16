@@ -1,0 +1,26 @@
+{
+  "id": "synthetic.dataset.water.input.001",
+  "deleted": false,
+  "title": "Synthetic water demand input",
+  "description": "Synthetic E1 compatibility record; not sourced from an IN-CORE service.",
+  "date": "2026-11-16T06:00:00+0000",
+  "creator": "synthetic-fixture-generator",
+  "contributors": [],
+  "fileDescriptors": [
+    {
+      "id": "synthetic-file-water-input-001",
+      "deleted": false,
+      "filename": "synthetic-input.json",
+      "mimeType": "application/json",
+      "size": 228,
+      "dataURL": "synthetic-fixture://synthetic.dataset.water.input.001/synthetic-file-water-input-001",
+      "md5sum": "8f495c7f8ba1ce7189866c009956fd08"
+    }
+  ],
+  "dataType": "synthetic:serviceDemand",
+  "storedUrl": "",
+  "format": "json",
+  "sourceDataset": "",
+  "boundingBox": null,
+  "networkDataset": null
+}
