@@ -21,6 +21,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [State-of-the-art gap analysis — 16 November 2026](SOTA_GAP_ANALYSIS_2026-11-16.md)
 - [GeoBioBench protocol v0.2](BENCHMARK_PROTOCOL_v0.2.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
+- [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
 - [Reference kernel](kernel/)
 - [Implementation and validation status](IMPLEMENTATION_STATUS.md)
 
