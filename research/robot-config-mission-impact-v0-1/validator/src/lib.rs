@@ -1089,6 +1089,223 @@ pub fn stage_transition_invariants(
     errors
 }
 
+const SENSOR_CONDITION_DISPOSITIONS: &[&str] = &[
+    "WithinDeclaredEnvelope",
+    "DegradedWithinDeclaredEnvelope",
+    "RequiresCleaningOrInspection",
+    "RequiresReferenceRecheck",
+    "RequiresRecalibration",
+    "RequiresApplicabilityReview",
+    "UnknownOrUnmeasured",
+    "OutsideDeclaredEnvelope",
+];
+
+pub fn sensor_condition_decision(case: &Value) -> (&'static str, &'static str) {
+    let condition = &case["condition"];
+    let diagnostics = &case["diagnostics"];
+    let intervention = &case["intervention"];
+    let sensor = &case["sensor"];
+    let reference = &case["reference_check"];
+
+    if string_at(intervention, &["cleaning_state"]) == Some("completed")
+        && string_at(intervention, &["post_clean_reference_state"]) != Some("pass")
+    {
+        return ("RequiresReferenceRecheck", "CLEANING_NOT_VERIFIED");
+    }
+
+    if ["unknown"].iter().any(|value| {
+        string_at(condition, &["severity_band"]) == Some(value)
+            || string_at(condition, &["aperture_impact"]) == Some(value)
+            || string_at(condition, &["exposure_state"]) == Some(value)
+            || string_at(condition, &["contaminant_family"]) == Some(value)
+    }) {
+        return ("UnknownOrUnmeasured", "CONTAMINATION_SEVERITY_UNKNOWN");
+    }
+
+    if has_nonempty_ref(condition.get("common_cause_event_ref")) {
+        return if bool_at(diagnostics, &["cross_modal_independence_asserted"]) == Some(true) {
+            ("RequiresApplicabilityReview", "COMMON_CAUSE_REDUNDANCY_INVALID")
+        } else {
+            ("RequiresApplicabilityReview", "SHARED_EXPOSURE_CAUSE_REQUIRES_REVIEW")
+        };
+    }
+
+    let reference_identity_matches =
+        string_at(reference, &["checked_sensor_serial"])
+            == string_at(sensor, &["serial"])
+            && string_at(reference, &["checked_mount_revision"])
+                == string_at(sensor, &["mount_revision"])
+            && string_at(reference, &["checked_configuration_revision"])
+                == string_at(sensor, &["configuration_revision"]);
+    if !reference_identity_matches {
+        return ("RequiresRecalibration", "SENSOR_IDENTITY_CHANGED");
+    }
+
+    if string_at(sensor, &["calibration_status"]) != Some("current") {
+        return match string_at(sensor, &["calibration_status"]) {
+            Some("expired") => (
+                "RequiresRecalibration",
+                "CALIBRATION_EXPIRED_AFTER_CLEANING",
+            ),
+            Some("missing") => ("RequiresRecalibration", "SENSOR_IDENTITY_CHANGED"),
+            _ => ("UnknownOrUnmeasured", "CALIBRATION_STATUS_UNKNOWN"),
+        };
+    }
+
+    if string_at(reference, &["calibration_ref"])
+        != string_at(sensor, &["calibration_ref"])
+    {
+        return ("RequiresRecalibration", "CALIBRATION_REFERENCE_MISMATCH");
+    }
+
+    if !has_nonempty_ref(reference.get("raw_artifact_ref"))
+        || !has_nonempty_ref(reference.get("profile_ref"))
+    {
+        return ("UnknownOrUnmeasured", "REFERENCE_ARTIFACT_INCOMPLETE");
+    }
+
+    if string_at(reference, &["status"]) == Some("absent") {
+        return ("RequiresReferenceRecheck", "REFERENCE_CHECK_ABSENT");
+    }
+
+    if string_at(reference, &["verifier_class"])
+        != string_at(case, &["required_verifier_class"])
+    {
+        return ("RequiresReferenceRecheck", "VERIFIER_CLASS_INSUFFICIENT");
+    }
+
+    if string_at(condition, &["severity_band"]) == Some("severe")
+        || string_at(condition, &["aperture_impact"]) == Some("obscured")
+    {
+        return ("OutsideDeclaredEnvelope", "CONTAMINATION_OUTSIDE_PROFILE");
+    }
+
+    if string_at(reference, &["status"]) == Some("fail") {
+        return match string_at(condition, &["aperture_impact"]) {
+            Some("sector_occluded") => ("RequiresCleaningOrInspection", "SECTOR_REFERENCE_FAILURE"),
+            _ if string_at(diagnostics, &["self_diagnostic"]) == Some("healthy") => (
+                "RequiresCleaningOrInspection",
+                "SELF_DIAGNOSTIC_CONTRADICTED_BY_REFERENCE",
+            ),
+            _ => (
+                "RequiresCleaningOrInspection",
+                "REFERENCE_FAILURE_WITHOUT_CONTAMINATION",
+            ),
+        };
+    }
+
+    if string_at(reference, &["status"]) == Some("unknown") {
+        return ("UnknownOrUnmeasured", "REFERENCE_RESULT_UNKNOWN");
+    }
+
+    match string_at(diagnostics, &["modality_quality"]) {
+        Some("outside_profile") => ("OutsideDeclaredEnvelope", "MODALITY_QUALITY_OUTSIDE_PROFILE"),
+        Some("degraded_within_profile") => {
+            if string_at(case, &["required_verifier_class"]) == Some("robot_self_diagnostic") {
+                ("DegradedWithinDeclaredEnvelope", "LOW_RISK_SELF_DIAGNOSTIC_PROFILE")
+            } else {
+                ("DegradedWithinDeclaredEnvelope", "DEGRADED_BUT_WITHIN_PROFILE")
+            }
+        }
+        Some("within_profile") if string_at(reference, &["status"]) == Some("pass") => {
+            if string_at(intervention, &["cleaning_state"]) == Some("completed") {
+                (
+                    "WithinDeclaredEnvelope",
+                    "POST_CLEAN_REFERENCE_AND_CALIBRATION_PASS",
+                )
+            } else {
+                ("WithinDeclaredEnvelope", "REFERENCE_AND_CALIBRATION_CURRENT")
+            }
+        }
+        _ => ("UnknownOrUnmeasured", "SENSOR_QUALITY_STATUS_UNKNOWN"),
+    }
+}
+
+/// Validate the finite public sensor-condition challenge/oracle pair. This is
+/// a development fixture interpreter only; it is not sensor metrology,
+/// maintenance authority, an ODD gate or permission to resume work.
+pub fn sensor_condition_invariants(corpus: &Value, oracle: &Value) -> Vec<String> {
+    let mut errors = Vec::new();
+    let Some(cases) = array_at(corpus, &["cases"]) else {
+        return vec!["sensor_condition_cases_missing".to_owned()];
+    };
+    let Some(labels) = array_at(oracle, &["dispositions"]) else {
+        return vec!["sensor_condition_oracle_missing".to_owned()];
+    };
+
+    let mut case_map = std::collections::BTreeMap::new();
+    for (index, case) in cases.iter().enumerate() {
+        let Some(case_id) = string_at(case, &["case_id"]) else {
+            errors.push(format!("sensor_condition_case_id_missing:{index}"));
+            continue;
+        };
+        if case_map.insert(case_id.to_owned(), case).is_some() {
+            errors.push(format!("sensor_condition_case_id_duplicate:{case_id}"));
+        }
+        if !matches!(string_at(case, &["sensor", "modality"]), Some("camera" | "lidar")) {
+            errors.push(format!("sensor_condition_modality_invalid:{case_id}"));
+        }
+        if string_at(case, &["intervention", "cleaning_state"]) == Some("completed")
+            && !has_nonempty_ref(case["intervention"].get("maintenance_event_ref"))
+        {
+            errors.push(format!("sensor_condition_cleaning_event_unbound:{case_id}"));
+        }
+        if string_at(case, &["intervention", "post_clean_reference_state"]) == Some("pass")
+            && string_at(case, &["reference_check", "status"]) != Some("pass")
+        {
+            errors.push(format!("sensor_condition_post_clean_state_mismatch:{case_id}"));
+        }
+        if !SENSOR_CONDITION_DISPOSITIONS.contains(
+            &sensor_condition_decision(case).0,
+        ) {
+            errors.push(format!("sensor_condition_disposition_invalid:{case_id}"));
+        }
+    }
+
+    let mut oracle_map = std::collections::BTreeMap::new();
+    for (index, row) in labels.iter().enumerate() {
+        let Some(case_id) = string_at(row, &["case_id"]) else {
+            errors.push(format!("sensor_condition_oracle_case_id_missing:{index}"));
+            continue;
+        };
+        if oracle_map.insert(case_id.to_owned(), row).is_some() {
+            errors.push(format!("sensor_condition_oracle_duplicate:{case_id}"));
+        }
+        if !case_map.contains_key(case_id) {
+            errors.push(format!("sensor_condition_oracle_extra_case:{case_id}"));
+        }
+        let expected = string_at(row, &["expected_disposition"]).unwrap_or("invalid");
+        if !SENSOR_CONDITION_DISPOSITIONS.contains(&expected) {
+            errors.push(format!("sensor_condition_oracle_disposition_invalid:{case_id}"));
+        }
+    }
+
+    for (case_id, case) in &case_map {
+        let Some(row) = oracle_map.get(case_id) else {
+            errors.push(format!("sensor_condition_oracle_missing_case:{case_id}"));
+            continue;
+        };
+        let (actual_disposition, actual_reason) = sensor_condition_decision(case);
+        let expected_disposition =
+            string_at(row, &["expected_disposition"]).unwrap_or("invalid");
+        let expected_reason = string_at(row, &["reason_code"]).unwrap_or("invalid");
+        if actual_disposition != expected_disposition || actual_reason != expected_reason {
+            errors.push(format!(
+                "sensor_condition_oracle_mismatch:{case_id}:expected={expected_disposition}/{expected_reason}:actual={actual_disposition}/{actual_reason}"
+            ));
+        }
+    }
+    for case_id in oracle_map.keys() {
+        if !case_map.contains_key(case_id) {
+            errors.push(format!("sensor_condition_oracle_extra_case:{case_id}"));
+        }
+    }
+
+    errors.sort();
+    errors.dedup();
+    errors
+}
+
 pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
     let base = root.join("research/robot-config-mission-impact-v0-1");
     let files = [
@@ -1132,6 +1349,14 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             "stage-transition-oracle-v0.1.json",
             "schemas/stage-transition-oracle-v0.1.schema.json",
         ),
+        (
+            "sensor-condition-challenges-v0.1.json",
+            "schemas/sensor-condition-challenges-v0.1.schema.json",
+        ),
+        (
+            "sensor-condition-oracle-v0.1.json",
+            "schemas/sensor-condition-oracle-v0.1.schema.json",
+        ),
     ];
     let mut values = Vec::new();
     let mut errors = Vec::new();
@@ -1163,6 +1388,7 @@ pub fn validate_package(root: &Path) -> Result<(), Vec<String>> {
             &values[8],
             &values[9],
         ));
+        errors.extend(sensor_condition_invariants(&values[10], &values[11]));
         let manifest_schema_path = base.join("schemas/challenge-manifest-v0.1.schema.json");
         match read_json(&manifest_schema_path) {
             Ok(schema) if schema_is_valid(&schema) => {}
@@ -1201,6 +1427,8 @@ mod tests {
             "schemas/golden-vectors-v0.1.schema.json",
             "schemas/stage-transition-challenges-v0.1.schema.json",
             "schemas/stage-transition-oracle-v0.1.schema.json",
+            "schemas/sensor-condition-challenges-v0.1.schema.json",
+            "schemas/sensor-condition-oracle-v0.1.schema.json",
         ] {
             let schema = read_json(&base.join(name)).expect("schema JSON parses");
             assert!(
@@ -1420,6 +1648,62 @@ mod tests {
         assert!(stage_transition_invariants(&stages, &corpus, &oracle)
             .iter()
             .any(|error| error.starts_with("stage_transition_oracle_missing_case:")));
+    }
+
+    #[test]
+    fn sensor_condition_cases_match_public_oracle() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("sensor-condition-challenges-v0.1.json")).unwrap();
+        let oracle = read_json(&base.join("sensor-condition-oracle-v0.1.json")).unwrap();
+        assert!(sensor_condition_invariants(&corpus, &oracle).is_empty());
+    }
+
+    #[test]
+    fn cleaning_is_not_restoration_without_post_clean_reference() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("sensor-condition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][7]),
+            ("RequiresReferenceRecheck", "CLEANING_NOT_VERIFIED")
+        );
+    }
+
+    #[test]
+    fn post_clean_reference_does_not_override_expired_calibration() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("sensor-condition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][8]),
+            ("RequiresRecalibration", "CALIBRATION_EXPIRED_AFTER_CLEANING")
+        );
+    }
+
+    #[test]
+    fn common_cause_contamination_prevents_false_cross_modal_independence() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0-1");
+        let corpus = read_json(&base.join("sensor-condition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][5]),
+            ("RequiresApplicabilityReview", "COMMON_CAUSE_REDUNDANCY_INVALID")
+        );
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][15]),
+            ("RequiresApplicabilityReview", "SHARED_EXPOSURE_CAUSE_REQUIRES_REVIEW")
+        );
+    }
+
+    #[test]
+    fn self_diagnostic_cannot_override_failed_reference_and_identity_change_requires_recalibration() {
+        let base = repository_root().join("research/robot-config-mission-impact-v0.1");
+        let corpus = read_json(&base.join("sensor-condition-challenges-v0.1.json")).unwrap();
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][6]),
+            ("RequiresCleaningOrInspection", "SELF_DIAGNOSTIC_CONTRADICTED_BY_REFERENCE")
+        );
+        assert_eq!(
+            sensor_condition_decision(&corpus["cases"][9]),
+            ("RequiresRecalibration", "SENSOR_IDENTITY_CHANGED")
+        );
     }
 
     #[test]
