@@ -372,3 +372,29 @@ The OpenLineage E3 facet must match its embedded E1 analysis ID and
 The E4 prototype has 32 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
+
+
+## E5 continuous capability assurance and requalification oracle
+
+The `protect-capability-assurance-e5` binary evaluates the synthetic
+capability graph at
+`research/protective-systems/fixtures/protect-capability-assurance-e5-v0.1/scenario.json`.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-capability-assurance-e5
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-capability-assurance-e5
+```
+
+The E5 gate computes configuration/evidence invalidation, transitive claim
+impact, current claim states and an exact minimum-cost admissible requalification
+set. It applies mandatory methods and independence as hard constraints.
+Expired, superseded, unknown or otherwise invalid evidence never promotes a
+claim. The output is a plan only; it does not execute work or qualify assets.
+
+The fixture has 23 unit tests written. Exact-head hosted formatting, Clippy,
+compilation, tests and executable output remain pending. The gate's result is
+`ABSTAIN_REQUALIFICATION_NOT_EXECUTED`.
