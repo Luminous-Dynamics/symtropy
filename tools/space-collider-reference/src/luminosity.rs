@@ -177,14 +177,10 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         / CM2_PER_MB;
 
     let total_protons_per_beam = inputs.total_bunches_per_beam * inputs.protons_per_bunch;
-    let stored_energy_per_beam_from_bunches_j = total_protons_per_beam
-        * inputs.beam_energy_tev
-        * 1.0e12
-        * ELEMENTARY_CHARGE_C;
-    let stored_energy_per_beam_from_reported_current_j = inputs.beam_current_reported_a
-        * inputs.beam_energy_tev
-        * 1.0e12
-        / revolution_frequency_hz;
+    let stored_energy_per_beam_from_bunches_j =
+        total_protons_per_beam * inputs.beam_energy_tev * 1.0e12 * ELEMENTARY_CHARGE_C;
+    let stored_energy_per_beam_from_reported_current_j =
+        inputs.beam_current_reported_a * inputs.beam_energy_tev * 1.0e12 / revolution_frequency_hz;
     let stored_energy_current_vs_bunch_relative_residual =
         (stored_energy_per_beam_from_reported_current_j - stored_energy_per_beam_from_bunches_j)
             / stored_energy_per_beam_from_bunches_j;
