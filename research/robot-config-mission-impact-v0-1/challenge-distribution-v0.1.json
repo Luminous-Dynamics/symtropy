@@ -1,0 +1,296 @@
+{
+  "schema_version": "robot-config-mission-distribution-v0.1",
+  "profile_id": "ROBOT-CONFIG-MISSION-IMPACT-001-DISTRIBUTION-DEV-001",
+  "generator_id": "robot-stochastic-challenge-generator/0.1",
+  "visibility": "public_synthetic_development",
+  "allocation_method": "largest_remainder_then_seeded_shuffle",
+  "bundle_selection_method": "uniform_within_stratum_atomic_bundle",
+  "seed_policy": "public_development_only_not_cryptographic",
+  "coherence_policy": "atomic_named_profile_bundle_not_independent_axis_sampling",
+  "strata": [
+    {
+      "stratum_id": "camera_change",
+      "mutation_family": "camera_serial_replacement",
+      "weight": 1,
+      "changed_component_ids": [
+        "sensor.camera",
+        "sensor.calibration"
+      ],
+      "coherence_group": "sensor_mount_calibration",
+      "bundles": [
+        {
+          "bundle_id": "camera-controlled-nominal",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "controlled_visibility",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/camera/controlled-nominal"
+        },
+        {
+          "bundle_id": "camera-low-light-boundary",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "constrained_visibility",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/camera/low-light-boundary"
+        },
+        {
+          "bundle_id": "camera-dusty-outdoor",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_visibility",
+          "severity": "perturbed",
+          "factor_profile_ref": "fixture://factor-profile/camera/dusty-outdoor"
+        }
+      ]
+    },
+    {
+      "stratum_id": "tool_geometry_change",
+      "mutation_family": "tool_geometry_changed",
+      "weight": 1,
+      "changed_component_ids": [
+        "tool.geometry",
+        "tool.mount"
+      ],
+      "coherence_group": "tool_geometry_tcp",
+      "bundles": [
+        {
+          "bundle_id": "tool-layout-nominal",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "construction_flat_site",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/tool/nominal-reach"
+        },
+        {
+          "bundle_id": "tool-clearance-boundary",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "mixed_surface_observed",
+          "odd_profile": "constrained_workspace",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/tool/clearance-boundary"
+        },
+        {
+          "bundle_id": "tool-reach-outside-envelope",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "mixed_surface_observed",
+          "odd_profile": "constrained_workspace",
+          "severity": "out_of_envelope",
+          "factor_profile_ref": "fixture://factor-profile/tool/reach-outside"
+        }
+      ]
+    },
+    {
+      "stratum_id": "payload_change",
+      "mutation_family": "payload_com_changed",
+      "weight": 1,
+      "changed_component_ids": [
+        "payload.mass_com_inertia"
+      ],
+      "coherence_group": "payload_mass_com_inertia",
+      "bundles": [
+        {
+          "bundle_id": "payload-qualified-nominal",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "construction_flat_site",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/payload/qualified-envelope"
+        },
+        {
+          "bundle_id": "payload-high-com-boundary",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_flat_site",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/payload/high-com-boundary"
+        },
+        {
+          "bundle_id": "payload-outside-envelope",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_flat_site",
+          "severity": "out_of_envelope",
+          "factor_profile_ref": "fixture://factor-profile/payload/outside-envelope"
+        }
+      ]
+    },
+    {
+      "stratum_id": "battery_change",
+      "mutation_family": "battery_health_unmeasured",
+      "weight": 1,
+      "changed_component_ids": [
+        "battery.module",
+        "battery.health",
+        "power.bus"
+      ],
+      "coherence_group": "battery_capacity_power_thermal",
+      "bundles": [
+        {
+          "bundle_id": "battery-healthy-nominal",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "construction_flat_site",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/battery/healthy-nominal"
+        },
+        {
+          "bundle_id": "battery-reduced-reserve-boundary",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_flat_site",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/battery/reduced-reserve-boundary"
+        },
+        {
+          "bundle_id": "battery-health-unknown",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_flat_site",
+          "severity": "unknown",
+          "factor_profile_ref": "fixture://factor-profile/battery/health-unknown"
+        }
+      ]
+    },
+    {
+      "stratum_id": "drive_change",
+      "mutation_family": "drive_module_changed",
+      "weight": 1,
+      "changed_component_ids": [
+        "drive.module"
+      ],
+      "coherence_group": "drive_surface_slip",
+      "bundles": [
+        {
+          "bundle_id": "drive-indoor-flat",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "construction_flat_site",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/drive/indoor-flat"
+        },
+        {
+          "bundle_id": "drive-compacted-boundary",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "construction_flat_site",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/drive/compacted-boundary"
+        },
+        {
+          "bundle_id": "drive-slope-outside-envelope",
+          "task_profile": "survey_inspection",
+          "site_profile": "mixed_surface_observed",
+          "odd_profile": "construction_variable_surface",
+          "severity": "out_of_envelope",
+          "factor_profile_ref": "fixture://factor-profile/drive/slope-outside"
+        }
+      ]
+    },
+    {
+      "stratum_id": "timebase_change",
+      "mutation_family": "timebase_replaced",
+      "weight": 1,
+      "changed_component_ids": [
+        "timebase.clock",
+        "controller.timestamps"
+      ],
+      "coherence_group": "clock_timebase_latency",
+      "bundles": [
+        {
+          "bundle_id": "timebase-mapped-nominal",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "synchronized_multimodal",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/timebase/mapped-nominal"
+        },
+        {
+          "bundle_id": "timebase-drift-boundary",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "synchronized_multimodal",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/timebase/drift-boundary"
+        },
+        {
+          "bundle_id": "timebase-mapping-absent",
+          "task_profile": "survey_inspection",
+          "site_profile": "mixed_surface_observed",
+          "odd_profile": "synchronized_multimodal",
+          "severity": "unknown",
+          "factor_profile_ref": "fixture://factor-profile/timebase/mapping-absent"
+        }
+      ]
+    },
+    {
+      "stratum_id": "safety_chain_change",
+      "mutation_family": "safety_chain_revision",
+      "weight": 1,
+      "changed_component_ids": [
+        "safety.controller",
+        "brake.chain"
+      ],
+      "coherence_group": "safety_chain_revision",
+      "bundles": [
+        {
+          "bundle_id": "safety-revision-controlled",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "guarded_commissioning",
+          "severity": "nominal",
+          "factor_profile_ref": "fixture://factor-profile/safety/revision-controlled"
+        },
+        {
+          "bundle_id": "safety-interlock-boundary",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "guarded_commissioning",
+          "severity": "boundary",
+          "factor_profile_ref": "fixture://factor-profile/safety/interlock-boundary"
+        },
+        {
+          "bundle_id": "safety-evidence-incomplete",
+          "task_profile": "survey_inspection",
+          "site_profile": "outdoor_compacted",
+          "odd_profile": "guarded_commissioning",
+          "severity": "unknown",
+          "factor_profile_ref": "fixture://factor-profile/safety/evidence-incomplete"
+        }
+      ]
+    },
+    {
+      "stratum_id": "unknown_dependency_change",
+      "mutation_family": "unknown_module_incomplete_scope",
+      "weight": 1,
+      "changed_component_ids": [
+        "module.unknown.17"
+      ],
+      "coherence_group": "unknown_dependency_scope",
+      "bundles": [
+        {
+          "bundle_id": "unknown-module-review-required",
+          "task_profile": "survey_inspection",
+          "site_profile": "indoor_flat_concrete",
+          "odd_profile": "unresolved_scope",
+          "severity": "unknown",
+          "factor_profile_ref": "fixture://factor-profile/unknown/module-review"
+        },
+        {
+          "bundle_id": "unknown-interface-unbounded",
+          "task_profile": "non_load_bearing_layout",
+          "site_profile": "mixed_surface_observed",
+          "odd_profile": "unresolved_scope",
+          "severity": "unknown",
+          "factor_profile_ref": "fixture://factor-profile/unknown/interface-unbounded"
+        }
+      ]
+    }
+  ],
+  "nonclaims": [
+    "The factor_profile_ref values are synthetic labels; they do not resolve to measured physical parameter ranges or a validated physics model.",
+    "Bundles are selected atomically so coupled axes are not sampled independently; this profile does not yet prove physical coherence or safety.",
+    "This public development PRNG is reproducible but not cryptographically secure and must not protect evaluator-held seeds.",
+    "The generator is not a robot simulator, configuration qualifier or physical trial authorization."
+  ]
+}
