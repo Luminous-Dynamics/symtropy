@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 38,
+  "case_count": 40,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -42,7 +42,9 @@
     "HC-T0-035-skill-population-mismatch-not-comparable",
     "HC-T0-036-brier-skill-zero-reference-undefined",
     "HC-T0-037-crps-skill-zero-reference-undefined",
-    "HC-T0-038-crps-skill-lead-mismatch-not-comparable"
+    "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
+    "HC-T0-039-crps-skill-case-identity-mismatch",
+    "HC-T0-040-brier-skill-event-definition-mismatch"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -91,6 +93,8 @@
     "Skill scores are relative to an explicitly identified reference and are only comparable when forecast/reference use exactly the same evaluation population, ordered observation case IDs, lead time and (for Brier) event definition.",
     "CRPSS and BSS are not clipped to [0,1]; negative values mean the forecast is worse than the named reference.",
     "A zero or near-zero reference score makes the corresponding skill score Undefined, not zero or infinite.",
-    "Do not compare a forecast to a reference computed on different catchments, events, observation cases, lead times or threshold definitions."
+    "Do not compare a forecast to a reference computed on different catchments, events, observation cases, lead times or threshold definitions.",
+    "Each relative skill result names both the candidate forecast and reference forecast (for example, persistence or train-only seasonal climatology); unnamed or implicit references are not accepted.",
+    "Skill comparisons reject different ordered observation-case identities or different versioned binary-event definitions, even when aggregate sample counts match."
   ]
 }
