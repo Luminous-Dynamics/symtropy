@@ -23,7 +23,9 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [SubterraBench v0.1](SUBTERRA_BENCHMARK_PROTOCOL_v0.1.md)
 - [Subterra site evidence schema](SUBTERRA_SITE_EVIDENCE_SCHEMA_v0.1.json)
 - [Subterra non-uniform profile schema](SUBTERRA_PROFILE_SCHEMA_v0.1.json)
+- [Subterra cave network schema](SUBTERRA_NETWORK_SCHEMA_v0.1.json)
 - [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
+- [Synthetic cave connectivity fixture](fixtures/subterra-cave-network-synthetic.json)
 - [Synthetic non-uniform profile fixture](fixtures/subterra-nonuniform-profile-synthetic.json)
 - [Synthetic site-evidence fixture](fixtures/subterra-site-evidence-synthetic.json)
 
@@ -36,7 +38,7 @@ GeoBio should compose these capabilities rather than create a competing terrain 
 - [PressureForge analytical reference protocol](PRESSUREFORGE_REFERENCE_PROTOCOL_v0.1.md)
 - [Resource graph record schema v0.2](RESOURCE_GRAPH_SCHEMA_v0.2.json)
 - [Synthetic water-electrolysis fixture](fixtures/water-electrolysis-reference.json)
-- [Reference kernel](kernel/) — elemental/resource accounting, bounded ideal-gas pressure reference, non-uniform subterranean morphometry and cross-field site-evidence validation
+- [Reference kernel](kernel/) — elemental/resource accounting, bounded ideal-gas pressure reference, non-uniform subterranean morphometry, cross-field site-evidence validation and evidence-preserving connectivity/retreat graph
 - [Implementation and validation status](IMPLEMENTATION_STATUS.md)
 
 ## Evidence contract
