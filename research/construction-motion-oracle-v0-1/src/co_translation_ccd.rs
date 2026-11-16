@@ -1826,8 +1826,9 @@ mod adaptive_certificate_tests {
 
     #[test]
     fn unresolved_leaf_blocks_no_contact_certificate() {
-        let moving = Capsule::new(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 0.5).unwrap();
-        let obstacle = Capsule::new(p(0.0, 10.0, 0.0), p(1_000.0, 10.000_001, 0.0), 0.5).unwrap();
+        let moving = Capsule::new(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 4.2).unwrap();
+        let obstacle =
+            Capsule::new(p(0.0, 6.0, 6.0), p(1_000.0, 6.000_001, 6.0), 4.2).unwrap();
         let certificate = co_translating_capsule_adaptive_query_with_certificate(
             moving,
             p(0.0, 0.0, 0.0),
