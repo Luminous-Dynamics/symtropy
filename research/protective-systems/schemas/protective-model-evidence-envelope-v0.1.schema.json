@@ -240,7 +240,8 @@
             "SYNTHETIC_TEST_ONLY",
             "INTEROPERABILITY_EVALUATION",
             "RESEARCH_EVALUATION",
-            "PUBLICATION_REVIEW"
+            "PUBLICATION_REVIEW",
+            "NOT_ADMITTED"
           ]
         }
       }
