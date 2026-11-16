@@ -923,7 +923,7 @@ fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Val
         "forecast_evaluation_population_id": forecast_population,
         "forecast_lead_hours": forecast_lead,
         "case_count": observation_ids.len(),
-        "case_identity_sha256": sha256(observation_ids.join("\\n").as_bytes())
+        "case_identity_ids": observation_ids
     })))
 }
 
