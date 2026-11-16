@@ -830,9 +830,12 @@ mod tests {
         let mut metrics = read_json(&base.join("mission-outcome-metrics-v0.1.json")).unwrap();
         let oracle = read_json(&base.join("development-oracle-v0.1.json")).unwrap();
         metrics["rows"][0]["source"]["quality"]["independent_measurement_ref"] = Value::Null;
-        assert!(outcome_metric_invariants(&metrics, &oracle)
-            .iter()
-            .any(|error| error.starts_with("accepted_or_rejected_output_lacks_referee_measurement:")));
+        assert!(
+            outcome_metric_invariants(&metrics, &oracle)
+                .iter()
+                .any(|error| error
+                    .starts_with("accepted_or_rejected_output_lacks_referee_measurement:"))
+        );
     }
 
     #[test]
