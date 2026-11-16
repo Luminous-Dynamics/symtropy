@@ -593,6 +593,8 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
     validate_scope(&policy.expected_scope)?;
     if !is_sha256(&policy.policy_sha256)
         || !is_sha256(&policy.verifier_build_sha256)
+        || policy.required_claim_evidence.is_empty()
+        || policy.required_mitigation_evidence.is_empty()
         || policy.required_hazards.is_empty()
         || policy
             .required_hazards
@@ -603,6 +605,45 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
             .required_authorities
             .iter()
             .any(|item| item.role.trim().is_empty() || item.authority_id.trim().is_empty())
+    {
+        return Err(EvaluationError::InvalidPolicy);
+    }
+    let claim_requirement_ids: BTreeSet<&str> = policy
+        .required_claim_evidence
+        .iter()
+        .map(|item| item.claim_id.as_str())
+        .collect();
+    if claim_requirement_ids.len() != policy.required_claim_evidence.len()
+        || policy.required_claim_evidence.iter().any(|item| {
+            item.claim_id.trim().is_empty()
+                || item
+                    .required_purposes
+                    .iter()
+                    .copied()
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    != item.required_purposes.len()
+        })
+    {
+        return Err(EvaluationError::InvalidPolicy);
+    }
+    let mitigation_requirement_ids: BTreeSet<&str> = policy
+        .required_mitigation_evidence
+        .iter()
+        .map(|item| item.mitigation_id.as_str())
+        .collect();
+    if mitigation_requirement_ids.len() != policy.required_mitigation_evidence.len()
+        || policy.required_mitigation_evidence.iter().any(|item| {
+            item.mitigation_id.trim().is_empty()
+                || item.required_purposes.is_empty()
+                || item
+                    .required_purposes
+                    .iter()
+                    .copied()
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    != item.required_purposes.len()
+        })
     {
         return Err(EvaluationError::InvalidPolicy);
     }
@@ -619,6 +660,43 @@ fn validate_policy(policy: &AssuranceCasePolicy) -> Result<(), EvaluationError> 
         return Err(EvaluationError::InvalidPolicy);
     }
     Ok(())
+}
+
+fn evidence_purpose_matches_source(
+    source: EvidenceSourceKind,
+    purpose: EvidencePurpose,
+) -> bool {
+    matches!(
+        (source, purpose),
+        (EvidenceSourceKind::TrackL, EvidencePurpose::PntReachability)
+            | (EvidenceSourceKind::TrackM, EvidencePurpose::SurveillanceObservability)
+            | (EvidenceSourceKind::TrackN, EvidencePurpose::IntentConformance)
+            | (EvidenceSourceKind::TrackP, EvidencePurpose::CausalReceiptBinding)
+            | (EvidenceSourceKind::TrackQ, EvidencePurpose::AuthenticatedCustody)
+            | (EvidenceSourceKind::TrackR, EvidencePurpose::ConflictPerformance)
+            | (EvidenceSourceKind::TrackS, EvidencePurpose::MultiSubjectScope)
+            | (EvidenceSourceKind::TrackT, EvidencePurpose::ModelCredibility)
+            | (EvidenceSourceKind::TrackU, EvidencePurpose::ModelRequalification)
+            | (EvidenceSourceKind::TrackVPlanning, EvidencePurpose::ExperimentPlan)
+            | (
+                EvidenceSourceKind::ExternalFlightTest,
+                EvidencePurpose::PhysicalMitigationEffectiveness
+            )
+            | (
+                EvidenceSourceKind::ExternalMeasurement,
+                EvidencePurpose::PhysicalMitigationEffectiveness
+                    | EvidencePurpose::ReferenceMeasurement
+            )
+            | (
+                EvidenceSourceKind::ExternalAuthority,
+                EvidencePurpose::ExternalAuthorityRecord
+            )
+            | (
+                EvidenceSourceKind::GenericSoftwareCi,
+                EvidencePurpose::GenericSoftwareVerification
+            )
+            | (EvidenceSourceKind::Other, EvidencePurpose::Unclassified)
+    )
 }
 
 fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
@@ -734,6 +812,9 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
                 .is_some_and(|value| value.trim().is_empty())
         {
             return Err(EvaluationError::InvalidNode);
+        }
+        if !evidence_purpose_matches_source(evidence.source_kind, evidence.purpose) {
+            return Err(EvaluationError::EvidencePurposeSourceMismatch);
         }
     }
     Ok(())
