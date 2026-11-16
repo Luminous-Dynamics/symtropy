@@ -687,7 +687,7 @@ mod tests {
     #[test]
     fn adaptive_no_contact_requires_every_candidate_leaf_to_be_clear() {
         let moving = capsule(p(0.0, 0.0, 0.0), p(0.0, 0.0, 0.0), 0.25);
-        let obstacle = capsule(p(0.0, 0.9, 0.9), p(1_000.0, 0.900_1, 0.9), 0.25);
+        let obstacle = capsule(p(0.0, 0.45, 0.45), p(1_000.0, 0.450_5, 0.45), 0.25);
         let report = co_translating_capsule_adaptive_query(
             moving,
             p(0.0, 0.0, 0.0),
@@ -777,7 +777,7 @@ mod tests {
     }
 
     #[test]
-    fn 10_000_generated_contacts_are_never_pruned_by_adaptive_space_time() {
+    fn generated_ten_thousand_contacts_are_never_pruned_by_adaptive_space_time() {
         let mut seed = 0x51ace_2026_u64;
         let mut next = || {
             seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
