@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 36,
+  "case_count": 44,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -40,7 +40,15 @@
     "HC-T0-033-brier-skill-score-positive",
     "HC-T0-034-brier-skill-score-negative",
     "HC-T0-035-brier-skill-zero-reference-undefined",
-    "HC-T0-036-brier-skill-event-definition-mismatch"
+    "HC-T0-036-brier-skill-event-definition-mismatch",
+    "HC-T0-037-crps-skill-positive",
+    "HC-T0-038-crps-skill-negative",
+    "HC-T0-039-crps-skill-zero-reference-undefined",
+    "HC-T0-040-crps-skill-target-mismatch",
+    "HC-T0-041-weighted-interval-score-contained",
+    "HC-T0-042-weighted-interval-score-upper-miss",
+    "HC-T0-043-weighted-interval-crossed-bounds-reject",
+    "HC-T0-044-weighted-interval-quantile-crossing-reject"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -60,7 +68,9 @@
     "empirical_ensemble_crps": "CRPS(F,y) = mean_m |x_m-y| - (1/(2M^2)) sum_m sum_n |x_m-x_n| for the finite empirical ensemble; lower is better. Report raw ensemble size and do not clip negative CRPS caused by an implementation bug.",
     "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
     "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null.",
-    "brier_skill_score": "BSS = 1 - mean((p-o)^2)/mean((p_ref-o)^2) for paired forecasts and outcomes of the same predeclared event, with lower-is-better raw Brier scores and event definition identity preserved. BSS is undefined when the reference Brier score is zero/within tolerance; it is not clipped."
+    "brier_skill_score": "BSS = 1 - mean((p-o)^2)/mean((p_ref-o)^2) for paired forecasts and outcomes of the same predeclared event, with lower-is-better raw Brier scores and event definition identity preserved. BSS is undefined when the reference Brier score is zero/within tolerance; it is not clipped.",
+    "crps_skill_score": "CRPSS = 1 - CRPS_forecast / CRPS_reference using paired empirical ensembles, the same observed value and an identical target-definition ID. Negative skill is retained; a zero reference CRPS makes skill undefined.",
+    "weighted_interval_score": "For K central intervals with ascending miscoverage alpha, WIS = (0.5*|y-median| + sum_k (alpha_k/2)*IS_alpha_k)/(K+0.5), where IS_alpha = (upper-lower) + (2/alpha)*(lower-y) if y<lower, + (2/alpha)*(y-upper) if y>upper, otherwise just width."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -88,6 +98,10 @@
     "Always report raw forecast Brier score, raw reference Brier score, event count, sample count, observed event frequency and reference event definition alongside Brier skill score.",
     "The forecast and reference must target exactly the same event definition, threshold, units, lead time and valid-time semantics; mismatched definitions are NOT_COMPARABLE.",
     "A zero-error/perfect reference makes Brier skill undefined; do not report infinite, clipped or fabricated skill.",
-    "Rare-event Brier skill must not be interpreted alone; publish event frequency, reference definition, raw scores, uncertainty and threshold/decision metrics."
+    "Rare-event Brier skill must not be interpreted alone; publish event frequency, reference definition, raw scores, uncertainty and threshold/decision metrics.",
+    "CRPS skill requires identical target definition IDs, including variable, units, threshold/transformation, lead time and valid-time semantics; report raw forecast/reference CRPS and ensemble sizes.",
+    "A zero/near-zero reference CRPS makes CRPSS undefined. Negative CRPSS is retained and not clipped.",
+    "Weighted interval score requires ascending unique alpha levels and nested central intervals; reject crossed bounds or quantile crossing rather than reordering or repairing forecast quantiles.",
+    "Report each interval level, width, miss side and weighted interval contribution alongside aggregate WIS; WIS is only comparable for the same target definition and interval levels."
   ]
 }
