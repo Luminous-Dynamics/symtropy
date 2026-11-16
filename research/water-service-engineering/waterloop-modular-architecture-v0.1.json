@@ -520,7 +520,7 @@
         "M09-NONPOTABLE-RESERVOIR",
         "M10-USE-DELIVERY"
       ],
-      "selection": "candidate_for_matched_unoccupied_test_only; compare chemistry and microbial outcomes separately; not selected or qualified"
+      "selection": "candidate_for_matched_unoccupied_test_only; compare chemistry and microbial outcomes separately; no train selection or product/use claim is made"
     }
   ],
   "fail_safe_state": {
