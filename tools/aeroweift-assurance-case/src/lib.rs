@@ -531,8 +531,8 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
         || !is_sha256(&node.payload_sha256)
         || node.owner_role.trim().is_empty()
         || node.revision.trim().is_empty()
-        || node.valid_from >= node.valid_until
-        || node.scope != node.scope.clone()
+        || node.valid_from < 0
+        || node.valid_until <= node.valid_from
     {
         return Err(EvaluationError::InvalidNode);
     }
@@ -601,6 +601,9 @@ fn validate_node_shape(node: &AssuranceNode) -> Result<(), EvaluationError> {
                 && node.authority_decision.as_ref().is_some_and(|x| {
                     !x.role.trim().is_empty()
                         && !x.authority_id.trim().is_empty()
+                        && x.effective_at >= 0
+                        && x.recorded_at >= 0
+                        && x.valid_until.is_none_or(|end| end > x.effective_at)
                         && is_sha256(&x.conditions_sha256)
                 })
         }
@@ -639,7 +642,8 @@ fn edge_type_valid(edge: &AssuranceEdge, nodes: &BTreeMap<&str, &AssuranceNode>)
     match edge.kind {
         EdgeKind::Decomposes => matches!(
             (from.kind, to.kind),
-            (NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy, NodeKind::Strategy | NodeKind::Claim)
+            (NodeKind::TopClaim | NodeKind::Claim, NodeKind::Strategy)
+                | (NodeKind::TopClaim | NodeKind::Claim | NodeKind::Strategy, NodeKind::Claim)
         ),
         EdgeKind::Supports => {
             from.kind == NodeKind::Evidence
@@ -799,7 +803,7 @@ pub fn evaluate_assurance_case(
             && edge.kind == EdgeKind::Decomposes
             && by_id.get(edge.to_node_id.as_str()).is_some_and(|node| node.kind == NodeKind::Strategy)
     }) {
-        add_blocker(&mut blockers, root_claim_id, BlockerReason::AssumptionWithoutSupport);
+        add_blocker(&mut blockers, root_claim_id, BlockerReason::MissingDecompositionStrategy);
     }
 
     // Strategies must resolve into claims; claims must have a support path.
@@ -811,7 +815,7 @@ pub fn evaluate_assurance_case(
                     && by_id.get(edge.to_node_id.as_str()).is_some_and(|child| child.kind == NodeKind::Claim)
             })
         {
-            add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
+            add_blocker(&mut blockers, &node.node_id, BlockerReason::StrategyWithoutSubclaim);
         }
 
         if matches!(node.kind, NodeKind::TopClaim | NodeKind::Claim) {
@@ -845,7 +849,7 @@ pub fn evaluate_assurance_case(
                 edge.from_node_id == node.node_id && edge.kind == EdgeKind::Decomposes
             });
             if supporting_evidence.is_empty() && !has_subclaim_strategy {
-                add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
+                add_blocker(&mut blockers, &node.node_id, BlockerReason::ClaimWithoutSupportOrDecomposition);
             }
         }
     }
@@ -929,7 +933,12 @@ pub fn evaluate_assurance_case(
                 }
             }
             AssumptionState::AcceptedByAuthority => {
-                if !has_accepted_decision_edge(node, edges, &by_id) {
+                if !has_accepted_decision_edge(
+                    node,
+                    edges,
+                    &by_id,
+                    policy,
+                ) {
                     add_blocker(&mut blockers, &node.node_id, BlockerReason::AssumptionWithoutSupport);
                 }
             }
@@ -1045,6 +1054,7 @@ fn has_accepted_decision_edge(
     node: &AssuranceNode,
     edges: &[AssuranceEdge],
     by_id: &BTreeMap<&str, &AssuranceNode>,
+    policy: &AssuranceCasePolicy,
 ) -> bool {
     edges.iter().any(|edge| {
         edge.from_node_id == node.node_id
@@ -1052,6 +1062,15 @@ fn has_accepted_decision_edge(
             && by_id.get(edge.to_node_id.as_str()).is_some_and(|decision_node| {
                 decision_node.authority_decision.as_ref().is_some_and(|decision| {
                     decision.status == AuthorityDecisionStatus::Accepted
+                        && decision.effective_at <= policy.expected_scope.effective_cutoff
+                        && decision.recorded_at <= policy.expected_scope.knowledge_cutoff
+                        && decision.valid_until.is_none_or(|end| {
+                            policy.expected_scope.effective_cutoff < end
+                        })
+                        && policy.required_authorities.iter().any(|required| {
+                            required.role == decision.role
+                                && required.authority_id == decision.authority_id
+                        })
                 })
             })
     })
