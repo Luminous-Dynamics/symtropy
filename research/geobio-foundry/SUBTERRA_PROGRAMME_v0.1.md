@@ -181,3 +181,11 @@ Do not perform roof alteration, pressure testing, biological release or occupied
 A breakthrough is not merely a larger point cloud or longer robot traverse. It is a reproducible increase in the amount of **decision-relevant, independently verified subsurface understanding** per unit of mission time, energy, mass and risk, while preserving unknowns, communicating evidence, and returning the robot and data.
 
 The first research objective is to demonstrate that the same evidence model and benchmark protocol can compare different geological classes without pretending that their physics or operating envelopes are interchangeable.
+
+## 10. Sol Atlas integration
+
+The planetary site catalogue and body-fixed coordinate reference system should live in the Luminous Dynamics [Sol Atlas repository](https://github.com/Luminous-Dynamics/sol-atlas-leptos), not be duplicated inside Symtropy.
+
+The initial Sol Atlas integration specification and body/frame-aware site schema are under review in [draft PR #893](https://github.com/Luminous-Dynamics/sol-atlas-leptos/pull/893). It records the current Earth-centric `Site` and geodetic-helper limitations, defines body-fixed and local subterranean survey-frame requirements, and provides a synthetic Moon fixture. No production Sol Atlas types or transforms are changed in that increment.
+
+Symtropy owns the geometry/morphometry, robotics, physics and scenario benchmarks. Sol Atlas owns planetary frames, the site catalogue, source observations and spatial evidence visualization. The two should exchange versioned, evidence-carrying records through a reviewed adapter rather than duplicate or silently reinterpret coordinate systems.
