@@ -867,6 +867,8 @@ fn empirical_crps(observed: f64, members: &[f64]) -> Result<f64, String> {
 }
 
 fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Value>, String> {
+    let forecast_id = text(input, "forecast_id")?;
+    let reference_id = text(input, "reference_forecast_id")?;
     let forecast_population = text(input, "forecast_evaluation_population_id")?;
     let reference_population = text(input, "reference_evaluation_population_id")?;
     let forecast_lead = number(input, "forecast_lead_hours")?;
@@ -920,6 +922,8 @@ fn skill_context(input: &Value, require_event: bool) -> Result<Result<Value, Val
         }
     }
     Ok(Ok(json!({
+        "forecast_id": forecast_id,
+        "reference_forecast_id": reference_id,
         "forecast_evaluation_population_id": forecast_population,
         "forecast_lead_hours": forecast_lead,
         "case_count": observation_ids.len(),
