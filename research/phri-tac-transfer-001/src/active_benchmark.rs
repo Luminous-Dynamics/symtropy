@@ -37,7 +37,58 @@ struct Candidate {
 #[derive(Clone, Debug, PartialEq)]
 struct SyntheticDomain {
     candidates: Vec<Candidate>,
+    /// Primary reference channel used for fitting.
     reference_force_observations_n: Vec<f64>,
+    /// Separate synthetic check channel; never used to fit this model.
+    independent_check_reference_force_observations_n: Vec<f64>,
+}
+
+/// Pairwise reference-channel agreement is only a fault screen. Agreement does
+/// not establish traceability or prove that the channels have independent
+/// calibration ancestry / common-cause failure modes.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ReferenceIntegrityReport {
+    pub accepted: bool,
+    pub sample_count: usize,
+    pub max_abs_disagreement_n: f64,
+    pub rms_disagreement_n: f64,
+    pub tolerance_n: f64,
+    pub agreement_proves_independence: bool,
+}
+
+pub fn reference_integrity_check(
+    primary_reference_n: &[f64],
+    independent_check_reference_n: &[f64],
+    tolerance_n: f64,
+) -> Result<ReferenceIntegrityReport, String> {
+    if primary_reference_n.is_empty()
+        || primary_reference_n.len() != independent_check_reference_n.len()
+        || !tolerance_n.is_finite()
+        || tolerance_n < 0.0
+    {
+        return Err("reference channels require equal nonempty samples and a finite nonnegative tolerance".to_owned());
+    }
+    let mut squared = 0.0;
+    let mut maximum = 0.0_f64;
+    for (primary, check) in primary_reference_n.iter().zip(independent_check_reference_n) {
+        if !primary.is_finite() || !check.is_finite() {
+            return Err("reference channel contains non-finite sample".to_owned());
+        }
+        let difference = (primary - check).abs();
+        maximum = maximum.max(difference);
+        squared += difference * difference;
+    }
+    let count = primary_reference_n.len() as f64;
+    Ok(ReferenceIntegrityReport {
+        accepted: maximum <= tolerance_n,
+        sample_count: primary_reference_n.len(),
+        max_abs_disagreement_n: maximum,
+        rms_disagreement_n: (squared / count).sqrt(),
+        tolerance_n,
+        // Pairwise numeric agreement can never prove distinct calibration
+        // ancestry or rule out a shared systematic cause.
+        agreement_proves_independence: false,
+    })
 }
 
 /// Held-out truth is not attached to selector-visible candidate records.
@@ -200,6 +251,7 @@ fn make_candidate(id: usize, stimulus: SyntheticStimulus) -> (Candidate, f64) {
 fn target_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
     let mut reference_force_observations_n = Vec::with_capacity(72);
+    let mut independent_check_reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
@@ -220,6 +272,13 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
                     );
                     candidates.push(candidate);
                     reference_force_observations_n.push(reference_observation_n);
+                    independent_check_reference_force_observations_n.push(
+                        force + deterministic_noise(
+                            seed ^ 0xE703_7ED1_A0B4_28DB,
+                            id,
+                            0.003,
+                        ),
+                    );
                     id += 1;
                 }
             }
@@ -228,12 +287,14 @@ fn target_candidate_pool(seed: u64) -> SyntheticDomain {
     SyntheticDomain {
         candidates,
         reference_force_observations_n,
+        independent_check_reference_force_observations_n,
     }
 }
 
 fn source_candidate_pool(seed: u64) -> SyntheticDomain {
     let mut candidates = Vec::with_capacity(72);
     let mut reference_force_observations_n = Vec::with_capacity(72);
+    let mut independent_check_reference_force_observations_n = Vec::with_capacity(72);
     let mut id = 0;
     for force_index in 0..6 {
         let force = force_index as f64 * 2.0;
@@ -262,6 +323,7 @@ fn source_candidate_pool(seed: u64) -> SyntheticDomain {
     SyntheticDomain {
         candidates,
         reference_force_observations_n,
+        independent_check_reference_force_observations_n,
     }
 }
 
