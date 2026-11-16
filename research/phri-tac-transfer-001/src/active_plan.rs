@@ -35,6 +35,13 @@ pub enum ConditionState {
     Unresolved,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LoadingPhase {
+    Loading,
+    Unloading,
+    Dwell,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct CalibrationCandidate {
     pub candidate_id: String,
@@ -42,7 +49,28 @@ pub struct CalibrationCandidate {
     pub target_profile_digest: String,
     pub phantom_id: String,
     pub phantom_revision: String,
+    /// Exact physical stimulus/fixture-owner approval and content digest.
+    pub stimulus_approval_id: String,
+    pub stimulus_digest: String,
+    pub measurand_id: String,
+    pub unit: String,
+    pub surface_frame_id: String,
+    pub indenter_id: String,
+    pub indenter_geometry_digest: String,
+    pub surface_geometry_digest: String,
+    pub surface_material_id: String,
+    /// Contact point in the declared surface frame, metres.
+    pub contact_position_m: [f64; 3],
+    /// Candidate normal-force setpoint, validated against the reference range.
+    pub normal_force_target_n: f64,
+    pub reference_force_min_n: f64,
+    pub reference_force_max_n: f64,
+    pub temperature_c: f64,
+    pub loading_phase: LoadingPhase,
+    pub dwell_ms: u64,
+    pub cycle_index: u64,
     pub reference_calibration_id: String,
+    pub reference_independent: bool,
     pub reference_state: ReferenceState,
     pub method_state: MethodState,
     pub condition_state: ConditionState,
@@ -65,6 +93,9 @@ pub struct CalibrationPlanRequest {
     pub target_profile_digest: String,
     pub phantom_id: String,
     pub phantom_revision: String,
+    pub measurand_id: String,
+    pub unit: String,
+    pub surface_frame_id: String,
     pub budget_ms: u64,
     pub maximum_contacts: usize,
     pub required_strata: Vec<StratumQuota>,
@@ -116,10 +147,41 @@ fn candidate_exclusion_reason(
     {
         return Some("PHANTOM_REVISION_MISMATCH");
     }
+    if candidate.stimulus_approval_id.is_empty()
+        || !is_hex_sha256(&candidate.stimulus_digest)
+    {
+        return Some("STIMULUS_NOT_OWNER_APPROVED");
+    }
+    if candidate.measurand_id != request.measurand_id
+        || candidate.unit != request.unit
+        || candidate.surface_frame_id != request.surface_frame_id
+    {
+        return Some("MEASURAND_UNIT_OR_FRAME_MISMATCH");
+    }
+    if candidate.indenter_id.is_empty()
+        || candidate.surface_material_id.is_empty()
+        || !is_hex_sha256(&candidate.indenter_geometry_digest)
+        || !is_hex_sha256(&candidate.surface_geometry_digest)
+    {
+        return Some("STIMULUS_GEOMETRY_INCOMPLETE");
+    }
+    if !candidate.contact_position_m.iter().all(|value| value.is_finite())
+        || !candidate.temperature_c.is_finite()
+        || !candidate.normal_force_target_n.is_finite()
+        || !candidate.reference_force_min_n.is_finite()
+        || !candidate.reference_force_max_n.is_finite()
+        || candidate.reference_force_min_n > candidate.reference_force_max_n
+        || candidate.normal_force_target_n < candidate.reference_force_min_n
+        || candidate.normal_force_target_n > candidate.reference_force_max_n
+        || candidate.dwell_ms == 0
+    {
+        return Some("STIMULUS_OUTSIDE_OR_MISSING_REFERENCE_ENVELOPE");
+    }
     if candidate.reference_calibration_id.is_empty()
+        || !candidate.reference_independent
         || candidate.reference_state != ReferenceState::Current
     {
-        return Some("REFERENCE_NOT_CURRENT");
+        return Some("REFERENCE_NOT_CURRENT_AND_INDEPENDENT");
     }
     if candidate.method_state != MethodState::Qualified {
         return Some("METHOD_NOT_QUALIFIED");
@@ -175,6 +237,9 @@ pub fn plan_calibration(
         || !is_hex_sha256(&request.target_profile_digest)
         || request.phantom_id.is_empty()
         || request.phantom_revision.is_empty()
+        || request.measurand_id.is_empty()
+        || request.unit != "N"
+        || request.surface_frame_id.is_empty()
     {
         return Err("target and phantom identities must be nonempty".to_owned());
     }
@@ -354,7 +419,25 @@ mod tests {
             target_profile_digest: "a".repeat(64),
             phantom_id: "phantom-01".to_owned(),
             phantom_revision: "phantom-rev-1".to_owned(),
+            stimulus_approval_id: "fixture-approval-01".to_owned(),
+            stimulus_digest: "c".repeat(64),
+            measurand_id: "force.normal".to_owned(),
+            unit: "N".to_owned(),
+            surface_frame_id: "surface-frame-01".to_owned(),
+            indenter_id: "indenter-01".to_owned(),
+            indenter_geometry_digest: "d".repeat(64),
+            surface_geometry_digest: "e".repeat(64),
+            surface_material_id: "surface-material-01".to_owned(),
+            contact_position_m: [0.01, 0.02, 0.0],
+            normal_force_target_n: 2.0,
+            reference_force_min_n: 0.0,
+            reference_force_max_n: 10.0,
+            temperature_c: 23.0,
+            loading_phase: LoadingPhase::Loading,
+            dwell_ms: 500,
+            cycle_index: 1,
             reference_calibration_id: "ref-cal-01".to_owned(),
+            reference_independent: true,
             reference_state: ReferenceState::Current,
             method_state: MethodState::Qualified,
             condition_state: ConditionState::WithinEnvelope,
@@ -370,6 +453,9 @@ mod tests {
             target_profile_digest: "a".repeat(64),
             phantom_id: "phantom-01".to_owned(),
             phantom_revision: "phantom-rev-1".to_owned(),
+            measurand_id: "force.normal".to_owned(),
+            unit: "N".to_owned(),
+            surface_frame_id: "surface-frame-01".to_owned(),
             budget_ms: 10,
             maximum_contacts: 2,
             required_strata: vec![
@@ -482,6 +568,75 @@ mod tests {
 
         assert_eq!(first.selected_candidate_ids, second.selected_candidate_ids);
         assert_eq!(first.selected_candidate_ids[0], "a-candidate");
+    }
+
+    #[test]
+    fn reference_force_range_contains_the_declared_normal_force_target() {
+        let mut out_of_range = candidate("out-of-range", "low-force", 10.0, 1);
+        out_of_range.normal_force_target_n = 12.0;
+        let plan = plan_calibration(&request(vec![
+            out_of_range,
+            candidate("high-a", "high-force", 1.0, 1),
+        ]))
+        .expect("ineligible stimulus is excluded");
+
+        assert_eq!(
+            plan.excluded_candidate_reasons["out-of-range"],
+            "STIMULUS_OUTSIDE_OR_MISSING_REFERENCE_ENVELOPE"
+        );
+        assert_eq!(plan.disposition, PlanDisposition::IncompleteCoverage);
+    }
+
+    #[test]
+    fn owner_approval_and_independent_reference_are_required() {
+        let mut unapproved = candidate("unapproved", "low-force", 10.0, 1);
+        unapproved.stimulus_approval_id.clear();
+        let mut dependent_reference = candidate("dependent", "high-force", 10.0, 1);
+        dependent_reference.reference_independent = false;
+        let plan = plan_calibration(&request(vec![unapproved, dependent_reference]))
+            .expect("unapproved references are excluded");
+
+        assert_eq!(
+            plan.excluded_candidate_reasons["unapproved"],
+            "STIMULUS_NOT_OWNER_APPROVED"
+        );
+        assert_eq!(
+            plan.excluded_candidate_reasons["dependent"],
+            "REFERENCE_NOT_CURRENT_AND_INDEPENDENT"
+        );
+    }
+
+    #[test]
+    fn contact_coordinates_and_temperature_must_be_finite() {
+        let mut invalid = candidate("nan-position", "low-force", 10.0, 1);
+        invalid.contact_position_m[0] = f64::NAN;
+        let plan = plan_calibration(&request(vec![
+            invalid,
+            candidate("high-a", "high-force", 1.0, 1),
+        ]))
+        .expect("invalid candidate is excluded");
+        assert_eq!(
+            plan.excluded_candidate_reasons["nan-position"],
+            "STIMULUS_OUTSIDE_OR_MISSING_REFERENCE_ENVELOPE"
+        );
+    }
+
+    #[test]
+    fn force_unit_and_surface_frame_must_match_the_requested_measurand() {
+        let mut wrong_unit = candidate("wrong-unit", "low-force", 10.0, 1);
+        wrong_unit.unit = "kN".to_owned();
+        let mut wrong_frame = candidate("wrong-frame", "high-force", 10.0, 1);
+        wrong_frame.surface_frame_id = "unregistered-frame".to_owned();
+        let plan = plan_calibration(&request(vec![wrong_unit, wrong_frame]))
+            .expect("nonmatching stimulus semantics are excluded");
+        assert_eq!(
+            plan.excluded_candidate_reasons["wrong-unit"],
+            "MEASURAND_UNIT_OR_FRAME_MISMATCH"
+        );
+        assert_eq!(
+            plan.excluded_candidate_reasons["wrong-frame"],
+            "MEASURAND_UNIT_OR_FRAME_MISMATCH"
+        );
     }
 
     #[test]
