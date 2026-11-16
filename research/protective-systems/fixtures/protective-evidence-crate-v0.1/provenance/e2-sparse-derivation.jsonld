@@ -9,10 +9,18 @@
       "@id": "ex:activity/analysis-001",
       "@type": "prov:Activity",
       "prov:used": [
-        {"@id": "ex:entity/input-water-demand"},
-        {"@id": "ex:entity/input-power-availability"}
+        {
+          "@id": "ex:entity/input-water-demand"
+        },
+        {
+          "@id": "ex:entity/input-power-availability"
+        }
       ],
-      "prov:wasAssociatedWith": {"@id": "ex:agent/synthetic-provider"}
+      "prov:wasAssociatedWith": {
+        "@id": "ex:agent/synthetic-provider"
+      },
+      "analysisId": "synthetic.analysis.water-continuity.001",
+      "executionStatus": "NOT_EXECUTED"
     },
     {
       "@id": "ex:agent/synthetic-provider",
@@ -22,25 +30,43 @@
     {
       "@id": "ex:entity/input-water-demand",
       "@type": "prov:Entity",
-      "schema:name": "Synthetic water demand input"
+      "schema:name": "Synthetic water demand input",
+      "datasetId": "synthetic.dataset.water.input.001",
+      "datasetDirection": "INPUT",
+      "bindingStatus": "E1_ENVELOPE_DATASET"
     },
     {
       "@id": "ex:entity/input-power-availability",
       "@type": "prov:Entity",
-      "schema:name": "Synthetic power availability input"
+      "schema:name": "Synthetic power availability input",
+      "datasetId": "synthetic.dataset.power.input.control.001",
+      "datasetDirection": "INPUT",
+      "bindingStatus": "SYNTHETIC_CONTROL_ONLY"
     },
     {
       "@id": "ex:entity/output-water-service",
       "@type": "prov:Entity",
-      "prov:wasGeneratedBy": {"@id": "ex:activity/analysis-001"},
-      "prov:wasDerivedFrom": {"@id": "ex:entity/input-water-demand"},
-      "schema:name": "Synthetic water service output"
+      "prov:wasGeneratedBy": {
+        "@id": "ex:activity/analysis-001"
+      },
+      "prov:wasDerivedFrom": {
+        "@id": "ex:entity/input-water-demand"
+      },
+      "schema:name": "Synthetic water service output",
+      "datasetId": "synthetic.dataset.water.output.001",
+      "datasetDirection": "OUTPUT",
+      "bindingStatus": "E1_ENVELOPE_DATASET"
     },
     {
       "@id": "ex:entity/output-clinic-access",
       "@type": "prov:Entity",
-      "prov:wasGeneratedBy": {"@id": "ex:activity/analysis-001"},
-      "schema:name": "Synthetic clinic access output"
+      "prov:wasGeneratedBy": {
+        "@id": "ex:activity/analysis-001"
+      },
+      "schema:name": "Synthetic clinic access output",
+      "datasetId": "synthetic.dataset.clinic.output.control.001",
+      "datasetDirection": "OUTPUT",
+      "bindingStatus": "SYNTHETIC_CONTROL_ONLY"
     }
   ]
 }
