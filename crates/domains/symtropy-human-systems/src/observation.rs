@@ -584,7 +584,7 @@ mod tests {
         generate_scenario(scenario_id, 0x5EED_2026)
     }
 
-    fn truth_link<'a>(scenario: &'a ScenarioRun, event: &ObservationEvent) -> &'a ScorerEventTruth {
+    fn truth_link(scenario: &ScenarioRun, event: &ObservationEvent) -> &ScorerEventTruth {
         scenario
             .scorer_view
             .event_truth
