@@ -131,35 +131,27 @@ Evidence artifact: `mfb-l1-evidence-970ae35eb28d6ffaae0c4fbb141b5156b4a2312f` (I
 
 ## Procedure evidence-receipt admission
 
-The procedure graph describes what evidence each step needs. The separate `mfb-admit-procedure-evidence` CLI checks a synthetic bundle of those receipts against the exact scenario and procedure version.
+The procedure graph describes the external evidence each step needs. The separate `mfb-admit-procedure-evidence` CLI checks a synthetic bundle against the exact scenario and procedure version.
 
 It currently enforces:
 - exact procedure ID/version and scenario ID;
 - exact source commit and configuration digest on every receipt;
-- one receipt for every externally-supplied evidence kind, with no unexpected or duplicate kinds/identities;
+- one receipt for every externally supplied evidence kind, with no unexpected or duplicate kinds/identities;
 - evidence-kind-specific subject binding (package, tote, receiver endpoint, transfer mechanism, grant or scenario);
 - issuer actor existence and allowed actor role for that evidence kind;
 - SHA-256 digest syntax;
-- freshness policy v1: receipt observation must precede the **earliest** plausible decision time; expiry must cover the **latest** plausible decision time; and every evidence kind has a versioned maximum observation age, measured at that latest plausible time.
+- declared observation/expiry timestamps against the full scenario clock-uncertainty window, with strict boundary comparisons;
+- per-kind maximum observation age under freshness-policy version 1.
 
-Version 1 maximum ages (milliseconds):
+The current synthetic bundle contains 14 external evidence envelopes. The admission report classifies six future verifier domains: household grant authority, service-provider attestation, receiver capability attestation, physical-observation attestation, counterparty custody attestation and transaction-outcome attestation. These are routing labels for downstream verifier responsibilities, not proof that those verifiers are implemented.
 
-| External evidence kind | Maximum age |
-|---|---:|
-| Manifest snapshot | 300,000 |
-| Authorization receipt | 60,000 |
-| Receiver capability receipt | 86,400,000 |
-| Package identity observation | 2,000 |
-| Container fit observation | 86,400,000 |
-| Payload mass observation | 2,000 |
-| Seal observation | 5,000 |
-| Temperature observation | 2,000 |
-| Transfer-gate observation | 500 |
-| Release-execution receipt | 10,000 |
-| Receiver-presence observation | 500 |
-| Placement observation | 1,000 |
-| Counterparty custody receipt | 30,000 |
-| Ambiguous-outcome observation | 5,000 |
+The report explicitly separates:
+- `evidence_envelopes_structurally_admitted=true`;
+- `declared_freshness_policy_passed=true`: declared timestamps satisfy the scenario-relative freshness policy, including the full uncertainty interval;
+- `trusted_time_verified=false`: no trusted timestamp authority or clock attestation is checked;
+- `content_digest_verified=false`: digest syntax is checked, but the digest is not recomputed from canonical evidence content;
+- `cryptographic_authentication_verified=false` and `issuer_authorization_verified=false`;
+- `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
 
 Run it from the repository root:
 
@@ -170,24 +162,10 @@ cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bi
   tools/material-flow-benchmark/fixtures/nominal-receiving-evidence.json
 ```
 
-The current synthetic bundle contains 14 external evidence envelopes. The admission report classifies the required downstream verification domains (household grant, service-provider, receiver capability, physical observation, counterparty custody and transaction outcome), but does not authenticate any of them.
+This is structural envelope admission, not a cryptographic verifier or trusted chronology theorem. An admitted envelope and a declared freshness pass are not authenticated content, an authorized issuer or a truthful observation.
 
-The report explicitly separates:
-- `declared_freshness_policy_passed=true`: declared timestamps pass the scenario-relative policy and its full clock-uncertainty interval;
-- `trusted_time_verified=false`: no trusted timestamp authority or clock attestation is checked;
-- `content_digest_verified=false`: SHA-256 syntax is checked, but the digest is not recomputed from canonical evidence content;
-- `cryptographic_authentication_verified=false` and `issuer_authorization_verified=false`;
-- `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false`, and `task_success_attested=false`.
+**Cryptographic integration:** reuse Symtropy PHYS-EVID-03A/#1143, B0/#1144 and B1/#1145 with Xenia's dedicated attestor boundary `xenia-peer#341`. Do not add a parallel MFB signing scheme, local Ed25519-only fallback, or generic signing oracle. The integration and six-domain verifier matrix are tracked in [#5530](https://github.com/Luminous-Dynamics/symtropy/issues/5530).
 
-This is structural envelope admission, not a cryptographic verifier or trusted chronology theorem. Do not equate an admitted envelope or a declared freshness pass with authenticated content, an authorized issuer, a truthful observation or authorized actuation. For physical-evidence authentication, reuse the existing Symtropy PHYS-EVID-03A/B0/B1 and Xenia typed-attestor workstreams; do not add a separate Ed25519-only or generic signing shortcut. CI archives the raw admission report and hashes it with the other MFB evidence outputs.
-
-### Exact-head receipt-admission qualification (2026-11-16)
-
-Dedicated workflow [43823753266](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43823753266) passed on source head `386fc63ea84561f072ec58804154cb02f0d4b8d9`: **76 Rust tests**, strict formatting, Clippy `-D warnings`, protocol campaign, procedure graph, 14-receipt admission, four-timestep convergence, 480 Hz L1 simulation/replay and evidence upload.
-
-The report admitted **14/14** external evidence envelopes under freshness policy v1. It kept `cryptographic_authentication_verified=false`, `sensor_truth_established=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `task_success_attested=false`.
-
-Artifact: `mfb-l1-evidence-386fc63ea84561f072ec58804154cb02f0d4b8d9` (ID `14205746262`), six files, ZIP SHA-256 `634d4ad1001fe0a5590cfdb9a77aa97c1df1b1f7281a8be35260da4b61b3593d`. SHA-256 outputs: receipt admission `cc8143b13d5e8820f456b61bc9153427e5f588c0e2d58ef091cc8001b739e8b0`; protocol campaign `bc21a056a4fef5c097567663fa020c9ed119094bad3a11b9764e7ef2b17dea6b`; procedure readiness `051507417022eca1705a4c1e200fc315229109e08100296bf36c1ee643341ed2`; convergence `d53fdc1130f7de4b1cdf75658d7af738a1b141bd1b5db4fbc539be5272549631`; L1 result `cd836f52f70483b4375e4aa39bca81be14b9546a6b4cf24ba607458501e85070`; Cargo.lock `9ec0cf115298a909b85593b829bd0966a9cc3bd67636cf691f8132f7c30fd654`.
 
 ## What it does not prove
 
