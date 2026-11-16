@@ -27,10 +27,10 @@ pub const SYNTHETIC_REQUIRED_FORCE_SETPOINTS_N: [f64; 6] = [0.0, 2.0, 4.0, 6.0, 
 /// Declared synthetic strata: 3 positions × 2 temperatures × 2 loading phases.
 pub const SYNTHETIC_EXPECTED_CONDITION_COUNT: usize = 12;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
 type ConditionKey = (u64, u64, u64);
 type ConditionGroup<'a> = (ConditionKey, Vec<&'a Candidate>);
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ResponseObservabilityReport {
     pub accepted: bool,
     pub condition_count: usize,
