@@ -411,7 +411,7 @@ impl MyceliumWorld {
         y: usize,
         nutrient_peak: Option<(usize, usize)>,
     ) -> Option<(usize, usize)> {
-        self.neighbors(x, y).into_iter().max_by(|a, b| {
+        self.neighbors(x, y).max_by(|a, b| {
             self.growth_score(*a, nutrient_peak)
                 .partial_cmp(&self.growth_score(*b, nutrient_peak))
                 .unwrap_or(std::cmp::Ordering::Equal)
