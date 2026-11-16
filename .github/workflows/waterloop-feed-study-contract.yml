@@ -1,0 +1,77 @@
+name: WaterLoop feed characterisation design contract
+
+on:
+  push:
+    paths:
+      - "research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md"
+      - "research/water-service-engineering/waterloop-feed-study-manifest-v0.1.json"
+      - "research/water-service-engineering/waterloop-source-event-template-v0.1.json"
+      - "research/water-service-engineering/waterloop-source-event.schema.json"
+      - ".github/workflows/waterloop-feed-study-contract.yml"
+  pull_request:
+    paths:
+      - "research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md"
+      - "research/water-service-engineering/waterloop-feed-study-manifest-v0.1.json"
+      - "research/water-service-engineering/waterloop-source-event-template-v0.1.json"
+      - "research/water-service-engineering/waterloop-source-event.schema.json"
+      - ".github/workflows/waterloop-feed-study-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  design-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse manifests, template and schema
+        run: |
+          set -euo pipefail
+          jq -e . research/water-service-engineering/waterloop-feed-study-manifest-v0.1.json >/dev/null
+          jq -e . research/water-service-engineering/waterloop-source-event-template-v0.1.json >/dev/null
+          jq -e . research/water-service-engineering/waterloop-source-event.schema.json >/dev/null
+      - name: Check first feed and source separation
+        run: |
+          set -euo pipefail
+          jq -e '
+            .status == "PREREGISTRATION_DESIGN_NOT_AUTHORIZED_FOR_COLLECTION" and
+            .initial_source_profile.id == "SRC-BATH-01" and
+            ([.source_profiles[] | select(.id == "SRC-KITCHEN-01" and .state == "excluded_from_v0_1")] | length) == 1 and
+            ([.source_profiles[] | select(.id == "SRC-BLACKWATER-01" and .state == "excluded_from_v0_1")] | length) == 1 and
+            (.statistical_plan.sample_count | contains("NOT_SET")) and
+            (.evidence_bindings.raw_observation_and_assessment == "Mycelix #6100")
+          ' research/water-service-engineering/waterloop-feed-study-manifest-v0.1.json
+      - name: Check metadata-only sample template and privacy boundary
+        run: |
+          set -euo pipefail
+          jq -e '
+            .status == "EMPTY_TEMPLATE_NO_REAL_OBSERVATION" and
+            .source_event.source_profile_id == "SRC-BATH-01" and
+            (.samples | length) == 1 and
+            (.samples[0].mycelix_observation_refs | length) == 0 and
+            (.derived_feed_envelope.status == "NOT_COMPUTED") and
+            (has("resident_name") | not) and
+            (has("raw_analyte_results") | not)
+          ' research/water-service-engineering/waterloop-source-event-template-v0.1.json
+      - name: Check strict schema and protocol safety gates
+        run: |
+          set -euo pipefail
+          jq -e '
+            .type == "object" and
+            .additionalProperties == false and
+            (.properties.source_event.additionalProperties == false) and
+            (.properties.samples.items.additionalProperties == false) and
+            (.properties.samples.items.properties.mycelix_observation_refs.uniqueItems == true)
+          ' research/water-service-engineering/waterloop-source-event.schema.json
+          grep -q "no numeric toilet-flush acceptance limit" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+          grep -q "no universal minimum sample count" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+          grep -q "qualified laboratory" research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md
+      - name: Emit design input digests
+        run: |
+          set -euo pipefail
+          sha256sum \
+            research/water-service-engineering/WATERLOOP_SOURCE_CHARACTERISATION_PROTOCOL_V0_1.md \
+            research/water-service-engineering/waterloop-feed-study-manifest-v0.1.json \
+            research/water-service-engineering/waterloop-source-event-template-v0.1.json \
+            research/water-service-engineering/waterloop-source-event.schema.json
