@@ -1,0 +1,48 @@
+{
+  "schema_version": "protective-multiprovider-fixture-manifest/0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+  "source_e1_context": {
+    "analysis_id": "synthetic.analysis.water-continuity.001",
+    "execution_status": "NOT_EXECUTED",
+    "relationship": "CONTEXT_ONLY_NOT_A_RUN"
+  },
+  "sources": [
+    {
+      "provider": "DATACITE",
+      "relative_path": "datacite/doi-response.json",
+      "native_profile": "DataCite Metadata Schema 4.7 via DataCite REST JSON:API",
+      "source_identity": "10.5555/synthetic-e3-protection-record-001",
+      "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY",
+      "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "byte_length": 2010,
+      "sha256": "969d03eb935fb17a5977ea3f79904b9d3141375b4b712cdb0e1eba069bcfb564"
+    },
+    {
+      "provider": "OGC_API_RECORDS",
+      "relative_path": "ogc/record-feature.json",
+      "native_profile": "OGC API - Records Part 1 Core 1.0 GeoJSON record encoding",
+      "source_identity": "e3-synthetic-record-001",
+      "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY",
+      "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "byte_length": 1503,
+      "sha256": "7353285e0da173b1e62839f23364b83262bbc2c69c1b3637bccd89dff47ad6f0"
+    },
+    {
+      "provider": "OPENLINEAGE",
+      "relative_path": "openlineage/e3-run-events.json",
+      "native_profile": "OpenLineage RunEvent 2.0.0",
+      "source_identity": "0e70677e-e4b5-4a1f-b908-7e22ef00ed31",
+      "retrieval_mode": "SYNTHETIC_STATIC_FIXTURE",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY",
+      "claim_ceiling": "MULTI_PROVIDER_METADATA_PORTABILITY_ONLY",
+      "byte_length": 2574,
+      "sha256": "f8242d89708747888dd0d0de7335757ff5969f1a43afd842c67a1daa054062ee"
+    }
+  ]
+}
