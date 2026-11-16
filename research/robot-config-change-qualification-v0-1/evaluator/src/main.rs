@@ -152,8 +152,7 @@ fn validate_command(args: &[String]) -> Result<(), String> {
 }
 
 fn evaluate_command(args: &[String]) -> Result<(), String> {
-    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) =
-        load_inputs(args)?;
+    let (corpus, oracle, corpus_schema, oracle_schema, result_schema, output) = load_inputs(args)?;
     let output_path = output.ok_or_else(|| "required_option_missing:--output".to_owned())?;
     let result = validate_package(
         &corpus,
