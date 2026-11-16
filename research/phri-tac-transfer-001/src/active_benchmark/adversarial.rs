@@ -206,6 +206,7 @@ fn family_training_domain(
         candidates,
         reference_force_observations_n,
         independent_check_reference_force_observations_n,
+        independent_reference_ancestry_attested: !family.has_shared_reference_common_cause(),
     }
 }
 
@@ -479,6 +480,7 @@ pub fn run_adversarial_campaign(
             &target_reference_domain.reference_force_observations_n,
             &target_reference_domain.independent_check_reference_force_observations_n,
             SYNTHETIC_REFERENCE_AGREEMENT_TOLERANCE_N,
+            target_reference_domain.independent_reference_ancestry_attested,
         )?;
 
         family_summaries.push(FamilyCampaignResult {
