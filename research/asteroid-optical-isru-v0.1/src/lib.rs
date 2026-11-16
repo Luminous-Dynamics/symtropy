@@ -6,6 +6,7 @@
 //! declared boundaries and closed-form screening relationships only.
 
 pub mod tournament;
+pub mod observations;
 
 use serde::Deserialize;
 use std::collections::BTreeSet;
