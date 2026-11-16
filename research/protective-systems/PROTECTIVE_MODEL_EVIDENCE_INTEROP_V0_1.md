@@ -21,6 +21,8 @@ IN-CORE is an established, open community-resilience environment with public Web
 
 IN-CORE's dataset API and analysis outputs already form a data-processing ecosystem. Our integration goal is to preserve those actual records and run relationships, not mimic a fictional IN-CORE result.
 
+A comparative study published on 7 November 2026 inventories 24 infrastructure interdependency and enabling tools, with seven explicitly supporting cross-sector interdependency assessment in its energy/water/transport scope. It finds no tool dominates all dimensions and identifies a trade-off between model breadth, data burden, validation, integration and practical usability. This is why our adapter should complement specialist models rather than compete by recreating them. Source: Shamsi, Helmrich & Deegan, https://doi.org/10.1007/s10669-026-10162-2.
+
 References:
 - NIST Center of Excellence and IN-CORE: https://www.nist.gov/community-resilience/center-excellence
 - IN-CORE project: https://in-core.org/
