@@ -129,3 +129,20 @@ Numerical thresholds must be set for the exact target sensor, measurand, referen
 ## Claim ceiling
 
 This protocol is research design only. No active-selection algorithm is shown to reduce physical calibration cost, improve force accuracy, preserve uncertainty coverage or outperform the fixed grid yet. No sensor has been calibrated by this document. No purchase, human-contact, actuator, certification or deployment authority is created.
+
+
+## Executable synthetic policy comparison added — v0.1
+
+A standalone Rust experiment now exists in `src/active_benchmark.rs`, and the CLI emits its policy scorecard.
+
+The frozen synthetic harness uses:
+- 72 target candidate contacts across four temperature × loading-phase strata;
+- 72 source reference contacts from a deliberately shifted source response profile;
+- 60 target-held-out cases with interleaved force levels and contact conditions;
+- a 16-contact target budget, with four target reference contacts per mandatory stratum.
+
+The policies are full target grid, uniform stratified, seeded random stratified, maximin, D-optimal, source-only transfer, and source-prior plus D-optimal target adaptation. The output reports source and target reference contacts separately, so source training observations are never counted as target-device calibration.
+
+The reported interval is only a regression prediction-interval diagnostic and the contact-cost quantity is a synthetic proxy. Neither is a GUM uncertainty result or measured fixture time. This tranche does not qualify a physical calibration, establish a physical transfer advantage, or authorize operation of the phantom.
+
+Next evaluation gate: reproduce the result over a preregistered seed set; investigate model misspecification and worst-stratum performance; retain all negative results; then compare the selection policies at matched target reference-contact budgets and matched held-out uncertainty requirements once the physical reference chain is qualified.
