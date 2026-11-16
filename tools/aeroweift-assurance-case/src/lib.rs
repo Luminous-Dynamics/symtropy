@@ -1093,9 +1093,9 @@ pub fn evaluate_assurance_case(
         }
     }
     for requirement in &policy.required_mitigation_evidence {
-        if !by_id
+        if by_id
             .get(requirement.mitigation_id.as_str())
-            .is_some_and(|node| node.kind == NodeKind::Mitigation)
+            .is_none_or(|node| node.kind != NodeKind::Mitigation)
         {
             add_blocker(
                 &mut blockers,
