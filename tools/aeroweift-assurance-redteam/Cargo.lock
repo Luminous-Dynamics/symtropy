@@ -1,0 +1,12 @@
+version = 4
+
+[[package]]
+name = "aeroweift-assurance-case"
+version = "0.1.0"
+
+[[package]]
+name = "aeroweift-assurance-redteam"
+version = "0.1.0"
+dependencies = [
+ "aeroweift-assurance-case",
+]
