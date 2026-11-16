@@ -1,0 +1,263 @@
+{
+  "schema_version": "waterloop-modular-train-interface-v0.1",
+  "status": "research_reference_only",
+  "evidence_class": "literature_and_vendor_declared_plus_synthetic_contract",
+  "qualification_status": "NotRun",
+  "primary_profile": {
+    "id": "bathroom-light-greywater-to-toilet-flushing-v0",
+    "sources": [
+      "shower",
+      "bath"
+    ],
+    "intended_use": "toilet_flushing_only",
+    "potable": false
+  },
+  "excluded_sources": [
+    "kitchen_sink",
+    "dishwasher",
+    "toilet",
+    "bidet",
+    "urinal",
+    "floor_drain",
+    "laundry",
+    "faeces_or_urine_soiled_laundry",
+    "animal_wash",
+    "vehicle_or_workshop_wash",
+    "paint_solvent",
+    "chemical_cleaning",
+    "household_illness_restricted_source"
+  ],
+  "modules": [
+    {
+      "id": "M0",
+      "name": "source_header",
+      "required": true,
+      "interfaces": [
+        "dedicated_gravity_inlet",
+        "vent",
+        "source_isolation",
+        "drain_bypass"
+      ],
+      "failure_state": "DIVERT_TO_APPROVED_DRAIN"
+    },
+    {
+      "id": "M1",
+      "name": "coarse_screen",
+      "required": true,
+      "interfaces": [
+        "removable_hair_lint_basket",
+        "isolation",
+        "cleanout"
+      ],
+      "failure_state": "INHIBIT_FEED_AND_DIVERT"
+    },
+    {
+      "id": "M2",
+      "name": "raw_equalisation",
+      "required": true,
+      "interfaces": [
+        "opaque_drainable_tank",
+        "level",
+        "temperature",
+        "residence_clock",
+        "sample_port",
+        "overflow"
+      ],
+      "max_untreated_residence_hours": 24,
+      "failure_state": "DRAIN_RAW_BATCH_NO_PRODUCT_RELEASE"
+    },
+    {
+      "id": "M3",
+      "name": "treatment_cassette_bay",
+      "required": true,
+      "interfaces": [
+        "standardized_unions",
+        "inlet_sample",
+        "outlet_sample",
+        "isolation",
+        "module_identity",
+        "flow_measurement"
+      ],
+      "failure_state": "ISOLATE_PRODUCT_OUTLET"
+    },
+    {
+      "id": "M4",
+      "name": "final_barrier",
+      "required_by_use_profile": true,
+      "interfaces": [
+        "validated_process_envelope",
+        "status_feedback",
+        "sample_port",
+        "hardwired_failure_interlock"
+      ],
+      "failure_state": "FAIL_CLOSED"
+    },
+    {
+      "id": "M5",
+      "name": "product_storage",
+      "required": true,
+      "interfaces": [
+        "opaque_cleanable_tank",
+        "level",
+        "sample_port",
+        "drain",
+        "overflow"
+      ],
+      "failure_state": "QUARANTINE_BATCH"
+    },
+    {
+      "id": "M6",
+      "name": "nonpotable_distribution",
+      "required": true,
+      "interfaces": [
+        "dedicated_labelled_pipework",
+        "outlet_flow_pressure",
+        "cross_connection_test"
+      ],
+      "failure_state": "ISOLATE_NONPOTABLE_OUTLET"
+    },
+    {
+      "id": "M7",
+      "name": "mains_backup_separation",
+      "required": true,
+      "interfaces": [
+        "professionally_reviewed_air_gap_or_approved_separation",
+        "backflow_protection",
+        "independent_isolation"
+      ],
+      "failure_state": "NO_DIRECT_CROSS_CONNECTION"
+    },
+    {
+      "id": "M8",
+      "name": "reject_residuals",
+      "required": true,
+      "interfaces": [
+        "reject_meter",
+        "purge_meter",
+        "backwash_cip_boundary",
+        "approved_drain_route"
+      ],
+      "failure_state": "BLOCK_RUN_IF_RESIDUAL_PATH_UNDEFINED"
+    },
+    {
+      "id": "M9",
+      "name": "local_safety_and_power",
+      "required": true,
+      "interfaces": [
+        "manual_stop",
+        "hardwired_interlocks",
+        "local_fault_state",
+        "no_internet_dependency"
+      ],
+      "failure_state": "ISOLATE_RECLAIMED_WATER"
+    }
+  ],
+  "candidate_trains": [
+    {
+      "id": "A",
+      "name": "passive_nature_based_biofilter",
+      "sequence": [
+        "screening",
+        "settling",
+        "graded_media_biofilter",
+        "optional_multistage_wetland",
+        "use_specific_final_barrier"
+      ],
+      "risks": [
+        "land_area",
+        "clogging",
+        "seasonal_drift",
+        "biological_startup",
+        "microbial_persistence"
+      ],
+      "status": "candidate_not_selected"
+    },
+    {
+      "id": "B",
+      "name": "sand_ultrafiltration_uv",
+      "sequence": [
+        "settling",
+        "slow_sand_media",
+        "ultrafiltration",
+        "validated_uv"
+      ],
+      "risks": [
+        "membrane_fouling",
+        "cleaning",
+        "retentate",
+        "transmembrane_pressure",
+        "uv_dose_validation",
+        "regrowth"
+      ],
+      "status": "candidate_not_selected"
+    },
+    {
+      "id": "C",
+      "name": "ozone_gac_uv",
+      "sequence": [
+        "settling",
+        "ozone_contact_and_offgas_destruction",
+        "granular_activated_carbon",
+        "validated_uv"
+      ],
+      "risks": [
+        "ozone_occupational_hazard",
+        "oxidation_byproducts",
+        "gac_breakthrough",
+        "biofilm_regrowth"
+      ],
+      "status": "candidate_not_selected"
+    },
+    {
+      "id": "D",
+      "name": "compact_biological_biofilm",
+      "sequence": [
+        "screening",
+        "settling",
+        "aerobic_biofilm_or_mbr_or_sbr",
+        "clarification",
+        "optional_tertiary_barrier"
+      ],
+      "risks": [
+        "startup",
+        "load_shock",
+        "aeration_energy",
+        "sludge",
+        "power_loss_recovery"
+      ],
+      "status": "candidate_not_selected"
+    }
+  ],
+  "safety_invariants": [
+    "No potable cross-connection.",
+    "No internet or AI dependency for local safety isolation.",
+    "No product release on missing/stale/conflicted critical process or quality evidence.",
+    "No reuse credit without quality admission for the exact intended-use profile.",
+    "Raw residence clock starts with the first raw-water entry and is not reset by source mixing.",
+    "Unknown reject/purge/backwash/residual destination blocks qualification.",
+    "Mains backup must be independently separated through a professionally reviewed air-gap or otherwise approved arrangement."
+  ],
+  "literature": [
+    {
+      "id": "Ninsiima2026",
+      "doi": "10.1007/s42452-026-09559-0",
+      "type": "systematic_review",
+      "studies": 131
+    },
+    {
+      "id": "GarciaAgudelo2026",
+      "doi": "10.1111/1752-1688.70162",
+      "type": "bench_synthetic_feed_comparison"
+    },
+    {
+      "id": "MorandiSteinmetz2026",
+      "doi": "10.1016/j.coesh.2026.100737",
+      "type": "constructed_wetland_review"
+    },
+    {
+      "id": "WRC_TT746_17",
+      "url": "https://www.wrc.org.za/wp-content/uploads/mdocs/WW%20Sept-Oct%202018_Water%20reuse.pdf",
+      "type": "South_African_guideline_summary"
+    }
+  ]
+}
