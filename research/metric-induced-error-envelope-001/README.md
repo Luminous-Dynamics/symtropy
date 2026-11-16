@@ -82,7 +82,7 @@ This is an internal algorithmic scaling comparison, not a simulator or industry 
 
 ## Operator conditioning extension
 
-The stacked operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818) adds separate frame-typed maps:
+The operator track in [PHYS-METRIC-OPERATOR-CONDITION-001 #4818](https://github.com/Luminous-Dynamics/symtropy/issues/4818) is included in this consolidated stack and adds separate frame-typed maps:
 
 - `TangentToTangentOperator`: whitened matrix (B=L_Y^T A L_X^{-T});
 - `TangentToCotangentOperator`: whitened matrix (B=L_Y^{-1} A L_X^{-T}).
@@ -93,7 +93,7 @@ The operator module now supports square and rectangular dense maps in both tange
 
 ## Rectangular operators and rank semantics
 
-The stacked rectangular extension in [PR #4866](https://github.com/Luminous-Dynamics/symtropy/pull/4866) adds frame-typed K-by-N tangent-to-tangent and tangent-to-cotangent maps using the same metric-aware whitening laws as the square operators.
+The rectangular extension in this consolidated stack adds frame-typed K-by-N tangent-to-tangent and tangent-to-cotangent maps using the same metric-aware whitening laws as the square operators.
 
 A rectangular receipt keeps distinct:
 - numerical rank and maximum possible rank;
