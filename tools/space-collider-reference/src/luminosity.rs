@@ -117,6 +117,11 @@ struct CcmClosure {
     revolution_frequency_hz: f64,
     beam_current_from_bunches_a: f64,
     beam_current_relative_residual: f64,
+    stored_energy_per_beam_from_bunches_j: f64,
+    stored_energy_per_beam_from_reported_current_j: f64,
+    stored_energy_current_vs_bunch_relative_residual: f64,
+    stored_energy_both_beams_j: f64,
+    ccm_to_fcc_stored_energy_ratio: f64,
     collision_crossing_rate_per_ip_hz: f64,
     nominal_full_fill_slot_rate_hz: f64,
     nominal_fill_fraction: f64,
@@ -172,6 +177,19 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         / CM2_PER_MB;
 
     let total_protons_per_beam = inputs.total_bunches_per_beam * inputs.protons_per_bunch;
+    let stored_energy_per_beam_from_bunches_j = total_protons_per_beam
+        * inputs.beam_energy_tev
+        * 1.0e12
+        * ELEMENTARY_CHARGE_C;
+    let stored_energy_per_beam_from_reported_current_j = inputs.beam_current_reported_a
+        * inputs.beam_energy_tev
+        * 1.0e12
+        / revolution_frequency_hz;
+    let stored_energy_current_vs_bunch_relative_residual =
+        (stored_energy_per_beam_from_reported_current_j - stored_energy_per_beam_from_bunches_j)
+            / stored_energy_per_beam_from_bunches_j;
+    let stored_energy_both_beams_j = 2.0 * stored_energy_per_beam_from_bunches_j;
+    let ccm_to_fcc_stored_energy_ratio = stored_energy_per_beam_from_bunches_j / 8.4e9;
     let burnoff_lifetime_s = total_protons_per_beam
         / (inputs.reported_luminosity_per_ip_cm2_s
             * inputs.interaction_points
@@ -198,6 +216,11 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
         revolution_frequency_hz,
         beam_current_from_bunches_a,
         beam_current_relative_residual,
+        stored_energy_per_beam_from_bunches_j,
+        stored_energy_per_beam_from_reported_current_j,
+        stored_energy_current_vs_bunch_relative_residual,
+        stored_energy_both_beams_j,
+        ccm_to_fcc_stored_energy_ratio,
         collision_crossing_rate_per_ip_hz,
         nominal_full_fill_slot_rate_hz,
         nominal_fill_fraction,
@@ -218,10 +241,12 @@ fn calculate(inputs: CcmInputs) -> Result<CcmClosure, String> {
     Ok(CcmClosure {
         revolution_frequency_hz,
         beam_current_from_bunches_a,
-        beam_current_relative_residual: (beam_current_from_bunches_a
-            - inputs.beam_current_reported_a)
-            / inputs.beam_current_reported_a,
-        collision_crossing_rate_per_ip_hz,
+        beam_current_relative_residual,
+        stored_energy_per_beam_from_bunches_j,
+        stored_energy_per_beam_from_reported_current_j,
+        stored_energy_current_vs_bunch_relative_residual,
+        stored_energy_both_beams_j,
+        ccm_to_fcc_stored_energy_ratio,
         nominal_full_fill_slot_rate_hz,
         nominal_fill_fraction,
         gamma,
@@ -351,7 +376,13 @@ pub fn render_report_json() -> Result<String, String> {
             "    \"burnoff_lifetime_min\": {:.6},\n",
             "    \"synchrotron_energy_loss_per_turn_tev\": {:.6},\n",
             "    \"synchrotron_loss_fraction_of_beam_energy_per_turn\": {:.6e},\n",
-            "    \"annual_integrated_luminosity_ab_inv\": {:.6}\n",
+            "    \"annual_integrated_luminosity_ab_inv\": {:.6},\n",
+            "    \"stored_energy_per_beam_from_bunch_population_j\": {:.6e},\n",
+            "    \"stored_energy_per_beam_from_reported_current_j\": {:.6e},\n",
+            "    \"stored_energy_current_vs_bunch_relative_residual\": {:.6},\n",
+            "    \"stored_energy_both_beams_j\": {:.6e},\n",
+            "    \"fcc_hh_cdr_stored_energy_per_beam_gj\": 8.4,\n",
+            "    \"ccm_to_fcc_stored_energy_ratio\": {:.6}\n",
             "  }},\n",
             "  \"fcc_hh_cdr_baseline_reference\": {{\n",
             "    \"circumference_km\": 97.75,\n",
@@ -397,6 +428,11 @@ pub fn render_report_json() -> Result<String, String> {
         result.synchrotron_energy_loss_per_turn_tev,
         result.synchrotron_loss_fraction_per_turn,
         result.annual_integrated_luminosity_ab_inv,
+        result.stored_energy_per_beam_from_bunches_j,
+        result.stored_energy_per_beam_from_reported_current_j,
+        result.stored_energy_current_vs_bunch_relative_residual,
+        result.stored_energy_both_beams_j,
+        result.ccm_to_fcc_stored_energy_ratio,
         fcc_revolution_frequency_hz,
         fcc_baseline_crossing_rate_hz,
         fcc_synchrotron_loss_per_turn_tev,
@@ -471,6 +507,23 @@ mod tests {
     }
 
     #[test]
+    #[test]
+    fn lunar_stored_beam_energy_closes_against_current_and_fcc_reference() {
+        let value = calculate(CcmInputs::published_reference()).expect("valid CCM");
+        close(
+            value.stored_energy_per_beam_from_bunches_j / 1.0e12,
+            134.582_837_256,
+            1.0e-6,
+        );
+        close(
+            value.stored_energy_both_beams_j / 1.0e12,
+            269.165_674_512,
+            1.0e-6,
+        );
+        assert!(value.stored_energy_current_vs_bunch_relative_residual.abs() < 0.05);
+        close(value.ccm_to_fcc_stored_energy_ratio, 16_021.766_34, 0.01);
+    }
+
     fn fcc_reference_reproduces_thousand_hertz_revolution_and_million_hertz_crossing_rates() {
         let revolution_hz = SPEED_OF_LIGHT_M_S / 97_750.0;
         close(revolution_hz, 3_066.930_516_624_041, 1.0e-9);
