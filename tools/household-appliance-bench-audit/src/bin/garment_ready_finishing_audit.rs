@@ -103,11 +103,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                     "{id}: stretch throughput target must not be below first-pass target"
                 ));
             }
-            if id == "standardized_commercial_textiles"
-                && (first_pass <= 0.994 || first_throughput <= 0.6)
-            {
+            if id == "standardized_commercial_textiles" && first_pass <= 0.93 {
                 errors.push(
-                    "standardized commercial target must exceed the reported DYNA napkin baseline"
+                    "standardized commercial quality target must exceed the current Dyna-2 reported 93% quality bar"
                         .to_owned(),
                 );
             }
@@ -156,6 +154,109 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
         }
     } else {
         errors.push("external_comparators must be an array".to_owned());
+    }
+
+    let dyna2 = comparators.and_then(|items| {
+        items
+            .iter()
+            .find(|item| text_at(item, "id") == Some("DYNA-2-DIN-TAI-FUNG-AUG2026"))
+    });
+    let commercial_suite = suites.and_then(|items| {
+        items.iter().find(|item| {
+            text_at(item, "id") == Some("standardized_commercial_textiles")
+        })
+    });
+    match (dyna2, commercial_suite) {
+        (Some(reference), Some(suite)) => {
+            let reference_success = reference
+                .get("reported_success_rate")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let reference_rate = reference
+                .get("reported_items_per_hour")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let reference_shift = reference
+                .get("reported_accepted_items_per_shift")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let reference_hours = reference
+                .get("reported_shift_hours")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let first_rate = suite
+                .get("first_pass_table_ready_items_per_hour_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let stretch_rate = suite
+                .get("stretch_table_ready_items_per_hour_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let first_shift = suite
+                .get("first_pass_table_ready_items_per_shift_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let stretch_shift = suite
+                .get("stretch_table_ready_items_per_shift_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let shift_hours = suite
+                .get("production_shift_hours")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let first_destination = suite
+                .get("first_pass_destination_accuracy_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+            let stretch_destination = suite
+                .get("stretch_destination_accuracy_target")
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0);
+
+            if reference.get("is_our_result").and_then(Value::as_bool) != Some(false)
+                || reference_success != 0.93
+                || reference_rate != 95.0
+                || reference_shift != 1590.0
+                || reference_hours != 18.0
+                || text_at(reference, "reported_completion_scope")
+                    != Some("fold_and_bin_stack_placement")
+            {
+                errors.push(
+                    "Dyna-2 comparator must preserve the current company-reported end-to-end production scope and figures"
+                        .to_owned(),
+                );
+            }
+            if first_pass <= reference_success
+                || first_rate <= reference_rate
+                || first_shift <= reference_shift
+                || shift_hours != reference_hours
+            {
+                errors.push(
+                    "commercial targets must exceed Dyna-2's current 93%, 95 items/hour and 1,590 table-ready items/18h baseline"
+                        .to_owned(),
+                );
+            }
+            if stretch_rate < first_rate
+                || stretch_shift < first_shift
+                || (first_rate * shift_hours - first_shift).abs() > 0.001
+                || (stretch_rate * shift_hours - stretch_shift).abs() > 0.001
+            {
+                errors.push(
+                    "commercial table-ready shift targets must reconcile with items/hour × shift duration"
+                        .to_owned(),
+                );
+            }
+            if first_destination < 0.995 || stretch_destination < 0.999 {
+                errors.push(
+                    "commercial destination accuracy targets must be >=0.995 first-pass and >=0.999 stretch"
+                        .to_owned(),
+                );
+            }
+        }
+        _ => errors.push(
+            "current Dyna-2 comparator and standardized commercial suite are both required"
+                .to_owned(),
+        ),
     }
 
     let metrics = profile.get("metrics").and_then(Value::as_array);
@@ -383,7 +484,7 @@ mod tests {
     fn ready_state_contract_passes_with_three_explicit_endpoints() {
         let (schema, profile) = fixture();
         assert!(is_valid(&schema, &profile));
-        assert_eq!(profile["metrics"].as_array().expect("metrics").len(), 10);
+        assert_eq!(profile["metrics"].as_array().expect("metrics").len(), 13);
         assert_eq!(
             profile["benchmark_suites"]
                 .as_array()
@@ -396,7 +497,7 @@ mod tests {
                 .as_array()
                 .expect("external comparators")
                 .len(),
-            5
+            6
         );
     }
 
@@ -475,6 +576,57 @@ mod tests {
         let (schema, mut profile) = fixture();
         profile["external_comparators"][0]["suite_id"] =
             Value::String("pooled_all_garments".to_owned());
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn commercial_target_must_exceed_current_dyna2_quality_baseline() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][0]["first_pass_success_target"] = json!(0.93);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn commercial_target_must_exceed_current_dyna2_table_ready_rate() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][0]["first_pass_table_ready_items_per_hour_target"] =
+            json!(95.0);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn commercial_target_must_exceed_current_dyna2_shift_output() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][0]["first_pass_table_ready_items_per_shift_target"] =
+            json!(1590.0);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn commercial_shift_output_must_reconcile_with_hourly_rate() {
+        let (schema, mut profile) = fixture();
+        profile["benchmark_suites"][0]["first_pass_table_ready_items_per_shift_target"] =
+            json!(1799.0);
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn current_dyna2_comparator_cannot_be_removed() {
+        let (schema, mut profile) = fixture();
+        profile["external_comparators"]
+            .as_array_mut()
+            .expect("comparators")
+            .retain(|item| {
+                item.get("id").and_then(Value::as_str)
+                    != Some("DYNA-2-DIN-TAI-FUNG-AUG2026")
+            });
+        assert!(!is_valid(&schema, &profile));
+    }
+
+    #[test]
+    fn dyna2_quality_cannot_be_relabelled_as_our_result() {
+        let (schema, mut profile) = fixture();
+        profile["external_comparators"][0]["is_our_result"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
