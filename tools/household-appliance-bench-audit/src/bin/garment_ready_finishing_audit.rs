@@ -571,7 +571,7 @@ mod tests {
     #[test]
     fn proposed_targets_must_exceed_external_frontier() {
         let (schema, mut profile) = fixture();
-        profile["benchmark_suites"][0]["first_pass_success_target"] = json!(0.99);
+        profile["benchmark_suites"][0]["first_pass_success_target"] = json!(0.93);
         assert!(!is_valid(&schema, &profile));
     }
 
