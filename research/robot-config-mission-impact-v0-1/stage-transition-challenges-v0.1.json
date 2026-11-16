@@ -14,7 +14,7 @@
       "current_configuration_revision": "rev-b",
       "current_frame_epoch_ref": "frame-b",
       "required_source_classes": [
-        "robot_telemetry"
+        "referee_measurement"
       ],
       "required_evidence_axes": [
         "configuration_identity",
@@ -424,7 +424,7 @@
       "case_id": "MST-011",
       "scenario": "optional survey substage is skipped under explicit profile policy",
       "stage_id": "S04",
-      "stage_criticality": "quality_critical",
+      "stage_criticality": "low_risk_intermediate",
       "task_revision": "task-r1",
       "current_configuration_revision": "rev-b",
       "current_frame_epoch_ref": "frame-b",
@@ -456,7 +456,7 @@
       "case_id": "MST-012",
       "scenario": "mandatory navigation stage attempts an unauthorized skip",
       "stage_id": "S04",
-      "stage_criticality": "quality_critical",
+      "stage_criticality": "low_risk_intermediate",
       "task_revision": "task-r1",
       "current_configuration_revision": "rev-b",
       "current_frame_epoch_ref": "frame-b",
