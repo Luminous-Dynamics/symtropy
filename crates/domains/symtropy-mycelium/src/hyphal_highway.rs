@@ -948,7 +948,10 @@ mod tests {
         transit.target_patch = LiquidPatchId(1);
         transit.path = vec![LiquidPatchId(2), LiquidPatchId(1)];
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
             HyphalHighwayOutcome::QualifiedTrueFungus
         );
     }
