@@ -17,12 +17,6 @@ pub enum CommitmentState {
     Planned,
 }
 
-impl CommitmentState {
-    fn is_frozen(self) -> bool {
-        matches!(self, Self::Completed | Self::InFlight)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateStatus {
     Pass,
