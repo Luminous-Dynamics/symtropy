@@ -14,6 +14,7 @@
 pub mod pressure;
 pub mod subterra;
 pub mod subterra_evidence;
+pub mod subterra_network;
 
 use std::collections::{BTreeMap, BTreeSet};
 
