@@ -261,6 +261,9 @@ pub fn solve_collision_1d(
     }
 
     let inverse_mass_sum = 1.0 / mass_a_kg + 1.0 / mass_b_kg;
+    if !inverse_mass_sum.is_finite() || inverse_mass_sum <= 0.0 {
+        return Err(LedgerError::InvalidMass);
+    }
     let relative_speed = velocity_a_mps - velocity_b_mps;
     let impulse_ns = (1.0 + restitution) * relative_speed / inverse_mass_sum;
     let v_a_after = velocity_a_mps - impulse_ns / mass_a_kg;
@@ -407,6 +410,14 @@ mod tests {
             Err(LedgerError::EmptyCausalId)
         );
         assert!(ledger.events().is_empty());
+    }
+
+    #[test]
+    fn extreme_mass_values_that_overflow_inverse_mass_are_rejected() {
+        assert_eq!(
+            solve_collision_1d(f64::MIN_POSITIVE, 1.0, 1.0, 0.0, 0.5),
+            Err(LedgerError::InvalidMass)
+        );
     }
 
     #[test]
