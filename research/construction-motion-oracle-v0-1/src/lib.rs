@@ -6,6 +6,7 @@
 
 mod capsule;
 mod co_translation_ccd;
+mod independent_interval_verifier;
 mod translation_ccd;
 pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
@@ -22,6 +23,11 @@ pub use co_translation_ccd::{
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     co_translating_capsule_vs_capsule_in_time_window,
     endpoints_only_co_translating_capsule_collision, verify_adaptive_collision_certificate,
+};
+pub use independent_interval_verifier::{
+    IntervalContactWitness, IntervalVerificationReceipt, IntervalVerificationStatus,
+    IntervalVerifierConfig, IntervalVerifierError, replay_interval_verification_receipt,
+    verify_capsule_interval_no_contact,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
