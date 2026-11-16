@@ -898,7 +898,7 @@ fn mitigation_without_hazard_attachment_is_blocked_even_if_it_has_evidence() {
 
 #[test]
 fn defeater_must_challenge_a_claim_or_mitigation() {
-    let (mut nodes, mut edges) = positive_case();
+    let (nodes, mut edges) = positive_case();
     edges.retain(|item| {
         !(item.from_node_id == "defeater-sensor-bias" && item.kind == EdgeKind::Challenges)
     });
@@ -1064,6 +1064,7 @@ fn policy_requirement_for_absent_claim_is_reported_as_a_blocker() {
         .push(ClaimEvidenceRequirement {
             claim_id: "claim-that-is-not-present".into(),
             required_purposes: vec![EvidencePurpose::ModelCredibility],
+            minimum_independent_evidence_groups: 1,
         });
     let result = evaluate_assurance_case(&nodes, &edges, "root", &frozen).unwrap();
     assert!(blocker(
