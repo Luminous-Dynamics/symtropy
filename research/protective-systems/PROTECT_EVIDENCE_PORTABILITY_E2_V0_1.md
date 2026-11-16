@@ -69,9 +69,10 @@ Contents:
 - the exact E1 evidence envelope (byte-for-byte copy);
 - a binding manifest linking PROV entities to E1 dataset IDs or explicitly synthetic control IDs;
 - one sparse PROV-O graph;
+- one versioned Draft 2020-12 schema for the E2 binding manifest;
 - one RO-Crate 1.3 metadata document.
 
-The package contains nine data files: six original E1 artifacts, the E1 envelope, the binding manifest and the PROV-O graph. The six source artifacts and E1 envelope are byte-identical to their E1 fixture sources.
+The package contains ten data files: six original E1 provider artifacts, the E1 envelope, the binding manifest, the binding manifest's Draft 2020-12 JSON Schema and the PROV-O graph. The six source artifacts and E1 envelope are byte-identical to their E1 fixture sources.
 
 ### Sparse graph fixture
 
@@ -103,6 +104,7 @@ It checks:
 - E1 envelope analysis identity/execution status against the binding manifest;
 - E1 dataset IDs, directions and artifact paths against the binding manifest;
 - explicit synthetic-control-only status for non-E1 graph nodes;
+- packaged binding-schema bytes are identical to the schema used by the verifier;
 - consistency of all four PROV entity IDs/dataset IDs/directions/binding statuses against the binding manifest;
 - all six copied E1 provider artifacts against the E1 evidence envelope;
 - exact synthetic rights status, use and claim ceiling;
@@ -115,7 +117,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 
 ## 5. Adversarial tests
 
-24 Rust unit tests are written:
+27 Rust unit tests are written:
 - valid RO-Crate + sparse PROV-O graph;
 - all-to-all derivation inference;
 - incorrect sparse derivation target;
@@ -136,6 +138,7 @@ The verifier emits `ABSTAIN_SYNTHETIC_NOT_EXECUTED`. Passing means only syntheti
 - PROV dataset IDs match the binding manifest;
 - synthetic control cannot be promoted to an E1 dataset;
 - binding manifest pins the exact E1 envelope digest;
+- binding schema rejects unknown properties, non-synthetic evidence class and artifacts on synthetic controls;
 - PROV activity identity matches the E1 analysis identity;
 - extra generation edge on an input;
 - descriptor pointing away from root.
