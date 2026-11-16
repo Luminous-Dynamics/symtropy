@@ -67,8 +67,8 @@
       "note": "Preserve the 8 kW optical mining demonstration and 10 m concentrator as the source-reported experiment boundary; unreported yield remains null.",
       "source_id": "nasa-optical-mining-8kw",
       "conditions": {
-        "source_power_kw": 8.0,
-        "concentrator_diameter_m": 10.0,
+        "source_power_kw": 8,
+        "concentrator_diameter_m": 10,
         "environment": "vacuum",
         "feedstock": "high_fidelity_CI_type_asteroid_simulant",
         "mechanical_contact": false,
@@ -84,7 +84,12 @@
       "conditions": {
         "feedstock_family": "carbonaceous_chondrite_simulant",
         "environment": "vacuum",
-        "required_factors": ["irradiance", "mineral_morphology", "brittle_ductile_transition", "organic_vapour_deposition"]
+        "required_factors": [
+          "irradiance",
+          "mineral_morphology",
+          "brittle_ductile_transition",
+          "organic_vapour_deposition"
+        ]
       }
     },
     {
@@ -95,11 +100,20 @@
       "source_id": "asteroid-laser-mining-cryogenic-vacuum-2026",
       "conditions": {
         "laser_type": "continuous_wave_fibre",
-        "power_levels_w": [300, 600, 900],
+        "power_levels_w": [
+          300,
+          600,
+          900
+        ],
         "exposure_s": 30,
         "pressure_pa": 0.01,
         "initial_temperature_k": 253,
-        "feedstock_families": ["C_type_simulant", "S_type_simulant"]
+        "feedstock_families": [
+          "C_type_simulant",
+          "S_type_simulant"
+        ],
+        "original_feedstock_fe_ni_percent": 16.7,
+        "ejected_fines_fe_ni_percent": 69.6
       }
     },
     {
@@ -110,9 +124,16 @@
       "source_id": "lunar-concentrated-water-extraction-2025",
       "conditions": {
         "feedstock": "LHS_1_icy_lunar_regolith_simulant",
-        "irradiance_kw_m2": [37.06, 74.62],
+        "irradiance_kw_m2": [
+          37.06,
+          74.62
+        ],
         "reported_indirect_receiver_sublimation_gain_percent": 18.7,
-        "reported_gain_uncertainty_percent": 10.4
+        "reported_gain_uncertainty_percent": 10.4,
+        "irradiance_uncertainty_kw_m2": [
+          2.66,
+          3.57
+        ]
       }
     },
     {
@@ -123,8 +144,16 @@
       "source_id": "nasa-card-integrated-ground-test-2026",
       "conditions": {
         "feedstock": "simulated_lunar_regolith",
-        "integrated_subsystems": ["deployable_solar_concentrator", "crossed_Dragone_mirrors", "carbothermal_reactor", "control_software", "gas_analysis"],
-        "confirmed_species": ["CO"],
+        "integrated_subsystems": [
+          "deployable_solar_concentrator",
+          "crossed_Dragone_mirrors",
+          "carbothermal_reactor",
+          "control_software",
+          "gas_analysis"
+        ],
+        "confirmed_species": [
+          "CO"
+        ],
         "purified_oxygen_confirmed": false
       }
     },
@@ -141,8 +170,15 @@
         "small_array_mean_delivered_power_w": 28,
         "large_array_effective_aperture_m": 10,
         "large_array_transmitter_power_kw": 100,
-        "large_array_delivered_energy_kwh_day": [30, 50],
-        "receiver_area_m2": 1
+        "large_array_delivered_energy_kwh_day": [
+          30,
+          50
+        ],
+        "receiver_area_m2": 1,
+        "small_array_delivered_energy_kwh_day": [
+          0.6,
+          0.8
+        ]
       }
     },
     {
@@ -176,9 +212,9 @@
       "note": "Inverse-square solar flux check; not an orbit, site illumination or collector performance prediction.",
       "source_id": null,
       "conditions": {
-        "reference_flux_w_m2": 1361.0,
-        "reference_distance_au": 1.0,
-        "target_distance_au": 2.0,
+        "reference_flux_w_m2": 1361,
+        "reference_distance_au": 1,
+        "target_distance_au": 2,
         "expected_flux_w_m2": 340.25
       }
     },
@@ -214,14 +250,14 @@
       "note": "All input feedstock mass is assigned to residue, captured/escaped solids, captured/escaped gas and other declared mass.",
       "source_id": null,
       "conditions": {
-        "feedstock_input_kg": 10.0,
-        "solid_residue_kg": 7.0,
-        "captured_solids_kg": 1.0,
+        "feedstock_input_kg": 10,
+        "solid_residue_kg": 7,
+        "captured_solids_kg": 1,
         "escaped_solids_kg": 0.5,
-        "captured_raw_gas_kg": 1.0,
+        "captured_raw_gas_kg": 1,
         "escaped_gas_kg": 0.4,
         "other_accounted_mass_kg": 0.1,
-        "expected_residual_kg": 0.0
+        "expected_residual_kg": 0
       }
     },
     {
@@ -231,9 +267,9 @@
       "note": "Captured gas cannot be promoted to accepted product when independent assay purity is below the specified product contract.",
       "source_id": null,
       "conditions": {
-        "captured_raw_gas_kg": 1.0,
+        "captured_raw_gas_kg": 1,
         "purified_product_kg": 0.7,
-        "measured_purity_fraction": 0.90,
+        "measured_purity_fraction": 0.9,
         "minimum_purity_fraction": 0.99,
         "independent_assay_present": true
       }
@@ -246,8 +282,8 @@
       "source_id": null,
       "conditions": {
         "source_boundary": "dc_electrical_at_transmitter",
-        "source_input_kwh": 10.0,
-        "optical_output_kwh": 4.0,
+        "source_input_kwh": 10,
+        "optical_output_kwh": 4,
         "receiver_incident_kwh": 4.5,
         "expected_rejection": "receiver_incident_exceeds_optical_output"
       }
@@ -259,8 +295,8 @@
       "note": "A downstream measurement cannot be promoted when an upstream stage is unknown.",
       "source_id": null,
       "conditions": {
-        "source_input_kwh": 10.0,
-        "optical_output_kwh": 4.0,
+        "source_input_kwh": 10,
+        "optical_output_kwh": 4,
         "receiver_incident_kwh": null,
         "receiver_absorbed_kwh": 2.5,
         "expected_rejection": "downstream_after_missing_stage"
