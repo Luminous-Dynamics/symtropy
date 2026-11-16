@@ -196,7 +196,8 @@
             "uri",
             "sha256",
             "format",
-            "byte_length"
+            "byte_length",
+            "adapter_version"
           ],
           "properties": {
             "uri": {
@@ -217,7 +218,8 @@
             },
             "adapter_version": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "description": "Version of the adapter/parser that defines how the asset bytes map to the declared particle columns and coordinate system."
             }
           }
         },
@@ -388,11 +390,13 @@
         },
         "input_weighted_count": {
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "description": "For same-species transport, incoming represented population. For particle_production, must be zero; source population is declared separately in source_accounting."
         },
         "generated_weighted_count": {
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "description": "For same-species transport, explicitly generated same-species population. For particle_production, weighted output-species population created before downstream losses."
         },
         "surviving_weighted_count": {
           "type": "number",
@@ -436,7 +440,8 @@
           "minimum": 0
         },
         "balance_residual_weighted_count": {
-          "type": "number"
+          "type": "number",
+          "description": "Computed residual: input + generated - surviving - sum(losses). Must equal this declared value and remain within balance_tolerance_relative; it is not an extra balancing term."
         }
       }
     },
