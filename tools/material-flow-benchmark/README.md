@@ -49,15 +49,29 @@ The result prints an L1 JSON record containing the final package position, speed
 This is an actual headless rigid-body simulation, but it is a **reduced-order stationary receiving scene**, not a complete logistics simulation. It does not model package deformation, a robot/gripper, carrier dynamics, aircraft, routes, sensor noise, actuator control, human exposure, or physical metrology. Bitwise replay is asserted only for two runs on the same host/build; cross-platform determinism is not claimed.
 
 
-### First L1 baseline (2026-11-15)
+### Historical L1 contact baseline and current qualification
 
-The exact-head workflow run [43768458267](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267) passed the 53-test Rust suite, Clippy, both fixture validators and the nominal L1 simulation. The L1 evidence artifact is `mfb-l1-evidence-c2fa555623bdb8a242d238c3c2a0d6cf6885a0e1` (artifact ID `14183207787`), containing raw `result.json` and `environment.txt`.
+The first 120 Hz run is retained as a historical baseline: workflow [43768458267](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43768458267), 53 tests, 10.256 mm peak contact penetration. It is not the current acceptance threshold or current qualified setting.
 
-Observed nominal outputs: package centre `[-0.0024414, 0.0455627, -0.0003204] m`; final linear/angular speed `0`; same-host bitwise replay `true`; safe containment `true`; transaction `completed`; accepted `true`; non-finite bodies `0`; maximum contact penetration `0.0102563 m` (10.26 mm); rotation orthogonality error `3.33e-15`. The 10.26 mm penetration is a baseline to improve, not a high-fidelity contact claim. The code currently permits 40 mm in this demonstrator; issue [#5469](https://github.com/Luminous-Dynamics/symtropy/issues/5469) tracks tighter contact/convergence validation.
+The same four-second nominal scene was refined to 240 Hz (5.023 mm) and then 480 Hz / 1,920 steps (2.307 mm). The current hard demonstrator gate is **5.000 mm**. The 480 Hz setting passed exact-head workflow [43769459756](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769459756), source `2643fc9df9c22dfa760179c1deab0cf2e7f16a0e`; see the measured history in the benchmark specification and follow-on exact-head run below.
 
 ### Contact-depth refinement record
 
 The first 120 Hz L1 baseline measured 10.26 mm maximum contact penetration. Refining the same four-second episode to 240 Hz reduced it to 5.023 mm; the 480 Hz / 1,920-tick episode then reduced it to **2.307 mm** and passed the hard 5 mm L1 gate. The 480 Hz exact-head result passed [workflow 43769459756](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43769459756), source `2643fc9df9c22dfa760179c1deab0cf2e7f16a0e`, with the same-host replay, placement and custody gates intact. Do not substitute the earlier 40 mm permissive demonstrator threshold for the current 5 mm gate.
+
+### Executed ten-fault protocol campaign (2026-11-16)
+
+Exact-head workflow [43819492450](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43819492450) passed on source `a270a138095f187b6ad034fbb530cc27f746ec4f` with **61 Rust tests**, strict formatting, Clippy `-D warnings`, nominal and campaign-manifest validation, all ten protocol fault executions, four-timestep analytical convergence, L1 receiving simulation/replay and evidence upload.
+
+The executed campaign reported:
+- **10/10 episodes accepted** against their expected terminal-state oracle;
+- pre-dispatch faults never issued a release command;
+- replay of the same logical command was suppressed;
+- a second distinct physical-release observation forced reconciliation;
+- missing acknowledgement, power interruption and network partition after release all blocked blind retry;
+- no injected fault was falsely reported as completed.
+
+Evidence artifact: `mfb-l1-evidence-a270a138095f187b6ad034fbb530cc27f746ec4f` (artifact ID `14204140876`). It contains `protocol-fault-campaign.json`, `free-fall-convergence.json`, `result.json` and environment metadata. The campaign is **protocol-level typed-event injection into an in-memory state machine**, not physical sensor/network/power fault injection, HIL or field testing.
 
 ## Tier-B free-fall convergence check
 
