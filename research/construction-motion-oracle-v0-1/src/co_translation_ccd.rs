@@ -1266,3 +1266,602 @@ mod tests {
         }
     }
 }
+
+
+/// One terminal interval in a replayable adaptive collision certificate.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdaptiveProofLeaf {
+    pub window: NormalizedTimeWindow,
+    pub depth: u8,
+    pub disposition: AdaptiveProofLeafDisposition,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AdaptiveProofLeafDisposition {
+    /// This interval was safely removed by disjoint conservative swept AABBs.
+    Pruned {
+        moving_bounds: CapsuleAabb3,
+        obstacle_bounds: CapsuleAabb3,
+    },
+    /// The exact restricted-window analytic query established separation.
+    CheckedClear {
+        closest: CoTranslatingCapsuleClosestApproach,
+    },
+    /// The exact restricted-window analytic query established contact.
+    CheckedContact {
+        closest: CoTranslatingCapsuleClosestApproach,
+    },
+    /// The analytic query declined to classify this candidate interval.
+    Unresolved {
+        error: TranslationCcdError,
+    },
+}
+
+/// Complete typed input snapshot and terminal-interval ledger for one adaptive query.
+///
+/// The certificate is replayable but not cryptographically authenticated. The
+/// caller must bind its inputs to the relevant design, site epoch, robot/tool,
+/// calibration and controller identities in the surrounding evidence system.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AdaptiveCollisionCertificate {
+    pub moving: Capsule,
+    pub moving_translation: Vec3,
+    pub obstacle: Capsule,
+    pub obstacle_translation: Vec3,
+    pub config: AdaptiveSubdivisionConfig,
+    /// Sorted, complete, gap-free terminal partition of the normalized domain.
+    pub leaves: Vec<AdaptiveProofLeaf>,
+    /// The summary derived from the terminal ledger.
+    pub report: AdaptiveCollisionReport,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AdaptiveCertificateError {
+    Geometry(TranslationCcdError),
+    EmptyCertificate,
+    InvalidCoverage,
+    InvalidLeafOrder,
+    InvalidDyadicWindow,
+    InvalidLeafDepth,
+    CandidateLeafNotTerminal,
+    PruneBoundsMismatch,
+    PruneNotDisjoint,
+    CandidateBoundsDisjoint,
+    NarrowPhaseClaimMismatch,
+    OutcomeMismatch,
+    StatisticsMismatch,
+    LeafLimitExceeded,
+}
+
+const MAX_ADAPTIVE_CERTIFICATE_LEAVES: usize = 65_536;
+
+/// Run adaptive branch-and-bound and retain every terminal interval.
+///
+/// Unlike the existing latency-oriented API, this certificate-producing
+/// variant evaluates every surviving candidate leaf, even after a contact
+/// witness is found. This makes the ledger complete and independently
+/// replayable. Use the existing API when early contact termination is preferred.
+pub fn co_translating_capsule_adaptive_query_with_certificate(
+    moving: Capsule,
+    moving_translation: Vec3,
+    obstacle: Capsule,
+    obstacle_translation: Vec3,
+    config: AdaptiveSubdivisionConfig,
+) -> Result<AdaptiveCollisionCertificate, AdaptiveCertificateError> {
+    config
+        .validate()
+        .map_err(AdaptiveCertificateError::Geometry)?;
+    validate_translating_capsule(moving, moving_translation)
+        .map_err(AdaptiveCertificateError::Geometry)?;
+    validate_translating_capsule(obstacle, obstacle_translation)
+        .map_err(AdaptiveCertificateError::Geometry)?;
+
+    let root = NormalizedTimeWindow {
+        start_parameter: 0.0,
+        end_parameter: 1.0,
+    };
+    let mut stack = vec![(root, 0_u8)];
+    let mut leaves = Vec::new();
+
+    while let Some((window, depth)) = stack.pop() {
+        let moving_bounds = slab_swept_bounds(
+            moving,
+            moving_translation,
+            window.start_parameter,
+            window.end_parameter,
+        )
+        .map_err(AdaptiveCertificateError::Geometry)?;
+        let obstacle_bounds = slab_swept_bounds(
+            obstacle,
+            obstacle_translation,
+            window.start_parameter,
+            window.end_parameter,
+        )
+        .map_err(AdaptiveCertificateError::Geometry)?;
+
+        if !moving_bounds.overlaps(obstacle_bounds) {
+            leaves.push(AdaptiveProofLeaf {
+                window,
+                depth,
+                disposition: AdaptiveProofLeafDisposition::Pruned {
+                    moving_bounds,
+                    obstacle_bounds,
+                },
+            });
+        } else {
+            let half_width = window.width() * 0.5;
+            let can_split =
+                depth < config.maximum_depth && half_width >= config.minimum_window_width;
+            if can_split {
+                if leaves.len() + stack.len() + 2 > MAX_ADAPTIVE_CERTIFICATE_LEAVES {
+                    return Err(AdaptiveCertificateError::LeafLimitExceeded);
+                }
+                let midpoint = window.start_parameter + half_width;
+                let left = NormalizedTimeWindow {
+                    start_parameter: window.start_parameter,
+                    end_parameter: midpoint,
+                };
+                let right = NormalizedTimeWindow {
+                    start_parameter: midpoint,
+                    end_parameter: window.end_parameter,
+                };
+                // Right is pushed first so the LIFO traversal visits chronological order.
+                stack.push((right, depth + 1));
+                stack.push((left, depth + 1));
+            } else {
+                let disposition = match co_translating_capsule_vs_capsule_in_time_window(
+                    moving,
+                    moving_translation,
+                    obstacle,
+                    obstacle_translation,
+                    window,
+                ) {
+                    Ok(closest) => {
+                        if closest.is_contact(moving.radius_mm, obstacle.radius_mm) {
+                            AdaptiveProofLeafDisposition::CheckedContact { closest }
+                        } else {
+                            AdaptiveProofLeafDisposition::CheckedClear { closest }
+                        }
+                    }
+                    Err(TranslationCcdError::NumericallyUnresolved) => {
+                        AdaptiveProofLeafDisposition::Unresolved {
+                            error: TranslationCcdError::NumericallyUnresolved,
+                        }
+                    }
+                    Err(error) => return Err(AdaptiveCertificateError::Geometry(error)),
+                };
+                leaves.push(AdaptiveProofLeaf {
+                    window,
+                    depth,
+                    disposition,
+                });
+            }
+        }
+    }
+
+    leaves.sort_by(|left, right| {
+        left.window
+            .start_parameter
+            .total_cmp(&right.window.start_parameter)
+    });
+    let report = summarize_certificate_leaves(&leaves);
+    Ok(AdaptiveCollisionCertificate {
+        moving,
+        moving_translation,
+        obstacle,
+        obstacle_translation,
+        config,
+        leaves,
+        report,
+    })
+}
+
+/// Independently replay all bounds, interval coverage and narrow-phase claims.
+///
+/// A successful verification means the terminal ledger is a complete
+/// dyadic partition, every pruned interval has disjoint recomputed outer
+/// bounds, every checked leaf agrees with a fresh analytic query, and the
+/// aggregate outcome/statistics match the leaf ledger.
+pub fn verify_adaptive_collision_certificate(
+    certificate: &AdaptiveCollisionCertificate,
+) -> Result<(), AdaptiveCertificateError> {
+    certificate
+        .config
+        .validate()
+        .map_err(AdaptiveCertificateError::Geometry)?;
+    validate_translating_capsule(certificate.moving, certificate.moving_translation)
+        .map_err(AdaptiveCertificateError::Geometry)?;
+    validate_translating_capsule(certificate.obstacle, certificate.obstacle_translation)
+        .map_err(AdaptiveCertificateError::Geometry)?;
+
+    if certificate.leaves.is_empty() {
+        return Err(AdaptiveCertificateError::EmptyCertificate);
+    }
+    if certificate.leaves[0].window.start_parameter != 0.0
+        || certificate.leaves.last().map(|leaf| leaf.window.end_parameter) != Some(1.0)
+    {
+        return Err(AdaptiveCertificateError::InvalidCoverage);
+    }
+
+    for (index, leaf) in certificate.leaves.iter().enumerate() {
+        leaf.window
+            .validate()
+            .map_err(|_| AdaptiveCertificateError::InvalidCoverage)?;
+        if leaf.depth > certificate.config.maximum_depth {
+            return Err(AdaptiveCertificateError::InvalidLeafDepth);
+        }
+        let scale = (1_u64 << leaf.depth) as f64;
+        let scaled_start = leaf.window.start_parameter * scale;
+        let scaled_end = leaf.window.end_parameter * scale;
+        if scaled_start.fract() != 0.0
+            || scaled_end.fract() != 0.0
+            || leaf.window.width() != 1.0 / scale
+        {
+            return Err(AdaptiveCertificateError::InvalidDyadicWindow);
+        }
+        if index > 0 {
+            let previous = &certificate.leaves[index - 1];
+            if previous.window.start_parameter >= leaf.window.start_parameter {
+                return Err(AdaptiveCertificateError::InvalidLeafOrder);
+            }
+            if previous.window.end_parameter != leaf.window.start_parameter {
+                return Err(AdaptiveCertificateError::InvalidCoverage);
+            }
+        }
+
+        let moving_bounds = slab_swept_bounds(
+            certificate.moving,
+            certificate.moving_translation,
+            leaf.window.start_parameter,
+            leaf.window.end_parameter,
+        )
+        .map_err(AdaptiveCertificateError::Geometry)?;
+        let obstacle_bounds = slab_swept_bounds(
+            certificate.obstacle,
+            certificate.obstacle_translation,
+            leaf.window.start_parameter,
+            leaf.window.end_parameter,
+        )
+        .map_err(AdaptiveCertificateError::Geometry)?;
+
+        match &leaf.disposition {
+            AdaptiveProofLeafDisposition::Pruned {
+                moving_bounds: claimed_moving,
+                obstacle_bounds: claimed_obstacle,
+            } => {
+                if *claimed_moving != moving_bounds || *claimed_obstacle != obstacle_bounds {
+                    return Err(AdaptiveCertificateError::PruneBoundsMismatch);
+                }
+                if moving_bounds.overlaps(obstacle_bounds) {
+                    return Err(AdaptiveCertificateError::PruneNotDisjoint);
+                }
+            }
+            AdaptiveProofLeafDisposition::CheckedClear { closest } => {
+                verify_candidate_leaf_is_terminal(leaf, certificate.config)?;
+                if !moving_bounds.overlaps(obstacle_bounds) {
+                    return Err(AdaptiveCertificateError::CandidateBoundsDisjoint);
+                }
+                let actual = co_translating_capsule_vs_capsule_in_time_window(
+                    certificate.moving,
+                    certificate.moving_translation,
+                    certificate.obstacle,
+                    certificate.obstacle_translation,
+                    leaf.window,
+                )
+                .map_err(AdaptiveCertificateError::Geometry)?;
+                if actual != *closest
+                    || actual.is_contact(
+                        certificate.moving.radius_mm,
+                        certificate.obstacle.radius_mm,
+                    )
+                {
+                    return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
+                }
+            }
+            AdaptiveProofLeafDisposition::CheckedContact { closest } => {
+                verify_candidate_leaf_is_terminal(leaf, certificate.config)?;
+                if !moving_bounds.overlaps(obstacle_bounds) {
+                    return Err(AdaptiveCertificateError::CandidateBoundsDisjoint);
+                }
+                let actual = co_translating_capsule_vs_capsule_in_time_window(
+                    certificate.moving,
+                    certificate.moving_translation,
+                    certificate.obstacle,
+                    certificate.obstacle_translation,
+                    leaf.window,
+                )
+                .map_err(AdaptiveCertificateError::Geometry)?;
+                if actual != *closest
+                    || !actual.is_contact(
+                        certificate.moving.radius_mm,
+                        certificate.obstacle.radius_mm,
+                    )
+                {
+                    return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
+                }
+            }
+            AdaptiveProofLeafDisposition::Unresolved { error } => {
+                verify_candidate_leaf_is_terminal(leaf, certificate.config)?;
+                if *error != TranslationCcdError::NumericallyUnresolved
+                    || !moving_bounds.overlaps(obstacle_bounds)
+                {
+                    return Err(AdaptiveCertificateError::CandidateBoundsDisjoint);
+                }
+                match co_translating_capsule_vs_capsule_in_time_window(
+                    certificate.moving,
+                    certificate.moving_translation,
+                    certificate.obstacle,
+                    certificate.obstacle_translation,
+                    leaf.window,
+                ) {
+                    Err(TranslationCcdError::NumericallyUnresolved) => {}
+                    _ => return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch),
+                }
+            }
+        }
+    }
+
+    let expected = summarize_certificate_leaves(&certificate.leaves);
+    if expected.status != certificate.report.status
+        || expected.witness != certificate.report.witness
+        || expected.witness_window != certificate.report.witness_window
+        || expected.candidate_windows != certificate.report.candidate_windows
+        || expected.unresolved_windows != certificate.report.unresolved_windows
+    {
+        return Err(AdaptiveCertificateError::OutcomeMismatch);
+    }
+    if expected.stats != certificate.report.stats {
+        return Err(AdaptiveCertificateError::StatisticsMismatch);
+    }
+    Ok(())
+}
+
+fn verify_candidate_leaf_is_terminal(
+    leaf: &AdaptiveProofLeaf,
+    config: AdaptiveSubdivisionConfig,
+) -> Result<(), AdaptiveCertificateError> {
+    let can_split = leaf.depth < config.maximum_depth
+        && leaf.window.width() * 0.5 >= config.minimum_window_width;
+    if can_split {
+        return Err(AdaptiveCertificateError::CandidateLeafNotTerminal);
+    }
+    Ok(())
+}
+
+fn summarize_certificate_leaves(leaves: &[AdaptiveProofLeaf]) -> AdaptiveCollisionReport {
+    let mut candidate_windows = Vec::new();
+    let mut unresolved_windows = Vec::new();
+    let mut witness = None;
+    let mut witness_window = None;
+    let mut pruned = 0_u32;
+    let mut exact_calls = 0_u32;
+    let mut unresolved_count = 0_u32;
+    let mut candidate_time_fraction = 0.0_f64;
+    let mut maximum_depth = 0_u8;
+
+    for leaf in leaves {
+        maximum_depth = maximum_depth.max(leaf.depth);
+        match leaf.disposition {
+            AdaptiveProofLeafDisposition::Pruned { .. } => {
+                pruned += 1;
+            }
+            AdaptiveProofLeafDisposition::CheckedClear { .. } => {
+                candidate_windows.push(leaf.window);
+                candidate_time_fraction += leaf.window.width();
+                exact_calls += 1;
+            }
+            AdaptiveProofLeafDisposition::CheckedContact { closest } => {
+                candidate_windows.push(leaf.window);
+                candidate_time_fraction += leaf.window.width();
+                exact_calls += 1;
+                if witness.is_none() {
+                    witness = Some(closest);
+                    witness_window = Some(leaf.window);
+                }
+            }
+            AdaptiveProofLeafDisposition::Unresolved { .. } => {
+                candidate_windows.push(leaf.window);
+                unresolved_windows.push(leaf.window);
+                candidate_time_fraction += leaf.window.width();
+                exact_calls += 1;
+                unresolved_count += 1;
+            }
+        }
+    }
+
+    let status = if witness.is_some() {
+        AdaptiveCollisionStatus::Contact
+    } else if unresolved_windows.is_empty() {
+        AdaptiveCollisionStatus::NoContact
+    } else {
+        AdaptiveCollisionStatus::Unresolved
+    };
+    if candidate_time_fraction == 0.0 {
+        candidate_time_fraction = 0.0;
+    }
+    let leaf_count = leaves.len() as u32;
+    AdaptiveCollisionReport {
+        status,
+        witness,
+        witness_window,
+        candidate_windows,
+        unresolved_windows,
+        stats: AdaptiveSubdivisionStats {
+            node_visits: leaf_count.saturating_mul(2).saturating_sub(1),
+            split_intervals: leaf_count.saturating_sub(1),
+            pruned_intervals: pruned,
+            candidate_window_count: exact_calls,
+            exact_narrow_phase_calls: exact_calls,
+            unresolved_candidate_count: unresolved_count,
+            maximum_depth_reached: maximum_depth,
+            candidate_time_fraction,
+        },
+    }
+}
+
+#[cfg(test)]
+mod adaptive_certificate_tests {
+    use super::*;
+
+    fn p(x: f64, y: f64, z: f64) -> Vec3 {
+        Vec3::new(x, y, z)
+    }
+
+    fn point_capsule(x: f64, radius_mm: f64) -> Capsule {
+        Capsule::new(p(x, 0.0, 0.0), p(x, 0.0, 0.0), radius_mm).unwrap()
+    }
+
+    fn config() -> AdaptiveSubdivisionConfig {
+        AdaptiveSubdivisionConfig {
+            maximum_depth: 4,
+            minimum_window_width: 0.0625,
+        }
+    }
+
+    #[test]
+    fn complete_no_contact_certificate_replays() {
+        let certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        assert_eq!(certificate.leaves.len(), 1);
+        assert!(matches!(
+            certificate.leaves[0].disposition,
+            AdaptiveProofLeafDisposition::Pruned { .. }
+        ));
+        verify_adaptive_collision_certificate(&certificate).unwrap();
+    }
+
+    #[test]
+    fn mid_interval_contact_certificate_replays_and_contains_witness() {
+        let certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(-10.0, 0.5),
+            p(20.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(-20.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::Contact);
+        assert!(certificate.report.witness.is_some());
+        assert!(certificate.leaves.iter().any(|leaf| matches!(
+            leaf.disposition,
+            AdaptiveProofLeafDisposition::CheckedContact { .. }
+        )));
+        verify_adaptive_collision_certificate(&certificate).unwrap();
+    }
+
+    #[test]
+    fn forged_prune_bound_is_rejected() {
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        let AdaptiveProofLeafDisposition::Pruned { moving_bounds, .. } =
+            &mut certificate.leaves[0].disposition
+        else {
+            panic!("expected pruned root");
+        };
+        moving_bounds.max.x += 1.0;
+        assert_eq!(
+            verify_adaptive_collision_certificate(&certificate),
+            Err(AdaptiveCertificateError::PruneBoundsMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_interval_is_rejected() {
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(-10.0, 0.5),
+            p(20.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(-20.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        certificate.leaves[0].window.start_parameter = 0.01;
+        assert!(matches!(
+            verify_adaptive_collision_certificate(&certificate),
+            Err(AdaptiveCertificateError::InvalidCoverage)
+                | Err(AdaptiveCertificateError::InvalidDyadicWindow)
+        ));
+    }
+
+    #[test]
+    fn forged_narrow_phase_distance_is_rejected() {
+        let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(-10.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 0,
+                minimum_window_width: 1.0,
+            },
+        )
+        .unwrap();
+        let leaf = certificate
+            .leaves
+            .iter_mut()
+            .find(|leaf| matches!(leaf.disposition, AdaptiveProofLeafDisposition::CheckedClear { .. }))
+            .expect("overlapping swept bounds require an exact check");
+        let AdaptiveProofLeafDisposition::CheckedClear { closest } = &mut leaf.disposition else {
+            unreachable!()
+        };
+        closest.distance_mm += 1.0;
+        assert_eq!(
+            verify_adaptive_collision_certificate(&certificate),
+            Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch)
+        );
+    }
+
+    #[test]
+    fn unresolved_leaf_blocks_no_contact_certificate() {
+        let moving = Capsule::new(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 0.5).unwrap();
+        let obstacle = Capsule::new(p(0.0, 10.0, 0.0), p(1_000.0, 10.000_001, 0.0), 0.5).unwrap();
+        let certificate = co_translating_capsule_adaptive_query_with_certificate(
+            moving,
+            p(0.0, 0.0, 0.0),
+            obstacle,
+            p(0.0, 0.0, 0.0),
+            AdaptiveSubdivisionConfig {
+                maximum_depth: 0,
+                minimum_window_width: 1.0,
+            },
+        )
+        .unwrap();
+        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::Unresolved);
+        verify_adaptive_collision_certificate(&certificate).unwrap();
+    }
+
+    #[test]
+    fn certificate_replay_is_deterministic() {
+        let first = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(-10.0, 0.5),
+            p(20.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(-20.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        let second = co_translating_capsule_adaptive_query_with_certificate(
+            point_capsule(-10.0, 0.5),
+            p(20.0, 0.0, 0.0),
+            point_capsule(10.0, 0.5),
+            p(-20.0, 0.0, 0.0),
+            config(),
+        )
+        .unwrap();
+        assert_eq!(first, second);
+        verify_adaptive_collision_certificate(&first).unwrap();
+    }
+}
