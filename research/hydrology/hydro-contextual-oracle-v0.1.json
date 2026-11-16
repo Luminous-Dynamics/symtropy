@@ -510,6 +510,101 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPSS_ON_IDENTICAL_CASES_AND_LEAD_TIME",
+        "case_count": 3,
+        "forecast_mean_crps": 0.4444444444444445,
+        "reference_mean_crps": 0.5555555555555556,
+        "crps_skill_score": 0.19999999999999996,
+        "comparison_context": {
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "case_count": 3,
+          "case_identity_ids": [
+            "event-001",
+            "event-002",
+            "event-003"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-matched-reference",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BSS_ON_IDENTICAL_EVENTS_AND_LEAD_TIME",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "case_count": 3,
+        "forecast_brier_score": 0.05666666666666667,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": 0.7733333333333333,
+        "comparison_context": {
+          "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+          "forecast_lead_hours": 24,
+          "case_count": 3,
+          "case_identity_ids": [
+            "event-001",
+            "event-002",
+            "event-003"
+          ]
+        },
+        "skill_score_unclipped": true
+      }
+    },
+    {
+      "case_id": "HC-T0-035-skill-population-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "EVALUATION_POPULATION_MISMATCH",
+        "forecast_evaluation_population_id": "HIGHVELD-EVAL-SET-A-v1",
+        "reference_evaluation_population_id": "OTHER-CATCHMENT-SET-v1",
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "case_count": 2,
+        "forecast_brier_score": 0.06500000000000002,
+        "reference_brier_score": 0,
+        "brier_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-037-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "case_count": 2,
+        "forecast_mean_crps": 0.5,
+        "reference_mean_crps": 0,
+        "crps_skill_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-mismatch-not-comparable",
+      "family": "probabilistic_skill",
+      "expected": {
+        "skill_disposition": "NOT_COMPARABLE",
+        "reason": "FORECAST_LEAD_TIME_MISMATCH",
+        "forecast_lead_hours": 24,
+        "reference_lead_hours": 48,
+        "skill_score": null,
+        "probabilistic_disposition": "NOT_COMPARABLE"
+      }
     }
   ]
 }
