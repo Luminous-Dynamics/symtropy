@@ -428,3 +428,18 @@ These are design targets, not measured results:
 - **No universal sample count:** determine independent seed/article/lab requirements from a pilot variance model and a preregistered minimum detectable effect. Treat scenes nested within seeds, repeated attempts, episodes on the same article and telemetry frames as clustered observations—not independent robot trials.
 
 A result is only considered better than the matched baseline when it improves the prespecified outcome without violating the evidence, safety, acceptance or statistical-validity gates. Report end-to-end accepted missions, stage-level progress, paired outcome sensitivity, false advances, recovery time, accepted functional units, crew-hours and resource use separately. No compensating weighted score is allowed.
+
+
+## 23. Reference workcell pilot design
+
+The physical demonstrator design is tracked in [#5662 — ROBOT-REFERENCE-WORKCELL-001](https://github.com/Luminous-Dynamics/symtropy/issues/5662) and documented in `reference-workcell-pilot-v0.1.md`.
+
+The v0.1 scope is one documented wheeled mobile base with two interchangeable modules:
+- a survey/inspection sensor assembly (suitable RGB-D, LiDAR and IMU components, individually identified and calibrated);
+- a lightweight non-load-bearing layout/measurement tool with an independently measured functional output.
+
+The initial change matrix is: unchanged repeat baseline; camera serial replacement without calibration transfer; sensor remount/extrinsic change; lightweight tool-geometry replacement; compatible battery replacement; and an unknown-dependency negative control that remains software-only. Do not modify brakes, drive, E-stop, safety PLC, protective fields or load-bearing structure in this first campaign. No excavation, piling, lifting, cutting, drilling or occupied-site operation.
+
+The experiment ends at first independently accepted B output, not at first command acknowledgement or machine cycle. It separates module swap, configuration reconciliation, calibration, commissioning, requalification, first-article inspection, elapsed time, total crew-hours, accepted functional units, geometric uncertainty, interventions, energy and recovery.
+
+No hardware has been selected and no physical trial is authorized. Entry gates require the actual base/module bill of materials, site/ODD and risk approvals, verified safe-stop/isolation, independent metrology, #3522 trial receipt, #3531 admissibility, #3505 safety, #5411 transition receipt and #3605 acceptance semantics. Missing owner contracts remain unresolved.
