@@ -172,3 +172,35 @@ Sources:
 - Synchrotron radiation relation / mass and energy scaling: https://pdg.lbl.gov/2009/download/rpp-2008-plB667.pdf
 - Bmad radiation integral and stochastic emission reference: https://www.classe.cornell.edu/bmad/bmad-manual-2026-03-09.pdf
 - Follow-on qualification owner: [SPACE-COLLIDER-MUON-SCALING-001 #5583](https://github.com/Luminous-Dynamics/symtropy/issues/5583)
+
+
+### Integrated muon survival through the four reference RCS stages
+
+The same Rust executable now integrates the muon decay hazard through the four-stage 63 GeV → 5 TeV rapid-cycling synchrotron chain described by Soubirou & Chancé (arXiv:2611.02865, 2 November 2026) and the MuCol 2025 consolidated parameter report.
+
+For a linear total-energy ramp \(E(t)=E_{in}+(E_{out}-E_{in})t/T\), the exact decay exponent is:
+
+\[
+\Lambda = \frac{m_\mu}{\tau_0}\frac{T}{E_{out}-E_{in}}
+\ln\left(\frac{E_{out}}{E_{in}}\right),
+\qquad S=e^{-\Lambda}.
+\]
+
+The four source stages and calculated survival are:
+
+| Stage | Energy (GeV) | Time (ms) | Turns | Calculated survival |
+|---|---:|---:|---:|---:|
+| RCS1 | 63 → 314 | 0.34 | 17 | 90.0649% |
+| RCS2 | 314 → 750 | 1.10 | 55 | 89.9745% |
+| RCS3 | 750 → 1,500 | 2.37 | 66 | 90.0019% |
+| RCS4 | 1,500 → 5,000 | 6.37 | 55 | 89.9981% |
+
+The complete chain takes 10.18 ms and 193 turns. Multiplying the four integrated stage results gives **65.6387% survival**. This is close to the source table's *assumed* 90% per ring / 65.61% cumulative survival. The code does not force any stage to 90%; the small differences arise from integrating the stated continuous energy ramp and rounded stage durations.
+
+The analytic logarithmic integral is independently tested against a 20,000-interval composite-Simpson numerical integral. Focused CI asserts the four-stage count, total time, total turns and survival interval. This closes only the decay arithmetic for the source ramp profile; it does not validate transverse/longitudinal acceptance, magnet tracking, RF, emittance growth or stage transmission.
+
+The 2026 rapid-acceleration study shows why the latter are still critical: RCS1's 8-arc RF arrangement exhibits over 500% horizontal emittance growth in its nominal case, whereas the 32-arc lattice reduces it to ~13%, and its energy–magnet-field mismatch study reports ~6.8% horizontal emittance growth for RCS1 under 32-arc conditions before further correction. That is a beam-quality issue, not a muon-decay survival discrepancy.
+
+Sources:
+- Soubirou & Chancé, arXiv:2611.02865, Table 1 and RCS1 tracking results: https://arxiv.org/abs/2611.02865
+- MuCol Consolidated Parameters, 2025: https://doi.org/10.5281/zenodo.17476875
