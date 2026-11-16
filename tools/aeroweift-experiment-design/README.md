@@ -11,3 +11,5 @@ Costs remain separate: wall-clock minutes, setup, facility/operator, CPU, accele
 This tool does not authorize or execute tests, control aircraft, run simulators, establish physical model validity, authenticate provenance, prove realized information gain, or certify operations. Owner authority, safety, reference and semantic-equivalence receipts are input facts; this crate checks their declared structure, not their authenticity.
 
 It composes AeroWeft Tracks T/U and Symtropy #4487/#460/#4366/#3749/#4446. It does not create a new simulator or physics qualification corpus.
+
+The frozen policy additionally pins one expected owner namespace per gate role. Each structured receipt must match that exact role-specific namespace and an exact payload-digest reference supplied by the candidate; a receipt with no candidate reference cannot satisfy a gate. This is structural binding only, not authentication of the issuer or signature.
