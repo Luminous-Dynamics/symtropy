@@ -336,8 +336,7 @@ fn linear_energy_ramp_survival(
         return Err("RCS energy must increase over a positive acceleration time".to_owned());
     }
 
-    let exponent = (MUON_MASS_GEV / MUON_MEAN_LIFETIME_S)
-        * acceleration_time_s
+    let exponent = (MUON_MASS_GEV / MUON_MEAN_LIFETIME_S) * acceleration_time_s
         / (extraction_energy_gev - injection_energy_gev)
         * (extraction_energy_gev / injection_energy_gev).ln();
     let survival = (-exponent).exp();
@@ -503,8 +502,7 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
     let muons_per_bunch = 1.8e12;
     let repetition_hz = 5.0;
 
-    let (rcs_stages, rcs_survival, rcs_time_s, rcs_turns) =
-        calculate_rcs_chain_survival()?;
+    let (rcs_stages, rcs_survival, rcs_time_s, rcs_turns) = calculate_rcs_chain_survival()?;
     let rcs_stage_json = rcs_stages
         .iter()
         .map(|stage| render_rcs_stage_json(*stage))
@@ -734,9 +732,8 @@ mod tests {
     fn analytic_rcs_survival_matches_independent_simpson_integral() {
         let (exponent, analytic_survival) =
             linear_energy_ramp_survival(63.0, 314.0, 0.34e-3).expect("valid ramp");
-        let numerical_survival =
-            linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 20_000)
-                .expect("valid Simpson reference");
+        let numerical_survival = linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 20_000)
+            .expect("valid Simpson reference");
         assert!(exponent > 0.0);
         close(analytic_survival, numerical_survival, 1.0e-12);
         assert!(linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 0).is_err());
