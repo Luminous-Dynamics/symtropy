@@ -373,9 +373,7 @@ impl HyphalHighwayNetwork {
                         HighwayUnresolvedReason::MissingPatchObservation(patch_id),
                     ));
                 };
-                if let Some(first_patch) =
-                    patch_receipt_owners.insert(observation_id, patch_id)
-                {
+                if let Some(first_patch) = patch_receipt_owners.insert(observation_id, patch_id) {
                     if first_patch != patch_id {
                         return Ok(unresolved(
                             HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
@@ -849,10 +847,8 @@ mod tests {
 
     #[test]
     fn one_receipt_cannot_stand_for_two_distinct_liquid_patches() {
-        let (mut network, transit, mut receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (mut network, transit, mut receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         network
             .patches
             .get_mut(&LiquidPatchId(2))
@@ -860,7 +856,10 @@ mod tests {
             .observation = Some(ObservationEvidenceId(20));
         receipts.retain(|item| item.id != ObservationEvidenceId(21));
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
             HyphalHighwayOutcome::Unresolved(
                 HighwayUnresolvedReason::PatchReceiptReusedAcrossDistinctPatches {
                     receipt: ObservationEvidenceId(20),
@@ -953,10 +952,8 @@ mod tests {
 
     #[test]
     fn wrong_or_missing_bacterial_trajectory_receipt_is_rejected() {
-        let (network, transit, mut receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, mut receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         receipts.retain(|item| item.id != ObservationEvidenceId(12));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts),
