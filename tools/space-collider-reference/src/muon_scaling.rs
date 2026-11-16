@@ -293,6 +293,206 @@ fn render_scenario_json(s: MuonScenario) -> String {
     )
 }
 
+#[derive(Debug, Clone, Copy)]
+struct RcsStageInput {
+    name: &'static str,
+    circumference_m: f64,
+    injection_energy_gev: f64,
+    extraction_energy_gev: f64,
+    acceleration_time_s: f64,
+    turns: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct RcsStageResult {
+    input: RcsStageInput,
+    decay_exponent: f64,
+    survival_fraction: f64,
+    cumulative_survival_fraction: f64,
+}
+
+/// Exact integrated decay for a linearly ramped total muon energy.
+///
+/// For E(t) = E_in + (E_out - E_in) t/T:
+/// integral(dt / gamma(t) tau_0) =
+/// (m_mu / tau_0) * T/(E_out-E_in) * ln(E_out/E_in).
+fn linear_energy_ramp_survival(
+    injection_energy_gev: f64,
+    extraction_energy_gev: f64,
+    acceleration_time_s: f64,
+) -> Result<(f64, f64), String> {
+    let values = [
+        injection_energy_gev,
+        extraction_energy_gev,
+        acceleration_time_s,
+    ];
+    if values.iter().any(|value| !value.is_finite()) {
+        return Err("RCS decay inputs must be finite".to_owned());
+    }
+    if injection_energy_gev <= 0.0
+        || extraction_energy_gev <= injection_energy_gev
+        || acceleration_time_s <= 0.0
+    {
+        return Err("RCS energy must increase over a positive acceleration time".to_owned());
+    }
+
+    let exponent = (MUON_MASS_GEV / MUON_MEAN_LIFETIME_S)
+        * acceleration_time_s
+        / (extraction_energy_gev - injection_energy_gev)
+        * (extraction_energy_gev / injection_energy_gev).ln();
+    let survival = (-exponent).exp();
+    if !exponent.is_finite() || !survival.is_finite() || !(0.0..=1.0).contains(&survival) {
+        return Err("RCS decay integration produced an invalid result".to_owned());
+    }
+    Ok((exponent, survival))
+}
+
+/// Independent composite-Simpson reference used only by the analytical tests.
+fn linear_energy_ramp_survival_simpson(
+    injection_energy_gev: f64,
+    extraction_energy_gev: f64,
+    acceleration_time_s: f64,
+    intervals: usize,
+) -> Result<f64, String> {
+    if intervals == 0 || intervals % 2 != 0 {
+        return Err("Simpson integration requires a positive even interval count".to_owned());
+    }
+    let values = [
+        injection_energy_gev,
+        extraction_energy_gev,
+        acceleration_time_s,
+    ];
+    if values.iter().any(|value| !value.is_finite())
+        || injection_energy_gev <= 0.0
+        || extraction_energy_gev <= injection_energy_gev
+        || acceleration_time_s <= 0.0
+    {
+        return Err("invalid Simpson RCS decay inputs".to_owned());
+    }
+
+    let dt = acceleration_time_s / intervals as f64;
+    let delta_energy = extraction_energy_gev - injection_energy_gev;
+    let integrand = |time_s: f64| {
+        let energy = injection_energy_gev + delta_energy * time_s / acceleration_time_s;
+        MUON_MASS_GEV / (MUON_MEAN_LIFETIME_S * energy)
+    };
+    let mut sum = integrand(0.0) + integrand(acceleration_time_s);
+    for i in 1..intervals {
+        let weight = if i % 2 == 0 { 2.0 } else { 4.0 };
+        sum += weight * integrand(i as f64 * dt);
+    }
+    let exponent = sum * dt / 3.0;
+    let survival = (-exponent).exp();
+    if !survival.is_finite() || !(0.0..=1.0).contains(&survival) {
+        return Err("Simpson RCS decay integration produced an invalid result".to_owned());
+    }
+    Ok(survival)
+}
+
+fn rcs_reference_stages() -> [RcsStageInput; 4] {
+    [
+        RcsStageInput {
+            name: "RCS1",
+            circumference_m: 5_990.0,
+            injection_energy_gev: 63.0,
+            extraction_energy_gev: 314.0,
+            acceleration_time_s: 0.34e-3,
+            turns: 17,
+        },
+        RcsStageInput {
+            name: "RCS2",
+            circumference_m: 5_990.0,
+            injection_energy_gev: 314.0,
+            extraction_energy_gev: 750.0,
+            acceleration_time_s: 1.10e-3,
+            turns: 55,
+        },
+        RcsStageInput {
+            name: "RCS3",
+            circumference_m: 10_700.0,
+            injection_energy_gev: 750.0,
+            extraction_energy_gev: 1_500.0,
+            acceleration_time_s: 2.37e-3,
+            turns: 66,
+        },
+        RcsStageInput {
+            name: "RCS4",
+            circumference_m: 35_000.0,
+            injection_energy_gev: 1_500.0,
+            extraction_energy_gev: 5_000.0,
+            acceleration_time_s: 6.37e-3,
+            turns: 55,
+        },
+    ]
+}
+
+fn calculate_rcs_chain_survival() -> Result<([RcsStageResult; 4], f64, f64, u32), String> {
+    let stages = rcs_reference_stages();
+    let mut results = [RcsStageResult {
+        input: stages[0],
+        decay_exponent: 0.0,
+        survival_fraction: 1.0,
+        cumulative_survival_fraction: 1.0,
+    }; 4];
+    let mut cumulative_survival = 1.0;
+    let mut total_time_s = 0.0;
+    let mut total_turns = 0_u32;
+
+    for (index, input) in stages.into_iter().enumerate() {
+        if index > 0 {
+            let previous = stages[index - 1];
+            if (previous.extraction_energy_gev - input.injection_energy_gev).abs() > 1.0e-9 {
+                return Err("RCS stage energy handoff is discontinuous".to_owned());
+            }
+        }
+        let (decay_exponent, survival_fraction) = linear_energy_ramp_survival(
+            input.injection_energy_gev,
+            input.extraction_energy_gev,
+            input.acceleration_time_s,
+        )?;
+        cumulative_survival *= survival_fraction;
+        total_time_s += input.acceleration_time_s;
+        total_turns = total_turns
+            .checked_add(input.turns)
+            .ok_or_else(|| "RCS turn count overflow".to_owned())?;
+        results[index] = RcsStageResult {
+            input,
+            decay_exponent,
+            survival_fraction,
+            cumulative_survival_fraction: cumulative_survival,
+        };
+    }
+
+    Ok((results, cumulative_survival, total_time_s, total_turns))
+}
+
+fn render_rcs_stage_json(result: RcsStageResult) -> String {
+    format!(
+        concat!(
+            "{{",
+            "\"stage\":\"{}\",",
+            "\"circumference_m\":{:.0},",
+            "\"injection_energy_gev\":{:.6},",
+            "\"extraction_energy_gev\":{:.6},",
+            "\"acceleration_time_ms\":{:.6},",
+            "\"turns\":{},",
+            "\"decay_exponent\":{:.9},",
+            "\"integrated_survival_fraction\":{:.9},",
+            "\"cumulative_survival_fraction\":{:.9}",
+            "}}"
+        ),
+        result.input.name,
+        result.input.circumference_m,
+        result.input.injection_energy_gev,
+        result.input.extraction_energy_gev,
+        result.input.acceleration_time_s * 1000.0,
+        result.input.turns,
+        result.decay_exponent,
+        result.survival_fraction,
+        result.cumulative_survival_fraction,
+    )
+}
+
 pub fn render_muon_scaling_report_json() -> Result<String, String> {
     let source_circumference_m = 11_400.0;
     let source_beam_energy_gev = 5_000.0;
@@ -302,6 +502,14 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
         2.0 * std::f64::consts::PI * source_rigidity_radius_m / source_circumference_m;
     let muons_per_bunch = 1.8e12;
     let repetition_hz = 5.0;
+
+    let (rcs_stages, rcs_survival, rcs_time_s, rcs_turns) =
+        calculate_rcs_chain_survival()?;
+    let rcs_stage_json = rcs_stages
+        .iter()
+        .map(|stage| render_rcs_stage_json(*stage))
+        .collect::<Vec<_>>()
+        .join(",");
 
     let reference = calculate_scenario(
         source_circumference_m,
@@ -401,6 +609,17 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
             "\"electron_mass_gev\":0.00051099895,",
             "\"proton_mass_gev\":0.93827208816",
             "}},",
+            "\"rcs_chain_survival\":{{",
+            "\"evidence_class\":\"analytic_linear_energy_ramp_decay_integration\",",
+            "\"source\":\"Soubirou and Chance, arXiv:2611.02865 Table 1 (2026-11-02); MuCol Consolidated Parameters 2025\",",
+            "\"stages\":[{}],",
+            "\"total_acceleration_time_ms\":{:.6},",
+            "\"total_turns\":{},",
+            "\"integrated_survival_fraction\":{:.9},",
+            "\"reference_assumed_survival_fraction_per_stage\":0.9,",
+            "\"reference_cumulative_survival_fraction\":0.6561,",
+            "\"absolute_difference_vs_reference_cumulative\":{:.9}",
+            "}},",
             "\"source_reference\":{{",
             "\"table_energy_tev_cm\":10.0,",
             "\"beam_energy_tev\":5.0,",
@@ -456,6 +675,11 @@ pub fn render_muon_scaling_report_json() -> Result<String, String> {
             "\"claim_ceiling\":\"Relativistic lifetime, rigidity and classical synchrotron-radiation screening only; no integrated muon collider, beam stability, luminosity, detector, decay transport, neutrino dose, RF, magnet or construction qualification.\"",
             "}}"
         ),
+        rcs_stage_json,
+        rcs_time_s * 1000.0,
+        rcs_turns,
+        rcs_survival,
+        (rcs_survival - 0.6561).abs(),
         source_fill_fraction,
         reference.particle_decay_turns,
         reference.luminosity_decay_turns,
@@ -490,6 +714,33 @@ mod tests {
             (actual - expected).abs() <= tolerance,
             "actual {actual}, expected {expected}, tolerance {tolerance}"
         );
+    }
+
+    #[test]
+    fn four_rcs_stage_integral_reproduces_reference_survival_and_turns() {
+        let (stages, survival, total_time_s, turns) =
+            calculate_rcs_chain_survival().expect("valid four-stage RCS chain");
+        close(total_time_s * 1000.0, 10.18, 1.0e-12);
+        assert_eq!(turns, 193);
+        close(stages[0].survival_fraction, 0.9006486008, 1.0e-9);
+        close(stages[1].survival_fraction, 0.8997454154, 1.0e-9);
+        close(stages[2].survival_fraction, 0.9000191546, 1.0e-9);
+        close(stages[3].survival_fraction, 0.8999808310, 1.0e-9);
+        close(survival, 0.6563870932, 1.0e-10);
+        close((survival - 0.6561).abs(), 0.0002870932, 1.0e-10);
+    }
+
+    #[test]
+    fn analytic_rcs_survival_matches_independent_simpson_integral() {
+        let (exponent, analytic_survival) =
+            linear_energy_ramp_survival(63.0, 314.0, 0.34e-3).expect("valid ramp");
+        let numerical_survival =
+            linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 20_000)
+                .expect("valid Simpson reference");
+        assert!(exponent > 0.0);
+        close(analytic_survival, numerical_survival, 1.0e-12);
+        assert!(linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 0).is_err());
+        assert!(linear_energy_ramp_survival_simpson(63.0, 314.0, 0.34e-3, 5).is_err());
     }
 
     #[test]
