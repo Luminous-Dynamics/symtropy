@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WaterLoop Source Cassette T1 Test Matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "evidence_class",
+    "parent_issue",
+    "test_cell",
+    "output_use",
+    "cases",
+    "release_gates",
+    "nonclaims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-source-cassette-t1-test-matrix-v0.1"
+    },
+    "status": {
+      "const": "proposed_test_matrix_not_authorization_to_run"
+    },
+    "evidence_class": {
+      "const": "protocol_only"
+    },
+    "parent_issue": {
+      "const": 5671
+    },
+    "test_cell": {
+      "const": "unoccupied_isolated_contained"
+    },
+    "output_use": {
+      "type": "string"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "source_profile",
+          "challenge",
+          "expected_state",
+          "required_observations"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "source_profile": {
+            "type": "string"
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "expected_state": {
+            "type": "string"
+          },
+          "required_observations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "release_gates": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonclaims": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
