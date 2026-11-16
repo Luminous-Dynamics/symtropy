@@ -226,7 +226,7 @@ fn evaluate_machine_orders(
 
     let mut scheduled = Vec::with_capacity(operation_count);
     let mut makespan = 0u64;
-    for (operation_id, operation) in instance.operations.iter().enumerate() {
+    for operation_id in 0..instance.operations.len() {
         let start_ticks = earliest[operation_id];
         let end_ticks = start_ticks.checked_add(durations[operation_id])?;
         makespan = makespan.max(end_ticks);
