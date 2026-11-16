@@ -14,6 +14,25 @@ A standalone Rust benchmark toolkit combining strict scenario contracts, handoff
 - Mandatory safety, authorized-destination, package-identity, household-privacy and unauthorized-mutation gates.
 - Required event declarations and fault-injection references.
 
+## Receiver presence observation consistency gate
+
+The `mfb-adjudicate-presence` CLI exercises a typed receiver-observation contract independently of simulator ground truth.
+
+The v1 policy requires at least two fresh observations from distinct declared common-cause groups. A group may identify shared controller, power, firmware, calibration or clock dependencies. Two devices in one group count as one source; missing group membership is unknown and does not count as independent.
+
+The adjudicator reports `ConfirmedPresent`, `ConfirmedAbsent`, `Unknown`, `Contradictory` or `Stale`. It rejects exact scenario/subject mismatches, event replay and contradictory source identities. It checks declared observation time/expiry against a strict decision-time interval and a maximum age.
+
+Run the adversarial false-positive fixture:
+
+```bash
+cargo run --locked --manifest-path tools/material-flow-benchmark/Cargo.toml --bin mfb-adjudicate-presence -- \
+  tools/material-flow-benchmark/fixtures/false-positive-receiver-observation.json
+```
+
+The fixture deliberately has a receiver-presence sensor report `present` while a separate gate-contact sensor reports `absent`. Expected result: `verdict=contradictory`, `positive_presence_confirmed=false`, and `custody_completion_permitted=false`.
+
+Even when two declared independent groups agree, the report hard-codes `sensor_truth_established=false`, `trusted_time_verified=false`, `cryptographic_authentication_verified=false`, `motion_authority_granted=false`, `physical_command_emitted=false` and `custody_completion_permitted=false`. The group labels and time fields are caller-declared; this tool cannot authenticate or prove them. This is a consistency gate, not a sensor verifier or a custody authority.
+
 ## L1 closed-gate obstruction fault experiment
 
 The `mfb-simulate-gate-fault` binary adds a static closed-gate collision proxy across the tote opening and executes the same 480 Hz rigid-body episode plus same-host replay.
