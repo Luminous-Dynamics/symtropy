@@ -347,6 +347,7 @@ fn validate_envelope(
         let mut dataset_file_ids = BTreeSet::new();
         let mut endpoint_file_ids = BTreeSet::new();
         let mut payload_descriptor: Option<(String, String, String, u64)> = None;
+        let mut native_file_descriptor: Option<(String, String, String, u64)> = None;
         let mut dataset_metadata_seen = false;
         let mut file_metadata_seen = false;
         let mut payload_seen = false;
@@ -465,8 +466,19 @@ fn validate_envelope(
                         .ok_or_else(|| format!("{artifact_path}.fileDescriptors must be non-empty"))?;
                     for descriptor in descriptors {
                         let file_id = required_text(descriptor, "id", &artifact_path)?;
+                        let filename = required_text(descriptor, "filename", &artifact_path)?;
+                        let mime_type = required_text(descriptor, "mimeType", &artifact_path)?;
+                        let size = required_u64(descriptor, "size", &artifact_path)?;
                         if !dataset_file_ids.insert(file_id.to_owned()) {
                             return Err(format!("{artifact_path}: duplicate provider file ID {file_id}"));
+                        }
+                        if native_file_descriptor.replace((
+                            file_id.to_owned(),
+                            filename.to_owned(),
+                            mime_type.to_owned(),
+                            size,
+                        )).is_some() {
+                            return Err(format!("{artifact_path}: E1 v0.1 fixture expects exactly one provider file descriptor"));
                         }
                     }
                     dataset_metadata_seen = true;
@@ -529,13 +541,19 @@ fn validate_envelope(
         }
         let (payload_file_id, payload_file_name, payload_media_type, payload_size) =
             payload_descriptor.expect("payload role validated above");
+        let (native_file_id, native_filename, native_media_type, native_size) =
+            native_file_descriptor.expect("dataset metadata file descriptor validated above");
         if !dataset_file_ids.contains(&payload_file_id) {
             return Err(format!("{path}: data payload file ID is absent from provider file metadata"));
         }
-        if media_type_for_dataset_payload(dataset, &payload_media_type)? != payload_media_type {
-            return Err(format!("{path}: data payload MIME type is inconsistent"));
+        if payload_file_id != native_file_id
+            || payload_file_name != native_filename
+            || payload_media_type != native_media_type
+            || payload_size != native_size
+        {
+            return Err(format!("{path}: data payload identity/filename/MIME/size differs from provider file descriptor"));
         }
-        let _ = (payload_file_name, payload_size);
+        let _ = media_type_for_dataset_payload(dataset, &payload_media_type)?;
     }
     if input_ids.is_empty() || output_ids.is_empty() {
         return Err("at least one INPUT and one OUTPUT dataset are required".to_owned());
