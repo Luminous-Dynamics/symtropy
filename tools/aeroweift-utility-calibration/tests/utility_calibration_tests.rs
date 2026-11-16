@@ -48,6 +48,8 @@ fn policy() -> CalibrationPolicy {
         expected_estimator_build_sha256: digest('3'),
         expected_estimate_method_sha256: digest('4'),
         challenge_manifest_sha256: digest('6'),
+        evaluator_build_sha256: digest('7'),
+        interval_method_sha256: digest('8'),
         required_independent_unit: IndependentUnit::Encounter,
         required_dimensions: vec![
             UtilityDimension::UncertaintyReduction,
@@ -67,6 +69,7 @@ fn observation(index: usize, stratum: &str) -> ChallengeObservation {
         observation_id: format!("outcome-{stratum}-{index:03}"),
         candidate_id: claim().candidate_id,
         utility_receipt_payload_sha256: digest('a'),
+        measurement_evidence_receipt_sha256: digest('9'),
         challenge_manifest_sha256: digest('6'),
         partition: EvidencePartition::ChallengeSealed,
         independent_group_id: format!("independent-encounter-{stratum}-{index:03}"),
