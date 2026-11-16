@@ -11,8 +11,7 @@ const SCHEMA_ID: &str = "urn:luminous-dynamics:garment-care-ops:0.1.0";
 const SCHEMA_TEXT: &str =
     include_str!("../../../../schemas/laundry/garment_care_ops_v0_1.schema.json");
 #[cfg(test)]
-const PROFILE_TEXT: &str =
-    include_str!("../../../../fixtures/laundry/garment_care_ops_v0_1.json");
+const PROFILE_TEXT: &str = include_str!("../../../../fixtures/laundry/garment_care_ops_v0_1.json");
 
 fn text_at<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
     value.get(key).and_then(Value::as_str)
@@ -49,7 +48,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     if text_at(profile, "status") != Some("proposal_no_physical_observations") {
         errors.push("profile must remain proposal-only".to_owned());
     }
-    if text_at(profile, "claim_ceiling") != Some("no_production_recorder_or_reliability_qualification") {
+    if text_at(profile, "claim_ceiling")
+        != Some("no_production_recorder_or_reliability_qualification")
+    {
         errors.push("profile cannot make production recorder or reliability claims".to_owned());
     }
 
@@ -116,11 +117,23 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     let reconciliation = profile.get("reconciliation_policy");
     for (key, label) in [
         ("attempts_reconcile", "attempt reconciliation"),
-        ("eventual_acceptance_reconciles", "eventual acceptance reconciliation"),
+        (
+            "eventual_acceptance_reconciles",
+            "eventual acceptance reconciliation",
+        ),
         ("retry_linked_to_original", "retry linkage"),
-        ("every_attempt_has_one_terminal_state", "one terminal state per attempt"),
-        ("unknown_terminal_blocks_summary", "unknown terminal fail-closed behavior"),
-        ("wrong_destination_is_not_success", "wrong destination rejection"),
+        (
+            "every_attempt_has_one_terminal_state",
+            "one terminal state per attempt",
+        ),
+        (
+            "unknown_terminal_blocks_summary",
+            "unknown terminal fail-closed behavior",
+        ),
+        (
+            "wrong_destination_is_not_success",
+            "wrong destination rejection",
+        ),
     ] {
         if reconciliation
             .and_then(|value| value.get(key))
@@ -134,15 +147,47 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     let custody = profile.get("custody_policy");
     for (key, expected, label) in [
         ("local_first_recording", true, "local-first recording"),
-        ("offline_episode_recording", true, "offline episode recording"),
-        ("network_required_for_local_recovery", false, "network independence"),
-        ("promoted_artifact_digest_required", true, "promoted artifact digest"),
-        ("delete_local_only_after_receipt", true, "receipt-before-delete"),
-        ("partial_upload_is_failure", true, "partial-upload failure state"),
-        ("ring_buffer_capacity_fault_is_visible", true, "ring-buffer capacity fault"),
-        ("raw_video_required_for_routine_episode", false, "routine raw-video minimization"),
+        (
+            "offline_episode_recording",
+            true,
+            "offline episode recording",
+        ),
+        (
+            "network_required_for_local_recovery",
+            false,
+            "network independence",
+        ),
+        (
+            "promoted_artifact_digest_required",
+            true,
+            "promoted artifact digest",
+        ),
+        (
+            "delete_local_only_after_receipt",
+            true,
+            "receipt-before-delete",
+        ),
+        (
+            "partial_upload_is_failure",
+            true,
+            "partial-upload failure state",
+        ),
+        (
+            "ring_buffer_capacity_fault_is_visible",
+            true,
+            "ring-buffer capacity fault",
+        ),
+        (
+            "raw_video_required_for_routine_episode",
+            false,
+            "routine raw-video minimization",
+        ),
     ] {
-        if custody.and_then(|value| value.get(key)).and_then(Value::as_bool) != Some(expected) {
+        if custody
+            .and_then(|value| value.get(key))
+            .and_then(Value::as_bool)
+            != Some(expected)
+        {
             errors.push(format!("{label} policy is invalid"));
         }
     }
@@ -163,7 +208,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     ];
     for required in required_faults {
         if !contains(profile.get("fault_injection_scenarios"), required) {
-            errors.push(format!("required fault injection scenario missing: {required}"));
+            errors.push(format!(
+                "required fault injection scenario missing: {required}"
+            ));
         }
     }
 
@@ -193,7 +240,9 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
                 errors.push(format!("duplicate metric id: {id}"));
             }
             if text_at(metric, "status") != Some("proposal_target_only") {
-                errors.push(format!("{id}: target cannot be promoted to measured result"));
+                errors.push(format!(
+                    "{id}: target cannot be promoted to measured result"
+                ));
             }
             if text_at(metric, "denominator").is_none_or(str::is_empty) {
                 errors.push(format!("{id}: denominator must be explicit"));
@@ -211,7 +260,11 @@ fn semantic_errors(profile: &Value) -> Vec<String> {
     }
 
     let governance = profile.get("governance");
-    for field in ["physical_observations", "production_episodes", "trained_failure_models"] {
+    for field in [
+        "physical_observations",
+        "production_episodes",
+        "trained_failure_models",
+    ] {
         if governance
             .and_then(|value| value.get(field))
             .and_then(Value::as_u64)
@@ -361,32 +414,28 @@ mod tests {
     #[test]
     fn network_is_not_required_for_local_episode_recording() {
         let (schema, mut profile) = fixture();
-        profile["custody_policy"]["network_required_for_local_recovery"] =
-            Value::Bool(true);
+        profile["custody_policy"]["network_required_for_local_recovery"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
     #[test]
     fn local_evidence_cannot_be_deleted_before_receipt() {
         let (schema, mut profile) = fixture();
-        profile["custody_policy"]["delete_local_only_after_receipt"] =
-            Value::Bool(false);
+        profile["custody_policy"]["delete_local_only_after_receipt"] = Value::Bool(false);
         assert!(!is_valid(&schema, &profile));
     }
 
     #[test]
     fn partial_upload_must_remain_a_failure() {
         let (schema, mut profile) = fixture();
-        profile["custody_policy"]["partial_upload_is_failure"] =
-            Value::Bool(false);
+        profile["custody_policy"]["partial_upload_is_failure"] = Value::Bool(false);
         assert!(!is_valid(&schema, &profile));
     }
 
     #[test]
     fn raw_video_is_not_mandatory_for_routine_episodes() {
         let (schema, mut profile) = fixture();
-        profile["custody_policy"]["raw_video_required_for_routine_episode"] =
-            Value::Bool(true);
+        profile["custody_policy"]["raw_video_required_for_routine_episode"] = Value::Bool(true);
         assert!(!is_valid(&schema, &profile));
     }
 
@@ -411,8 +460,7 @@ mod tests {
     #[test]
     fn retry_must_remain_linked_to_original_attempt() {
         let (schema, mut profile) = fixture();
-        profile["reconciliation_policy"]["retry_linked_to_original"] =
-            Value::Bool(false);
+        profile["reconciliation_policy"]["retry_linked_to_original"] = Value::Bool(false);
         assert!(!is_valid(&schema, &profile));
     }
 
