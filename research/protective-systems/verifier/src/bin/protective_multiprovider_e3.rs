@@ -53,6 +53,8 @@ const PERMITTED_USE: &str = "SYNTHETIC_TEST_ONLY";
 const DATACITE_ID: &str = "10.5555/synthetic-e3-protection-record-001";
 const OGC_ID: &str = "e3-synthetic-record-001";
 const OPENLINEAGE_SCHEMA_ID: &str = "https://openlineage.io/spec/2-0-2/OpenLineage.json";
+const OPENLINEAGE_RUN_EVENT_SCHEMA_URL: &str =
+    "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/RunEvent";
 const OPENLINEAGE_SCHEMA_BLOB: &str = "58167f71407add7734810cda9943b39b83c89aa2";
 const OGC_CORE_CONFORMANCE: &str =
     "http://www.opengis.net/spec/ogcapi-records-1/1.0/conf/core";
@@ -392,6 +394,11 @@ fn validate_openlineage(
         .filter(|items| items.len() == 2)
         .ok_or_else(|| "OpenLineage fixture must contain exactly one START and one terminal event".to_owned())?;
     for event in events {
+        if required_text(event, "schemaURL", "OpenLineage RunEvent")?
+            != OPENLINEAGE_RUN_EVENT_SCHEMA_URL
+        {
+            return Err("OpenLineage event schemaURL does not match the pinned 2.0.2 RunEvent schema".to_owned());
+        }
         validator
             .validate(event)
             .map_err(|error| format!("OpenLineage 2.0.2 RunEvent validation failed: {error}"))?;
@@ -434,6 +441,9 @@ fn validate_openlineage(
     }
     let start_time = required_text(start, "eventTime", "OpenLineage START")?;
     let complete_time = required_text(complete, "eventTime", "OpenLineage COMPLETE")?;
+    if !start_time.ends_with('Z') || !complete_time.ends_with('Z') {
+        return Err("E3 OpenLineage fixture eventTime values must use canonical UTC Z timestamps".to_owned());
+    }
     if complete_time <= start_time {
         return Err("OpenLineage COMPLETE eventTime must be later than START".to_owned());
     }
@@ -1006,6 +1016,26 @@ mod tests {
         let error = validate_openlineage(&value, &e1_value(), &openlineage_schema_value())
             .expect_err("invalid run UUID");
         assert!(error.contains("OpenLineage 2.0.2 RunEvent validation failed"));
+    }
+
+    #[test]
+    fn openlineage_events_must_name_the_exact_pinned_schema_version() {
+        let mut value = openlineage_value();
+        value["events"][0]["schemaURL"] =
+            Value::String("https://openlineage.io/spec/2-0-1/OpenLineage.json#/$defs/RunEvent".into());
+        let error = validate_openlineage(&value, &e1_value(), &openlineage_schema_value())
+            .expect_err("schema version mismatch");
+        assert!(error.contains("does not match the pinned 2.0.2"));
+    }
+
+    #[test]
+    fn openlineage_event_times_must_use_canonical_utc_for_ordering() {
+        let mut value = openlineage_value();
+        value["events"][1]["eventTime"] =
+            Value::String("2026-11-16T12:00:00.250+02:00".into());
+        let error = validate_openlineage(&value, &e1_value(), &openlineage_schema_value())
+            .expect_err("non-canonical offset timestamp");
+        assert!(error.contains("canonical UTC Z timestamps"));
     }
 
     #[test]
