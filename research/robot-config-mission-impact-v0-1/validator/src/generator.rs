@@ -642,7 +642,8 @@ mod tests {
     fn resolved_cargo_lock_matches_cross_platform_golden_digest() {
         let root = crate::repository_root();
         let lock_path = root.join("research/robot-config-mission-impact-v0-1/validator/Cargo.lock");
-        let lock_bytes = std::fs::read(&lock_path).expect("CI must resolve Cargo.lock before tests");
+        let lock_bytes =
+            std::fs::read(&lock_path).expect("CI must resolve Cargo.lock before tests");
         assert_eq!(
             sha256_hex(&lock_bytes),
             "874b07517f58aa8453ad012423b8896c0dbe1f180228499cffbbabef7df65490",
