@@ -173,7 +173,11 @@ impl CaveNetwork {
             }
 
             if edge.traversability == TraversabilityEvidence::Demonstrated {
-                if edge.connection_evidence != ConnectionEvidence::DirectlyObserved {
+                if edge.connection_evidence == ConnectionEvidence::Contradicted {
+                    errors.push(NetworkError::ContradictedConnectionMarkedTraversable(
+                        edge.edge_id.clone(),
+                    ));
+                } else if edge.connection_evidence != ConnectionEvidence::DirectlyObserved {
                     errors.push(
                         NetworkError::DemonstratedTraversalWithoutConfirmedConnection(
                             edge.edge_id.clone(),
@@ -185,14 +189,6 @@ impl CaveNetwork {
                         edge.edge_id.clone(),
                     ));
                 }
-            }
-
-            if edge.connection_evidence == ConnectionEvidence::Contradicted
-                && edge.traversability == TraversabilityEvidence::Demonstrated
-            {
-                errors.push(NetworkError::ContradictedConnectionMarkedTraversable(
-                    edge.edge_id.clone(),
-                ));
             }
         }
 
@@ -392,7 +388,7 @@ impl CaveNetwork {
                             neighbour.clone(),
                             (current.clone(), edge_id.clone()),
                         );
-                        if neighbour == goal_node {
+                        if neighbour.as_str() == goal_node {
                             let mut path_nodes = vec![goal_node.to_string()];
                             let mut path_edges = Vec::new();
                             let mut cursor = goal_node.to_string();
