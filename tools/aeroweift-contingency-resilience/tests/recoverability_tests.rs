@@ -639,7 +639,6 @@ fn decreasing_containment_bound_never_improves_option_admissibility() {
     }
 }
 
-
 #[test]
 fn empty_dependency_inventory_cannot_manufacture_independence() {
     let candidate = option("empty-dependencies", &[]);
