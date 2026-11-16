@@ -351,6 +351,17 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
     for required in ["source_id", "batch_id", "time_zone", "storage_age", "laboratory", "method_revision", "uncertainty", "chain_of_custody"] {
         require_contains(&sample_fields, required, "source_characterization_protocol.sample_identity_fields")?;
     }
+    let common_panel = strings(source_plan, "common_characterization")?;
+    for required in ["pH", "temperature", "conductivity", "turbidity", "TSS", "COD"] {
+        require_contains(&common_panel, required, "source_characterization_protocol.common_characterization")?;
+    }
+    let laundry_panel = strings(source_plan, "laundry_characterization")?;
+    for required in ["anionic_surfactants", "sodium", "boron", "chloride"] {
+        require_contains(&laundry_panel, required, "source_characterization_protocol.laundry_characterization")?;
+    }
+    if !string(source_plan, "microbial_characterization")?.contains("Mycelix #6100") {
+        return Err("microbiological panel must be defined through Mycelix #6100".to_owned());
+    }
 
     let experiment = field(contract, "matched_train_experiment")?;
     let experiment_trains = strings(experiment, "train_ids")?;
@@ -365,6 +376,10 @@ pub fn validate_architecture(contract: &Value) -> Result<Value, String> {
         if !trains.contains(required) {
             return Err(format!("matched experiment references unknown train: {required}"));
         }
+    }
+    let matched_conditions = strings(experiment, "matched_conditions")?;
+    for required in ["same_source_batch_or_matched_aliquot", "same_feed_volume_and_hydraulic_loading", "same_temperature_band", "same_run_duration_and_sampling_schedule", "same_intended_use_profile", "same_energy_and_residual_boundaries"] {
+        require_contains(&matched_conditions, required, "matched_train_experiment.matched_conditions")?;
     }
     let replicate_count = field(experiment, "minimum_independent_runs_per_train_batch")?
         .as_u64()
@@ -552,6 +567,18 @@ mod tests {
                 .expect_err("laundry challenge cannot become a reuse train")
                 .contains("may not claim a treatment/reuse configuration")
         );
+    }
+
+    #[test]
+    fn baby_and_nappy_wash_remains_excluded() {
+        let mut contract = fixture();
+        contract["candidate_train_families"][0]["sources"]
+            .as_array_mut()
+            .expect("sources")
+            .push(json!("SRC-BABY-NAPPY-WASH"));
+        assert!(validate_architecture(&contract)
+            .expect_err("nappy wash is prohibited")
+            .contains("accepts prohibited source"));
     }
 
     #[test]
