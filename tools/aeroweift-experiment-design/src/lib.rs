@@ -70,6 +70,54 @@ pub enum SemanticEquivalence {
     Rejected,
 }
 
+
+/// Owner evidence role used by an experiment candidate's admissibility gates.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum GateEvidenceRole {
+    /// External authorization for a test modality/campaign.
+    Authorization,
+    /// Affirmative safety and procedural clearance.
+    Safety,
+    /// Affirmative membership in the declared test envelope.
+    Envelope,
+    /// Availability and qualification of the independent reference measurement.
+    IndependentReference,
+    /// Semantic equivalence for cross-implementation comparison.
+    SemanticEquivalence,
+}
+
+/// Structurally scoped reference to an owner-provided gate receipt.
+///
+/// Digest syntax and exact scope binding are checked here. Signature authenticity,
+/// issuer authority, revocation and evidence truth remain with Track Q / Mycelix.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GateEvidenceReceipt {
+    /// Stable receipt identifier.
+    pub receipt_id: String,
+    /// Digest of the exact receipt payload.
+    pub payload_sha256: String,
+    /// Owner namespace that issued the receipt; not authenticated here.
+    pub issuer_id: String,
+    /// Admissibility gate this receipt is allowed to satisfy.
+    pub role: GateEvidenceRole,
+    /// Exact campaign digest.
+    pub campaign_sha256: String,
+    /// Exact model/sensor/control scope digest.
+    pub model_scope_sha256: String,
+    /// Exact intended-use/risk profile digest.
+    pub intended_use_profile_sha256: String,
+    /// Exact decision/question identity.
+    pub decision_question_id: String,
+    /// Exact experiment design digest.
+    pub design_sha256: String,
+    /// Exact scenario/initial-condition manifest digest.
+    pub scenario_manifest_sha256: String,
+    /// Exact measurement/reference protocol digest.
+    pub measurement_plan_sha256: String,
+    /// Exact selection policy manifest digest.
+    pub policy_sha256: String,
+}
+
 /// Dataset role used when selecting the proposed experiment.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SelectionEvidenceRole {
@@ -134,6 +182,8 @@ pub struct ExperimentCandidate {
     pub authorization: AuthorizationState,
     /// Owner receipt for affirmative authorization, where required.
     pub authorization_receipt_sha256: Option<String>,
+    /// Structurally scope-bound owner gate receipts; authentication is external.
+    pub gate_evidence_receipts: Vec<GateEvidenceReceipt>,
     /// Whether all physical and procedural constraints are clear for this candidate.
     pub safety_constraints_clear: bool,
     /// Receipt proving the affirmative safety/procedure gate.
@@ -410,6 +460,88 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
     Ok(())
 }
 
+fn gate_receipt_matches_scope(
+    receipt: &GateEvidenceReceipt,
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+) -> bool {
+    !receipt.receipt_id.trim().is_empty()
+        && !receipt.issuer_id.trim().is_empty()
+        && is_sha256(&receipt.payload_sha256)
+        && receipt.campaign_sha256 == candidate.campaign_sha256
+        && receipt.model_scope_sha256 == candidate.model_scope_sha256
+        && receipt.intended_use_profile_sha256 == candidate.intended_use_profile_sha256
+        && receipt.decision_question_id == candidate.decision_question_id
+        && receipt.design_sha256 == candidate.design_sha256
+        && receipt.scenario_manifest_sha256 == candidate.scenario_manifest_sha256
+        && receipt.measurement_plan_sha256 == candidate.measurement_plan_sha256
+        && receipt.policy_sha256 == policy.policy_sha256
+}
+
+fn gate_receipt_payload_matches(
+    candidate: &ExperimentCandidate,
+    role: GateEvidenceRole,
+    payload_sha256: &str,
+) -> bool {
+    let expected = match role {
+        GateEvidenceRole::Authorization => candidate.authorization_receipt_sha256.as_deref(),
+        GateEvidenceRole::Safety => candidate.safety_gate_receipt_sha256.as_deref(),
+        GateEvidenceRole::Envelope => candidate.envelope_receipt_sha256.as_deref(),
+        GateEvidenceRole::IndependentReference => {
+            candidate.independent_reference_receipt_sha256.as_deref()
+        }
+        GateEvidenceRole::SemanticEquivalence => {
+            candidate.semantic_equivalence_receipt_sha256.as_deref()
+        }
+    };
+    expected == Some(payload_sha256)
+}
+
+fn validate_gate_evidence_receipts(
+    candidate: &ExperimentCandidate,
+    policy: &ExperimentDesignPolicy,
+    reasons: &mut BTreeSet<RejectionReason>,
+) {
+    let mut receipt_ids = BTreeSet::new();
+    let mut roles = BTreeSet::new();
+
+    for receipt in &candidate.gate_evidence_receipts {
+        if !receipt_ids.insert(receipt.receipt_id.as_str())
+            || !roles.insert(receipt.role)
+        {
+            reasons.insert(RejectionReason::InvalidEvidenceBinding);
+        }
+        if !gate_receipt_matches_scope(receipt, candidate, policy)
+            || !gate_receipt_payload_matches(candidate, receipt.role, &receipt.payload_sha256)
+        {
+            reasons.insert(RejectionReason::InvalidEvidenceBinding);
+        }
+    }
+
+    let required_roles = [
+        (
+            GateEvidenceRole::Authorization,
+            candidate.authorization == AuthorizationState::Authorized,
+        ),
+        (GateEvidenceRole::Safety, candidate.safety_constraints_clear),
+        (GateEvidenceRole::Envelope, candidate.within_declared_envelope),
+        (
+            GateEvidenceRole::IndependentReference,
+            candidate.independent_reference_available,
+        ),
+        (
+            GateEvidenceRole::SemanticEquivalence,
+            candidate.semantic_equivalence == SemanticEquivalence::Established,
+        ),
+    ];
+
+    for (role, required) in required_roles {
+        if required && !roles.contains(&role) {
+            reasons.insert(RejectionReason::MissingEvidenceReceipt);
+        }
+    }
+}
+
 fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
     candidate
         .hypothesis_groups
@@ -589,6 +721,7 @@ fn candidate_rejection_reasons(
     {
         reasons.insert(RejectionReason::MissingEvidenceReceipt);
     }
+    validate_gate_evidence_receipts(candidate, policy, &mut reasons);
     if candidate.modality == ExperimentModality::CrossImplementation
         && candidate.semantic_equivalence != SemanticEquivalence::Established
     {
