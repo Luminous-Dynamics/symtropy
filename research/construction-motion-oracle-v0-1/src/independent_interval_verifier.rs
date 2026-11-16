@@ -1041,8 +1041,10 @@ mod tests {
     #[test]
     fn nominal_clear_path_with_uncertainty_overlap_is_never_clear() {
         let result = verify_capsule_interval_no_contact_with_uncertainty(
-            point_capsule(0.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
-            point_capsule(2.0, 0.0, 0.0, 0.5), p(0.0, 0.0, 0.0),
+            point_capsule(0.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
+            point_capsule(2.0, 0.0, 0.0, 0.5),
+            p(0.0, 0.0, 0.0),
             CapsuleRelativeUncertainty {
                 origin_relative_mm: p(1.5, 0.0, 0.0),
                 ..CapsuleRelativeUncertainty::zero()
@@ -1068,8 +1070,10 @@ mod tests {
                 origin_relative_mm: p(0.1, 0.1, 0.1),
                 ..CapsuleRelativeUncertainty::zero()
             },
-            window(), IntervalVerifierConfig::default(),
-        ).unwrap();
+            window(),
+            IntervalVerifierConfig::default(),
+        )
+        .unwrap();
         assert_eq!(result.status, IntervalVerificationStatus::ContactWitness);
     }
 
