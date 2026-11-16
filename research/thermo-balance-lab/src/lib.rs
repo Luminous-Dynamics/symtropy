@@ -21,12 +21,20 @@ impl Joules {
         Ok(Self(value))
     }
 
-    pub const fn zero() -> Self { Self(0.0) }
-    pub const fn get(self) -> f64 { self.0 }
+    pub const fn zero() -> Self {
+        Self(0.0)
+    }
+    pub const fn get(self) -> f64 {
+        self.0
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum EnergyStore { Kinetic, Thermal, InternalReservoir }
+pub enum EnergyStore {
+    Kinetic,
+    Thermal,
+    InternalReservoir,
+}
 
 impl EnergyStore {
     const fn index(self) -> usize {
@@ -39,7 +47,11 @@ impl EnergyStore {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum FlowKind { InternalTransfer, BoundaryInflow, BoundaryOutflow }
+pub enum FlowKind {
+    InternalTransfer,
+    BoundaryInflow,
+    BoundaryOutflow,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnergyFlowEvent {
@@ -76,7 +88,9 @@ impl fmt::Display for LedgerError {
             Self::InvalidMass => write!(f, "mass must be finite and strictly positive"),
             Self::InvalidVelocity => write!(f, "velocity must be finite; A must approach B"),
             Self::InvalidRestitution => write!(f, "restitution must be finite and in [0, 1]"),
-            Self::LedgerMismatch => write!(f, "ledger kinetic store does not match collision input"),
+            Self::LedgerMismatch => {
+                write!(f, "ledger kinetic store does not match collision input")
+            }
             Self::SequenceOverflow => write!(f, "event sequence overflow"),
         }
     }
@@ -98,11 +112,15 @@ pub struct EnergyLedger {
 }
 
 impl EnergyLedger {
-    pub fn new(kinetic: Joules, thermal: Joules, internal_reservoir: Joules)
-        -> Result<Self, LedgerError>
-    {
+    pub fn new(
+        kinetic: Joules,
+        thermal: Joules,
+        internal_reservoir: Joules,
+    ) -> Result<Self, LedgerError> {
         let initial_total = kinetic.get() + thermal.get() + internal_reservoir.get();
-        if !initial_total.is_finite() { return Err(LedgerError::NonFiniteEnergy); }
+        if !initial_total.is_finite() {
+            return Err(LedgerError::NonFiniteEnergy);
+        }
         Ok(Self {
             stores: [kinetic.get(), thermal.get(), internal_reservoir.get()],
             initial_total,
@@ -113,23 +131,37 @@ impl EnergyLedger {
         })
     }
 
-    pub fn amount(&self, store: EnergyStore) -> Joules { Joules(self.stores[store.index()]) }
-    pub fn total(&self) -> f64 { self.stores.iter().sum() }
-    pub fn boundary_in(&self) -> f64 { self.boundary_in }
-    pub fn boundary_out(&self) -> f64 { self.boundary_out }
-    pub fn events(&self) -> &[EnergyFlowEvent] { &self.events }
+    pub fn amount(&self, store: EnergyStore) -> Joules {
+        Joules(self.stores[store.index()])
+    }
+    pub fn total(&self) -> f64 {
+        self.stores.iter().sum()
+    }
+    pub fn boundary_in(&self) -> f64 {
+        self.boundary_in
+    }
+    pub fn boundary_out(&self) -> f64 {
+        self.boundary_out
+    }
+    pub fn events(&self) -> &[EnergyFlowEvent] {
+        &self.events
+    }
 
     pub fn residual(&self) -> f64 {
         self.total() - (self.initial_total + self.boundary_in - self.boundary_out)
     }
 
     fn next_sequence(&self) -> Result<u64, LedgerError> {
-        self.next_sequence.checked_add(1).ok_or(LedgerError::SequenceOverflow)?;
+        self.next_sequence
+            .checked_add(1)
+            .ok_or(LedgerError::SequenceOverflow)?;
         Ok(self.next_sequence)
     }
 
     fn validate_causal_id(id: &str) -> Result<(), LedgerError> {
-        if id.trim().is_empty() { return Err(LedgerError::EmptyCausalId); }
+        if id.trim().is_empty() {
+            return Err(LedgerError::EmptyCausalId);
+        }
         Ok(())
     }
 
@@ -141,7 +173,9 @@ impl EnergyLedger {
         amount: Joules,
         causal_id: impl Into<String>,
     ) -> Result<(), LedgerError> {
-        if from == to { return Err(LedgerError::SameStoreTransfer); }
+        if from == to {
+            return Err(LedgerError::SameStoreTransfer);
+        }
         let causal_id = causal_id.into();
         Self::validate_causal_id(&causal_id)?;
         let sequence = self.next_sequence()?;
@@ -159,8 +193,12 @@ impl EnergyLedger {
         self.stores[fi] = next_from.max(0.0);
         self.stores[ti] = next_to;
         self.events.push(EnergyFlowEvent {
-            sequence, from: Some(from), to: Some(to), amount,
-            kind: FlowKind::InternalTransfer, causal_id,
+            sequence,
+            from: Some(from),
+            to: Some(to),
+            amount,
+            kind: FlowKind::InternalTransfer,
+            causal_id,
         });
         self.next_sequence = sequence + 1;
         Ok(())
@@ -181,15 +219,22 @@ impl EnergyLedger {
         let next_in = self.boundary_in + amount.get();
         let next_total = self.total() + amount.get();
         let next_expected = self.initial_total + next_in - self.boundary_out;
-        if !next_store.is_finite() || !next_in.is_finite()
-            || !next_total.is_finite() || !next_expected.is_finite() {
+        if !next_store.is_finite()
+            || !next_in.is_finite()
+            || !next_total.is_finite()
+            || !next_expected.is_finite()
+        {
             return Err(LedgerError::NonFiniteEnergy);
         }
         self.stores[i] = next_store;
         self.boundary_in = next_in;
         self.events.push(EnergyFlowEvent {
-            sequence, from: None, to: Some(to), amount,
-            kind: FlowKind::BoundaryInflow, causal_id,
+            sequence,
+            from: None,
+            to: Some(to),
+            amount,
+            kind: FlowKind::BoundaryInflow,
+            causal_id,
         });
         self.next_sequence = sequence + 1;
         Ok(())
@@ -214,15 +259,23 @@ impl EnergyLedger {
         let next_out = self.boundary_out + value;
         let next_total = self.total() - value;
         let next_expected = self.initial_total + self.boundary_in - next_out;
-        if !next_store.is_finite() || !next_out.is_finite()
-            || !next_total.is_finite() || !next_expected.is_finite() || next_store < 0.0 {
+        if !next_store.is_finite()
+            || !next_out.is_finite()
+            || !next_total.is_finite()
+            || !next_expected.is_finite()
+            || next_store < 0.0
+        {
             return Err(LedgerError::NonFiniteEnergy);
         }
         self.stores[i] = next_store.max(0.0);
         self.boundary_out = next_out;
         self.events.push(EnergyFlowEvent {
-            sequence, from: Some(from), to: None, amount,
-            kind: FlowKind::BoundaryOutflow, causal_id,
+            sequence,
+            from: Some(from),
+            to: None,
+            amount,
+            kind: FlowKind::BoundaryOutflow,
+            causal_id,
         });
         self.next_sequence = sequence + 1;
         Ok(())
@@ -248,12 +301,13 @@ pub fn solve_collision_1d(
     velocity_b_mps: f64,
     restitution: f64,
 ) -> Result<Collision1D, LedgerError> {
-    if !mass_a_kg.is_finite() || mass_a_kg <= 0.0
-        || !mass_b_kg.is_finite() || mass_b_kg <= 0.0 {
+    if !mass_a_kg.is_finite() || mass_a_kg <= 0.0 || !mass_b_kg.is_finite() || mass_b_kg <= 0.0 {
         return Err(LedgerError::InvalidMass);
     }
-    if !velocity_a_mps.is_finite() || !velocity_b_mps.is_finite()
-        || velocity_a_mps <= velocity_b_mps {
+    if !velocity_a_mps.is_finite()
+        || !velocity_b_mps.is_finite()
+        || velocity_a_mps <= velocity_b_mps
+    {
         return Err(LedgerError::InvalidVelocity);
     }
     if !restitution.is_finite() || !(0.0..=1.0).contains(&restitution) {
@@ -270,12 +324,16 @@ pub fn solve_collision_1d(
     let v_b_after = velocity_b_mps + impulse_ns / mass_b_kg;
     let kinetic_before_j =
         0.5 * mass_a_kg * velocity_a_mps.powi(2) + 0.5 * mass_b_kg * velocity_b_mps.powi(2);
-    let kinetic_after_j =
-        0.5 * mass_a_kg * v_a_after.powi(2) + 0.5 * mass_b_kg * v_b_after.powi(2);
+    let kinetic_after_j = 0.5 * mass_a_kg * v_a_after.powi(2) + 0.5 * mass_b_kg * v_b_after.powi(2);
     let heat_j = kinetic_before_j - kinetic_after_j;
 
-    if !impulse_ns.is_finite() || !v_a_after.is_finite() || !v_b_after.is_finite()
-        || !kinetic_before_j.is_finite() || !kinetic_after_j.is_finite() || !heat_j.is_finite() {
+    if !impulse_ns.is_finite()
+        || !v_a_after.is_finite()
+        || !v_b_after.is_finite()
+        || !kinetic_before_j.is_finite()
+        || !kinetic_after_j.is_finite()
+        || !heat_j.is_finite()
+    {
         return Err(LedgerError::NonFiniteEnergy);
     }
     if heat_j < -1e-12 * kinetic_before_j.max(f64::MIN_POSITIVE) {
@@ -283,7 +341,11 @@ pub fn solve_collision_1d(
     }
 
     Ok(Collision1D {
-        impulse_ns, v_a_after, v_b_after, kinetic_before_j, kinetic_after_j,
+        impulse_ns,
+        v_a_after,
+        v_b_after,
+        kinetic_before_j,
+        kinetic_after_j,
         dissipated_to_heat_j: heat_j.max(0.0),
     })
 }
@@ -300,11 +362,16 @@ pub fn collide_and_account(
     causal_id: impl Into<String>,
 ) -> Result<Collision1D, LedgerError> {
     let result = solve_collision_1d(
-        mass_a_kg, mass_b_kg, velocity_a_mps, velocity_b_mps, restitution,
+        mass_a_kg,
+        mass_b_kg,
+        velocity_a_mps,
+        velocity_b_mps,
+        restitution,
     )?;
     let ledger_kinetic = ledger.amount(EnergyStore::Kinetic).get();
     if (ledger_kinetic - result.kinetic_before_j).abs()
-        > 1e-10 * result.kinetic_before_j.max(f64::MIN_POSITIVE) {
+        > 1e-10 * result.kinetic_before_j.max(f64::MIN_POSITIVE)
+    {
         return Err(LedgerError::LedgerMismatch);
     }
     if result.dissipated_to_heat_j > 0.0 {
@@ -322,17 +389,28 @@ pub fn collide_and_account(
 mod tests {
     use super::*;
 
-    fn j(x: f64) -> Joules { Joules::new(x).expect("valid fixture") }
+    fn j(x: f64) -> Joules {
+        Joules::new(x).expect("valid fixture")
+    }
     fn near(a: f64, b: f64, tol: f64) {
-        assert!((a - b).abs() <= tol, "a={a:.16e}, b={b:.16e}, tol={tol:.3e}");
+        assert!(
+            (a - b).abs() <= tol,
+            "a={a:.16e}, b={b:.16e}, tol={tol:.3e}"
+        );
     }
 
     #[test]
     fn rejects_negative_and_non_finite_energy() {
         assert_eq!(Joules::new(-0.1), Err(LedgerError::NegativeEnergy));
         assert_eq!(Joules::new(f64::NAN), Err(LedgerError::NonFiniteEnergy));
-        assert_eq!(Joules::new(f64::INFINITY), Err(LedgerError::NonFiniteEnergy));
-        assert_eq!(Joules::new(f64::NEG_INFINITY), Err(LedgerError::NonFiniteEnergy));
+        assert_eq!(
+            Joules::new(f64::INFINITY),
+            Err(LedgerError::NonFiniteEnergy)
+        );
+        assert_eq!(
+            Joules::new(f64::NEG_INFINITY),
+            Err(LedgerError::NonFiniteEnergy)
+        );
     }
 
     #[test]
@@ -362,8 +440,12 @@ mod tests {
     #[test]
     fn boundary_transfers_are_explicit() {
         let mut ledger = EnergyLedger::new(j(1.0), j(0.0), j(0.0)).unwrap();
-        ledger.boundary_inflow(EnergyStore::Thermal, j(2.0), "heater").unwrap();
-        ledger.boundary_outflow(EnergyStore::Kinetic, j(0.25), "work-export").unwrap();
+        ledger
+            .boundary_inflow(EnergyStore::Thermal, j(2.0), "heater")
+            .unwrap();
+        ledger
+            .boundary_outflow(EnergyStore::Kinetic, j(0.25), "work-export")
+            .unwrap();
         near(ledger.total(), 2.75, 1e-12);
         near(ledger.residual(), 0.0, 1e-12);
         near(ledger.boundary_in(), 2.0, 1e-12);
@@ -374,8 +456,15 @@ mod tests {
     fn insufficient_transfer_is_atomic() {
         let mut ledger = EnergyLedger::new(j(0.5), j(0.0), j(0.0)).unwrap();
         assert_eq!(
-            ledger.transfer(EnergyStore::Kinetic, EnergyStore::Thermal, j(0.6), "too-much"),
-            Err(LedgerError::InsufficientEnergy { store: EnergyStore::Kinetic })
+            ledger.transfer(
+                EnergyStore::Kinetic,
+                EnergyStore::Thermal,
+                j(0.6),
+                "too-much"
+            ),
+            Err(LedgerError::InsufficientEnergy {
+                store: EnergyStore::Kinetic
+            })
         );
         near(ledger.total(), 0.5, 0.0);
         assert!(ledger.events().is_empty());
@@ -392,7 +481,9 @@ mod tests {
                 j(1.1e-20),
                 "tiny-overdraw",
             ),
-            Err(LedgerError::InsufficientEnergy { store: EnergyStore::Kinetic })
+            Err(LedgerError::InsufficientEnergy {
+                store: EnergyStore::Kinetic
+            })
         );
         near(ledger.total(), 1.0e-20, 0.0);
         assert!(ledger.events().is_empty());
@@ -422,10 +513,22 @@ mod tests {
 
     #[test]
     fn invalid_collision_parameters_are_rejected() {
-        assert_eq!(solve_collision_1d(0.0, 1.0, 1.0, 0.0, 0.5), Err(LedgerError::InvalidMass));
-        assert_eq!(solve_collision_1d(1.0, 1.0, f64::NAN, 0.0, 0.5), Err(LedgerError::InvalidVelocity));
-        assert_eq!(solve_collision_1d(1.0, 1.0, 1.0, 0.0, 1.5), Err(LedgerError::InvalidRestitution));
-        assert_eq!(solve_collision_1d(1.0, 1.0, 0.0, 1.0, 0.5), Err(LedgerError::InvalidVelocity));
+        assert_eq!(
+            solve_collision_1d(0.0, 1.0, 1.0, 0.0, 0.5),
+            Err(LedgerError::InvalidMass)
+        );
+        assert_eq!(
+            solve_collision_1d(1.0, 1.0, f64::NAN, 0.0, 0.5),
+            Err(LedgerError::InvalidVelocity)
+        );
+        assert_eq!(
+            solve_collision_1d(1.0, 1.0, 1.0, 0.0, 1.5),
+            Err(LedgerError::InvalidRestitution)
+        );
+        assert_eq!(
+            solve_collision_1d(1.0, 1.0, 0.0, 1.0, 0.5),
+            Err(LedgerError::InvalidVelocity)
+        );
     }
 
     #[test]
