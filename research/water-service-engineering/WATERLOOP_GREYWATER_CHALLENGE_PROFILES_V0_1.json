@@ -1,0 +1,179 @@
+{
+  "schema_version": "waterloop-greywater-challenge-profiles-v0.1",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_feed_challenge_definitions_only_no_site_characterisation_or_process_envelope",
+  "literature_context": {
+    "source": "Ninsiima et al. 2026, DOI 10.1007/s42452-026-09559-0",
+    "reported_ranges": {
+      "cod_mg_l": [
+        100,
+        2000
+      ],
+      "tss_mg_l": [
+        30,
+        1000
+      ],
+      "anionic_surfactants_laundry_mg_l": "frequently_above_100"
+    },
+    "note": "Ranges are review-level empirical ranges, not WaterLoop design limits or a representative Johannesburg household dataset."
+  },
+  "profiles": [
+    {
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "source_class": "shower_bath",
+      "synthetic": true,
+      "values": {
+        "cod_mg_l": 180,
+        "tss_mg_l": 45,
+        "anionic_surfactant_mg_l": 8
+      },
+      "unmeasured_fields": [
+        "microbial_indicators",
+        "pH",
+        "conductivity",
+        "temperature"
+      ],
+      "purpose": "baseline candidate feed for method development only"
+    },
+    {
+      "profile_id": "GW-SYN-02-laundry-surfactant-shock",
+      "source_class": "laundry",
+      "synthetic": true,
+      "values": {
+        "cod_mg_l": 1400,
+        "tss_mg_l": 420,
+        "anionic_surfactant_mg_l": 160
+      },
+      "unmeasured_fields": [
+        "microbial_indicators",
+        "pH",
+        "conductivity",
+        "temperature"
+      ],
+      "purpose": "challenge high organic/solids/surfactant loading; excluded from initial source scope"
+    },
+    {
+      "profile_id": "GW-SYN-03-high-solids-event",
+      "source_class": "shower_bath_with_lint_fault",
+      "synthetic": true,
+      "values": {
+        "cod_mg_l": 1950,
+        "tss_mg_l": 900,
+        "anionic_surfactant_mg_l": 25
+      },
+      "unmeasured_fields": [
+        "microbial_indicators",
+        "pH",
+        "conductivity",
+        "temperature"
+      ],
+      "purpose": "screen blockage and solids surge challenge"
+    },
+    {
+      "profile_id": "GW-SYN-04-kitchen-source-excluded",
+      "source_class": "kitchen_dishwasher",
+      "synthetic": true,
+      "values": null,
+      "unmeasured_fields": [
+        "all"
+      ],
+      "purpose": "hard source exclusion control; no treatment eligibility implied"
+    },
+    {
+      "profile_id": "GW-SYN-05-source-unknown",
+      "source_class": "unknown_mixed_drain",
+      "synthetic": true,
+      "values": null,
+      "unmeasured_fields": [
+        "all"
+      ],
+      "purpose": "identity missing; quarantine/divert"
+    },
+    {
+      "profile_id": "GW-SYN-06-storage-age-violation",
+      "source_class": "shower_bath",
+      "synthetic": true,
+      "values": {
+        "cod_mg_l": 250,
+        "tss_mg_l": 60,
+        "anionic_surfactant_mg_l": 10
+      },
+      "storage_age_hours": 30,
+      "unmeasured_fields": [
+        "microbial_indicators",
+        "pH",
+        "conductivity",
+        "temperature"
+      ],
+      "purpose": "challenge storage-age rule; conservative 24-hour screening reference from WRC summary"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "GW-T0-001-source-profile-admitted",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "ELIGIBLE_FOR_BENCH_SCREENING_ONLY"
+    },
+    {
+      "scenario_id": "GW-T0-002-laundry-surfactant-shock",
+      "profile_id": "GW-SYN-02-laundry-surfactant-shock",
+      "expected_disposition": "OUTSIDE_INITIAL_SOURCE_SCOPE"
+    },
+    {
+      "scenario_id": "GW-T0-003-high-solids-screen-overload",
+      "profile_id": "GW-SYN-03-high-solids-event",
+      "expected_disposition": "BENCH_CHALLENGE_REQUIRES_SCREEN_CAPACITY_TEST"
+    },
+    {
+      "scenario_id": "GW-T0-004-kitchen-source-excluded",
+      "profile_id": "GW-SYN-04-kitchen-source-excluded",
+      "expected_disposition": "REJECT_SOURCE"
+    },
+    {
+      "scenario_id": "GW-T0-005-unknown-source-quarantine",
+      "profile_id": "GW-SYN-05-source-unknown",
+      "expected_disposition": "INDETERMINATE_HOLD_OR_DIVERT"
+    },
+    {
+      "scenario_id": "GW-T0-006-untreated-storage-age-over-24h",
+      "profile_id": "GW-SYN-06-storage-age-violation",
+      "expected_disposition": "HOLD_NO_REUSE_RELEASE"
+    },
+    {
+      "scenario_id": "GW-T0-007-missing-microbial-evidence",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "NO_USE_QUALITY_ADMISSION"
+    },
+    {
+      "scenario_id": "GW-T0-008-power-loss-during-treatment",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "HOLD_BATCH_NO_AUTOMATIC_RELEASE"
+    },
+    {
+      "scenario_id": "GW-T0-009-validated-barrier-failure",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "ISOLATE_AND_HOLD"
+    },
+    {
+      "scenario_id": "GW-T0-010-reject-path-unmeasured",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "NO_MASS_BALANCE_PASS"
+    },
+    {
+      "scenario_id": "GW-T0-011-stale-sensor",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "INDETERMINATE_HOLD"
+    },
+    {
+      "scenario_id": "GW-T0-012-treated-product-use-mismatch",
+      "profile_id": "GW-SYN-01-low-risk-shower",
+      "expected_disposition": "NO_CROSS_USE_CREDIT"
+    }
+  ],
+  "notes": [
+    "All numeric profiles are synthetic challenge values selected inside or near literature ranges; they are not measurements from South Africa, Johannesburg or a household.",
+    "No treatment acceptance envelope is defined by these files. Module operating limits must be established through actual bench tests and quality authority review.",
+    "The 24-hour value is a conservative initial screening reference from the WRC guidance summary; verify the full TT 746/17 and local authority requirements before any design or use decision.",
+    "A profile labelled eligible_for_bench_screening_only is not eligible for human reuse."
+  ]
+}

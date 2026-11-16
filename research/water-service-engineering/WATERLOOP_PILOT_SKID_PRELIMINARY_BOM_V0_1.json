@@ -1,0 +1,233 @@
+{
+  "schema_version": "waterloop-pilot-skid-preliminary-bom-v0.1",
+  "evidence_class": "conceptual_design",
+  "claim_ceiling": "functional_bom_categories_only_no_dimensioned_or_procurement_ready_bom",
+  "project": "WATERLOOP-MODULAR-TRAIN-001",
+  "skid_design_revision": "0.1",
+  "all_quantities_status": "TBD_AFTER_P_AND_ID_AND_PROCESS_SIZING",
+  "items": [
+    {
+      "tag": "FR-001",
+      "description": "modular structural frame and mounting rails",
+      "quantity": null,
+      "material_spec": "TBD by structural/load/chemical/UV exposure review",
+      "procurement_status": "not_specified",
+      "notes": "Include lift points, service clearance, vibration and wet-module load cases."
+    },
+    {
+      "tag": "BD-001",
+      "description": "secondary containment tray / bund",
+      "quantity": null,
+      "material_spec": "TBD by compatibility review",
+      "procurement_status": "not_specified",
+      "notes": "Capacity and drainage arrangement set by site hazard review."
+    },
+    {
+      "tag": "TK-101",
+      "description": "raw equalisation and batch quarantine vessel",
+      "quantity": null,
+      "material_spec": "opaque, drainable, greywater-compatible material to be selected",
+      "procurement_status": "not_specified",
+      "notes": "Capacity derived from measured inflow hydrograph, batch policy and storage-age constraint."
+    },
+    {
+      "tag": "SC-101",
+      "description": "removable hair/lint screen basket",
+      "quantity": null,
+      "material_spec": "corrosion/cleaning compatible material TBD",
+      "procurement_status": "not_specified",
+      "notes": "Accessible cleanout and captured-solids handling."
+    },
+    {
+      "tag": "TR-101",
+      "description": "common pretreatment / settling module",
+      "quantity": null,
+      "material_spec": "process- and clean-in-place-compatible material TBD",
+      "procurement_status": "not_specified",
+      "notes": "Size only after feed characterization and hydraulic tests."
+    },
+    {
+      "tag": "MB-101A",
+      "description": "Train A media + UF + UV cassette bay",
+      "quantity": null,
+      "material_spec": "vendor / material compatibility pending",
+      "procurement_status": "candidate_only",
+      "notes": "Requires membrane integrity, fouling, reject and validated UV design evidence."
+    },
+    {
+      "tag": "MB-101B",
+      "description": "Train B biological media + polishing + disinfection cassette bay",
+      "quantity": null,
+      "material_spec": "vendor / material compatibility pending",
+      "procurement_status": "candidate_only",
+      "notes": "Requires start-up, temperature, sludge, shock load and biological stability evidence."
+    },
+    {
+      "tag": "MB-101C",
+      "description": "Train C ozone + GAC + UV cassette bay",
+      "quantity": null,
+      "material_spec": "ozone-compatible materials and engineered off-gas control TBD",
+      "procurement_status": "candidate_only",
+      "notes": "Requires ozone contact, leak detection, off-gas destruction, worker exposure, by-product and GAC exhaustion studies."
+    },
+    {
+      "tag": "MB-101D",
+      "description": "Train D passive / nature-based external comparison module",
+      "quantity": null,
+      "material_spec": "site/soil/media specific; TBD",
+      "procurement_status": "candidate_only",
+      "notes": "Requires footprint, vector, hydraulic retention, seasonal and solids management review."
+    },
+    {
+      "tag": "TK-102",
+      "description": "treated-water quarantine/hold vessel",
+      "quantity": null,
+      "material_spec": "opaque, drainable, greywater-compatible material TBD",
+      "procurement_status": "not_specified",
+      "notes": "No release solely based on online indicators; separate from raw storage."
+    },
+    {
+      "tag": "P-101",
+      "description": "process transfer pump(s), if gravity profile cannot satisfy duty",
+      "quantity": null,
+      "material_spec": "wet-end compatible; final selection by pump duty owner",
+      "procurement_status": "not_specified",
+      "notes": "Pump curve/duty, NPSH, energy, transient and dry-run protections deferred to pump-system owner."
+    },
+    {
+      "tag": "XV-101",
+      "description": "source diversion / isolation valves",
+      "quantity": null,
+      "material_spec": "compatible valve material and actuator type TBD",
+      "procurement_status": "not_specified",
+      "notes": "Unknown source and fault default to physically safe diversion."
+    },
+    {
+      "tag": "XV-102",
+      "description": "product hold/release isolation valve",
+      "quantity": null,
+      "material_spec": "compatible valve material and fail state TBD",
+      "procurement_status": "not_specified",
+      "notes": "Independent quality permission is required; control logic alone cannot admit use."
+    },
+    {
+      "tag": "FT-101",
+      "description": "raw feed flow meter",
+      "quantity": null,
+      "material_spec": "selected by measurand range/uncertainty/solids compatibility",
+      "procurement_status": "not_specified",
+      "notes": "Mycelix measurand/capability passport required."
+    },
+    {
+      "tag": "FT-102",
+      "description": "useful product delivery flow meter",
+      "quantity": null,
+      "material_spec": "selected by measurand range/uncertainty",
+      "procurement_status": "not_specified",
+      "notes": "Must measure at the declared end-use boundary."
+    },
+    {
+      "tag": "FT-103",
+      "description": "reject/backwash/residual flow meter or validated gravimetric boundary",
+      "quantity": null,
+      "material_spec": "selected by solids and chemical compatibility",
+      "procurement_status": "not_specified",
+      "notes": "Necessary for water and residual closure."
+    },
+    {
+      "tag": "LT-101",
+      "description": "equalisation tank level channel",
+      "quantity": null,
+      "material_spec": "range and material TBD",
+      "procurement_status": "not_specified",
+      "notes": "Requires tank geometry/level-volume calibration and uncertainty."
+    },
+    {
+      "tag": "TT-101",
+      "description": "raw/hold water temperature channel",
+      "quantity": null,
+      "material_spec": "range and material TBD",
+      "procurement_status": "not_specified",
+      "notes": "Time aligned with batch/source identity."
+    },
+    {
+      "tag": "PT-101",
+      "description": "process inlet/outlet pressure channels",
+      "quantity": null,
+      "material_spec": "range and pressure tap TBD",
+      "procurement_status": "not_specified",
+      "notes": "Use exact pressure boundary and calibration evidence."
+    },
+    {
+      "tag": "AI-101",
+      "description": "process indicator suite (pH, conductivity, turbidity; optional ORP/UV intensity)",
+      "quantity": null,
+      "material_spec": "method and wetted-material compatibility TBD",
+      "procurement_status": "not_specified",
+      "notes": "Indicators only; never a substitute for an independent sample/use-quality assessment."
+    },
+    {
+      "tag": "SP-101",
+      "description": "raw feed sample point",
+      "quantity": null,
+      "material_spec": "lab-compatible sample valve and hygiene detail TBD",
+      "procurement_status": "not_specified",
+      "notes": "Sample identity, method, timebase and preservation owned by quality authority."
+    },
+    {
+      "tag": "SP-102",
+      "description": "post-process sample point",
+      "quantity": null,
+      "material_spec": "lab-compatible sample valve and hygiene detail TBD",
+      "procurement_status": "not_specified",
+      "notes": "Before final release decision."
+    },
+    {
+      "tag": "SP-103",
+      "description": "final hold tank sample point",
+      "quantity": null,
+      "material_spec": "lab-compatible sample valve and hygiene detail TBD",
+      "procurement_status": "not_specified",
+      "notes": "Sample and use profile must match the proposed release batch."
+    },
+    {
+      "tag": "SP-104",
+      "description": "reject/backwash sample point",
+      "quantity": null,
+      "material_spec": "compatible sample point TBD",
+      "procurement_status": "not_specified",
+      "notes": "Residual stream characterization."
+    },
+    {
+      "tag": "EL-001",
+      "description": "electrical isolation, overcurrent protection and lockout enclosure",
+      "quantity": null,
+      "material_spec": "electrical designer to select enclosure/protection by environment and load",
+      "procurement_status": "not_specified",
+      "notes": "Must be outside wet service zones; professional electrical design required."
+    },
+    {
+      "tag": "CTL-001",
+      "description": "local process controller and event recorder",
+      "quantity": null,
+      "material_spec": "industrial enclosure/interface TBD",
+      "procurement_status": "not_specified",
+      "notes": "Can hold/isolate/divert; cannot self-certify quality."
+    },
+    {
+      "tag": "DR-001",
+      "description": "contained reject/backwash/drain route",
+      "quantity": null,
+      "material_spec": "compatible drain material and capacity TBD",
+      "procurement_status": "not_specified",
+      "notes": "Destination must be approved; no assumed stormwater or watercourse discharge."
+    }
+  ],
+  "procurement_gates": [
+    "No dimensions, pipe sizes, electrical ratings, pressure ratings, treatment doses or tank capacities are set in v0.1.",
+    "No component is approved for purchase until process chemistry, hydraulic duty, materials compatibility, local code and professional design reviews are complete.",
+    "Candidate treatment cassettes are comparative research configurations, not selected products.",
+    "Instrument selection requires Mycelix measurand/capability/uncertainty admission.",
+    "Pumps require the existing pump duty/efficiency owner; pressure transients require the existing transient-hydraulics owner."
+  ]
+}

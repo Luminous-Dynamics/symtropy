@@ -1,0 +1,222 @@
+{
+  "schema_version": "waterloop-module-interface-control-v0.1",
+  "evidence_class": "conceptual_design",
+  "claim_ceiling": "module_interface_requirements_only_no_process_or_water_quality_qualification",
+  "design_id": "WATERLOOP-MODULAR-TRAIN-001",
+  "units": "SI",
+  "mechanical_dimensions_status": "TBD_AFTER_MEASURED_FLOW_PROFILE_AND_PROFESSIONAL_DESIGN",
+  "modules": [
+    {
+      "module_id": "SRC-100",
+      "module_class": "source_segregation",
+      "name": "Source-diversion manifold",
+      "required_ports": [
+        "P-RAW-SHOWER",
+        "P-RAW-BATH",
+        "P-RAW-ADMITTED-BASIN",
+        "P-EXCLUDED-TO-DRAIN"
+      ],
+      "requirements": [
+        "physical source separation at collection",
+        "unknown/excluded source must divert to approved drain",
+        "source identity retained through batch ID"
+      ],
+      "failure_state": "DIVERT_AND_QUARANTINE"
+    },
+    {
+      "module_id": "PRE-100",
+      "module_class": "pretreatment",
+      "name": "Removable hair/lint screen and settling",
+      "required_ports": [
+        "P-IN-RAW",
+        "P-OUT-PRETREATED",
+        "P-DRAIN-SOLIDS",
+        "P-SAMPLE-IN",
+        "P-SAMPLE-OUT"
+      ],
+      "requirements": [
+        "removable screen basket",
+        "inspectable drainable chamber",
+        "headloss/flow service indication",
+        "accessible solids removal"
+      ],
+      "failure_state": "STOP_FEED_AND_DIVERT"
+    },
+    {
+      "module_id": "EQ-100",
+      "module_class": "equalisation_quarantine",
+      "name": "Equalisation and batch quarantine",
+      "required_ports": [
+        "P-IN-PRETREATED",
+        "P-OUT-BATCH",
+        "P-OVERFLOW-TO-DRAIN",
+        "P-DRAIN",
+        "P-SAMPLE"
+      ],
+      "required_measurands": [
+        "level",
+        "temperature",
+        "time_since_collection",
+        "batch_identity"
+      ],
+      "requirements": [
+        "opaque inspectable vessel",
+        "storage age and temperature tracked",
+        "no automatic product release",
+        "overflow to approved drain only"
+      ],
+      "failure_state": "HOLD_AND_DIVERT"
+    },
+    {
+      "module_id": "TR-A-100",
+      "module_class": "treatment_candidate",
+      "name": "Media + UF + UV candidate",
+      "required_ports": [
+        "P-IN-FEED",
+        "P-OUT-PRODUCT",
+        "P-REJECT",
+        "P-CIP-DRAIN",
+        "P-SAMPLE-IN",
+        "P-SAMPLE-OUT"
+      ],
+      "requirements": [
+        "feed envelope defined by bench testing",
+        "membrane integrity evidence",
+        "headloss/flux/cleaning records",
+        "UV dose conditions independently established"
+      ],
+      "failure_state": "ISOLATE_AND_HOLD"
+    },
+    {
+      "module_id": "TR-B-100",
+      "module_class": "treatment_candidate",
+      "name": "Biological media + polishing + disinfection candidate",
+      "required_ports": [
+        "P-IN-FEED",
+        "P-OUT-PRODUCT",
+        "P-SLUDGE-RESIDUAL",
+        "P-DRAIN",
+        "P-SAMPLE-IN",
+        "P-SAMPLE-OUT"
+      ],
+      "requirements": [
+        "start-up and stability envelope defined",
+        "organic/hydraulic load envelope established",
+        "sludge/solids managed",
+        "disinfection barrier independently established"
+      ],
+      "failure_state": "ISOLATE_AND_HOLD"
+    },
+    {
+      "module_id": "TR-C-100",
+      "module_class": "treatment_candidate",
+      "name": "Ozone contact + GAC + UV candidate",
+      "required_ports": [
+        "P-IN-FEED",
+        "P-OUT-PRODUCT",
+        "P-OFFGAS",
+        "P-GAC-REPLACEMENT",
+        "P-DRAIN",
+        "P-SAMPLE-IN",
+        "P-SAMPLE-OUT"
+      ],
+      "requirements": [
+        "ozone generation/contact/transfer characterized",
+        "off-gas destruction and worker exposure safeguards",
+        "oxidation by-products assessed",
+        "GAC exhaustion/change criteria",
+        "UV dose conditions established"
+      ],
+      "failure_state": "ISOLATE_OZONE_AND_HOLD"
+    },
+    {
+      "module_id": "TR-D-100",
+      "module_class": "treatment_candidate",
+      "name": "Passive/nature-based comparator",
+      "required_ports": [
+        "P-IN-FEED",
+        "P-OUT-PRODUCT",
+        "P-SOLIDS",
+        "P-DRAIN",
+        "P-SAMPLE-IN",
+        "P-SAMPLE-OUT"
+      ],
+      "requirements": [
+        "land footprint and hydraulic retention declared",
+        "seasonal temperature/loading envelope established",
+        "vector/access and solids management",
+        "no potable credit"
+      ],
+      "failure_state": "BYPASS_TO_APPROVED_DRAIN"
+    },
+    {
+      "module_id": "HOLD-100",
+      "module_class": "product_quarantine",
+      "name": "Treated water hold and release boundary",
+      "required_ports": [
+        "P-IN-TREATED",
+        "P-OUT-ADMITTED-USE",
+        "P-OVERFLOW-TO-DRAIN",
+        "P-DRAIN",
+        "P-SAMPLE-FINAL"
+      ],
+      "required_measurands": [
+        "level",
+        "batch_identity",
+        "residence_time",
+        "valve_state"
+      ],
+      "requirements": [
+        "release bound to independent intended-use quality assessment",
+        "separate storage from raw greywater",
+        "no direct potable cross-connection"
+      ],
+      "failure_state": "HOLD_AND_DRAIN_OR_QUARANTINE"
+    },
+    {
+      "module_id": "DIST-100",
+      "module_class": "nonpotable_distribution",
+      "name": "Dedicated labelled non-potable distribution",
+      "required_ports": [
+        "P-IN-ADMITTED-REUSE",
+        "P-OUT-NAMED-FIXTURES",
+        "P-MAINS-AIR_GAP-ONLY"
+      ],
+      "requirements": [
+        "separate pipework and outlet labels",
+        "physical air gap/backflow design by qualified plumber",
+        "no software-controlled cross-tie to potable system"
+      ],
+      "failure_state": "PHYSICALLY_ISOLATE"
+    }
+  ],
+  "shared_measurement_boundaries": [
+    "source flow and source identity",
+    "raw feed sample and timestamp",
+    "post-pretreatment flow/sample",
+    "post-process flow/sample",
+    "final hold sample and independent use decision",
+    "useful delivered volume at named fixture",
+    "reject/backwash/purge/solids streams",
+    "electricity at treatment skid boundary",
+    "pressure/flow at declared non-potable outlet"
+  ],
+  "common_fault_states": [
+    "POWER_LOSS",
+    "SENSOR_STALE_OR_MISSING",
+    "SOURCE_UNKNOWN_OR_EXCLUDED",
+    "PROCESS_BARRIER_FAILED",
+    "SAMPLE_NOT_ADMITTED",
+    "STORAGE_AGE_INVALID",
+    "REJECT_PATH_BLOCKED",
+    "MAINTENANCE_LOCKOUT",
+    "OVERFLOW_PATH_UNAVAILABLE"
+  ],
+  "universal_safe_state": "NO_AUTOMATIC_RELEASE; ISOLATE_AFFECTED_MODULE; HOLD_BATCH_OR_DIVERT_TO_APPROVED_WASTEWATER_ROUTE",
+  "prohibited_connections": [
+    "direct potable-to-reclaimed cross-tie",
+    "shared pressurised potable/reclaimed header",
+    "hose bridge between potable and reclaimed circuits",
+    "untreated greywater overflow to stormwater or watercourse without independent authorisation"
+  ]
+}

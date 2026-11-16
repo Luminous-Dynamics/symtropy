@@ -1,0 +1,110 @@
+{
+  "schema_version": "waterloop-pilot-skid-tag-schedule-v0.1",
+  "evidence_class": "conceptual_design",
+  "claim_ceiling": "p_and_id_tag_and_measurement_boundary_schedule_only_not_a_construction_drawing",
+  "tags": [
+    {
+      "tag": "TK-101",
+      "function": "raw equalisation / quarantine",
+      "boundary": "raw greywater",
+      "interlocks": [
+        "age/temperature tracking",
+        "high-high level",
+        "source identity valid"
+      ]
+    },
+    {
+      "tag": "SC-101",
+      "function": "removable coarse screen",
+      "boundary": "raw greywater",
+      "interlocks": [
+        "screen service state",
+        "high differential level/pressure"
+      ]
+    },
+    {
+      "tag": "TR-101",
+      "function": "common pretreatment",
+      "boundary": "pretreated feed",
+      "interlocks": [
+        "inlet/outlet flow",
+        "sample upstream/downstream"
+      ]
+    },
+    {
+      "tag": "MB-101A..D",
+      "function": "one treatment cassette active per comparison run",
+      "boundary": "candidate treated product + reject",
+      "interlocks": [
+        "module passport valid",
+        "feed envelope admitted",
+        "barrier state valid",
+        "reject path available"
+      ]
+    },
+    {
+      "tag": "TK-102",
+      "function": "treated-water hold/quarantine",
+      "boundary": "treated not yet released",
+      "interlocks": [
+        "final sample identity",
+        "quality decision identity",
+        "batch identity",
+        "residence time valid"
+      ]
+    },
+    {
+      "tag": "XV-101",
+      "function": "source divert/isolate",
+      "boundary": "source selection",
+      "interlocks": [
+        "unknown source -> drain",
+        "loss of power -> safe diversion"
+      ]
+    },
+    {
+      "tag": "XV-102",
+      "function": "product isolation",
+      "boundary": "hold tank to non-potable distribution",
+      "interlocks": [
+        "no release without independent use-quality permission",
+        "fault -> closed"
+      ]
+    },
+    {
+      "tag": "FT-101..103",
+      "function": "raw, useful-product and reject metering",
+      "boundary": "stock/flow reconciliation",
+      "interlocks": [
+        "calibration current",
+        "timebase aligned",
+        "uncertainty within declared budget"
+      ]
+    },
+    {
+      "tag": "SP-101..104",
+      "function": "raw, process, final hold and residual sampling",
+      "boundary": "independent sample evidence",
+      "interlocks": [
+        "sample ID linked to batch",
+        "method/revision/calibration recorded"
+      ]
+    },
+    {
+      "tag": "DR-001",
+      "function": "contained approved drain/reject route",
+      "boundary": "reject/overflow/waste",
+      "interlocks": [
+        "availability must be proven before process run",
+        "blocked route -> stop/hold"
+      ]
+    }
+  ],
+  "safety_invariants": [
+    "Potable supply and reclaimed greywater never share a pressurised cross-tie in this demonstrator.",
+    "Municipal backup, if ever proposed, is a separate professionally designed physical air-gap/backflow arrangement.",
+    "No online sensor may substitute for the independent use-quality decision.",
+    "No release on missing/stale/conflicted evidence, power loss, failed process barrier, invalid storage age or maintenance lockout.",
+    "No untreated greywater overflow or process reject is assumed to be acceptable stormwater discharge."
+  ]
+}
