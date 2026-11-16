@@ -534,12 +534,20 @@ impl ProcedureGraph {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProcedureExecutionBranch {
+    NormalCompletion,
+    Reconciliation,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProcedureEvidenceBundle {
     pub schema_version: u16,
     pub procedure_id: String,
     pub procedure_version: u32,
+    pub execution_branch: ProcedureExecutionBranch,
     pub receipts: Vec<ProcedureEvidenceReceipt>,
 }
 
@@ -617,6 +625,7 @@ pub struct ProcedureEvidenceAdmissionReport {
     pub procedure_id: String,
     pub procedure_version: u32,
     pub scenario_id: String,
+    pub execution_branch: ProcedureExecutionBranch,
     pub admitted_receipt_count: usize,
     pub admitted_kinds: Vec<EvidenceKind>,
     pub required_verification_domains: Vec<RequiredVerificationDomain>,
@@ -661,14 +670,49 @@ impl ProcedureGraph {
             errors.push("evidence_bundle.procedure_version: mismatch".into());
         }
 
+        // Evidence closure is computed for the selected terminal branch.
+        // A normal completion must not require ambiguity evidence; a
+        // reconciliation must not require successful placement/custody proof.
+        let terminal_operation = match bundle.execution_branch {
+            ProcedureExecutionBranch::NormalCompletion => {
+                ProcedureOperation::CollectCustodyAcknowledgement
+            }
+            ProcedureExecutionBranch::Reconciliation => {
+                ProcedureOperation::ReconcileUnknownOutcome
+            }
+        };
+        let terminal_step = self
+            .steps
+            .iter()
+            .find(|step| step.operation == terminal_operation)
+            .ok_or_else(|| vec![format!("procedure graph is missing terminal operation {terminal_operation:?}")])?;
+
+        let steps_by_id = self
+            .steps
+            .iter()
+            .map(|step| (step.step_id.as_str(), step))
+            .collect::<HashMap<_, _>>();
+        let mut active_step_ids = HashSet::new();
+        let mut pending_step_ids = vec![terminal_step.step_id.as_str()];
+        while let Some(step_id) = pending_step_ids.pop() {
+            if !active_step_ids.insert(step_id) {
+                continue;
+            }
+            if let Some(step) = steps_by_id.get(step_id) {
+                pending_step_ids.extend(step.depends_on.iter().map(String::as_str));
+            }
+        }
+
         let internal_outputs = self
             .steps
             .iter()
+            .filter(|step| active_step_ids.contains(step.step_id.as_str()))
             .map(|step| step.produces)
             .collect::<HashSet<_>>();
         let expected_external = self
             .steps
             .iter()
+            .filter(|step| active_step_ids.contains(step.step_id.as_str()))
             .flat_map(|step| step.operation.required_inputs().iter().copied())
             .filter(|kind| !internal_outputs.contains(kind))
             .collect::<BTreeSet<_>>();
@@ -806,6 +850,7 @@ impl ProcedureGraph {
             procedure_id: self.procedure_id.clone(),
             procedure_version: self.procedure_version,
             scenario_id: scenario.scenario_id.clone(),
+            execution_branch: bundle.execution_branch,
             admitted_receipt_count: bundle.receipts.len(),
             admitted_kinds: receipt_kinds.into_iter().collect::<BTreeSet<_>>().into_iter().collect(),
             required_verification_domains,
@@ -922,6 +967,8 @@ mod tests {
     const SCENARIO: &str = include_str!("../fixtures/nominal-stationary-carrier.json");
     const PROCEDURE: &str = include_str!("../fixtures/nominal-receiving-procedure.json");
     const EVIDENCE: &str = include_str!("../fixtures/nominal-receiving-evidence.json");
+    const RECONCILIATION_EVIDENCE: &str =
+        include_str!("../fixtures/reconciliation-receiving-evidence.json");
 
     fn fixture() -> (ScenarioManifest, ProcedureGraph) {
         let scenario = serde_json::from_str(SCENARIO).expect("scenario fixture");
@@ -933,14 +980,21 @@ mod tests {
         serde_json::from_str(EVIDENCE).expect("procedure evidence fixture")
     }
 
+    fn reconciliation_evidence_fixture() -> ProcedureEvidenceBundle {
+        serde_json::from_str(RECONCILIATION_EVIDENCE)
+            .expect("reconciliation evidence fixture")
+    }
+
     #[test]
     fn nominal_evidence_envelopes_are_admitted_without_claiming_authenticity_or_authority() {
         let (scenario, procedure) = fixture();
         let report = procedure
             .admit_evidence(&scenario, &evidence_fixture())
             .expect("well-formed receipt bundle");
-        assert_eq!(report.admitted_receipt_count, 14);
-        assert_eq!(report.admitted_kinds.len(), 14);
+        assert_eq!(report.execution_branch, ProcedureExecutionBranch::NormalCompletion);
+        assert_eq!(report.admitted_receipt_count, 13);
+        assert_eq!(report.admitted_kinds.len(), 13);
+        assert!(!report.admitted_kinds.contains(&EvidenceKind::AmbiguousOutcomeObservation));
         assert!(report.evidence_envelopes_structurally_admitted);
         assert!(report.declared_freshness_policy_passed);
         assert_eq!(report.required_verification_domains.len(), 6);
@@ -952,6 +1006,55 @@ mod tests {
         assert!(!report.motion_authority_granted);
         assert!(!report.physical_command_emitted);
         assert!(!report.task_success_attested);
+    }
+
+    #[test]
+    fn reconciliation_branch_requires_ambiguity_but_not_successful_delivery_receipts() {
+        let (scenario, procedure) = fixture();
+        let report = procedure
+            .admit_evidence(&scenario, &reconciliation_evidence_fixture())
+            .expect("reconciliation branch receipt bundle");
+        assert_eq!(report.execution_branch, ProcedureExecutionBranch::Reconciliation);
+        assert_eq!(report.admitted_receipt_count, 10);
+        assert!(report.admitted_kinds.contains(&EvidenceKind::AmbiguousOutcomeObservation));
+        assert!(!report.admitted_kinds.contains(&EvidenceKind::ReleaseExecutionReceipt));
+        assert!(!report.admitted_kinds.contains(&EvidenceKind::ReceiverPresenceObservation));
+        assert!(!report.admitted_kinds.contains(&EvidenceKind::PlacementObservation));
+        assert!(!report.admitted_kinds.contains(&EvidenceKind::CounterpartyCustodyReceipt));
+        assert!(!report.motion_authority_granted);
+        assert!(!report.task_success_attested);
+    }
+
+    #[test]
+    fn branch_mismatch_rejects_receipts_from_the_mutually_exclusive_path() {
+        let (scenario, procedure) = fixture();
+        let mut normal_with_ambiguity = evidence_fixture();
+        normal_with_ambiguity.receipts.push(
+            reconciliation_evidence_fixture()
+                .receipts
+                .into_iter()
+                .find(|receipt| receipt.kind == EvidenceKind::AmbiguousOutcomeObservation)
+                .expect("ambiguous outcome receipt"),
+        );
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &normal_with_ambiguity)
+                .is_err()
+        );
+
+        let mut reconciliation_with_success = reconciliation_evidence_fixture();
+        reconciliation_with_success.receipts.push(
+            evidence_fixture()
+                .receipts
+                .into_iter()
+                .find(|receipt| receipt.kind == EvidenceKind::ReleaseExecutionReceipt)
+                .expect("release execution receipt"),
+        );
+        assert!(
+            procedure
+                .admit_evidence(&scenario, &reconciliation_with_success)
+                .is_err()
+        );
     }
 
     #[test]
