@@ -895,11 +895,11 @@ mod tests {
             Value::String("ce1c4bf7409abfb7e6056cfad06552e694d8f147ca4a8e78242cecd4dcbe8cf6".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("input/output artifact mismatch");
-        assert!(error.contains("does not match dataset direction"));
+        assert!(error.contains("does not match its direction and role"));
     }
 
     #[test]
-    fn artifact_path_cannot_be_reused_across_datasets() {
+    fn artifact_path_cannot_be_reassigned_to_another_dataset() {
         let mut root = fixture_value();
         root["datasets"][1]["artifacts"][0]["relative_path"] =
             Value::String("model-evidence-payloads/synthetic-input.json".into());
@@ -908,7 +908,7 @@ mod tests {
             Value::String("7dc7062f31a2cb3f39ba2b65dbd4c9b0d7f1839f4b48288583806d9e188f03bf".into());
         let error = validate_envelope(&root.to_string(), INPUT_BYTES, OUTPUT_BYTES)
             .expect_err("output/input artifact mismatch");
-        assert!(error.contains("does not match dataset direction"));
+        assert!(error.contains("does not match its direction and role"));
     }
 
     #[test]
