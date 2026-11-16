@@ -162,6 +162,16 @@ fn has_link(value: &Value, relation: &str, href: Option<&str>) -> bool {
         })
 }
 
+fn valid_swhid_core(value: &str) -> bool {
+    let parts: Vec<&str> = value.split(':').collect();
+    parts.len() == 4
+        && parts[0] == "swh"
+        && parts[1] == "1"
+        && ["snp", "rel", "rev", "dir", "cnt"].contains(&parts[2])
+        && parts[3].len() == 40
+        && parts[3].bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
 fn validate_datacite(value: &Value) -> Result<ProviderProjection, String> {
     let data = value
         .get("data")
@@ -214,9 +224,16 @@ fn validate_datacite(value: &Value) -> Result<ProviderProjection, String> {
                 .get("relationTypeInformation")
                 .and_then(Value::as_str)
                 .is_some_and(|text| !text.trim().is_empty())
+            && item
+                .get("relatedIdentifier")
+                .and_then(Value::as_str)
+                .is_some_and(valid_swhid_core)
     });
     if !v47_identifier {
-        return Err("DataCite 4.7 SWHID/Other/relationTypeInformation fields must be preserved".to_owned());
+        return Err(
+            "DataCite 4.7 SWHID must use valid core syntax and retain Other/relationTypeInformation"
+                .to_owned(),
+        );
     }
     let rights = attributes
         .get("rightsList")
@@ -845,6 +862,15 @@ mod tests {
         value["data"]["id"] = Value::String("10.5555/other".into());
         let error = validate_datacite(&value).expect_err("mismatched DOI identity");
         assert!(error.contains("resource id and attributes.doi"));
+    }
+
+    #[test]
+    fn datacite_swhid_type_rejects_a_plain_url() {
+        let mut value = datacite_value();
+        value["data"]["attributes"]["relatedIdentifiers"][0]["relatedIdentifier"] =
+            Value::String("https://example.invalid/not-a-swhid".into());
+        let error = validate_datacite(&value).expect_err("URL is not SWHID syntax");
+        assert!(error.contains("valid core syntax"));
     }
 
     #[test]
