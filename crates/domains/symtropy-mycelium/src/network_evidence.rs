@@ -187,6 +187,12 @@ impl NetworkEvidenceAssessment {
         let link_is_supported = self.shared_fungal_link.outcome == EvidenceOutcome::Pass
             && criterion(NetworkCriterion::AtLeastTwoPlantUnits) == EvidenceOutcome::Pass;
 
+        if self.cytoplasmic_flow.outcome == CytoplasmicFlowEvidence::PlantToPlantFlowSupported
+            && !link_is_supported
+        {
+            return Err(NetworkEvidenceError::FlowWithoutSharedNetwork);
+        }
+
         let claim_level = if !link_is_supported {
             NetworkClaimLevel::NoNetworkClaimSupported
         } else {
@@ -258,6 +264,7 @@ pub enum NetworkEvidenceError {
         actual: NetworkCriterion,
     },
     MissingFlowReceipt,
+    FlowWithoutSharedNetwork,
     UnexpectedFlowReceipt,
     MissingFlowReasonCode,
 }
@@ -278,6 +285,7 @@ impl fmt::Display for NetworkEvidenceError {
                 write!(f, "criterion slot {} expected {:?}, found {:?}", index, expected, actual)
             }
             Self::MissingFlowReceipt => write!(f, "plant-to-plant flow result requires a source receipt"),
+            Self::FlowWithoutSharedNetwork => write!(f, "plant-to-plant flow requires a supported shared fungal link"),
             Self::UnexpectedFlowReceipt => write!(f, "unevaluated flow result must not carry a receipt"),
             Self::MissingFlowReasonCode => write!(f, "flow result requires a stable reason code"),
         }
@@ -430,6 +438,21 @@ mod tests {
         };
         let result = assessment.classify().unwrap();
         assert_eq!(result.cytoplasmic_flow, CytoplasmicFlowEvidence::PlantToPlantFlowSupported);
+    }
+
+    #[test]
+    fn plant_to_plant_flow_cannot_be_claimed_without_a_shared_fungal_link() {
+        let mut assessment = amf_assessment([EvidenceOutcome::Pass; 5]);
+        assessment.shared_fungal_link.outcome = EvidenceOutcome::Fail;
+        assessment.cytoplasmic_flow = CytoplasmicFlowReceipt {
+            outcome: CytoplasmicFlowEvidence::PlantToPlantFlowSupported,
+            observation: Some(ObservationEvidenceId(101)),
+            reason_code: "flow_measurement_without_link".to_owned(),
+        };
+        assert_eq!(
+            assessment.classify(),
+            Err(NetworkEvidenceError::FlowWithoutSharedNetwork)
+        );
     }
 
     #[test]
