@@ -74,7 +74,7 @@ fn run() -> Result<(), (u8, String)> {
                 "validator": "beam-handoff-validator",
                 "validator_version": env!("CARGO_PKG_VERSION"),
                 "status": "rejected",
-                "input": input,
+                "input": input.display().to_string(),
                 "errors": errors
             });
             Err((
