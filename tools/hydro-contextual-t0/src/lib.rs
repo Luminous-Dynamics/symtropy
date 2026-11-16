@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 40;
+pub const CASE_COUNT: usize = 50;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1070,6 +1070,293 @@ fn brier_skill_score(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn decision_context(input: &Value) -> Result<Result<Value, Value>, String> {
+    let evaluation_population = text(input, "evaluation_population_id")?;
+    let reference_population = text(input, "reference_evaluation_population_id")?;
+    let forecast_lead = number(input, "forecast_lead_hours")?;
+    let reference_lead = number(input, "reference_lead_hours")?;
+    let observation_ids = strings(input, "observation_case_ids")?;
+    let forecast_ids = strings(input, "forecast_case_ids")?;
+    let reference_ids = strings(input, "reference_case_ids")?;
+    let mut unique = BTreeSet::new();
+    if observation_ids.iter().any(|id| !unique.insert(id.clone())) {
+        return Err("observation_case_ids contains duplicate case identity".to_owned());
+    }
+    if evaluation_population != reference_population {
+        return Ok(Err(json!({
+            "decision_disposition": "NOT_COMPARABLE",
+            "reason": "EVALUATION_POPULATION_MISMATCH",
+            "evaluation_population_id": evaluation_population,
+            "reference_evaluation_population_id": reference_population,
+            "decision_cost": null
+        })));
+    }
+    if !nearly_equal(forecast_lead, reference_lead) {
+        return Ok(Err(json!({
+            "decision_disposition": "NOT_COMPARABLE",
+            "reason": "FORECAST_LEAD_TIME_MISMATCH",
+            "forecast_lead_hours": forecast_lead,
+            "reference_lead_hours": reference_lead,
+            "decision_cost": null
+        })));
+    }
+    if observation_ids != forecast_ids || observation_ids != reference_ids {
+        return Ok(Err(json!({
+            "decision_disposition": "NOT_COMPARABLE",
+            "reason": "VERIFICATION_CASE_IDENTITY_MISMATCH",
+            "observation_case_count": observation_ids.len(),
+            "forecast_case_count": forecast_ids.len(),
+            "reference_case_count": reference_ids.len(),
+            "decision_cost": null
+        })));
+    }
+    Ok(Ok(json!({
+        "evaluation_population_id": evaluation_population,
+        "forecast_lead_hours": forecast_lead,
+        "case_count": observation_ids.len(),
+        "case_identity_ids": observation_ids
+    })))
+}
+
+fn decision_threshold_admission(input: &Value) -> Result<Result<Value, Value>, String> {
+    let fit_scope = text(input, "decision_threshold_fit_scope")?;
+    let final_test_used = boolean(input, "final_test_used_for_threshold")?;
+    if fit_scope != "train_or_validation_only" || final_test_used {
+        return Ok(Err(json!({
+            "decision_disposition": "REJECT",
+            "reason": if final_test_used {
+                "FINAL_TEST_USED_FOR_THRESHOLD_SELECTION"
+            } else {
+                "DECISION_THRESHOLD_NOT_FROZEN_BEFORE_FINAL_TEST"
+            },
+            "decision_cost": null,
+            "no_action_baseline_cost": null,
+            "cost_delta_vs_no_action": null
+        })));
+    }
+    Ok(Ok(json!({
+        "decision_threshold_fit_scope": fit_scope,
+        "final_test_used_for_threshold": false
+    })))
+}
+
+fn decision_loss_parameters(input: &Value) -> Result<Result<Value, Value>, String> {
+    let loss_admitted = boolean(input, "loss_matrix_admitted")?;
+    let outcomes_admitted = boolean(input, "outcome_evidence_admitted")?;
+    if !loss_admitted || !outcomes_admitted {
+        return Ok(Err(json!({
+            "decision_disposition": "INDETERMINATE",
+            "reason": if !loss_admitted {
+                "LOSS_MATRIX_NOT_ADMITTED"
+            } else {
+                "OUTCOME_EVIDENCE_NOT_ADMITTED"
+            },
+            "decision_cost": null,
+            "no_action_baseline_cost": null,
+            "cost_delta_vs_no_action": null
+        })));
+    }
+    let action_cost = number(input, "action_cost")?;
+    let missed_loss = number(input, "missed_event_loss")?;
+    let residual_loss = number(input, "residual_event_loss")?;
+    if action_cost < 0.0 || missed_loss < 0.0 || residual_loss < 0.0 {
+        return Err("decision loss matrix values must be non-negative".to_owned());
+    }
+    Ok(Ok(json!({
+        "action_cost": action_cost,
+        "missed_event_loss": missed_loss,
+        "residual_event_loss": residual_loss
+    })))
+}
+
+fn score_one_decision(
+    probability: f64,
+    outcome: f64,
+    threshold: f64,
+    response_delay: f64,
+    available_lead: f64,
+    response_capable: bool,
+    action_cost: f64,
+    missed_loss: f64,
+    residual_loss: f64,
+) -> Result<Value, String> {
+    if !(0.0..=1.0).contains(&probability) || !(0.0..=1.0).contains(&threshold) {
+        return Err("forecast probability and decision threshold must lie in [0,1]".to_owned());
+    }
+    if outcome != 0.0 && outcome != 1.0 {
+        return Err("observed_event must be binary zero or one".to_owned());
+    }
+    if response_delay < 0.0 || available_lead < 0.0 {
+        return Err("response delay and available lead time must be non-negative".to_owned());
+    }
+    let triggered = probability >= threshold;
+    let timely = response_delay <= available_lead;
+    let executed = triggered && response_capable && timely;
+    let event = outcome == 1.0;
+    let false_alarm = triggered && !event;
+    let missed = event && !executed;
+    let cost = if event {
+        if executed {
+            action_cost + residual_loss
+        } else {
+            missed_loss
+        }
+    } else if executed {
+        action_cost
+    } else {
+        0.0
+    };
+    let no_action = if event { missed_loss } else { 0.0 };
+    let reason = if !triggered {
+        "PROBABILITY_BELOW_THRESHOLD"
+    } else if !response_capable {
+        "RESPONSE_CAPACITY_UNAVAILABLE"
+    } else if !timely {
+        "RESPONSE_ARRIVED_AFTER_AVAILABLE_LEAD"
+    } else {
+        "THRESHOLD_TRIGGERED_AND_RESPONSE_EXECUTED"
+    };
+    Ok(json!({
+        "action_triggered": triggered,
+        "action_executed": executed,
+        "warning_unactionable": triggered && !executed,
+        "false_alarm": false_alarm,
+        "missed_event": missed,
+        "observed_event": event,
+        "response_capable": response_capable,
+        "response_delay_hours": response_delay,
+        "available_lead_time_hours": available_lead,
+        "decision_reason": reason,
+        "decision_cost": cost,
+        "no_action_baseline_cost": no_action,
+        "cost_delta_vs_no_action": cost - no_action
+    }))
+}
+
+fn decision_utility_single(input: &Value) -> Result<Value, String> {
+    let event_id = text(input, "event_definition_id")?;
+    let decision_id = text(input, "decision_id")?;
+    let family = text(input, "decision_family")?;
+    let threshold = number(input, "decision_probability_threshold")?;
+    let probability = number(input, "forecast_probability")?;
+    let outcome = number(input, "observed_event")?;
+    let response_delay = number(input, "response_delay_hours")?;
+    let lead_time = number(input, "available_lead_time_hours")?;
+    let capable = boolean(input, "response_capable")?;
+
+    let threshold_admission = match decision_threshold_admission(input)? {
+        Ok(value) => value,
+        Err(mut value) => {
+            value["decision_id"] = json!(decision_id);
+            value["event_definition_id"] = json!(event_id);
+            return Ok(value);
+        }
+    };
+    let loss = match decision_loss_parameters(input)? {
+        Ok(value) => value,
+        Err(mut value) => {
+            value["decision_id"] = json!(decision_id);
+            value["event_definition_id"] = json!(event_id);
+            return Ok(value);
+        }
+    };
+    let result = score_one_decision(
+        probability,
+        outcome,
+        threshold,
+        response_delay,
+        lead_time,
+        capable,
+        loss["action_cost"].as_f64().unwrap_or(0.0),
+        loss["missed_event_loss"].as_f64().unwrap_or(0.0),
+        loss["residual_event_loss"].as_f64().unwrap_or(0.0),
+    )?;
+    Ok(json!({
+        "decision_disposition": "ADMITTED",
+        "decision_id": decision_id,
+        "decision_family": family,
+        "event_definition_id": event_id,
+        "forecast_probability": probability,
+        "decision_probability_threshold": threshold,
+        "threshold_admission": threshold_admission,
+        "loss_matrix": loss,
+        "decision": result
+    }))
+}
+
+fn decision_utility_batch(input: &Value) -> Result<Value, String> {
+    let context = match decision_context(input)? {
+        Ok(value) => value,
+        Err(value) => return Ok(value),
+    };
+    let threshold_admission = match decision_threshold_admission(input)? {
+        Ok(value) => value,
+        Err(value) => return Ok(value),
+    };
+    let loss = match decision_loss_parameters(input)? {
+        Ok(value) => value,
+        Err(value) => return Ok(value),
+    };
+    let threshold = number(input, "decision_probability_threshold")?;
+    let action_cost = loss["action_cost"].as_f64().unwrap_or(0.0);
+    let missed_loss = loss["missed_event_loss"].as_f64().unwrap_or(0.0);
+    let residual_loss = loss["residual_event_loss"].as_f64().unwrap_or(0.0);
+    let cases = array(input, "cases")?;
+    if cases.is_empty() || cases.len() != context["case_count"].as_u64().unwrap_or(0) as usize {
+        return Err("decision cases must match the declared verification case identity count".to_owned());
+    }
+    let mut scored = Vec::with_capacity(cases.len());
+    let mut forecast_cost = 0.0;
+    let mut no_action_cost = 0.0;
+    let mut warning_count = 0_u64;
+    let mut action_count = 0_u64;
+    let mut false_alarms = 0_u64;
+    let mut missed_events = 0_u64;
+    let mut unactionable = 0_u64;
+    for row in cases {
+        let case_id = text(row, "case_id")?;
+        let result = score_one_decision(
+            number(row, "forecast_probability")?,
+            number(row, "observed_event")?,
+            threshold,
+            number(row, "response_delay_hours")?,
+            number(row, "available_lead_time_hours")?,
+            boolean(row, "response_capable")?,
+            action_cost,
+            missed_loss,
+            residual_loss,
+        )?;
+        forecast_cost += result["decision_cost"].as_f64().unwrap_or(0.0);
+        no_action_cost += result["no_action_baseline_cost"].as_f64().unwrap_or(0.0);
+        warning_count += u64::from(result["action_triggered"] == true);
+        action_count += u64::from(result["action_executed"] == true);
+        false_alarms += u64::from(result["false_alarm"] == true);
+        missed_events += u64::from(result["missed_event"] == true);
+        unactionable += u64::from(result["warning_unactionable"] == true);
+        scored.push(json!({"case_id":case_id,"decision":result}));
+    }
+    Ok(json!({
+        "decision_disposition": "ADMITTED",
+        "decision_family": text(input, "decision_family")?,
+        "event_definition_id": text(input, "event_definition_id")?,
+        "decision_probability_threshold": threshold,
+        "threshold_admission": threshold_admission,
+        "loss_matrix": loss,
+        "comparison_context": context,
+        "case_count": cases.len(),
+        "warning_count": warning_count,
+        "executed_action_count": action_count,
+        "false_alarm_count": false_alarms,
+        "missed_event_count": missed_events,
+        "unactionable_warning_count": unactionable,
+        "candidate_decision_cost": forecast_cost,
+        "no_action_baseline_cost": no_action_cost,
+        "cost_delta_vs_no_action": forecast_cost - no_action_cost,
+        "case_results": scored
+    }))
+}
+
 pub fn compute_case(case: &Value) -> Result<Value, String> {
     let id = text(case, "case_id")?;
     let input = field(case, "inputs")?;
@@ -1104,6 +1391,17 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-034-brier-skill-matched-reference"
         | "HC-T0-036-brier-skill-zero-reference-undefined" => brier_skill_score(input),
         "HC-T0-035-skill-population-mismatch-not-comparable" => crps_skill_score(input),
+
+        "HC-T0-041-decision-below-threshold-no-action"
+        | "HC-T0-042-decision-timely-action-on-event"
+        | "HC-T0-043-decision-no-response-capacity"
+        | "HC-T0-044-decision-false-alarm-cost"
+        | "HC-T0-045-decision-missed-event-loss"
+        | "HC-T0-049-decision-late-warning-unactionable" => decision_utility_single(input),
+        "HC-T0-046-decision-batch-vs-no-action-baseline" => decision_utility_batch(input),
+        "HC-T0-047-decision-population-mismatch"
+        | "HC-T0-048-decision-test-threshold-tuning-reject"
+        | "HC-T0-050-decision-missing-loss-evidence-indeterminate" => decision_utility_batch(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1246,7 +1544,7 @@ mod tests {
     }
 
     #[test]
-    fn all_forty_cases_match_separate_oracle() {
+    fn all_fifty_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1444,6 +1742,84 @@ mod tests {
         let out = compute_case(&fixture("inputs")["cases"][39]).expect("event definition mismatch");
         assert_eq!(out["probabilistic_disposition"], "NOT_COMPARABLE");
         assert_eq!(out["reason"], "EVENT_DEFINITION_MISMATCH");
+    }
+
+
+    #[test]
+    fn decision_below_threshold_does_not_trigger_action() {
+        let out = compute_case(&fixture("inputs")["cases"][40]).expect("below threshold");
+        assert_eq!(out["decision"]["action_triggered"], false);
+        assert_eq!(out["decision"]["decision_cost"], 0.0);
+    }
+
+    #[test]
+    fn decision_credits_avoided_loss_only_for_timely_executable_action() {
+        let out = compute_case(&fixture("inputs")["cases"][41]).expect("timely response");
+        assert_eq!(out["decision"]["action_executed"], true);
+        assert_eq!(out["decision"]["decision_cost"], 15.0);
+        assert_eq!(out["decision"]["no_action_baseline_cost"], 100.0);
+    }
+
+    #[test]
+    fn decision_does_not_credit_avoided_loss_when_response_capacity_is_absent() {
+        let out = compute_case(&fixture("inputs")["cases"][42]).expect("no response capacity");
+        assert_eq!(out["decision"]["action_triggered"], true);
+        assert_eq!(out["decision"]["action_executed"], false);
+        assert_eq!(out["decision"]["missed_event"], true);
+        assert_eq!(out["decision"]["decision_cost"], 100.0);
+    }
+
+    #[test]
+    fn decision_counts_false_alarm_cost() {
+        let out = compute_case(&fixture("inputs")["cases"][43]).expect("false alarm");
+        assert_eq!(out["decision"]["false_alarm"], true);
+        assert_eq!(out["decision"]["decision_cost"], 5.0);
+    }
+
+    #[test]
+    fn decision_counts_missed_event_loss() {
+        let out = compute_case(&fixture("inputs")["cases"][44]).expect("missed event");
+        assert_eq!(out["decision"]["missed_event"], true);
+        assert_eq!(out["decision"]["decision_cost"], 100.0);
+    }
+
+    #[test]
+    fn decision_batch_compares_candidate_and_no_action_on_same_cases() {
+        let out = compute_case(&fixture("inputs")["cases"][45]).expect("decision batch");
+        assert_eq!(out["candidate_decision_cost"], 120.0);
+        assert_eq!(out["no_action_baseline_cost"], 200.0);
+        assert_eq!(out["false_alarm_count"], 1);
+        assert_eq!(out["missed_event_count"], 1);
+    }
+
+    #[test]
+    fn decision_late_warning_is_unactionable() {
+        let out = compute_case(&fixture("inputs")["cases"][48]).expect("late warning");
+        assert_eq!(out["decision"]["action_triggered"], true);
+        assert_eq!(out["decision"]["action_executed"], false);
+        assert_eq!(out["decision"]["warning_unactionable"], true);
+        assert_eq!(out["decision"]["decision_cost"], 100.0);
+    }
+
+    #[test]
+    fn decision_threshold_final_test_tuning_is_rejected() {
+        let out = compute_case(&fixture("inputs")["cases"][47]).expect("test threshold leakage");
+        assert_eq!(out["decision_disposition"], "REJECT");
+        assert_eq!(out["reason"], "FINAL_TEST_USED_FOR_THRESHOLD_SELECTION");
+    }
+
+    #[test]
+    fn decision_comparison_rejects_different_evaluation_populations() {
+        let out = compute_case(&fixture("inputs")["cases"][46]).expect("population mismatch");
+        assert_eq!(out["decision_disposition"], "NOT_COMPARABLE");
+        assert_eq!(out["reason"], "EVALUATION_POPULATION_MISMATCH");
+    }
+
+    #[test]
+    fn decision_missing_loss_or_outcome_evidence_is_indeterminate() {
+        let out = compute_case(&fixture("inputs")["cases"][49]).expect("missing loss evidence");
+        assert_eq!(out["decision_disposition"], "INDETERMINATE");
+        assert_eq!(out["decision_cost"], Value::Null);
     }
 
     #[test]
