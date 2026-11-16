@@ -19,11 +19,13 @@ fn claim() -> ModelEvidenceClaim {
                 kind: DependencyKind::ModelArtifact,
                 digest: digest('b'),
                 change_source_id: "model-registry".into(),
+                change_stream_id: "model-registry::primary".into(),
             },
             DependencyBinding {
                 kind: DependencyKind::SensorStack,
                 digest: digest('c'),
                 change_source_id: "sensor-registry".into(),
+                change_stream_id: "sensor-registry::primary".into(),
             },
         ],
     }
@@ -38,12 +40,13 @@ fn coverage(
     ChangeFeedCoverage {
         dependency,
         source_id: source.into(),
+        source_stream_id: format!("{source}::primary"),
         effective_from: 0,
         effective_through: 100,
+        recorded_at: 0,
         knowledge_from: 0,
         knowledge_through: 100,
         first_sequence: 1,
-        recorded_at: 0,
         last_sequence: 100,
         completeness,
         evidence_state: state,
@@ -84,6 +87,7 @@ macro_rules! event {
         ChangeEvent {
             event_id: $id.into(),
             source_id: $source.into(),
+            source_stream_id: format!("{}::primary", $source),
             source_sequence: $sequence,
             dependency: $dependency,
             prior_digest: digest($prior),
@@ -994,7 +998,7 @@ fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapsh
         ChangeClass::MaterialChange,
         ChangeEvidenceState::OwnerQualified,
     );
-    let mut late_fork = event!(
+    let late_fork = event!(
         "sequence-event-b",
         "sensor-registry",
         2,
@@ -1016,7 +1020,6 @@ fn future_recorded_source_sequence_fork_does_not_poison_earlier_knowledge_snapsh
     .unwrap();
     assert_eq!(earlier.status, ClaimStatus::RequalificationRequired);
 
-    late_fork.recorded_at = 60;
     let later = assess(
         &claim(),
         &[first, late_fork],
@@ -1078,5 +1081,85 @@ fn retirement_on_one_dimension_does_not_hide_requalification_on_another() {
     assert_eq!(
         result.historical_only_dimensions,
         vec![DependencyKind::SensorStack]
+    );
+}
+
+#[test]
+fn wrong_source_stream_for_claim_dependency_is_rejected() {
+    let mut change = event!(
+        "sensor-event-wrong-stream",
+        "sensor-registry",
+        2,
+        DependencyKind::SensorStack,
+        'c',
+        '7',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    change.source_stream_id = "sensor-registry::untrusted".into();
+
+    assert_eq!(
+        assess(&claim(), &[change], &complete_coverage(), cutoff(50, 50)),
+        Err(EvaluationError::ChangeStreamMismatch)
+    );
+}
+
+#[test]
+fn equal_source_sequence_in_distinct_streams_does_not_create_a_fork() {
+    let mut extended_claim = claim();
+    extended_claim.dependencies.push(DependencyBinding {
+        kind: DependencyKind::ControlStack,
+        digest: digest('9'),
+        change_source_id: "model-registry".into(),
+        change_stream_id: "model-registry::alternate".into(),
+    });
+
+    let first = event!(
+        "model-stream-primary-seq-2",
+        "model-registry",
+        2,
+        DependencyKind::ModelArtifact,
+        'b',
+        '8',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    let mut second = event!(
+        "control-stream-alternate-seq-2",
+        "model-registry",
+        2,
+        DependencyKind::ControlStack,
+        '9',
+        'a',
+        40,
+        42,
+        ChangeClass::MaterialChange,
+        ChangeEvidenceState::OwnerQualified,
+    );
+    second.source_stream_id = "model-registry::alternate".into();
+
+    let mut feeds = complete_coverage();
+    let mut alternate_coverage = feeds[0].clone();
+    alternate_coverage.dependency = DependencyKind::ControlStack;
+    alternate_coverage.source_stream_id = "model-registry::alternate".into();
+    alternate_coverage.manifest_sha256 = digest('8');
+    feeds.push(alternate_coverage);
+
+    let result = evaluate_claim(
+        &extended_claim,
+        &[first, second],
+        &feeds,
+        cutoff(50, 50),
+        &policy(),
+    )
+    .unwrap();
+    assert_eq!(result.status, ClaimStatus::RequalificationRequired);
+    assert_eq!(
+        result.requalification_dimensions,
+        vec![DependencyKind::ModelArtifact, DependencyKind::ControlStack]
     );
 }
