@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/protect-evidence-binding-v0.1.schema.json",
+  "title": "Protective Evidence E2 Dataset Binding Manifest",
+  "description": "Synthetic-only binding between the compact PROV-O E2 graph and E1 envelope dataset identities. It does not authenticate provider identity or rights.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "analysis",
+    "source_envelope",
+    "bindings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "protect-evidence-binding/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_id",
+        "execution_status"
+      ],
+      "properties": {
+        "analysis_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_status": {
+          "const": "NOT_EXECUTED"
+        }
+      }
+    },
+    "source_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "byte_length",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "const": "evidence/protective-model-evidence-envelope-v0.1.json"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "prov_entity_id",
+          "dataset_id",
+          "direction",
+          "binding_status",
+          "source",
+          "artifact_paths"
+        ],
+        "properties": {
+          "prov_entity_id": {
+            "enum": [
+              "ex:entity/input-water-demand",
+              "ex:entity/input-power-availability",
+              "ex:entity/output-water-service",
+              "ex:entity/output-clinic-access"
+            ]
+          },
+          "dataset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "INPUT",
+              "OUTPUT"
+            ]
+          },
+          "binding_status": {
+            "enum": [
+              "E1_ENVELOPE_DATASET",
+              "SYNTHETIC_CONTROL_ONLY"
+            ]
+          },
+          "source": {
+            "enum": [
+              "E1_ENVELOPE",
+              "E2_FIXTURE"
+            ]
+          },
+          "artifact_paths": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "binding_status": {
+                "const": "E1_ENVELOPE_DATASET"
+              },
+              "source": {
+                "const": "E1_ENVELOPE"
+              },
+              "artifact_paths": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "binding_status",
+              "source",
+              "artifact_paths"
+            ]
+          },
+          {
+            "properties": {
+              "binding_status": {
+                "const": "SYNTHETIC_CONTROL_ONLY"
+              },
+              "source": {
+                "const": "E2_FIXTURE"
+              },
+              "artifact_paths": {
+                "maxItems": 0
+              }
+            },
+            "required": [
+              "binding_status",
+              "source",
+              "artifact_paths"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
