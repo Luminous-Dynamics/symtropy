@@ -148,7 +148,7 @@ impl EnergyLedger {
         let fi = from.index();
         let ti = to.index();
         let value = amount.get();
-        if self.stores[fi] + f64::EPSILON < value {
+        if self.stores[fi] < value {
             return Err(LedgerError::InsufficientEnergy { store: from });
         }
         let next_from = self.stores[fi] - value;
@@ -204,7 +204,7 @@ impl EnergyLedger {
         let sequence = self.next_sequence()?;
         let i = from.index();
         let value = amount.get();
-        if self.stores[i] + f64::EPSILON < value {
+        if self.stores[i] < value {
             return Err(LedgerError::InsufficientEnergy { store: from });
         }
         let next_store = self.stores[i] - value;
@@ -370,6 +370,22 @@ mod tests {
         near(ledger.total(), 0.5, 0.0);
         assert!(ledger.events().is_empty());
         near(ledger.residual(), 0.0, 0.0);
+    }
+
+    #[test]
+    fn tiny_overdraw_is_rejected_without_epsilon_loan() {
+        let mut ledger = EnergyLedger::new(j(1.0e-20), j(0.0), j(0.0)).unwrap();
+        assert_eq!(
+            ledger.transfer(
+                EnergyStore::Kinetic,
+                EnergyStore::Thermal,
+                j(1.1e-20),
+                "tiny-overdraw",
+            ),
+            Err(LedgerError::InsufficientEnergy { store: EnergyStore::Kinetic })
+        );
+        near(ledger.total(), 1.0e-20, 0.0);
+        assert!(ledger.events().is_empty());
     }
 
     #[test]
