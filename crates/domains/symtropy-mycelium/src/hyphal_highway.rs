@@ -914,7 +914,10 @@ mod tests {
         link.liquid_observation = None;
         receipts.retain(|item| item.id != ObservationEvidenceId(11));
         assert_eq!(
-            network.assess_transit(&graph(), &transit, &receipts).unwrap().outcome,
+            network
+                .assess_transit(&graph(), &transit, &receipts)
+                .unwrap()
+                .outcome,
             HyphalHighwayOutcome::Unresolved(HighwayUnresolvedReason::MissingLiquidObservation(
                 HyphalHighwayLinkId(50)
             ))
@@ -991,10 +994,8 @@ mod tests {
 
     #[test]
     fn duplicate_receipts_and_invalid_timestamps_are_rejected() {
-        let (network, transit, mut receipts) = fixture(
-            FilamentDomain::TrueFungus,
-            LiquidFilmState::Connected,
-        );
+        let (network, transit, mut receipts) =
+            fixture(FilamentDomain::TrueFungus, LiquidFilmState::Connected);
         receipts.push(receipt(12, ObservationSubject::BacterialTrajectory, None));
         assert_eq!(
             network.assess_transit(&graph(), &transit, &receipts),
