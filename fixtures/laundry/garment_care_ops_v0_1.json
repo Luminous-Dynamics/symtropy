@@ -1,0 +1,97 @@
+{
+  "schema_version":"0.1.0",
+  "program_id":"GARMENT-OPS-001",
+  "status":"proposal_no_physical_observations",
+  "claim_ceiling":"no_production_recorder_or_reliability_qualification",
+  "event_types":["production_run","sop_step","failure_event","intervention_event","machine_health_event","resource_event","custody_event"],
+  "required_event_fields":[
+    "episode_id",
+    "sequence_number",
+    "previous_event_digest",
+    "event_digest",
+    "wall_time_utc",
+    "monotonic_time",
+    "clock_quality",
+    "site_station_device_identity",
+    "hardware_revision",
+    "software_model_config_digest",
+    "task_sop_acceptance_rubric_version",
+    "pseudonymous_garment_material_token",
+    "step_attempt_outcome_quality",
+    "failure_recovery_intervention_links",
+    "sensor_calibration_uncertainty",
+    "destination_terminal_state",
+    "artifact_digest_custody_state"
+  ],
+  "terminal_states":["accepted_destination","quarantined","human_handoff","lost_or_damaged"],
+  "reconciliation_policy":{
+    "attempts_reconcile":true,
+    "eventual_acceptance_reconciles":true,
+    "retry_linked_to_original":true,
+    "every_attempt_has_one_terminal_state":true,
+    "unknown_terminal_blocks_summary":true,
+    "wrong_destination_is_not_success":true
+  },
+  "custody_policy":{
+    "local_first_recording":true,
+    "offline_episode_recording":true,
+    "network_required_for_local_recovery":false,
+    "promoted_artifact_digest_required":true,
+    "delete_local_only_after_receipt":true,
+    "partial_upload_is_failure":true,
+    "ring_buffer_capacity_fault_is_visible":true,
+    "raw_video_required_for_routine_episode":false
+  },
+  "failure_families":[
+    "intake_singulation",
+    "perception_material",
+    "manipulation_contact",
+    "process_endpoint",
+    "destination_placement",
+    "machine_health",
+    "human_system_interaction",
+    "evidence_integrity",
+    "unclassified"
+  ],
+  "fault_injection_scenarios":[
+    "calibration_drift",
+    "gripper_wear",
+    "station_layout_change",
+    "lighting_shift",
+    "garment_lot_substitution",
+    "clock_skew",
+    "network_partition",
+    "ring_buffer_capacity_exhaustion",
+    "partial_upload",
+    "artifact_corruption",
+    "sensor_dropout",
+    "duplicate_sequence_number"
+  ],
+  "metrics":[
+    {"id":"attempt_terminal_event_coverage","unit":"fraction","denominator":"started_attempts","scope":"Started attempts with exactly one valid terminal event and complete reconciliation.","target_hypothesis":">=0.9999","status":"proposal_target_only","hard_guardrails":["unknown_terminal_blocks_summary","attempt_count_reconciliation"]},
+    {"id":"sop_step_boundary_coverage","unit":"fraction","denominator":"expected_sop_steps","scope":"Expected SOP steps with valid monotonic start/end and stable identity.","target_hypothesis":">=0.99","status":"proposal_target_only","hard_guardrails":["clock_quality_recorded","missing_step_not_silent"]},
+    {"id":"failure_taxonomy_coverage","unit":"fraction","denominator":"failure_events","scope":"Failure events assigned to a versioned family; unknown remains unclassified and visible.","target_hypothesis":">=0.99","status":"proposal_target_only","hard_guardrails":["unknown_not_success","taxonomy_versioned"]},
+    {"id":"adjudicated_label_agreement","unit":"cohen_kappa","denominator":"double_annotated_episode_sample","scope":"Agreement on outcome, step boundaries and failure class in a blinded/adjudicated sample.","target_hypothesis":">=0.85","status":"proposal_target_only","hard_guardrails":["sample_randomly_includes_success_and_failure","disagreement_retained"]},
+    {"id":"promoted_artifact_integrity","unit":"fraction","denominator":"promoted_artifacts","scope":"Promoted artifacts with verified digest and upstream receipt before local deletion.","target_hypothesis":"1.0","status":"proposal_target_only","hard_guardrails":["digest_required","receipt_before_delete"]},
+    {"id":"injected_fault_localization","unit":"fraction","denominator":"frozen_fault_injection_trials","scope":"Correct step/failure-family localization for injected faults including drift, network and evidence faults.","target_hypothesis":">=0.95","status":"proposal_target_only","hard_guardrails":["fault_ground_truth_frozen","no_posthoc_exclusion"]},
+    {"id":"offline_event_retention","unit":"fraction","denominator":"started_attempts_during_network_outage","scope":"Started attempts preserved locally and reconciled after declared network interruption.","target_hypothesis":"1.0","status":"proposal_target_only","hard_guardrails":["local_first_recording","no_network_dependency_for_safe_recovery"]},
+    {"id":"site_hardware_stratified_availability","unit":"fraction","denominator":"scheduled_operating_time","scope":"Operational availability by site, hardware revision and maintenance state.","target_hypothesis":"Report MTBF/MTTR and establish baseline before setting acceptance threshold.","status":"proposal_target_only","hard_guardrails":["planned_and_unplanned_downtime_separated","all_sites_reported"]},
+    {"id":"event_chain_continuity","unit":"fraction","denominator":"episode_events","scope":"Events with monotonic sequence, previous digest and canonical event digest in a valid chain.","target_hypothesis":"1.0 within every promoted episode.","status":"proposal_target_only","hard_guardrails":["duplicate_sequence_fails","digest_chain_fail_closed"]},
+    {"id":"reconciliation_completeness","unit":"fraction","denominator":"production_runs","scope":"Run totals reconcile across first-pass outcome, rework, terminal state, intervention and destination events.","target_hypothesis":"1.0","status":"proposal_target_only","hard_guardrails":["all_retries_linked","wrong_destination_rejected"]},
+    {"id":"cost_per_accepted_output","unit":"currency_per_accepted_item","denominator":"accepted_destination_items","scope":"Includes rework, staff time, maintenance, idle time, consumables and energy.","target_hypothesis":"Establish matched site baseline and reduce without quality degradation.","status":"proposal_target_only","hard_guardrails":["staff_and_rework_counted","quality_gate_non_compensatory"]}
+  ],
+  "governance":{
+    "physical_observations":0,
+    "production_episodes":0,
+    "trained_failure_models":0,
+    "product_claims":false,
+    "symthaea_authority":"advisory_diagnostics_only_no_actuation",
+    "physical_interlocks":"independent_deterministic_device_controls",
+    "claim_scope":"contract_only"
+  },
+  "sources":[
+    {"id":"DYNA-PRODUCTION-OBSERVABILITY-2026","uri":"https://www.dyna.co/research/scaling-customer-deployments","scope_note":"Company report describes always-on production evaluation, SOP-step labeling, failure-mode analysis and local-first verified episode upload."},
+    {"id":"CLOTH-MANIPULATION-SYSTEMATIC-REVIEW-2026","uri":"https://doi.org/10.3389/frobt.2026.1752914","scope_note":"Systematic review of 41 cloth-manipulation papers identifies Sim2Real, multimodal sensing, dataset and consistent-metric gaps."},
+    {"id":"RAL-SI-CLOTH-BENCHMARK","uri":"https://ral-si.github.io/cloth-benchmark/","scope_note":"Existing bimanual cloth benchmark defines spreading, towel folding and partial dressing with phase/time/force/quality metrics."}
+  ]
+}
