@@ -119,50 +119,75 @@ Separate literature/vendor references from our results. Separate simulation, des
 
 **Claim ceiling:** benchmark contract only. No endpoint, robot or finishing performance has been physically qualified by this programme.
 
-## 4A. Updated state of the art: separate commercial linen folding from household generalization
+## 4A. Current production frontier: Dyna-2 and the complete textile workflow
 
-Epoch AI's February 2026 review identifies DYNA as the strongest evidence of sustained commercial textile folding in its review:
-- DYNA-1 completed a reported 24-hour continuous run folding 850+ napkins at roughly 60% of human speed, 99.4% success and zero interventions.
-- Epoch reports a Monster Laundry commercial deployment folding 200,000+ towels across 10 clients over three months, with 99% quality acceptance.
-- Epoch reports DYNA shirt folding at roughly 40 shirts/hour.
-- Epoch explicitly limits the commercial evidence to relatively uniform items (towels/napkins), not the full range of household clothing.
+An August 2026 DYNA company report materially updates the earlier Dyna-1 demonstration baseline. The company reports:
+- Dyna-1 was producing around 35 napkins/hour, with 75% meeting the company's table-ready quality bar.
+- Dyna-2 now folds around 95 napkins/hour, with 93% meeting that quality bar, yielding approximately 1,590 table-ready napkins in an 18-hour shift.
+- The production task includes precise placement into one of ten instructed bins/stacks. DYNA describes the earlier failure mode: napkins were folded but placed disorganized, leaving staff to square stacks before carrying them to tables.
+- The article reports a larger commercial rollout and claims the system crossed its ROI threshold. These are company-reported operational figures and claims, not an independent Luminous evaluation.
 
-Sunday Robotics' July 2026 ACT-2 preview reports 99.1% zero-shot folding success across 785 attempts, nine garment types and unseen home environments, with zero per-home adaptation. It describes a two-stage annotation process with a fixed five-star quality rubric. This is a vendor-published evaluation, not independent replication.
+Primary source: https://www.dyna.co/research/scaling-customer-deployments (DYNA, August 2026; Dyna-2 production and stack/bin steerability).
 
-Physical Intelligence demonstrations cited by Epoch report 95% success for T-shirts/shorts and 75% for jeans. The evidence is a different task/cohort from the above.
+This is a stronger commercial comparator than the earlier Dyna-1 lab demo. Do not mix the Dyna-1 99.4% / 850-napkin demonstration metric from Epoch AI's earlier review with Dyna-2's current table-ready production quality rate; the task definitions and quality bars differ.
+
+### Paradigm shift: fold success is not service success
+
+The end-to-end output is **a correctly folded item, assigned to the correct stack/bin, organized for downstream pickup and accepted without human correction**. A correct fold in the wrong bin or a disorganized stack is a failed production outcome.
+
+Benchmark the entire cell:
+`receive → singulate → identify → unfold/flatten → fold → inspect → assign stack/bin → organize stack → mark ready for pickup`.
+
+Measure quality and throughput at the final accepted output boundary, not at the first visually recognizable fold.
+
+## 4B. Two non-pooled robotics suites
+
+### Tier 1 — standardized commercial textiles
+
+Cohort: napkins, towels, hotel/workwear linen items with repeatable geometry, size and material classes. Include the actual production input state (e.g. unfolded, pre-oriented, conveyor/basket), folding recipe, bin count, stack-height limits and pickup/transport requirement.
+
+**Proposed first target:** at least **1,800 accepted, correctly stacked/table-ready items per 18-hour shift** (100 accepted items/hour), at least **98% first-pass quality acceptance**, and at least **99.5% correct stack/bin placement**.
+
+**Stretch target:** at least **2,160 accepted items per 18-hour shift** (120/hour), at least **99.5% quality acceptance**, and at least **99.9% correct stack/bin placement**.
+
+These targets are deliberately above DYNA's reported Dyna-2 baseline of ~1,590 table-ready napkins/18h and 93% meeting its quality bar. The comparison is still not a matched head-to-head; replicate with a frozen cohort, matched human process and identical table-ready rubric.
+
+Also report: raw items/hour, accepted items/hour, rejected/reworked items/hour, P50/P95 cycle time, stack capacity, misplacement rate, stack squareness/transport readiness, 18-hour uptime, maintenance downtime, intervention rate, energy and cost per accepted table-ready item.
+
+### Tier 2 — diverse household garments
+
+Cohort: shirts, trousers, jeans, blouses, knits and mixed garments across size, colour, material, texture and initial state (pile, basket, hanger, inside-out, sleeves inverted, partially folded and overlapping). Hold out entire homes and garment families, not just camera frames.
+
+**Proposed first target:** at least **99.5% accepted success** within the frozen support envelope, no per-home adaptation on held-out homes, and no more than **2× skilled-human median time** on the same garment set.
+
+**Stretch target:** at least **99.9% accepted success** and human P50 time parity, with broader unseen-home and unseen-garment transfer.
+
+Sunday Robotics ACT-2's July 2026 vendor preview reports 99.1% zero-shot success over 785 attempts, nine garment types and unseen homes. This is a vendor-published result, not independent replication. Epoch AI's February 2026 review cites Physical Intelligence demonstrations at 95% for T-shirts/shorts and 75% for jeans. These are different cohorts and are not directly rankable.
 
 References:
 - Epoch AI review: https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026
-- DYNA Robotics: https://www.dyna.co/
 - Sunday ACT-2 preview: https://www.sunday.ai/blog/act-2-preview
 
-These external reports are valuable baselines, but they do not share a single frozen garment set, scoring rubric, timing protocol or independent test facility. Never combine their percentages into a single leaderboard.
+## 4C. Physical-AI research opportunity: unified garment manipulation
 
-### Revised two-tier benchmark
+A February 2026 systematic review examined 41 cloth-manipulation papers published from 2019–2024. It identifies irregular sizes, diverse initial states, simulation-to-real mismatch, limited real-world datasets, over-reliance on vision-only sensing and inconsistent folding metrics as open challenges. It also proposes a unified end-to-end policy that transforms random initial garment states into an accepted folded result instead of training unfolding and folding as disconnected tasks.
 
-**Tier 1 — standardized commercial textiles**: napkins, towels, hospitality and workwear items with repeatable shape/size/material classes. Proposed first target: >=99.5% accepted quality, >=0.8x skilled-human throughput, <=0.5 interventions per 100 items, zero lost/damaged textiles in the frozen challenge. Stretch: human throughput parity or better with equal quality and service-life gates. This intentionally targets above the reported DYNA napkin baseline (99.4%, about 0.6x human speed), with matched independent human controls required.
+Reference: https://doi.org/10.3389/frobt.2026.1752914
 
-**Tier 2 — diverse household garments**: shirts, trousers, jeans, blouses, knits, mixed piles/baskets, sizes, colours and textures. Proposed first target: >=99.5% accepted success in the frozen support envelope, <=2x skilled-human median time, and zero per-home adaptation on the held-out-home test. Stretch: >=99.9% and <=1x human P50, with broader transfer. This targets beyond the vendor-reported ACT-2 99.1% aggregate result; large enough sample sizes and confidence intervals are required to distinguish small percentage-point improvements.
+Our research direction should be:
+- one end-to-end task contract from unstructured garment state through fold, sort and ready-to-pickup;
+- RGB-D plus force/tactile and joint-state signals where justified, with sensor calibration and contact uncertainty;
+- domain-randomized simulation with actual fabric mass, bending stiffness, friction, drape and stretch distributions;
+- real-world held-out garment and home cohorts; never call simulation success physical validation;
+- explicit recovery primitives (regrasp, shake/untangle, reorient, flatten, inspect and human handoff);
+- quality scoring that captures hidden damage, seam stretch, missed garments and stack organization.
 
-Do not pool Tier 1 and Tier 2 or use a towel result to claim household garment competence. Both tiers require identical garment cohorts and task definitions for robot/human comparison; preserve failures/timeouts, interventions, rework, damage, energy and availability.
+## 4D. Non-negotiable evaluation rules
 
-## 4A. Current robotics frontier and two-tier benchmark
-
-Epoch AI's February 2026 review identifies stronger commercial evidence than a household folding demo alone:
-
-- **DYNA-1 standardized textiles:** Epoch reports a 24-hour continuous run folding 850+ napkins at roughly 60% of human speed, 99.4% success and zero interventions. It also reports a Monster Laundry commercial deployment folding 200,000+ towels across 10 clients in three months with 99% quality acceptance. DYNA shirt folding is reported around 40 shirts/hour. Epoch explicitly limits the commercial evidence to relatively uniform items, not the full household clothing range.
-- **Sunday Robotics ACT-2 mixed household garments:** its July 2026 preview reports 99.1% zero-shot success over 785 attempts across nine garment types and unseen home environments, using one checkpoint and zero per-home adaptation. The vendor describes two-stage annotation and a fixed five-star quality rubric.
-- **Physical Intelligence demonstrations:** Epoch cites 95% success for T-shirts/shorts and 75% for jeans in separate demonstrations.
-
-References:
-- Epoch AI: https://epoch.ai/publications/where-autonomy-works-evaluating-robot-capabilities-in-2026
-- DYNA Robotics: https://www.dyna.co/
-- Sunday ACT-2 preview: https://www.sunday.ai/blog/act-2-preview
-
-These reports are valuable external baselines, but do not share one frozen garment set, scoring rubric, timing protocol or independent test facility. Do not combine their percentages into one leaderboard.
-
-**Tier 1 — standardized commercial textiles:** napkins, towels, hospitality and workwear items with repeatable shapes, sizes and material classes. Proposed first target: >=99.5% accepted quality, >=0.8x skilled-human throughput, <=0.5 interventions per 100 items and zero lost/damaged textiles in the frozen challenge. Stretch: human-throughput parity or better with equal quality and service-life gates. This targets above DYNA's reported 99.4% / ~0.6x napkin baseline, with independent matched human controls required.
-
-**Tier 2 — diverse household garments:** shirts, trousers, jeans, blouses, knits, mixed piles/baskets, sizes, colours and textures. Proposed first target: >=99.5% accepted success in the frozen support envelope, <=2x skilled-human median time and zero per-home adaptation on the held-out-home test. Stretch: >=99.9% and <=1x human P50, with broader transfer. This targets beyond ACT-2's vendor-reported 99.1% aggregate result; sample size and confidence intervals must support any small percentage-point improvement.
-
-Do not pool Tier 1 and Tier 2 or use towel-folding evidence to claim household garment competence. Both tiers require identical garment cohorts and task definitions for robot/human comparisons, with failures/timeouts, interventions, rework, damage, energy and availability retained.
+- Keep standardized commercial textiles and diverse household garments as separate suites.
+- Preserve every failure, timeout, retry, rework, intervention and dropped item.
+- Human comparison must use the same items, task definition, shift length and staging conditions.
+- Report final table-ready output, not fold-only count.
+- Record availability, cleaning/finish handoff, maintenance and downstream staff time.
+- Treat DYNA figures as company-reported production data; treat ACT-2 figures as vendor-published evaluation; treat Epoch AI as an external review. None is a Luminous result.
+- A benchmark-contract PASS is not physical robot qualification.
