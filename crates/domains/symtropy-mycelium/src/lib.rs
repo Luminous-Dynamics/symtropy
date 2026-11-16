@@ -14,6 +14,7 @@ pub mod bmx_exchange_reference;
 pub mod crossing_qualification;
 pub mod cytoplasmic_flow;
 pub mod hyphal_graph;
+pub mod hyphal_highway;
 pub mod legacy_accounting;
 pub mod network_evidence;
 pub mod observation_evidence;
