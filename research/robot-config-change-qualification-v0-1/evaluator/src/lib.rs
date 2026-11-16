@@ -905,9 +905,10 @@ mod tests {
             &result_schema,
         )
         .unwrap();
-        assert_eq!(
-            result["oracle_comparison"]["exact_disposition_and_reason_agreement"],
-            true
+        assert!(
+            result["oracle_comparison"]["exact_disposition_and_reason_agreement"]
+                .as_bool()
+                .unwrap_or(false)
         );
         assert_eq!(result["oracle_comparison"]["agreement_count"], 51);
         assert_eq!(result["oracle_comparison"]["expected_count"], 51);
@@ -969,9 +970,10 @@ mod tests {
             .unwrap();
         witness["covers_claims"] = json!(["mobility.surface_envelope", "stopping.distance"]);
         let result = evaluate_against_oracle(&corpus, &oracle).unwrap();
-        assert_eq!(
-            result["oracle_comparison"]["exact_disposition_and_reason_agreement"],
-            false
+        assert!(
+            !result["oracle_comparison"]["exact_disposition_and_reason_agreement"]
+                .as_bool()
+                .unwrap_or(true)
         );
         let rcq005_result = array_at(&result, &["cases"])
             .unwrap()
