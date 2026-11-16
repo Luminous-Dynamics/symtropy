@@ -36,3 +36,4 @@ argument-cycle|introduce-directed-cycle|REJECT
 orphan-node|disconnected-component|REJECT
 node-edge-permutation|permute-input-order|SAME_RESULT
 contradicted-claim|mark-claim-contradicted|BLOCKED_BY_UNSUPPORTED_OR_STALE_EVIDENCE
+hazard-not-linked-to-claim-or-strategy|remove-addresses-hazard-edge|INCOMPLETE_ARGUMENT
