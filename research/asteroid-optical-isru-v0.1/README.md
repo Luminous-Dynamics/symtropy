@@ -73,7 +73,7 @@ This is an **admissibility and accounting slice**, not a signed-attestation veri
 
 ## Source-faithful experimental observations v0.1
 
-The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 78 observation entries from:
+The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 94 observation entries from:
 
 - NASA historical 8 kW / 10 m optical-mining demonstration;
 - 2025 Nectar A/B optical-mining experiments, including Table 5 and Table 6 TGA and author-derived efficiency rows;
