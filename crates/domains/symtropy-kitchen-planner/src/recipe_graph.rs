@@ -27,7 +27,9 @@ pub enum RecipeRightsStatusV1 {
     Restricted,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum RecipeUseScopeV1 {
     LocalProcessing,
