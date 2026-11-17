@@ -145,7 +145,6 @@ fn cyclic_sparse_orthogonal_patterns() -> Vec<f64> {
     stimuli
 }
 
-
 fn apply_kernel(
     stimuli: &[f64],
     pattern_count: usize,
@@ -158,8 +157,7 @@ fn apply_kernel(
         for output in 0..TAXEL_COUNT {
             let predicted = (0..TAXEL_COUNT)
                 .map(|source| {
-                    kernel[output * TAXEL_COUNT + source]
-                        * stimuli[pattern * TAXEL_COUNT + source]
+                    kernel[output * TAXEL_COUNT + source] * stimuli[pattern * TAXEL_COUNT + source]
                 })
                 .sum::<f64>();
             let noise = (random_unit(&mut state) - 0.5) * 2.0 * RESPONSE_NOISE_SCALE;
@@ -185,10 +183,7 @@ fn make_case(seed: u64) -> SyntheticCouplingCase {
     }
 }
 
-fn training_design(
-    design: CouplingExcitationDesign,
-    seed: u64,
-) -> (Vec<f64>, usize) {
+fn training_design(design: CouplingExcitationDesign, seed: u64) -> (Vec<f64>, usize) {
     match design {
         CouplingExcitationDesign::IsolatedSingleTaxel => {
             let stimuli = isolated_patterns();
@@ -198,10 +193,7 @@ fn training_design(
             (cyclic_sparse_orthogonal_patterns(), 3)
         }
         CouplingExcitationDesign::RandomDenseMultiPoint => {
-            let stimuli = random_patterns(
-                RANDOM_TRAINING_PATTERNS,
-                seed ^ 0xD1B5_4A32_D192_ED03,
-            );
+            let stimuli = random_patterns(RANDOM_TRAINING_PATTERNS, seed ^ 0xD1B5_4A32_D192_ED03);
             (stimuli, RANDOM_TRAINING_PATTERNS)
         }
         CouplingExcitationDesign::RepeatedCommonMode => {
@@ -239,10 +231,7 @@ fn evaluate_design(
         admitted_output_channels: vec![true; TAXEL_COUNT],
         forward_profile_digest: format!("sha256:coupling-design-{seed:016x}"),
     };
-    let report = identify_coupling_operator(
-        &problem,
-        &CouplingIdentificationConfig::default(),
-    )?;
+    let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())?;
 
     let mut coefficient_squared_error = 0.0;
     let mut coefficient_count = 0;
@@ -254,7 +243,11 @@ fn evaluate_design(
         if let Some(error) = row.heldout_rmse {
             heldout_rmse.push(error);
         }
-        for (source, estimate) in row.source_taxel_indices.iter().zip(&row.coefficient_estimates) {
+        for (source, estimate) in row
+            .source_taxel_indices
+            .iter()
+            .zip(&row.coefficient_estimates)
+        {
             if let Some(value) = estimate {
                 let truth = case.kernel[row.output_taxel_index * TAXEL_COUNT + source];
                 let error = value - truth;
@@ -266,12 +259,10 @@ fn evaluate_design(
 
     let identified_rows = report.identified_output_row_count;
     let underidentified_rows = report.underidentified_output_row_count;
-    let coefficient_rmse = (coefficient_count > 0).then(|| {
-        (coefficient_squared_error / coefficient_count as f64).sqrt()
-    });
-    let mean_heldout_rmse = (!heldout_rmse.is_empty()).then(|| {
-        heldout_rmse.iter().sum::<f64>() / heldout_rmse.len() as f64
-    });
+    let coefficient_rmse = (coefficient_count > 0)
+        .then(|| (coefficient_squared_error / coefficient_count as f64).sqrt());
+    let mean_heldout_rmse = (!heldout_rmse.is_empty())
+        .then(|| heldout_rmse.iter().sum::<f64>() / heldout_rmse.len() as f64);
 
     Ok(ReplicateResult {
         active_site_excitations,
@@ -304,9 +295,7 @@ fn summarize(
     let paired_deltas: Vec<_> = results
         .iter()
         .zip(isolated_baseline)
-        .filter_map(|(result, baseline)| {
-            Some(result.heldout_rmse? - baseline.heldout_rmse?)
-        })
+        .filter_map(|(result, baseline)| Some(result.heldout_rmse? - baseline.heldout_rmse?))
         .collect();
 
     Ok(CouplingDesignSummary {
@@ -366,8 +355,10 @@ pub fn run_coupling_design_campaign(
         CouplingExcitationDesign::RandomDenseMultiPoint,
         CouplingExcitationDesign::RepeatedCommonMode,
     ];
-    let mut all_results: Vec<Vec<ReplicateResult>> =
-        designs.iter().map(|_| Vec::with_capacity(replicate_count)).collect();
+    let mut all_results: Vec<Vec<ReplicateResult>> = designs
+        .iter()
+        .map(|_| Vec::with_capacity(replicate_count))
+        .collect();
 
     for replicate in 0..replicate_count {
         let seed = first_seed + replicate as u64;
@@ -387,7 +378,11 @@ pub fn run_coupling_design_campaign(
 
     Ok(CouplingDesignCampaignReport {
         taxel_count: TAXEL_COUNT,
-        module_count: MODULE_IDS.iter().copied().collect::<std::collections::BTreeSet<_>>().len(),
+        module_count: MODULE_IDS
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
         support_radius: SUPPORT_RADIUS,
         first_seed,
         replicate_count,
@@ -428,18 +423,28 @@ mod tests {
             assert!(identified.mean_heldout_response_rmse.unwrap() < 1.0e-3);
         }
         assert_eq!(common_mode.mean_identified_output_rows, 0.0);
-        assert_eq!(common_mode.mean_underidentified_output_rows, TAXEL_COUNT as f64);
+        assert_eq!(
+            common_mode.mean_underidentified_output_rows,
+            TAXEL_COUNT as f64
+        );
 
         assert_eq!(isolated.training_pattern_count, TAXEL_COUNT);
         assert_eq!(coded.training_pattern_count, 3);
         assert_eq!(coded.mean_active_taxel_site_excitations, TAXEL_COUNT as f64);
-        assert_eq!(isolated.mean_active_taxel_site_excitations, TAXEL_COUNT as f64);
+        assert_eq!(
+            isolated.mean_active_taxel_site_excitations,
+            TAXEL_COUNT as f64
+        );
         assert!(
             coded.training_pattern_count < isolated.training_pattern_count,
             "sparse orthogonal coding should require fewer physical pattern trials than isolated impulses"
         );
         assert!(
-            coded.paired_heldout_rmse_delta_mean_vs_isolated.unwrap().abs() < 1.0e-3,
+            coded
+                .paired_heldout_rmse_delta_mean_vs_isolated
+                .unwrap()
+                .abs()
+                < 1.0e-3,
             "coded and isolated designs should have matched held-out response quality under this synthetic model"
         );
 
