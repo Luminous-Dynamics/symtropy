@@ -56,7 +56,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -91,7 +91,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -126,7 +126,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -161,7 +161,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -201,7 +201,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -236,7 +236,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-A1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -271,7 +271,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -306,7 +306,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -341,7 +341,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -381,7 +381,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -416,7 +416,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-A1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -451,7 +451,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -486,7 +486,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -521,7 +521,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -561,7 +561,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -596,7 +596,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-A1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -631,7 +631,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -666,7 +666,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -701,7 +701,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -741,7 +741,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -776,7 +776,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-A1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -811,7 +811,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -846,7 +846,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -881,7 +881,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -921,7 +921,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CLK1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -956,7 +956,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CLK2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -991,7 +991,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CLK3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1026,7 +1026,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CLK4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1066,7 +1066,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CAL1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1101,7 +1101,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CAL2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1136,7 +1136,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CAL3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1171,7 +1171,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-CAL4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1211,7 +1211,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-P1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1246,7 +1246,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-V1"
+              "domain_id": "PRINC-vibration"
             }
           ]
         },
@@ -1281,7 +1281,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1316,7 +1316,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1351,7 +1351,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1391,7 +1391,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-STALE1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1426,7 +1426,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-LIVE1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -1461,7 +1461,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1496,7 +1496,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1531,7 +1531,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1571,7 +1571,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-BAD1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1606,7 +1606,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-GOOD1"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -1641,7 +1641,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1676,7 +1676,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1711,7 +1711,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1751,7 +1751,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-DUAL1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1786,7 +1786,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-DUAL2"
+              "domain_id": "PRINC-acoustic"
             }
           ]
         },
@@ -1821,7 +1821,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1856,7 +1856,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1891,7 +1891,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-N4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
@@ -1931,7 +1931,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I4"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -1966,7 +1966,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I3"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -2001,7 +2001,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I2"
+              "domain_id": "PRINC-pressure"
             }
           ]
         },
@@ -2036,7 +2036,7 @@
             },
             {
               "domain_type": "measurement_principle",
-              "domain_id": "DOM-measurement_principle-I1"
+              "domain_id": "PRINC-pressure"
             }
           ]
         }
