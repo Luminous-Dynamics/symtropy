@@ -7,6 +7,8 @@
 //! is not ant-specific by reusing the same dense field substrate for a sessile,
 //! graph-like living system.
 
+pub mod plant_hydraulic_null;
+
 use std::collections::{HashMap, VecDeque};
 
 use symtropy_lifesim_core::{DiffusionParams, FieldGrid, FieldLayer};
