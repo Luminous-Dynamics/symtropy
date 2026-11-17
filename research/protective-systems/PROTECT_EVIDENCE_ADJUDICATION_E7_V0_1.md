@@ -30,7 +30,7 @@ The frozen synthetic corpus contains:
 - 12 EvidenceArtifact records with source identity, SHA-256, lifecycle state, recorded time and rights/use ceiling;
 - 12 assertions with subject, exact configuration digest, quantity, value/unit, method, valid-time interval, observed time and recorded time;
 - six typed dependency edges;
-- one claim- and time-bound independence attestation;
+- one claim- and time-bound ATTESTED_INDEPENDENT statement (synthetic fixture only);
 - one back-dated revocation event recorded later than its effective time.
 
 ### 2.1 Claim comparability
@@ -57,13 +57,13 @@ Dependency relations include:
 - COMMON_MODEL;
 - UNKNOWN_DEPENDENCE.
 
-For independence checking, every dependency edge is treated conservatively as an undirected connection. An explicit VERIFIED_INDEPENDENT attestation is accepted only when:
+For independence checking, every dependency edge is treated conservatively as an undirected connection. An explicit ATTESTED_INDEPENDENT attestation is admitted by the synthetic structural policy only when:
 - it is known by the decision time;
 - its claim, configuration, quantity, unit, method and valid-time scope match;
 - all referenced evidence is admissible at that decision time;
 - no dependency path connects any attested pair.
 
-An UNKNOWN_DEPENDENCE edge blocks independence exactly like a known common cause. Absence of a dependency edge does not itself prove independence; the explicit scope-bound attestation is still required. A copy, shared sensor feed or shared calibration therefore cannot increase the independent-source count.
+An UNKNOWN_DEPENDENCE edge blocks independence exactly like a known common cause. Absence of a dependency edge does not itself prove independence; the explicit scope-bound attestation is still required. This tranche checks the attestation's claim/configuration/method/time scope and dependency graph, but it does not authenticate the attester, validate real calibration certificates, verify physical sensor separation or establish real-world independence. The report labels this as SYNTHETIC_ATTESTATION_SCOPE_AND_DEPENDENCY_CHECKS_ONLY. A copy, shared sensor feed or shared calibration therefore cannot increase the independent-source count.
 
 ## 3. Conflict detection and resolution boundary
 
