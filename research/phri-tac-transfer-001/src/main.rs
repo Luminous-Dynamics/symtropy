@@ -214,13 +214,16 @@ fn main() -> ExitCode {
                         "prior_replicates_per_morphology={}",
                         study.replicate_count_per_morphology
                     );
-                    println!("prior_selected_l1_penalty={:.6}", study.selected_l1_penalty);
+                    println!("prior_selected_l1_penalty={:?}", study.selected_l1_penalty);
+                    println!("prior_l1_selection_disposition={}", study.l1_selection_disposition);
                     for candidate in &study.development_l1_candidates {
                         println!(
-                            "prior_development_candidate_l1={:.6} development_mean_rmse={:.8} development_mean_delta_vs_independent={:.8}",
+                            "prior_development_candidate_l1={:.6} development_mean_rmse={:.8} development_mean_delta_vs_independent={:.8} maximum_family_relative_regression={:.4} eligible_for_promotion={}",
                             candidate.penalty,
                             candidate.development_mean_field_rmse,
                             candidate.development_mean_delta_vs_independent,
+                            candidate.maximum_family_relative_regression,
+                            candidate.eligible_for_promotion,
                         );
                     }
                     for morphology in &study.development {
@@ -253,7 +256,7 @@ fn main() -> ExitCode {
                     }
                     for morphology in &study.final_test {
                         println!(
-                            "prior_final_morphology={} seed_first={} replicates={} frozen_l1={:.6}",
+                            "prior_final_morphology={} seed_first={} replicates={} frozen_l1={:?}",
                             morphology.morphology,
                             morphology.seed_first,
                             morphology.replicate_count,
