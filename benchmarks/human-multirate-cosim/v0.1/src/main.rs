@@ -5,6 +5,10 @@ use human_multirate_cosim::{
         simulate_network, simulate_network_adaptive, simulate_network_topology_events,
     },
     simulate, simulate_adaptive_conservative_flux,
+    experiment_design::{
+        ExperimentDesignScenario, ForcingSegment, InputProfile, ModelCandidate,
+        evaluate_input_tournament,
+    },
     sensor_design::{
         PlacementCriterion, SensorCandidate, SensorDesignScenario,
         enumerate_placements, enumerate_robust_placements,
@@ -311,6 +315,113 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             best.nominal.total_cost,
             best.worst_case_rank,
             best.worst_case_minimum_information_eigenvalue,
+        );
+    }
+
+    let excitation_scenario = ExperimentDesignScenario {
+        name: "chain_vs_bypass_active_excitation",
+        models: vec![
+            ModelCandidate {
+                id: 1,
+                label: "chain",
+                network: NetworkScenario {
+                    name: "chain",
+                    capacities: vec![1.0, 1.0, 1.0],
+                    initial: vec![0.0, 0.0, 0.0],
+                    edges: vec![
+                        Edge {
+                            left: 0,
+                            right: 1,
+                            conductance: 1.0,
+                        },
+                        Edge {
+                            left: 1,
+                            right: 2,
+                            conductance: 1.0,
+                        },
+                    ],
+                    horizon: 2.0,
+                },
+            },
+            ModelCandidate {
+                id: 2,
+                label: "chain_with_bypass",
+                network: NetworkScenario {
+                    name: "chain_with_bypass",
+                    capacities: vec![1.0, 1.0, 1.0],
+                    initial: vec![0.0, 0.0, 0.0],
+                    edges: vec![
+                        Edge {
+                            left: 0,
+                            right: 1,
+                            conductance: 1.0,
+                        },
+                        Edge {
+                            left: 1,
+                            right: 2,
+                            conductance: 1.0,
+                        },
+                        Edge {
+                            left: 0,
+                            right: 2,
+                            conductance: 0.5,
+                        },
+                    ],
+                    horizon: 2.0,
+                },
+            },
+        ],
+        sensors: vec![SensorCandidate {
+            id: 30,
+            node: 2,
+            cost: 1.0,
+            common_cause_group: None,
+        }],
+        noise_covariance: vec![vec![0.01]],
+        observation_times: vec![0.25, 0.5, 1.0, 2.0],
+        sensor_budget: 1.0,
+        max_abs_forcing: 1.0,
+        input_energy_budget: 0.5,
+    };
+    let input_profiles = [
+        InputProfile {
+            id: 1,
+            label: "passive_zero_input",
+            segments: vec![ForcingSegment {
+                start_time: 0.0,
+                end_time: 2.0,
+                forcing: vec![0.0, 0.0, 0.0],
+            }],
+        },
+        InputProfile {
+            id: 2,
+            label: "bounded_node_zero_pulse",
+            segments: vec![
+                ForcingSegment {
+                    start_time: 0.0,
+                    end_time: 0.5,
+                    forcing: vec![1.0, 0.0, 0.0],
+                },
+                ForcingSegment {
+                    start_time: 0.5,
+                    end_time: 2.0,
+                    forcing: vec![0.0, 0.0, 0.0],
+                },
+            ],
+        },
+    ];
+    let excitation_tournament =
+        evaluate_input_tournament(&excitation_scenario, &input_profiles, &[30])?;
+    for score in &excitation_tournament.scores {
+        println!(
+            "experiment_design,{},{},{:.10},{:.12e},{:.12e},{:.12e},{}",
+            score.profile_id,
+            score.profile_label,
+            score.maximum_abs_forcing,
+            score.integrated_squared_input,
+            score.minimum_pairwise_separation,
+            score.mean_pairwise_separation,
+            score.worst_case_indistinguishable,
         );
     }
 
