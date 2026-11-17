@@ -1,7 +1,7 @@
 use std::{env, fs, process};
 
 use haps_network_allocation::{
-    evaluate_window, parse_trace_json, select_static_assignment, AllocationPolicy,
+    AllocationPolicy, evaluate_window, parse_trace_json, select_static_assignment,
 };
 
 struct Cli {
