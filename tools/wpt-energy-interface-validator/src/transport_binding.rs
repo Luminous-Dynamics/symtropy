@@ -219,42 +219,42 @@ fn validate_primitive_chain(binding: &Value, trusted: &Value) -> Result<(), Valu
         let evidence_id = text_at(primitive, &["evidence_id"]);
         if evidence_class == "Unknown" || evidence_id.is_none() {
             return Err(report(
-            "UNRESOLVED",
-            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+                claimed,
+            ));
         }
         let Some(source) = text_at(primitive, &["source_port_id"]) else {
             return Err(report(
-            "UNRESOLVED",
-            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+                claimed,
+            ));
         };
         let Some(destination) = text_at(primitive, &["destination_port_id"]) else {
             return Err(report(
-            "UNRESOLVED",
-            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+                claimed,
+            ));
         };
         if index > 0 {
             let prior_destination =
                 text_at(&primitives[index - 1], &["destination_port_id"]).unwrap_or("");
             if prior_destination != source {
                 return Err(report(
-            "NOT_COMPARABLE",
-            Some("PRIMITIVE_CHAIN_DISCONTINUITY"),
-            claimed,
-        ));
+                    "NOT_COMPARABLE",
+                    Some("PRIMITIVE_CHAIN_DISCONTINUITY"),
+                    claimed,
+                ));
             }
         }
         if destination.trim().is_empty() {
             return Err(report(
-            "UNRESOLVED",
-            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+                claimed,
+            ));
         }
 
         let Some(expected_stages) = trusted_primitives[index]
@@ -266,17 +266,20 @@ fn validate_primitive_chain(binding: &Value, trusted: &Value) -> Result<(), Valu
         let Some(actual_stages) = primitive.get("conversion_stages").and_then(Value::as_array)
         else {
             return Err(report(
-            "UNRESOLVED",
-            Some("MISSING_CONVERSION_EVIDENCE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("MISSING_CONVERSION_EVIDENCE"),
+                claimed,
+            ));
         };
-        if expected_stages.iter().any(|stage| !actual_stages.contains(stage)) {
+        if expected_stages
+            .iter()
+            .any(|stage| !actual_stages.contains(stage))
+        {
             return Err(report(
-            "UNRESOLVED",
-            Some("MISSING_CONVERSION_EVIDENCE"),
-            claimed,
-        ));
+                "UNRESOLVED",
+                Some("MISSING_CONVERSION_EVIDENCE"),
+                claimed,
+            ));
         }
     }
 
