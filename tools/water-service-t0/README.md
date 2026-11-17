@@ -87,3 +87,12 @@ The shared evaluator now has eight additional synthetic design-sizing cases (035
 The Rust test suite also audits the existing modular-skid interface, P&ID tags, BOM categories, FMEA hazards and source-profile scenarios as cross-linked design artefacts. Negative controls reject orphan module references, missing P&ID interlocks, premature BOM quantities, missing FMEA verification, excluded-source acceptance and removal of the potable/reclaimed cross-connection prohibition.
 
 Protocol: [WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md](../../research/water-service-engineering/WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md). All outputs are preliminary arithmetic only. No tank, pump, treatment train, process dose, material grade or procurement SKU is selected.
+
+
+### Modular design-assurance receipt
+
+The WaterLoop physical T0 receipt now binds SHA-256 digests for 11 source design artefacts and schemas: module interface, P&ID tag schedule, preliminary BOM, FMEA, source challenge profiles, architecture document and their five JSON schemas. This makes a sizing/evaluator receipt identifiable against the exact design document set tested by CI.
+
+The corpus now contains 42 cases (035–042 are parametric sizing). Rust tests cross-audit the linked module/P&ID/BOM/FMEA/source-profile artefacts and include negative controls for orphan module references, missing interlocks, premature quantities, missing FMEA verification, excluded source acceptance and potable/reclaimed cross-connection policy.
+
+The digest and unit-test checks establish document identity/consistency only. Qualification remains NotRun; no physical dimensions, equipment selections, safety case, water-quality decision, process performance, or build authorisation is implied.
