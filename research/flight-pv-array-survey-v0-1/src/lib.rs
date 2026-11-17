@@ -653,10 +653,7 @@ fn radiometric_disposition(
         return (RadiometricFrameDisposition::InvalidEvidence, Some(error));
     }
     if let Err(error) = validate_ir_values(ir) {
-        return (
-            RadiometricFrameDisposition::InvalidEvidence,
-            Some(error),
-        );
+        return (RadiometricFrameDisposition::InvalidEvidence, Some(error));
     }
     if (frame.rgb.acquired_at_s - ir.acquired_at_s).abs() > profile.maximum_rgb_ir_skew_s {
         return (
@@ -1386,7 +1383,10 @@ mod tests {
         frames[0].ground_speed_m_per_s = 2.0;
         let result = evaluate_survey(&profile(), &frames);
         assert!(result.frames[0].predicted_rgb_blur_upper_bound_px.unwrap() > 1.0);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -1410,8 +1410,14 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir.as_mut().unwrap().nuc_current = false;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::Qualified
+        );
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::NotEligible
+        );
     }
 
     #[test]
@@ -1419,7 +1425,10 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir.as_mut().unwrap().glare_fraction = 0.20;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::NotEligible
+        );
     }
 
     #[test]
@@ -1427,7 +1436,10 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir = None;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::Qualified
+        );
         assert_eq!(
             result.frames[0].radiometric,
             RadiometricFrameDisposition::Unknown
@@ -1439,7 +1451,10 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir.as_mut().unwrap().acquired_at_s += 1.0;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::NotEligible
+        );
     }
 
     #[test]
@@ -1460,7 +1475,10 @@ mod tests {
         frames[0].rgb.calibration_digest =
             "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned();
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::InvalidEvidence);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -1469,7 +1487,10 @@ mod tests {
         frames[0].ir.as_mut().unwrap().calibration_digest =
             "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned();
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::Qualified
+        );
         assert_eq!(
             result.frames[0].radiometric,
             RadiometricFrameDisposition::InvalidEvidence
@@ -1538,8 +1559,14 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir.as_mut().unwrap().wind_gust_m_per_s = 12.0;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::Qualified
+        );
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::NotEligible
+        );
     }
 
     #[test]
