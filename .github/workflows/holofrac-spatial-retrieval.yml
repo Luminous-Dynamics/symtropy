@@ -61,6 +61,9 @@ jobs:
           echo "exact evidence impact:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin impact_sweep > artifacts/evidence-impact.csv
           cat artifacts/evidence-impact.csv
+          echo "shared multi-channel fields:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin multichannel_sweep > artifacts/multichannel-fields.csv
+          cat artifacts/multichannel-fields.csv
 
       - name: Upload raw benchmark outputs
         if: always()
