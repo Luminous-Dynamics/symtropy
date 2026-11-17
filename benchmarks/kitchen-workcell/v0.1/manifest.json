@@ -676,6 +676,203 @@
       "denominator": "all successful and failed episodes",
       "method": "publish per-episode wall-clock/simulation time and summarize successful and failed episodes separately.",
       "evidence_class": "measured"
+    },
+    {
+      "metric_id": "accepted_edible_yield_g",
+      "unit": "grams",
+      "denominator": "one completed cooking task or meal",
+      "method": "weigh the edible output after a preregistered removal of non-edible matter; record rejected fraction and assessors separately.",
+      "evidence_class": "assayed",
+      "notes": "Do not infer food safety from visual or sensory acceptance."
+    },
+    {
+      "metric_id": "accepted_servings",
+      "unit": "count",
+      "denominator": "one completed meal",
+      "method": "count portions meeting frozen serving mass and acceptance rubric; record rejected portions separately.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_grounding_precision",
+      "unit": "fraction",
+      "denominator": "all predicted action units",
+      "method": "true positive grounded action units divided by all predicted action units, with action-span and group matching rules frozen.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_grounding_recall",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action units",
+      "method": "true positive grounded action units divided by all gold action units on the same annotated split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "cleaning_time_s",
+      "unit": "seconds",
+      "denominator": "one standardized post-task cleaning cycle",
+      "method": "measure elapsed active cleaning time from first cleaning action to a preregistered visual/residue endpoint; do not equate visual cleanliness with microbiological cleanliness.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "cooked_mass_g",
+      "unit": "grams",
+      "denominator": "one standardized cooking batch",
+      "method": "weigh cooked output after fixed rest/drain protocol and before serving; retain initial mass and water addition.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "damage_incidence",
+      "unit": "fraction of trials",
+      "denominator": "all appliance/workcell trials for a defined task family",
+      "method": "count trials with a preregistered permanent damage/failure event divided by all trials; document severity and repairability.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "energy_wh",
+      "unit": "watt-hours",
+      "denominator": "one task execution or complete meal, stated per run",
+      "method": "integrate calibrated real-power measurements over the complete task/meal interval; record meter class, sampling rate, voltage and uncertainty.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "fines_mass_fraction",
+      "unit": "fraction of processed input mass",
+      "denominator": "total recovered processed mass",
+      "method": "sieve or calibrated image-size assay; fines are particles below a preregistered lower size threshold. Freeze threshold and recovery procedure.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "late_dish_count",
+      "unit": "count",
+      "denominator": "all dishes in a multi-dish meal",
+      "method": "count dishes whose ready timestamp is after the preregistered serve time; never omit failed or incomplete dishes.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "moisture_assay",
+      "unit": "mass fraction or protocol-specific moisture result",
+      "denominator": "one sampled cooked batch with stated sampling locations",
+      "method": "use a documented gravimetric or validated moisture-analyzer protocol; report method, sample preparation and instrument calibration.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "noise_dba",
+      "unit": "dB(A)",
+      "denominator": "one task run over a fixed measurement window",
+      "method": "measure A-weighted equivalent sound level with a calibrated meter at a preregistered distance, orientation and background-noise condition.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "out_of_spec_mass_fraction",
+      "unit": "fraction of recovered product mass",
+      "denominator": "total recovered product mass",
+      "method": "weigh product outside preregistered geometry/size specification using blinded sieve or calibrated image classification.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "parts_count",
+      "unit": "count",
+      "denominator": "one standardized cleaning cycle",
+      "method": "count detachable parts that the prescribed cleaning process requires the operator to handle; freeze the part inventory by SKU/revision.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "residual_soil_mass_g",
+      "unit": "grams",
+      "denominator": "one standardized cleaning cycle",
+      "method": "measure residue after fixed soil loading and cleaning protocol using a validated gravimetric or chemical assay; report detection limit.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "residue_mass_g",
+      "unit": "grams",
+      "denominator": "one processing task",
+      "method": "weigh recoverable material left on bowl, blade, disc, lid and accessories immediately after task under a fixed recovery protocol.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "scorching_incidence",
+      "unit": "fraction of trials",
+      "denominator": "all cooking trials for a task/recipe",
+      "method": "blinded assessors apply a preregistered visible-scorch and/or chemical endpoint; report both separately if both used.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "task_graph_feasibility_rate",
+      "unit": "fraction of generated task graphs",
+      "denominator": "all submitted recipe task graphs including rejected outputs",
+      "method": "independent validation of ingredient references, action graph integrity, dependency DAG, resource requirements and temporal windows; retain parse/generation failures in denominator.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "temperature_rise_c",
+      "unit": "degrees Celsius",
+      "denominator": "one processing task",
+      "method": "measure maximum product temperature minus initial product temperature with calibrated probes at preregistered locations and timing.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "temperature_uniformity_c",
+      "unit": "degrees Celsius (spatial standard deviation)",
+      "denominator": "one standardized batch sampled at fixed positions",
+      "method": "measure product temperature at preregistered spatial positions after a fixed cooking endpoint; report mean, standard deviation and max-min range.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "texture_assay",
+      "unit": "protocol-specific instrument output",
+      "denominator": "one batch with fixed sample count and geometry",
+      "method": "use a calibrated texture analyzer or frozen blinded sensory rubric; report probe/geometry/protocol and do not conflate different assay units.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "throughput_g_per_min",
+      "unit": "grams per minute",
+      "denominator": "one processing task",
+      "method": "recovered processed mass divided by active processing time; report setup, feeding and cleaning time separately.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "time_to_plate_s",
+      "unit": "seconds",
+      "denominator": "one dish or dish-specific task",
+      "method": "elapsed time from preregistered start event to dish meeting its blinded ready-to-serve endpoint.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "total_time_to_plate_s",
+      "unit": "seconds",
+      "denominator": "one complete multi-dish meal",
+      "method": "elapsed time from meal workflow start to all accepted dishes ready for service; unfinished/late dishes are failures, not censored.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "unprocessed_fraction",
+      "unit": "fraction of input mass",
+      "denominator": "total input mass for the task",
+      "method": "mass of input remaining outside the target processing specification divided by starting input mass.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "user_present_time_s",
+      "unit": "seconds",
+      "denominator": "one task or complete meal, stated per run",
+      "method": "time-motion study of active hands-on user effort, including setup, feeding, monitoring requiring presence, handling and cleaning; separate passive waiting.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "water_l",
+      "unit": "litres",
+      "denominator": "one standardized cleaning or meal workflow",
+      "method": "integrate calibrated water-meter readings for all in-scope operations; state included activities and sampling resolution.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "yield_loss_fraction",
+      "unit": "fraction of starting input mass",
+      "denominator": "total starting ingredient mass",
+      "method": "(starting mass - recovered usable output mass) / starting mass; account for intentional peel/seed/bone removals separately.",
+      "evidence_class": "assayed"
     }
   ],
   "target_hypotheses": [
