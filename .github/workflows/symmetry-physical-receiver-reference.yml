@@ -70,7 +70,7 @@ jobs:
           from jsonschema import Draft202012Validator
           root = Path("research/symmetry-physical-receiver-001")
           schema = json.loads((root / "symmetry-physical-handoff-v0.1.schema.json").read_text())
-          package_schema = json.loads((root / "receiver-package-v0.1.schema.json").read_text())
+          package_schema = json.loads((root / "receiver-package-v0.2.schema.json").read_text())
           fixture = json.loads((root / "fixtures/synthetic-handoff-v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
           Draft202012Validator.check_schema(package_schema)
