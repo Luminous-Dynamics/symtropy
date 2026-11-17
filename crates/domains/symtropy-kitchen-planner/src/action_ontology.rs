@@ -733,6 +733,37 @@ mod tests {
         }));
     }
 
+    #[derive(Deserialize)]
+    struct ActionOntologyEvaluationFixtureBundle {
+        cases: Vec<ActionOntologyBenchmarkCaseV1>,
+        expected: ActionOntologyEvaluationExpected,
+    }
+
+    #[derive(Deserialize)]
+    struct ActionOntologyEvaluationExpected {
+        case_count: u64,
+        total_occurrence_weight: u64,
+        weighted_core_coverage: [u64; 2],
+        micro_group_precision: [u64; 2],
+        micro_group_recall: [u64; 2],
+        abstention_precision: [u64; 2],
+    }
+
+    #[test]
+    fn weighted_action_ontology_json_fixture_matches_rust_evaluator() {
+        let bundle: ActionOntologyEvaluationFixtureBundle = serde_json::from_str(include_str!(
+            "../schemas/fixtures/action-ontology-evaluation-v1.json"
+        ))
+        .expect("action ontology evaluation fixture must deserialize");
+        let report = evaluate_action_ontology_benchmark(&bundle.cases).unwrap();
+        assert_eq!(report.case_count, bundle.expected.case_count);
+        assert_eq!(report.total_occurrence_weight, bundle.expected.total_occurrence_weight);
+        assert_eq!(report.weighted_core_coverage(), bundle.expected.weighted_core_coverage);
+        assert_eq!(report.micro_group_precision(), bundle.expected.micro_group_precision);
+        assert_eq!(report.micro_group_recall(), bundle.expected.micro_group_recall);
+        assert_eq!(report.abstention_precision(), bundle.expected.abstention_precision);
+    }
+
     #[test]
     fn benchmark_reports_weighted_coverage_precision_recall_and_abstention() {
         let cases = vec![
