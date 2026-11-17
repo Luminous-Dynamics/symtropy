@@ -34,9 +34,14 @@ pub enum ActionGroupV1 {
     Dice,
     Grate,
     Shred,
+    Halve,
     Pour,
+    Drain,
     Sprinkle,
     Stir,
+    Add,
+    Combine,
+    Whisk,
     Mix,
     Knead,
     Blend,
@@ -48,7 +53,11 @@ pub enum ActionGroupV1 {
     Place,
     Move,
     Serve,
+    Cover,
     Saute,
+    Cook,
+    Heat,
+    Freeze,
     Boil,
     Simmer,
     Steam,
@@ -62,15 +71,15 @@ pub enum ActionGroupV1 {
 impl ActionGroupV1 {
     pub const fn core(self) -> ActionCoreV1 {
         match self {
-            Self::Chop | Self::Slice | Self::Dice | Self::Grate | Self::Shred => {
+            Self::Chop | Self::Slice | Self::Dice | Self::Grate | Self::Shred | Self::Halve => {
                 ActionCoreV1::Cutting
             }
-            Self::Pour | Self::Sprinkle => ActionCoreV1::Pouring,
-            Self::Stir | Self::Mix | Self::Knead | Self::Blend | Self::Emulsify => {
+            Self::Pour | Self::Drain | Self::Sprinkle => ActionCoreV1::Pouring,
+            Self::Stir | Self::Add | Self::Combine | Self::Whisk | Self::Mix | Self::Blend | Self::Emulsify => {
                 ActionCoreV1::Mixing
             }
-            Self::Wash | Self::Peel | Self::Trim => ActionCoreV1::Preparing,
-            Self::Pick | Self::Place | Self::Move | Self::Serve => {
+            Self::Wash | Self::Peel | Self::Trim | Self::Knead => ActionCoreV1::Preparing,
+            Self::Pick | Self::Place | Self::Move | Self::Serve | Self::Cover => {
                 ActionCoreV1::PickAndPlace
             }
             Self::Saute
@@ -80,6 +89,9 @@ impl ActionGroupV1 {
             | Self::Bake
             | Self::Roast
             | Self::PressureCook
+            | Self::Cook
+            | Self::Heat
+            | Self::Freeze
             | Self::Cool
             | Self::Rest => ActionCoreV1::CookAndCool,
         }
@@ -204,9 +216,14 @@ pub fn rule_based_action_mapping(kind: RecipeActionKindV1) -> ActionOntologyMapp
         RecipeActionKindV1::Dice => Some(ActionGroupV1::Dice),
         RecipeActionKindV1::Grate => Some(ActionGroupV1::Grate),
         RecipeActionKindV1::Shred => Some(ActionGroupV1::Shred),
+        RecipeActionKindV1::Halve => Some(ActionGroupV1::Halve),
         RecipeActionKindV1::Pour => Some(ActionGroupV1::Pour),
+        RecipeActionKindV1::Drain => Some(ActionGroupV1::Drain),
         RecipeActionKindV1::Sprinkle => Some(ActionGroupV1::Sprinkle),
         RecipeActionKindV1::Stir => Some(ActionGroupV1::Stir),
+        RecipeActionKindV1::Add => Some(ActionGroupV1::Add),
+        RecipeActionKindV1::Combine => Some(ActionGroupV1::Combine),
+        RecipeActionKindV1::Whisk => Some(ActionGroupV1::Whisk),
         RecipeActionKindV1::Mix => Some(ActionGroupV1::Mix),
         RecipeActionKindV1::Knead => Some(ActionGroupV1::Knead),
         RecipeActionKindV1::Blend => Some(ActionGroupV1::Blend),
@@ -214,7 +231,11 @@ pub fn rule_based_action_mapping(kind: RecipeActionKindV1) -> ActionOntologyMapp
         RecipeActionKindV1::Pick => Some(ActionGroupV1::Pick),
         RecipeActionKindV1::Place => Some(ActionGroupV1::Place),
         RecipeActionKindV1::Move => Some(ActionGroupV1::Move),
+        RecipeActionKindV1::Cover => Some(ActionGroupV1::Cover),
         RecipeActionKindV1::Saute => Some(ActionGroupV1::Saute),
+        RecipeActionKindV1::Cook => Some(ActionGroupV1::Cook),
+        RecipeActionKindV1::Heat => Some(ActionGroupV1::Heat),
+        RecipeActionKindV1::Freeze => Some(ActionGroupV1::Freeze),
         RecipeActionKindV1::Boil => Some(ActionGroupV1::Boil),
         RecipeActionKindV1::Simmer => Some(ActionGroupV1::Simmer),
         RecipeActionKindV1::Steam => Some(ActionGroupV1::Steam),
