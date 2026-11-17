@@ -223,6 +223,16 @@ fn output_with_measurement(
     output
 }
 
+fn output_without_attribution(
+    event: &Value,
+    disposition: &str,
+    localization_correct: bool,
+) -> Value {
+    let mut output = empty_output(event, disposition);
+    output["localization_correct"] = json!(localization_correct);
+    output
+}
+
 fn duplicate_recovery_claims(events: &[Value]) -> Result<BTreeSet<String>, String> {
     let mut counts = BTreeMap::<String, usize>::new();
     for (index, event) in events.iter().enumerate() {
@@ -302,14 +312,7 @@ fn evaluate_event(
     }
     let repair_status = string(repair_value, "status", &context)?;
     if !["completed", "partial"].contains(&repair_status) {
-        return Ok(output_with_measurement(
-            event,
-            "repair_not_successful",
-            localization_correct,
-            0.0,
-            0.0,
-            false,
-        ));
+        return Ok(output_without_attribution(event, "repair_not_successful", localization_correct));
     }
     let repair_targets = field(repair_value, "target_component_ids", &context)?
         .as_array()
@@ -335,14 +338,7 @@ fn evaluate_event(
     for key in measurement_keys {
         let measurement = event.get(key).filter(|value| !value.is_null());
         let Some(measurement) = measurement else {
-            return Ok(output_with_measurement(
-                event,
-                "not_verified_missing_post_or_control",
-                localization_correct,
-                0.0,
-                0.0,
-                false,
-            ));
+            return Ok(output_without_attribution(event, "not_verified_missing_post_or_control", localization_correct));
         };
         raw.push(parse_measurement(measurement, &format!("{context}.{key}"))?);
     }
@@ -354,14 +350,7 @@ fn evaluate_event(
     if raw.iter().any(|measurement| {
         measurement.calibration_status != "current" || measurement.time_status != "current"
     }) {
-        return Ok(output_with_measurement(
-            event,
-            "attribution_indeterminate_invalid_measurement",
-            localization_correct,
-            0.0,
-            0.0,
-            false,
-        ));
+        return Ok(output_without_attribution(event, "attribution_indeterminate_invalid_measurement", localization_correct));
     }
 
     let treated_boundary = string(event, "measurement_boundary_id", &context)?;
@@ -387,14 +376,7 @@ fn evaluate_event(
         || treated_pre.zone_id == control_pre.zone_id
         || !same_topology
     {
-        return Ok(output_with_measurement(
-            event,
-            "attribution_indeterminate_boundary_or_topology",
-            localization_correct,
-            0.0,
-            0.0,
-            false,
-        ));
+        return Ok(output_without_attribution(event, "attribution_indeterminate_boundary_or_topology", localization_correct));
     }
 
     let identities: BTreeSet<String> = raw
@@ -410,14 +392,7 @@ fn evaluate_event(
         .map(|measurement| measurement.method_ref.clone())
         .collect();
     if identities.len() != raw.len() || digests.len() != raw.len() || methods.len() != raw.len() {
-        return Ok(output_with_measurement(
-            event,
-            "attribution_indeterminate_duplicate_measurement_identity",
-            localization_correct,
-            0.0,
-            0.0,
-            false,
-        ));
+        return Ok(output_without_attribution(event, "attribution_indeterminate_duplicate_measurement_identity", localization_correct));
     }
 
     if treated_pre.window_end_utc > treated_post.window_start_utc
@@ -427,14 +402,7 @@ fn evaluate_event(
         || treated_post.window_start_utc != control_post.window_start_utc
         || treated_post.window_end_utc != control_post.window_end_utc
     {
-        return Ok(output_with_measurement(
-            event,
-            "attribution_indeterminate_time_window",
-            localization_correct,
-            0.0,
-            0.0,
-            false,
-        ));
+        return Ok(output_without_attribution(event, "attribution_indeterminate_time_window", localization_correct));
     }
 
     let max_pressure_difference =
@@ -446,14 +414,7 @@ fn evaluate_event(
             || relative_difference_percent(before.demand_l_per_day, after.demand_l_per_day)
                 > max_demand_difference
         {
-            return Ok(output_with_measurement(
-                event,
-                "attribution_indeterminate_operating_context",
-                localization_correct,
-                0.0,
-                0.0,
-                false,
-            ));
+            return Ok(output_without_attribution(event, "attribution_indeterminate_operating_context", localization_correct));
         }
     }
 
