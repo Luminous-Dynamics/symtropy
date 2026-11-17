@@ -419,8 +419,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             score.profile_label,
             score.maximum_abs_forcing,
             score.integrated_squared_input,
-            score.minimum_pairwise_separation,
-            score.mean_pairwise_separation,
+            score.minimum_pairwise_gaussian_kl,
+            score.mean_pairwise_gaussian_kl,
             score.worst_case_indistinguishable,
         );
     }
