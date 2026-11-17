@@ -402,3 +402,41 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin 
 
 E6 has 34 Rust unit tests written; exact-head hosted formatting, compilation,
 Clippy, tests and executable evidence remain pending.
+
+
+## E7 source-aware evidence conflict and bitemporal replay gate
+
+The `protect-evidence-adjudication-e7` binary evaluates the synthetic corpus at
+`research/protective-systems/fixtures/protect-evidence-adjudication-e7-v0.1/`
+against the pinned Draft 2020-12 schema at
+`research/protective-systems/schemas/protect-evidence-adjudication-e7-v0.1.schema.json`.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-adjudication-e7
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-adjudication-e7
+```
+
+E7 does not average conflicting evidence or assign a generic evidence-confidence
+score. It checks scope compatibility before comparing values, requires an
+explicit claim/time-bound independence attestation, and treats every known or
+unknown dependency edge as a barrier to an independent-source claim.
+Copied reports, shared sensors and shared calibration do not increase the
+independent-source count. Unknown dependence is not independence. The gate does not authenticate the attester, verify calibration certificates, or prove real-world source separation; the report marks this as a synthetic attestation/dependency check only.
+
+The E7 replay uses both a decision-time cutoff and a valid-time instant.
+Late-arriving evidence is omitted from earlier as-of views. A revocation
+recorded later but effective earlier changes later views without rewriting
+what was knowable at the earlier decision time. Source identity/digest, rights
+ceiling, attested-independence basis/attester and lifecycle event receipts
+are preserved in the report.
+
+The baseline synthetic fixture contains 12 evidence artifacts, 12 assertions,
+six dependency edges, one independence attestation and one back-dated
+revocation event. The E7 fixture has 34 Rust unit tests written. Exact-head
+formatting, Clippy, compilation, tests and executable output remain pending
+hosted CI. The baseline should return `UNRESOLVED_CONFLICT`, with no numeric
+aggregate and no qualification/pass claim.

@@ -10,6 +10,7 @@ on:
       - "research/protect-evidence-multiprovider-e3-v0-1"
       - "research/protect-evidence-semantic-projection-e4-v0-1"
       - "research/protect-schema-evolution-e6-v0-1"
+      - "research/protect-evidence-adjudication-e7-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -23,6 +24,7 @@ on:
       - "research/protect-evidence-portability-e2-review-v0-1"
       - "research/protect-evidence-multiprovider-e3-v0-1"
       - "research/protect-evidence-semantic-projection-e4-v0-1"
+      - "research/protect-schema-evolution-e6-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -96,6 +98,9 @@ jobs:
 
       - name: Run E6 provider schema lifecycle and promotion gate
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-schema-evolution-e6
+
+      - name: Run E7 source-aware conflict and bitemporal adjudication gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-adjudication-e7
 
 
   independent-ro-crate-validation:

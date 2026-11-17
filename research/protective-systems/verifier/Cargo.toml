@@ -52,3 +52,7 @@ path = "src/bin/protect_evidence_semantic_projection_e4.rs"
 [[bin]]
 name = "protect-schema-evolution-e6"
 path = "src/bin/protect_schema_evolution_e6.rs"
+
+[[bin]]
+name = "protect-evidence-adjudication-e7"
+path = "src/bin/protect_evidence_adjudication_e7.rs"
