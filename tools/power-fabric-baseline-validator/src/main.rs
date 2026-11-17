@@ -194,11 +194,11 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
     let allowed_study_types = [
         "paper_reported_prototype",
         "government_demonstration",
+        "industry_demonstration",
         "industry_pilot",
     ];
     let allowed_relations = ["exact", "approximate", "greater_than", "range"];
     let mut record_ids = BTreeSet::new();
-    let mut comparison_groups = BTreeSet::new();
     let mut measurement_count = 0;
 
     for record in records {
@@ -215,10 +215,7 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
         if !allowed_study_types.contains(&study_type.as_str()) {
             return Err(format!("record {id}: unsupported study_type {study_type}"));
         }
-        let group = non_empty_string(record, "comparison_group", &id)?;
-        if !comparison_groups.insert(group.clone()) {
-            return Err(format!("record {id}: duplicate comparison_group {group}"));
-        }
+        non_empty_string(record, "comparison_group", &id)?;
 
         validate_source(field(record, "source", &id)?, &format!("{id}.source"))?;
         validate_service(field(record, "service", &id)?, &format!("{id}.service"))?;
@@ -281,19 +278,25 @@ mod tests {
     fn frozen_v01_corpus_validates_with_six_source_records() {
         let summary = validate_document(&corpus()).unwrap();
         assert_eq!(summary.records, 6);
-        assert_eq!(summary.measurements, 18);
+        assert_eq!(summary.measurements, 19);
     }
 
     #[test]
-    fn every_record_has_a_distinct_comparison_group() {
+    fn distinct_lpt_boundaries_have_distinct_comparison_groups() {
         let document = corpus();
-        let groups: BTreeSet<_> = document["records"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|record| record["comparison_group"].as_str().unwrap())
-            .collect();
-        assert_eq!(groups.len(), 6);
+        let records = document["records"].as_array().unwrap();
+        let ntt = records.iter().find(|r| r["id"] == "ntt-mhi-2025-1km-laser").unwrap();
+        let yigit = records.iter().find(|r| r["id"] == "yigit-2026-20m-laser").unwrap();
+        assert_ne!(ntt["comparison_group"], yigit["comparison_group"]);
+    }
+
+    #[test]
+    fn multiple_records_may_share_a_group_for_a_future_matched_reproduction() {
+        let mut document = corpus();
+        let mut replicate = document["records"][0].clone();
+        replicate["id"] = json!("riekerk-reproduction-01");
+        document["records"].as_array_mut().unwrap().push(replicate);
+        assert!(validate_document(&document).is_ok());
     }
 
     #[test]
