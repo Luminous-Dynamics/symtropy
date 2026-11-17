@@ -197,6 +197,7 @@ pub enum ModuleRadiometricDisposition {
     EligibleForSimplifiedSurvey,
     NotEligible,
     Unknown,
+    InvalidEvidence,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -248,6 +249,7 @@ pub struct SurveyReport {
     pub unobserved_modules: usize,
     pub rejected_frames: usize,
     pub invalid_frames: usize,
+    pub invalid_radiometric_frames: usize,
     /// Stable order by pass ID, pass index, then frame ID.
     pub frames: Vec<FrameAssessment>,
     /// Stable order by module row, column, then module ID.
@@ -573,22 +575,29 @@ fn image_blur_upper_bound_px(
     blur.is_finite().then_some(blur)
 }
 
-fn overlap_fraction(
-    previous: &FlightFrame,
-    current: &FlightFrame,
-) -> f64 {
+fn overlap_fraction(previous: &FlightFrame, current: &FlightFrame) -> f64 {
+    let Some((previous_u_min, previous_u_max, previous_v_min, previous_v_max)) =
+        conservative_footprint(previous)
+    else {
+        return 0.0;
+    };
+    let Some((current_u_min, current_u_max, current_v_min, current_v_max)) =
+        conservative_footprint(current)
+    else {
+        return 0.0;
+    };
     let (left_min, left_max, right_min, right_max) = match current.sweep_axis {
         SweepAxis::U => (
-            previous.center_u_m - previous.half_width_u_m,
-            previous.center_u_m + previous.half_width_u_m,
-            current.center_u_m - current.half_width_u_m,
-            current.center_u_m + current.half_width_u_m,
+            previous_u_min,
+            previous_u_max,
+            current_u_min,
+            current_u_max,
         ),
         SweepAxis::V => (
-            previous.center_v_m - previous.half_height_v_m,
-            previous.center_v_m + previous.half_height_v_m,
-            current.center_v_m - current.half_height_v_m,
-            current.center_v_m + current.half_height_v_m,
+            previous_v_min,
+            previous_v_max,
+            current_v_min,
+            current_v_max,
         ),
     };
     let overlap = (left_max.min(right_max) - left_min.max(right_min)).max(0.0);
@@ -762,6 +771,7 @@ pub fn evaluate_survey(
             unobserved_modules: profile.modules.len(),
             rejected_frames: 0,
             invalid_frames: 0,
+            invalid_radiometric_frames: 0,
             frames: Vec::new(),
             modules: Vec::new(),
             errors: vec![error],
@@ -783,9 +793,10 @@ pub fn evaluate_survey(
     let mut assessments = Vec::<FrameAssessment>::with_capacity(ordered.len());
     let mut geometry_views = BTreeMap::<String, BTreeMap<String, f64>>::new();
     let mut radiometric_views = BTreeMap::<String, BTreeMap<String, f64>>::new();
+    let mut radiometric_invalid_modules = BTreeSet::<String>::new();
     let mut valid_frame_by_key = BTreeMap::<(String, u32), &FlightFrame>::new();
 
-    for (index, frame) in ordered.iter().enumerate() {
+    for frame in &ordered {
         if !frame_ids.insert(frame.frame_id.as_str()) {
             errors.push(format!("duplicate frame ID: {}", frame.frame_id));
             continue;
@@ -822,7 +833,6 @@ pub fn evaluate_survey(
                 geometry_reason: Some(error),
                 radiometric_reason: Some("frame identity or values are invalid".to_owned()),
             });
-            valid_frame_by_key.insert((frame.pass_id.clone(), frame.pass_index), frame);
             continue;
         }
 
@@ -856,7 +866,11 @@ pub fn evaluate_survey(
         });
 
         let mut geometry_reason = None;
-        if rgb_gsd_upper > profile.max_rgb_gsd_m_per_pixel {
+        if (frame.acquired_at_s - frame.rgb.acquired_at_s).abs()
+            > profile.maximum_rgb_ir_skew_s
+        {
+            geometry_reason = Some("RGB image timestamp differs from frame pose timestamp".to_owned());
+        } else if rgb_gsd_upper > profile.max_rgb_gsd_m_per_pixel {
             geometry_reason = Some("RGB ground sample distance is too coarse".to_owned());
         } else if rgb_blur.is_none_or(|blur| blur > profile.max_motion_blur_pixels) {
             geometry_reason = Some("RGB motion-blur upper bound exceeds profile".to_owned());
@@ -904,12 +918,19 @@ pub fn evaluate_survey(
                         .or_default()
                         .entry(frame.pass_id.clone())
                         .or_insert(frame.view_angle_rad);
-                    if radiometric == RadiometricFrameDisposition::EligibleForSimplifiedSurvey {
-                        radiometric_views
-                            .entry(module.module_id.clone())
-                            .or_default()
-                            .entry(frame.pass_id.clone())
-                            .or_insert(frame.view_angle_rad);
+                    match radiometric {
+                        RadiometricFrameDisposition::EligibleForSimplifiedSurvey => {
+                            radiometric_views
+                                .entry(module.module_id.clone())
+                                .or_default()
+                                .entry(frame.pass_id.clone())
+                                .or_insert(frame.view_angle_rad);
+                        }
+                        RadiometricFrameDisposition::InvalidEvidence => {
+                            radiometric_invalid_modules.insert(module.module_id.clone());
+                        }
+                        RadiometricFrameDisposition::NotEligible
+                        | RadiometricFrameDisposition::Unknown => {}
                     }
                 }
             }
@@ -932,8 +953,9 @@ pub fn evaluate_survey(
             geometry_reason,
             radiometric_reason,
         });
-        valid_frame_by_key.insert((frame.pass_id.clone(), frame.pass_index), frame);
-        let _ = index;
+        if geometry == GeometryFrameDisposition::Qualified {
+            valid_frame_by_key.insert((frame.pass_id.clone(), frame.pass_index), frame);
+        }
     }
 
     assessments.sort_by(|left, right| {
@@ -969,7 +991,9 @@ pub fn evaluate_survey(
             ModuleGeometryDisposition::InsufficientIndependentPasses
         };
 
-        let radiometric_disposition = if qualified_radiometric_passes >= profile.minimum_independent_passes {
+        let radiometric_disposition = if radiometric_invalid_modules.contains(&module.module_id) {
+            ModuleRadiometricDisposition::InvalidEvidence
+        } else if qualified_radiometric_passes >= profile.minimum_independent_passes {
             radiometrically_eligible += 1;
             ModuleRadiometricDisposition::EligibleForSimplifiedSurvey
         } else if radiometric_passes == 0 {
@@ -1001,6 +1025,10 @@ pub fn evaluate_survey(
         .iter()
         .filter(|frame| frame.geometry == GeometryFrameDisposition::InvalidEvidence)
         .count();
+    let invalid_radiometric_frames = assessments
+        .iter()
+        .filter(|frame| frame.radiometric == RadiometricFrameDisposition::InvalidEvidence)
+        .count();
     let rejected_frames = assessments
         .iter()
         .filter(|frame| frame.geometry == GeometryFrameDisposition::QualityRejected)
@@ -1015,7 +1043,9 @@ pub fn evaluate_survey(
 
     let disposition = if !errors.is_empty() {
         SurveyDisposition::Inconsistent
-    } else if invalid_frames > 0 {
+    } else if invalid_frames > 0
+        || (profile.require_radiometric_ir && invalid_radiometric_frames > 0)
+    {
         SurveyDisposition::InvalidEvidence
     } else if incomplete_geometry || incomplete_radiometry {
         SurveyDisposition::Incomplete
@@ -1031,6 +1061,7 @@ pub fn evaluate_survey(
         unobserved_modules: unobserved,
         rejected_frames,
         invalid_frames,
+        invalid_radiometric_frames,
         frames: assessments,
         modules,
         errors,
