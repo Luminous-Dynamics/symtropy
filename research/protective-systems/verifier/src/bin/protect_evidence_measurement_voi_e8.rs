@@ -279,6 +279,7 @@ fn admissibility_reason(
     let conflict_ids = scope
         .conflict_evidence_ids
         .iter()
+        .cloned()
         .collect::<BTreeSet<_>>();
     if candidate
         .dependency_evidence_ids
