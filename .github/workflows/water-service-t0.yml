@@ -79,7 +79,10 @@ jobs:
           root = Path("research/water-service-engineering")
           schema = json.loads((root / "wdn-dataset-admission.schema.json").read_text())
           register = json.loads((root / "wdn-dataset-admission-v0.1.json").read_text())
+          protocol_schema = json.loads((root / "wdn-cross-population-protocol.schema.v0.1.json").read_text())
+          protocol = json.loads((root / "wdn-cross-population-protocol.v0.1.json").read_text())
           Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(protocol_schema)
           errors = sorted(
               Draft202012Validator(schema).iter_errors(register),
               key=lambda error: (list(map(str, error.absolute_path)), error.message),
@@ -95,6 +98,41 @@ jobs:
           if any(row["intake"]["files_acquired"] for row in datasets):
               raise SystemExit("WDN_DATASET_UNVERIFIED_BYTES_MUST_NOT_BE_MARKED_ACQUIRED")
           print("WDN_DATASET_ADMISSION_SCHEMA_PASS: 8 metadata-only records; no hashes or splits fabricated")
+
+          protocol_errors = sorted(
+              Draft202012Validator(protocol_schema).iter_errors(protocol),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if protocol_errors:
+              for error in protocol_errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"WDN_CROSSPOP_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+          populations = protocol["populations"]
+          expected_ids = {
+              "DITEC_WDN", "LEAKDB", "LEAKTESTBED_AGHASHASHI_2023",
+              "SLOVAK_UTILITY_SCADA_2026", "BATTLEDIM_L_TOWN",
+              "NET3_47K_PAPER_CORPUS", "PAMPLONA_DAS_2026", "WDSEVENTDB",
+          }
+          observed_ids = {row["dataset_id"] for row in populations}
+          if len(populations) != 8 or observed_ids != expected_ids:
+              raise SystemExit("WDN_CROSSPOP_POPULATION_IDENTITY_FAIL")
+          if protocol["no_pooled_leaderboard"] is not True:
+              raise SystemExit("WDN_CROSSPOP_POOLED_LEADERBOARD_MUST_REMAIN_DISABLED")
+          if protocol["comparison_requirements"]["cross_population_pooled_metric_allowed"] is not False:
+              raise SystemExit("WDN_CROSSPOP_POOLED_METRIC_MUST_REMAIN_DISABLED")
+          if protocol["admission"] != {
+              "dataset_files_acquired": False,
+              "dataset_digests_created": False,
+              "split_manifests_created": False,
+              "model_performance_claimed": False,
+          }:
+              raise SystemExit("WDN_CROSSPOP_METADATA_ONLY_CLAIM_CEILING_BREACH")
+          if any(row["files_acquired"] or row["archive_sha256"] is not None or row["split_manifest"] is not None for row in populations):
+              raise SystemExit("WDN_CROSSPOP_UNVERIFIED_DATA_MUST_NOT_BE_ADMITTED")
+          if len(protocol["baseline_ladder"]) != 8:
+              raise SystemExit("WDN_CROSSPOP_BASELINE_LADDER_INCOMPLETE")
+          print("WDN_CROSSPOP_SCHEMA_PASS: 8 distinct populations; no pooling; no raw data or model claims")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
