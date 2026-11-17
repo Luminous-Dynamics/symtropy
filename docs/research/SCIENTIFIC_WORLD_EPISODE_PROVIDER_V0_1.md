@@ -201,7 +201,40 @@ Therefore:
 
 The open PRs are not merged mainline results. Their stated exact-head checks belong to those PRs and do not qualify this provider branch.
 
-## 13. Implementation sequence
+## 13. Implementation status and first adapter selection (18 November 2026)
+
+The contract now has a dependency-free Rust semantic-check crate at `tools/scientific-world-episode-contract/` and a dedicated exact-branch workflow.
+
+Implemented checks:
+- packet cross-field consistency for opaque identifiers, digest shape, unique channel/action/observation IDs, channel references and initial observation cutoffs;
+- event/acquisition/availability chronology and evidence-prefix visibility at a decision cutoff;
+- action-attempt identity, contiguous order, status chronology, declared action/cost binding, failed/rejected attempt accounting, budget totals and rejection of retries after an unknown outcome;
+- counterfactual equality over model/profile, world recipe, initial state, evidence history, policy checkpoint, recurrent state, memory, tools, clock/time origin, action set, budget and actor policy;
+- deterministic, paired-exogenous and independent randomness protocol checks.
+
+The isolated crate has no third-party dependencies and currently contains 17 authored unit tests. A focused GitHub Actions workflow has been added. **No Rust compiler, test, Clippy or CI result is claimed yet**; the current environment has no Rust toolchain, and authored tests are not passing evidence until an exact-head run executes.
+
+The typed semantic checker complements the public JSON Schema; it is not yet a JSON decoder, JSON Schema 2020-12 implementation, authenticated ledger verifier or simulator adapter. The runner-supplied attempt count is only as trustworthy as the independent runner counter that supplies it.
+
+### First model adapter: SIM-REL-013 joint stochastic world
+
+The most promising first owner-native challenge is the joint stochastic experiment model because it keeps these state dimensions distinct:
+
+`mechanism × physical state × sensor state × intervention × observation × hazard`
+
+This exposes scientifically important confounding: physical carryover versus sensor persistence, measurement drift versus system change, and experiment actions that alter the specimen or acquisition system.
+
+Current source topology matters:
+- The current `main` tree contains the locomotion benchmark design note under `tools/sim-rel-joint-stochastic-oracle/`, but not the Rust oracle implementation.
+- The oracle implementation is in the open [SIM-REL-013 PR #3020](https://github.com/Luminous-Dynamics/symtropy/pull/3020), whose base is the separate [SIM-REL-012 research branch](https://github.com/Luminous-Dynamics/symtropy/tree/research/sim-rel-012-stateful-frontier), not `main`.
+- The one-step EIG baseline is in [PR #3022](https://github.com/Luminous-Dynamics/symtropy/pull/3022), stacked on that oracle work.
+- The biological locomotion adapter is [PR #3656](https://github.com/Luminous-Dynamics/symtropy/pull/3656); it has its own source and biological-evidence claim boundaries.
+
+Therefore this provider PR must **not** add a path dependency on unfinished non-mainline code, copy the joint oracle into a second crate, or claim the SIM-REL-013 implementation is already integrated on `main`. Once the owner chain is reviewable on a stable base, the next adapter should be a thin consumer of that exact model/profile and its replay/evaluator semantics. The new contract crate remains model-neutral.
+
+The first confirmatory research task should be a sensor/physical-state confounding challenge, not a broad locomotion or all-physics claim. Add the richer locomotion and cross-domain biological tracks only after their source-lock, model adequacy and independent reproduction prerequisites are met.
+
+## 14. Implementation sequence
 
 1. **Contract:** freeze public packet, world profile and trace schemas; add development known-answer examples.
 2. **Leakage/conformance:** validate closed schemas, opaque IDs, observation availability, legal intervention/costs, branch identity and denominator conservation.
@@ -211,6 +244,6 @@ The open PRs are not merged mainline results. Their stated exact-head checks bel
 6. **Confirmation:** preregister a held-out family, total budgets, primary metrics and stopping rules; use the existing sealed evaluator and statistical owners.
 7. **Transfer:** test fresh mechanisms/domains; promote claims only under the existing Symthaea #10497 process where relevant.
 
-## 14. Claim ceiling
+## 15. Claim ceiling
 
-This v0.1 document and schema establish only a proposed policy-visible interchange contract. They do not implement or qualify a world provider, demonstrate agent performance, validate a physical model, prove a scientific discovery, establish autonomous laboratory operation, or support SOTA / superintelligence / production-safety claims.
+This v0.1 document, schema and typed semantic-check crate establish a proposed policy-visible interchange contract plus local consistency checks. They do not implement an owner-model adapter, authenticate runner or evidence sources, establish ledger completeness, demonstrate agent performance, validate a physical model, prove a scientific discovery, establish autonomous laboratory operation, or support SOTA / superintelligence / production-safety claims.
