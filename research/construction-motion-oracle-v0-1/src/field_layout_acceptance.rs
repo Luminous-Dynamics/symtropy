@@ -47,7 +47,6 @@ pub enum EntityScoreReason {
     GeometryOutsideTolerance,
     ReferenceResolutionInsufficient,
     MeasurementUnavailable,
-    MeasurementPayloadMissing,
     RequiredEndpointMissing,
     ExplicitHumanWaiver,
     NotAttempted,
@@ -815,4 +814,80 @@ mod tests {
         assert_eq!(result.accepted_count, 1);
         assert_eq!(result.accepted_entities_per_crew_hour, None);
     }
+
+    #[test]
+    fn duplicate_observations_and_invalid_measurement_or_accounting_are_errors() {
+        let observation = observed(
+            "line-1",
+            RobotClaimedEntityState::Printed,
+            measurement(0.2, 0.1, 0.1),
+        );
+        assert_eq!(
+            score_field_layout_run(
+                &manifest(&["line-1"]),
+                &[observation.clone(), observation],
+                &[],
+                profile(),
+                crew(),
+            ),
+            Err(FieldAcceptanceError::DuplicateObservation("line-1".into()))
+        );
+
+        let mut malformed = measurement(0.2, 0.1, 0.1);
+        malformed.reference_u95_x_mm = f64::NAN;
+        assert!(matches!(
+            score_field_layout_run(
+                &manifest(&["line-1"]),
+                &[observed(
+                    "line-1",
+                    RobotClaimedEntityState::Printed,
+                    malformed
+                )],
+                &[],
+                profile(),
+                crew(),
+            ),
+            Err(FieldAcceptanceError::InvalidMeasurement(id)) if id == "line-1"
+        ));
+
+        let invalid_hours = CrewHours {
+            inspection: -0.1,
+            ..CrewHours::default()
+        };
+        assert_eq!(
+            score_field_layout_run(
+                &manifest(&["line-1"]),
+                &[],
+                &[],
+                profile(),
+                invalid_hours,
+            ),
+            Err(FieldAcceptanceError::InvalidCrewHours)
+        );
+    }
+
+    #[test]
+    fn a_waiver_does_not_count_as_accepted_or_as_robot_productivity() {
+        let waiver = HumanWaiver {
+            design_entity_id: "point-1".into(),
+            authority_id: "authority-17".into(),
+            authority_role: "site-quality-manager".into(),
+            reason: "approved alternate marking method".into(),
+            scope: "point-1 only".into(),
+            waiver_receipt_sha256: "waiver-digest".into(),
+        };
+        let result = score_field_layout_run(
+            &manifest(&["point-1"]),
+            &[],
+            &[waiver],
+            profile(),
+            crew(),
+        )
+        .unwrap();
+        assert_eq!(result.waived_count, 1);
+        assert_eq!(result.attempted_count, 0);
+        assert_eq!(result.first_pass_yield, None);
+        assert_eq!(result.accepted_entities_per_crew_hour, Some(0.0));
+    }
+
 }
