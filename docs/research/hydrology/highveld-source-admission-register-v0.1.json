@@ -9,7 +9,10 @@
     "Do not record a SHA-256 digest until the exact source bytes are lawfully acquired.",
     "Audited observations, unaudited operational observations, forecasts, satellite/blended products, reanalysis, laboratory samples and notice assertions are separate populations.",
     "Unknown rights, calibration, quality flags, station identity, temporal support and uncertainty remain explicit unknowns.",
-    "A dashboard or image is not a substitute for raw, revision-pinned observations."
+    "A dashboard or image is not a substitute for raw, revision-pinned observations.",
+    "Johannesburg Water status-board compilations (including Watersearch) are a distinct reported-asset-service evidence class, not direct tap-level customer service, hydrometric streamflow, or independently measured pressure/flow.",
+    "Every Watersearch record must retain the immutable publisher release ID, licence text/status, attribution to Johannesburg Water as original source, retrieval time and SHA-256 of the acquired bytes.",
+    "no_report days, planned closures, bypass status and censored outages remain distinct and may not be silently reclassified as normal service, unplanned outage, or verified restoration."
   ],
   "rights_status_vocabulary": [
     "request_or_registration_required",
@@ -277,6 +280,51 @@
         "Spatial labels must not become polygons/customer counts without supported geocoding and denominator evidence."
       ],
       "next_action": "Use Mycelix #5431/#6112 event-graph admission; acquire exact notice bytes only under permitted use and preserve original source assertion."
+    },
+    {
+      "source_id": "JOHANNESBURG-WATERSEARCH-DAILY-STATUS-API",
+      "provider": "Watersearch (independent third-party compilation of Johannesburg Water status boards and notices)",
+      "product": "Open read-only API and dated bulk releases of Johannesburg Water reservoir/tower/pump-station/direct-feed status-board reports",
+      "url": "https://watersearch.co.za/api",
+      "data_kind": "derived_daily_publisher_report_compilation_not_customer_tap_telemetry",
+      "variables": [
+        "supply_id_and_name",
+        "supply_kind",
+        "JW_system_membership",
+        "JW_reported_daily_worst_status",
+        "JW_reported_status_wording",
+        "report_count_per_day",
+        "bypass_status",
+        "no_report_gap_state",
+        "reported_outage_start_end_duration_and_censoring",
+        "planned_and_unplanned_notice_dates",
+        "JW_linked_suburb_supply_mapping"
+      ],
+      "declared_temporal_support": "Daily SAST rows per named supply (daily worst status from one or more JW status boards, typically published up to twice daily); underlying board/report records are separately available through per-supply reports endpoint. Candidate source record since March 2025; exact bulk release periods/counts to be acquired from release manifest.",
+      "spatial_support": "Johannesburg Water named reservoirs, towers, pump stations and direct feeds, plus JW's linked suburb/supply relationships and operational systems",
+      "access_status": "public_read_only_no_api_key; API docs state no request limit and provide versioned JSON plus dated CSV/JSONL bulk releases",
+      "rights_status": "provisional_CC_BY_4_0_as_stated_by_publisher_subject_to_revalidation; API response states this licence is provisional until site is public and requires credit to Johannesburg Water as source of facts",
+      "acquisition_status": "metadata_and_live_API_examples_observed_only_bulk_release_not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "provider_release_examples": [
+        "2026-11-16-892a6573 (GET /api/v1/supplies, supply register)",
+        "2026-11-17-ee99662f (GET /api/v1/suburbs/melville/history, daily suburb-supply history)"
+      ],
+      "evidence_ceiling": "publisher-reported utility asset status and notices; useful for reported service-interruption context, event labels and outage/recovery chronology only. It is not direct customer-tap pressure/flow, household interruption, pipe-failure ground truth, actual water quantity, water-quality evidence or verified restoration at the dwelling.",
+      "known_limitations": [
+        "Watersearch states it is not run by Johannesburg Water or the City; facts are transcribed/compiled from JW status boards/notices.",
+        "The API's licence field says CC BY 4.0 but explicitly calls the licence provisional until the site is public; confirm the current licence and attribution requirements in each acquired release.",
+        "Daily history stores the worst level reported for each supply per SAST day; it is not a complete raw sensor time-series and can collapse multiple board messages into one row.",
+        "Days with no board remain no_report gaps and must not be converted to normal/good service or removed from denominator without an explicit missingness analysis.",
+        "The reported asset status is for a reservoir/tower/pump station/direct feed; it is not measurement at a customer's tap and cannot be used as a household outage label without additional linking evidence.",
+        "Suburb/supply mapping is the relationship JW publishes; a suburb may draw on multiple supplies and one asset may map to many suburbs.",
+        "Scheduled overnight closures are identified separately and should not be treated as unplanned outages.",
+        "Outage episodes may be censored; duration is a minimum when no end is reported. The publisher's outage algorithm may bridge up to four no-board days between two outage reports; preserve this derived-rule version and do not treat it as physical restoration evidence.",
+        "The publisher exposes dated release IDs and bulk CSV/JSONL releases with row counts and SHA-256 checksums; exact bulk row counts and checksum files remain not acquired.",
+        "Daily release snapshots may change as notices/board parsing or corrections change; retain immutable release id, retrieval timestamp and byte hash."
+      ],
+      "next_action": "Acquire one dated bulk release and its manifest/checksums after licence status is confirmed; preserve source-board URLs, publisher release id, SAST semantics, no_report gaps, bypass, scheduled closure, censored outage and rule revision. Build an explicitly reported-service dataset separate from DWS observed flow and household tap measurements; cross-check selected episodes against original JW notices/boards before using as event labels."
     }
   ],
   "candidate_station_records": [
