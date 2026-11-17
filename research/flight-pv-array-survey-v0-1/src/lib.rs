@@ -258,6 +258,50 @@ pub struct SurveyReport {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RasterPlanSpec {
+    /// Conservative half-width/half-height of the qualified image footprint in array-plane metres.
+    pub footprint_half_width_m: f64,
+    pub footprint_half_height_m: f64,
+    /// Requested overlap between consecutive images along each lane, in [0, 1).
+    pub forward_overlap_fraction: f64,
+    /// Requested overlap between adjacent lanes, in [0, 1).
+    pub side_overlap_fraction: f64,
+    pub camera_height_m: f64,
+    pub view_angle_rad: f64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WaypointKind {
+    Survey,
+    LaneTransition,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RasterWaypoint {
+    pub ordinal: usize,
+    pub lane_index: usize,
+    pub point_index: usize,
+    pub pass_id: String,
+    pub kind: WaypointKind,
+    pub center_u_m: f64,
+    pub center_v_m: f64,
+    pub camera_height_m: f64,
+    pub view_angle_rad: f64,
+    /// Modules fully inside this planned nominal footprint.
+    pub covered_module_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RasterMissionPlan {
+    pub waypoints: Vec<RasterWaypoint>,
+    pub route_length_lower_bound_m: f64,
+    pub forward_spacing_m: f64,
+    pub side_spacing_m: f64,
+    pub requested_forward_overlap_fraction: f64,
+    pub requested_side_overlap_fraction: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct MissionEnergyEnvelope {
     pub mission_id: String,
     pub model_id: String,
@@ -755,6 +799,182 @@ fn separated_view_count(views: &BTreeMap<String, f64>, minimum_separation: f64) 
 fn angular_separation(left: f64, right: f64) -> f64 {
     let difference = (left - right).abs().rem_euclid(std::f64::consts::TAU);
     difference.min(std::f64::consts::TAU - difference)
+}
+
+fn axis_centers(
+    min: f64,
+    max: f64,
+    footprint_half_extent: f64,
+    overlap_fraction: f64,
+) -> Result<Vec<f64>, String> {
+    let extent = max - min;
+    let footprint = footprint_half_extent * 2.0;
+    if !extent.is_finite() || extent <= 0.0 || !footprint.is_finite() || footprint <= 0.0 {
+        return Err("raster axis or footprint extent is invalid".to_owned());
+    }
+    if footprint >= extent {
+        return Ok(vec![(min + max) * 0.5]);
+    }
+
+    let spacing = footprint * (1.0 - overlap_fraction);
+    let start = min + footprint_half_extent;
+    let end = max - footprint_half_extent;
+    let intervals = ((end - start) / spacing).ceil();
+    if !intervals.is_finite() || intervals > MAX_MODULES as f64 {
+        return Err("raster axis requires too many waypoints".to_owned());
+    }
+    let count = intervals as usize + 1;
+    if count > MAX_MODULES {
+        return Err("raster axis exceeds the waypoint limit".to_owned());
+    }
+
+    let mut centers = Vec::with_capacity(count);
+    for index in 0..count {
+        let value = (start + index as f64 * spacing).min(end);
+        if centers.last().is_none_or(|previous: &f64| (value - previous).abs() > 1.0e-9) {
+            centers.push(value);
+        }
+        if value >= end {
+            break;
+        }
+    }
+    if centers.last().is_none_or(|last| (end - last).abs() > 1.0e-9) {
+        centers.push(end);
+    }
+    Ok(centers)
+}
+
+fn planned_footprint_covers(
+    center_u: f64,
+    center_v: f64,
+    half_width: f64,
+    half_height: f64,
+    module: &ModuleBounds,
+) -> bool {
+    module.u_min_m >= center_u - half_width
+        && module.u_max_m <= center_u + half_width
+        && module.v_min_m >= center_v - half_height
+        && module.v_max_m <= center_v + half_height
+}
+
+/// Generate a deterministic boustrophedon/lawnmower route over the module-layout bounds.
+///
+/// This is a geometric P1 route baseline, not a dynamics-aware trajectory or
+/// flight-control command. Route length omits turn radius, acceleration,
+/// wind compensation, obstacles and vehicle-specific feasibility.
+pub fn generate_raster_plan(
+    profile: &SurveyProfile,
+    spec: &RasterPlanSpec,
+) -> Result<RasterMissionPlan, String> {
+    validate_profile(profile)?;
+    if !spec.footprint_half_width_m.is_finite()
+        || spec.footprint_half_width_m <= 0.0
+        || !spec.footprint_half_height_m.is_finite()
+        || spec.footprint_half_height_m <= 0.0
+        || !fraction(spec.forward_overlap_fraction)
+        || spec.forward_overlap_fraction >= 1.0
+        || !fraction(spec.side_overlap_fraction)
+        || spec.side_overlap_fraction >= 1.0
+        || !spec.camera_height_m.is_finite()
+        || spec.camera_height_m <= 0.0
+        || !spec.view_angle_rad.is_finite()
+        || spec.view_angle_rad < -std::f64::consts::PI
+        || spec.view_angle_rad > std::f64::consts::PI
+    {
+        return Err("raster planning profile contains invalid footprint, overlap, height or view angle".to_owned());
+    }
+
+    let min_u = profile.modules.iter().map(|module| module.u_min_m).fold(f64::INFINITY, f64::min);
+    let max_u = profile.modules.iter().map(|module| module.u_max_m).fold(f64::NEG_INFINITY, f64::max);
+    let min_v = profile.modules.iter().map(|module| module.v_min_m).fold(f64::INFINITY, f64::min);
+    let max_v = profile.modules.iter().map(|module| module.v_max_m).fold(f64::NEG_INFINITY, f64::max);
+
+    let u_centers = axis_centers(
+        min_u,
+        max_u,
+        spec.footprint_half_width_m,
+        spec.forward_overlap_fraction,
+    )?;
+    let v_centers = axis_centers(
+        min_v,
+        max_v,
+        spec.footprint_half_height_m,
+        spec.side_overlap_fraction,
+    )?;
+    let total_points = u_centers
+        .len()
+        .checked_mul(v_centers.len())
+        .ok_or_else(|| "raster waypoint count overflowed".to_owned())?;
+    if total_points > MAX_MODULES {
+        return Err("raster mission exceeds the waypoint limit".to_owned());
+    }
+
+    let mut waypoints = Vec::with_capacity(total_points);
+    let mut previous_position: Option<(f64, f64, f64)> = None;
+    let mut route_length = 0.0;
+
+    for (lane_index, center_v) in v_centers.iter().copied().enumerate() {
+        let mut lane_points = u_centers.clone();
+        if lane_index % 2 == 1 {
+            lane_points.reverse();
+        }
+        let pass_id = format!("raster-lane-{lane_index:04}");
+        for (point_index, center_u) in lane_points.iter().copied().enumerate() {
+            let kind = if lane_index > 0 && point_index == 0 {
+                WaypointKind::LaneTransition
+            } else {
+                WaypointKind::Survey
+            };
+            let current = (center_u, center_v, spec.camera_height_m);
+            if let Some(previous) = previous_position {
+                let distance = (current.0 - previous.0)
+                    .hypot(current.1 - previous.1)
+                    .hypot(current.2 - previous.2);
+                route_length += distance;
+            }
+            previous_position = Some(current);
+            let covered_module_ids = profile
+                .modules
+                .iter()
+                .filter(|module| {
+                    planned_footprint_covers(
+                        center_u,
+                        center_v,
+                        spec.footprint_half_width_m,
+                        spec.footprint_half_height_m,
+                        module,
+                    )
+                })
+                .map(|module| module.module_id.clone())
+                .collect();
+
+            waypoints.push(RasterWaypoint {
+                ordinal: waypoints.len(),
+                lane_index,
+                point_index,
+                pass_id: pass_id.clone(),
+                kind,
+                center_u_m: center_u,
+                center_v_m: center_v,
+                camera_height_m: spec.camera_height_m,
+                view_angle_rad: spec.view_angle_rad,
+                covered_module_ids,
+            });
+        }
+    }
+
+    Ok(RasterMissionPlan {
+        waypoints,
+        route_length_lower_bound_m: route_length,
+        forward_spacing_m: spec.footprint_half_width_m
+            * 2.0
+            * (1.0 - spec.forward_overlap_fraction),
+        side_spacing_m: spec.footprint_half_height_m
+            * 2.0
+            * (1.0 - spec.side_overlap_fraction),
+        requested_forward_overlap_fraction: spec.forward_overlap_fraction,
+        requested_side_overlap_fraction: spec.side_overlap_fraction,
+    })
 }
 
 /// Evaluate a module-level aerial PV survey. The output qualifies acquisition
