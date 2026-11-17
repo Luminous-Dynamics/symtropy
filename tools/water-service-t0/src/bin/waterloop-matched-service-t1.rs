@@ -1202,11 +1202,11 @@ mod tests {
     }
 
     #[test]
-    fn canonical_fifteen_case_oracle_matches() {
+    fn canonical_nineteen_case_oracle_matches() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        assert_eq!(result["case_count"], 15);
-        assert_eq!(result["matched_case_count"], 15);
+        assert_eq!(result["case_count"], 19);
+        assert_eq!(result["matched_case_count"], 19);
         assert_eq!(result["mismatch_count"], 0);
         assert_eq!(result["physical_qualification_status"], "NotRun");
         assert_eq!(result["statistical_inference_status"], "NotRun");
@@ -1408,6 +1408,50 @@ mod tests {
         assert_eq!(
             output["block_dispositions"][0]["disposition"],
             "zero_credit_quality_release_out_of_validity_window"
+        );
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
+    }
+
+    #[test]
+    fn expired_instrument_calibration_never_earns_service_credit() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][15]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "indeterminate_measurement_calibration_out_of_validity_window"
+        );
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
+    }
+
+    #[test]
+    fn pressure_must_match_between_control_and_treatment_even_inside_limits() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][16]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "indeterminate_service_envelope_mismatch"
+        );
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
+    }
+
+    #[test]
+    fn flow_must_match_between_control_and_treatment_even_inside_limits() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][17]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "indeterminate_service_envelope_mismatch"
+        );
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
+    }
+
+    #[test]
+    fn paired_run_durations_must_match() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][18]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "indeterminate_run_duration_mismatch"
         );
         assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
     }
