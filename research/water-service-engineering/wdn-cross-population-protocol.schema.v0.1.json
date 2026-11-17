@@ -98,7 +98,8 @@
           "split_manifest"
         ],
         "additionalProperties": false
-      }
+      },
+      "maxItems": 8
     },
     "comparison_requirements": {
       "type": "object",
