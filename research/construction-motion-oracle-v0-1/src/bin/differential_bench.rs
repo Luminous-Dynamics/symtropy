@@ -643,10 +643,6 @@ impl ClockBroadphaseDistribution {
     }
 }
 
-fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
-    build_clock_mapped_bodies_with_distribution(count, ClockBroadphaseDistribution::Sparse)
-}
-
 fn build_clock_mapped_bodies_with_distribution(
     count: usize,
     distribution: ClockBroadphaseDistribution,
@@ -796,7 +792,7 @@ fn build_clock_mapped_bodies_with_distribution(
 
 fn run_relative_time_multibody_comparison_benchmarks() {
     println!(
-        "relative_time_multibody_comparison,distribution,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
+        "distribution,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
     );
 
     let distributions = [
@@ -930,7 +926,7 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                 / broadphase_p50.as_nanos().max(1) as f64;
 
             println!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                 distribution.label(),
                 count,
                 reference_report.pair_checks,
