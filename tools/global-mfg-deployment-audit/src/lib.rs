@@ -598,7 +598,7 @@ pub fn audit_corpus(input: &str) -> Result<Value, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{audit_corpus, audit_schema_and_corpus};
+    use super::{REQUIRED_DIMENSIONS, audit_corpus, audit_schema_and_corpus};
     use serde_json::Value;
 
     const FIXTURE: &str =
