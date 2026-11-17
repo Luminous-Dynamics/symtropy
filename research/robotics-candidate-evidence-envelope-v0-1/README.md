@@ -65,7 +65,7 @@ CandidateBinding::canonical_binding_bytes() produces deterministic, length-prefi
 
 ## Implementation status
 
-The reference crate includes 26 deterministic tests for eligibility precedence, externally computed binding digest matching, exact receipt/source binding, timebase binding, target coverage, calibration validity, duplicate receipts, numeric bounds and canonical target-order invariance. A private-field validation token exposes a QualifiedCandidateProjection only for structurally consistent, fully Qualified candidates.
+The reference crate includes 27 deterministic tests for eligibility precedence, externally computed binding digest matching, exact receipt/source binding, timebase binding, target coverage, calibration validity, duplicate receipts, numeric bounds and canonical target-order invariance. A private-field validation token exposes a QualifiedCandidateProjection only for structurally consistent, fully Qualified candidates. The projection preserves the binding digest and upstream request-set identity/revision/digest, and the token exposes read-only access to the original binding and receipts so downstream planning can retain full provenance linkage.
 
 ## Claim boundary
 
