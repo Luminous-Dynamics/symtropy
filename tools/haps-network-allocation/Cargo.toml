@@ -1,0 +1,15 @@
+[package]
+name = "haps-network-allocation"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic, radio-agnostic HAPS critical-excess traffic allocator"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# This intentionally small tool is an independent workspace so it does not
+# pull the Bevy/physics root package into its test or CLI build.
+[workspace]
