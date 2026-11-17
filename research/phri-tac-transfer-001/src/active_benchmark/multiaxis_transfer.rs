@@ -163,8 +163,7 @@ pub enum TransferAuditDisposition {
 pub struct IdentityLeakage {
     pub dimension: IdentityDimension,
     pub identity: String,
-    pub source_roles: Vec<PartitionRole>,
-    pub target_roles: Vec<PartitionRole>,
+    pub partitions: Vec<PartitionRole>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
@@ -191,17 +190,6 @@ const REQUIRED_PARTITION_ROLES: [PartitionRole; 5] = [
     PartitionRole::TargetValidation,
     PartitionRole::FinalTest,
 ];
-
-fn required_regime_dimension(regime: TransferRegime) -> Option<IdentityDimension> {
-    match regime {
-        TransferRegime::WithinArticle => None,
-        TransferRegime::NewArticleSameFamily => Some(IdentityDimension::SensorArticle),
-        TransferRegime::NewSensorFamily => Some(IdentityDimension::SensorFamily),
-        TransferRegime::NewHostOrMount => None,
-        TransferRegime::NewSkinOrMaterialLot => Some(IdentityDimension::SkinMaterialLot),
-        TransferRegime::NewReadoutChain => Some(IdentityDimension::ReadoutChain),
-    }
-}
 
 fn dimensions_required_by_regime(regime: TransferRegime) -> Vec<IdentityDimension> {
     match regime {
@@ -356,11 +344,12 @@ fn collect_leakage(
                     .is_some_and(|ids| ids.contains(identity))
             })
             .collect();
+        let mut partitions = source_roles_found;
+        partitions.extend(target_roles_found);
         leakage.push(IdentityLeakage {
             dimension,
             identity: identity.clone(),
-            source_roles: source_roles_found,
-            target_roles: target_roles_found,
+            partitions,
         });
     }
     leakage
@@ -397,8 +386,7 @@ fn collect_cross_partition_leakage(
                 leakage.push(IdentityLeakage {
                     dimension,
                     identity: identity.clone(),
-                    source_roles: vec![*left_role],
-                    target_roles: vec![*right_role],
+                    partitions: vec![*left_role, *right_role],
                 });
             }
         }
@@ -433,6 +421,33 @@ pub fn audit_transfer_manifest(manifest: &TransferBenchmarkManifest) -> Transfer
         reasons.push("manifest must contain exactly five partition roles".to_owned());
     }
 
+    for (role, expected_access) in [
+        (PartitionRole::SourceTraining, LabelAccess::ForceLabelsVisible),
+        (PartitionRole::SourceValidation, LabelAccess::EvaluatorOnly),
+        (PartitionRole::TargetValidation, LabelAccess::EvaluatorOnly),
+        (PartitionRole::FinalTest, LabelAccess::EvaluatorOnly),
+    ] {
+        if let Some(part) = partition(manifest, role) {
+            if part.label_access != expected_access {
+                reasons.push(format!(
+                    "partition {:?} has {:?} label access; expected {:?}",
+                    role, part.label_access, expected_access
+                ));
+            }
+        }
+    }
+
+    for role in [
+        PartitionRole::SourceTraining,
+        PartitionRole::SourceValidation,
+        PartitionRole::TargetValidation,
+        PartitionRole::FinalTest,
+    ] {
+        if partition(manifest, role).is_some_and(|part| part.sample_count == 0) {
+            reasons.push(format!("required partition {:?} is empty", role));
+        }
+    }
+
     let target_adaptation = partition(manifest, PartitionRole::TargetAdaptation);
     if let Some(target_adaptation) = target_adaptation {
         reasons.extend(validate_adaptation_budget(manifest, target_adaptation));
@@ -453,6 +468,31 @@ pub fn audit_transfer_manifest(manifest: &TransferBenchmarkManifest) -> Transfer
                 "transfer regime {:?} requires holdout dimension {:?}",
                 manifest.transfer_regime, dimension
             ));
+        }
+    }
+    if matches!(
+        manifest.transfer_regime,
+        TransferRegime::NewArticleSameFamily | TransferRegime::WithinArticle
+    ) {
+        let source_families =
+            collect_role_identities(manifest, &source_roles(), IdentityDimension::SensorFamily);
+        let target_families =
+            collect_role_identities(manifest, &target_roles(), IdentityDimension::SensorFamily);
+        let same_family = target_families.is_subset(&source_families);
+        if target_families.is_empty() || !same_family {
+            reasons.push(format!(
+                "transfer regime {:?} requires target sensor-family identity to match a source family",
+                manifest.transfer_regime
+            ));
+        }
+    }
+    if manifest.transfer_regime == TransferRegime::WithinArticle {
+        let source_articles =
+            collect_role_identities(manifest, &source_roles(), IdentityDimension::SensorArticle);
+        let target_articles =
+            collect_role_identities(manifest, &target_roles(), IdentityDimension::SensorArticle);
+        if target_articles.is_empty() || !target_articles.is_subset(&source_articles) {
+            reasons.push("within-article transfer requires the same sensor article in source and target partitions".to_owned());
         }
     }
     if manifest.transfer_regime == TransferRegime::WithinArticle
@@ -495,6 +535,13 @@ pub fn audit_transfer_manifest(manifest: &TransferBenchmarkManifest) -> Transfer
         IdentityDimension::Session,
         &REQUIRED_PARTITION_ROLES,
     ));
+    if holdout_dimensions.contains(&IdentityDimension::ProbeGeometry) {
+        leakage.extend(collect_cross_partition_leakage(
+            manifest,
+            IdentityDimension::ProbeGeometry,
+            &REQUIRED_PARTITION_ROLES,
+        ));
+    }
 
     let source_sample_count = source_roles()
         .iter()
@@ -583,14 +630,14 @@ mod tests {
             identities(IdentityDimension::SensorArticle, &["article-target"]),
             identities(IdentityDimension::ContactEpisode, &["episode-target-val"]),
             identities(IdentityDimension::Session, &["session-target-val"]),
-            identities(IdentityDimension::ProbeGeometry, &["probe-target"]),
+            identities(IdentityDimension::ProbeGeometry, &["probe-target-val"]),
         ];
         let final_test = vec![
             identities(IdentityDimension::SensorFamily, &["family-target"]),
             identities(IdentityDimension::SensorArticle, &["article-target"]),
             identities(IdentityDimension::ContactEpisode, &["episode-target-test"]),
             identities(IdentityDimension::Session, &["session-target-test"]),
-            identities(IdentityDimension::ProbeGeometry, &["probe-target"]),
+            identities(IdentityDimension::ProbeGeometry, &["probe-target-test"]),
         ];
 
         TransferBenchmarkManifest {
