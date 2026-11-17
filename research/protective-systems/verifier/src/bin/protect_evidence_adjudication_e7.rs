@@ -119,6 +119,42 @@ struct SourceReceipt {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+struct EvidenceSourceReceipt {
+    evidence_id: String,
+    source_identity: String,
+    source_digest: String,
+    state: String,
+    recorded_at: String,
+    rights_status: String,
+    permitted_use: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct IndependenceAttestationReceipt {
+    attestation_id: String,
+    claim_id: String,
+    evidence_ids: Vec<String>,
+    status: String,
+    basis: String,
+    attested_by: String,
+    recorded_at: String,
+    valid_from: String,
+    valid_to: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+struct LifecycleEventReceipt {
+    event_id: String,
+    event_type: String,
+    evidence_id: String,
+    effective_at: String,
+    recorded_at: String,
+    reason_code: String,
+    known_as_of_decision_time: bool,
+    effective_for_valid_at: bool,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 struct ExcludedAssertion {
     assertion_id: String,
     evidence_id: String,
@@ -186,8 +222,12 @@ struct AdjudicationReport {
     incomparable_assertions: Vec<IncomparableFinding>,
     conflict_sets: Vec<ConflictSet>,
     verified_independence_attestation_ids: Vec<String>,
+    independence_attestation_receipts: Vec<IndependenceAttestationReceipt>,
     verified_independent_evidence_ids: Vec<String>,
     rejected_independence_attestations: Vec<IndependenceRejection>,
+    evidence_source_receipts: Vec<EvidenceSourceReceipt>,
+    lifecycle_event_receipts: Vec<LifecycleEventReceipt>,
+    dependency_relation_counts: BTreeMap<String, usize>,
     dependence_edge_count: usize,
     unknown_dependence_edge_count: usize,
     resolution_action: Option<ResolutionAction>,
@@ -706,6 +746,58 @@ fn evaluate(
 
     let (verified_attestations, verified_independent_evidence, rejected_attestations) =
         verified_independence(corpus, &graph, decision_time, valid_at);
+    let independence_attestation_receipts = corpus
+        .independence_attestations
+        .iter()
+        .filter(|item| verified_attestations.contains(&item.attestation_id))
+        .map(|item| IndependenceAttestationReceipt {
+            attestation_id: item.attestation_id.clone(),
+            claim_id: item.claim_id.clone(),
+            evidence_ids: item.evidence_ids.clone(),
+            status: item.status.clone(),
+            basis: item.basis.clone(),
+            attested_by: item.attested_by.clone(),
+            recorded_at: item.recorded_at.clone(),
+            valid_from: item.valid_from.clone(),
+            valid_to: item.valid_to.clone(),
+        })
+        .collect::<Vec<_>>();
+    let mut evidence_source_receipts = corpus
+        .evidence_artifacts
+        .iter()
+        .map(|item| EvidenceSourceReceipt {
+            evidence_id: item.evidence_id.clone(),
+            source_identity: item.source_identity.clone(),
+            source_digest: item.source_digest.clone(),
+            state: item.state.clone(),
+            recorded_at: item.recorded_at.clone(),
+            rights_status: item.rights_status.clone(),
+            permitted_use: item.permitted_use.clone(),
+        })
+        .collect::<Vec<_>>();
+    evidence_source_receipts.sort_by(|left, right| left.evidence_id.cmp(&right.evidence_id));
+    let mut lifecycle_event_receipts = corpus
+        .lifecycle_events
+        .iter()
+        .map(|event| LifecycleEventReceipt {
+            event_id: event.event_id.clone(),
+            event_type: event.event_type.clone(),
+            evidence_id: event.evidence_id.clone(),
+            effective_at: event.effective_at.clone(),
+            recorded_at: event.recorded_at.clone(),
+            reason_code: event.reason_code.clone(),
+            known_as_of_decision_time: event.recorded_at.as_str() <= decision_time,
+            effective_for_valid_at: event.effective_at.as_str() <= valid_at,
+        })
+        .collect::<Vec<_>>();
+    lifecycle_event_receipts.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    let mut dependency_relation_counts = BTreeMap::new();
+    for edge in &corpus.dependencies {
+        *dependency_relation_counts
+            .entry(edge.relation.clone())
+            .or_insert(0usize) += 1;
+    }
+
     let status = if !conflict_sets.is_empty() {
         "UNRESOLVED_CONFLICT"
     } else if comparable.is_empty() {
@@ -744,8 +836,12 @@ fn evaluate(
         incomparable_assertions: incomparable,
         conflict_sets,
         verified_independence_attestation_ids: verified_attestations,
+        independence_attestation_receipts,
         verified_independent_evidence_ids: verified_independent_evidence,
         rejected_independence_attestations: rejected_attestations,
+        evidence_source_receipts,
+        lifecycle_event_receipts,
+        dependency_relation_counts,
         dependence_edge_count: corpus.dependencies.len(),
         unknown_dependence_edge_count: corpus
             .dependencies
@@ -989,6 +1085,48 @@ mod tests {
         assert!(report.excluded_assertions.iter().any(|item| {
             item.assertion_id == "as-invalid-k" && item.reason_code == "EVIDENCE_STATE_UNKNOWN"
         }));
+    }
+
+    #[test]
+    fn source_identity_digest_and_rights_ceiling_are_carried_into_report() {
+        let report = default_report().expect("report");
+        let receipt = report
+            .evidence_source_receipts
+            .iter()
+            .find(|item| item.evidence_id == "ev-sensor-a")
+            .expect("source receipt");
+        assert_eq!(receipt.source_identity, "sensor-A/operator-A");
+        assert_eq!(receipt.rights_status, "SYNTHETIC_OPEN_FIXTURE");
+        assert_eq!(receipt.permitted_use, "SYNTHETIC_TEST_ONLY");
+        assert_eq!(receipt.source_digest, "a1".repeat(32));
+    }
+
+    #[test]
+    fn accepted_independence_receipt_preserves_basis_and_attester() {
+        let report = default_report().expect("report");
+        let receipt = &report.independence_attestation_receipts[0];
+        assert_eq!(receipt.attestation_id, "ind-flow-001");
+        assert_eq!(receipt.attested_by, "synthetic-independent-metrology-reviewer");
+        assert!(receipt.basis.contains("separate sensor hardware"));
+    }
+
+    #[test]
+    fn lifecycle_receipt_preserves_recorded_and_effective_time_separately() {
+        let report = default_report().expect("report");
+        let receipt = &report.lifecycle_event_receipts[0];
+        assert_eq!(receipt.reason_code, "CALIBRATION_CERTIFICATE_REVOKED");
+        assert_eq!(receipt.effective_at, "2026-11-16T10:00:00Z");
+        assert_eq!(receipt.recorded_at, "2026-11-16T16:00:00Z");
+        assert!(!receipt.known_as_of_decision_time);
+        assert!(receipt.effective_for_valid_at);
+    }
+
+    #[test]
+    fn dependency_relation_counts_retain_common_cause_classes() {
+        let report = default_report().expect("report");
+        assert_eq!(report.dependency_relation_counts.get("COPIED_FROM"), Some(&1));
+        assert_eq!(report.dependency_relation_counts.get("SHARED_SENSOR"), Some(&2));
+        assert_eq!(report.dependency_relation_counts.get("UNKNOWN_DEPENDENCE"), Some(&2));
     }
 
     #[test]
