@@ -592,6 +592,234 @@
         ],
         "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
       }
+    },
+    {
+      "fixture_id": "accept-explicit-rule-based-action-ontology-binding",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": true,
+      "reason": "Chop maps deterministically to Cutting/Chop with explicit rule provenance and typed capability/precondition references.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:onion-sauce-action-ontology",
+        "revision": 1,
+        "title": "Synthetic onion sauce with explicit action ontology",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null,
+            "ontology_binding": {
+              "ontology_version": 1,
+              "mapping": {
+                "method": "rule_based",
+                "core": "cutting",
+                "group": "chop",
+                "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+              },
+              "parameters": [],
+              "tool_capability_refs": [
+                "capability:guarded-food-processor-cutting"
+              ],
+              "precondition_refs": [
+                "precondition:guard-closed",
+                "precondition:food-lot-confirmed"
+              ],
+              "evidence_class": "declared"
+            }
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-rule-based-action-ontology-mismatch",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "A rule-based Chop mapping cannot silently substitute the Dice action group.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:onion-sauce-invalid-ontology",
+        "revision": 1,
+        "title": "Synthetic mismatched action ontology",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null,
+            "ontology_binding": {
+              "ontology_version": 1,
+              "mapping": {
+                "method": "rule_based",
+                "core": "cutting",
+                "group": "dice",
+                "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+              },
+              "parameters": [],
+              "tool_capability_refs": [
+                "capability:guarded-food-processor-cutting"
+              ],
+              "precondition_refs": [
+                "precondition:guard-closed",
+                "precondition:food-lot-confirmed"
+              ],
+              "evidence_class": "declared"
+            }
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
     }
   ]
 }
