@@ -515,6 +515,490 @@
           3
         ]
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-score",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reference_sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "observed": [
+          4,
+          3,
+          6
+        ],
+        "forecast_ensemble_members_by_sample": [
+          [
+            3,
+            5,
+            6
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            8
+          ]
+        ],
+        "reference_ensemble_members_by_sample": [
+          [
+            1,
+            7,
+            8
+          ],
+          [
+            0,
+            3,
+            9
+          ],
+          [
+            1,
+            6,
+            10
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-score",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "reference_sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "observed_events": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.6,
+          0.4
+        ],
+        "reference_probabilities": [
+          0.4,
+          0.5,
+          0.4,
+          0.5
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-035-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reference_sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "observed": [
+          4,
+          3,
+          6
+        ],
+        "forecast_ensemble_members_by_sample": [
+          [
+            3,
+            5,
+            6
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            8
+          ]
+        ],
+        "reference_ensemble_members_by_sample": [
+          [
+            4
+          ],
+          [
+            3
+          ],
+          [
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-event-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_10_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "reference_sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "observed_events": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.6,
+          0.4
+        ],
+        "reference_probabilities": [
+          0.4,
+          0.5,
+          0.4,
+          0.5
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-037-brier-skill-reference-probability-reject",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "reference_sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "observed_events": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.6,
+          0.4
+        ],
+        "reference_probabilities": [
+          0.4,
+          0.5,
+          1.5,
+          0.5
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-time-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 48,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reference_sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "observed": [
+          4,
+          3,
+          6
+        ],
+        "forecast_ensemble_members_by_sample": [
+          [
+            3,
+            5,
+            6
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            8
+          ]
+        ],
+        "reference_ensemble_members_by_sample": [
+          [
+            1,
+            7,
+            8
+          ],
+          [
+            0,
+            3,
+            9
+          ],
+          [
+            1,
+            6,
+            10
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-039-brier-skill-population-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "different-catchment-event-population-v1",
+        "sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "reference_sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "observed_events": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.6,
+          0.4
+        ],
+        "reference_probabilities": [
+          0.4,
+          0.5,
+          0.4,
+          0.5
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-040-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "reference_sample_ids": [
+          "b1",
+          "b2",
+          "b3",
+          "b4"
+        ],
+        "observed_events": [
+          1,
+          0,
+          1,
+          0
+        ],
+        "forecast_probabilities": [
+          0.8,
+          0.2,
+          0.6,
+          0.4
+        ],
+        "reference_probabilities": [
+          1,
+          0,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-041-crps-skill-sample-id-mismatch",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "target_definition_id": "daily_streamflow_m3_s",
+        "reference_target_definition_id": "daily_streamflow_m3_s",
+        "valid_time_definition_id": "daily-valid-time-v1",
+        "reference_valid_time_definition_id": "daily-valid-time-v1",
+        "lead_time_hours": 24,
+        "reference_lead_time_hours": 24,
+        "evaluation_population_id": "highveld-daily-holdout-v1",
+        "reference_evaluation_population_id": "highveld-daily-holdout-v1",
+        "sample_ids": [
+          "s1",
+          "s2",
+          "s3"
+        ],
+        "reference_sample_ids": [
+          "s1",
+          "s2",
+          "s4"
+        ],
+        "observed": [
+          4,
+          3,
+          6
+        ],
+        "forecast_ensemble_members_by_sample": [
+          [
+            3,
+            5,
+            6
+          ],
+          [
+            2,
+            3,
+            4
+          ],
+          [
+            4,
+            6,
+            8
+          ]
+        ],
+        "reference_ensemble_members_by_sample": [
+          [
+            1,
+            7,
+            8
+          ],
+          [
+            0,
+            3,
+            9
+          ],
+          [
+            1,
+            6,
+            10
+          ]
+        ]
+      }
     }
   ]
 }

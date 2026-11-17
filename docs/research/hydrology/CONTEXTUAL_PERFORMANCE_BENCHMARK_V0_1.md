@@ -320,12 +320,12 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 41-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 32 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 41 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -406,3 +406,25 @@ Use event-block bootstrap or another predeclared dependence-aware uncertainty me
 Sources:
 - WMO, *Guidelines on the Verification of Hydrological Forecasts*, WMO-No. 1364 (2025): https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
 - Ruparell et al., *A Hydrologist's Guide to the CRPS*, ECMWF Technical Memorandum 935 (December 2025), DOI 10.21957/16101872b5: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
+
+
+## 16. Mean proper-score skill against a frozen reference — cases 033–041
+
+The skill layer is now correctly defined over a multi-case sample population; it must not divide two scores from one selected observation and call the result a benchmark-wide skill score.
+
+For each ordered sample (i=1,ldots,N), calculate the ensemble CRPS or binary Brier score for both candidate and reference forecast, using the same verifying observation. Then calculate:
+`CRPSS = 1 - mean(CRPS_candidate) / mean(CRPS_reference)`
+`BSS = 1 - mean(BS_candidate) / mean(BS_reference)`
+
+The candidate and reference must bind:
+- explicit `forecast_id` and `reference_forecast_id`;
+- identical target/event definition;
+- identical valid-time definition and lead-time value;
+- identical evaluation population;
+- identical, unique, ordered sample IDs.
+
+The evaluator emits a canonical SHA-256 of the ordered sample-ID vector. It returns `NOT_COMPARABLE` when forecast/reference scope or sample identity differs, and `UNDEFINED` when the mean reference score is zero or within tolerance. A skill score is always accompanied by both raw mean scores.
+
+Cases 033–041 cover: valid batch CRPSS, valid batch BSS, zero-reference CRPS, event-definition mismatch, invalid reference probability, lead-time mismatch, population mismatch, zero-reference Brier, and sample-ID mismatch.
+
+**Important evidence boundary:** `B0-seasonal-climatology-v1` in these fixtures is a synthetic identity token only. The evaluator does not create or execute that forecast. T1/T2 must bind real, frozen B0 persistence/climatology outputs and the same verified case list before reporting model skill. The final test set remains untouched during model selection.

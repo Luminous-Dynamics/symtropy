@@ -510,6 +510,145 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-crps-skill-score",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "MEAN_CRPSS_AGAINST_MATCHED_REFERENCE_ENSEMBLE",
+        "sample_count": 3,
+        "forecast_mean_crps": 0.4444444444444444,
+        "reference_mean_crps": 1.2592592592592593,
+        "crps_skill_score": 0.6470588235294118,
+        "sample_set_sha256": "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15"
+      }
+    },
+    {
+      "case_id": "HC-T0-034-brier-skill-score",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "MEAN_BSS_AGAINST_MATCHED_REFERENCE_FORECAST",
+        "sample_count": 4,
+        "brier_score": 0.1,
+        "reference_brier_score": 0.305,
+        "brier_skill_score": 0.6721311475409836,
+        "sample_set_sha256": "1ada57b156cc7fffcaaae57b13a71ac51c1160f9de8cb330cdbe544fe96c2226"
+      }
+    },
+    {
+      "case_id": "HC-T0-035-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "REFERENCE_MEAN_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "sample_count": 3,
+        "forecast_mean_crps": 0.4444444444444444,
+        "reference_mean_crps": 0,
+        "crps_skill_score": null,
+        "sample_set_sha256": "ae772788372b2c38e171ab1cf6a3b7ef9032a929af75ae14f8492426a6f08f15"
+      }
+    },
+    {
+      "case_id": "HC-T0-036-brier-skill-event-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 4,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null,
+        "sample_set_sha256": null
+      }
+    },
+    {
+      "case_id": "HC-T0-037-brier-skill-reference-probability-reject",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_OR_REFERENCE_PROBABILITY_OUTSIDE_ZERO_ONE",
+        "sample_count": 4,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null,
+        "sample_set_sha256": null
+      }
+    },
+    {
+      "case_id": "HC-T0-038-crps-skill-lead-time-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 3,
+        "forecast_sample_count": 3,
+        "reference_sample_count": 3,
+        "forecast_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null,
+        "sample_set_sha256": null
+      }
+    },
+    {
+      "case_id": "HC-T0-039-brier-skill-population-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_AND_REFERENCE_SCOPE_DIFFER",
+        "sample_count": 4,
+        "brier_score": null,
+        "reference_brier_score": null,
+        "brier_skill_score": null,
+        "sample_set_sha256": null
+      }
+    },
+    {
+      "case_id": "HC-T0-040-brier-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "REFERENCE_MEAN_BRIER_ZERO_OR_WITHIN_TOLERANCE",
+        "sample_count": 4,
+        "brier_score": 0.1,
+        "reference_brier_score": 0,
+        "brier_skill_score": null,
+        "sample_set_sha256": "1ada57b156cc7fffcaaae57b13a71ac51c1160f9de8cb330cdbe544fe96c2226"
+      }
+    },
+    {
+      "case_id": "HC-T0-041-crps-skill-sample-id-mismatch",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "NOT_COMPARABLE",
+        "forecast_id": "candidate-ensemble-v1",
+        "reference_forecast_id": "B0-seasonal-climatology-v1",
+        "reason": "FORECAST_AND_REFERENCE_SAMPLE_IDS_DIFFER",
+        "sample_count": 3,
+        "forecast_sample_count": 3,
+        "reference_sample_count": 3,
+        "forecast_crps": null,
+        "reference_crps": null,
+        "crps_skill_score": null,
+        "sample_set_sha256": null
+      }
     }
   ]
 }
