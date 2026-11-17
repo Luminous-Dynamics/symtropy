@@ -74,3 +74,16 @@ The scorer rejects duplicate manifest IDs, duplicate/unknown observations and du
 The result reports accepted/rejected/held/waived/not-attempted counts, attempted count, first-pass accepted count, rework entity count, total crew-hours, accepted entities per crew-hour, first-pass yield and rework-hour fraction. Unit tests cover false robot completion, geometric rejection, insufficient reference resolution, human waiver separation, duplicate/unknown IDs and zero-hour denominators.
 
 This first scoring owner is typed Rust logic, not a JSON reader, digital signature verifier, physical metrology system or field report generator. The observation schema and synthetic JSON shape fixture remain separate; a future ingestion step must verify the manifest and receipt digests before building typed inputs.
+
+
+### Append-only site-state ledger v0.1
+
+The typed Rust module site_state_ledger projects a pre-verified event stream into per-entity site state. It binds each execution and referee assessment to a frozen work-package digest, design revision, frame, transform and acceptance profile.
+
+Roles are separated: design authority publishes work packages; surveyors qualify station/frame/calibration context; robots start attempts and report observations; referees record measured/no-mark/unresolved outcomes; site quality authorities issue explicit waivers. Robot reports can only move an entity to AWAITING_INDEPENDENT_MEASUREMENT. For measured outcomes, the reducer calls the independent field-layout scorer; robot self-report cannot set ACCEPTED.
+
+The ledger enforces contiguous sequence numbers, previous-event digest links, unique event identities, exact duplicate idempotency, actor-role permissions, station/work-package binding, attempt identity and legal state transitions. Event application is staged on a cloned projection so a rejected event cannot leave partial state. Publishing a new design revision preserves the previous package and its historical accepted records, marks it superseded, and initializes the new package's entities as NOT_ATTEMPTED.
+
+Important boundary: the caller must cryptographically verify canonical event bytes, actor signatures and source receipts before calling the reducer. This module checks digest encoding and chain linkage but does not recompute SHA-256 or verify signatures. It is not a distributed consensus protocol, safety-rated controller, motion authorization or physical acceptance system. The sequence is a ledger order, not a wall-clock truth; cross-robot clocks are evidence metadata, not ordering authority.
+
+Unit tests cover robot/referee separation, accepted measurement, no-mark rejection, stale transform and wrong actor denial, atomic rollback, duplicate idempotency, sequence gaps, historical acceptance after revision supersession, and waiver separation.
