@@ -623,7 +623,7 @@ mod tests {
         close(result.boundary_work_on_cv_w, 2.0, 0.0);
         close(result.mechanical_dissipation_rate_w, 1.0, 0.0);
         close(result.kinetic_energy_accumulation_w, -5.0, 0.0);
-        assert_eq!(result.nonport_external_power_on_cv_w.is_sign_negative(), true);
+        assert!(result.nonport_external_power_on_cv_w.is_sign_negative());
     }
 
     #[test]
