@@ -84,5 +84,14 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Material-Accounted Routes Stage 0 (standalone Rust conformance tool)
+      if: runner.os == 'Linux'
+      run: |
+        cargo fmt --manifest-path tools/material-accounted-routes/Cargo.toml -- --check
+        cargo clippy --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets -- -D warnings
+        cargo test --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets
+        cargo run --manifest-path tools/material-accounted-routes/Cargo.toml --bin material-accounted-routes > /tmp/material-accounted-routes-report.tsv
+        test "$(wc -l < /tmp/material-accounted-routes-report.tsv)" -eq 31
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
