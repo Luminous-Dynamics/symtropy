@@ -707,10 +707,10 @@ pub fn validate_kitchen_module_capability(
 /// Return the capabilities that declare support for an action group after the
 /// module has passed structural/evidence validation. This is compatibility
 /// discovery only, not proof of fitment, certification or controller authority.
-pub fn declared_action_group_capabilities<'a>(
-    module: &'a KitchenModuleCapabilityV1,
+pub fn declared_action_group_capabilities(
+    module: &KitchenModuleCapabilityV1,
     action_group: ActionGroupV1,
-) -> Result<Vec<&'a KitchenActionCapabilityV1>, ModuleCapabilityValidationReportV1> {
+) -> Result<Vec<&KitchenActionCapabilityV1>, ModuleCapabilityValidationReportV1> {
     let report = validate_kitchen_module_capability(module);
     if !report.is_valid() {
         return Err(report);
