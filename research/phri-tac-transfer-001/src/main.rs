@@ -314,6 +314,55 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::uncertainty_qualification::run_synthetic_conformal_example() {
+                Ok(example) => {
+                    println!("tactile_conformal_coverage_example=synthetic_groupwise_v0_1");
+                    match serde_json::to_string(&example) {
+                        Ok(scorecard_json) => {
+                            println!("tactile_conformal_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("tactile_conformal_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "tactile_conformal nominal={:.3} scored={} covered={} missed={} coverage={:?} wilson95=[{:?},{:?}] abstain_ood={} abstain_reference={} no_stratum_calibrator={} insufficient_stratum_data={}",
+                        example.evaluation.nominal_coverage,
+                        example.evaluation.scored_count,
+                        example.evaluation.covered_count,
+                        example.evaluation.missed_count,
+                        example.evaluation.overall_empirical_coverage,
+                        example.evaluation.overall_wilson_95_lower,
+                        example.evaluation.overall_wilson_95_upper,
+                        example.evaluation.abstained_out_of_domain_count,
+                        example.evaluation.abstained_reference_unresolved_count,
+                        example.evaluation.no_calibrator_count,
+                        example.evaluation.insufficient_calibration_count,
+                    );
+                    for stratum in example.evaluation.strata {
+                        println!(
+                            "tactile_conformal_stratum={} context={} n={} covered={} coverage={:?} wilson95=[{:?},{:?}] mean_width={:?} abstain_ood={} abstain_reference={} no_calibrator={} insufficient={}",
+                            stratum.stratum_id,
+                            stratum.context_digest,
+                            stratum.evaluated_count,
+                            stratum.covered_count,
+                            stratum.empirical_coverage,
+                            stratum.wilson_95_lower,
+                            stratum.wilson_95_upper,
+                            stratum.mean_interval_width,
+                            stratum.abstained_out_of_domain_count,
+                            stratum.abstained_reference_unresolved_count,
+                            stratum.no_calibrator_count,
+                            stratum.insufficient_calibration_count,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("tactile_conformal_example=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
