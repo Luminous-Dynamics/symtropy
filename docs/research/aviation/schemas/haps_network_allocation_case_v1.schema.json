@@ -170,6 +170,16 @@
         "beam_reallocation_interval_s": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "static_assignment_cell_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Required only for static_fixed_assignment. The same listed cells are served in every interval; the count must not exceed beam_budget."
         }
       }
     },
@@ -366,5 +376,35 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied."
+  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied. Static fixed assignment requires declared static_assignment_cell_ids, no more than beam_budget; selected cells remain fixed across every interval.",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "radio_resource_budget": {
+            "properties": {
+              "allocation_policy": {
+                "const": "static_fixed_assignment"
+              }
+            },
+            "required": [
+              "allocation_policy"
+            ]
+          }
+        },
+        "required": [
+          "radio_resource_budget"
+        ]
+      },
+      "then": {
+        "properties": {
+          "radio_resource_budget": {
+            "required": [
+              "static_assignment_cell_ids"
+            ]
+          }
+        }
+      }
+    }
+  ]
 }
