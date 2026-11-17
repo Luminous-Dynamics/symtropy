@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/water-observability/wdn_observability_t0_input.schema.v0.1.json",
+  "title": "Water network failure-domain observability T0 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "required_state_ids",
+    "domain_types",
+    "scenarios"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-observability-t0-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-OBSERVABILITY-T0-EXECUTOR-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_state_ids": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain_types": {
+      "const": [
+        "physical_interface",
+        "calibration_lineage",
+        "power_supply",
+        "communications_path",
+        "clock_domain",
+        "measurement_principle"
+      ]
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "topology",
+          "sensors",
+          "active_failed_domains",
+          "structural_certificate",
+          "estimator"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^OBS-T0-[0-9]{3}-"
+          },
+          "topology": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "revision",
+              "digest"
+            ],
+            "properties": {
+              "revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "sensors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sensor_id",
+                "state_id",
+                "measurement_principle",
+                "condition",
+                "binding_status",
+                "calibration_status",
+                "time_status",
+                "reading_value",
+                "failure_domains"
+              ],
+              "properties": {
+                "sensor_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "state_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_principle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "condition": {
+                  "enum": [
+                    "healthy",
+                    "failed"
+                  ]
+                },
+                "binding_status": {
+                  "enum": [
+                    "valid",
+                    "invalid"
+                  ]
+                },
+                "calibration_status": {
+                  "enum": [
+                    "current",
+                    "stale",
+                    "missing"
+                  ]
+                },
+                "time_status": {
+                  "enum": [
+                    "current",
+                    "invalid"
+                  ]
+                },
+                "reading_value": {
+                  "type": "number"
+                },
+                "failure_domains": {
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "domain_type",
+                      "domain_id"
+                    ],
+                    "properties": {
+                      "domain_type": {
+                        "enum": [
+                          "physical_interface",
+                          "calibration_lineage",
+                          "power_supply",
+                          "communications_path",
+                          "clock_domain",
+                          "measurement_principle"
+                        ]
+                      },
+                      "domain_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "active_failed_domains": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "domain_type",
+                "domain_id"
+              ],
+              "properties": {
+                "domain_type": {
+                  "enum": [
+                    "physical_interface",
+                    "calibration_lineage",
+                    "power_supply",
+                    "communications_path",
+                    "clock_domain",
+                    "measurement_principle"
+                  ]
+                },
+                "domain_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "structural_certificate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "topology_revision",
+              "topology_digest",
+              "state_mapping_ids",
+              "inferable_state_ids",
+              "sensor_ids",
+              "proof_ref"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "present",
+                  "missing"
+                ]
+              },
+              "topology_revision": {
+                "type": "string"
+              },
+              "topology_digest": {
+                "type": "string"
+              },
+              "state_mapping_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "inferable_state_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sensor_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proof_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "estimator": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "sensor_ids",
+              "state_ids",
+              "topology_revision",
+              "topology_digest",
+              "model_scope_ref",
+              "parameter_scope_ref",
+              "calibration_ref",
+              "heldout_ref",
+              "ood_ref",
+              "validity_ref",
+              "qualification_claimed",
+              "sample_count",
+              "empirical_coverage_percent",
+              "interval_width_percent",
+              "condition_number"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_available",
+                  "synthetic_qualified_contract"
+                ]
+              },
+              "sensor_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "state_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "topology_revision": {
+                "type": "string"
+              },
+              "topology_digest": {
+                "type": "string"
+              },
+              "model_scope_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "parameter_scope_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "heldout_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "ood_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "validity_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "qualification_claimed": {
+                "type": "boolean"
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "empirical_coverage_percent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "interval_width_percent": {
+                "type": "number",
+                "minimum": 0
+              },
+              "condition_number": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

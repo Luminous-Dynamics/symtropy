@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water observability T0 frozen oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-observability-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-OBSERVABILITY-T0-EXECUTOR-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "topology_certificate_disposition",
+          "structural_reuse_allowed",
+          "overall_disposition",
+          "surviving_sensor_ids",
+          "state_dispositions"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "topology_certificate_disposition": {
+            "enum": [
+              "usable",
+              "no_surviving_sensor_channels",
+              "topology_invalidates_certificate",
+              "sensor_set_mismatch",
+              "missing_structural_proof"
+            ]
+          },
+          "structural_reuse_allowed": {
+            "type": "boolean"
+          },
+          "overall_disposition": {
+            "enum": [
+              "directly_observed_current",
+              "estimator_qualified_for_declared_scope",
+              "structurally_observable_only",
+              "unobservable_under_declared_faults",
+              "topology_invalidates_certificate",
+              "indeterminate_evidence"
+            ]
+          },
+          "surviving_sensor_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state_dispositions": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_id",
+                "disposition",
+                "surviving_sensor_ids",
+                "clock_evidence_invalid"
+              ],
+              "properties": {
+                "state_id": {
+                  "type": "string"
+                },
+                "disposition": {
+                  "enum": [
+                    "directly_observed_current",
+                    "estimator_qualified_for_declared_scope",
+                    "structurally_observable_only",
+                    "unobservable_under_declared_faults",
+                    "topology_invalidates_certificate",
+                    "indeterminate_evidence"
+                  ]
+                },
+                "surviving_sensor_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "clock_evidence_invalid": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
