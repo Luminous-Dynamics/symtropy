@@ -835,7 +835,6 @@ mod tests {
     fn publisher_capture_requires_public_https_origin_and_rights_review_state() {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
-        manifest["capture"]["expected_release"] = json!("2026-11-17-deadbeef");
         manifest["capture_mode"] = json!("publisher_capture");
         manifest["evidence_class"] = json!("publisher_reported_asset_status");
         manifest["source"]["url"] =
@@ -867,6 +866,7 @@ mod tests {
             .into_bytes();
 
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        manifest["capture"]["expected_release"] = json!("2026-11-17-deadbeef");
         manifest["capture_mode"] = json!("publisher_capture");
         manifest["evidence_class"] = json!("publisher_reported_asset_status");
         manifest["source"]["url"] =
