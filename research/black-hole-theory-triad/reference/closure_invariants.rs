@@ -296,6 +296,20 @@ mod tests {
     }
 
     #[test]
+    fn three_station_advariant_matches_hand_calculated_fixture() {
+        let baselines = [
+            BaselineVisibility { station_a: 0, station_b: 1, value: Complex64::new(1.0, 2.0) },
+            BaselineVisibility { station_a: 0, station_b: 2, value: Complex64::new(5.0, -6.0) },
+            BaselineVisibility { station_a: 1, station_b: 2, value: Complex64::new(3.0, 4.0) },
+        ];
+        let result = closure_invariants(3, 0, &baselines).unwrap();
+        assert_eq!(result.independent_real_degrees_of_freedom, 1);
+        let value = result.advariants[0].value;
+        assert!((value.re - -0.9734171683335759).abs() < 1e-14);
+        assert!((value.im - 0.22903933372554722).abs() < 1e-14);
+    }
+
+    #[test]
     fn seven_station_array_has_twenty_nine_real_invariants() {
         let result = closure_invariants(7, 0, &complete_baselines(7)).unwrap();
         assert_eq!(result.advariants.len(), 15);
