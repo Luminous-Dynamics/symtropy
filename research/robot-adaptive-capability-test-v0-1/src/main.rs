@@ -26,6 +26,7 @@ fn main() {
                 mandatory: true,
                 common_anchor: false,
                 safety_critical: true,
+                contributes_to_capability_estimate: false,
             },
             ChallengeItem {
                 item_id: "fixed-common-anchor".to_owned(),
@@ -34,6 +35,7 @@ fn main() {
                 mandatory: true,
                 common_anchor: true,
                 safety_critical: false,
+                contributes_to_capability_estimate: true,
             },
             ChallengeItem {
                 item_id: "adaptive-nominal".to_owned(),
