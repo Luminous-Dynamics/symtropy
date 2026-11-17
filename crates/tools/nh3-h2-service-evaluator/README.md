@@ -27,3 +27,11 @@ cargo clippy --locked --manifest-path crates/tools/nh3-h2-service-evaluator/Carg
 The evaluator accepts synthetic fixtures only. Its SYNTHETIC_ACCOUNTING_PASS and SYNTHETIC_COMPARABLE_ACCOUNTING_ONLY dispositions establish arithmetic and contract behavior only. They are not plasma or electrochemical simulations, measured H2 production, product purity, plant efficiency, cost, lifetime, safety qualification or operating authority.
 
 The literature registry is source metadata only. Source-reported process points are not filled with synthetic plant data, and missing power, recycle, purity, compression or reliability fields remain NOT_ESTABLISHED. The evaluator does not authenticate external paper supplements, calibration certificates or plant metering artifacts.
+
+
+## Customer-boundary response trace qualification
+
+A response timestamp is no longer accepted from a declared final-event timestamp alone. The evaluator requires a synchronized customer-boundary H2 flow trace, a target accepted flow, an allowed settling band, a dwell interval, clock-sync uncertainty and expanded flow-measurement uncertainty. The trace-derived time is the first time the flow and purity enter the declared acceptance band and remain within it through the required dwell. The submitted settling timestamp must agree within the clock uncertainty. These are synthetic checks, not a metrology certificate or measured plant response.
+
+
+The dynamic accepted-flow target is also reconciled against accepted H2 mass divided by the contractual delivery interval. A trace that is internally stable around a target inconsistent with the accepted product contract is rejected.

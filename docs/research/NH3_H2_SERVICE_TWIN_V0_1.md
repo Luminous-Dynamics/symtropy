@@ -99,3 +99,13 @@ These are targets, not standards or achieved results:
 ## Claim ceiling
 
 This artifact is a synthetic process twin and literature-comparison protocol. It proves no Luminous hydrogen yield, efficiency, cost, purity, lifetime, commercial advantage or safety envelope. It contains no operating recipe, hazardous-gas handling procedure, hardware control or experimental authorization.
+
+
+## Dynamic response v0.2 extension
+
+The evaluator now requires a sampled H2 flow/purity trace at the customer boundary. It calculates settling from the first sample after accepted-H2 delivery begins for which flow remains inside a declared band and purity remains above the product contract for the full dwell. The declared customer settling timestamp must agree within the clock-synchronization uncertainty. Expanded H2-flow uncertainty must be no greater than one-third of the settling band. A diagnostic OES/ACR response remains ineligible as an accepted-H2 delivery response.
+
+Synthetic refusal cases cover missing trace, a claimed settling timestamp earlier than the trace supports, flow leaving the band after entering it, excessive clock uncertainty, excessive flow-measurement uncertainty and transient purity failure. This does not qualify a physical instrument, raw H2 analyser, timebase or plant response.
+
+
+The dynamic-service gate now verifies that the H2 flow target itself equals accepted H2 mass divided by the contractual delivery interval. It rejects a perfectly stable customer-flow trace if its target rate is inconsistent with the accepted-product contract.
