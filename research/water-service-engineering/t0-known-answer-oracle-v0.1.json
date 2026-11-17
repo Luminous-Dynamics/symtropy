@@ -1,0 +1,210 @@
+{
+  "schema_version": "water-service-t0-oracle-v0.1",
+  "evidence_class": "synthetic_only",
+  "evidence_ceiling": "arithmetic_and_contract_semantics_only_no_physical_or_health_claim",
+  "independently_reviewed_expected_outputs": true,
+  "cases": [
+    {
+      "case_id": "PS-T0-001-single-pump-known-answer",
+      "family": "pump_cases",
+      "expected": {
+        "hydraulic_power_w": 2452.5,
+        "wire_to_water_efficiency": 0.7,
+        "electrical_specific_energy_kwh_m3": 0.09732142857142857
+      }
+    },
+    {
+      "case_id": "PS-T0-002-system-curve-intersection",
+      "family": "pump_cases",
+      "expected": {
+        "flow_m3_s": 0.01,
+        "head_m": 12,
+        "residual_m": 0
+      }
+    },
+    {
+      "case_id": "PS-T0-003-two-identical-pumps-in-parallel",
+      "family": "pump_cases",
+      "expected": {
+        "total_flow_m3_s": 0.0158113883008419,
+        "flow_per_pump_m3_s": 0.00790569415042095,
+        "common_head_m": 15,
+        "flow_split_residual_m3_s": 0
+      }
+    },
+    {
+      "case_id": "PS-T0-004-minimum-service-pressure-not-met",
+      "family": "pump_cases",
+      "expected": {
+        "service_disposition": "INFEASIBLE",
+        "reason": "MINIMUM_SERVICE_HEAD_NOT_MET",
+        "energy_credit_eligible": false
+      }
+    },
+    {
+      "case_id": "PS-T0-005-commanded-on-but-no-measured-flow",
+      "family": "pump_cases",
+      "expected": {
+        "delivery_disposition": "NO_DELIVERY",
+        "command_is_not_flow_evidence": true
+      }
+    },
+    {
+      "case_id": "PS-T0-006-critical-pressure-observation-missing",
+      "family": "pump_cases",
+      "expected": {
+        "service_disposition": "INDETERMINATE",
+        "schedule_feasible": false
+      }
+    },
+    {
+      "case_id": "PS-T0-007-storage-reserve-during-pump-outage",
+      "family": "pump_cases",
+      "expected": {
+        "demand_volume_m3": 0.6,
+        "storage_end_m3": 0.4,
+        "service_disposition": "SERVICE_MAINTAINED_WITHIN_DECLARED_RESERVE"
+      }
+    },
+    {
+      "case_id": "PS-T0-008-out-of-domain-pump-curve",
+      "family": "pump_cases",
+      "expected": {
+        "calculation_disposition": "UNSUPPORTED",
+        "schedule_feasible": false
+      }
+    },
+    {
+      "case_id": "PS-T0-009-vfd-versus-fixed-speed-throttling",
+      "family": "pump_cases",
+      "expected": {
+        "system_head_m": 10.5,
+        "fixed_speed_pump_head_m": 18,
+        "fixed_speed_throttle_loss_m": 7.5,
+        "vfd_speed_ratio": 0.7905694150420949,
+        "vfd_pump_head_m": 10.5,
+        "fixed_speed_specific_energy_kwh_m3": 0.07007142857142858,
+        "vfd_specific_energy_kwh_m3": 0.040875,
+        "idealized_energy_reduction_fraction": 0.4166666666666667
+      }
+    },
+    {
+      "case_id": "PW-T0-001-complete-water-and-marker-mass-boundary",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "water_in_l": 1000,
+        "water_out_l": 1000,
+        "water_balance_residual_l": 0,
+        "marker_in_mg": 2000,
+        "marker_accounted_mg": 2000,
+        "marker_balance_residual_mg": 0,
+        "evidence_disposition": "SYNTHETIC_ARITHMETIC_ONLY"
+      }
+    },
+    {
+      "case_id": "PW-T0-002-missing-required-analyte",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-003-treatment-bypass",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-004-breakthrough-at-end-of-life",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "assessment_disposition": "SYNTHETIC_NONCOMPLIANT",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-005-source-water-out-of-envelope",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "assessment_disposition": "UNSUPPORTED",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-006-stale-method-or-calibration",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "assessment_disposition": "INDETERMINATE",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-007-storage-recontamination",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "point_of_use_service_disposition": "SYNTHETIC_NONCOMPLIANT",
+        "release_allowed": false
+      }
+    },
+    {
+      "case_id": "PW-T0-008-reject-backwash-residual-omission",
+      "family": "potable_treatment_cases",
+      "expected": {
+        "volume_closure_disposition": "INCOMPLETE",
+        "recovery_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "WDN-T0-001-legitimate-demand-shift",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "diagnostic_disposition": "ALTERNATIVE_CAUSE_CANDIDATE",
+        "confirmed_leak": false,
+        "physical_action_allowed": false
+      }
+    },
+    {
+      "case_id": "WDN-T0-002-pump-valve-transient-confounder",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "diagnostic_disposition": "INDETERMINATE_PENDING_TRANSIENT_REVIEW",
+        "confirmed_leak": false
+      }
+    },
+    {
+      "case_id": "WDN-T0-003-insufficient-localization-observability",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "localization_disposition": "INDETERMINATE",
+        "high_confidence_location_allowed": false
+      }
+    },
+    {
+      "case_id": "WDN-T0-004-common-mode-sensor-drift",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "diagnostic_disposition": "INDETERMINATE",
+        "sensor_consensus_is_not_independent": true
+      }
+    },
+    {
+      "case_id": "WDN-T0-005-missing-telemetry-no-leak-absence",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "network_disposition": "PARTIALLY_UNOBSERVED",
+        "leak_absence_claim_allowed": false
+      }
+    },
+    {
+      "case_id": "WDN-T0-006-repair-claim-without-outcome-observation",
+      "family": "network_diagnostics_cases",
+      "expected": {
+        "repair_disposition": "NOT_VERIFIED",
+        "saved_water_claim_allowed": false
+      }
+    }
+  ]
+}
