@@ -109,9 +109,8 @@ pub fn solve_two_resistance_null(
     let equivalent_conductance = smaller / (1.0 + smaller / larger);
 
     let vapor_fraction = inputs.vapor_pressure_deficit_pa / inputs.atmospheric_pressure_pa;
-    let maximum_demand = inputs.maximum_stomatal_conductance_mol_m2_s
-        * vapor_fraction
-        * WATER_MOLAR_MASS_KG_PER_MOL;
+    let maximum_demand =
+        inputs.maximum_stomatal_conductance_mol_m2_s * vapor_fraction * WATER_MOLAR_MASS_KG_PER_MOL;
 
     if !equivalent_conductance.is_finite() || equivalent_conductance <= 0.0 {
         return Err(PlantHydraulicError::NonFiniteDerivedValue(
@@ -176,8 +175,7 @@ pub fn solve_two_resistance_null(
         inputs.stomatal_open_leaf_potential_mpa,
         inputs.stomatal_closed_leaf_potential_mpa,
     );
-    let stomatal_conductance =
-        inputs.maximum_stomatal_conductance_mol_m2_s * open_fraction;
+    let stomatal_conductance = inputs.maximum_stomatal_conductance_mol_m2_s * open_fraction;
     let stomatal_transpiration =
         stomatal_conductance * vapor_fraction * WATER_MOLAR_MASS_KG_PER_MOL;
     let residual = hydraulic_flux - stomatal_transpiration;
@@ -227,7 +225,10 @@ fn validate_inputs(inputs: PlantHydraulicInputs) -> Result<(), PlantHydraulicErr
             "maximum_stomatal_conductance_mol_m2_s",
             inputs.maximum_stomatal_conductance_mol_m2_s,
         ),
-        ("vapor_pressure_deficit_pa", inputs.vapor_pressure_deficit_pa),
+        (
+            "vapor_pressure_deficit_pa",
+            inputs.vapor_pressure_deficit_pa,
+        ),
         ("atmospheric_pressure_pa", inputs.atmospheric_pressure_pa),
         (
             "stomatal_open_leaf_potential_mpa",
@@ -262,9 +263,7 @@ fn validate_inputs(inputs: PlantHydraulicInputs) -> Result<(), PlantHydraulicErr
     if inputs.atmospheric_pressure_pa <= 0.0 {
         return Err(PlantHydraulicError::NonPositiveAtmosphericPressure);
     }
-    if inputs.stomatal_open_leaf_potential_mpa
-        <= inputs.stomatal_closed_leaf_potential_mpa
-    {
+    if inputs.stomatal_open_leaf_potential_mpa <= inputs.stomatal_closed_leaf_potential_mpa {
         return Err(PlantHydraulicError::InvalidStomatalThresholdOrder);
     }
 
@@ -281,8 +280,7 @@ fn stomatal_open_fraction(
     } else if leaf_potential_mpa <= closed_threshold_mpa {
         0.0
     } else {
-        (leaf_potential_mpa - closed_threshold_mpa)
-            / (open_threshold_mpa - closed_threshold_mpa)
+        (leaf_potential_mpa - closed_threshold_mpa) / (open_threshold_mpa - closed_threshold_mpa)
     }
 }
 
@@ -320,12 +318,10 @@ mod tests {
         let stressed = solve_two_resistance_null(high_vpd).unwrap();
 
         assert!(
-            stressed.hydraulic_transpiration_kg_m2_s
-                > baseline.hydraulic_transpiration_kg_m2_s
+            stressed.hydraulic_transpiration_kg_m2_s > baseline.hydraulic_transpiration_kg_m2_s
         );
         assert!(
-            (stressed.hydraulic_transpiration_kg_m2_s
-                / baseline.hydraulic_transpiration_kg_m2_s
+            (stressed.hydraulic_transpiration_kg_m2_s / baseline.hydraulic_transpiration_kg_m2_s
                 - 2.0)
                 .abs()
                 < 1e-10
@@ -347,8 +343,7 @@ mod tests {
 
         assert!(dry_state.stomatal_conductance_mol_m2_s < wet_state.stomatal_conductance_mol_m2_s);
         assert!(
-            dry_state.hydraulic_transpiration_kg_m2_s
-                < wet_state.hydraulic_transpiration_kg_m2_s
+            dry_state.hydraulic_transpiration_kg_m2_s < wet_state.hydraulic_transpiration_kg_m2_s
         );
         assert!(dry_state.leaf_water_potential_mpa < wet_state.leaf_water_potential_mpa);
     }
@@ -366,8 +361,7 @@ mod tests {
                 < baseline.hydraulic_transpiration_kg_m2_s
         );
         assert!(
-            restricted_state.stomatal_conductance_mol_m2_s
-                < baseline.stomatal_conductance_mol_m2_s
+            restricted_state.stomatal_conductance_mol_m2_s < baseline.stomatal_conductance_mol_m2_s
         );
     }
 
@@ -375,8 +369,14 @@ mod tests {
     fn hydraulic_fluxes_close_and_pressure_drops_sum() {
         let state = solve_two_resistance_null(reference_inputs()).unwrap();
 
-        assert_eq!(state.soil_to_root_water_flux_kg_m2_s, state.root_to_leaf_water_flux_kg_m2_s);
-        assert_eq!(state.hydraulic_transpiration_kg_m2_s, state.soil_to_root_water_flux_kg_m2_s);
+        assert_eq!(
+            state.soil_to_root_water_flux_kg_m2_s,
+            state.root_to_leaf_water_flux_kg_m2_s
+        );
+        assert_eq!(
+            state.hydraulic_transpiration_kg_m2_s,
+            state.soil_to_root_water_flux_kg_m2_s
+        );
         assert!(
             state.water_balance_residual_kg_m2_s.abs() < 1e-18,
             "residual={}",
@@ -385,8 +385,7 @@ mod tests {
         let total_drop =
             state.soil_to_root_pressure_drop_mpa + state.root_to_leaf_pressure_drop_mpa;
         assert!(
-            (state.soil_water_potential_mpa - state.leaf_water_potential_mpa - total_drop)
-                .abs()
+            (state.soil_water_potential_mpa - state.leaf_water_potential_mpa - total_drop).abs()
                 < 1e-12
         );
     }
