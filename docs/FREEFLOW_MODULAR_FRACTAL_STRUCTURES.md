@@ -587,3 +587,21 @@ NASA-STD-5001 B with Change 3 covers structural design, test and service-life fa
 NASA-STD-5002 B (dated 2026-03-10) covers spacecraft and payload load analyses; NASA-STD-5019 A with Change 4 covers fracture control; NASA-STD-6030 covers additive manufacturing requirements for spaceflight systems; NASA-HDBK-5026 provides AM strength/fatigue/fracture implementation guidance: https://standards.nasa.gov/all-standards and https://standards.nasa.gov/standard/NASA/NASA-STD-5019 and https://standards.nasa.gov/standard/NASA/NASA-STD-6030 and https://standards.nasa.gov/standard/NASA/NASA-HDBK-5026
 
 These standards apply only when tailored by a responsible space programme and technical authority. They are not satisfied by this research crate.
+
+
+
+### First matched topology fixture
+
+The benchmark harness now generates two small, deterministic reference candidates with:
+- the same regular-tetrahedron external envelope;
+- the same external support coordinates and nodal load;
+- the same material density, modulus and yield-strength assumptions;
+- the same member-only mass budget, with cross-sectional area derived separately for each candidate.
+
+Candidate A is a regular tetrahedral frame with six outer members. Candidate B retains the same external frame and adds an interior hub connected to all four outer vertices. Both are evaluated with the same axial truss, member-yield/Euler and damage-scenario routines.
+
+This test is intentionally small. It isolates the effect of added internal connectivity under a matched member-mass budget. It does not include connector/hub mass, rotational stiffness, assembly effort or manufacturing yield; therefore it is not a system-level architecture comparison. The result is allowed to show that the added hub is worse.
+
+### Next mechanics work
+
+The next structural solver milestone is tracked in [Symtropy issue #5768](https://github.com/Luminous-Dynamics/symtropy/issues/5768): a verified 3D beam/frame element and global eigenvalue-buckling model. The axial end-spring solver should later evolve into six-degree-of-freedom connector stiffness matrices and be calibrated against physical connector coupons. The current member Euler screen must not be interpreted as global buckling analysis.
