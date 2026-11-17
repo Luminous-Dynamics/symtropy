@@ -107,8 +107,7 @@ pub fn evaluate_buckley_stomatal_model(
         return Err(BuckleyStomatalError::NonPositiveBioenergeticCapacity);
     }
 
-    let closure_limited =
-        inputs.soil_water_potential_mpa <= inputs.stomatal_closure_potential_mpa;
+    let closure_limited = inputs.soil_water_potential_mpa <= inputs.stomatal_closure_potential_mpa;
     if closure_limited {
         return Ok(BuckleyStomatalState {
             bioenergetic_capacity_umol_m2_s: bioenergetic_capacity,
@@ -119,11 +118,10 @@ pub fn evaluate_buckley_stomatal_model(
     }
 
     let sb = inputs.sensitivity_mol_per_umol_mpa * bioenergetic_capacity;
-    let water_feedback = sb * inputs.delta_w_mmol_per_mol
-        / inputs.soil_leaf_hydraulic_conductance_mmol_m2_s_mpa;
+    let water_feedback =
+        sb * inputs.delta_w_mmol_per_mol / inputs.soil_leaf_hydraulic_conductance_mmol_m2_s_mpa;
     let denominator = 1.0 + water_feedback;
-    let numerator = sb
-        * (inputs.soil_water_potential_mpa - inputs.stomatal_closure_potential_mpa);
+    let numerator = sb * (inputs.soil_water_potential_mpa - inputs.stomatal_closure_potential_mpa);
     let conductance = numerator / denominator;
     let transpiration = conductance * inputs.delta_w_mmol_per_mol;
 
@@ -210,8 +208,7 @@ pub fn c3_co2_saturated_assimilation(
         return Err(BuckleyStomatalError::NegativeElectronTransportRate);
     }
 
-    let assimilation = 0.25 * potential_electron_transport_umol_m2_s
-        - dark_respiration_umol_m2_s;
+    let assimilation = 0.25 * potential_electron_transport_umol_m2_s - dark_respiration_umol_m2_s;
     if !assimilation.is_finite() {
         return Err(BuckleyStomatalError::NonFiniteDerivedValue(
             "c3_co2_saturated_assimilation",
@@ -240,10 +237,7 @@ fn validate_inputs(inputs: BuckleyStomatalInputs) -> Result<(), BuckleyStomatalE
             "co2_saturated_assimilation",
             inputs.co2_saturated_assimilation_umol_m2_s,
         ),
-        (
-            "net_assimilation",
-            inputs.net_assimilation_umol_m2_s,
-        ),
+        ("net_assimilation", inputs.net_assimilation_umol_m2_s),
         (
             "basal_bioenergetic_capacity",
             inputs.basal_bioenergetic_capacity_umol_m2_s,
@@ -292,16 +286,12 @@ mod tests {
         let inputs = reference_inputs();
         let state = evaluate_buckley_stomatal_model(inputs).unwrap();
         let b = 10.0 - 8.0 + 0.3;
-        let expected =
-            0.02 * b * 2.0 / (1.0 + (0.02 * b * 10.0 / 3.0));
+        let expected = 0.02 * b * 2.0 / (1.0 + (0.02 * b * 10.0 / 3.0));
 
         assert!((state.bioenergetic_capacity_umol_m2_s - b).abs() < 1e-12);
         assert!((state.stomatal_conductance_mol_m2_s - expected).abs() < 1e-12);
         assert!(
-            (state.transpiration_mmol_m2_s
-                - expected * inputs.delta_w_mmol_per_mol)
-                .abs()
-                < 1e-12
+            (state.transpiration_mmol_m2_s - expected * inputs.delta_w_mmol_per_mol).abs() < 1e-12
         );
         assert!(!state.closure_limited);
     }
@@ -313,10 +303,7 @@ mod tests {
         restricted.soil_leaf_hydraulic_conductance_mmol_m2_s_mpa = 1.0;
         let stressed = evaluate_buckley_stomatal_model(restricted).unwrap();
 
-        assert!(
-            stressed.stomatal_conductance_mol_m2_s
-                < baseline.stomatal_conductance_mol_m2_s
-        );
+        assert!(stressed.stomatal_conductance_mol_m2_s < baseline.stomatal_conductance_mol_m2_s);
     }
 
     #[test]
@@ -326,10 +313,7 @@ mod tests {
         high_demand.delta_w_mmol_per_mol = 20.0;
         let stressed = evaluate_buckley_stomatal_model(high_demand).unwrap();
 
-        assert!(
-            stressed.stomatal_conductance_mol_m2_s
-                < baseline.stomatal_conductance_mol_m2_s
-        );
+        assert!(stressed.stomatal_conductance_mol_m2_s < baseline.stomatal_conductance_mol_m2_s);
         assert!(stressed.transpiration_mmol_m2_s > baseline.transpiration_mmol_m2_s);
     }
 
@@ -362,10 +346,7 @@ mod tests {
         more_residual_capacity.net_assimilation_umol_m2_s = 5.0;
         let state = evaluate_buckley_stomatal_model(more_residual_capacity).unwrap();
 
-        assert!(
-            state.stomatal_conductance_mol_m2_s
-                > baseline.stomatal_conductance_mol_m2_s
-        );
+        assert!(state.stomatal_conductance_mol_m2_s > baseline.stomatal_conductance_mol_m2_s);
     }
 
     #[test]
