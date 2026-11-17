@@ -43,8 +43,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 34,
-      "maxItems": 34,
+      "minItems": 42,
+      "maxItems": 42,
       "items": {
         "type": "object",
         "required": [
@@ -66,7 +66,8 @@
               "service_floor",
               "leak_metrics",
               "service_continuity",
-              "household_economics"
+              "household_economics",
+              "design_sizing"
             ]
           },
           "inputs": {
@@ -75,7 +76,294 @@
           "context_reference": {
             "type": "string"
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "enum": [
+                    "WL-T0-035-sizing-raw-equalization-periodic",
+                    "WL-T0-036-sizing-treatment-capacity-insufficient"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "design_inputs_admitted",
+                    "profile_id",
+                    "period_hours",
+                    "maximum_treatment_rate_l_per_h",
+                    "steps"
+                  ],
+                  "properties": {
+                    "design_inputs_admitted": {
+                      "const": true
+                    },
+                    "profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "period_hours": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "maximum_treatment_rate_l_per_h": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "steps": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "duration_hours",
+                          "source_inflow_l",
+                          "treatment_available"
+                        ],
+                        "properties": {
+                          "duration_hours": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "source_inflow_l": {
+                            "type": "number",
+                            "minimum": 0
+                          },
+                          "treatment_available": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "const": "WL-T0-037-sizing-treated-service-autonomy"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "design_inputs_admitted",
+                    "profile_id",
+                    "essential_daily_demand_l",
+                    "autonomy_hours",
+                    "reserve_fraction",
+                    "usable_fraction"
+                  ],
+                  "properties": {
+                    "design_inputs_admitted": {
+                      "const": true
+                    },
+                    "profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "essential_daily_demand_l": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "autonomy_hours": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "reserve_fraction": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "usable_fraction": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "enum": [
+                    "WL-T0-038-sizing-pump-hydraulic-energy",
+                    "WL-T0-039-sizing-pump-efficiency-invalid"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "design_inputs_admitted",
+                    "profile_id",
+                    "flow_l_per_min",
+                    "total_dynamic_head_m",
+                    "wire_to_water_efficiency",
+                    "water_density_kg_m3",
+                    "gravity_m_s2"
+                  ],
+                  "properties": {
+                    "design_inputs_admitted": {
+                      "const": true
+                    },
+                    "profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "flow_l_per_min": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "total_dynamic_head_m": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "wire_to_water_efficiency": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "water_density_kg_m3": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "gravity_m_s2": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "const": "WL-T0-040-sizing-zero-process-availability"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "design_inputs_admitted",
+                    "profile_id",
+                    "steps"
+                  ],
+                  "properties": {
+                    "design_inputs_admitted": {
+                      "const": true
+                    },
+                    "profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "steps": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "duration_hours",
+                          "treatment_available"
+                        ],
+                        "properties": {
+                          "duration_hours": {
+                            "type": "number",
+                            "exclusiveMinimum": 0
+                          },
+                          "treatment_available": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "const": "WL-T0-041-sizing-unadmitted-design-inputs"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "design_inputs_admitted",
+                    "profile_id"
+                  ],
+                  "properties": {
+                    "design_inputs_admitted": {
+                      "const": false
+                    },
+                    "profile_id": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "case_id": {
+                  "const": "WL-T0-042-sizing-synthetic-claim-promotion-reject"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "inputs": {
+                  "type": "object",
+                  "required": [
+                    "evidence_class",
+                    "requested_claim_class"
+                  ],
+                  "properties": {
+                    "evidence_class": {
+                      "const": "synthetic_only"
+                    },
+                    "requested_claim_class": {
+                      "enum": [
+                        "process_qualification",
+                        "field_design_release"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     }
   }

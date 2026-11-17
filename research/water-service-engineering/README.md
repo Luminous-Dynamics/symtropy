@@ -148,3 +148,10 @@ The T0 household-economics suite now has nine synthetic cases (026–034). It ex
 [WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md) and the machine-readable module interface, challenge profiles, preliminary BOM, P&ID tag schedule and 12-hazard FMEA starter implement the concept in Symtropy #5713. The first product target is a contained, maintainable pilot skid with physically separate non-potable circuits and a hold/divert safe state. No train is selected or qualified; all mechanical/process dimensions remain TBD pending source characterization and qualified design review.
 
 Machine-readable starter risk register: [`WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json`](WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json). It is not a completed FMEA, HAZOP or safety case.
+
+
+## Design assurance and parametric sizing
+
+[WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md](WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md) defines the cross-file design audit, idealised raw equalisation, available-hours throughput, treated-service autonomy storage, pump hydraulic energy and DFM/DFA review gates.
+
+The shared WaterLoop T0 corpus now has 42 synthetic cases (035–042 add the sizing contract). The Rust tests also cross-audit module-interface, P&ID, BOM, FMEA and source-profile documents. These checks protect document consistency and arithmetic only; they do not replace professional process, structural, electrical, plumbing or safety review.

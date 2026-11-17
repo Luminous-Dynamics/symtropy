@@ -845,6 +845,142 @@
         "critical_person_days_delivered": 120,
         "tariff_billing_period_days": 28
       }
+    },
+    {
+      "case_id": "WL-T0-035-sizing-raw-equalization-periodic",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "GW-SYN-01-low-risk-shower",
+        "period_hours": 24,
+        "maximum_treatment_rate_l_per_h": 20,
+        "steps": [
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 60,
+            "treatment_available": true
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 20,
+            "treatment_available": false
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 80,
+            "treatment_available": true
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 20,
+            "treatment_available": false
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-036-sizing-treatment-capacity-insufficient",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "GW-SYN-01-low-risk-shower",
+        "period_hours": 24,
+        "maximum_treatment_rate_l_per_h": 14,
+        "steps": [
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 60,
+            "treatment_available": true
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 20,
+            "treatment_available": false
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 80,
+            "treatment_available": true
+          },
+          {
+            "duration_hours": 6,
+            "source_inflow_l": 20,
+            "treatment_available": false
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-037-sizing-treated-service-autonomy",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "nonpotable-toilet-v1",
+        "essential_daily_demand_l": 80,
+        "autonomy_hours": 72,
+        "reserve_fraction": 0.2,
+        "usable_fraction": 0.9
+      }
+    },
+    {
+      "case_id": "WL-T0-038-sizing-pump-hydraulic-energy",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "nonpotable-toilet-v1",
+        "flow_l_per_min": 10,
+        "total_dynamic_head_m": 12,
+        "wire_to_water_efficiency": 0.55,
+        "water_density_kg_m3": 1000,
+        "gravity_m_s2": 9.80665
+      }
+    },
+    {
+      "case_id": "WL-T0-039-sizing-pump-efficiency-invalid",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "nonpotable-toilet-v1",
+        "flow_l_per_min": 10,
+        "total_dynamic_head_m": 12,
+        "wire_to_water_efficiency": 1.2,
+        "water_density_kg_m3": 1000,
+        "gravity_m_s2": 9.80665
+      }
+    },
+    {
+      "case_id": "WL-T0-040-sizing-zero-process-availability",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": true,
+        "profile_id": "GW-SYN-01-low-risk-shower",
+        "steps": [
+          {
+            "duration_hours": 12,
+            "treatment_available": false
+          },
+          {
+            "duration_hours": 12,
+            "treatment_available": false
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WL-T0-041-sizing-unadmitted-design-inputs",
+      "family": "design_sizing",
+      "inputs": {
+        "design_inputs_admitted": false,
+        "profile_id": "GW-SYN-01-low-risk-shower"
+      }
+    },
+    {
+      "case_id": "WL-T0-042-sizing-synthetic-claim-promotion-reject",
+      "family": "design_sizing",
+      "inputs": {
+        "evidence_class": "synthetic_only",
+        "requested_claim_class": "process_qualification"
+      }
     }
   ]
 }

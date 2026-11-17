@@ -9,7 +9,10 @@
       "effect": "unexpected influent composition and unqualified treatment challenge",
       "detection": "source identity state missing or incompatible with approved source matrix",
       "safe_state": "divert source to approved wastewater route; quarantine current batch; no reuse release",
-      "verification": "seed unknown-source test; inspect physical source segregation and diversion"
+      "verification": "seed unknown-source test; inspect physical source segregation and diversion",
+      "module_ids": [
+        "SRC-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-002",
@@ -17,7 +20,10 @@
       "effect": "overflow, loss of flow, or unfiltered solids bypass",
       "detection": "measured differential level/pressure or flow deviation; physical inspection",
       "safe_state": "stop feed to process, route to approved drain, service basket",
-      "verification": "challenge with measured solids/lint load; verify no bypass or overflow to stormwater"
+      "verification": "challenge with measured solids/lint load; verify no bypass or overflow to stormwater",
+      "module_ids": [
+        "PRE-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-003",
@@ -25,7 +31,10 @@
       "effect": "storage-induced transformation and increased microbial/odour risk",
       "detection": "batch timestamp, timebase validity and temperature history",
       "safe_state": "hold batch; no release; divert or obtain independent quality decision per approved procedure",
-      "verification": "seed over-age, stale clock and missing timestamp controls"
+      "verification": "seed over-age, stale clock and missing timestamp controls",
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-004",
@@ -33,7 +42,10 @@
       "effect": "barrier performance not established; fouling or breakthrough",
       "detection": "module integrity test, pressure/flow and process-specific admission",
       "safe_state": "isolate cassette; hold product; divert feed",
-      "verification": "integrity challenge and post-clean recovery trial with admitted instruments"
+      "verification": "integrity challenge and post-clean recovery trial with admitted instruments",
+      "module_ids": [
+        "TR-A-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-005",
@@ -41,7 +53,12 @@
       "effect": "disinfection claim unsupported for the batch",
       "detection": "UV system state and independently validated dose/flow/transmittance envelope invalid",
       "safe_state": "close product outlet; hold/divert",
-      "verification": "seed low-intensity, lamp fault, fouled sleeve and out-of-range flow tests"
+      "verification": "seed low-intensity, lamp fault, fouled sleeve and out-of-range flow tests",
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-006",
@@ -49,7 +66,10 @@
       "effect": "worker exposure and uncontrolled oxidant release",
       "detection": "professionally selected gas detection, ventilation/off-gas interlocks and inspection",
       "safe_state": "de-energise ozone generation, isolate module and follow site emergency procedure",
-      "verification": "engineered gas/ventilation functional testing before ozone is introduced"
+      "verification": "engineered gas/ventilation functional testing before ozone is introduced",
+      "module_ids": [
+        "TR-C-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-007",
@@ -57,7 +77,10 @@
       "effect": "treated water contains unassessed transformation products",
       "detection": "analytical sampling and validated GAC exhaustion criterion",
       "safe_state": "hold product; replace media or reject train",
-      "verification": "feed-specific challenge and byproduct analysis by qualified laboratory"
+      "verification": "feed-specific challenge and byproduct analysis by qualified laboratory",
+      "module_ids": [
+        "TR-C-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-008",
@@ -65,7 +88,11 @@
       "effect": "variable effluent and solids carryover",
       "detection": "process history plus source/sample laboratory evidence",
       "safe_state": "hold product; isolate or divert until process restabilised and quality reassessed",
-      "verification": "start-up, idling, temperature/load shock and recovery trials"
+      "verification": "start-up, idling, temperature/load shock and recovery trials",
+      "module_ids": [
+        "TR-B-100",
+        "TR-D-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-009",
@@ -73,7 +100,18 @@
       "effect": "incomplete treatment or missing process history",
       "detection": "power event/timebase and incomplete cycle receipt",
       "safe_state": "batch remains held; no restart-to-release; require controlled recovery",
-      "verification": "cut power during each state and test retained batch identity"
+      "verification": "cut power during each state and test retained batch identity",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-010",
@@ -81,7 +119,18 @@
       "effect": "false safe process status",
       "detection": "Mycelix capability/calibration/applicability/timebase admission invalid",
       "safe_state": "Indeterminate; no product release",
-      "verification": "negative controls for missing, stale, calibration expired, drift and timebase mismatch"
+      "verification": "negative controls for missing, stale, calibration expired, drift and timebase mismatch",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-011",
@@ -89,7 +138,17 @@
       "effect": "residual accumulation, overpressure or uncontrolled spill",
       "detection": "level/flow closure and physical inspection",
       "safe_state": "stop process, isolate energy/source and maintenance lockout",
-      "verification": "blocked route tests with contained safe test fluid"
+      "verification": "blocked route tests with contained safe test fluid",
+      "module_ids": [
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "hazard_id": "WL-FMEA-012",
@@ -97,7 +156,12 @@
       "effect": "potential potable-system contamination",
       "detection": "physical design inspection, pressure/backflow test and plumbing professional review",
       "safe_state": "do not commission; physically disconnect/isolate and redesign",
-      "verification": "independent professional cross-connection/backflow hazard inspection"
+      "verification": "independent professional cross-connection/backflow hazard inspection",
+      "module_ids": [
+        "SRC-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     }
   ],
   "invariants": [

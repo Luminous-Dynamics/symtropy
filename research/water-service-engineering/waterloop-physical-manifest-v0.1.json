@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_water_service_arithmetic_and_contract_semantics_only",
   "benchmark_id": "WATERLOOP-PHYSICAL-T0",
-  "case_count": 34,
+  "case_count": 42,
   "required_case_ids": [
     "WL-T0-001-balanced-volume-closure",
     "WL-T0-002-unbalanced-volume-closure",
@@ -38,7 +38,15 @@
     "WL-T0-031-economics-income-unavailable",
     "WL-T0-032-economics-use-profile-mismatch",
     "WL-T0-033-economics-low-cost-service-floor-failure",
-    "WL-T0-034-economics-tariff-billing-period-mismatch"
+    "WL-T0-034-economics-tariff-billing-period-mismatch",
+    "WL-T0-035-sizing-raw-equalization-periodic",
+    "WL-T0-036-sizing-treatment-capacity-insufficient",
+    "WL-T0-037-sizing-treated-service-autonomy",
+    "WL-T0-038-sizing-pump-hydraulic-energy",
+    "WL-T0-039-sizing-pump-efficiency-invalid",
+    "WL-T0-040-sizing-zero-process-availability",
+    "WL-T0-041-sizing-unadmitted-design-inputs",
+    "WL-T0-042-sizing-synthetic-claim-promotion-reject"
   ],
   "families": [
     "volume_closure",
@@ -48,7 +56,8 @@
     "service_floor",
     "leak_metrics",
     "service_continuity",
-    "household_economics"
+    "household_economics",
+    "design_sizing"
   ],
   "rules": [
     "All values are synthetic known-answer vectors; this manifest grants no physical qualification.",
@@ -71,6 +80,13 @@
     "An architecture that does not meet the declared essential service floor is not eligible for economic preference even when its arithmetic cost is lower.",
     "Affordability burden is reported only from resident-authorised disposable-income evidence; no universal threshold or credit decision is created.",
     "Cost-period days and versioned utility tariff billing-period days must match exactly within the declared numeric tolerance; mismatched bills are Indeterminate and cannot be used for household savings or cost-comparison eligibility.",
-    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden."
+    "Cost/service efficiency comparison does not require household income evidence; income is required only for the separate resident-authorised affordability burden.",
+    "Parametric skid sizing is preliminary arithmetic only and consumes explicitly admitted owner inputs; it does not select equipment or establish process performance.",
+    "Periodic equalisation sizing uses interval inflow and treatment availability with zero net inventory change over the repeated period; ideal volume excludes freeboard, dead volume, fouling, process losses, and safety margins.",
+    "Treatment capacity is derived from total period inflow divided by declared process-available hours and compared against an independently supplied maximum process rate.",
+    "Treated-service storage derives from one named intended-use profile, essential daily demand, autonomy, reserve fraction and supplied usable fraction; it does not grant water-quality or cross-use credit.",
+    "Pump hydraulic power and specific energy use declared flow, total dynamic head and wire-to-water efficiency; pump selection and electrical auxiliary load design remain outside T0.",
+    "Non-admitted design inputs remain Indeterminate; nonphysical or infeasible design conditions are rejected or returned as infeasible, never converted into a favourable size.",
+    "Synthetic sizing values cannot be promoted into process qualification, field design release or water-quality qualification."
   ]
 }
