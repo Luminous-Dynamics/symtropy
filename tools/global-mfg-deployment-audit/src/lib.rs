@@ -93,7 +93,7 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     let product_family = string(field(core, "product_family_id", &format!("{path}.global_core"))?, &format!("{path}.global_core.product_family_id"))?.to_owned();
     let revision = string(field(core, "product_revision", &format!("{path}.global_core"))?, &format!("{path}.global_core.product_revision"))?.to_owned();
     let digest = string(field(core, "engineering_core_digest", &format!("{path}.global_core"))?, &format!("{path}.global_core.engineering_core_digest"))?;
-    if !digest.starts_with("sha256:") || !digest.ends_with(&"0".repeat(64)) {
+    if digest != format!("sha256:{}", "0".repeat(64)) {
         return Err(format!("{path}.global_core.engineering_core_digest: synthetic sentinel required"));
     }
 
@@ -278,7 +278,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_profile_identity() {
         let mut fixture = fixture_value();
-        fixture["profiles"][1]["profile_id"] = fixture["profiles"][0]["profile_id"].clone();
+        let duplicate_id = fixture["profiles"][0]["profile_id"].clone();
+        fixture["profiles"][1]["profile_id"] = duplicate_id;
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
     }
