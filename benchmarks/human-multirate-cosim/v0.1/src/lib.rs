@@ -130,6 +130,9 @@ pub struct Score {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimError {
+    InvalidAdaptiveConfig,
+    AdaptiveStepUnderflow,
+    AdaptiveAttemptLimitReached,
     NonFiniteParameter(&'static str),
     NonPositiveCapacity,
     NonPositiveConductance,
@@ -143,7 +146,16 @@ pub enum SimError {
 impl fmt::Display for SimError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidAdaptiveConfig => write!(f, "adaptive step/tolerance configuration is invalid"),\n            Self::AdaptiveStepUnderflow => write!(f, "adaptive solver reached the minimum step without an acceptable step"),\n            Self::AdaptiveAttemptLimitReached => write!(f, "adaptive solver exceeded its attempt limit"),\n            Self::NonFiniteParameter(name) => write!(f, "parameter {name} must be finite"),
+            Self::InvalidAdaptiveConfig => {
+                write!(f, "adaptive step/tolerance configuration is invalid")
+            }
+            Self::AdaptiveStepUnderflow => {
+                write!(f, "adaptive solver reached the minimum step without an acceptable step")
+            }
+            Self::AdaptiveAttemptLimitReached => {
+                write!(f, "adaptive solver exceeded its attempt limit")
+            }
+            Self::NonFiniteParameter(name) => write!(f, "parameter {name} must be finite"),
             Self::NonPositiveCapacity => write!(f, "both capacities must be positive"),
             Self::NonPositiveConductance => write!(f, "conductance must be positive"),
             Self::NonPositiveHorizon => write!(f, "horizon must be positive"),
@@ -217,12 +229,10 @@ pub fn simulate(
                 (updated_a, updated_b)
             }
             Method::SerialBThenA => {
-                let decay_a = (-scenario.conductance * communication_step
-                    / scenario.capacity_a)
-                    .exp();
-                let decay_b = (-scenario.conductance * communication_step
-                    / scenario.capacity_b)
-                    .exp();
+                let decay_a =
+                    (-scenario.conductance * communication_step / scenario.capacity_a).exp();
+                let decay_b =
+                    (-scenario.conductance * communication_step / scenario.capacity_b).exp();
                 let updated_b = a + (b - a) * decay_b;
                 let updated_a = updated_b + (a - updated_b) * decay_a;
                 (updated_a, updated_b)
@@ -495,7 +505,8 @@ pub fn simulate_adaptive_conservative_flux(
         positive_states: min_state >= 0.0,
     })
 }
-\n#[cfg(test)]
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -622,7 +633,7 @@ mod tests {
             Err(SimError::StepDoesNotDivideHorizon)
         );
     }
-}\n
+
     #[test]
     fn adaptive_flux_preserves_balance_and_rejects_large_initial_steps() {
         let scenario = asymmetric();
