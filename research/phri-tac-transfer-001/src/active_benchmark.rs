@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
+pub mod crosstalk_decomposition;
 pub mod coupling_identification;
 pub mod coupling_campaign;
 pub mod field_campaign;
