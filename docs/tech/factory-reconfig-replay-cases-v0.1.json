@@ -1,0 +1,253 @@
+{
+  "schema_version": "factory-reconfiguration-cases/0.1",
+  "case_set_id": "FACTORY-RECONFIG-REPLAY-v0.1",
+  "claim_ceiling": "SYNTHETIC_TRANSITION_CONFORMANCE_ONLY",
+  "warning": "All IDs, generations, digest strings, elapsed ticks, process states and outcomes are synthetic fixtures. No real factory time, cost, capacity, product quality or safety claim is asserted. Digests are identity-shaped fixture values, not authenticated external artifacts.",
+  "authority_partition": {
+    "design_proposal": "SYTHAEA_CANDIDATE_AND_PLAN_ONLY",
+    "deterministic_replay": "SYMTROPY_PURE_REPLAY_ONLY",
+    "first_article_physical_acceptance": "INDEPENDENT_METROLOGY_REQUIRED",
+    "production_release": "COMPETENT_HUMAN_AUTHORITY"
+  },
+  "required_phases": [
+    "DRAIN_WIP",
+    "SAFE_STOP",
+    "ISOLATE",
+    "CHANGE_MODULES",
+    "LOAD_CONFIGURATION",
+    "CALIBRATE_AND_STAFF",
+    "COMMISSION",
+    "FIRST_ARTICLE",
+    "STABLE_RESTART"
+  ],
+  "cases": [
+    {
+      "case_id": "POS-RECONFIG-COMPLETE-001",
+      "mutation": "ALL_NINE_PHASES_COMPLETE; WIP_GENEALOGY_INTERFACES_CALIBRATION_SKILLS_COMMISSIONING_AND_FIRST_ARTICLE_ACCEPTED",
+      "expected_disposition": "ACCEPTED_SYNTHETIC",
+      "expected_reason_codes": [],
+      "expected_first_article_accepted": true,
+      "expected_further_mutation_authorized": true
+    },
+    {
+      "case_id": "NEG-STALE-SOURCE-CONFIG-001",
+      "mutation": "SOURCE_CONFIGURATION_GENERATION_MISMATCH",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "SOURCE_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "NEG-STALE-TARGET-CONFIG-001",
+      "mutation": "TARGET_CONFIGURATION_GENERATION_MISMATCH",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "TARGET_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "NEG-STALE-PRODUCT-REVISION-001",
+      "mutation": "PRODUCT_REVISION_DIFFERS_FROM_ACCEPTED_PRODUCT_REVISION",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "PRODUCT_REVISION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "NEG-STALE-PROCESS-ROUTE-001",
+      "mutation": "PROCESS_ROUTE_REVISION_DIFFERS_FROM_ACCEPTED_ROUTE",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "PROCESS_REVISION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "NEG-MISSING-PHASE-001",
+      "mutation": "NONTERMINAL_TRACE_OMITS_MODULE_CHANGE_PHASE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "MISSING_PHASE"
+      ]
+    },
+    {
+      "case_id": "NEG-DUPLICATE-STEP-ID-001",
+      "mutation": "TWO_TRANSITION_STEPS_SHARE_EVENT_ID",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "DUPLICATE_STEP_ID"
+      ]
+    },
+    {
+      "case_id": "NEG-OUT-OF-ORDER-001",
+      "mutation": "CALIBRATION_PHASE_PRECEDES_MODULE_UTILITY_CHANGE",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "INVALID_STEP_ORDER"
+      ]
+    },
+    {
+      "case_id": "NEG-WIP-DISPOSITION-001",
+      "mutation": "WIP_OR_MATERIAL_LOTS_NOT_DISPOSITIONED_BEFORE_SAFE_STOP",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "WIP_DISPOSITION_INCOMPLETE"
+      ]
+    },
+    {
+      "case_id": "NEG-GENEALOGY-BROKEN-001",
+      "mutation": "PRODUCT_OR_MATERIAL_GENEALOGY_LOST_DURING_MODULE_CHANGE",
+      "expected_disposition": "TRACEABILITY_BROKEN",
+      "expected_reason_codes": [
+        "GENEALOGY_INCOMPLETE"
+      ]
+    },
+    {
+      "case_id": "NEG-SAFE-STOP-001",
+      "mutation": "MODULE_CHANGE_WITHOUT_CONFIRMED_SAFE_STOP",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "SAFE_STOP_MISSING"
+      ]
+    },
+    {
+      "case_id": "NEG-ISOLATION-001",
+      "mutation": "THERMAL_OR_CHEMICAL_HAZARD_NOT_ISOLATED_BEFORE_MODULE_CHANGE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "THERMAL_CHEMICAL_ISOLATION_MISSING"
+      ]
+    },
+    {
+      "case_id": "NEG-MODULE-INTERFACE-001",
+      "mutation": "MODULE_INTERFACE_INCOMPATIBLE_WITH_TARGET_CONFIGURATION",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "MODULE_INTERFACE_INCOMPATIBLE"
+      ]
+    },
+    {
+      "case_id": "NEG-SEGREGATION-001",
+      "mutation": "PROCESS_MODULE_PLACED_IN_INCOMPATIBLE_ENVIRONMENTAL_ZONE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "SEGREGATION_VIOLATION"
+      ]
+    },
+    {
+      "case_id": "NEG-RECIPE-REVISION-001",
+      "mutation": "TARGET_PROCESS_RECIPE_REFERENCES_STALE_REVISION",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "RECIPE_STALE"
+      ]
+    },
+    {
+      "case_id": "NEG-CALIBRATION-001",
+      "mutation": "REQUIRED_METROLOGY_OR_TOOL_CALIBRATION_EXPIRED",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "CALIBRATION_STALE"
+      ]
+    },
+    {
+      "case_id": "NEG-STAFF-QUALIFICATION-001",
+      "mutation": "REQUIRED_SKILL_OR_AUTHORIZED_OPERATOR_UNAVAILABLE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "QUALIFIED_STAFF_MISSING"
+      ]
+    },
+    {
+      "case_id": "NEG-COMMISSIONING-001",
+      "mutation": "TARGET_CONFIGURATION_COMMISSIONING_FAILED",
+      "expected_disposition": "COMMISSIONING_FAILED",
+      "expected_reason_codes": [
+        "COMMISSIONING_FAILED"
+      ]
+    },
+    {
+      "case_id": "NEG-FIRST-ARTICLE-REJECTED-001",
+      "mutation": "FIRST_ARTICLE_INSPECTION_REJECTS_TARGET_PRODUCT",
+      "expected_disposition": "FIRST_ARTICLE_REJECTED",
+      "expected_reason_codes": [
+        "FIRST_ARTICLE_REJECTED"
+      ],
+      "expected_first_article_accepted": false
+    },
+    {
+      "case_id": "NEG-FIRST-ARTICLE-HELD-001",
+      "mutation": "FIRST_ARTICLE_REMAINS_ON_QUALITY_HOLD",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "FIRST_ARTICLE_HELD"
+      ],
+      "expected_first_article_accepted": false
+    },
+    {
+      "case_id": "NEG-UNKNOWN-OUTCOME-001",
+      "mutation": "EXECUTION_RESULT_UNKNOWN_AT_CONFIGURATION_LOAD; TRACE_TERMINATES_AND_AWAITS_RECONCILIATION",
+      "expected_disposition": "UNKNOWN_OUTCOME",
+      "expected_reason_codes": [
+        "UNKNOWN_OUTCOME_REQUIRES_RECONCILIATION"
+      ],
+      "expected_further_mutation_authorized": false
+    },
+    {
+      "case_id": "NEG-MUTATE-AFTER-UNKNOWN-001",
+      "mutation": "ADDITIONAL_CONFIGURATION_STEP_ATTEMPTED_AFTER_UNKNOWN_OUTCOME",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "MUTATION_AFTER_UNKNOWN"
+      ],
+      "expected_further_mutation_authorized": false
+    },
+    {
+      "case_id": "NEG-ROLLBACK-REQUIRED-001",
+      "mutation": "MODULE_CHANGE_FAILS_AND_SOURCE_CONFIGURATION_ROLLBACK_NOT_VERIFIED",
+      "expected_disposition": "ROLLBACK_REQUIRED",
+      "expected_reason_codes": [
+        "ROLLBACK_NOT_VERIFIED"
+      ]
+    },
+    {
+      "case_id": "POS-ROLLBACK-VERIFIED-001",
+      "mutation": "MODULE_CHANGE_FAILS_BUT_SOURCE_CONFIGURATION_ROLLBACK_IS_VERIFIED",
+      "expected_disposition": "ABORTED",
+      "expected_reason_codes": [
+        "ROLLBACK_VERIFIED"
+      ]
+    },
+    {
+      "case_id": "NEG-MALFORMED-REFERENCE-001",
+      "mutation": "PLAN_DIGEST_IS_NOT_64_LOWERCASE_HEX_CHARACTERS",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "MALFORMED_REFERENCE"
+      ]
+    },
+    {
+      "case_id": "NEG-TIME-OVERFLOW-001",
+      "mutation": "SUM_OF_SYNTHETIC_STEP_ELAPSED_TICKS_OVERFLOWS_U64",
+      "expected_disposition": "REJECT",
+      "expected_reason_codes": [
+        "DURATION_OVERFLOW"
+      ]
+    },
+    {
+      "case_id": "NEG-NO-INSPECTOR-001",
+      "mutation": "NO_QUALIFIED_INSPECTOR_FOR_REQUIRED_FIRST_ARTICLE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "INSPECTOR_UNAVAILABLE"
+      ]
+    },
+    {
+      "case_id": "NEG-UNSTABLE-RESTART-001",
+      "mutation": "FIRST_ARTICLE_ACCEPTED_BUT_TARGET_SERVICE_NOT_STABLE",
+      "expected_disposition": "BLOCKED",
+      "expected_reason_codes": [
+        "STABLE_SERVICE_MISSING"
+      ]
+    }
+  ]
+}
