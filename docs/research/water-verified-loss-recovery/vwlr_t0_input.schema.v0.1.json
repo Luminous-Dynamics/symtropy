@@ -88,7 +88,9 @@
                 "max_demand_difference_percent",
                 "uncertainty_expansion_factor",
                 "follow_up",
-                "control_boundary_id"
+                "control_boundary_id",
+                "treated_zone_id",
+                "control_zone_id"
               ],
               "properties": {
                 "event_id": {
@@ -321,6 +323,14 @@
                   }
                 },
                 "control_boundary_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "treated_zone_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "control_zone_id": {
                   "type": "string",
                   "minLength": 1
                 }
