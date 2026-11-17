@@ -486,6 +486,126 @@ pub fn score_acquisition_plan(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct AdaptiveReadoutExample {
+    pub observable_event_scores: Vec<AcquisitionScorecard>,
+    pub off_prediction_region_event_scores: Vec<AcquisitionScorecard>,
+    pub claim_class: &'static str,
+}
+
+fn synthetic_readout_problem(seed: u64, maximum_taxel_reads: usize) -> AdaptiveAcquisitionProblem {
+    let grid_width = 32;
+    let grid_height = 32;
+    let center = [15.0, 15.0];
+    let candidates = (0..(grid_width * grid_height))
+        .map(|taxel_index| {
+            let grid_x = taxel_index % grid_width;
+            let grid_y = taxel_index / grid_width;
+            let dx = grid_x as f64 - center[0];
+            let dy = grid_y as f64 - center[1];
+            let distance = (dx * dx + dy * dy).sqrt();
+            let contact_probability = (1.0 - distance / 12.0).clamp(0.0, 1.0);
+            let uncertainty = (1.0 - contact_probability) * 0.75;
+            let event_hazard = if (grid_x == 16 || grid_x == 17)
+                && (grid_y == 15 || grid_y == 16)
+            {
+                0.99
+            } else {
+                contact_probability * 0.1
+            };
+            TaxelAcquisitionCandidate {
+                taxel_index,
+                grid_x,
+                grid_y,
+                predicted_contact_probability: contact_probability,
+                predicted_field_uncertainty: uncertainty,
+                predicted_event_hazard: event_hazard,
+                readout_available: true,
+                estimated_readout_latency_ns: 10_000,
+                estimated_readout_energy_nj: 40,
+            }
+        })
+        .collect();
+
+    AdaptiveAcquisitionProblem {
+        grid_width,
+        grid_height,
+        candidates,
+        maximum_taxel_reads,
+        bus_setup_latency_ns: 25_000,
+        bus_setup_energy_nj: 100,
+        maximum_total_latency_ns: 20_000_000,
+        maximum_total_energy_nj: 100_000,
+        predicted_contact_center: Some(center),
+        seed: seed.max(1),
+        sensorized_body_context_digest: "sha256:synthetic-1024-taxel-body".to_owned(),
+        readout_chain_digest: "sha256:synthetic-readout-chain".to_owned(),
+        acquisition_profile_digest: "sha256:synthetic-readout-cost-profile".to_owned(),
+    }
+}
+
+fn synthetic_readout_truth(event_center: [usize; 2]) -> EvaluatorOnlyContactTruth {
+    let width = 32;
+    let height = 32;
+    let mut active = vec![false; width * height];
+    let mut urgent = vec![false; width * height];
+    for y in 0..height {
+        for x in 0..width {
+            if x.abs_diff(15) <= 2 && y.abs_diff(15) <= 2 {
+                active[y * width + x] = true;
+            }
+            if x.abs_diff(event_center[0]) <= 1 && y.abs_diff(event_center[1]) <= 1 {
+                urgent[y * width + x] = true;
+            }
+        }
+    }
+    EvaluatorOnlyContactTruth {
+        active_contact_by_taxel: active,
+        urgent_event_by_taxel: urgent,
+    }
+}
+
+/// Run a deterministic 1,024-taxel example comparing full raster, fixed,
+/// random, locality and risk-adaptive plans. The second evaluator case places
+/// an event outside the predicted contact region to expose the limits of
+/// prediction-guided sparse sampling.
+pub fn run_synthetic_readout_example(seed: u64) -> Result<AdaptiveReadoutExample, String> {
+    if seed == 0 {
+        return Err("synthetic readout example seed must be nonzero".to_owned());
+    }
+    let policies = [
+        (AcquisitionPolicy::FullRaster, DEFAULT_TAXEL_COUNT),
+        (AcquisitionPolicy::FixedRasterPrefix, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::UniformRandom, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::ContactLocality, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::RiskAdaptive, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::RiskAdaptive, 64),
+    ];
+    let observable_truth = synthetic_readout_truth([16, 16]);
+    let off_prediction_truth = synthetic_readout_truth([30, 30]);
+    let mut observable_event_scores = Vec::with_capacity(policies.len());
+    let mut off_prediction_region_event_scores = Vec::with_capacity(policies.len());
+
+    for (policy, budget) in policies {
+        let problem = synthetic_readout_problem(seed, budget);
+        let plan = plan_adaptive_readout(&problem, policy)?;
+        observable_event_scores.push(score_acquisition_plan(&problem, &plan, &observable_truth)?);
+
+        let off_prediction_plan = plan_adaptive_readout(&problem, policy)?;
+        off_prediction_region_event_scores.push(score_acquisition_plan(
+            &problem,
+            &off_prediction_plan,
+            &off_prediction_truth,
+        )?);
+    }
+
+    Ok(AdaptiveReadoutExample {
+        observable_event_scores,
+        off_prediction_region_event_scores,
+        claim_class: "synthetic_partial_readout_policy_comparison_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
