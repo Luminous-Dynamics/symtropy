@@ -1,0 +1,154 @@
+{
+  "schema_version": "myco.multimodal_imaging_claims.v0.1",
+  "suite_id": "MYCO-MULTIMODAL-CLAIMS-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5742",
+  "source_review": {
+    "title": "Novel imaging approaches for visualizing root–mycorrhizal fungal interactions",
+    "journal": "Journal of Experimental Botany",
+    "doi": "10.1093/jxb/erag309",
+    "publication_date": "2026-07-03",
+    "source_url": "https://doi.org/10.1093/jxb/erag309",
+    "evidence_role": "technology/methods review, not a comparative benchmark dataset"
+  },
+  "implementation": {
+    "rust_module": "symtropy_mycelium::multimodal_imaging",
+    "source_receipt": "ObservationEvidenceReceipt",
+    "calibration_receipt": "separate optional ObservationEvidenceId",
+    "observation_identity": "ModalityObservationId",
+    "calibration_policy": "absence downgrades quantitative/direct claim support; it is never defaulted",
+    "nutrient_delivery_policy": "single modality observation always returns InsufficientAlone"
+  },
+  "modalities": [
+    {
+      "modality": "BrightfieldZStack",
+      "observable": "FilamentMorphology",
+      "direct_claims": [
+        "HyphalMorphology2D",
+        "HyphalMorphology3D when 3D support, z-resolution and calibration are present"
+      ],
+      "contextual_claims": [
+        "HyphalConnectivity"
+      ],
+      "insufficient_claims": [
+        "ChemicalSpeciation",
+        "ElementalDistribution",
+        "CytoplasmicFlow",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "MicroComputedTomography",
+      "observable": "FilamentMorphology",
+      "direct_claims": [
+        "HyphalMorphology3D when voxel depth, spatial resolution and calibration are present"
+      ],
+      "contextual_claims": [
+        "HyphalConnectivity"
+      ],
+      "insufficient_claims": [
+        "CytoplasmicFlow",
+        "MetabolicActivity",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "XrayFluorescence",
+      "observable": "ElementalDistribution",
+      "direct_claims": [
+        "ElementalDistribution when calibration and analyte identity are present"
+      ],
+      "contextual_claims": [
+        "ElementalDistribution when calibration or analyte identity is missing"
+      ],
+      "insufficient_claims": [
+        "ChemicalSpeciation",
+        "TracerDynamics",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "XrayAbsorptionNearEdge",
+      "observable": "ChemicalSpeciation",
+      "direct_claims": [
+        "ChemicalSpeciation when calibration and analyte identity are present"
+      ],
+      "contextual_claims": [
+        "ChemicalSpeciation when calibration or analyte identity is missing"
+      ],
+      "insufficient_claims": [
+        "Transport",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "PositronEmissionTomography",
+      "observable": "RadiotracerDynamics",
+      "direct_claims": [
+        "RadiotracerDynamics when calibration, tracer identity and temporal resolution are present"
+      ],
+      "contextual_claims": [
+        "MetabolicActivity",
+        "RadiotracerDynamics when required metadata is missing"
+      ],
+      "insufficient_claims": [
+        "FungalSpecificTransferWithoutRouteControls",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "FluorescentNanoparticleTracking",
+      "observable": "LabelledParticleMovement",
+      "direct_claims": [
+        "LabelledParticleMovement when label identity and temporal resolution are present"
+      ],
+      "contextual_claims": [
+        "LabelledParticleMovement when label or temporal information is absent"
+      ],
+      "insufficient_claims": [
+        "NaturalCargoIdentity",
+        "NutrientDeliveryToHost"
+      ]
+    },
+    {
+      "modality": "ElectricalSignalRecording",
+      "observable": "ElectricalSignalDynamics",
+      "direct_claims": [
+        "ElectricalSignalDynamics when calibration and temporal resolution are present"
+      ],
+      "contextual_claims": [
+        "ElectricalSignalDynamics when either is missing"
+      ],
+      "insufficient_claims": [
+        "CytoplasmicFlow",
+        "NutrientDeliveryToHost"
+      ]
+    }
+  ],
+  "required_known_answer_cases": [
+    "micro-CT supports 3D morphology only with calibrated depth resolution",
+    "XRF elemental distribution does not imply chemical speciation",
+    "XANES speciation does not imply transport",
+    "PET tracer dynamics do not imply fungal-route transfer without controls",
+    "fluorescent nanoparticle movement identifies only the labelled particle",
+    "electrical signal recordings are not mass-flow measurements",
+    "brightfield Z-stacks support geometry, not chemistry",
+    "missing calibration downgrades claim support",
+    "missing analyte/tracer identity downgrades chemical claims",
+    "single modality can never prove nutrient delivery to host",
+    "source and calibration receipt IDs must resolve and validate",
+    "modality/observable mismatch is rejected"
+  ],
+  "experimental_controls_required_for_nutrient_delivery": [
+    "source/donor compartment identified",
+    "fungal route or bridge identified",
+    "recipient host tissue/compartment identified",
+    "tracer or element enrichment measured at recipient",
+    "diffusion-only barrier control",
+    "hyphae-severed control",
+    "no-fungus control",
+    "microbial-only control where bacteria could mediate transfer",
+    "no-donor-label control",
+    "time ordering aligned across acquisition clocks"
+  ],
+  "claim_ceiling": "A modality observation qualifies one measurement channel. It does not prove fungal transport, host nutrient delivery, metabolic rate, common-network function or causality."
+}
