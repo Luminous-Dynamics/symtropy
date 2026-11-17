@@ -105,6 +105,7 @@ pub enum MultiBodyBroadphaseError {
     NoBodies,
     EmptyBodyId,
     DuplicateBodyId,
+    BodyIdLookupFailure,
     InvalidSubdivisionCount,
     TooManyBodySlabCells,
     SiteEpochMismatch,
@@ -362,59 +363,50 @@ pub fn time_swept_capsule_broadphase(
         });
     }
 
-    let pairs = pair_slabs
-        .into_iter()
-        .map(|((first_body_id, second_body_id), mut candidate_slabs)| {
-            candidate_slabs.sort_by_key(|candidate| candidate.slab_index);
-            let active_overlap_start_ms = bodies
-                .iter()
-                .find(|body| body.body_id == first_body_id)
-                .expect("pair body exists")
-                .motion
-                .start_ms
-                .max(
-                    bodies
-                        .iter()
-                        .find(|body| body.body_id == second_body_id)
-                        .expect("pair body exists")
-                        .motion
-                        .start_ms,
-                );
-            let active_overlap_end_ms = bodies
-                .iter()
-                .find(|body| body.body_id == first_body_id)
-                .expect("pair body exists")
-                .motion
-                .end_ms
-                .min(
-                    bodies
-                        .iter()
-                        .find(|body| body.body_id == second_body_id)
-                        .expect("pair body exists")
-                        .motion
-                        .end_ms,
-                );
-            let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
-            let candidate_duration_u128 = candidate_slabs
-                .iter()
-                .map(|candidate| {
-                    u128::from(candidate.overlap_end_ms - candidate.overlap_start_ms)
-                })
-                .sum::<u128>();
-            let candidate_duration_ms = u64::try_from(candidate_duration_u128)
-                .expect("candidate intervals partition the active overlap");
-            TimedCapsulePairCandidate {
-                first_body_id,
-                second_body_id,
-                active_overlap_start_ms,
-                active_overlap_end_ms,
-                active_duration_ms,
-                candidate_duration_ms,
-                candidate_time_fraction: candidate_duration_ms as f64 / active_duration_ms as f64,
-                candidate_slabs,
-            }
-        })
+    let span_by_id: BTreeMap<&str, &CapsuleMotionSpan> = bodies
+        .iter()
+        .map(|body| (body.body_id.as_str(), &body.motion))
         .collect();
+    let mut pairs = Vec::with_capacity(pair_slabs.len());
+    for ((first_body_id, second_body_id), mut candidate_slabs) in pair_slabs {
+        candidate_slabs.sort_by_key(|candidate| candidate.slab_index);
+        let first_span = span_by_id
+            .get(first_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let second_span = span_by_id
+            .get(second_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
+        let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
+        if active_overlap_start_ms >= active_overlap_end_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
+        let candidate_duration_u128 = candidate_slabs.iter().try_fold(
+            0_u128,
+            |total, candidate| {
+                total.checked_add(u128::from(
+                    candidate.overlap_end_ms - candidate.overlap_start_ms,
+                ))
+            },
+        )
+        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        let candidate_duration_ms = u64::try_from(candidate_duration_u128)
+            .map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        if candidate_duration_ms > active_duration_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        pairs.push(TimedCapsulePairCandidate {
+            first_body_id,
+            second_body_id,
+            active_overlap_start_ms,
+            active_overlap_end_ms,
+            active_duration_ms,
+            candidate_duration_ms,
+            candidate_time_fraction: candidate_duration_ms as f64 / active_duration_ms as f64,
+            candidate_slabs,
+        });
+    }
 
     Ok(MultiBodyBroadphaseReport {
         horizon_start_ms,
