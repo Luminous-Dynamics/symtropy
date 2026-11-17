@@ -1,7 +1,11 @@
 use std::hint::black_box;
 use std::time::{Duration, Instant};
 
-use construction_motion_oracle::{AnalyticPath, Vec3, chord_collision, endpoints_only_collision};
+use construction_motion_oracle::{
+    AnalyticPath, DesignIntentEntity, FieldAcceptanceProfile, FieldLayoutEntityType,
+    SiteActorRole, SiteEventEnvelope, SiteEventPayload, SiteStateLedger, SiteWorkPackage, Vec3,
+    chord_collision, endpoints_only_collision,
+};
 
 const BATCH_SIZE: usize = 10_000;
 const SAMPLES: usize = 101;
@@ -116,4 +120,92 @@ fn main() {
             black_box(20.0),
         );
     });
+    run_site_ledger_append_scaling_benchmarks();
+}
+
+
+fn run_site_ledger_append_scaling_benchmarks() {
+    println!("site_ledger_append_scaling,event_count,rounds,total_p50_us,total_p95_us,ns_per_event_p50,ns_per_event_p95");
+    for event_count in [100_u64, 1_000, 10_000] {
+        let mut round_durations = Vec::with_capacity(7);
+        for _round in 0..7 {
+            let mut ledger = SiteStateLedger::new();
+            let package_sha256 = "a".repeat(64);
+            let package = SiteWorkPackage {
+                package_sha256: package_sha256.clone(),
+                source_model_sha256: "b".repeat(64),
+                source_schema_release: "IFC4X3_ADD2".into(),
+                ids_spec_sha256: "c".repeat(64),
+                ids_version: "1.0".into(),
+                design_revision_sha256: "d".repeat(64),
+                frame_id: "benchmark-site-frame".into(),
+                frame_sha256: "e".repeat(64),
+                transform_sha256: "f".repeat(64),
+                entity_manifest_sha256: "1".repeat(64),
+                acceptance_profile_sha256: "2".repeat(64),
+                entities: vec![DesignIntentEntity {
+                    design_entity_id: "ifc4x3:0000000000000000000001".into(),
+                    entity_type: FieldLayoutEntityType::Point,
+                }],
+                acceptance_profile: FieldAcceptanceProfile {
+                    max_abs_xy_residual_mm: 1.0,
+                    max_reference_u95_xy_mm: 0.25,
+                    max_abs_z_residual_mm: None,
+                    max_reference_u95_z_mm: None,
+                    max_abs_endpoint_residual_mm: None,
+                },
+            };
+            ledger
+                .apply(SiteEventEnvelope {
+                    event_id: "package-publish".into(),
+                    sequence: 1,
+                    previous_event_sha256: None,
+                    event_sha256: "3".repeat(64),
+                    actor_id: "design-authority".into(),
+                    actor_role: SiteActorRole::DesignAuthority,
+                    payload: SiteEventPayload::WorkPackagePublished { package },
+                })
+                .expect("benchmark package publication must be valid");
+
+            let start = Instant::now();
+            for index in 0..event_count {
+                let sequence = index + 2;
+                let event = SiteEventEnvelope {
+                    event_id: format!("station-{sequence:08}"),
+                    sequence,
+                    previous_event_sha256: ledger.last_event_sha256().map(str::to_owned),
+                    event_sha256: format!("{sequence:064x}"),
+                    actor_id: "surveyor".into(),
+                    actor_role: SiteActorRole::Surveyor,
+                    payload: SiteEventPayload::StationQualified {
+                        package_sha256: package_sha256.clone(),
+                        station_id: format!("station-{sequence:08}"),
+                        frame_sha256: "e".repeat(64),
+                        transform_sha256: "f".repeat(64),
+                        calibration_sha256: "4".repeat(64),
+                    },
+                };
+                black_box(
+                    ledger
+                        .apply(event)
+                        .expect("benchmark station qualification must be valid"),
+                );
+            }
+            round_durations.push(start.elapsed());
+            assert_eq!(ledger.event_count() as u64, event_count + 1);
+            assert_eq!(ledger.last_sequence(), event_count + 1);
+        }
+        round_durations.sort_unstable();
+        let p50 = percentile(&round_durations, 50);
+        let p95 = percentile(&round_durations, 95);
+        println!(
+            "{},{},{},{},{},{},{}",
+            event_count,
+            round_durations.len(),
+            p50.as_micros(),
+            p95.as_micros(),
+            p50.as_nanos() / u128::from(event_count),
+            p95.as_nanos() / u128::from(event_count),
+        );
+    }
 }
