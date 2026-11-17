@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Power Fabric transport-session binding negative-control registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "mutation",
+        "expected_disposition",
+        "expected_reason_codes",
+        "must_preserve_authority_non_escalation",
+        "note"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_disposition": {
+          "enum": [
+            "METADATA_BOUND",
+            "NOT_COMPARABLE",
+            "UNRESOLVED",
+            "REJECT_SCHEMA"
+          ]
+        },
+        "expected_reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "must_preserve_authority_non_escalation": {
+          "const": true
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "expected_disposition": {
+                "const": "METADATA_BOUND"
+              }
+            },
+            "required": [
+              "expected_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expected_reason_codes": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "expected_disposition": {
+                "enum": [
+                  "NOT_COMPARABLE",
+                  "UNRESOLVED",
+                  "REJECT_SCHEMA"
+                ]
+              }
+            },
+            "required": [
+              "expected_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "expected_reason_codes": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
