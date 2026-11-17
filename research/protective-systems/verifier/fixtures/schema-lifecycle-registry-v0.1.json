@@ -167,7 +167,7 @@
       "bundle_completeness": "COMPLETE_LOCAL_SCHEMA",
       "external_dependencies": [],
       "validation_scope": "FULL_RUN_EVENT_JSON_SCHEMA",
-      "validator_id": "jsonschema-rust/0.61.2",
+      "validator_id": "jsonschema crate 0.61.2 (Rust)",
       "validator_receipt": "PENDING_EXACT_HEAD_CI",
       "mapping_manifest_version": "e4-projection/0.1",
       "promotion_note": "Final pinned RunEvent schema scope only; does not assert OpenLineage server/API interoperability or physical truth."
