@@ -91,7 +91,9 @@ fn require_dimension_member(
         field(context, dimension, path)?,
         &format!("{path}.{dimension}"),
     )?;
-    let found = values.iter().any(|value| value.as_str() == Some(jurisdiction));
+    let found = values
+        .iter()
+        .any(|value| value.as_str() == Some(jurisdiction));
     if !found {
         return Err(format!(
             "{path}.{dimension}: jurisdiction {jurisdiction} is not declared in this dimension"
@@ -179,7 +181,11 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
 
     let site = field(profile, "manufacturing_site", &path)?;
     let site_jurisdiction = string(
-        field(site, "site_jurisdiction", &format!("{path}.manufacturing_site"))?,
+        field(
+            site,
+            "site_jurisdiction",
+            &format!("{path}.manufacturing_site"),
+        )?,
         &format!("{path}.manufacturing_site.site_jurisdiction"),
     )?;
     require_dimension_member(
@@ -218,7 +224,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &format!("{path}.deployment_context"),
         )?;
         if !market_ids.insert(destination.to_owned()) {
-            return Err(format!("{path}.market_access: duplicate destination {destination}"));
+            return Err(format!(
+                "{path}.market_access: duplicate destination {destination}"
+            ));
         }
         require_not(
             market,
@@ -254,7 +262,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &format!("{cpath}.component_ref"),
         )?;
         if !component_ids.insert(component_id.to_owned()) {
-            return Err(format!("{path}.supply_chain.components: duplicate component {component_id}"));
+            return Err(format!(
+                "{path}.supply_chain.components: duplicate component {component_id}"
+            ));
         }
         let supplier_site = string(
             field(component, "supplier_site_jurisdiction", &cpath)?,
@@ -285,12 +295,12 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         }
         let mut component_transformation_ids = BTreeSet::new();
         for (k, value) in transformation_sites.iter().enumerate() {
-            let jurisdiction = string(
-                value,
-                &format!("{cpath}.transformation_jurisdictions[{k}]"),
-            )?;
+            let jurisdiction =
+                string(value, &format!("{cpath}.transformation_jurisdictions[{k}]"))?;
             if !component_transformation_ids.insert(jurisdiction.to_owned()) {
-                return Err(format!("{cpath}.transformation_jurisdictions: duplicate jurisdiction {jurisdiction}"));
+                return Err(format!(
+                    "{cpath}.transformation_jurisdictions: duplicate jurisdiction {jurisdiction}"
+                ));
             }
             require_dimension_member(
                 context,
@@ -366,7 +376,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &format!("{opath}.obligation_id"),
         )?;
         if !obligation_ids.insert(obligation_id.to_owned()) {
-            return Err(format!("{path}.obligations: duplicate obligation {obligation_id}"));
+            return Err(format!(
+                "{path}.obligations: duplicate obligation {obligation_id}"
+            ));
         }
         let jurisdiction = string(
             field(obligation, "jurisdiction", &opath)?,
@@ -710,8 +722,8 @@ mod tests {
     #[test]
     fn rejects_transformation_site_missing_from_transformation_dimension() {
         let mut fixture = fixture_value();
-        fixture["profiles"][0]["supply_chain"]["components"][0]["transformation_jurisdictions"][0] =
-            Value::String("urn:luminous:synthetic:jurisdiction:market-1".to_owned());
+        fixture["profiles"][0]["supply_chain"]["components"][0]["transformation_jurisdictions"]
+            [0] = Value::String("urn:luminous:synthetic:jurisdiction:market-1".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
     }
@@ -728,7 +740,8 @@ mod tests {
     #[test]
     fn rejects_duplicate_jurisdiction_in_one_dimension() {
         let mut fixture = fixture_value();
-        let first = fixture["profiles"][0]["deployment_context"]["supplier_site_jurisdictions"][0].clone();
+        let first =
+            fixture["profiles"][0]["deployment_context"]["supplier_site_jurisdictions"][0].clone();
         fixture["profiles"][0]["deployment_context"]["supplier_site_jurisdictions"][1] = first;
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
@@ -747,13 +760,28 @@ mod tests {
     fn report_is_invariant_to_input_array_order() {
         let expected = audit_corpus(FIXTURE).expect("canonical fixture audit");
         let mut fixture = fixture_value();
-        fixture["profiles"].as_array_mut().expect("profiles").reverse();
-        fixture["negative_controls"].as_array_mut().expect("controls").reverse();
+        fixture["profiles"]
+            .as_array_mut()
+            .expect("profiles")
+            .reverse();
+        fixture["negative_controls"]
+            .as_array_mut()
+            .expect("controls")
+            .reverse();
         for profile in fixture["profiles"].as_array_mut().expect("profiles") {
-            profile["obligations"].as_array_mut().expect("obligations").reverse();
-            profile["supply_chain"]["components"].as_array_mut().expect("components").reverse();
+            profile["obligations"]
+                .as_array_mut()
+                .expect("obligations")
+                .reverse();
+            profile["supply_chain"]["components"]
+                .as_array_mut()
+                .expect("components")
+                .reverse();
             for dimension in REQUIRED_DIMENSIONS {
-                profile["deployment_context"][dimension].as_array_mut().expect("dimension").reverse();
+                profile["deployment_context"][dimension]
+                    .as_array_mut()
+                    .expect("dimension")
+                    .reverse();
             }
         }
         let encoded = serde_json::to_string(&fixture).expect("encode permuted fixture");
