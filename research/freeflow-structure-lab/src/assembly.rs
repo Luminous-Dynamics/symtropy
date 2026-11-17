@@ -247,7 +247,7 @@ pub fn plan_tetrahedral_assembly(
         maximum_generation,
         blocked_attachment_faces: assembly.blocked_attachment_faces,
         digest_non_security,
-        claim_ceiling: "deterministic parent-before-child cell order only; no robot motion, grasp, collision, connector or safety qualification",
+        claim_ceiling: "discrete assembly order only; no robot motion or safety proof",
     })
 }
 
