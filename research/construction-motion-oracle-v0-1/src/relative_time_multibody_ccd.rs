@@ -838,16 +838,18 @@ mod tests {
             let bdx = if case < 16 { -20.0 } else { next() as f64 };
             let source_a = span(ax, adx, start, start + 1_000, "clock-a");
             let source_b = span(bx, bdx, start, start + 1_000, "clock-b");
-            let actual_a = CapsuleMotionSpan {
+            let mut actual_a = CapsuleMotionSpan {
                 start_ms: (start as i64 + offset_a) as u64,
                 end_ms: (start as i64 + 1_000 + offset_a) as u64,
                 ..source_a.clone()
             };
-            let actual_b = CapsuleMotionSpan {
+            let mut actual_b = CapsuleMotionSpan {
                 start_ms: (start as i64 + offset_b) as u64,
                 end_ms: (start as i64 + 1_000 + offset_b) as u64,
                 ..source_b.clone()
             };
+            actual_a.clock_domain_id = "site-clock".into();
+            actual_b.clock_domain_id = "site-clock".into();
             let exact = timed_co_translating_capsule_vs_capsule(&actual_a, &actual_b);
             if exact.is_ok_and(|value| value.is_contact(0.5, 0.5)) {
                 physical_contacts += 1;
@@ -873,14 +875,14 @@ mod tests {
     fn source_timestamp_uncertainty_is_scaled_by_the_clock_rate_bound() {
         let mut motion = span(0.0, 0.0, 0, 1_000, "clock-a");
         motion.clock_uncertainty_ms = 3;
-        let a = body("a", motion, Some(mapping("clock-a", 0, 0, 500_000)));
+        let a = body("a", motion, Some(mapping("clock-a", 0, 0, 500)));
         let b = body(
             "b",
             span(50.0, 0.0, 0, 1_000, "clock-b"),
             Some(mapping("clock-b", 0, 0, 0)),
         );
         let report = evaluate_relative_time_multibody_ccd(&[a, b], &config()).unwrap();
-        // ceil(3 ms * 1.5 rate) + ceil(1,000 ms * 500 ppm) = 5 + 1.
-        assert_eq!(report.body_mappings[0].total_uncertainty_ms, Some(6));
+        // ceil(3 ms * 1.0005 rate) + ceil(1,000 ms * 500 ppm) = 4 + 1.
+        assert_eq!(report.body_mappings[0].total_uncertainty_ms, Some(5));
     }
 }
