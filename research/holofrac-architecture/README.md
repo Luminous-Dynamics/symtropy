@@ -151,6 +151,13 @@ IFC is an exchange and information model, not the sole internal solver represent
 
 ## HDC/VSA experiment design
 
+The current executable research slices are intentionally separated:
+- [Typed graph, partial-context and factorized-index retrieval](../holofrac-retrieval/README.md)
+- [Continuous spatial-field encoding and reconstruction](../holofrac-retrieval/src/field.rs)
+- [Continuous-field benchmark CLI](../holofrac-retrieval/src/bin/field_sweep.rs)
+
+The graph benchmark measures exact relations and partial-context candidates. The continuous-field benchmark measures positional encoding, bundling, unbinding, cleanup and held-out reconstruction against classical interpolation. Neither substitutes for physical simulation.
+
 Compare representations on identical graph fixtures and query sets:
 
 - exact source-keyed role-postings and adjacency-list retrieval;
