@@ -171,7 +171,7 @@ pub enum OracleTruthDisposition {
     Unknown,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OracleTruth {
     pub case: CaseIdentity,
     pub scene: SceneFingerprint,
@@ -239,12 +239,12 @@ pub enum CollisionScoreInputError {
     InvalidEnvironmentIdentity,
     InvalidProbeIdentity,
     InvalidObservation,
-    InvalidMetrics,
     InvalidQueryFingerprint,
     CapabilityNotExecuted,
     MissingObservation,
     UnexpectedObservation,
     MissingReason,
+    UnexpectedReason,
     ContradictoryNotRunProbe,
 }
 
@@ -355,7 +355,7 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
     }
 
     validate_digest(adapter.case.case_sha256.as_str(), "case")?;
-    validate_digest(adapter.backend.backend_commit_sha1.as_str(), "backend commit", 40)?;
+    validate_digest_with_length(adapter.backend.backend_commit_sha1.as_str(), "backend commit", 40)?;
     validate_digest(adapter.backend.build_sha256.as_str(), "backend build")?;
     validate_digest(adapter.raw_receipt_sha256.as_str(), "raw receipt")?;
 
@@ -382,6 +382,16 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
     if let Some(digest) = adapter.capability_probe.probe_log_sha256.as_deref() {
         validate_digest(digest, "capability probe log")?;
     }
+    if adapter.capability_probe.status != CapabilityProbeStatus::NotProbed
+        && (adapter.capability_probe.runtime_api.as_deref().is_none_or(str::is_empty)
+            || adapter.capability_probe.probe_log_sha256.is_none())
+    {
+        return Err(CollisionScoreInputError::InvalidProbeIdentity);
+    }
+
+    if adapter.environment.allocator.as_deref().is_some_and(str::is_empty) {
+        return Err(CollisionScoreInputError::InvalidEnvironmentIdentity);
+    }
 
     validate_scene_fingerprint(&adapter.scene)?;
     validate_query_fingerprint(adapter.query)?;
@@ -395,7 +405,7 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
                 return Err(CollisionScoreInputError::MissingObservation);
             }
             if adapter.reason.is_some() || adapter.reason_code.is_some() {
-                return Err(CollisionScoreInputError::MissingReason);
+                return Err(CollisionScoreInputError::UnexpectedReason);
             }
         }
         AdapterDisposition::Unresolved => {
@@ -429,22 +439,7 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
     if let Some(observation) = adapter.observation {
         validate_collision_observation(observation)?;
     }
-    if let Some(metrics) = &adapter.metrics {
-        for value in [
-            metrics.latency_ns,
-            metrics.peak_rss_bytes,
-            metrics.allocated_bytes,
-            metrics.broad_phase_candidates,
-            metrics.narrow_phase_queries,
-            metrics.manager_clone_count,
-            metrics.evaluator_count,
-        ]
-        .into_iter()
-        .flatten()
-        {
-            let _ = value;
-        }
-    }
+
 
     Ok(())
 }
@@ -555,10 +550,10 @@ fn option_f64_matches(left: Option<f64>, right: Option<f64>) -> bool {
 }
 
 fn validate_digest(value: &str, name: &'static str) -> Result<(), CollisionScoreInputError> {
-    validate_digest(value, name, 64)
+    validate_digest_with_length(value, name, 64)
 }
 
-fn validate_digest(
+fn validate_digest_with_length(
     value: &str,
     _name: &'static str,
     expected_length: usize,
@@ -635,7 +630,7 @@ mod tests {
             observation: Some(CollisionObservation {
                 collision_found,
                 minimum_distance_mm: Some(if collision_found { -0.2 } else { 2.5 }),
-                contact_count: Some(u64::from(collision_found)),
+                contact_count: Some(if collision_found { 1 } else { 0 }),
                 backend_contact_time_parameter: Some(0.5).filter(|_| collision_found),
             }),
             reason_code: None,
