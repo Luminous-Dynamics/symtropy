@@ -373,6 +373,15 @@ mod tests {
         .collect()
     }
 
+    fn set_access_state(snapshot: &mut MissionSnapshot, target: &str, state: AccessState) {
+        let observation = snapshot
+            .access_observations
+            .iter_mut()
+            .find(|observation| observation.target == target)
+            .expect("the fixture must contain one observation for each declared target");
+        observation.state = state;
+    }
+
     fn anchored() -> MissionSnapshot {
         let mut snapshot = MissionSnapshot {
             access_observations: available_access(),
@@ -498,9 +507,7 @@ mod tests {
     #[test]
     fn blocked_panel_does_not_block_independent_panel_work() {
         let mut snapshot = anchored();
-        snapshot.access_observations.push(AccessObservation {
-            target: "panel:NE".to_owned(), state: AccessState::Blocked, evidence_ref: "site-access-ref".to_owned(),
-        });
+        set_access_state(&mut snapshot, "panel:NE", AccessState::Blocked);
         let result = evaluate(&snapshot);
         assert_eq!(result.ready_package_ids(), sorted(vec![
             PackageKey::Panel(Panel::NorthWest).id(),
@@ -514,9 +521,7 @@ mod tests {
     #[test]
     fn unknown_access_blocks_only_the_affected_branch() {
         let mut snapshot = anchored();
-        snapshot.access_observations.push(AccessObservation {
-            target: "panel:NE".to_owned(), state: AccessState::Unknown, evidence_ref: "unknown-access-ref".to_owned(),
-        });
+        set_access_state(&mut snapshot, "panel:NE", AccessState::Unknown);
         let result = evaluate(&snapshot);
         assert_eq!(result.status, EvaluationStatus::Actionable);
         assert_eq!(result.ready_package_ids(), sorted(vec![
