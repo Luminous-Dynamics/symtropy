@@ -138,7 +138,10 @@ pub fn fit_clock_mapping(
         if pair[1].local_timestamp_ns <= pair[0].local_timestamp_ns
             || pair[1].reference_timestamp_ns <= pair[0].reference_timestamp_ns
         {
-            return Err("clock synchronization pairs must be strictly increasing in both domains".to_owned());
+            return Err(
+                "clock synchronization pairs must be strictly increasing in both domains"
+                    .to_owned(),
+            );
         }
     }
 
@@ -155,10 +158,7 @@ pub fn fit_clock_mapping(
     let count = pairs.len() as f64;
     let mean_x = x.iter().sum::<f64>() / count;
     let mean_y = y.iter().sum::<f64>() / count;
-    let variance_x = x
-        .iter()
-        .map(|value| (value - mean_x).powi(2))
-        .sum::<f64>();
+    let variance_x = x.iter().map(|value| (value - mean_x).powi(2)).sum::<f64>();
     if !variance_x.is_finite() || variance_x <= f64::EPSILON {
         return Err("clock synchronization span is insufficient to estimate drift".to_owned());
     }
@@ -221,7 +221,9 @@ pub fn normalize_stream(
         || stream.clock_domain.trim().is_empty()
         || stream.channel_count == 0
     {
-        return Err("timed stream requires device, clock domain and nonzero channel count".to_owned());
+        return Err(
+            "timed stream requires device, clock domain and nonzero channel count".to_owned(),
+        );
     }
     if stream.clock_domain != mapping.clock_domain {
         return Err("timed stream clock domain does not match its mapping".to_owned());
@@ -292,13 +294,17 @@ fn validate_normalized_stream(stream: &NormalizedStream, name: &str) -> Result<(
         || stream.channel_count == 0
         || stream.samples.is_empty()
     {
-        return Err(format!("{name} normalized stream metadata or samples are incomplete"));
+        return Err(format!(
+            "{name} normalized stream metadata or samples are incomplete"
+        ));
     }
     for pair in stream.samples.windows(2) {
         if pair[1].sequence <= pair[0].sequence
             || pair[1].reference_timestamp_ns <= pair[0].reference_timestamp_ns
         {
-            return Err(format!("{name} normalized samples are not strictly ordered"));
+            return Err(format!(
+                "{name} normalized samples are not strictly ordered"
+            ));
         }
     }
     Ok(())
@@ -370,9 +376,8 @@ pub fn align_causal_multirate(
             let last = included[included.len() - 1].reference_timestamp_ns;
             let mut maximum_gap = first.saturating_sub(window_start);
             for pair in included.windows(2) {
-                maximum_gap = maximum_gap.max(
-                    pair[1].reference_timestamp_ns - pair[0].reference_timestamp_ns,
-                );
+                maximum_gap = maximum_gap
+                    .max(pair[1].reference_timestamp_ns - pair[0].reference_timestamp_ns);
             }
             maximum_gap = maximum_gap.max(window_end.saturating_sub(last));
             maximum_window_gap = Some(maximum_gap);
@@ -483,28 +488,27 @@ mod tests {
                 reference_timestamp_ns: 4_005_000_300,
             },
         ];
-        let mapping = fit_clock_mapping("accelerometer-clock", "robot-clock", &pairs)
-            .expect("clock mapping");
+        let mapping =
+            fit_clock_mapping("accelerometer-clock", "robot-clock", &pairs).expect("clock mapping");
         assert_eq!(mapping.offset_ns, 0);
         assert_eq!(mapping.drift_ppb, 100);
         assert_eq!(mapping.maximum_fit_residual_ns, 0);
-        assert_eq!(
-            mapping.map_timestamp(5_000_000_000).unwrap(),
-            5_005_000_400
-        );
+        assert_eq!(mapping.map_timestamp(5_000_000_000).unwrap(), 5_005_000_400);
     }
 
     #[test]
     fn clock_fit_rejects_insufficient_or_nonmonotonic_sync_pairs() {
-        assert!(fit_clock_mapping(
-            "sensor",
-            "robot",
-            &[ClockSyncPair {
-                local_timestamp_ns: 1,
-                reference_timestamp_ns: 1,
-            }]
-        )
-        .is_err());
+        assert!(
+            fit_clock_mapping(
+                "sensor",
+                "robot",
+                &[ClockSyncPair {
+                    local_timestamp_ns: 1,
+                    reference_timestamp_ns: 1,
+                }]
+            )
+            .is_err()
+        );
         let nonmonotonic = [
             ClockSyncPair {
                 local_timestamp_ns: 1,
@@ -568,13 +572,16 @@ mod tests {
         );
         let tactile = normalize_stream(&tactile, &tactile_mapping).unwrap();
         let vibration = normalize_stream(&vibration, &vibration_mapping).unwrap();
-        let report = align_causal_multirate(&tactile, &vibration, 100, 100, 2, 5)
-            .expect("causal alignment");
+        let report =
+            align_causal_multirate(&tactile, &vibration, 100, 100, 2, 5).expect("causal alignment");
         assert_eq!(report.windows[0].vibration_sequences, vec![10, 11]);
         assert_eq!(report.windows[1].vibration_sequences, vec![12, 13]);
-        assert!(report.windows.iter().all(|window| {
-            !window.vibration_sequences.contains(&14)
-        }));
+        assert!(
+            report
+                .windows
+                .iter()
+                .all(|window| { !window.vibration_sequences.contains(&14) })
+        );
     }
 
     #[test]
@@ -609,9 +616,8 @@ mod tests {
             AlignmentDisposition::ExcessiveVibrationGap
         );
 
-        let uncertainty_report =
-            align_causal_multirate(&tactile, &vibration, 100, 100, 20, 5)
-                .expect("uncertainty alignment report");
+        let uncertainty_report = align_causal_multirate(&tactile, &vibration, 100, 100, 20, 5)
+            .expect("uncertainty alignment report");
         assert_eq!(
             uncertainty_report.windows[1].disposition,
             AlignmentDisposition::ExcessiveClockUncertainty

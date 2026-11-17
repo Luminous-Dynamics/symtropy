@@ -99,7 +99,9 @@ fn validate_problem(
         return Err("observability design requires matching nonempty taxel metadata".to_owned());
     }
     if problem.support_radius >= n {
-        return Err("observability design support radius must be smaller than taxel count".to_owned());
+        return Err(
+            "observability design support radius must be smaller than taxel count".to_owned(),
+        );
     }
     if !config.rank_tolerance.is_finite()
         || config.rank_tolerance <= 0.0
@@ -108,24 +110,38 @@ fn validate_problem(
     {
         return Err("observability design tolerances must be finite and valid".to_owned());
     }
-    if !problem.admitted_output_channels.iter().any(|admitted| *admitted) {
+    if !problem
+        .admitted_output_channels
+        .iter()
+        .any(|admitted| *admitted)
+    {
         return Err("observability design requires at least one admitted output row".to_owned());
     }
     if !problem.initial_patterns.len().is_multiple_of(n)
-        || problem.initial_patterns.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || problem
+            .initial_patterns
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
     {
         return Err("initial stimuli must be finite nonnegative pattern × taxel data".to_owned());
     }
 
     let mut identifiers = BTreeSet::new();
     for candidate in &problem.candidates {
-        if candidate.candidate_id.trim().is_empty() || !identifiers.insert(&candidate.candidate_id) {
+        if candidate.candidate_id.trim().is_empty() || !identifiers.insert(&candidate.candidate_id)
+        {
             return Err("candidate IDs must be nonempty and unique".to_owned());
         }
         if candidate.pattern.len() != n
-            || candidate.pattern.iter().any(|value| !value.is_finite() || *value < 0.0)
+            || candidate
+                .pattern
+                .iter()
+                .any(|value| !value.is_finite() || *value < 0.0)
         {
-            return Err("candidate patterns must be finite nonnegative vectors of taxel_count length".to_owned());
+            return Err(
+                "candidate patterns must be finite nonnegative vectors of taxel_count length"
+                    .to_owned(),
+            );
         }
         if !candidate.cost_units.is_finite() || candidate.cost_units <= 0.0 {
             return Err("candidate cost_units must be finite and positive".to_owned());
@@ -134,11 +150,7 @@ fn validate_problem(
     Ok(())
 }
 
-fn local_sources(
-    output_taxel: usize,
-    module_ids: &[u32],
-    support_radius: usize,
-) -> Vec<usize> {
+fn local_sources(output_taxel: usize, module_ids: &[u32], support_radius: usize) -> Vec<usize> {
     (0..module_ids.len())
         .filter(|source| {
             module_ids[*source] == module_ids[output_taxel]
@@ -151,11 +163,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
-fn append_orthonormal(
-    basis: &mut Vec<Vec<f64>>,
-    vector: &[f64],
-    rank_tolerance: f64,
-) -> f64 {
+fn append_orthonormal(basis: &mut Vec<Vec<f64>>, vector: &[f64], rank_tolerance: f64) -> f64 {
     let original_norm = dot(vector, vector).sqrt();
     if original_norm <= f64::EPSILON {
         return 0.0;
@@ -181,14 +189,13 @@ fn append_orthonormal(
     }
 }
 
-fn row_basis(
-    patterns: &[Vec<f64>],
-    source_taxels: &[usize],
-    rank_tolerance: f64,
-) -> Vec<Vec<f64>> {
+fn row_basis(patterns: &[Vec<f64>], source_taxels: &[usize], rank_tolerance: f64) -> Vec<Vec<f64>> {
     let mut basis = Vec::with_capacity(source_taxels.len());
     for pattern in patterns {
-        let row: Vec<_> = source_taxels.iter().map(|source| pattern[*source]).collect();
+        let row: Vec<_> = source_taxels
+            .iter()
+            .map(|source| pattern[*source])
+            .collect();
         append_orthonormal(&mut basis, &row, rank_tolerance);
     }
     basis
@@ -218,11 +225,7 @@ fn evaluate_candidate(
             .collect();
         let candidate_norm = dot(&features, &features).sqrt();
         let mut probe_basis = basis.clone();
-        let residual_norm = append_orthonormal(
-            &mut probe_basis,
-            &features,
-            config.rank_tolerance,
-        );
+        let residual_norm = append_orthonormal(&mut probe_basis, &features, config.rank_tolerance);
         let normalized_gain = if candidate_norm > f64::EPSILON {
             residual_norm / candidate_norm
         } else {
@@ -295,8 +298,11 @@ pub fn select_observability_first_patterns(
         .map(<[f64]>::to_vec)
         .collect();
     let initial_pattern_count = selected_patterns.len();
-    let (initial_identifiable_output_rows, total_required_coefficients, initial_identifiable_coefficients) =
-        current_identifiability(problem, &selected_patterns, config.rank_tolerance);
+    let (
+        initial_identifiable_output_rows,
+        total_required_coefficients,
+        initial_identifiable_coefficients,
+    ) = current_identifiability(problem, &selected_patterns, config.rank_tolerance);
 
     let mut remaining: Vec<usize> = (0..problem.candidates.len()).collect();
     let mut selected_cost = 0.0;
@@ -306,12 +312,8 @@ pub fn select_observability_first_patterns(
         let mut best: Option<(usize, usize, f64, String, usize, Vec<OutputRowRank>)> = None;
         for candidate_index in &remaining {
             let candidate = &problem.candidates[*candidate_index];
-            let (rank_gain, full_rows, residual_gain_per_cost, row_results) = evaluate_candidate(
-                problem,
-                config,
-                &selected_patterns,
-                candidate,
-            );
+            let (rank_gain, full_rows, residual_gain_per_cost, row_results) =
+                evaluate_candidate(problem, config, &selected_patterns, candidate);
             if rank_gain == 0 {
                 continue;
             }
@@ -341,8 +343,7 @@ pub fn select_observability_first_patterns(
             }
         }
 
-        let Some((rank_gain, full_rows, residual_gain_per_cost, candidate_id, index, rows)) =
-            best
+        let Some((rank_gain, full_rows, residual_gain_per_cost, candidate_id, index, rows)) = best
         else {
             break;
         };
@@ -366,7 +367,12 @@ pub fn select_observability_first_patterns(
 
     Ok(ObservabilityDesignReport {
         taxel_count: problem.taxel_count,
-        module_count: problem.module_ids.iter().copied().collect::<BTreeSet<_>>().len(),
+        module_count: problem
+            .module_ids
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>()
+            .len(),
         support_radius: problem.support_radius,
         initial_pattern_count,
         selected_pattern_count: steps.len(),
@@ -412,22 +418,26 @@ mod tests {
             ],
             maximum_additional_patterns: 4,
         };
-        let first = select_observability_first_patterns(
-            &problem,
-            &ObservabilityDesignConfig::default(),
-        )
-        .expect("rank-gain selection");
-        let second = select_observability_first_patterns(
-            &problem,
-            &ObservabilityDesignConfig::default(),
-        )
-        .expect("deterministic repeat");
+        let first =
+            select_observability_first_patterns(&problem, &ObservabilityDesignConfig::default())
+                .expect("rank-gain selection");
+        let second =
+            select_observability_first_patterns(&problem, &ObservabilityDesignConfig::default())
+                .expect("deterministic repeat");
         assert_eq!(first, second);
         assert_eq!(first.initial_identifiable_output_rows, 0);
         assert_eq!(first.final_identifiable_output_rows, 3);
-        assert_eq!(first.final_identifiable_coefficients, first.total_required_coefficients);
+        assert_eq!(
+            first.final_identifiable_coefficients,
+            first.total_required_coefficients
+        );
         assert!(first.steps.iter().all(|step| step.rank_gain > 0));
-        assert!(!first.steps.iter().any(|step| step.candidate_id == "common-mode-repeat"));
+        assert!(
+            !first
+                .steps
+                .iter()
+                .any(|step| step.candidate_id == "common-mode-repeat")
+        );
     }
 
     #[test]
@@ -444,11 +454,9 @@ mod tests {
             ],
             maximum_additional_patterns: 2,
         };
-        let report = select_observability_first_patterns(
-            &problem,
-            &ObservabilityDesignConfig::default(),
-        )
-        .expect("common-mode design");
+        let report =
+            select_observability_first_patterns(&problem, &ObservabilityDesignConfig::default())
+                .expect("common-mode design");
         assert_eq!(report.selected_pattern_count, 0);
         assert_eq!(report.initial_identifiable_output_rows, 0);
         assert_eq!(report.final_identifiable_output_rows, 0);
@@ -468,11 +476,9 @@ mod tests {
             ],
             maximum_additional_patterns: 1,
         };
-        let report = select_observability_first_patterns(
-            &problem,
-            &ObservabilityDesignConfig::default(),
-        )
-        .expect("cost tie-break");
+        let report =
+            select_observability_first_patterns(&problem, &ObservabilityDesignConfig::default())
+                .expect("cost tie-break");
         assert_eq!(report.steps[0].candidate_id, "cheap-independent");
         assert_eq!(report.steps[0].rank_gain, 2);
     }
@@ -490,14 +496,23 @@ mod tests {
         };
         let mut invalid = base.clone();
         invalid.candidates[0].pattern.pop();
-        assert!(select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default()).is_err());
+        assert!(
+            select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default())
+                .is_err()
+        );
 
         let mut invalid = base.clone();
         invalid.candidates[0].cost_units = 0.0;
-        assert!(select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default()).is_err());
+        assert!(
+            select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default())
+                .is_err()
+        );
 
         let mut invalid = base;
         invalid.candidates[0].pattern[0] = f64::NAN;
-        assert!(select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default()).is_err());
+        assert!(
+            select_observability_first_patterns(&invalid, &ObservabilityDesignConfig::default())
+                .is_err()
+        );
     }
 }
