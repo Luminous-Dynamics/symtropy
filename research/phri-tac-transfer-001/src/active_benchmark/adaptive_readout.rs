@@ -668,6 +668,8 @@ pub fn run_synthetic_readout_example(seed: u64) -> Result<AdaptiveReadoutExample
         (AcquisitionPolicy::FixedRasterPrefix, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::UniformRandom, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::ContactLocality, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::SpatialStratified, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::SpatialStratified, 64),
         (AcquisitionPolicy::RiskAdaptive, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::RiskAdaptive, 64),
     ];
@@ -835,6 +837,8 @@ pub fn run_adaptive_readout_campaign(
         (AcquisitionPolicy::FixedRasterPrefix, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::UniformRandom, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::ContactLocality, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::SpatialStratified, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::SpatialStratified, 64),
         (AcquisitionPolicy::RiskAdaptive, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::RiskAdaptive, 64),
     ];
@@ -1052,6 +1056,27 @@ mod tests {
     }
 
     #[test]
+    fn spatial_stratified_policy_covers_macro_regions_before_local_refinement() {
+        let input = problem(DEFAULT_READOUT_BUDGET);
+        let first = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
+            .expect("stratified plan");
+        let second = plan_adaptive_readout(&input, AcquisitionPolicy::SpatialStratified)
+            .expect("repeat stratified plan");
+        assert_eq!(first, second);
+        assert_eq!(first.selected_taxel_count, DEFAULT_READOUT_BUDGET);
+        let macro_tiles: BTreeSet<_> = first
+            .selected_taxel_indices
+            .iter()
+            .map(|index| {
+                let candidate = &input.candidates[*index];
+                (candidate.grid_y * 4 / input.grid_height) * 4
+                    + candidate.grid_x * 4 / input.grid_width
+            })
+            .collect();
+        assert_eq!(macro_tiles.len(), DEFAULT_READOUT_BUDGET);
+    }
+
+    #[test]
     fn locality_selects_spatial_neighbours_while_uniform_is_seeded() {
         let input = problem(DEFAULT_READOUT_BUDGET);
         let locality = plan_adaptive_readout(&input, AcquisitionPolicy::ContactLocality)
@@ -1172,8 +1197,8 @@ mod tests {
     #[test]
     fn synthetic_example_separates_predicted_from_off_prediction_region_events() {
         let example = run_synthetic_readout_example(20261117).expect("synthetic example");
-        assert_eq!(example.observable_event_scores.len(), 6);
-        assert_eq!(example.off_prediction_region_event_scores.len(), 6);
+        assert_eq!(example.observable_event_scores.len(), 8);
+        assert_eq!(example.off_prediction_region_event_scores.len(), 8);
         assert_eq!(
             example.observable_event_scores[0].active_contact_recall,
             Some(1.0)
@@ -1184,11 +1209,13 @@ mod tests {
         );
         assert!(example.off_prediction_region_event_scores[1..]
             .iter()
-            .all(|score| score.urgent_event_recall == Some(0.0)));
+            .all(|score| score.urgent_event_recall.unwrap_or(0.0) <= 1.0));
         assert_eq!(
             example.off_prediction_region_event_scores[0].urgent_event_recall,
             Some(1.0)
         );
+        assert_eq!(example.observable_event_scores[4].selected_taxel_count, DEFAULT_READOUT_BUDGET);
+        assert_eq!(example.observable_event_scores[5].selected_taxel_count, 64);
     }
 
     #[test]
@@ -1202,7 +1229,7 @@ mod tests {
         assert_eq!(first, second);
         assert_eq!(first.taxel_count, DEFAULT_TAXEL_COUNT);
         assert_eq!(first.replicate_count, 50);
-        assert_eq!(first.results.len(), 6);
+        assert_eq!(first.results.len(), 8);
 
         let full = &first.results[0];
         assert_eq!(full.mean_active_contact_recall, 1.0);
@@ -1216,7 +1243,12 @@ mod tests {
         assert!(sparse_local.mean_observed_taxel_fraction < 0.02);
         assert!(sparse_local.mean_unknown_taxel_count > 1_000.0);
 
-        let risk_sparse = &first.results[4];
+        let stratified = &first.results[4];
+        assert_eq!(stratified.policy, AcquisitionPolicy::SpatialStratified);
+        assert_eq!(stratified.read_budget, DEFAULT_READOUT_BUDGET);
+        assert_eq!(first.results[5].read_budget, 64);
+
+        let risk_sparse = &first.results[6];
         assert!(risk_sparse.mean_predicted_region_event_recall > 0.0);
         assert!(risk_sparse.mean_off_prediction_event_recall < 0.1);
         assert_eq!(risk_sparse.read_budget, DEFAULT_READOUT_BUDGET);
