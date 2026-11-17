@@ -422,3 +422,82 @@ These references reinforce why a geometry generator or ideal axial-truss solve c
 ### External manufacturing-model evidence
 
 NIST AM-Bench 2025 includes metals and polymer AM measurement/challenge sets, including a high-cycle-fatigue focus. NIST says its planned 2028 benchmarks will move toward more realistic, higher-TRL metal components, with additional processes and materials as modeling matures. This is a strong future external validation route for process/material models, not a direct benchmark of our module grammar: https://www.nist.gov/ambench
+
+
+
+## Stability increment — member yield and elastic Euler buckling screen (2026-11-17)
+
+The standalone truss reference lab now has research/truss-fem-lab/src/stability.rs.
+
+For each member, the caller supplies:
+- Young's modulus E;
+- cross-sectional area A;
+- minimum principal second moment of area I about the weak axis;
+- yield strength;
+- effective-length factor K.
+
+The screen reports axial yield utilization, radius of gyration, slenderness KL/r, ideal Euler critical load, and compression-only Euler utilization when the ideal Euler formula is in its nominal elastic range. It distinguishes ElasticEulerApplicable from YieldOrInelasticRegime; short columns are not assigned a misleading elastic-Euler utilization.
+
+### Analytical fixture
+
+The new test uses a 2 m pin-ended axial member with E=200 GPa, I=1e-8 m^4, A=0.01 m^2, K=1, and 1 kN compression. It checks the closed-form Euler critical load and utilization. Other tests verify tension handling, the yield/inelastic slenderness regime and fail-closed property validation.
+
+### Boundaries
+
+This remains an ideal member-level screen. It does not solve:
+- global frame or system buckling;
+- beam-column bending interaction or lateral-torsional buckling;
+- joint restraint, flexibility, clearance or preload;
+- geometric imperfections, residual stress or plasticity;
+- local plate/section buckling;
+- fatigue, fracture, contact or dynamic loads;
+- code-prescribed interaction equations, factors of safety or flight qualification.
+
+The effective-length factor K and section data must be justified for any real application. A passing member screen is not structural substantiation.
+
+### Why this is the next gate
+
+An axial truss analysis can return finite member forces while ignoring member bending stiffness and buckling capacity. The added screen exposes one class of compression instability before the programme advances to beam-column elements and global eigenvalue buckling. The next numerical milestone should be a separate beam/frame element model, verified against analytical columns and an independent solver, with joint rotational stiffness and initial-imperfection studies.
+
+### Expanded paradigm-shift hypothesis: interface-first, lifecycle-qualified structures
+
+Current research on modular discrete mechanical metamaterials emphasizes that inter-module contact and constraints govern the global response, not merely the behavior of an isolated cell (Zhu et al., 2026, https://doi.org/10.1016/j.ijmecsci.2026.111915). The design unit should therefore be the complete interface-bearing module plus assembly context.
+
+The FFMFE hypothesis should be tested through five coupled design loops:
+
+1. Geometry loop: generate candidate cell/module/bay/system morphology.
+2. Interface loop: enforce connector family, port count, angular access, datum scheme, tolerances and service isolation.
+3. Mechanics loop: check kinematic stability, member and global buckling, stresses, fatigue and damage propagation.
+4. Lifecycle loop: optimize assembly, inspection, disassembly, repair, reuse and reconfiguration.
+5. Human loop: preserve accessibility, egress, privacy, sensory control, cultural expression and occupant authorship.
+
+Each loop supplies hard constraints and uncertainty to the others. This is different from generating an attractive geometry and applying manufacturability or accessibility checks at the end.
+
+### Additional industry-facing benchmarks
+
+| Benchmark | Measurement | Comparison protocol |
+|---|---|---|
+| Stability hierarchy | member Euler utilization, global eigenvalue load factor, post-buckling path | match supports, imperfections, joint stiffness and load cases |
+| Joint-dominated behavior | rotational/translational stiffness, slip, preload loss, contact pressure | compare bolted/pinned/self-locking connector coupons and connector-free idealization |
+| Multi-scale response | directional stiffness tensor, Poisson response, dispersion/band gaps where relevant | identical envelope, mass, material and boundary conditions |
+| Damage tolerance | residual load capacity after member, joint and module removal | same load cases and physically credible failure scenarios |
+| Manufacturability | print/cut/weld feasibility, powder removal, inspection visibility, tolerance closure | identical process capability and part-size constraints |
+| Robotic assembly | pose correction, insertion force, alignment error, lock verification, replacement time | matched robot/tool, sensing and task conditions |
+| Lifecycle cost | material + assembly + inspection + repair + downtime + reuse | same service life and accounting boundary |
+| Occupant value | accessible configurations, task success, privacy choice, sensory control and co-design influence | participatory evaluation with multiple user groups |
+
+A new 2026 review of anisotropic mechanical metamaterials makes directional response a promising design variable rather than assuming isotropy: https://doi.org/10.1016/j.tws.2026.114719. Another 2026 review frames architected structures around coupled mechanical and non-mechanical functionality, while highlighting manufacturing, robustness and standardization challenges: https://doi.org/10.1016/j.cossms.2026.101272.
+
+### Revised SOTA strategy
+
+Do not attempt to out-feature nTop, Fusion, Altair or Materialise at general-purpose CAD, lattice generation or topology optimization. They already provide powerful geometry, optimization and analysis workflows. Instead, use them as reference evaluators and compete on an integrated, open, evidence-bearing structural grammar:
+
+- portable typed module and connector contracts;
+- deterministic assembly and service plans;
+- fit and tolerance closure before fabrication;
+- mechanical verification at member, joint and system scales;
+- inspectability and repair as optimization dimensions;
+- as-built metrology and process traceability;
+- occupant-authored spatial infill separated from qualified structure.
+
+A meaningful result requires an independently verified improvement on at least one preregistered lifecycle metric without unacceptable loss elsewhere in the Pareto set.
