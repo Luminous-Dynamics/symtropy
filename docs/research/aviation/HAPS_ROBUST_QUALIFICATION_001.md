@@ -301,6 +301,8 @@ Reject or mark INDETERMINATE when the energy ledger fails to close; a sequence b
 
 - [Symthaea #7343](https://github.com/Luminous-Dynamics/symthaea/issues/7343): solar HAPS daily energy and persistent-platform owner; [draft PR #12674](https://github.com/Luminous-Dynamics/symthaea/pull/12674) adds a bounded 24-hour surplus-only ledger screen.
 - [Symthaea #7646](https://github.com/Luminous-Dynamics/symthaea/issues/7646): aircraft mission energy and reserve.
+- [Symtropy #3903](https://github.com/Luminous-Dynamics/symtropy/issues/3903): aircraft battery/capacitor evidence from cell to installed system; HAPS-specific low-temperature/low-pressure profile includes the literature-anchored −65 °C / 5 kPa test point, not a universal operating requirement.
+- [Symthaea #11411](https://github.com/Luminous-Dynamics/symthaea/issues/11411): mission electro-thermal feedback, composing existing [ENG-THERM #5681](https://github.com/Luminous-Dynamics/symthaea/issues/5681); HAPS thermal behavior must reuse this owner rather than create a parallel solver.
 - [Symtropy #5853 / PR #5856](https://github.com/Luminous-Dynamics/symtropy/pull/5856): whole-aircraft portfolio/MDO.
 - [Symtropy #5885](https://github.com/Luminous-Dynamics/symtropy/issues/5885): HAPS energy network and architecture comparison.
 - Symtropy #3885 / #4286: aircraft/energy co-design and replenishment.
