@@ -93,13 +93,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         graph.digest_non_security()?
     );
     println!(
-        "dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_only_payload_bytes,f32_only_payload_bytes,dual_view_payload_bytes,role_slot_payload_bytes,retained_vector_payload_bytes,encoder_fingerprint_non_security"
+        "dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_only_payload_bytes,f32_only_payload_bytes,dual_view_payload_bytes,unique_role_codebook_entries,role_codebook_payload_bytes,retained_vector_payload_bytes,encoder_fingerprint_non_security"
     );
 
     for dimension in [2_048, 4_096, 8_192, 16_384] {
         let report = run_benchmark(&graph, dimension, 0x484f_4c4f_4652_4143)?;
         println!(
-            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{},{}",
             report.dimension,
             report.fact_count,
             report.positive_queries,
@@ -119,6 +119,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             report.bipolar_index_bytes_estimate,
             report.f32_index_bytes_estimate,
             report.dual_view_index_bytes_estimate,
+            report.unique_role_codebook_entries,
             report.role_slot_index_bytes_estimate,
             report.retained_vector_payload_bytes_estimate,
             report.encoder_fingerprint_non_security
