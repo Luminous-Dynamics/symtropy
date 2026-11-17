@@ -439,7 +439,8 @@
           "hybrid_fixed_wing",
           "hybrid_vtol",
           "glider_or_solar_assisted",
-          "solar_haps"
+          "solar_haps",
+          "buoyant_haps"
         ]
       }
     },
