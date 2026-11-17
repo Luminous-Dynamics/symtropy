@@ -152,6 +152,47 @@ pub enum RecipeActionKindV1 {
     Other,
 }
 
+pub const RECIPE_ACTION_KINDS_V1: &[RecipeActionKindV1] = &[
+    RecipeActionKindV1::Wash,
+    RecipeActionKindV1::Peel,
+    RecipeActionKindV1::Trim,
+    RecipeActionKindV1::Chop,
+    RecipeActionKindV1::Slice,
+    RecipeActionKindV1::Dice,
+    RecipeActionKindV1::Grate,
+    RecipeActionKindV1::Shred,
+    RecipeActionKindV1::Halve,
+    RecipeActionKindV1::Pour,
+    RecipeActionKindV1::Drain,
+    RecipeActionKindV1::Sprinkle,
+    RecipeActionKindV1::Stir,
+    RecipeActionKindV1::Add,
+    RecipeActionKindV1::Combine,
+    RecipeActionKindV1::Whisk,
+    RecipeActionKindV1::Mix,
+    RecipeActionKindV1::Knead,
+    RecipeActionKindV1::Blend,
+    RecipeActionKindV1::Emulsify,
+    RecipeActionKindV1::Pick,
+    RecipeActionKindV1::Place,
+    RecipeActionKindV1::Move,
+    RecipeActionKindV1::Cover,
+    RecipeActionKindV1::Cook,
+    RecipeActionKindV1::Heat,
+    RecipeActionKindV1::Freeze,
+    RecipeActionKindV1::Saute,
+    RecipeActionKindV1::Boil,
+    RecipeActionKindV1::Simmer,
+    RecipeActionKindV1::Steam,
+    RecipeActionKindV1::Bake,
+    RecipeActionKindV1::Roast,
+    RecipeActionKindV1::PressureCook,
+    RecipeActionKindV1::Cool,
+    RecipeActionKindV1::Rest,
+    RecipeActionKindV1::Serve,
+    RecipeActionKindV1::Other,
+];
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RecipeTaskNodeV1 {
     /// The existing planner task is the scheduling authority. Its fields are
@@ -541,6 +582,10 @@ pub fn recipe_graph_to_kitchen_plan(
 mod tests {
     use super::*;
     use crate::TaskDependencyV1;
+    use crate::action_ontology::{
+        ActionGroupV1, ActionMappingMethodV1, ActionOntologyViolationCodeV1,
+        rule_based_action_binding,
+    };
     use serde::Deserialize;
 
     #[derive(Deserialize)]
@@ -695,6 +740,32 @@ mod tests {
         let graph = valid_graph();
         assert!(graph.tasks.iter().all(|node| node.ontology_binding.is_none()));
         assert!(validate_recipe_task_graph(&graph).is_valid());
+    }
+
+    #[test]
+    fn explicit_action_ontology_binding_is_validated_in_recipe_graph() {
+        let mut graph = valid_graph();
+        graph.tasks[0].ontology_binding = Some(rule_based_action_binding(
+            RecipeActionKindV1::Chop,
+            RecipeEvidenceClassV1::Declared,
+        ));
+        assert!(validate_recipe_task_graph(&graph).is_valid());
+    }
+
+    #[test]
+    fn invalid_action_ontology_binding_blocks_recipe_graph_mapping() {
+        let mut graph = valid_graph();
+        let mut binding = rule_based_action_binding(
+            RecipeActionKindV1::Chop,
+            RecipeEvidenceClassV1::Declared,
+        );
+        binding.mapping.group = Some(ActionGroupV1::Dice);
+        graph.tasks[0].ontology_binding = Some(binding);
+        let report = validate_recipe_task_graph(&graph);
+        assert!(report.violations.iter().any(|entry| {
+            entry.code == RecipeGraphViolationCodeV1::InvalidActionOntologyBinding
+        }));
+        assert!(recipe_graph_to_kitchen_plan(&graph).is_err());
     }
 
     #[test]
