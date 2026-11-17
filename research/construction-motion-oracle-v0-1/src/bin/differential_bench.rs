@@ -368,9 +368,6 @@ fn main() {
             .expect("valid absolute-time capsule query"),
         );
     });
-    println!("multibody,time_swept_broadphase");
-    run_multibody_broadphase_benchmarks();
-
 }
 
 
@@ -431,11 +428,9 @@ fn build_broadphase_bodies(
                         Vec3::new(-10.0, 0.0, 0.0)
                     }
                 }
-                BroadphaseDistribution::Dense => Vec3::new(
-                    if index % 2 == 0 { 1.0 } else { -1.0 },
-                    0.0,
-                    0.0,
-                ),
+                BroadphaseDistribution::Dense => {
+                    Vec3::new(if index % 2 == 0 { 1.0 } else { -1.0 }, 0.0, 0.0)
+                }
                 BroadphaseDistribution::LongThin => Vec3::new(0.0, 5.0, 0.0),
             };
             TimedCapsuleBody {
@@ -528,7 +523,10 @@ fn whole_horizon_all_pairs_candidate_count(bodies: &[TimedCapsuleBody]) -> u64 {
     let mut candidates = 0_u64;
     for left in 0..bodies.len() {
         for right in (left + 1)..bodies.len() {
-            let temporal = bodies[left].motion.start_ms.max(bodies[right].motion.start_ms)
+            let temporal = bodies[left]
+                .motion
+                .start_ms
+                .max(bodies[right].motion.start_ms)
                 < bodies[left].motion.end_ms.min(bodies[right].motion.end_ms);
             if !temporal {
                 continue;
@@ -575,8 +573,7 @@ fn run_multibody_broadphase_benchmarks() {
     );
     for count in [16_usize, 64, 256, 1_024, 4_096, 10_000] {
         let bodies = build_broadphase_bodies(count, BroadphaseDistribution::Sparse);
-        let (p50, p95, p99, pair_count, cells, coarse) =
-            measure_multibody(&bodies, 8, 21);
+        let (p50, p95, p99, pair_count, cells, coarse) = measure_multibody(&bodies, 8, 21);
         let all_pairs = (count as u64) * ((count - 1) as u64) / 2;
         println!(
             "sparse,{count},8,dyadic-sap,{},{},{},{pair_count},{cells},{coarse},{all_pairs}",
@@ -585,8 +582,7 @@ fn run_multibody_broadphase_benchmarks() {
             p99.as_micros()
         );
         if count <= 1_024 {
-            let (p50, p95, p99, candidates) =
-                measure_whole_horizon_all_pairs(&bodies, 21);
+            let (p50, p95, p99, candidates) = measure_whole_horizon_all_pairs(&bodies, 21);
             println!(
                 "sparse,{count},1,whole-horizon-all-pairs,{},{},{},{candidates},0,0,{all_pairs}",
                 p50.as_micros(),
@@ -603,8 +599,13 @@ fn run_multibody_broadphase_benchmarks() {
     ] {
         for count in [16_usize, 64, 256, 1_024] {
             let bodies = build_broadphase_bodies(count, distribution);
+            let samples = if matches!(distribution, BroadphaseDistribution::Dense) && count == 1_024 {
+                3
+            } else {
+                21
+            };
             let (p50, p95, p99, pair_count, cells, coarse) =
-                measure_multibody(&bodies, 8, 21);
+                measure_multibody(&bodies, 8, samples);
             let all_pairs = (count as u64) * ((count - 1) as u64) / 2;
             println!(
                 "{},{count},8,dyadic-sap,{},{},{},{pair_count},{cells},{coarse},{all_pairs}",
