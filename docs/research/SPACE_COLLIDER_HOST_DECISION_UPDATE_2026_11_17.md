@@ -189,3 +189,8 @@ The new local-ring module and deterministic JSON / workflow assertions are commi
 The local-ring comparison now has a separate civil / precision-instrumentation dependency: [#5932 SPACE-COLLIDER-HOST-METROLOGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5932). This work composes CERN's LHC/FCC alignment and ground-motion experience with source-bounded lunar geotechnical data. It will evaluate ground motion, support settlement, thermal strain, magnetic-centre fiducialization, reference-frame drift and lifetime re-alignment.
 
 The terrestrial LHC 0.15 mm relative-displacement figure is a comparator only. A Moon ring's acceptance tolerance must be derived from its own lattice/beam-optics sensitivity and the admitted site / structure measurements, not copied from the LHC.
+
+
+### Effective dipole-fill definition
+
+The local-ring screen's 0.67 is the ring-wide effective bending fraction, not the dipole packing fraction inside the arcs. The FCC-hh CDR geometry gives approximately 82 km of arcs within a 97.75 km ring and a 0.80 dipole packing fraction within those arcs; the corresponding whole-ring fraction is approximately 0.6711. PR #3962 now exposes that conversion and adds a 0.60 / 0.67 / 0.6711 / 0.75 sensitivity sweep. This keeps the FCC benchmark definition auditable and avoids comparing an arc-cell filling factor with a whole-circumference effective fill.
