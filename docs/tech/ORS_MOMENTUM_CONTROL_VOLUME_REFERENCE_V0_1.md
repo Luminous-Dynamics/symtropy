@@ -12,7 +12,7 @@ For a moving stream, material can cross the boundary of the chosen control volum
 
 ## 2. Balance and sign convention
 
-Choose one declared inertial frame and one control-volume boundary. Every mass-flow magnitude is non-negative. Each port separately declares whether it is an inflow or an outflow.
+Choose one declared inertial frame identity, evaluation epoch and control-volume boundary. The frozen scenario binds the frame ID and epoch; every port in that scenario is evaluated in the same frame and at that epoch. Every mass-flow magnitude is non-negative. Each port separately declares whether it is an inflow or an outflow.
 
 The mass balance is:
 
