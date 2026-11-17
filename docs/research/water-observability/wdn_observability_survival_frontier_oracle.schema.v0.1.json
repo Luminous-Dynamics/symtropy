@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WDN observability survival frontier oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "layouts"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-observability-survival-frontier-t1-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-OBSERVABILITY-SURVIVAL-FRONTIER-001"
+    },
+    "layouts": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": [
+          "layout_id",
+          "status",
+          "component_count",
+          "combinations_by_order",
+          "state_summaries",
+          "monotonicity_check",
+          "monotonicity_violation_count",
+          "probability_interpretation"
+        ]
+      }
+    }
+  }
+}
