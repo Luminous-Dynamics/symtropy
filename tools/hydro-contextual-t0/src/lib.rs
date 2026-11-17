@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const CASE_COUNT: usize = 35;
+pub const CASE_COUNT: usize = 37;
 pub const SCHEMA_VERSION: &str = "hydro-contextual-t0-v0.1";
 pub const CLAIM_CEILING: &str =
     "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification";
@@ -1019,10 +1019,11 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-030-brier-reliability-diagnostic" => brier_reliability(input),
         "HC-T0-031-invalid-event-probability-reject" => brier_score(input),
 
-        "HC-T0-033-ensemble-crps-skill" | "HC-T0-035-crps-skill-zero-reference-undefined" => {
-            crps_skill(input)
-        }
-        "HC-T0-034-threshold-event-brier-skill" => brier_skill(input),
+        "HC-T0-033-ensemble-crps-skill"
+        | "HC-T0-035-crps-skill-zero-reference-undefined"
+        | "HC-T0-036-crps-skill-negative-retained" => crps_skill(input),
+        "HC-T0-034-threshold-event-brier-skill"
+        | "HC-T0-037-brier-skill-negative-retained" => brier_skill(input),
         _ => compute_split(&id, input),
     }
 }
@@ -1165,7 +1166,7 @@ mod tests {
     }
 
     #[test]
-    fn all_thirty_five_cases_match_separate_oracle() {
+    fn all_thirty_seven_cases_match_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluate");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1325,6 +1326,23 @@ mod tests {
         assert_eq!(out["probabilistic_disposition"], "UNDEFINED_REFERENCE_SCORE");
         assert_eq!(out["reference_brier_score"], 0.0);
         assert_eq!(out["brier_skill_score"], Value::Null);
+    }
+
+
+    #[test]
+    fn negative_crps_skill_is_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][35]).expect("negative CRPSS");
+        let skill = out["crps_skill_score"].as_f64().expect("CRPSS");
+        assert!(skill < 0.0);
+        assert!((skill + 4.0 / 3.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn negative_brier_skill_is_not_clipped() {
+        let out = compute_case(&fixture("inputs")["cases"][36]).expect("negative BSS");
+        let skill = out["brier_skill_score"].as_f64().expect("BSS");
+        assert!(skill < 0.0);
+        assert!((skill - (1.0 - (2.26 / 3.0) / 0.25)).abs() < 1.0e-12);
     }
 
     #[test]
