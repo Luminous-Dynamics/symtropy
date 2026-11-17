@@ -1,0 +1,1030 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/global/global_mfg_deployment_profile_v0_1.schema.json",
+  "title": "Global Manufacturing Deployment Profile Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "schema_version",
+    "evidence_class",
+    "profiles",
+    "negative_controls"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "evidence_class": {
+      "const": "synthetic_fixture"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/profile"
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "$ref": "#/$defs/negative_control"
+      }
+    }
+  },
+  "$defs": {
+    "jurisdiction_id": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 160,
+      "pattern": "^urn:luminous:synthetic:jurisdiction:"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "profile_class",
+        "profile_revision",
+        "scenario_label",
+        "deployment_context",
+        "global_core",
+        "manufacturing_site",
+        "market_access",
+        "supply_chain",
+        "data_processing",
+        "service_lifecycle",
+        "obligations",
+        "claims"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "pattern": "^GMDP-SYNTH-[A-Z0-9-]+$"
+        },
+        "profile_class": {
+          "const": "synthetic_archetype"
+        },
+        "profile_revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scenario_label": {
+          "type": "string",
+          "minLength": 5
+        },
+        "deployment_context": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manufacturing_site_jurisdictions",
+            "destination_market_jurisdictions",
+            "supplier_site_jurisdictions",
+            "component_origin_jurisdictions",
+            "transformation_jurisdictions",
+            "data_processing_jurisdictions",
+            "service_jurisdictions"
+          ],
+          "properties": {
+            "manufacturing_site_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "destination_market_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "component_origin_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "data_processing_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "service_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "supplier_site_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "transformation_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            }
+          }
+        },
+        "global_core": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "product_family_id",
+            "product_revision",
+            "engineering_core_digest",
+            "process_definition_refs",
+            "inspection_requirement_refs"
+          ],
+          "properties": {
+            "product_family_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "product_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "engineering_core_digest": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "process_definition_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            },
+            "inspection_requirement_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            }
+          }
+        },
+        "manufacturing_site": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "site_id",
+            "site_jurisdiction",
+            "site_evidence_class",
+            "process_capability_refs",
+            "utilities",
+            "operating_envelope",
+            "workforce"
+          ],
+          "properties": {
+            "site_id": {
+              "type": "string",
+              "minLength": 3
+            },
+            "site_jurisdiction": {
+              "$ref": "#/$defs/jurisdiction_id"
+            },
+            "site_evidence_class": {
+              "const": "synthetic_fixture"
+            },
+            "process_capability_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 3
+              }
+            },
+            "utilities": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "utility",
+                  "availability",
+                  "units",
+                  "evidence_class"
+                ],
+                "properties": {
+                  "utility": {
+                    "type": "string",
+                    "enum": [
+                      "electricity",
+                      "water",
+                      "thermal",
+                      "compressed_air",
+                      "connectivity",
+                      "extraction"
+                    ]
+                  },
+                  "availability": {
+                    "type": "string",
+                    "enum": [
+                      "synthetic_assumption",
+                      "unknown",
+                      "constrained",
+                      "available"
+                    ]
+                  },
+                  "units": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "evidence_class": {
+                    "type": "string",
+                    "enum": [
+                      "synthetic_fixture",
+                      "source_backed",
+                      "measured",
+                      "unknown"
+                    ]
+                  }
+                }
+              }
+            },
+            "operating_envelope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "climate_archetype",
+                "environmental_constraints",
+                "connectivity_mode"
+              ],
+              "properties": {
+                "climate_archetype": {
+                  "type": "string",
+                  "minLength": 3
+                },
+                "environmental_constraints": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "connectivity_mode": {
+                  "type": "string",
+                  "enum": [
+                    "online",
+                    "intermittent",
+                    "offline_capable",
+                    "unknown"
+                  ]
+                }
+              }
+            },
+            "workforce": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "shift_model",
+                "skills_status",
+                "languages"
+              ],
+              "properties": {
+                "shift_model": {
+                  "type": "string",
+                  "minLength": 2
+                },
+                "skills_status": {
+                  "type": "string",
+                  "enum": [
+                    "synthetic_assumption",
+                    "assessed",
+                    "unknown"
+                  ]
+                },
+                "languages": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "minLength": 2
+                  }
+                }
+              }
+            }
+          }
+        },
+        "market_access": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "destination_jurisdiction",
+              "product_category",
+              "approval_status",
+              "responsible_operator_status",
+              "approval_route_class"
+            ],
+            "properties": {
+              "destination_jurisdiction": {
+                "$ref": "#/$defs/jurisdiction_id"
+              },
+              "product_category": {
+                "type": "string",
+                "minLength": 2
+              },
+              "approval_status": {
+                "type": "string",
+                "enum": [
+                  "not_assessed",
+                  "review_required",
+                  "not_established",
+                  "evidence_assembled",
+                  "independently_established"
+                ]
+              },
+              "responsible_operator_status": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "identified",
+                  "authorized"
+                ]
+              },
+              "approval_route_class": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "whole_vehicle_type_approval",
+                  "manufacturer_self_certification",
+                  "notified_test_agency_type_approval",
+                  "national_conformity_authorization",
+                  "component_or_system_approval",
+                  "tariff_quota_route_only",
+                  "other_review_required"
+                ]
+              }
+            }
+          }
+        },
+        "supply_chain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "components",
+            "origin_claims"
+          ],
+          "properties": {
+            "components": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "component_ref",
+                  "supplier_site_jurisdiction",
+                  "material_origin_jurisdiction",
+                  "origin_evidence_status",
+                  "transformation_refs",
+                  "customs_classification_code",
+                  "customs_classification_status",
+                  "origin_rule_ref",
+                  "preference_claim_status",
+                  "local_content_method_ref",
+                  "local_content_status",
+                  "transformation_jurisdictions"
+                ],
+                "properties": {
+                  "component_ref": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "supplier_site_jurisdiction": {
+                    "$ref": "#/$defs/jurisdiction_id"
+                  },
+                  "material_origin_jurisdiction": {
+                    "$ref": "#/$defs/jurisdiction_id"
+                  },
+                  "origin_evidence_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "synthetic_assumption",
+                      "source_backed_pending_review",
+                      "independently_verified"
+                    ]
+                  },
+                  "transformation_refs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "customs_classification_code": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 2
+                  },
+                  "customs_classification_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "candidate",
+                      "review_required",
+                      "verified",
+                      "not_applicable"
+                    ]
+                  },
+                  "origin_rule_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3
+                  },
+                  "preference_claim_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "not_claimed",
+                      "pending_evidence",
+                      "verified_eligible",
+                      "verified_ineligible"
+                    ]
+                  },
+                  "local_content_method_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3
+                  },
+                  "local_content_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "synthetic_only",
+                      "pending_evidence",
+                      "verified"
+                    ]
+                  },
+                  "transformation_jurisdictions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/$defs/jurisdiction_id"
+                    }
+                  }
+                }
+              }
+            },
+            "origin_claims": {
+              "type": "string",
+              "enum": [
+                "not_established",
+                "synthetic_only",
+                "pending_evidence",
+                "independently_verified"
+              ]
+            }
+          }
+        },
+        "data_processing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "processing_jurisdictions",
+            "data_classification_status",
+            "transfer_review_status"
+          ],
+          "properties": {
+            "processing_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "data_classification_status": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "synthetic_only",
+                "classified_pending_review",
+                "reviewed"
+              ]
+            },
+            "transfer_review_status": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "not_assessed",
+                "review_required",
+                "reviewed"
+              ]
+            }
+          }
+        },
+        "service_lifecycle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "service_jurisdictions",
+            "languages",
+            "critical_parts_status",
+            "repair_capability_status",
+            "end_of_life_status"
+          ],
+          "properties": {
+            "service_jurisdictions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/jurisdiction_id"
+              }
+            },
+            "languages": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 2
+              }
+            },
+            "critical_parts_status": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "synthetic_assumption",
+                "source_backed_pending_review",
+                "available_and_verified"
+              ]
+            },
+            "repair_capability_status": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "synthetic_assumption",
+                "training_required",
+                "verified_for_scope"
+              ]
+            },
+            "end_of_life_status": {
+              "type": "string",
+              "enum": [
+                "unknown",
+                "synthetic_assumption",
+                "route_identified",
+                "approved_route_verified"
+              ]
+            }
+          }
+        },
+        "obligations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/obligation"
+          }
+        },
+        "claims": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "global_compliance_claim",
+            "site_readiness_claim",
+            "market_approval_claim",
+            "production_authorization"
+          ],
+          "properties": {
+            "global_compliance_claim": {
+              "const": "not_established"
+            },
+            "site_readiness_claim": {
+              "const": "not_established"
+            },
+            "market_approval_claim": {
+              "const": "not_established"
+            },
+            "production_authorization": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "obligation_id",
+        "jurisdiction",
+        "actor_scope",
+        "object_scope",
+        "operation_scope",
+        "requirement_basis",
+        "source_status",
+        "source",
+        "applicability",
+        "disposition",
+        "reviewer_status",
+        "responsible_party_ref",
+        "conformity_route",
+        "required_evidence_refs",
+        "reviewer_ref",
+        "jurisdiction_dimension",
+        "jurisdiction_level"
+      ],
+      "properties": {
+        "obligation_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "jurisdiction": {
+          "$ref": "#/$defs/jurisdiction_id"
+        },
+        "actor_scope": {
+          "type": "string",
+          "minLength": 2
+        },
+        "object_scope": {
+          "type": "string",
+          "minLength": 2
+        },
+        "operation_scope": {
+          "type": "string",
+          "minLength": 2
+        },
+        "requirement_basis": {
+          "type": "string",
+          "enum": [
+            "law",
+            "regulation",
+            "voluntary_standard",
+            "contract",
+            "policy",
+            "unknown"
+          ]
+        },
+        "source_status": {
+          "type": "string",
+          "enum": [
+            "in_force",
+            "adopted_not_effective",
+            "proposed",
+            "guidance",
+            "voluntary_standard",
+            "contractual",
+            "superseded",
+            "under_review",
+            "unknown",
+            "synthetic_fixture"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "issuer",
+            "instrument_id",
+            "edition",
+            "official_url",
+            "publication_date",
+            "entry_into_force_date",
+            "application_date",
+            "source_digest",
+            "source_checked_at",
+            "transition_start_date",
+            "transition_end_date",
+            "expiry_date",
+            "source_language",
+            "translation_status",
+            "translation_language",
+            "translation_artifact_ref"
+          ],
+          "properties": {
+            "issuer": {
+              "type": "string",
+              "minLength": 2
+            },
+            "instrument_id": {
+              "type": "string",
+              "minLength": 2
+            },
+            "edition": {
+              "type": "string"
+            },
+            "official_url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "publication_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "entry_into_force_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "application_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "source_digest": {
+              "type": "string",
+              "pattern": "^(sha256:[a-f0-9]{64}|unknown|synthetic)$"
+            },
+            "source_checked_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "transition_start_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "transition_end_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "expiry_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "source_language": {
+              "type": "string",
+              "minLength": 2
+            },
+            "translation_status": {
+              "type": "string",
+              "enum": [
+                "not_translated",
+                "official_translation",
+                "working_translation",
+                "translation_pending",
+                "unknown"
+              ]
+            },
+            "translation_language": {
+              "type": "string",
+              "minLength": 2
+            },
+            "translation_artifact_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 3
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "translation_status": {
+                    "enum": [
+                      "official_translation",
+                      "working_translation"
+                    ]
+                  }
+                },
+                "required": [
+                  "translation_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "translation_language": {
+                    "not": {
+                      "const": "undetermined"
+                    }
+                  },
+                  "translation_artifact_ref": {
+                    "type": "string",
+                    "minLength": 3
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "translation_status": {
+                    "const": "not_translated"
+                  }
+                },
+                "required": [
+                  "translation_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "translation_artifact_ref": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "applicability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "product_category",
+            "territorial_scope",
+            "applicability_status",
+            "rationale"
+          ],
+          "properties": {
+            "product_category": {
+              "type": "string",
+              "minLength": 2
+            },
+            "territorial_scope": {
+              "type": "string",
+              "minLength": 2
+            },
+            "applicability_status": {
+              "type": "string",
+              "enum": [
+                "applicable",
+                "not_applicable",
+                "conditional",
+                "unknown",
+                "disputed"
+              ]
+            },
+            "rationale": {
+              "type": "string"
+            }
+          }
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "satisfied",
+            "unsatisfied",
+            "not_applicable_with_reason",
+            "pending_evidence",
+            "disputed",
+            "unknown"
+          ]
+        },
+        "reviewer_status": {
+          "type": "string",
+          "enum": [
+            "not_reviewed",
+            "local_expert_review_pending",
+            "reviewed_for_scope"
+          ]
+        },
+        "responsible_party_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 3
+        },
+        "conformity_route": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "type_approval",
+            "manufacturer_self_certification",
+            "national_conformity_authorization",
+            "notified_test_agency_approval",
+            "permit_or_licence",
+            "registration",
+            "third_party_assessment",
+            "self_declaration",
+            "contractual_review",
+            "not_applicable"
+          ]
+        },
+        "required_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 3
+        },
+        "jurisdiction_dimension": {
+          "type": "string",
+          "enum": [
+            "manufacturing_site",
+            "destination_market",
+            "supplier_site",
+            "component_origin",
+            "transformation",
+            "data_processing",
+            "service_lifecycle"
+          ]
+        },
+        "jurisdiction_level": {
+          "type": "string",
+          "enum": [
+            "supranational",
+            "national",
+            "subnational",
+            "local_authority",
+            "customs_territory",
+            "trade_agreement_scope",
+            "data_residency_zone",
+            "synthetic"
+          ]
+        }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "mutation",
+        "expected_disposition",
+        "reason"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 3
+        },
+        "mutation": {
+          "type": "string",
+          "enum": [
+            "proposal_as_law",
+            "wrong_destination_market",
+            "wrong_product_category",
+            "expired_source_as_current",
+            "false_mutual_recognition",
+            "supplier_location_as_origin",
+            "unknown_origin_as_eligible",
+            "unknown_as_satisfied",
+            "data_processing_jurisdiction_omitted",
+            "silent_global_core_change",
+            "unknown_customs_classification_as_eligible",
+            "origin_preference_without_evidence",
+            "responsible_party_mismatch",
+            "effective_window_mismatch",
+            "local_content_claim_without_method",
+            "obligation_dimension_mismatch",
+            "supplier_site_jurisdiction_omitted",
+            "transformation_jurisdiction_missing",
+            "jurisdiction_level_mismatch",
+            "translation_status_without_artifact"
+          ]
+        },
+        "expected_disposition": {
+          "const": "REJECT_OR_ABSTAIN"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 5
+        }
+      }
+    }
+  }
+}
