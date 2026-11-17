@@ -129,10 +129,7 @@ fn finite_vec3(values: [f64; 3]) -> bool {
 }
 
 fn quaternion_norm(values: [f64; 4]) -> f64 {
-    values[0]
-        .hypot(values[1])
-        .hypot(values[2])
-        .hypot(values[3])
+    values[0].hypot(values[1]).hypot(values[2]).hypot(values[3])
 }
 
 fn validate_unit_quaternion(values: [f64; 4]) -> Result<(), String> {
@@ -190,7 +187,10 @@ fn validate_profile(profile: &WorkcellProfile) -> Result<(), String> {
             ));
         }
         validate_unit_quaternion(part.target_orientation_xyzw).map_err(|error| {
-            format!("component {} target orientation: {error}", part.component_id)
+            format!(
+                "component {} target orientation: {error}",
+                part.component_id
+            )
         })?;
         if !part.translation_tolerance_m.is_finite()
             || part.translation_tolerance_m <= 0.0
@@ -225,7 +225,9 @@ fn validate_observation_identity(
     {
         return Err("observation fixture identity/revision does not match profile".to_owned());
     }
-    if observation.frame_id != identity.frame_id || observation.frame_revision != identity.frame_revision {
+    if observation.frame_id != identity.frame_id
+        || observation.frame_revision != identity.frame_revision
+    {
         return Err("observation frame identity/revision does not match profile".to_owned());
     }
     if observation.tool_id != identity.tool_id
@@ -237,7 +239,9 @@ fn validate_observation_identity(
         || observation.calibration_revision != identity.calibration_revision
         || observation.calibration_digest != identity.calibration_digest
     {
-        return Err("observation calibration identity/revision/digest does not match profile".to_owned());
+        return Err(
+            "observation calibration identity/revision/digest does not match profile".to_owned(),
+        );
     }
     Ok(())
 }
@@ -322,7 +326,8 @@ fn assess_part(
         );
     }
 
-    let position = match translation_error(part.target_position_m, observation.measured_position_m) {
+    let position = match translation_error(part.target_position_m, observation.measured_position_m)
+    {
         Ok(value) => value,
         Err(error) => return invalid_assessment(&part.component_id, error),
     };
@@ -348,10 +353,7 @@ fn assess_part(
     let position_margin = part.translation_tolerance_m - position_upper;
     let orientation_margin = part.orientation_tolerance_rad - orientation_upper;
     let seat_margin = part.seat_depth_tolerance_m - seat_upper;
-    let disposition = if position_margin >= 0.0
-        && orientation_margin >= 0.0
-        && seat_margin >= 0.0
-    {
+    let disposition = if position_margin >= 0.0 && orientation_margin >= 0.0 && seat_margin >= 0.0 {
         PartDisposition::WithinTolerance
     } else {
         PartDisposition::GeometricMismatch
@@ -583,9 +585,12 @@ mod tests {
         assert_eq!(result.disposition, AssemblyDisposition::WithinTolerance);
         assert_eq!(result.expected_parts, 4);
         assert_eq!(result.observed_parts, 4);
-        assert!(result.parts.iter().all(|part| {
-            part.disposition == PartDisposition::WithinTolerance
-        }));
+        assert!(
+            result
+                .parts
+                .iter()
+                .all(|part| { part.disposition == PartDisposition::WithinTolerance })
+        );
     }
 
     #[test]
@@ -594,7 +599,10 @@ mod tests {
         observations[0].measured_position_m[0] = 0.009;
         observations[0].translation_uncertainty_m = 0.001;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::WithinTolerance);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::WithinTolerance
+        );
     }
 
     #[test]
@@ -603,7 +611,10 @@ mod tests {
         observations[0].measured_position_m[0] = 0.008;
         observations[0].translation_uncertainty_m = 0.003;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::GeometricMismatch);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::GeometricMismatch
+        );
         assert_eq!(result.disposition, AssemblyDisposition::GeometricMismatch);
     }
 
@@ -613,37 +624,38 @@ mod tests {
         observations[0].measured_orientation_xyzw = [0.0, 0.0, 0.0, -1.0];
         let result = evaluate_placements(&profile(), &observations);
         assert_eq!(result.parts[0].orientation_error_rad, Some(0.0));
-        assert_eq!(result.parts[0].disposition, PartDisposition::WithinTolerance);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::WithinTolerance
+        );
     }
 
     #[test]
     fn small_rotation_inside_tolerance_passes() {
         let mut observations = nominal_observations();
         let angle = 0.008;
-        observations[0].measured_orientation_xyzw = [
-            0.0,
-            0.0,
-            (angle / 2.0).sin(),
-            (angle / 2.0).cos(),
-        ];
+        observations[0].measured_orientation_xyzw =
+            [0.0, 0.0, (angle / 2.0).sin(), (angle / 2.0).cos()];
         observations[0].orientation_uncertainty_rad = 0.001;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::WithinTolerance);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::WithinTolerance
+        );
     }
 
     #[test]
     fn rotation_outside_tolerance_rejects_geometry() {
         let mut observations = nominal_observations();
         let angle = 0.011;
-        observations[0].measured_orientation_xyzw = [
-            0.0,
-            0.0,
-            (angle / 2.0).sin(),
-            (angle / 2.0).cos(),
-        ];
+        observations[0].measured_orientation_xyzw =
+            [0.0, 0.0, (angle / 2.0).sin(), (angle / 2.0).cos()];
         observations[0].orientation_uncertainty_rad = 0.0;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::GeometricMismatch);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::GeometricMismatch
+        );
     }
 
     #[test]
@@ -652,7 +664,10 @@ mod tests {
         observations[0].measured_seat_depth_m += 0.003;
         observations[0].seat_depth_uncertainty_m = 0.0;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::GeometricMismatch);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::GeometricMismatch
+        );
     }
 
     #[test]
@@ -661,7 +676,12 @@ mod tests {
         observations.pop();
         let result = evaluate_placements(&profile(), &observations);
         assert_eq!(result.disposition, AssemblyDisposition::IncompleteAssembly);
-        assert!(result.parts.iter().any(|part| part.disposition == PartDisposition::Unknown));
+        assert!(
+            result
+                .parts
+                .iter()
+                .any(|part| part.disposition == PartDisposition::Unknown)
+        );
     }
 
     #[test]
@@ -670,7 +690,12 @@ mod tests {
         observations[0].component_id = "component-lookalike".to_owned();
         let result = evaluate_placements(&profile(), &observations);
         assert_eq!(result.disposition, AssemblyDisposition::Inconsistent);
-        assert!(result.errors.iter().any(|error| error.contains("unexpected component ID")));
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|error| error.contains("unexpected component ID"))
+        );
     }
 
     #[test]
@@ -696,7 +721,10 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].fixture_revision = "fixture-old".to_owned();
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
         assert_eq!(result.disposition, AssemblyDisposition::InvalidEvidence);
     }
 
@@ -705,7 +733,10 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].workpiece_revision = "workpiece-old".to_owned();
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -713,7 +744,10 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].tool_mount_revision = "mount-old".to_owned();
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -721,15 +755,22 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].frame_revision += 1;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
     fn calibration_mismatch_is_invalid_evidence() {
         let mut observations = nominal_observations();
-        observations[0].calibration_digest = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned();
+        observations[0].calibration_digest =
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned();
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -737,7 +778,10 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].measured_orientation_xyzw = [0.0, 0.0, 0.0, 0.0];
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -745,7 +789,10 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].measured_orientation_xyzw = [0.0, 0.0, 0.0, 1.01];
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -753,12 +800,18 @@ mod tests {
         let mut observations = nominal_observations();
         observations[0].measured_position_m[0] = f64::NAN;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
 
         let mut observations = nominal_observations();
         observations[0].translation_uncertainty_m = -0.001;
         let result = evaluate_placements(&profile(), &observations);
-        assert_eq!(result.parts[0].disposition, PartDisposition::InvalidEvidence);
+        assert_eq!(
+            result.parts[0].disposition,
+            PartDisposition::InvalidEvidence
+        );
     }
 
     #[test]
