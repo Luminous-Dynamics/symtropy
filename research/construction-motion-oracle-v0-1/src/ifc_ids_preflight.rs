@@ -2,7 +2,8 @@
 //!
 //! This module does not parse STEP/IFC or execute IDS XML. It validates a
 //! typed record supplied by an IFC/IDS reader, preserves the source GlobalIds,
-//! verifies required information is present, and emits a frozen SiteWorkPackage.
+//! verifies required information and per-rule IDS evaluation receipts, and emits
+//! a frozen SiteWorkPackage.
 //! Canonical package/entity-manifest hashing remains the caller's responsibility.
 
 use std::collections::BTreeSet;
@@ -58,7 +59,8 @@ pub struct IfcIdsWorkPackageInput {
     pub frame_sha256: String,
     pub transform_sha256: String,
     /// Digest of the complete sorted source entity binding manifest, including
-    /// GlobalIds, geometry digests, semantic types and IDS property bindings.
+    /// GlobalIds, geometry digests, semantic types, IDS property bindings and
+    /// per-entity requirement evaluation receipt digests.
     pub entity_manifest_sha256: String,
     pub acceptance_profile_sha256: String,
     pub acceptance_profile: FieldAcceptanceProfile,
