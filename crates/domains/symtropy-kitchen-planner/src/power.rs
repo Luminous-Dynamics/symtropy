@@ -480,53 +480,54 @@ pub fn validate_power_envelope(
         if let Some(previous) = previous_time
             && event_time > previous
         {
-                let interval_ms = event_time - previous;
-                let nonnegative_power = current_power_w.max(0);
-                let Ok(power_w) = u64::try_from(nonnegative_power) else {
+            let interval_ms = event_time - previous;
+            let nonnegative_power = current_power_w.max(0);
+            let Ok(power_w) = u64::try_from(nonnegative_power) else {
+                violation(
+                    &mut report.violations,
+                    PowerConstraintViolationCode::PowerArithmeticOverflow,
+                    None,
+                    "aggregate real power exceeds the u64 watt representation",
+                );
+                break;
+            };
+            peak_power_w = peak_power_w.max(power_w);
+
+            if power_w > input.envelope.surge_real_power_limit_w
+                && !peak_exceeded_reported
+            {
+                violation(
+                    &mut report.violations,
+                    PowerConstraintViolationCode::PeakPowerExceedsSurgeLimit,
+                    None,
+                    format!(
+                        "aggregate real power {} W exceeds declared surge limit {} W",
+                        power_w, input.envelope.surge_real_power_limit_w
+                    ),
+                );
+                peak_exceeded_reported = true;
+            }
+
+            if power_w > input.envelope.continuous_real_power_limit_w {
+                surge_run_ms = surge_run_ms.saturating_add(interval_ms);
+                report.longest_surge_ms = report.longest_surge_ms.max(surge_run_ms);
+                if surge_run_ms > input.envelope.max_surge_duration_ms
+                    && !duration_exceeded_reported
+                {
                     violation(
                         &mut report.violations,
-                        PowerConstraintViolationCode::PowerArithmeticOverflow,
+                        PowerConstraintViolationCode::SurgeDurationExceedsLimit,
                         None,
-                        "aggregate real power exceeds the u64 watt representation",
+                        format!(
+                            "aggregate power stayed above continuous limit for {} ms; maximum permitted is {} ms",
+                            surge_run_ms, input.envelope.max_surge_duration_ms
+                        ),
                     );
-                    break;
-                };
-                peak_power_w = peak_power_w.max(power_w);
-
-                if power_w > input.envelope.surge_real_power_limit_w
-                    && !peak_exceeded_reported
-                {
-                        violation(
-                            &mut report.violations,
-                            PowerConstraintViolationCode::PeakPowerExceedsSurgeLimit,
-                            None,
-                            format!(
-                                "aggregate real power {} W exceeds declared surge limit {} W",
-                                power_w, input.envelope.surge_real_power_limit_w
-                            ),
-                        );
-                        peak_exceeded_reported = true;
-
-                if power_w > input.envelope.continuous_real_power_limit_w {
-                    surge_run_ms = surge_run_ms.saturating_add(interval_ms);
-                    report.longest_surge_ms = report.longest_surge_ms.max(surge_run_ms);
-                    if surge_run_ms > input.envelope.max_surge_duration_ms
-                        && !duration_exceeded_reported
-                    {
-                        violation(
-                            &mut report.violations,
-                            PowerConstraintViolationCode::SurgeDurationExceedsLimit,
-                            None,
-                            format!(
-                                "aggregate power stayed above continuous limit for {} ms; maximum permitted is {} ms",
-                                surge_run_ms, input.envelope.max_surge_duration_ms
-                            ),
-                        );
-                        duration_exceeded_reported = true;
-                    }
-                } else {
-                    surge_run_ms = 0;
+                    duration_exceeded_reported = true;
                 }
+            } else {
+                surge_run_ms = 0;
+            }
         }
 
         let mut grouped_delta = 0_i128;
