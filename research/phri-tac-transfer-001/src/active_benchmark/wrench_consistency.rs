@@ -71,9 +71,6 @@ impl Vec3 {
         }
     }
 
-    fn components(self) -> [f64; 3] {
-        [self.x, self.y, self.z]
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
