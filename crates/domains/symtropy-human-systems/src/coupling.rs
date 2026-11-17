@@ -357,7 +357,7 @@ fn validate_unit(unit: UnitSpec) -> Result<(), CouplingError> {
     if !unit.offset_to_si.is_finite() {
         return Err(CouplingError::InvalidUnitOffset);
     }
-    if unit.kind == QuantityKind::TemperatureDifference && unit.offset_to_si != 0.0 {
+    if unit.kind != QuantityKind::AbsoluteTemperature && unit.offset_to_si != 0.0 {
         return Err(CouplingError::InvalidUnitOffset);
     }
     if unit.kind == QuantityKind::Symbolic && unit.semantic_name.is_empty() {
@@ -395,7 +395,24 @@ fn validate_mapping(
     if source.kind == QuantityKind::Symbolic && mapping.offset != 0.0 {
         return Err(CouplingError::InvalidMapping);
     }
+
+    // Validate the submitted conversion against the two declared affine SI
+    // mappings. This checks a conversion proposal; it does not create one.
+    let expected_scale = source.scale_to_si / destination.scale_to_si;
+    let expected_offset =
+        (source.offset_to_si - destination.offset_to_si) / destination.scale_to_si;
+    if !approximately_equal(mapping.scale, expected_scale)
+        || !approximately_equal(mapping.offset, expected_offset)
+    {
+        return Err(CouplingError::InvalidMapping);
+    }
     Ok(())
+}
+
+
+fn approximately_equal(left: f64, right: f64) -> bool {
+    let scale = 1.0_f64.max(left.abs()).max(right.abs());
+    (left - right).abs() <= 1.0e-12 * scale
 }
 
 fn validate_balance(
@@ -517,6 +534,46 @@ mod tests {
             }],
         );
         assert_eq!(graph.validate(), Ok(()));
+    }
+
+    #[test]
+    fn celsius_to_kelvin_requires_and_accepts_the_declared_affine_conversion() {
+        let mut kelvin_input = jos3_temperature_input();
+        kelvin_input.unit = UnitSpec::kelvin();
+        let graph = model_graph(
+            vec![env_temperature_output(), kelvin_input],
+            vec![CouplingEdge {
+                edge_id: "celsius-to-kelvin",
+                from_port: "env-ta",
+                to_port: "jos3-ta",
+                mapping: PortMapping {
+                    scale: 1.0,
+                    offset: 273.15,
+                    reviewed: true,
+                },
+                delay_seconds: 0.0,
+                balance: None,
+            }],
+        );
+        assert_eq!(graph.validate(), Ok(()));
+    }
+
+    #[test]
+    fn wrong_temperature_affine_conversion_is_rejected() {
+        let mut kelvin_input = jos3_temperature_input();
+        kelvin_input.unit = UnitSpec::kelvin();
+        let graph = model_graph(
+            vec![env_temperature_output(), kelvin_input],
+            vec![CouplingEdge {
+                edge_id: "wrong-celsius-to-kelvin",
+                from_port: "env-ta",
+                to_port: "jos3-ta",
+                mapping: identity_mapping(),
+                delay_seconds: 0.0,
+                balance: None,
+            }],
+        );
+        assert_eq!(graph.validate(), Err(CouplingError::InvalidMapping));
     }
 
     #[test]
