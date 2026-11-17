@@ -870,21 +870,32 @@ mod tests {
 
     #[test]
     fn invalid_sensor_is_excluded_before_failure_combinations_are_counted() {
-        let (input, schema, oracle) = fixture();
-        let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        let stale = result["layout_results"]
+        let (input, _, _) = fixture();
+        let stale_layout = input["layouts"]
             .as_array()
             .unwrap()
             .iter()
             .find(|x| x["layout_id"] == "SURV-T1-009-stale-channel-excluded")
             .unwrap();
-        let base = result["layout_results"]
+        let states = input["required_state_ids"]
             .as_array()
             .unwrap()
             .iter()
-            .find(|x| x["layout_id"] == "SURV-T1-001-independent-single-channel")
-            .unwrap();
-        assert_eq!(stale["component_count"], base["component_count"]);
+            .map(|x| x.as_str().unwrap().to_owned())
+            .collect::<Vec<_>>();
+        let stale = evaluate_layout(stale_layout, &states, 48, 2000).unwrap();
+        let mut active_only = stale_layout.clone();
+        active_only["sensors"] = json!(
+            stale_layout["sensors"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|sensor| sensor["sensor_id"] != "STALE1")
+                .cloned()
+                .collect::<Vec<_>>()
+        );
+        let stripped = evaluate_layout(&active_only, &states, 48, 2000).unwrap();
+        assert_eq!(stale["component_count"], stripped["component_count"]);
         assert!(
             !stale["components"]
                 .as_array()
