@@ -1,0 +1,277 @@
+{
+  "schema_version": "0.1.0",
+  "profile_id": "construction-task-compiler-v0.1",
+  "fixture_class": "synthetic_reference_cases",
+  "cases": [
+    {
+      "id": "tc-001",
+      "scenario": "valid_single_element_method",
+      "expected": "valid",
+      "description": "One approved element and one approved method step produces one traceable task."
+    },
+    {
+      "id": "tc-002",
+      "scenario": "valid_multistep_order",
+      "expected": "valid",
+      "description": "A multi-step method produces a DAG preserving declared predecessor order."
+    },
+    {
+      "id": "tc-003",
+      "scenario": "valid_template_many_elements",
+      "expected": "valid",
+      "description": "Template instantiation preserves unique physical element identities."
+    },
+    {
+      "id": "tc-004",
+      "scenario": "valid_parameterized_template",
+      "expected": "valid",
+      "description": "Same template with distinct values preserves separate task contexts."
+    },
+    {
+      "id": "tc-005",
+      "scenario": "missing_mandatory_parameter",
+      "expected": "obligation",
+      "description": "Missing required parameter becomes a typed obligation/rejection."
+    },
+    {
+      "id": "tc-006",
+      "scenario": "unknown_parameter_unit",
+      "expected": "reject",
+      "description": "Unknown unit is not guessed or silently converted."
+    },
+    {
+      "id": "tc-007",
+      "scenario": "exact_unit_conversion_evidence",
+      "expected": "valid",
+      "description": "Exact unit conversion has explicit precision and source evidence."
+    },
+    {
+      "id": "tc-008",
+      "scenario": "non_exact_conversion_precision_loss",
+      "expected": "reject",
+      "description": "Non-exact conversion beyond allowed precision is rejected."
+    },
+    {
+      "id": "tc-009",
+      "scenario": "missing_coordinate_frame",
+      "expected": "reject",
+      "description": "Missing target frame blocks compilation."
+    },
+    {
+      "id": "tc-010",
+      "scenario": "design_revision_stale",
+      "expected": "stale",
+      "description": "Design revision change invalidates previous graph."
+    },
+    {
+      "id": "tc-011",
+      "scenario": "method_revision_change",
+      "expected": "different_digest",
+      "description": "Method revision changes output identity and diff."
+    },
+    {
+      "id": "tc-012",
+      "scenario": "irrelevant_serialization_permutation",
+      "expected": "same_digest",
+      "description": "Semantically unordered serialization changes do not change canonical output."
+    },
+    {
+      "id": "tc-013",
+      "scenario": "duplicate_source_element_id",
+      "expected": "reject",
+      "description": "Duplicate source element within one node is rejected."
+    },
+    {
+      "id": "tc-014",
+      "scenario": "shared_material_batch_distinct_component",
+      "expected": "valid",
+      "description": "Distinct components sharing a batch remain distinct identities."
+    },
+    {
+      "id": "tc-015",
+      "scenario": "missing_required_material_identity",
+      "expected": "obligation",
+      "description": "Required missing material data is not inferred."
+    },
+    {
+      "id": "tc-016",
+      "scenario": "missing_robot_capability",
+      "expected": "reject",
+      "description": "Missing capability receipt prevents execution admission."
+    },
+    {
+      "id": "tc-017",
+      "scenario": "expired_capability_profile",
+      "expected": "stale",
+      "description": "Expired or revised capability profile is stale."
+    },
+    {
+      "id": "tc-018",
+      "scenario": "wrong_tool_process_mapping",
+      "expected": "reject",
+      "description": "Unsupported tool/process mapping is typed rejection."
+    },
+    {
+      "id": "tc-019",
+      "scenario": "missing_inspection_obligation",
+      "expected": "reject",
+      "description": "Required inspection obligation cannot be silently omitted."
+    },
+    {
+      "id": "tc-020",
+      "scenario": "missing_critical_precondition",
+      "expected": "obligation",
+      "description": "Critical precondition requires human/project resolution."
+    },
+    {
+      "id": "tc-021",
+      "scenario": "missing_optional_property",
+      "expected": "obligation",
+      "description": "Optional property omission is explicit and does not invent a value."
+    },
+    {
+      "id": "tc-022",
+      "scenario": "dependency_cycle",
+      "expected": "reject",
+      "description": "Cycle is rejected with a deterministic witness."
+    },
+    {
+      "id": "tc-023",
+      "scenario": "bounded_repeat_semantics",
+      "expected": "valid_special_case",
+      "description": "Bounded repeat requires explicit versioned semantics."
+    },
+    {
+      "id": "tc-024",
+      "scenario": "two_independent_prerequisites",
+      "expected": "valid",
+      "description": "Both incoming dependency edges are preserved."
+    },
+    {
+      "id": "tc-025",
+      "scenario": "superseded_task_after_design_change",
+      "expected": "supersession",
+      "description": "Prior task identity is retained and successor mapping is emitted."
+    },
+    {
+      "id": "tc-026",
+      "scenario": "adapter_cannot_encode_required_field",
+      "expected": "reject",
+      "description": "Essential adapter field loss produces typed rejection."
+    },
+    {
+      "id": "tc-027",
+      "scenario": "adapter_drops_acceptance_receipt",
+      "expected": "reject",
+      "description": "Acceptance evidence obligation survives adapter lowering."
+    },
+    {
+      "id": "tc-028",
+      "scenario": "behavior_tree_guard_timeout_abort",
+      "expected": "preserve",
+      "description": "Lowering preserves guards, timeouts, abort and retry scope."
+    },
+    {
+      "id": "tc-029",
+      "scenario": "behavior_tree_semantic_round_trip_change",
+      "expected": "reject",
+      "description": "Semantic differential oracle catches changed behavior."
+    },
+    {
+      "id": "tc-030",
+      "scenario": "compiler_claims_physical_measurement",
+      "expected": "reject",
+      "description": "Generated tasks cannot claim physical measurements."
+    },
+    {
+      "id": "tc-031",
+      "scenario": "IFC_project_manifest_property_conflict",
+      "expected": "conflict",
+      "description": "Conflicting source facts are surfaced, not guessed."
+    },
+    {
+      "id": "tc-032",
+      "scenario": "unapproved_method_template",
+      "expected": "reject",
+      "description": "Method approval is an explicit prerequisite."
+    },
+    {
+      "id": "tc-033",
+      "scenario": "control_coverage_outside_domain",
+      "expected": "reject",
+      "description": "Coverage gate from 3569 blocks unsupported domain."
+    },
+    {
+      "id": "tc-034",
+      "scenario": "site_epoch_changed_before_dispatch",
+      "expected": "stale",
+      "description": "Changed worksite epoch invalidates prior graph admission."
+    },
+    {
+      "id": "tc-035",
+      "scenario": "identical_inputs_replay",
+      "expected": "same_digest",
+      "description": "Identical inputs and rule digests generate identical canonical output."
+    },
+    {
+      "id": "tc-036",
+      "scenario": "transformation_rule_mutated_same_label",
+      "expected": "reject",
+      "description": "Rule digest mismatch is detected."
+    },
+    {
+      "id": "tc-037",
+      "scenario": "compiler_version_changed",
+      "expected": "versioned_change",
+      "description": "Compiler version change is explicitly recorded."
+    },
+    {
+      "id": "tc-038",
+      "scenario": "missing_final_inspection_requirement",
+      "expected": "reject",
+      "description": "No acceptance-ready graph without required inspection."
+    },
+    {
+      "id": "tc-039",
+      "scenario": "partial_functional_unit",
+      "expected": "valid",
+      "description": "Partial output remains at its declared smallest functional unit."
+    },
+    {
+      "id": "tc-040",
+      "scenario": "input_order_permutation",
+      "expected": "same_digest",
+      "description": "Permuted semantically unordered inputs preserve canonical order."
+    },
+    {
+      "id": "tc-041",
+      "scenario": "operation_order_semantic_change",
+      "expected": "different_digest",
+      "description": "Semantically ordered operation change changes canonical graph."
+    },
+    {
+      "id": "tc-042",
+      "scenario": "wrong_source_to_method_step_lineage",
+      "expected": "reject",
+      "description": "Source lineage mismatch is rejected."
+    },
+    {
+      "id": "tc-043",
+      "scenario": "duplicate_transformation_step_id",
+      "expected": "reject",
+      "description": "Duplicate transformation step ID is rejected."
+    },
+    {
+      "id": "tc-044",
+      "scenario": "resource_prerequisite_revision_change",
+      "expected": "stale",
+      "description": "Changed resource prerequisite triggers recompile/requalification."
+    },
+    {
+      "id": "tc-045",
+      "scenario": "unsupported_task_family",
+      "expected": "reject",
+      "description": "Unsupported task family is not compiled into an empty successful graph."
+    }
+  ]
+}
