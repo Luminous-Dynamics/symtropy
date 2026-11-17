@@ -1,0 +1,176 @@
+{
+  "schema_version": "0.1.0",
+  "registry_id": "FOREST-CROSS-DOMAIN-DATA-CANDIDATES-001/v0.1",
+  "claim_ceiling": "Metadata discovery only. These sources have not been admitted into the forest benchmark, downloaded, independently hashed, rights-cleared for a particular derivative, or ingested. Their reported scale is not a guarantee of relevant sample size for any selected task. No model calibration, forecast, thermodynamic closure, ecological conclusion or SOTA claim follows from this registry.",
+  "sources": [
+    {
+      "source_id": "TRY-PLANT-TRAIT-DB-V7",
+      "provider": "TRY Plant Trait Database / Future Earth / Max Planck Institute for Biogeochemistry / iDiv",
+      "title": "TRY Plant Trait Database, version 7",
+      "official_url": "https://www.try-db.org/TryWeb/Home.php",
+      "release": "Version 7 released 2026-09-04; official portal reports 22,860,407 trait records and 306,701 taxa. The About page reports approximately 23 million records, 3,260 traits, more than 7.5 million individual plants and over 100,000 measurement sites; roughly half the records are georeferenced.",
+      "reported_coverage": {
+        "records": 22860407,
+        "taxa": 306701,
+        "traits_reported": 3260,
+        "individual_plants_reported": 7500000,
+        "measurement_sites_reported": 100000,
+        "georeferenced_share": "approximately_half"
+      },
+      "observed_dimensions": [
+        "plant functional traits",
+        "leaf and wood traits where supplied",
+        "taxonomic identity and trait provenance",
+        "georeferenced sampling support where available"
+      ],
+      "candidate_use": [
+        "trait-distribution priors and sensitivity ranges for process models",
+        "taxon/functional-group stratification and transfer tests",
+        "trait-data representativeness and within-taxon variation audit"
+      ],
+      "support_and_transfer_limits": [
+        "Trait observations are not a census, biomass stock, flux, or longitudinal demographic panel.",
+        "About half the records are reported as georeferenced; do not infer site support for records without coordinates.",
+        "Version 7 taxonomic harmonization with GBIF is reported, but source-level taxon concepts and synonyms must be retained in the admission crosswalk.",
+        "A trait prior must preserve source, method, taxon, unit, sampling year and uncertainty; do not collapse distributions into a universal species constant."
+      ],
+      "rights_and_access": {
+        "status": "LICENSE_REPORTED_AT_DATABASE_LEVEL_EXTRACT_CHECK_REQUIRED",
+        "license_or_terms": "TRY reports data from version 5.0 onward are available under CC BY with attribution, a license link and notice of changes. Verify the exact v7 extract and contributor terms before derivative or redistribution.",
+        "retrieval_requirements": "The portal reports delayed large data releases at times; request only the minimum required trait subset and archive the exact query/response metadata.",
+        "review_required": true
+      },
+      "admission_state": "METADATA_ONLY_NOT_ADMITTED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Select a minimal trait panel against the current process/observation variable map; retrieve exact v7 metadata and permitted extract; bind file digests, trait units, taxon concepts, measurement methods, sampling year, coordinates, quality flags and contributor conditions before use."
+    },
+    {
+      "source_id": "BIOTIME-2-0-BIODIVERSITY-TIMESERIES",
+      "provider": "BioTIME project / University of St Andrews",
+      "title": "BioTIME 2.0 global biodiversity time-series database",
+      "official_url": "https://biotime.st-andrews.ac.uk/database.php",
+      "release": "BioTIME 2.0 (Dornelas et al., Global Ecology and Biogeography, 2025); official database page reports 12,622,491 records, 45,073 species, 387 time series, 21 biomes and 3 realms.",
+      "reported_coverage": {
+        "records": 12622491,
+        "species": 45073,
+        "time_series": 387,
+        "biomes": 21,
+        "realms": 3
+      },
+      "observed_dimensions": [
+        "repeated species occurrence/abundance records",
+        "community composition through time",
+        "time-series metadata and sampling context"
+      ],
+      "candidate_use": [
+        "held-out community-abundance and composition forecasts",
+        "temporal regime-shift and ecological-transfer stress tests",
+        "species/community response calibration where source sampling supports the task"
+      ],
+      "support_and_transfer_limits": [
+        "The database is global and multi-ecosystem, not a forest-only sample; forest subsets need an explicit biome/ecosystem and site selection rule.",
+        "Time series have different sampling protocols, taxonomic resolution, temporal cadence and observation effort; preserve the original series and metadata.",
+        "A repeated community series is not automatically an intervention dataset or causal effect estimate.",
+        "Do not random-split records from the same time series across train and test; split by independent site/series and forecast origin."
+      ],
+      "rights_and_access": {
+        "status": "NOT_VERIFIED",
+        "license_or_terms": "The official summary page gives citation and database scope but the candidate review has not yet verified the current data-package license, redistribution permissions, or derivative conditions.",
+        "retrieval_requirements": "Retrieve release metadata and data dictionary first; audit license, site identifiers, sampling-effort fields, taxonomic crosswalk and missingness before requesting raw records.",
+        "review_required": true
+      },
+      "admission_state": "METADATA_ONLY_NOT_ADMITTED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Verify current release metadata and terms; select forest-compatible series with repeatable site/time support; document site/campaign dependence, effort, taxonomy, sampling design and data gaps; create pre-registered temporal and site-blocked splits."
+    },
+    {
+      "source_id": "FLUXNET-DATA-SHUTTLE-2026",
+      "provider": "FLUXNET Data System / regional flux networks",
+      "title": "FLUXNET Data Shuttle eddy-covariance data service",
+      "official_url": "https://fluxnet.org/2026/05/14/fluxnet-data-shuttle-gui-launched/",
+      "release": "Data Shuttle GUI launched 2026-05-14. FLUXNET reports almost 6,000 site-years and a continuously updated standardized access system using ONEFlux processing; listed products include ecosystem productivity/respiration, gap filling, uncertainty and expanded metadata.",
+      "reported_coverage": {
+        "site_years": "almost_6000_as_reported_2026-05",
+        "network": "multiple_regional_networks",
+        "update_model": "continually_updated_standardized_data_products"
+      },
+      "observed_dimensions": [
+        "eddy-covariance exchange of carbon",
+        "water and energy exchange",
+        "gross primary productivity and respiration products",
+        "gap-filled fluxes and uncertainty fields where supplied"
+      ],
+      "candidate_use": [
+        "process-level carbon/water/energy flux model comparisons",
+        "open-system energy and carbon budget tests at compatible tower support",
+        "multi-year ecosystem response and forecast benchmarks"
+      ],
+      "support_and_transfer_limits": [
+        "Tower flux footprints vary with wind and stability; a tower point coordinate is not the spatial support of every interval.",
+        "Gap-filled values and measured intervals must remain distinct, including quality flags and uncertainty.",
+        "Data Shuttle site-years are heterogeneous by region, period, processing version and instrument metadata; pin product release and pipeline.",
+        "Carbon, water and energy flux availability does not by itself establish a closed first-law boundary; inspect net radiation, sensible/latent/ground heat and storage terms before closure claims.",
+        "Do not infer entropy production, exergy destruction, biological welfare or consciousness from GPP, respiration or energy flux alone."
+      ],
+      "rights_and_access": {
+        "status": "NOT_VERIFIED",
+        "license_or_terms": "Regional network contribution terms, data access and reuse conditions have not been adjudicated in this candidate record; verify at the exact site/product asset and contributing network before reuse or redistribution.",
+        "retrieval_requirements": "Select a limited, permission-compatible site/time slice; preserve ONEFlux processing/version, site metadata, quality flags, gap-fill state, uncertainty and flux-footprint metadata.",
+        "review_required": true
+      },
+      "admission_state": "METADATA_ONLY_NOT_ADMITTED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Select sites with qualified carbon/water/energy terms; archive product release and source metadata; inspect measurement and gap-fill flags, footprint support, storage terms, energy-balance closure and contributor terms; compare flux models against measured baselines without claiming full-system thermodynamics prematurely."
+    },
+    {
+      "source_id": "NEON-TERRESTRIAL-RELEASE-2026",
+      "provider": "National Ecological Observatory Network (NEON) / Battelle / NSF",
+      "title": "NEON terrestrial organism, plant, and ecological forecast data products",
+      "official_url": "https://www.neonscience.org/data-collection/terrestrial-organisms",
+      "release": "Current 2026 product examples include plant phenology DP1.10055.001 RELEASE-2026 (DOI 10.48443/p75s-7p48) and plant presence/percent cover DP1.10058.001 RELEASE-2026 (DOI 10.48443/9g4s-hq52); vegetation structure DP1.10098.001 is documented in a 2026 user guide. NEON notes phenology sampling was reduced to core sites from 2026.",
+      "reported_coverage": {
+        "geography": "United States terrestrial field sites",
+        "measurements": "plants, animals and microbes; site-level repeated sampling",
+        "product_examples": [
+          "DP1.10055.001",
+          "DP1.10058.001",
+          "DP1.10098.001"
+        ]
+      },
+      "observed_dimensions": [
+        "species abundance, biomass/density and community composition",
+        "plant phenology and phenophase intensity",
+        "plant presence and cover at nested plot supports",
+        "vegetation structure and woody plant measurements",
+        "root/litterfall biomass and chemistry where collected",
+        "organismal traits and selected microbial community measures"
+      ],
+      "candidate_use": [
+        "site-by-horizon probabilistic ecological forecast evaluation",
+        "plant phenology timing and abundance forecasts",
+        "independent transfer tests for plant and community process models",
+        "multi-observation tests linking organismal and ecosystem measurements"
+      ],
+      "support_and_transfer_limits": [
+        "NEON's terrestrial sites cover the United States; it is an external transfer benchmark, not direct Amazon, Congo or New Guinea calibration.",
+        "Product-specific sampling supports and temporal cadence differ; for example, phenology is measured at individual/patch and day/bout resolution while vegetation structure is plot/stem-based.",
+        "The phenology RELEASE-2026 product page reports a listed data range ending 2024-12 while its narrative describes measurements through 2025 and core-site collection thereafter; resolve this metadata discrepancy from the exact downloaded release before split creation.",
+        "NEON states data products are free/open, but API tokens are required for data-product downloads or intensive API use; preserve product DOI, citation and API/release details.",
+        "NEON4Cast evaluates forecasts by site and forecast horizon using CRPS and compares with a null model; reproduce these scoring semantics before adding forest-specific metrics."
+      ],
+      "rights_and_access": {
+        "status": "METADATA_REVIEWED_TERMS_STILL_REQUIRE_SOURCE_CHECK",
+        "license_or_terms": "NEON describes its data products as free and open. Verify each exact product release, citation, API and attribution instructions; do not assume all product derivatives share the same metadata or support.",
+        "retrieval_requirements": "Public metadata exploration is unauthenticated; downloading data products or intensive API use requires a NEON API token. Pin product ID and RELEASE-2026 DOI.",
+        "review_required": true
+      },
+      "admission_state": "METADATA_ONLY_NOT_ADMITTED",
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Choose exact plant/structure/phenology releases and a site subset; retrieve data-product metadata and guides; reconcile product date ranges, plot/stem/individual support, QA flags, site changes, phenology schedule reductions and release DOI; build site-blocked and time-forward evaluation splits."
+    }
+  ]
+}
