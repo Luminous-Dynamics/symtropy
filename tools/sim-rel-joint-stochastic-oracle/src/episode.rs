@@ -285,71 +285,79 @@ impl EpisodeProvider {
             .kernel
             .action_ids
             .iter()
-            .position(|candidate| candidate == action_id);
+            .position(|candidate| candidate.as_str() == action_id);
         let requested_cost_units = action_index.map(|index| self.kernel.action_costs[index]);
 
-        let disposition = if action_index.is_none() {
-            AttemptDisposition::RejectedUnknownAction
-        } else if self.terminal {
-            AttemptDisposition::RejectedTerminal
-        } else if self.accepted_attempts >= self.config.max_attempts {
-            AttemptDisposition::RejectedAttemptBudget
-        } else if self.current_step >= self.config.max_world_steps {
-            AttemptDisposition::RejectedStepBudget
-        } else {
-            let action_index = action_index.unwrap_or(0);
-            let action_cost = self.kernel.action_costs[action_index];
-            let proposed_cost = self
-                .spent_cost_units
-                .checked_add(action_cost)
-                .ok_or(EpisodeError::CostOverflow)?;
-            if proposed_cost > self.config.max_cost_units {
-                AttemptDisposition::RejectedCostBudget
-            } else {
-                let row = self
-                    .kernel
-                    .transition_row(
-                        self.hypothesis,
-                        self.physical_state,
-                        self.sensor_state,
-                        action_index,
-                    )
-                    .ok_or(EpisodeError::MissingTransitionData)?;
-                let outcome_index = sample_index(
-                    &row.outcomes,
-                    |outcome| outcome.probability,
-                    &mut self.rng,
-                )?;
-                // Copy the selected outcome before mutating provider state.
-                let outcome = row.outcomes[outcome_index].clone();
-
-                self.spent_cost_units = proposed_cost;
-                self.accepted_attempts += 1;
-                self.current_step += 1;
-
-                match outcome.observation {
-                    Some(observation_index) => {
-                        let observation_id = self
+        let disposition = match action_index {
+            None => AttemptDisposition::RejectedUnknownAction,
+            Some(_) if self.terminal => AttemptDisposition::RejectedTerminal,
+            Some(_) if self.accepted_attempts >= self.config.max_attempts => {
+                AttemptDisposition::RejectedAttemptBudget
+            }
+            Some(_) if self.current_step >= self.config.max_world_steps => {
+                AttemptDisposition::RejectedStepBudget
+            }
+            Some(action_index) => {
+                let action_cost = self.kernel.action_costs[action_index];
+                let proposed_cost = self
+                    .spent_cost_units
+                    .checked_add(action_cost)
+                    .ok_or(EpisodeError::CostOverflow)?;
+                if proposed_cost > self.config.max_cost_units {
+                    AttemptDisposition::RejectedCostBudget
+                } else {
+                    let outcome = {
+                        let row = self
                             .kernel
-                            .observation_ids
-                            .get(observation_index)
+                            .transition_row(
+                                self.hypothesis,
+                                self.physical_state,
+                                self.sensor_state,
+                                action_index,
+                            )
+                            .ok_or(EpisodeError::MissingTransitionData)?;
+                        let outcome_index = sample_index(
+                            &row.outcomes,
+                            |item| item.probability,
+                            &mut self.rng,
+                        )?;
+                        row.outcomes
+                            .get(outcome_index)
                             .ok_or(EpisodeError::MissingTransitionData)?
-                            .clone();
-                        self.physical_state = outcome.next_physical_state;
-                        self.sensor_state = outcome.next_sensor_state;
-                        self.observations.push(EpisodeObservation {
-                            observation_id: observation_id.clone(),
-                            event_step: self.current_step,
-                            acquisition_step: self.current_step,
-                            available_at_step: self.current_step,
-                        });
-                        AttemptDisposition::Applied { observation_id }
-                    }
-                    None => {
-                        self.physical_state = outcome.next_physical_state;
-                        self.sensor_state = outcome.next_sensor_state;
-                        self.terminal = true;
-                        AttemptDisposition::HazardTerminal
+                            .clone()
+                    };
+
+                    let observation_id = match outcome.observation {
+                        Some(observation_index) => Some(
+                            self.kernel
+                                .observation_ids
+                                .get(observation_index)
+                                .ok_or(EpisodeError::MissingTransitionData)?
+                                .clone(),
+                        ),
+                        None => None,
+                    };
+
+                    self.spent_cost_units = proposed_cost;
+                    self.accepted_attempts += 1;
+                    self.current_step += 1;
+                    self.physical_state = outcome.next_physical_state;
+                    self.sensor_state = outcome.next_sensor_state;
+
+                    match observation_id {
+                        Some(observation_id) => {
+                            self.observations.push(EpisodeObservation {
+                                observation_id: observation_id.clone(),
+                                event_step: self.current_step,
+                                acquisition_step: self.current_step,
+                                available_at_step: self.current_step,
+                            });
+                            AttemptDisposition::Applied { observation_id }
+                        }
+                        None => {
+                            self.terminal = true;
+                            AttemptDisposition::HazardTerminal
+                        }
                     }
                 }
             }
