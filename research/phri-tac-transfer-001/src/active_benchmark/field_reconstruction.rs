@@ -452,7 +452,9 @@ pub fn reconstruct_contact_field(
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
-            let updated = (extrapolated[index] - step_size * extrapolated_gradient[index]).max(0.0);
+            let updated = (extrapolated[index]
+                - step_size * (extrapolated_gradient[index] + problem.sparsity_penalty))
+                .max(0.0);
             next_field[index] = updated;
             maximum_field = maximum_field.max(updated.abs());
         }
@@ -475,7 +477,13 @@ pub fn reconstruct_contact_field(
         projected_gradient_residual = current_gradient
             .iter()
             .zip(&field)
-            .map(|(value, estimate)| ((estimate - step_size * value).max(0.0) - estimate).abs())
+            .map(|(value, estimate)| {
+                ((estimate
+                    - step_size * (value + problem.sparsity_penalty))
+                    .max(0.0)
+                    - estimate)
+                    .abs()
+            })
             .fold(0.0_f64, f64::max);
 
         if projected_gradient_residual <= config.convergence_tolerance * (1.0 + maximum_field) {
