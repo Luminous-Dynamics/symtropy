@@ -618,10 +618,17 @@ fn validate_corpus(corpus: &Corpus) -> Result<ValidationSummary, Vec<String>> {
             }
         }
 
+        let mut unique_required_controls = BTreeSet::new();
         for control_id in &fixture.required_control_ids {
             if !control_ids.contains(control_id) {
                 errors.push(format!(
                     "fixture {} references unknown anti-derivation control {}",
+                    fixture.fixture_id, control_id
+                ));
+            }
+            if !unique_required_controls.insert(control_id) {
+                errors.push(format!(
+                    "fixture {} repeats anti-derivation control {}",
                     fixture.fixture_id, control_id
                 ));
             }
@@ -765,7 +772,8 @@ mod tests {
     #[test]
     fn duplicate_fixture_ids_are_rejected() {
         let mut corpus = parse_corpus(fixture_value()).unwrap();
-        corpus.fixtures[1].fixture_id = corpus.fixtures[0].fixture_id.clone();
+        let duplicate_id = corpus.fixtures[0].fixture_id.clone();
+        corpus.fixtures[1].fixture_id = duplicate_id;
         assert!(validate_corpus(&corpus).is_err());
     }
 
