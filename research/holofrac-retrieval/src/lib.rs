@@ -738,9 +738,17 @@ pub struct BenchmarkReport {
     pub unique_role_codebook_entries: usize,
     /// Bipolar payload bytes for the unique typed role/value codebook.
     pub role_slot_index_bytes_estimate: usize,
+    /// Five compact codebook indices retained for each fact.
+    pub slot_reference_bytes_estimate: usize,
+    /// Hypothetical duplicated role-vector payload without factorization.
+    pub duplicated_role_slot_payload_bytes_estimate: usize,
+    /// Bytes saved by codebook factorization versus duplicated role vectors.
+    pub factorized_role_slot_bytes_saved: usize,
     /// All vector payload retained: per-fact bipolar + f32 + unique role codebook.
     /// Excludes allocator overhead, graph objects and canonical key strings.
     pub retained_vector_payload_bytes_estimate: usize,
+    /// Vector payload plus per-fact compact references, still excluding map/key overhead.
+    pub retained_payload_and_slot_refs_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
 }
 
@@ -835,10 +843,27 @@ pub fn run_benchmark(
         role_slot_index_bytes_estimate: index.role_codebook.len()
             * dimension
             * std::mem::size_of::<i8>(),
+        slot_reference_bytes_estimate: graph.facts.len()
+            * 5
+            * std::mem::size_of::<usize>(),
+        duplicated_role_slot_payload_bytes_estimate: graph.facts.len()
+            * 5
+            * dimension
+            * std::mem::size_of::<i8>(),
+        factorized_role_slot_bytes_saved: graph.facts.len()
+            * 5
+            * dimension
+            * std::mem::size_of::<i8>()
+            - index.role_codebook.len() * dimension * std::mem::size_of::<i8>(),
         retained_vector_payload_bytes_estimate: graph.facts.len()
             * dimension
             * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
             + index.role_codebook.len() * dimension * std::mem::size_of::<i8>(),
+        retained_payload_and_slot_refs_bytes_estimate: graph.facts.len()
+            * dimension
+            * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
+            + index.role_codebook.len() * dimension * std::mem::size_of::<i8>()
+            + graph.facts.len() * 5 * std::mem::size_of::<usize>(),
         outcomes,
     })
 }
@@ -1174,16 +1199,30 @@ mod tests {
             report.unique_role_codebook_entries * dimension * std::mem::size_of::<i8>()
         );
         assert!(report.unique_role_codebook_entries < facts * 5);
+        assert_eq!(
+            report.slot_reference_bytes_estimate,
+            facts * 5 * std::mem::size_of::<usize>()
+        );
+        assert_eq!(
+            report.duplicated_role_slot_payload_bytes_estimate,
+            facts * 5 * dimension * std::mem::size_of::<i8>()
+        );
+        assert_eq!(
+            report.factorized_role_slot_bytes_saved,
+            report.duplicated_role_slot_payload_bytes_estimate
+                - report.role_slot_index_bytes_estimate
+        );
+        assert_eq!(
+            report.retained_payload_and_slot_refs_bytes_estimate,
+            report.retained_vector_payload_bytes_estimate + report.slot_reference_bytes_estimate
+        );
         let encoder = HoloFracEncoder::new(spec(dimension, 43)).unwrap();
         let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
         for indexed in &index.facts {
             let encoded = encoder.encode_fact(&graph, &indexed.fact).unwrap();
             for slot in FactSlot::ALL {
                 let code_index = indexed.role_codebook_indices[slot.index()];
-                assert_eq!(
-                    index.role_codebook[code_index],
-                    *encoded.slots.get(slot)
-                );
+                assert_eq!(index.role_codebook[code_index], *encoded.slots.get(slot));
             }
         }
         assert_eq!(index.role_codebook.len(), index.role_codebook_index.len());
