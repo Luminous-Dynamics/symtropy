@@ -272,7 +272,8 @@
             "minLength": 1
           }
         }
-      }
+      },
+      "maxItems": 16
     }
   }
 }
