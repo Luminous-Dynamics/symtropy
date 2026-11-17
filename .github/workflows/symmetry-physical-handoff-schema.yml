@@ -1,0 +1,66 @@
+name: Symmetry physical handoff schema
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/symmetry-physical-handoff-001/**"
+      - ".github/workflows/symmetry-physical-handoff-schema.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/symmetry-physical-handoff-001/**"
+      - ".github/workflows/symmetry-physical-handoff-schema.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: symmetry-physical-handoff-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema-contract:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned schema checker
+        run: python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schema and authority negative controls
+        run: |
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          root = Path("research/symmetry-physical-handoff-001")
+          schema = json.loads((root / "symmetry-physical-handoff-v0.1.schema.json").read_text())
+          manifest_schema = json.loads((root / "symmetry-physical-artifact-manifest-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "fixtures/synthetic-handoff-v0.1.json").read_text())
+          manifest_fixture = json.loads((root / "fixtures/synthetic-artifact-manifest-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator.check_schema(manifest_schema)
+          validator = Draft202012Validator(schema)
+          manifest_validator = Draft202012Validator(manifest_schema)
+          errors = list(validator.iter_errors(fixture))
+          assert not errors, errors
+          manifest_errors = list(manifest_validator.iter_errors(manifest_fixture))
+          assert not manifest_errors, manifest_errors
+          assert fixture["source_math_receipt"]["qualification_status"] == "PASS"
+          assert fixture["receiver_verification"]["status"] == "INCONCLUSIVE"
+          assert fixture["claims"]["physical_step_equivariance_status"] == "INCONCLUSIVE"
+          assert fixture["claims"]["scientific_search_pruning_authorized"] is False
+          forged = copy.deepcopy(fixture)
+          forged["claims"]["physical_step_equivariance_status"] = "PASS"
+          forged["claims"]["physical_equivalence_authority"] = "BOUNDED_STEP_MAP_ONLY"
+          assert list(validator.iter_errors(forged)), "unverified physical PASS was accepted"
+          forged = copy.deepcopy(fixture)
+          forged["claims"]["scientific_search_pruning_authorized"] = True
+          assert list(validator.iter_errors(forged)), "hard-pruning authority was accepted"
+          PY

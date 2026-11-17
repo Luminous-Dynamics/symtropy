@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/physical-solver-contract/symmetry-physical-artifact-manifest-v0.1.schema.json",
+  "title": "Symmetry physical handoff artifact manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "handoff_sha256",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.symmetry_physical_artifact_manifest.v0.1"
+    },
+    "handoff_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "role",
+          "relative_path",
+          "sha256",
+          "byte_length"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "source_math_receipt",
+              "generator_set",
+              "physical_fixture",
+              "coordinate_transform",
+              "transformed_mass_metric",
+              "mass_metric",
+              "force_covectors",
+              "constraint_map",
+              "initial_state",
+              "full_task",
+              "candidate_domain",
+              "objective",
+              "feasibility_constraints",
+              "initial_and_boundary_conditions",
+              "observable_mapping",
+              "answer_interpretation",
+              "receiver_receipt"
+            ]
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\\\\\:]+(?:/[^/\\\\\\\\:]+)*$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

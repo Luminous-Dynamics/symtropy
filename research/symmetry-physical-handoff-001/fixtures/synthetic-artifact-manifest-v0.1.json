@@ -1,0 +1,125 @@
+{
+  "schema_version": "luminous.symmetry_physical_artifact_manifest.v0.1",
+  "handoff_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "artifacts": [
+    {
+      "artifact_id": "synthetic-01",
+      "role": "source_math_receipt",
+      "relative_path": "artifacts/source_math_receipt.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-02",
+      "role": "generator_set",
+      "relative_path": "artifacts/generator_set.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-03",
+      "role": "physical_fixture",
+      "relative_path": "artifacts/physical_fixture.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-04",
+      "role": "coordinate_transform",
+      "relative_path": "artifacts/coordinate_transform.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-05",
+      "role": "transformed_mass_metric",
+      "relative_path": "artifacts/transformed_mass_metric.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-06",
+      "role": "mass_metric",
+      "relative_path": "artifacts/mass_metric.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-07",
+      "role": "force_covectors",
+      "relative_path": "artifacts/force_covectors.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-08",
+      "role": "constraint_map",
+      "relative_path": "artifacts/constraint_map.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-09",
+      "role": "initial_state",
+      "relative_path": "artifacts/initial_state.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-10",
+      "role": "full_task",
+      "relative_path": "artifacts/full_task.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-11",
+      "role": "candidate_domain",
+      "relative_path": "artifacts/candidate_domain.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-12",
+      "role": "objective",
+      "relative_path": "artifacts/objective.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-13",
+      "role": "feasibility_constraints",
+      "relative_path": "artifacts/feasibility_constraints.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-14",
+      "role": "initial_and_boundary_conditions",
+      "relative_path": "artifacts/initial_and_boundary_conditions.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-15",
+      "role": "observable_mapping",
+      "relative_path": "artifacts/observable_mapping.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-16",
+      "role": "answer_interpretation",
+      "relative_path": "artifacts/answer_interpretation.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    },
+    {
+      "artifact_id": "synthetic-17",
+      "role": "receiver_receipt",
+      "relative_path": "artifacts/receiver_receipt.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_length": 0
+    }
+  ]
+}
