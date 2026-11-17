@@ -7,6 +7,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "research/water-service-engineering/**"
+      - "docs/research/jw-water-cascade/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -51,6 +52,19 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json \
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json \
             artifacts/water-service-t0/receipt.json
+      - name: Evaluate Johannesburg water cascade T0
+        id: evaluate_cascade
+        env:
+          JW_WATER_CASCADE_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin jw-water-cascade-t0 -- \
+            docs/research/jw-water-cascade/jw_water_cascade_t0_input.v0.1.json \
+            docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.v0.1.json \
+            docs/research/jw-water-cascade/jw_water_cascade_t0_input.schema.v0.1.json \
+            docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.schema.v0.1.json \
+            docs/research/jw-water-cascade/jw_water_cascade_t0_source_manifest.v0.1.json \
+            artifacts/water-service-t0/jw-water-cascade-t0-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -62,9 +76,19 @@ jobs:
             research/water-service-engineering/network-diagnostics-manifest-v0.1.json
             research/water-service-engineering/t0-known-answer-oracle-v0.1.json
             artifacts/water-service-t0/receipt.json
+            docs/research/jw-water-cascade/JW_WATER_CASCADE_T0_PROTOCOL_V0_1.md
+            docs/research/jw-water-cascade/jw_water_cascade_t0_input.v0.1.json
+            docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.v0.1.json
+            docs/research/jw-water-cascade/jw_water_cascade_t0_input.schema.v0.1.json
+            docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.schema.v0.1.json
+            docs/research/jw-water-cascade/jw_water_cascade_t0_source_manifest.v0.1.json
+            artifacts/water-service-t0/jw-water-cascade-t0-receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
-        run: test "$EVALUATE_OUTCOME" = "success"
+          CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
+        run: |
+          test "$EVALUATE_OUTCOME" = "success"
+          test "$CASCADE_OUTCOME" = "success"
