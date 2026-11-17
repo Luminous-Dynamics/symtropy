@@ -112,8 +112,17 @@ impl BeamElement3D {
             return Err(BeamElementError::ZeroLength);
         }
         let x_axis = delta.scale(1.0 / length_m);
+        let hint_length = orientation_hint_global.norm();
         let projected_hint =
             orientation_hint_global - x_axis.scale(orientation_hint_global.dot(x_axis));
+        let projected_length = projected_hint.norm();
+        if !hint_length.is_finite()
+            || hint_length <= f64::MIN_POSITIVE
+            || !projected_length.is_finite()
+            || projected_length <= hint_length * 1.0e-10
+        {
+            return Err(BeamElementError::InvalidOrientationHint);
+        }
         let y_axis = projected_hint
             .normalized()
             .ok_or(BeamElementError::InvalidOrientationHint)?;
@@ -436,11 +445,33 @@ mod tests {
             }
         }
         let local = beam.local_stiffness_matrix();
+        let matrix_scale = local
+            .iter()
+            .flatten()
+            .map(|value| value.abs())
+            .fold(0.0_f64, f64::max);
+        let tolerance = matrix_scale * 1.0e-12;
         for row in 0..12 {
             for column in 0..12 {
-                assert!((recovered[row][column] - local[row][column]).abs() < 1.0e-6);
+                assert!(
+                    (recovered[row][column] - local[row][column]).abs() < tolerance,
+                    "transform mismatch at ({row}, {column})"
+                );
             }
         }
+    }
+
+    #[test]
+    fn nearly_parallel_orientation_hint_fails_closed() {
+        let error = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 0.0, 0.0),
+            Vec3::new(1.0, 1.0e-14, 0.0),
+            material(),
+            section(),
+        )
+        .unwrap_err();
+        assert_eq!(error, BeamElementError::InvalidOrientationHint);
     }
 
     #[test]
