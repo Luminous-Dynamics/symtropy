@@ -1588,7 +1588,12 @@ mod tests {
     #[test]
     fn retroactively_revoked_calibration_fails_p2() {
         let mut value = profile();
-        value.measurements[0].calibration_disposition = CalibrationDisposition::Revoked;
+        let witness = value
+            .measurements
+            .iter_mut()
+            .find(|claim| claim.id == "urn:observation:witness")
+            .unwrap();
+        witness.calibration_disposition = CalibrationDisposition::Revoked;
         assert!(value
             .validate(ConformanceLevel::P2MetrologyQualified)
             .findings
@@ -1728,7 +1733,12 @@ mod tests {
             media_type: "text/csv".to_string(),
             sha256: "not-a-hash".to_string(),
         });
-        value.measurements[0].unit_uri = "urn:unit:unknown".to_string();
+        let witness = value
+            .measurements
+            .iter_mut()
+            .find(|claim| claim.id == "urn:observation:witness")
+            .unwrap();
+        witness.unit_uri = "urn:unit:unknown".to_string();
         let findings = value
             .validate(ConformanceLevel::P2MetrologyQualified)
             .findings;
