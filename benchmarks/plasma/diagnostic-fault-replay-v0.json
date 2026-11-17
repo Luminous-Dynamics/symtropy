@@ -1102,6 +1102,180 @@
           }
         ]
       }
+    },
+    {
+      "case_id": "mast-intermittent-kinetics-channel-dropout",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-intermittent-gap",
+          "shot_id": "synthetic-mast-intermittent-gap",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-intermittent-kinetics",
+          "faults": [
+            {
+              "fault_id": "interferometer-gap-a",
+              "target": {
+                "scope": "channel",
+                "channel_id": "interferometer-ne_line"
+              },
+              "mode": "dropout",
+              "start_time_ns": 15000000,
+              "end_time_ns": 30000000
+            },
+            {
+              "fault_id": "interferometer-gap-b",
+              "target": {
+                "scope": "channel",
+                "channel_id": "interferometer-ne_line"
+              },
+              "mode": "dropout",
+              "start_time_ns": 60000000,
+              "end_time_ns": 80000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "sample-0",
+            "time_ns": 14999999
+          },
+          {
+            "point_id": "sample-1",
+            "time_ns": 15000000
+          },
+          {
+            "point_id": "sample-2",
+            "time_ns": 29999999
+          },
+          {
+            "point_id": "sample-3",
+            "time_ns": 30000000
+          },
+          {
+            "point_id": "sample-4",
+            "time_ns": 59999999
+          },
+          {
+            "point_id": "sample-5",
+            "time_ns": 60000000
+          },
+          {
+            "point_id": "sample-6",
+            "time_ns": 79999999
+          },
+          {
+            "point_id": "sample-7",
+            "time_ns": 80000000
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "mast-independent-diagnostic-faults-overlap-valid",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-tokamark-independent-overlap",
+          "shot_id": "synthetic-mast-independent-overlap",
+          "regime_profile_id": "synthetic-mast-task-4-4-150ms-window-v0",
+          "clock_domain": "synthetic-window-relative-ns",
+          "duration_ns": 150000000,
+          "channels": [
+            {
+              "channel_id": "interferometer-ne_line",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "spectrometer-dalpha_voltage",
+              "diagnostic_system_id": "kinetics-shared-acquisition-trigger"
+            },
+            {
+              "channel_id": "magnetics-flux_loop_flux",
+              "diagnostic_system_id": "magnetics"
+            },
+            {
+              "channel_id": "summary-ip",
+              "diagnostic_system_id": "plasma-current"
+            }
+          ]
+        },
+        "schedule": {
+          "schedule_id": "tokamark-independent-overlap",
+          "faults": [
+            {
+              "fault_id": "kinetics-common-cause-dropout",
+              "target": {
+                "scope": "diagnostic_system",
+                "system_id": "kinetics-shared-acquisition-trigger"
+              },
+              "mode": "dropout",
+              "start_time_ns": 70000000,
+              "end_time_ns": 120000000
+            },
+            {
+              "fault_id": "magnetics-bias-drift",
+              "target": {
+                "scope": "channel",
+                "channel_id": "magnetics-flux_loop_flux"
+              },
+              "mode": "bias",
+              "start_time_ns": 90000000,
+              "end_time_ns": 130000000
+            }
+          ]
+        },
+        "points": [
+          {
+            "point_id": "overlap-0",
+            "time_ns": 69999999
+          },
+          {
+            "point_id": "overlap-1",
+            "time_ns": 70000000
+          },
+          {
+            "point_id": "overlap-2",
+            "time_ns": 90000000
+          },
+          {
+            "point_id": "overlap-3",
+            "time_ns": 119999999
+          },
+          {
+            "point_id": "overlap-4",
+            "time_ns": 120000000
+          },
+          {
+            "point_id": "overlap-5",
+            "time_ns": 129999999
+          }
+        ]
+      }
     }
   ]
 }
