@@ -569,9 +569,7 @@ mod tests {
         graph.add_dependency("evidence-b", "solver-b");
         graph.declare_complete();
 
-        let report = graph
-            .impact_closure(&["weather-input".to_owned()])
-            .unwrap();
+        let report = graph.impact_closure(&["weather-input".to_owned()]).unwrap();
         assert_eq!(
             report.stale_evidence_ids,
             vec!["evidence-a".to_owned(), "evidence-b".to_owned()]
@@ -608,7 +606,9 @@ mod tests {
                 } else {
                     ArtifactKind::Geometry
                 };
-                graph.add_artifact(format!("node-{index:03}"), kind).unwrap();
+                graph
+                    .add_artifact(format!("node-{index:03}"), kind)
+                    .unwrap();
             }
 
             // Deterministic xorshift schedule. Every edge points from a higher
