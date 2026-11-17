@@ -109,7 +109,11 @@ fn nonempty_ref(value: &Value, key: &str, _context: &str) -> bool {
         .is_some_and(|reference| !reference.trim().is_empty())
 }
 
-fn parse_sensor(value: &Value, index: usize, required_states: &BTreeSet<String>) -> Result<Sensor, String> {
+fn parse_sensor(
+    value: &Value,
+    index: usize,
+    required_states: &BTreeSet<String>,
+) -> Result<Sensor, String> {
     let context = format!("sensors[{index}]");
     ensure_keys(
         value,
@@ -136,7 +140,10 @@ fn parse_sensor(value: &Value, index: usize, required_states: &BTreeSet<String>)
             "{context}: sensor state '{state_id}' is outside the four required states"
         ));
     }
-    if string(value, "measurement_principle", &context)?.trim().is_empty() {
+    if string(value, "measurement_principle", &context)?
+        .trim()
+        .is_empty()
+    {
         return Err(format!("{context}: measurement_principle is empty"));
     }
     let condition = string(value, "condition", &context)?.to_owned();
@@ -157,7 +164,9 @@ fn parse_sensor(value: &Value, index: usize, required_states: &BTreeSet<String>)
     }
     let time_status = string(value, "time_status", &context)?.to_owned();
     if time_status != "current" && time_status != "invalid" {
-        return Err(format!("{context}: unsupported time_status '{time_status}'"));
+        return Err(format!(
+            "{context}: unsupported time_status '{time_status}'"
+        ));
     }
     let reading = number(value, "reading_value", &context)?;
     if !reading.is_finite() {
@@ -175,11 +184,7 @@ fn parse_sensor(value: &Value, index: usize, required_states: &BTreeSet<String>)
     let mut failure_domains = BTreeMap::new();
     for (domain_index, dependency) in dependencies.iter().enumerate() {
         let domain_context = format!("{context}.failure_domains[{domain_index}]");
-        ensure_keys(
-            dependency,
-            &["domain_type", "domain_id"],
-            &domain_context,
-        )?;
+        ensure_keys(dependency, &["domain_type", "domain_id"], &domain_context)?;
         let domain_type = string(dependency, "domain_type", &domain_context)?;
         let domain_id = string(dependency, "domain_id", &domain_context)?;
         if !DOMAIN_TYPES.contains(&domain_type) {
@@ -255,8 +260,14 @@ fn estimator_is_qualified(
         return Err(format!("estimator: unsupported status '{status}'"));
     }
 
-    let estimator_sensors = string_set(field(estimator, "sensor_ids", "estimator")?, "estimator.sensor_ids")?;
-    let estimator_states = string_set(field(estimator, "state_ids", "estimator")?, "estimator.state_ids")?;
+    let estimator_sensors = string_set(
+        field(estimator, "sensor_ids", "estimator")?,
+        "estimator.sensor_ids",
+    )?;
+    let estimator_states = string_set(
+        field(estimator, "state_ids", "estimator")?,
+        "estimator.state_ids",
+    )?;
     let claimed = boolean(estimator, "qualification_claimed", "estimator")?;
     let sample_count = field(estimator, "sample_count", "estimator")?
         .as_u64()
@@ -293,10 +304,7 @@ fn estimator_is_qualified(
     Ok(qualified)
 }
 
-fn evaluate_scenario(
-    scenario: &Value,
-    required_state_ids: &[String],
-) -> Result<Value, String> {
+fn evaluate_scenario(scenario: &Value, required_state_ids: &[String]) -> Result<Value, String> {
     ensure_keys(
         scenario,
         &[
@@ -367,13 +375,17 @@ fn evaluate_scenario(
             .failure_domains
             .get("clock_domain")
             .ok_or_else(|| format!("{case_id}: sensor clock domain missing"))?;
-        let clock_failed = active_domains.contains(&("clock_domain".to_owned(), clock_domain.clone()));
+        let clock_failed =
+            active_domains.contains(&("clock_domain".to_owned(), clock_domain.clone()));
         if sensor.time_status != "current" || clock_failed {
             clock_invalid_by_state.insert(sensor.state_id.clone(), true);
         }
-        let domain_failed = sensor.failure_domains.iter().any(|(domain_type, domain_id)| {
-            active_domains.contains(&(domain_type.clone(), domain_id.clone()))
-        });
+        let domain_failed = sensor
+            .failure_domains
+            .iter()
+            .any(|(domain_type, domain_id)| {
+                active_domains.contains(&(domain_type.clone(), domain_id.clone()))
+            });
         let survives = sensor.condition == "healthy"
             && sensor.binding_status == "valid"
             && sensor.calibration_status == "current"
@@ -420,12 +432,16 @@ fn evaluate_scenario(
         "structural_certificate.inferable_state_ids",
     )?;
     if !inferable_state_ids.is_subset(&required_states) {
-        return Err(format!("{case_id}: certificate lists an unknown inferable state"));
+        return Err(format!(
+            "{case_id}: certificate lists an unknown inferable state"
+        ));
     }
 
     let certificate_disposition = if certificate_status == "missing" {
         if !field(certificate, "proof_ref", "structural_certificate")?.is_null() {
-            return Err(format!("{case_id}: missing proof must not carry a proof reference"));
+            return Err(format!(
+                "{case_id}: missing proof must not carry a proof reference"
+            ));
         }
         "missing_structural_proof"
     } else if certificate_status != "present" {
@@ -444,7 +460,9 @@ fn evaluate_scenario(
         "sensor_set_mismatch"
     } else {
         if !nonempty_ref(certificate, "proof_ref", "structural_certificate") {
-            return Err(format!("{case_id}: present structural proof requires proof_ref"));
+            return Err(format!(
+                "{case_id}: present structural proof requires proof_ref"
+            ));
         }
         "usable"
     };
@@ -500,8 +518,7 @@ fn evaluate_scenario(
 
     let overall = if any_indeterminate {
         "indeterminate_evidence"
-    } else if any_topology_invalid
-        || certificate_disposition == "topology_invalidates_certificate"
+    } else if any_topology_invalid || certificate_disposition == "topology_invalidates_certificate"
     {
         "topology_invalidates_certificate"
     } else if any_unobservable {
@@ -572,12 +589,19 @@ fn evaluate_all(inputs: &Value, schema: &Value, oracle: &Value) -> Result<Value,
         return Err("exactly four unique critical state IDs are required".to_owned());
     }
     let domain_values = string_set(field(inputs, "domain_types", "input")?, "domain_types")?;
-    let expected_domains: BTreeSet<String> = DOMAIN_TYPES.iter().map(|value| (*value).to_owned()).collect();
+    let expected_domains: BTreeSet<String> = DOMAIN_TYPES
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect();
     if domain_values != expected_domains {
         return Err("exactly the six frozen failure-domain types are required".to_owned());
     }
 
-    ensure_keys(oracle, &["$schema", "schema_version", "benchmark_id", "cases"], "oracle")?;
+    ensure_keys(
+        oracle,
+        &["$schema", "schema_version", "benchmark_id", "cases"],
+        "oracle",
+    )?;
     if string(oracle, "$schema", "oracle")? != OBSERVABILITY_SCHEMA_URI
         || string(oracle, "schema_version", "oracle")? != ORACLE_VERSION
         || string(oracle, "benchmark_id", "oracle")? != BENCHMARK_ID
@@ -585,7 +609,9 @@ fn evaluate_all(inputs: &Value, schema: &Value, oracle: &Value) -> Result<Value,
         return Err("oracle schema/version/benchmark identity mismatch".to_owned());
     }
     if field(oracle, "additionalProperties", "oracle").is_ok() {
-        return Err("oracle payload must not carry a schema-only additionalProperties property".to_owned());
+        return Err(
+            "oracle payload must not carry a schema-only additionalProperties property".to_owned(),
+        );
     }
 
     let scenarios = field(inputs, "scenarios", "input")?
@@ -677,7 +703,8 @@ fn valid_revision(value: &str) -> bool {
 fn run(args: &[String]) -> Result<Value, String> {
     if args.len() != 4 {
         return Err(
-            "usage: wdn-observability-t0 INPUT_JSON INPUT_SCHEMA ORACLE_JSON RECEIPT_JSON".to_owned(),
+            "usage: wdn-observability-t0 INPUT_JSON INPUT_SCHEMA ORACLE_JSON RECEIPT_JSON"
+                .to_owned(),
         );
     }
     let (input_bytes, inputs) = read_json(&args[0])?;
@@ -695,8 +722,8 @@ fn run(args: &[String]) -> Result<Value, String> {
         .filter(|value| valid_revision(value));
     let lock_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
     let manifest_bytes = fs::read(&manifest_path)
         .map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
     let implementation = include_bytes!("wdn-observability-t0.rs");
@@ -810,7 +837,10 @@ mod tests {
             case["state_dispositions"][0]["disposition"],
             "directly_observed_current"
         );
-        assert_eq!(case["state_dispositions"][0]["surviving_sensor_ids"][0], "S1-ALT");
+        assert_eq!(
+            case["state_dispositions"][0]["surviving_sensor_ids"][0],
+            "S1-ALT"
+        );
     }
 
     #[test]
@@ -827,7 +857,13 @@ mod tests {
                 case["state_dispositions"][0]["disposition"],
                 "unobservable_under_declared_faults"
             );
-            assert_eq!(case["state_dispositions"][0]["surviving_sensor_ids"].as_array().unwrap().len(), 0);
+            assert_eq!(
+                case["state_dispositions"][0]["surviving_sensor_ids"]
+                    .as_array()
+                    .unwrap()
+                    .len(),
+                0
+            );
         }
     }
 
@@ -847,8 +883,14 @@ mod tests {
     fn stale_topology_certificate_does_not_erase_direct_instrument_readings() {
         let (inputs, schema, oracle) = fixture();
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
-        let case = case_result(&result, "OBS-T0-007-stale-topology-certificate-direct-readings-preserved");
-        assert_eq!(case["topology_certificate_disposition"], "topology_invalidates_certificate");
+        let case = case_result(
+            &result,
+            "OBS-T0-007-stale-topology-certificate-direct-readings-preserved",
+        );
+        assert_eq!(
+            case["topology_certificate_disposition"],
+            "topology_invalidates_certificate"
+        );
         assert_eq!(
             case["state_dispositions"][0]["disposition"],
             "directly_observed_current"
@@ -860,7 +902,10 @@ mod tests {
     fn ill_conditioned_estimator_is_not_promoted_above_structural_only() {
         let (inputs, schema, oracle) = fixture();
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
-        let case = case_result(&result, "OBS-T0-008-ill-conditioned-estimator-not-qualified");
+        let case = case_result(
+            &result,
+            "OBS-T0-008-ill-conditioned-estimator-not-qualified",
+        );
         assert_eq!(
             case["state_dispositions"][0]["disposition"],
             "structurally_observable_only"
@@ -871,7 +916,10 @@ mod tests {
     fn complete_synthetic_estimator_contract_does_not_claim_physical_qualification() {
         let (inputs, schema, oracle) = fixture();
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
-        let case = case_result(&result, "OBS-T0-012-evidence-qualified-estimator-with-claim-disabled");
+        let case = case_result(
+            &result,
+            "OBS-T0-012-evidence-qualified-estimator-with-claim-disabled",
+        );
         assert_eq!(
             case["state_dispositions"][0]["disposition"],
             "estimator_qualified_for_declared_scope"
@@ -883,10 +931,15 @@ mod tests {
     fn duplicate_sensor_identity_is_rejected() {
         let (mut inputs, schema, oracle) = fixture();
         let duplicate = inputs["scenarios"][0]["sensors"][0].clone();
-        inputs["scenarios"][0]["sensors"].as_array_mut().unwrap().push(duplicate);
-        assert!(evaluate_all(&inputs, &schema, &oracle)
-            .unwrap_err()
-            .contains("duplicate sensor_id"));
+        inputs["scenarios"][0]["sensors"]
+            .as_array_mut()
+            .unwrap()
+            .push(duplicate);
+        assert!(
+            evaluate_all(&inputs, &schema, &oracle)
+                .unwrap_err()
+                .contains("duplicate sensor_id")
+        );
     }
 
     #[test]
@@ -896,9 +949,11 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .pop();
-        assert!(evaluate_all(&inputs, &schema, &oracle)
-            .unwrap_err()
-            .contains("exactly six failure-domain entries"));
+        assert!(
+            evaluate_all(&inputs, &schema, &oracle)
+                .unwrap_err()
+                .contains("exactly six failure-domain entries")
+        );
     }
 
     #[test]
@@ -906,18 +961,22 @@ mod tests {
         let (mut inputs, schema, oracle) = fixture();
         inputs["scenarios"][0]["sensors"][0]["failure_domains"][5]["domain_type"] =
             json!("clock_domain");
-        assert!(evaluate_all(&inputs, &schema, &oracle)
-            .unwrap_err()
-            .contains("duplicate dependency domain type"));
+        assert!(
+            evaluate_all(&inputs, &schema, &oracle)
+                .unwrap_err()
+                .contains("duplicate dependency domain type")
+        );
     }
 
     #[test]
     fn sensor_mapped_outside_critical_state_set_is_rejected() {
         let (mut inputs, schema, oracle) = fixture();
         inputs["scenarios"][0]["sensors"][0]["state_id"] = json!("pressure:unknown-node");
-        assert!(evaluate_all(&inputs, &schema, &oracle)
-            .unwrap_err()
-            .contains("outside the four required states"));
+        assert!(
+            evaluate_all(&inputs, &schema, &oracle)
+                .unwrap_err()
+                .contains("outside the four required states")
+        );
     }
 
     #[test]
@@ -925,7 +984,10 @@ mod tests {
         let (inputs, schema, oracle) = fixture();
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
         let case = case_result(&result, "OBS-T0-009-incomplete-critical-state-mapping");
-        assert_eq!(case["topology_certificate_disposition"], "topology_invalidates_certificate");
+        assert_eq!(
+            case["topology_certificate_disposition"],
+            "topology_invalidates_certificate"
+        );
         assert_eq!(
             case["state_dispositions"][3]["disposition"],
             "topology_invalidates_certificate"
@@ -937,7 +999,10 @@ mod tests {
         let (inputs, schema, oracle) = fixture();
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
         let case = case_result(&result, "OBS-T0-011-missing-structural-proof");
-        assert_eq!(case["topology_certificate_disposition"], "missing_structural_proof");
+        assert_eq!(
+            case["topology_certificate_disposition"],
+            "missing_structural_proof"
+        );
         assert_eq!(
             case["state_dispositions"][0]["disposition"],
             "unobservable_under_declared_faults"
@@ -1004,6 +1069,9 @@ mod tests {
         let result = evaluate_all(&inputs, &schema, &oracle).unwrap();
         assert_eq!(result["matched_case_count"], 11);
         assert_eq!(result["mismatch_count"], 1);
-        assert_eq!(result["mismatches"][0]["case_id"], "OBS-T0-001-nominal-independent-direct");
+        assert_eq!(
+            result["mismatches"][0]["case_id"],
+            "OBS-T0-001-nominal-independent-direct"
+        );
     }
 }
