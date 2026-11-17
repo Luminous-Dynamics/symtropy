@@ -55,14 +55,14 @@ These targets are hypotheses, not current results. The manifest still has zero p
 
 ## Additional external robotics comparator: BEHAVIOR-1K
 
-Use [BEHAVIOR-1K](https://behavior.stanford.edu/) and the [2026 BEHAVIOR Challenge](https://behavior.stanford.edu/) as a complementary long-horizon household-service benchmark. The official project describes 1,000 everyday activities across 50 interactive scenes and 10,000+ objects; it is broader than a kitchen benchmark.
+Use [BEHAVIOR-1K](https://behavior.stanford.edu/) and the released [2026 BEHAVIOR Challenge](https://behavior.stanford.edu/challenge/index.html) task set as a complementary long-horizon household-service benchmark. The base benchmark describes 1,000 everyday activities across 50 interactive scenes and 10,000+ objects; the 2026 challenge round itself used 100 full-length tasks in 7 scenes. The 2026 submission deadline was 16 October 2026 and winners were announced 4 November 2026, so this is a replay/comparison target, not an open submission opportunity.
 
 Use:
 - **RoboCasa365** for kitchen-specific mobile manipulation and its reported Atomic-Seen, Composite-Seen and Composite-Unseen splits.
 - **BEHAVIOR-1K** for longer-horizon household work and task generalization outside the kitchen-only setting.
 - **Kitchen-R** for the separate planning-only, low-level-control-only and integrated kitchen evaluation modes.
 
-Only compare matched tasks, embodiments, sensors, simulator versions and success rubrics. Do not place the three benchmarks on one leaderboard or compare their aggregate success rates as if they were interchangeable. For each external evaluation, record the exact 2026 challenge release, split, task subset, assets/license, robot embodiment, onboard sensing, partial-credit rule, recovery, collision and human-takeover behavior.
+Only compare matched tasks, embodiments, sensors, simulator versions and success rubrics. Do not place the three benchmarks on one leaderboard or compare their aggregate success rates as if they were interchangeable. For each external evaluation, record the exact 2026 challenge release, split, task subset, assets/license, robot embodiment, RGB/depth/proprioception availability, partial-credit rule, recovery, collision and human-takeover behavior.
 
 
 ## Pre-trial metrology gate
