@@ -2,14 +2,16 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, Capsule, CapsuleMotionSpan, Vec3, chord_collision,
+    AnalyticPath, Capsule, CapsuleMotionSpan, ClockDomainCapsuleBody, QualifiedClockMapping,
+    RelativeTimeMultiBodyConfig, TimedCapsuleBody, Vec3, chord_collision,
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
-    endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
-    swept_sphere_capsule_aabb_candidate, timed_co_translating_capsule_vs_capsule,
+    endpoints_only_translating_capsule_collision, evaluate_relative_time_multibody_ccd,
+    moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
+    time_swept_capsule_broadphase, timed_co_translating_capsule_vs_capsule,
     translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
-    translating_capsule_vs_capsule, TimedCapsuleBody, time_swept_capsule_broadphase,
+    translating_capsule_vs_capsule,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -368,6 +370,7 @@ fn main() {
             .expect("valid absolute-time capsule query"),
         );
     });
+    run_relative_time_multibody_benchmarks();
 }
 
 
@@ -615,5 +618,89 @@ fn run_multibody_broadphase_benchmarks() {
                 p99.as_micros()
             );
         }
+    }
+}
+
+
+fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
+    let base_ms = 1_000_000_u64;
+    (0..count)
+        .map(|index| {
+            let i = index as f64;
+            let x = i * 40.0;
+            let y = (index % 17) as f64 * 20.0;
+            let clock = format!("robot-clock-{index:05}");
+            let capsule = Capsule::new(
+                Vec3::new(x, y - 5.0, 0.0),
+                Vec3::new(x, y + 5.0, 0.0),
+                0.5,
+            )
+            .expect("benchmark capsule is finite");
+            let motion = CapsuleMotionSpan {
+                capsule_at_start: capsule,
+                translation: Vec3::new(if index % 2 == 0 { 4.0 } else { -4.0 }, 0.0, 0.0),
+                start_ms: base_ms,
+                end_ms: base_ms + 1_000,
+                site_epoch: "benchmark-site-epoch".into(),
+                frame_id: "benchmark-site-world".into(),
+                clock_domain_id: clock.clone(),
+                clock_uncertainty_ms: 0,
+            };
+            let mapping = QualifiedClockMapping {
+                source_clock_domain_id: clock.clone(),
+                site_clock_domain_id: "benchmark-site-clock".into(),
+                site_epoch: "benchmark-site-epoch".into(),
+                mapping_id: format!("mapping-{index:05}"),
+                evidence_ref: format!("synthetic://clock-evidence/{index:05}"),
+                reference_source_time_ms: base_ms + 500,
+                offset_min_ms: -2,
+                offset_max_ms: 2,
+                drift_bound_ppm: Some(20),
+                valid_from_source_ms: base_ms,
+                valid_until_source_ms: base_ms + 1_000,
+            };
+            ClockDomainCapsuleBody {
+                body_id: format!("robot-{index:05}"),
+                motion,
+                clock_mapping: Some(mapping),
+            }
+        })
+        .collect()
+}
+
+fn run_relative_time_multibody_benchmarks() {
+    println!(
+        "relative_time_multibody,body_count,pair_checks,unresolved_pairs,potential_contact_pairs,proven_clear_pairs,p50_us,p95_us,p99_us"
+    );
+    for count in [8_usize, 16, 32, 64] {
+        let bodies = build_clock_mapped_bodies(count);
+        let config = RelativeTimeMultiBodyConfig {
+            site_epoch: "benchmark-site-epoch".into(),
+            frame_id: "benchmark-site-world".into(),
+            site_clock_domain_id: "benchmark-site-clock".into(),
+            max_pair_checks: 524_288,
+        };
+        let mut durations = Vec::with_capacity(21);
+        for _ in 0..21 {
+            let start = Instant::now();
+            black_box(
+                evaluate_relative_time_multibody_ccd(black_box(&bodies), black_box(&config))
+                    .expect("bounded multi-clock reference inputs are valid"),
+            );
+            durations.push(start.elapsed());
+        }
+        durations.sort_unstable();
+        let report = evaluate_relative_time_multibody_ccd(&bodies, &config)
+            .expect("bounded multi-clock reference inputs are valid");
+        println!(
+            "reference,{count},{},{},{},{},{},{},{}",
+            report.pair_checks,
+            report.unresolved_pairs,
+            report.potential_contact_unresolved_pairs,
+            report.no_possible_contact_pairs + report.no_possible_temporal_overlap_pairs,
+            percentile(&durations, 50).as_micros(),
+            percentile(&durations, 95).as_micros(),
+            percentile(&durations, 99).as_micros(),
+        );
     }
 }
