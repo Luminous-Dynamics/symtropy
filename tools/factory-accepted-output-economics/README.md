@@ -20,11 +20,11 @@ It reports cost per **unique released output**, never per process completion or 
 - Ineligible or unknown routes are not economically ranked.
 - Unknown in-scope cost items produce COST_INCOMPLETE; unknown is not zero.
 - An explicitly out-of-scope cost is excluded, but remains visible in the input fixture.
-- Currency, price date and amount unit must match the case exactly. No FX or unit conversion is guessed.
+- Batch reference, currency, price date and amount unit must match the case exactly. No FX or unit conversion is guessed.
 - Cost intervals use integer minor-unit lower/upper bounds; the evaluator emits exact numerator/denominator pairs, not rounded floating-point prices.
 - Zero released outputs produce ZERO_RELEASED and no finite unit-cost ratio.
-- Output identities, release references and cost-item identities cannot be reused.
-- The component report preserves both cost category and evidence class; estimated, quoted, paid, public, measured and synthetic evidence are not conflated.
+- Output identities, release references and cost-item identities must be unique within an exact case; counterfactual cases may reuse the same source/unit identifiers.
+- The component report preserves both cost category and evidence class; estimated, quoted, paid, public, measured and synthetic evidence are not conflated. Dates are calendar-validated, and cost amounts must be unsigned decimal integers.
 - Amounts are already attributed to the exact batch; the prototype does not calculate depreciation, NRE amortization, asset life, utilization or repeated-run allocation. Those must be evidenced and supplied by an upstream accounting policy.\n- The evaluator does not authenticate sources or release products.
 
 ## Frozen corpus
@@ -32,7 +32,7 @@ It reports cost per **unique released output**, never per process completion or 
 - 20 synthetic cases.
 - 50 cost-item rows.
 - 46 final output-disposition rows.
-- 27 Rust unit tests.
+- 32 Rust unit tests.
 - Known-answer dispositions include 15 computed cases, 2 zero-release cases, 1 ineligible route, 1 unknown route and 1 incomplete cost account.
 
 The hand-calculated expected-results file is separate from candidate output. Tests also attack duplicate output/release/cost identities, mixed currency/date/unit, missing release evidence, incomplete or reversed cost intervals, total overflow, negative or omitted cost items, component-total reconciliation and output-order dependence.
