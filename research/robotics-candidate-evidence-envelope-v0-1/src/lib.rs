@@ -1005,6 +1005,64 @@ mod tests {
     }
 
     #[test]
+    fn critical_revision_changes_invalidate_old_domain_receipts() {
+        fn assert_rebinding_required(
+            mut value: CandidateEvidenceEnvelope,
+            mutate: impl FnOnce(&mut CandidateBinding),
+        ) {
+            mutate(&mut value.binding);
+            value.binding_sha256 = B.to_owned();
+            let errors = validate_candidate_envelope(&value, B).unwrap_err();
+            assert!(errors.contains(&EnvelopeError::BindingDigestMismatch(
+                EvidenceDomain::GeometryCoverage
+            )));
+            assert!(errors.contains(&EnvelopeError::BindingDigestMismatch(
+                EvidenceDomain::SensorQuality
+            )));
+            assert!(errors.contains(&EnvelopeError::BindingDigestMismatch(
+                EvidenceDomain::Calibration
+            )));
+        }
+
+        assert_rebinding_required(envelope(), |binding| {
+            binding.mission_revision = "mission-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.scenario_revision = "scenario-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.robot_configuration_revision = "robot-config-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.module_manifest_sha256 = B.to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.site_revision = "site-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.frame_revision = "frame-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.map_revision = "map-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.timebase_revision = "clock-map-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.sensor_revision = "sensor-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.mount_revision = "mount-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.calibration_bundle_sha256 = C.to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.observation_bundle_sha256 = D.to_owned();
+        });
+    }
+
+    #[test]
     fn calibration_digest_change_changes_canonical_binding_bytes() {
         let first = binding();
         let mut second = binding();
