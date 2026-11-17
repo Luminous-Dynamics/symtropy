@@ -754,16 +754,16 @@ mod tests {
 
     #[test]
     fn invalid_kernel_or_episode_id_is_rejected_before_episode_creation() {
-        assert_eq!(
-            EpisodeProvider::new(
-                "short",
-                deterministic_kernel(false),
-                EpisodeConfig::default(),
-                0,
-            )
-            .unwrap_err(),
-            EpisodeError::InvalidEpisodeId
+        let invalid_id = EpisodeProvider::new(
+            "short",
+            deterministic_kernel(false),
+            EpisodeConfig::default(),
+            0,
         );
+        assert!(matches!(
+            invalid_id,
+            Err(EpisodeError::InvalidEpisodeId)
+        ));
 
         let mut invalid = deterministic_kernel(false);
         invalid.rows.clear();
