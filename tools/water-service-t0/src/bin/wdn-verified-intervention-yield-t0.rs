@@ -111,9 +111,7 @@ fn base_event_output(event: &Value, disposition: &str) -> Result<Value, String> 
             .get("alert")
             .and_then(|value| value.get("candidate_asset_id"))
             .and_then(Value::as_str),
-        "confirmed_asset_id": inspection
-            .and_then(|value| value.get("confirmed_asset_id"))
-            .and_then(Value::as_str),
+        "confirmed_asset_id": null,
         "localization_asset_match": false,
         "independent_confirmation": false,
         "repair_completed": false,
