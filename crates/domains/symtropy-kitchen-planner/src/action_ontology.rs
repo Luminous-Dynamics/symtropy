@@ -752,10 +752,9 @@ mod tests {
 
     #[test]
     fn action_mapping_fixtures_match_deterministic_rules() {
-        let bundle: ActionMappingFixtureBundle = serde_json::from_str(include_str!(
-            "../schemas/fixtures/action-ontology-v1.json"
-        ))
-        .expect("action ontology fixture bundle must deserialize");
+        let bundle: ActionMappingFixtureBundle =
+            serde_json::from_str(include_str!("../schemas/fixtures/action-ontology-v1.json"))
+                .expect("action ontology fixture bundle must deserialize");
         for fixture in bundle.mappings {
             let mapping = rule_based_action_mapping(fixture.action_kind);
             assert_eq!(mapping.core, fixture.expected_core);
@@ -783,7 +782,10 @@ mod tests {
         );
         for kind in RECIPE_ACTION_KINDS_V1 {
             assert_eq!(
-                fixture_kinds.iter().filter(|candidate| *candidate == kind).count(),
+                fixture_kinds
+                    .iter()
+                    .filter(|candidate| *candidate == kind)
+                    .count(),
                 1,
                 "recipe action kind {kind:?} must have exactly one fixture mapping"
             );
@@ -792,10 +794,8 @@ mod tests {
 
     #[test]
     fn unmapped_action_cannot_carry_a_core_or_group() {
-        let mut binding = rule_based_action_binding(
-            RecipeActionKindV1::Other,
-            RecipeEvidenceClassV1::Modelled,
-        );
+        let mut binding =
+            rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled);
         binding.mapping.core = Some(ActionCoreV1::Preparing);
         let report = validate_action_ontology_binding(RecipeActionKindV1::Other, &binding);
         assert!(report.violations.iter().any(|entry| {
@@ -805,10 +805,8 @@ mod tests {
 
     #[test]
     fn duplicate_action_parameters_are_rejected() {
-        let mut binding = rule_based_action_binding(
-            RecipeActionKindV1::Chop,
-            RecipeEvidenceClassV1::Declared,
-        );
+        let mut binding =
+            rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
         let parameter = ActionParameterV1 {
             name: "cut_width".to_owned(),
             value: 5,
@@ -818,9 +816,12 @@ mod tests {
         };
         binding.parameters = vec![parameter.clone(), parameter];
         let report = validate_action_ontology_binding(RecipeActionKindV1::Chop, &binding);
-        assert!(report.violations.iter().any(|entry| {
-            entry.code == ActionOntologyViolationCodeV1::DuplicateParameter
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|entry| entry.code == ActionOntologyViolationCodeV1::DuplicateParameter)
+        );
     }
 
     #[derive(Deserialize)]
@@ -847,11 +848,26 @@ mod tests {
         .expect("action ontology evaluation fixture must deserialize");
         let report = evaluate_action_ontology_benchmark(&bundle.cases).unwrap();
         assert_eq!(report.case_count, bundle.expected.case_count);
-        assert_eq!(report.total_occurrence_weight, bundle.expected.total_occurrence_weight);
-        assert_eq!(report.weighted_core_coverage(), bundle.expected.weighted_core_coverage);
-        assert_eq!(report.micro_group_precision(), bundle.expected.micro_group_precision);
-        assert_eq!(report.micro_group_recall(), bundle.expected.micro_group_recall);
-        assert_eq!(report.abstention_precision(), bundle.expected.abstention_precision);
+        assert_eq!(
+            report.total_occurrence_weight,
+            bundle.expected.total_occurrence_weight
+        );
+        assert_eq!(
+            report.weighted_core_coverage(),
+            bundle.expected.weighted_core_coverage
+        );
+        assert_eq!(
+            report.micro_group_precision(),
+            bundle.expected.micro_group_precision
+        );
+        assert_eq!(
+            report.micro_group_recall(),
+            bundle.expected.micro_group_recall
+        );
+        assert_eq!(
+            report.abstention_precision(),
+            bundle.expected.abstention_precision
+        );
     }
 
     #[test]
@@ -861,21 +877,30 @@ mod tests {
                 case_id: "chop-correct".to_owned(),
                 action_kind: RecipeActionKindV1::Chop,
                 gold_group: Some(ActionGroupV1::Chop),
-                prediction: rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared),
+                prediction: rule_based_action_binding(
+                    RecipeActionKindV1::Chop,
+                    RecipeEvidenceClassV1::Declared,
+                ),
                 occurrence_weight: 3,
             },
             ActionOntologyBenchmarkCaseV1 {
                 case_id: "other-abstained".to_owned(),
                 action_kind: RecipeActionKindV1::Other,
                 gold_group: None,
-                prediction: rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled),
+                prediction: rule_based_action_binding(
+                    RecipeActionKindV1::Other,
+                    RecipeEvidenceClassV1::Modelled,
+                ),
                 occurrence_weight: 2,
             },
             ActionOntologyBenchmarkCaseV1 {
                 case_id: "saute-wrong-group".to_owned(),
                 action_kind: RecipeActionKindV1::Saute,
                 gold_group: Some(ActionGroupV1::Boil),
-                prediction: rule_based_action_binding(RecipeActionKindV1::Saute, RecipeEvidenceClassV1::Declared),
+                prediction: rule_based_action_binding(
+                    RecipeActionKindV1::Saute,
+                    RecipeEvidenceClassV1::Declared,
+                ),
                 occurrence_weight: 1,
             },
         ];
@@ -893,19 +918,29 @@ mod tests {
             case_id: "same".to_owned(),
             action_kind: RecipeActionKindV1::Chop,
             gold_group: Some(ActionGroupV1::Chop),
-            prediction: rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared),
+            prediction: rule_based_action_binding(
+                RecipeActionKindV1::Chop,
+                RecipeEvidenceClassV1::Declared,
+            ),
             occurrence_weight: 1,
         };
         let duplicate = evaluate_action_ontology_benchmark(&[case.clone(), case.clone()]);
-        assert_eq!(duplicate.unwrap_err().code, ActionOntologyBenchmarkErrorCodeV1::DuplicateCaseId);
+        assert_eq!(
+            duplicate.unwrap_err().code,
+            ActionOntologyBenchmarkErrorCodeV1::DuplicateCaseId
+        );
         case.occurrence_weight = 0;
         let zero = evaluate_action_ontology_benchmark(&[case]);
-        assert_eq!(zero.unwrap_err().code, ActionOntologyBenchmarkErrorCodeV1::ZeroOccurrenceWeight);
+        assert_eq!(
+            zero.unwrap_err().code,
+            ActionOntologyBenchmarkErrorCodeV1::ZeroOccurrenceWeight
+        );
     }
 
     #[test]
     fn benchmark_rejects_invalid_ontology_predictions() {
-        let mut prediction = rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
+        let mut prediction =
+            rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
         prediction.mapping.group = Some(ActionGroupV1::Dice);
         let case = ActionOntologyBenchmarkCaseV1 {
             case_id: "invalid-prediction".to_owned(),
@@ -915,15 +950,16 @@ mod tests {
             occurrence_weight: 1,
         };
         let error = evaluate_action_ontology_benchmark(&[case]).unwrap_err();
-        assert_eq!(error.code, ActionOntologyBenchmarkErrorCodeV1::InvalidPrediction);
+        assert_eq!(
+            error.code,
+            ActionOntologyBenchmarkErrorCodeV1::InvalidPrediction
+        );
     }
 
     #[test]
     fn other_action_stays_unmapped_without_human_review() {
-        let binding = rule_based_action_binding(
-            RecipeActionKindV1::Other,
-            RecipeEvidenceClassV1::Modelled,
-        );
+        let binding =
+            rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled);
         assert!(validate_action_ontology_binding(RecipeActionKindV1::Other, &binding).is_valid());
         assert_eq!(binding.mapping.core, None);
         assert_eq!(binding.mapping.group, None);
@@ -952,9 +988,11 @@ mod tests {
         );
         binding.mapping.group = Some(ActionGroupV1::Dice);
         binding.mapping.core = Some(ActionCoreV1::Cutting);
-        assert!(validate_action_ontology_binding(RecipeActionKindV1::Chop, &binding)
-            .violations
-            .iter()
-            .any(|entry| entry.code == ActionOntologyViolationCodeV1::RuleMappingMismatch));
+        assert!(
+            validate_action_ontology_binding(RecipeActionKindV1::Chop, &binding)
+                .violations
+                .iter()
+                .any(|entry| entry.code == ActionOntologyViolationCodeV1::RuleMappingMismatch)
+        );
     }
 }
