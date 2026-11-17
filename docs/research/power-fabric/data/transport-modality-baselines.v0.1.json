@@ -1,0 +1,415 @@
+{
+  "schema_version": "0.1.0",
+  "record_status": "source_claims_only_not_independently_reproduced",
+  "comparison_policy": {
+    "global_efficiency_ranking": false,
+    "required_match_dimensions": [
+      "service_kind",
+      "service_quality",
+      "distance_or_route",
+      "duty_cycle",
+      "environment",
+      "source_measurement_plane",
+      "useful_output_measurement_plane",
+      "conversion_stages",
+      "uncertainty_method"
+    ],
+    "rule": "Never rank efficiency or power across records unless useful service, measurement planes, operating conditions, conversion stages and uncertainty method are matched. Source-reported values remain attributed to their source. A missing boundary remains unknown and blocks a superiority claim."
+  },
+  "records": [
+    {
+      "id": "riekerk-2026-50kw-ipt",
+      "modality": "inductive_wpt",
+      "study_type": "paper_reported_prototype",
+      "comparison_group": "near-field-ipt-dc-to-dc-50kw",
+      "source": {
+        "title": "On the Efficiency Limits and Electric Field Stresses of Wireless Charging for Electric Buses: A 50-kW Experimental Study Based on Opportunity Charging",
+        "publisher": "IEEE Journal of Emerging and Selected Topics in Power Electronics",
+        "url": "https://doi.org/10.1109/JESTPE.2025.3631233",
+        "publication_date": "2026-06",
+        "doi": "10.1109/JESTPE.2025.3631233"
+      },
+      "service": {
+        "service_kind": "electrical_dc",
+        "application": "50 kW-class inductive opportunity charging for electric buses",
+        "medium": "near-field magnetic coupling"
+      },
+      "measurements": [
+        {
+          "name": "dc_to_dc_efficiency",
+          "value": 96.824,
+          "value_upper": 97.165,
+          "unit": "percent",
+          "relation": "range",
+          "measurement_plane": "DC-to-DC system boundary as reported by the study",
+          "boundary": "DC-to-DC efficiency; not grid-input-to-battery or lifecycle efficiency",
+          "source_reported": true,
+          "conditions": [
+            "50 kW experimental prototype",
+            "reported operating range includes up to 100 mm X/Y misalignment"
+          ]
+        },
+        {
+          "name": "stray_magnetic_field",
+          "value": 13.86,
+          "unit": "microtesla",
+          "relation": "exact",
+          "measurement_plane": "study-reported stray-field measurement location and method",
+          "boundary": "stray magnetic field; not a complete exposure-compliance assessment",
+          "source_reported": true,
+          "conditions": [
+            "prototype operating condition from the study"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "grid-side mains-to-receiver efficiency is not the reported DC-to-DC metric",
+        "full meter-plane and uncertainty detail must be taken from the primary paper before round-robin replication",
+        "long-duration field availability and lifecycle maintenance are not established by the reported efficiency result",
+        "the reported stray-field value alone does not establish exposure compliance for every installation"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "ntt-mhi-2025-1km-laser",
+      "modality": "optical_laser_wpt",
+      "study_type": "industry_pilot",
+      "comparison_group": "optical-lpt-optical-output-to-receiver-electrical-1km",
+      "source": {
+        "title": "NTT and Mitsubishi Heavy Industries Achieved World's Highest Efficiency in Laser Wireless Power Transmission under Atmospheric Turbulence",
+        "publisher": "NTT and Mitsubishi Heavy Industries",
+        "url": "https://group.ntt/en/newsrelease/2025/09/17/250917a.html",
+        "publication_date": "2025-09-17"
+      },
+      "service": {
+        "service_kind": "electrical_dc",
+        "application": "1 km laser power transfer demonstration",
+        "medium": "free-space optical beam",
+        "distance_m": 1000
+      },
+      "measurements": [
+        {
+          "name": "transmitted_optical_power",
+          "value": 1000,
+          "unit": "watt",
+          "relation": "exact",
+          "measurement_plane": "transmitted optical beam output",
+          "boundary": "optical power after laser generation; excludes electrical wall-plug input to the laser",
+          "source_reported": true,
+          "conditions": [
+            "1 km free-space path",
+            "atmospheric turbulence present"
+          ]
+        },
+        {
+          "name": "receiver_electrical_power",
+          "value": 152,
+          "unit": "watt",
+          "relation": "exact",
+          "measurement_plane": "electrical output extracted from receiving panel",
+          "boundary": "receiver electrical output",
+          "source_reported": true,
+          "conditions": [
+            "1 km free-space path",
+            "continuous operation reported for 30 minutes"
+          ]
+        },
+        {
+          "name": "optical_to_electrical_efficiency",
+          "value": 15,
+          "unit": "percent",
+          "relation": "exact",
+          "measurement_plane": "receiver electrical output divided by transmitted optical power",
+          "boundary": "optical-output-to-receiver-electrical; not wall-plug-to-load",
+          "source_reported": true,
+          "conditions": [
+            "1 km free-space path",
+            "source reports 15%"
+          ]
+        },
+        {
+          "name": "continuous_delivery_duration",
+          "value": 30,
+          "unit": "minute",
+          "relation": "exact",
+          "measurement_plane": "demonstration operating interval",
+          "boundary": "duration of continuous power delivery",
+          "source_reported": true,
+          "conditions": [
+            "laser and receiver system each installed inside safety booths"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "electrical wall-plug input to the laser transmitter is not included in the 15% boundary",
+        "whole-system wall-plug-to-useful-load efficiency is not stated in the announcement",
+        "longer-term uptime, maintenance and availability are not established",
+        "the result is not directly rankable against an end-to-end electrical-input LPT efficiency without boundary normalization"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "darpa-power-2025-8-6km",
+      "modality": "optical_laser_wpt",
+      "study_type": "government_demonstration",
+      "comparison_group": "optical-beaming-distance-and-received-power-8km-class",
+      "source": {
+        "title": "DARPA program sets distance record for power beaming",
+        "publisher": "Defense Advanced Research Projects Agency",
+        "url": "https://www.darpa.mil/news/2025/darpa-program-distance-record-power-beaming",
+        "publication_date": "2025-05-16"
+      },
+      "service": {
+        "service_kind": "electrical_power",
+        "application": "long-distance laser power beaming",
+        "medium": "free-space optical beam",
+        "distance_m": 8600
+      },
+      "measurements": [
+        {
+          "name": "receiver_delivered_power",
+          "value": 800,
+          "unit": "watt",
+          "relation": "greater_than",
+          "measurement_plane": "power delivered by the optical receiver as stated in public release",
+          "boundary": "receiver-delivered power; complete source and receiver conversion planes not disclosed in announcement",
+          "source_reported": true,
+          "conditions": [
+            "8.6 km transmission",
+            "30-second transmission"
+          ]
+        },
+        {
+          "name": "transmission_duration",
+          "value": 30,
+          "unit": "second",
+          "relation": "exact",
+          "measurement_plane": "reported transmission interval",
+          "boundary": "duration of the >800 W delivery event",
+          "source_reported": true,
+          "conditions": [
+            "8.6 km transmission"
+          ]
+        },
+        {
+          "name": "campaign_energy_transferred",
+          "value": 1000000,
+          "unit": "joule",
+          "relation": "greater_than",
+          "measurement_plane": "campaign aggregate energy transferred",
+          "boundary": "aggregate campaign energy; not a single continuous delivery interval",
+          "source_reported": true,
+          "conditions": [
+            "aggregate of the test campaign"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "electrical input to the laser and complete wall-plug-to-receiver efficiency are not provided in the public release",
+        "receiver electrical measurement plane and conversion-stage losses require the technical report",
+        "30-second record does not establish continuous grid-like availability",
+        "the >1 MJ campaign total must not be interpreted as one uninterrupted service event"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "yigit-2026-20m-laser",
+      "modality": "optical_laser_wpt",
+      "study_type": "paper_reported_prototype",
+      "comparison_group": "optical-lpt-system-end-to-end-20m",
+      "source": {
+        "title": "System-level design and experimental demonstration of a laser power transfer system",
+        "publisher": "Optics & Laser Technology",
+        "url": "https://doi.org/10.1016/j.optlastec.2026.115445",
+        "publication_date": "2026-10",
+        "doi": "10.1016/j.optlastec.2026.115445"
+      },
+      "service": {
+        "service_kind": "electrical_dc",
+        "application": "20 m continuous laser-to-photovoltaic electrical delivery",
+        "medium": "free-space optical beam",
+        "distance_m": 20
+      },
+      "measurements": [
+        {
+          "name": "delivered_electrical_power",
+          "value": 99,
+          "unit": "watt",
+          "relation": "approximate",
+          "measurement_plane": "photovoltaic receiver electrical output",
+          "boundary": "reported useful receiver power",
+          "source_reported": true,
+          "conditions": [
+            "20 m optical link",
+            "continuous operation under reported alignment and thermal conditions"
+          ]
+        },
+        {
+          "name": "end_to_end_lpt_efficiency",
+          "value": 12.4,
+          "unit": "percent",
+          "relation": "exact",
+          "measurement_plane": "overall LPT system boundary as described by the paper",
+          "boundary": "reported end-to-end LPT efficiency; exact meter placements and inclusion of all auxiliaries require full-text extraction",
+          "source_reported": true,
+          "conditions": [
+            "20 m optical link"
+          ]
+        },
+        {
+          "name": "laser_driver_electrical_efficiency",
+          "value": 95.96,
+          "unit": "percent",
+          "relation": "exact",
+          "measurement_plane": "electrical input and laser-driver output stage",
+          "boundary": "laser-driver stage only; not complete LPT efficiency",
+          "source_reported": true,
+          "conditions": [
+            "SiC LLC laser driver"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "exact source and receiver meter plane definitions require full-text extraction before independent comparison",
+        "the 95.96% driver stage must not be substituted for the 12.4% whole-LPT result",
+        "uncertainty, repeatability and long-duration availability require the full paper and independent replication",
+        "the 12.4% end-to-end result is not directly rankable against NTT's optical-output-to-receiver-electrical 15% boundary"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "liao-2025-underwater-ultrasonic",
+      "modality": "acoustic_ultrasonic_wpt",
+      "study_type": "paper_reported_prototype",
+      "comparison_group": "underwater-acoustic-ultrasonic-35cm-prototype",
+      "source": {
+        "title": "Simulation and Experiment of a Medium-Distance Underwater Ultrasonic Wireless Power Transfer System",
+        "publisher": "Archives of Metallurgy and Materials",
+        "url": "https://doi.org/10.24425/aoa.2025.154821",
+        "publication_date": "2025-08-21",
+        "doi": "10.24425/aoa.2025.154821"
+      },
+      "service": {
+        "service_kind": "electrical_load",
+        "application": "underwater ultrasonic power delivery to a resistive load",
+        "medium": "water / acoustic ultrasonic path",
+        "distance_m": 0.35
+      },
+      "measurements": [
+        {
+          "name": "transmitter_power",
+          "value": 2.5,
+          "unit": "watt",
+          "relation": "exact",
+          "measurement_plane": "transmitter power as reported in the paper abstract",
+          "boundary": "exact distinction between wall supply and transducer electrical input requires full-text confirmation",
+          "source_reported": true,
+          "conditions": [
+            "35 cm separation",
+            "underwater acoustic link"
+          ]
+        },
+        {
+          "name": "received_load_power",
+          "value": 0.433,
+          "unit": "watt",
+          "relation": "exact",
+          "measurement_plane": "received power in 1.2 kΩ load",
+          "boundary": "receiver load power",
+          "source_reported": true,
+          "conditions": [
+            "35 cm separation",
+            "1.2 kΩ load",
+            "22.8 V RMS reported"
+          ]
+        },
+        {
+          "name": "transmission_efficiency",
+          "value": 17,
+          "unit": "percent",
+          "relation": "exact",
+          "measurement_plane": "transmission efficiency as reported by the paper",
+          "boundary": "source's stated UWPT efficiency; wall-plug-to-load boundary needs full-text verification",
+          "source_reported": true,
+          "conditions": [
+            "35 cm separation",
+            "underwater ultrasonic transmission"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "wall-plug electrical input and exact transducer-side source meter plane require full-text confirmation",
+        "acoustic intensity distribution and propagation loss partition are not in the abstract",
+        "cavitation, biological exposure, marine fouling, reliability and field deployment remain separately unqualified",
+        "the source-reported 17% must not be ranked against optical or inductive efficiencies"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "vinci-electreon-2025-a10-roadway",
+      "modality": "dynamic_roadway_wpt",
+      "study_type": "industry_pilot",
+      "comparison_group": "dynamic-roadway-wpt-open-motorway-pilot-power",
+      "source": {
+        "title": "A world first: dynamic wireless charging on a motorway",
+        "publisher": "VINCI Autoroutes",
+        "url": "https://www.vinci.com/en/newsroom/news/world-first-dynamic-wireless-charging-motorway",
+        "publication_date": "2025-10-24"
+      },
+      "service": {
+        "service_kind": "vehicle_traction_battery_charging",
+        "application": "dynamic inductive charging on a 1.5 km A10 motorway pilot section",
+        "medium": "roadway-integrated inductive coupling",
+        "distance_m": 1500
+      },
+      "measurements": [
+        {
+          "name": "instantaneous_wireless_transfer_power",
+          "value": 300,
+          "unit": "kilowatt",
+          "relation": "greater_than",
+          "measurement_plane": "wireless system transfer power as reported by project announcement; exact meter plane unspecified",
+          "boundary": "instantaneous transfer power; not route-average energy or end-to-end efficiency",
+          "source_reported": true,
+          "conditions": [
+            "optimal steady-state conditions",
+            "open motorway pilot",
+            "four prototype vehicle classes"
+          ]
+        },
+        {
+          "name": "average_wireless_transfer_power",
+          "value": 200,
+          "unit": "kilowatt",
+          "relation": "greater_than",
+          "measurement_plane": "wireless system transfer power as reported by project announcement; exact meter plane unspecified",
+          "boundary": "average power under optimal steady-state conditions; averaging window and meter plane not stated in announcement",
+          "source_reported": true,
+          "conditions": [
+            "optimal steady-state conditions",
+            "1.5 km pilot section"
+          ]
+        },
+        {
+          "name": "pilot_roadway_length",
+          "value": 1.5,
+          "unit": "kilometre",
+          "relation": "exact",
+          "measurement_plane": "instrumented pilot motorway segment length",
+          "boundary": "roadway infrastructure length, not an energy-transfer distance for a single receiver",
+          "source_reported": true,
+          "conditions": [
+            "A10 motorway near Paris"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "whole-route source-to-battery efficiency is not reported in the announcement",
+        "power meter plane, averaging window, vehicle speed and per-vehicle energy are not stated",
+        "all-weather availability, traffic utilization and fleet-scale lifecycle economics are not established",
+        "optimal steady-state values are not a guaranteed continuous operating envelope"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    }
+  ]
+}
