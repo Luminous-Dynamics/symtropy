@@ -271,3 +271,9 @@ These are research targets, not achieved values, code requirements or universal 
 - NASA-STD-5002 B (2026): https://standards.nasa.gov/standard/NASA/NASA-STD-5002
 - NASA-STD-5019: https://standards.nasa.gov/standard/NASA/NASA-STD-5019
 - ISO 10786:2025: https://www.iso.org/standard/85531.html
+
+## 15. Current verification additions
+
+The truss reference now includes a separate global audit of force balance, moment balance and the linear strain-energy / half-external-work identity. The mass-normalized benchmark receipt includes these diagnostics and an FNV-1a input digest. The digest is a non-security regression identifier; exported evidence still requires cryptographic hashes.
+
+A first 12-DOF Euler-Bernoulli 3D beam element kernel is also present. Its closed-form cantilever test and transformation invariants are part of the beam-frame development gate, but the kernel is not yet a global beam/frame solver and does not fulfil L4.
