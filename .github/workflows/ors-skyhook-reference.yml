@@ -1,0 +1,64 @@
+name: ORS skyhook source-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ors-skyhook-reference.yml"
+      - "tools/ors-skyhook-reference/**"
+      - "docs/tech/ORS_SKYHOOK_TURN_REFERENCE_V0_1.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ors-skyhook-reference.yml"
+      - "tools/ors-skyhook-reference/**"
+      - "docs/tech/ORS_SKYHOOK_TURN_REFERENCE_V0_1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path tools/ors-skyhook-reference/Cargo.toml --all -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/ors-skyhook-reference/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --manifest-path tools/ors-skyhook-reference/Cargo.toml --locked --all-targets
+      - name: Emit and compare deterministic receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          corpus="tools/ors-skyhook-reference/cases-v0.1.csv"
+          corpus_sha="$(sha256sum "$corpus" | awk '{print $1}')"
+          cargo run --quiet --manifest-path tools/ors-skyhook-reference/Cargo.toml --locked -- \
+            --source-commit "$source_commit" --corpus-sha256 "$corpus_sha" > skyhook-reference-a.json
+          cargo run --quiet --manifest-path tools/ors-skyhook-reference/Cargo.toml --locked -- \
+            --source-commit "$source_commit" --corpus-sha256 "$corpus_sha" > skyhook-reference-b.json
+          cmp skyhook-reference-a.json skyhook-reference-b.json
+          jq -e '
+            .result == "pass"
+            and .case_count == 36
+            and .table_reproduced_count == 28
+            and .outside_source_domain_count == 8
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.max_relative_error < 0.02)
+            and (.cases | length == 36)
+            and all(.cases[]; .status == "table_reproduced" or .status == "outside_source_domain")
+          ' skyhook-reference-a.json
+          sha256sum "$corpus" skyhook-reference-a.json
+      - name: Upload exact outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ors-skyhook-reference-receipts
+          path: |
+            skyhook-reference-a.json
+            skyhook-reference-b.json
