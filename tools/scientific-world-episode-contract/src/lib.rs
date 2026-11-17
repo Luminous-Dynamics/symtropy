@@ -855,6 +855,86 @@ mod tests {
     }
 
     #[test]
+    fn closed_ledger_rejects_an_unresolved_attempt() {
+        assert_eq!(
+            validate_attempt_ledger(
+                &[action()],
+                &[attempt(AttemptStatus::Accepted)],
+                1,
+                InterventionBudget {
+                    max_attempts: 1,
+                    max_cost_units: 3,
+                },
+                true,
+            ),
+            Err(ContractError::IncompleteAttempt)
+        );
+    }
+
+    #[test]
+    fn request_timestamps_must_follow_attempt_ordinals() {
+        let mut first = attempt(AttemptStatus::Applied);
+        first.requested_at = 3;
+        first.accepted_at = Some(3);
+        first.resolved_at = Some(4);
+        let mut second = attempt(AttemptStatus::Applied);
+        second.attempt_id = "attempt-0002".to_owned();
+        second.ordinal = 1;
+        second.logical_effect_id = "effect-0002".to_owned();
+        second.requested_at = 2;
+        second.accepted_at = Some(2);
+        second.resolved_at = Some(3);
+        assert_eq!(
+            validate_attempt_ledger(
+                &[action()],
+                &[first, second],
+                2,
+                InterventionBudget {
+                    max_attempts: 2,
+                    max_cost_units: 6,
+                },
+                true,
+            ),
+            Err(ContractError::PreviousAttemptTimeRegression)
+        );
+    }
+
+    #[test]
+    fn valid_paired_exogenous_counterfactual_pair_passes() {
+        let left = CounterfactualBranch {
+            context: branch_context(),
+            action_id: "probe.left".to_owned(),
+            randomness: BranchRandomness::PairedExogenous {
+                stream_digest: digest('4'),
+                invariance_profile_digest: digest('5'),
+            },
+        };
+        let mut right = left.clone();
+        right.action_id = "probe.right".to_owned();
+        assert_eq!(validate_counterfactual_pair(&left, &right), Ok(()));
+    }
+
+    #[test]
+    fn malformed_branch_digest_is_rejected() {
+        let mut context = branch_context();
+        context.policy_digest = "not-a-digest".to_owned();
+        let left = CounterfactualBranch {
+            context: context.clone(),
+            action_id: "probe.left".to_owned(),
+            randomness: BranchRandomness::Deterministic,
+        };
+        let right = CounterfactualBranch {
+            context,
+            action_id: "probe.right".to_owned(),
+            randomness: BranchRandomness::Deterministic,
+        };
+        assert_eq!(
+            validate_counterfactual_pair(&left, &right),
+            Err(ContractError::InvalidDigest)
+        );
+    }
+
+    #[test]
     fn valid_deterministic_counterfactual_pair_passes() {
         let left = CounterfactualBranch {
             context: branch_context(),
