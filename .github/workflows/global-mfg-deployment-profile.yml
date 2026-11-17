@@ -52,7 +52,7 @@ jobs:
             and (.profiles | length) == 4
             and (.negative_controls | length) == 18
             and ([.profiles[].profile_id] | unique | length) == 4
-            and ([.negative_controls[].case_id] | unique | length) == 15
+            and ([.negative_controls[].case_id] | unique | length) == 18
             and all(.profiles[];
               .profile_class == "synthetic_archetype"
               and .claims.global_compliance_claim == "not_established"
