@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "WaterLoop Module Interface Control v0.1",
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "design_id",
+    "units",
+    "mechanical_dimensions_status",
+    "modules",
+    "shared_measurement_boundaries",
+    "common_fault_states",
+    "universal_safe_state",
+    "prohibited_connections"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-module-interface-control-v0.1"
+    },
+    "evidence_class": {
+      "const": "conceptual_design"
+    },
+    "claim_ceiling": {
+      "const": "module_interface_requirements_only_no_process_or_water_quality_qualification"
+    },
+    "design_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "units": {
+      "const": "SI"
+    },
+    "mechanical_dimensions_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "type": "object",
+        "required": [
+          "module_id",
+          "module_class",
+          "name",
+          "required_ports",
+          "requirements",
+          "failure_state"
+        ],
+        "properties": {
+          "module_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "module_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_ports": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^P-"
+            }
+          },
+          "required_measurands": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requirements": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "failure_state": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "shared_measurement_boundaries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "common_fault_states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "universal_safe_state": {
+      "type": "string",
+      "pattern": "NO AUTOMATIC RELEASE"
+    },
+    "prohibited_connections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
