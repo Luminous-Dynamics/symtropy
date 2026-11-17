@@ -11,8 +11,8 @@
 //! serial baseline before reporting that its heuristics found no schedule.
 
 use crate::{
-    build_schedule, build_serial_baseline, validate_schedule, KitchenPlanV1,
-    KitchenScheduleReceiptV1, ScheduleError,
+    KitchenPlanV1, KitchenScheduleReceiptV1, ScheduleError, build_schedule, build_serial_baseline,
+    validate_schedule,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -171,11 +171,16 @@ fn violation(
 
 fn sort_violations(violations: &mut [PowerConstraintViolation]) {
     violations.sort_by(|a, b| {
-        (a.code, a.task_id.as_deref().unwrap_or(""), a.detail.as_str()).cmp(&(
-            b.code,
-            b.task_id.as_deref().unwrap_or(""),
-            b.detail.as_str(),
-        ))
+        (
+            a.code,
+            a.task_id.as_deref().unwrap_or(""),
+            a.detail.as_str(),
+        )
+            .cmp(&(
+                b.code,
+                b.task_id.as_deref().unwrap_or(""),
+                b.detail.as_str(),
+            ))
     });
 }
 
@@ -770,7 +775,7 @@ mod tests {
             vec![TaskPowerProfileV1 {
                 task_id: "heater".to_owned(),
                 source_ref: "fixture:gap".to_owned(),
-                evidence_class: PowerProfileEvidenceClassV1::Measured,
+                evidence_class: PowerProfileEvidenceClassV1::Simulated,
                 segments: vec![
                     PowerSegmentV1 {
                         start_offset_ms: 0,
