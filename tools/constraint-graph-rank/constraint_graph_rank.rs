@@ -1171,7 +1171,7 @@ fn main() {
     {
         let q0 = [0.0, 0.0, 0.0];
         let q1 = [1.0, 0.0, 0.0];
-        let theta = *angle;
+        let theta: f64 = *angle;
         let q2 = [1.0 + theta.cos(), theta.sin(), 0.0];
         let bodies = [
             GraphBody {
