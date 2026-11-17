@@ -1001,7 +1001,7 @@ fn build_site_time_sap_bodies(bodies: &[ClockDomainCapsuleBody]) -> Vec<TimedCap
 
 fn run_hierarchical_sap_algorithm_benchmarks() {
     println!(
-        "sap_algorithm_comparison,distribution,body_count,subdivisions,possible_pairs,direct_candidates,hierarchical_coarse_candidates,hierarchical_refined_candidates,refinement_pair_slabs,direct_p50_us,direct_p95_us,direct_p99_us,hierarchical_p50_us,hierarchical_p95_us,hierarchical_p99_us,hierarchical_speedup"
+        "distribution,body_count,subdivisions,possible_pairs,direct_candidates,hierarchical_coarse_candidates,hierarchical_refined_candidates,refinement_pair_slabs,direct_p50_us,direct_p95_us,direct_p99_us,hierarchical_p50_us,hierarchical_p95_us,hierarchical_p99_us,hierarchical_speedup"
     );
     let distributions = [
         ClockBroadphaseDistribution::Sparse,
@@ -1088,7 +1088,7 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
                     / hierarchical_p50.as_nanos().max(1) as f64;
 
                 println!(
-                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     distribution.label(),
                     count,
                     subdivisions,
