@@ -43,6 +43,8 @@ pub struct FieldEstimatorSummary {
     pub mean_unsupported_cells: f64,
     /// Mean numerical rank of the native data matrix before any graph prior.
     pub mean_native_data_rank: f64,
+    pub mean_projected_gradient_residual: f64,
+    pub maximum_projected_gradient_residual: f64,
     /// Replicates whose native data matrix identifies every latent field cell.
     pub full_rank_replicates: usize,
     pub converged_replicates: usize,
@@ -74,6 +76,7 @@ struct ReplicateScore {
     unsupported_cells: usize,
     native_data_rank: usize,
     native_data_full_column_rank: bool,
+    projected_gradient_residual: f64,
     converged: bool,
 }
 
@@ -260,6 +263,7 @@ fn score_report(
         unsupported_cells: report.unsupported_cell_count,
         native_data_rank: report.native_data_rank,
         native_data_full_column_rank: report.native_data_full_column_rank,
+        projected_gradient_residual: report.projected_gradient_residual,
         converged: report.converged,
     })
 }
@@ -294,6 +298,7 @@ fn score_independent_taxels(case: &SyntheticFieldCase) -> Result<ReplicateScore,
         unsupported_cells: case.evaluator_truth.len() - admitted_count,
         native_data_rank: admitted_count,
         native_data_full_column_rank: admitted_count == case.evaluator_truth.len(),
+        projected_gradient_residual: 0.0,
         converged: true,
     })
 }
@@ -331,6 +336,15 @@ fn summarize_scores(
         .map(|score| score.native_data_rank as f64)
         .sum::<f64>()
         / scores.len() as f64;
+    let mean_projected_gradient_residual = scores
+        .iter()
+        .map(|score| score.projected_gradient_residual)
+        .sum::<f64>()
+        / scores.len() as f64;
+    let maximum_projected_gradient_residual = scores
+        .iter()
+        .map(|score| score.projected_gradient_residual)
+        .fold(0.0_f64, f64::max);
     let full_rank_replicates = scores
         .iter()
         .filter(|score| score.native_data_full_column_rank)
@@ -346,6 +360,8 @@ fn summarize_scores(
         minimum_sensitivity_support_ratio,
         mean_unsupported_cells,
         mean_native_data_rank,
+        mean_projected_gradient_residual,
+        maximum_projected_gradient_residual,
         full_rank_replicates,
         converged_replicates,
         replicate_count: scores.len(),
@@ -372,8 +388,8 @@ pub fn run_field_reconstruction_campaign(
         .ok_or_else(|| "field campaign seed range overflows u64".to_owned())?;
 
     let config = FieldReconstructionConfig {
-        maximum_iterations: 2_000,
-        convergence_tolerance: 1.0e-8,
+        maximum_iterations: 10_000,
+        convergence_tolerance: 1.0e-6,
         sensitivity_epsilon: 1.0e-12,
     };
 
@@ -470,6 +486,8 @@ mod tests {
             assert!(result.mean_sensitivity_support_ratio > 0.0);
             assert!(result.mean_sensitivity_support_ratio <= 1.0);
             assert!(result.mean_native_data_rank <= 113.0);
+            assert!(result.mean_projected_gradient_residual.is_finite());
+            assert!(result.maximum_projected_gradient_residual.is_finite());
         }
         let independent = &first.results[0];
         let mechanics = &first.results[1];
