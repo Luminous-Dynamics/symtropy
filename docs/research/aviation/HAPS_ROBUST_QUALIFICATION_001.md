@@ -30,6 +30,8 @@ These are source-attributed anchors, not interchangeable performance claims.
 | BAE / Prismatic PHASA-35 | Stratospheric trials in 2023 and 2024 above 66,000 ft; solar generation by day and battery operation at night | Altitude trials; months-long operation is a design proposition, not a reported months-long flight |
 | BAE / ARIA PHASA-35 programme | September 2026 programme to demonstrate ground-to-HAPS power beaming | Ground transmitter to airborne HAPS receiver; not HAPS-to-UAV transfer |
 | U.S. Navy / Skydweller | Publicly reported 73-hour solar-powered unmanned flight in 2025 | Multi-day solar-flight comparator, not a stratospheric HAPS endurance record |
+| Sceye ST1 buoyant LTA HAPS | Approximately 30-day, nearly 30,000 km stratospheric round trip in Aug–Sep 2026; more than seven days over Japan; SoftBank reported station-keeping radius as small as 5 km during the Japan test | Buoyant free-balloon/LTA platform; not a 30-day station-keeping claim and not comparable to a fixed-wing continuous sortie record |
+| Sceye SE2 buoyant HAPS endurance campaign | More than 12 days and 88+ hours at selected areas, station-seeking radius reported as low as 1 km, April 2026 | Separate SE2 campaign; do not merge with ST1 flight data/configuration |
 | Dianovský et al., Drones 2026 | Curved-wing PV model: 6.0% RMS power error and 3.5% daily-energy agreement against ground charging measurements over three clear-sky days spanning a 90-day calendar range | PV-model validation; not a 90-day flight |
 | ACS Energy Letters 2026 battery study | Cell energy sweep from 100–1,000 Wh/kg; storage-to-solar-collection transition near 500 Wh/kg in the studied cases; predicted battery fractions of 30–40% of takeoff mass | Model-specific result, not a universal threshold or installed-pack result |
 | Reach Power / PowerLight | Vendor-reported 10-hour remotely powered UAV flight (October 2026) and in-flight laser power delivery to a fielded UAS (April 2026) | Ground-to-air power delivery; not an airborne HAPS transmitter demonstration |
@@ -52,6 +54,20 @@ Primary references:
 The 2026 review identifies PV, hybrid storage, thermal regulation, power electronics and autonomous energy control as coupled design variables. The November 2026 motor-cooling study treats heat rejection as a specific near-space design problem. These motivate explicit coupling; neither establishes one universal cooling solution.
 
 ## 3. Paradigm shifts
+
+### 3.0 Compare lift classes explicitly
+
+The HAPS tournament must contain at least three distinct platform families:
+
+- **Heavier-than-air fixed wing:** aerodynamic lift; propulsion is required for station-keeping, and the 67-day Zephyr result is the current public fixed-wing endurance comparator.
+- **Buoyant free balloon:** buoyancy supports the vehicle; the wind/altitude-control strategy and ability to remain over a service region must be measured rather than inferred from an airship.
+- **Buoyant airship:** buoyancy provides lift but propulsion may be available for wind-relative positioning; do not transfer its control/energy assumptions to a free balloon.
+
+Sceye's 2026 ST1 mission is described by Sceye's press release as an unmanned free balloon and by SoftBank as a lighter-than-air HAPS. It completed an approximately 30-day trans-Pacific round trip and was tested over Japan for more than seven days; SoftBank reports a station-keeping radius as small as 5 km. A separate Sceye SE2 Endurance Program report describes a 12-day flight and 88+ hours at selected areas with a station-seeking radius as low as 1 km. Keep the ST1 and SE2 flights separate. [Sceye ST1 return announcement](https://www.prnewswire.com/news-releases/sceyes-stratospheric-platform-re-enters-united-states-after-record-breaking-roundtrip-stratospheric-flight-between-us-and-japan-302873007.html); [SoftBank trial report](https://www.softbank.jp/en/corp/news/press/sbkk/2026/20260902_01/); [Sceye SE2 report](https://sceye.com/press-releases/sceye-completes-historic-12-day-6400-mile-stratospheric-flight-advancing-a-new-layer-of-infrastructure-for-humanity/).
+
+Sceye's product page states 425 Wh/kg for its advanced lithium-sulphur battery, and a months-to-a-year design proposition. Record these as manufacturer claims. They are not independently validated installed-pack figures or demonstrated year-long endurance. [Sceye platform page](https://sceye.com/platform/).
+
+The buoyant platform trade is not "balloons are better" or "fixed wing is better." IEEE Spectrum reports buoyant platforms can carry more solar area, batteries and payload, while fixed-wing platforms have so far flown longer and are easier to steer. Convert these qualitative claims into matched metrics: payload kg and kW, service-area-hours, station-keeping error/energy, solar area, wind envelope, repositioning, launch/recovery burden and lifecycle cost. [IEEE Spectrum, 2026](https://spectrum.ieee.org/high-altitude-platform-station).
 
 ### 3.1 Optimize service continuity, not the record flight
 
@@ -101,6 +117,7 @@ HAPS-to-UAV transfer adds transmitter/receiver mass, alignment, acquisition, int
 | H7 | Component degradation | PV-string loss, shading, soiling, cell mismatch and drive derating | Can degradation be detected and absorbed? |
 | H8 | Export admission | Receiver demand, conversion, pointing, interruption and heat rejection | Is there useful export at the receiver meter? |
 | H9 | Fleet/node failure | Node loss, maintenance, recovery, spares, grounding and handover | Does the service survive an unavailable aircraft? |
+| H10 | Lift-class comparison | Fixed-wing versus buoyant free balloon versus propelled airship; payload, solar area, wind field, altitude control and launch/recovery | Which lift class delivers the same coverage service with the lowest robust system burden? |
 
 Preserve weather autocorrelation, synoptic regime, altitude correlations and geography. Do not shuffle hourly irradiance and wind independently. Hold out entire weather campaigns, seasons or locations. Monte Carlo seeds are not independent weather campaigns.
 
