@@ -90,7 +90,8 @@
           "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-1",
           "product_category": "synthetic commercial EV reference",
           "approval_status": "not_assessed",
-          "responsible_operator_status": "unknown"
+          "responsible_operator_status": "unknown",
+          "approval_route_class": "unknown"
         }
       ],
       "supply_chain": {
@@ -103,7 +104,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:cell-to-module",
               "urn:luminous:synthetic:transformation:module-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -113,7 +120,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:pcb-assembly",
               "urn:luminous:synthetic:transformation:eol-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           }
         ],
         "origin_claims": "not_established"
@@ -154,7 +167,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -163,7 +181,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-1-MARKET",
@@ -181,7 +203,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -190,7 +217,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-1-DATA",
@@ -208,7 +239,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -217,7 +253,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-1-SERVICE",
@@ -235,7 +275,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -244,7 +289,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         }
       ],
       "claims": {
@@ -342,7 +391,8 @@
           "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-2",
           "product_category": "synthetic commercial EV reference",
           "approval_status": "not_assessed",
-          "responsible_operator_status": "unknown"
+          "responsible_operator_status": "unknown",
+          "approval_route_class": "unknown"
         }
       ],
       "supply_chain": {
@@ -355,7 +405,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:cell-to-module",
               "urn:luminous:synthetic:transformation:module-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -365,7 +421,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:pcb-assembly",
               "urn:luminous:synthetic:transformation:eol-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           }
         ],
         "origin_claims": "not_established"
@@ -406,7 +468,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -415,7 +482,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-2-MARKET",
@@ -433,7 +504,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -442,7 +518,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-2-DATA",
@@ -460,7 +540,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -469,7 +554,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-2-SERVICE",
@@ -487,7 +576,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -496,7 +590,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         }
       ],
       "claims": {
@@ -594,7 +692,8 @@
           "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-3",
           "product_category": "synthetic commercial EV reference",
           "approval_status": "not_assessed",
-          "responsible_operator_status": "unknown"
+          "responsible_operator_status": "unknown",
+          "approval_route_class": "unknown"
         }
       ],
       "supply_chain": {
@@ -607,7 +706,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:cell-to-module",
               "urn:luminous:synthetic:transformation:module-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -617,7 +722,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:pcb-assembly",
               "urn:luminous:synthetic:transformation:eol-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           }
         ],
         "origin_claims": "not_established"
@@ -658,7 +769,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -667,7 +783,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-3-MARKET",
@@ -685,7 +805,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -694,7 +819,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-3-DATA",
@@ -712,7 +841,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -721,7 +855,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-3-SERVICE",
@@ -739,7 +877,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -748,7 +891,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         }
       ],
       "claims": {
@@ -846,7 +993,8 @@
           "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-4",
           "product_category": "synthetic commercial EV reference",
           "approval_status": "not_assessed",
-          "responsible_operator_status": "unknown"
+          "responsible_operator_status": "unknown",
+          "approval_route_class": "unknown"
         }
       ],
       "supply_chain": {
@@ -859,7 +1007,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:cell-to-module",
               "urn:luminous:synthetic:transformation:module-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -869,7 +1023,13 @@
             "transformation_refs": [
               "urn:luminous:synthetic:transformation:pcb-assembly",
               "urn:luminous:synthetic:transformation:eol-test"
-            ]
+            ],
+            "customs_classification_code": null,
+            "customs_classification_status": "unknown",
+            "origin_rule_ref": null,
+            "preference_claim_status": "unknown",
+            "local_content_method_ref": null,
+            "local_content_status": "unknown"
           }
         ],
         "origin_claims": "not_established"
@@ -910,7 +1070,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -919,7 +1084,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-4-MARKET",
@@ -937,7 +1106,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -946,7 +1120,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-4-DATA",
@@ -964,7 +1142,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -973,7 +1156,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         },
         {
           "obligation_id": "SYNTH-OB-4-SERVICE",
@@ -991,7 +1178,12 @@
             "publication_date": null,
             "entry_into_force_date": null,
             "application_date": null,
-            "source_digest": "synthetic"
+            "source_digest": "synthetic",
+            "source_checked_at": null,
+            "transition_start_date": null,
+            "transition_end_date": null,
+            "expiry_date": null,
+            "source_language": "undetermined"
           },
           "applicability": {
             "product_category": "synthetic commercial EV reference",
@@ -1000,7 +1192,11 @@
             "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
           },
           "disposition": "unknown",
-          "reviewer_status": "not_reviewed"
+          "reviewer_status": "not_reviewed",
+          "responsible_party_ref": null,
+          "conformity_route": "unknown",
+          "required_evidence_refs": [],
+          "reviewer_ref": null
         }
       ],
       "claims": {
@@ -1071,6 +1267,36 @@
       "mutation": "silent_global_core_change",
       "expected_disposition": "REJECT_OR_ABSTAIN",
       "reason": "A regional profile silently changes the shared engineering product revision or digest."
+    },
+    {
+      "case_id": "NC-11",
+      "mutation": "unknown_customs_classification_as_eligible",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Unknown customs classification is used to claim a preferential or quota rate."
+    },
+    {
+      "case_id": "NC-12",
+      "mutation": "origin_preference_without_evidence",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Supplier or material origin is assigned preference eligibility without the applicable origin rule and transformation evidence."
+    },
+    {
+      "case_id": "NC-13",
+      "mutation": "responsible_party_mismatch",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "The entity or actor responsible for conformity, import or placing on market is mismatched to the obligation."
+    },
+    {
+      "case_id": "NC-14",
+      "mutation": "effective_window_mismatch",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A requirement or temporary tariff/quota is applied outside its effective/transition/expiry window."
+    },
+    {
+      "case_id": "NC-15",
+      "mutation": "local_content_claim_without_method",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A local-content percentage or incentive claim is made without a named method, numerator, denominator and supporting evidence."
     }
   ]
 }
