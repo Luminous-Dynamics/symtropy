@@ -124,6 +124,14 @@ pub struct KitchenModuleServiceRefsV1 {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PressureSafetyQualificationV1 {
+    pub pressure_vessel_qualification_ref: String,
+    pub pressure_relief_test_ref: String,
+    pub independent_test_report_ref: String,
+    pub qualification_evidence: ModuleEvidenceRefV1,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct KitchenModuleCapabilityV1 {
     pub schema_version: u32,
     pub module_id: String,
@@ -144,6 +152,9 @@ pub struct KitchenModuleCapabilityV1 {
     pub local_safety_authority_ref: String,
     /// Additional qualification references (e.g. pressure vessel/type testing).
     pub qualification_refs: Vec<String>,
+    /// Required for pressure-cooker modules. Generic qualification_refs are
+    /// not accepted as a substitute for vessel and relief-system evidence.
+    pub pressure_safety: Option<PressureSafetyQualificationV1>,
     pub source_evidence: ModuleEvidenceRefV1,
     pub claim_ceiling: String,
 }
@@ -167,6 +178,8 @@ pub enum ModuleCapabilityViolationCodeV1 {
     InvalidPowerEnvelope,
     EmptyPowerProfileReference,
     PressureModuleMissingQualification,
+    IncompleteElectricalRange,
+    InvalidCapabilityClaimEvidence,
     EmptyInterfaceReference,
     DuplicateReference,
     EmptySafetyAuthorityReference,
@@ -399,6 +412,19 @@ pub fn validate_kitchen_module_capability(
     }
 
     let electrical = &module.electrical;
+    if electrical.nominal_voltage_min_mv.is_some() != electrical.nominal_voltage_max_mv.is_some()
+        || electrical.mains_frequency_min_millihz.is_some()
+            != electrical.mains_frequency_max_millihz.is_some()
+        || electrical.continuous_real_power_limit_w.is_some()
+            != electrical.peak_real_power_limit_w.is_some()
+    {
+        add_violation(
+            &mut violations,
+            ModuleCapabilityViolationCodeV1::IncompleteElectricalRange,
+            None,
+            "voltage, frequency and continuous/peak power limits must be supplied as complete pairs",
+        );
+    }
     if electrical.nominal_voltage_min_mv.is_some_and(|minimum| {
         electrical.nominal_voltage_max_mv.is_some_and(|maximum| minimum > maximum)
     }) || electrical.mains_frequency_min_millihz.is_some_and(|minimum| {
@@ -413,6 +439,9 @@ pub fn validate_kitchen_module_capability(
     }
     if electrical.continuous_real_power_limit_w.is_some_and(|continuous| {
         electrical.peak_real_power_limit_w.is_some_and(|peak| peak < continuous)
+    }) || electrical.peak_real_power_limit_w.is_some_and(|peak| {
+        electrical.continuous_real_power_limit_w.is_some_and(|continuous| peak > continuous)
+            && electrical.maximum_surge_duration_ms.is_none_or(|duration| duration == 0)
     }) {
         add_violation(
             &mut violations,
@@ -429,25 +458,80 @@ pub fn validate_kitchen_module_capability(
             "power_profile_ref must be non-empty when supplied",
         );
     }
-    if electrical.electrical_evidence.as_ref().is_some_and(|evidence| {
-        evidence.evidence_class == ModuleEvidenceClassV1::Measured
-            && evidence.calibration_ref.as_deref().is_none_or(|value| !nonempty(value))
-    }) {
+    if let Some(evidence) = electrical.electrical_evidence.as_ref() {
+        validate_evidence(evidence, None, &mut violations);
+    }
+    if electrical.maximum_surge_duration_ms == Some(0) {
         add_violation(
             &mut violations,
-            ModuleCapabilityViolationCodeV1::MeasuredEvidenceMissingCalibration,
+            ModuleCapabilityViolationCodeV1::InvalidPowerEnvelope,
             None,
-            "measured electrical profile requires calibration evidence",
+            "maximum surge duration must be positive when supplied",
         );
     }
-    if module.module_kind == KitchenModuleKindV1::PressureCooker
-        && !module.qualification_refs.iter().any(|reference| nonempty(reference))
-    {
+    for capability in &module.capabilities {
+        let evidence_class = capability.evidence.evidence_class;
+        let claim_mismatch =
+            (capability.claim_status == ModuleCapabilityClaimStatusV1::Evaluated
+                && !matches!(
+                    evidence_class,
+                    ModuleEvidenceClassV1::Measured
+                        | ModuleEvidenceClassV1::IndependentlyAssayed
+                        | ModuleEvidenceClassV1::IndependentlyQualified
+                ))
+            || (capability.claim_status == ModuleCapabilityClaimStatusV1::IndependentlyVerified
+                && evidence_class != ModuleEvidenceClassV1::IndependentlyQualified);
+        if claim_mismatch {
+            add_violation(
+                &mut violations,
+                ModuleCapabilityViolationCodeV1::InvalidCapabilityClaimEvidence,
+                Some(&capability.capability_id),
+                "capability claim status exceeds its evidence class",
+            );
+        }
+    }
+    if module.module_kind == KitchenModuleKindV1::PressureCooker {
+        match module.pressure_safety.as_ref() {
+            Some(pressure) => {
+                for (name, reference) in [
+                    ("pressure_vessel_qualification_ref", pressure.pressure_vessel_qualification_ref.as_str()),
+                    ("pressure_relief_test_ref", pressure.pressure_relief_test_ref.as_str()),
+                    ("independent_test_report_ref", pressure.independent_test_report_ref.as_str()),
+                ] {
+                    if !nonempty(reference) {
+                        add_violation(
+                            &mut violations,
+                            ModuleCapabilityViolationCodeV1::PressureModuleMissingQualification,
+                            None,
+                            format!("{name} must be non-empty"),
+                        );
+                    }
+                }
+                if pressure.qualification_evidence.evidence_class
+                    != ModuleEvidenceClassV1::IndependentlyQualified
+                {
+                    add_violation(
+                        &mut violations,
+                        ModuleCapabilityViolationCodeV1::PressureModuleMissingQualification,
+                        None,
+                        "pressure module qualification evidence must be independently_qualified",
+                    );
+                }
+                validate_evidence(&pressure.qualification_evidence, None, &mut violations);
+            }
+            None => add_violation(
+                &mut violations,
+                ModuleCapabilityViolationCodeV1::PressureModuleMissingQualification,
+                None,
+                "pressure-cooker modules require vessel, pressure-relief and independent test evidence",
+            ),
+        }
+    } else if module.pressure_safety.is_some() {
         add_violation(
             &mut violations,
             ModuleCapabilityViolationCodeV1::PressureModuleMissingQualification,
             None,
-            "pressure-cooker modules require an explicit pressure-vessel qualification reference",
+            "pressure_safety record is only valid for a pressure-cooker module",
         );
     }
 
@@ -597,6 +681,7 @@ mod tests {
             },
             local_safety_authority_ref: "controller:appliance-local-safety".to_owned(),
             qualification_refs: vec![],
+            pressure_safety: None,
             source_evidence: evidence("fixture:module-datasheet"),
             claim_ceiling: KITCHEN_MODULE_CLAIM_CEILING.to_owned(),
         }
