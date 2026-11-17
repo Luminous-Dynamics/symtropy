@@ -117,6 +117,17 @@ This initial owner is an O(n²) exhaustive reference implementation, capped at 1
 The drift model is a hard relative-rate bound over the complete source interval, not a statistical standard deviation, synchronization protocol or clock-drift estimator. The adapter assumes the input geometry has already been transformed into one common frame; it does not perform frame registration. This is software-level collision reasoning only—not real-time control, physical stopping validation, human-protection logic, motion authorization or site safety qualification. Tracks [#5823](https://github.com/Luminous-Dynamics/symtropy/issues/5823) and [#5649](https://github.com/Luminous-Dynamics/symtropy/issues/5649).
 
 
+
+
+### Hierarchical coarse-to-fine refinement
+
+The current multi-clock owner no longer rebuilds a full SAP for every requested time slab. It first performs one full-horizon coarse SAP pass, then refines only the emitted pair candidates by rebuilding both bodies' conservative bounds on their common active subintervals.
+
+The work is therefore proportional to the one coarse body/index pass plus coarse candidates × refinement slabs, rather than rebuilding the body SAP independently for each slab. coarse_broadphase_candidate_pairs, broadphase_candidate_pairs and refinement_tested_pair_slabs distinguish the amount of initial work, retained output and refinement effort.
+
+A parity test compares the complete refined candidate records against the direct full-SAP implementation for 1/2/4/8/16 subdivisions. The same generated multi-clock reference candidate-superset tests remain in place. This is the intended optimization: the coarse result is a conservative superset; refinement only removes pairs/time segments whose common-interval outer AABBs are disjoint. It must never create a pair absent from the coarse superset or drop a pair present in the direct full-SAP reference.
+
+The broad phase still relies on the existing outward-expanded floating-point AABBs, not formal directed rounding. Coarse-to-fine refinement does not raise the assurance level of the underlying bound arithmetic.
 ## Clock-aware conservative multi-body broad phase
 
 The relative-time reference in #5849 checks every unordered pair. This extension converts each successfully mapped body into a conservative zero-clock-uncertainty outer span and feeds those spans into the existing dyadic sweep-and-prune broad phase.
