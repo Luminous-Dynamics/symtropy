@@ -304,6 +304,294 @@
         ],
         "claim_ceiling": "This recipe is safe."
       }
+    },
+    {
+      "fixture_id": "reject-duplicate-task-identifiers",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "Task IDs collide even though each task object is structurally valid.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:duplicate-task",
+        "revision": 1,
+        "title": "Synthetic duplicate task",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-zero-ingredient-quantity",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "reason": "Zero ingredient quantity is invalid and must not enter the scheduler.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:zero-quantity",
+        "revision": 1,
+        "title": "Synthetic zero quantity",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 0,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-invalid-source-digest",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "reason": "A source digest must be exactly 64 hexadecimal characters.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:invalid-digest",
+        "revision": 1,
+        "title": "Synthetic invalid source digest",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": "not-a-digest",
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
     }
   ]
 }
