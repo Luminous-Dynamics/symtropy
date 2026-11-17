@@ -143,7 +143,7 @@ pub enum SimError {
 impl fmt::Display for SimError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::NonFiniteParameter(name) => write!(f, "parameter {name} must be finite"),
+            Self::InvalidAdaptiveConfig => write!(f, "adaptive step/tolerance configuration is invalid"),\n            Self::AdaptiveStepUnderflow => write!(f, "adaptive solver reached the minimum step without an acceptable step"),\n            Self::AdaptiveAttemptLimitReached => write!(f, "adaptive solver exceeded its attempt limit"),\n            Self::NonFiniteParameter(name) => write!(f, "parameter {name} must be finite"),
             Self::NonPositiveCapacity => write!(f, "both capacities must be positive"),
             Self::NonPositiveConductance => write!(f, "conductance must be positive"),
             Self::NonPositiveHorizon => write!(f, "horizon must be positive"),
@@ -299,7 +299,203 @@ pub fn simulate(
     })
 }
 
-#[cfg(test)]
+
+/// Controls for adaptive conservative shared-flux Euler subcycling.
+///
+/// Tolerances bound the local step-doubling estimate, not the global trajectory
+/// error. The latter is measured independently against the analytic oracle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveConfig {
+    pub initial_step: f64,
+    pub min_step: f64,
+    pub max_step: f64,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+    pub max_attempts: usize,
+}
+
+/// Score vector for the adaptive conservative method.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveScore {
+    pub accepted_steps: usize,
+    pub rejected_steps: usize,
+    pub max_accepted_local_error_norm: f64,
+    pub max_abs_state_error: f64,
+    pub rms_state_error: f64,
+    pub max_abs_balance_residual: f64,
+    pub min_state: f64,
+    pub max_state: f64,
+    pub min_accepted_step: f64,
+    pub max_accepted_step: f64,
+    pub positive_states: bool,
+}
+
+/// One explicit Euler step using one shared interface transfer.
+fn shared_flux_euler(
+    scenario: Scenario,
+    a: f64,
+    b: f64,
+    step: f64,
+) -> (f64, f64) {
+    let flux = scenario.conductance * (a - b) * step;
+    (
+        a - flux / scenario.capacity_a,
+        b + flux / scenario.capacity_b,
+    )
+}
+
+/// Adaptive first-order subcycling with step-doubling error estimation.
+///
+/// A full step is compared with two half steps. Accepted state is the two-half
+/// result. One interface flux is paired as a source debit and destination
+/// credit for every substep, preserving the capacity-weighted invariant.
+///
+/// This is a benchmark reference for this two-compartment system, not a generic
+/// FMU algorithm. Error tolerances apply to the local step-doubling estimate;
+/// global error is reported separately against the analytic solution.
+pub fn simulate_adaptive_conservative_flux(
+    scenario: Scenario,
+    config: AdaptiveConfig,
+) -> Result<AdaptiveScore, SimError> {
+    scenario.validate()?;
+    if !config.initial_step.is_finite()
+        || !config.min_step.is_finite()
+        || !config.max_step.is_finite()
+        || !config.absolute_tolerance.is_finite()
+        || !config.relative_tolerance.is_finite()
+        || config.min_step <= 0.0
+        || config.max_step < config.min_step
+        || config.initial_step < config.min_step
+        || config.initial_step > config.max_step
+        || config.absolute_tolerance <= 0.0
+        || config.relative_tolerance < 0.0
+        || config.max_attempts == 0
+    {
+        return Err(SimError::InvalidAdaptiveConfig);
+    }
+
+    let initial_total = scenario.conserved_total();
+    let positivity_required = scenario.initial_a >= 0.0 && scenario.initial_b >= 0.0;
+    let mut time = 0.0;
+    let mut a = scenario.initial_a;
+    let mut b = scenario.initial_b;
+    let mut step = config.initial_step;
+
+    let mut accepted_steps = 0_usize;
+    let mut rejected_steps = 0_usize;
+    let mut attempts = 0_usize;
+    let mut max_accepted_local_error_norm: f64 = 0.0;
+    let mut max_abs_state_error: f64 = 0.0;
+    let mut sum_squared_error = 0.0;
+    let mut error_samples = 0_usize;
+    let mut max_abs_balance_residual: f64 = 0.0;
+    let mut min_state = a.min(b);
+    let mut max_state = a.max(b);
+    let mut min_accepted_step = f64::INFINITY;
+    let mut max_accepted_step: f64 = 0.0;
+
+    while time < scenario.horizon {
+        if attempts >= config.max_attempts {
+            return Err(SimError::AdaptiveAttemptLimitReached);
+        }
+        attempts += 1;
+
+        let remaining = scenario.horizon - time;
+        let attempted_step = step.min(remaining);
+        if !attempted_step.is_finite() || attempted_step <= 0.0 {
+            return Err(SimError::AdaptiveStepUnderflow);
+        }
+
+        let coarse = shared_flux_euler(scenario, a, b, attempted_step);
+        let first_half = shared_flux_euler(scenario, a, b, attempted_step * 0.5);
+        let fine = shared_flux_euler(
+            scenario,
+            first_half.0,
+            first_half.1,
+            attempted_step * 0.5,
+        );
+
+        let finite = coarse.0.is_finite()
+            && coarse.1.is_finite()
+            && fine.0.is_finite()
+            && fine.1.is_finite();
+
+        let error_norm = if finite {
+            let scale_a = config.absolute_tolerance
+                + config.relative_tolerance * a.abs().max(fine.0.abs());
+            let scale_b = config.absolute_tolerance
+                + config.relative_tolerance * b.abs().max(fine.1.abs());
+            ((fine.0 - coarse.0).abs() / scale_a)
+                .max((fine.1 - coarse.1).abs() / scale_b)
+        } else {
+            f64::INFINITY
+        };
+
+        let positivity_ok = !positivity_required
+            || (fine.0 >= 0.0 && fine.1 >= 0.0);
+        let accepted = finite && error_norm <= 1.0 && positivity_ok;
+
+        if accepted {
+            a = fine.0;
+            b = fine.1;
+            time += attempted_step;
+            accepted_steps += 1;
+            max_accepted_local_error_norm =
+                max_accepted_local_error_norm.max(error_norm);
+            min_accepted_step = min_accepted_step.min(attempted_step);
+            max_accepted_step = max_accepted_step.max(attempted_step);
+
+            let (exact_a, exact_b) = scenario.exact_state(time);
+            for (actual, expected) in [(a, exact_a), (b, exact_b)] {
+                let error = actual - expected;
+                max_abs_state_error = max_abs_state_error.max(error.abs());
+                sum_squared_error += error * error;
+                error_samples += 1;
+            }
+
+            let residual =
+                (scenario.capacity_a * a + scenario.capacity_b * b - initial_total).abs();
+            max_abs_balance_residual = max_abs_balance_residual.max(residual);
+            min_state = min_state.min(a).min(b);
+            max_state = max_state.max(a).max(b);
+
+            let factor = if error_norm < 1.0e-16 {
+                2.0
+            } else {
+                (0.9 / error_norm.sqrt()).clamp(0.2, 2.0)
+            };
+            step = (attempted_step * factor).clamp(config.min_step, config.max_step);
+        } else {
+            rejected_steps += 1;
+            if attempted_step <= config.min_step * (1.0 + 1.0e-12) {
+                return Err(SimError::AdaptiveStepUnderflow);
+            }
+            let factor = if error_norm.is_finite() && error_norm > 0.0 {
+                (0.9 / error_norm.sqrt()).clamp(0.1, 0.5)
+            } else {
+                0.5
+            };
+            step = (attempted_step * factor).max(config.min_step);
+        }
+    }
+
+    let rms_state_error = (sum_squared_error / error_samples as f64).sqrt();
+
+    Ok(AdaptiveScore {
+        accepted_steps,
+        rejected_steps,
+        max_accepted_local_error_norm,
+        max_abs_state_error,
+        rms_state_error,
+        max_abs_balance_residual,
+        min_state,
+        max_state,
+        min_accepted_step,
+        max_accepted_step,
+        positive_states: min_state >= 0.0,
+    })
+}
+\n#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -426,4 +622,45 @@ mod tests {
             Err(SimError::StepDoesNotDivideHorizon)
         );
     }
-}
+}\n
+    #[test]
+    fn adaptive_flux_preserves_balance_and_rejects_large_initial_steps() {
+        let scenario = asymmetric();
+        let score = simulate_adaptive_conservative_flux(
+            scenario,
+            AdaptiveConfig {
+                initial_step: 8.0,
+                min_step: 1.0e-8,
+                max_step: 8.0,
+                absolute_tolerance: 1.0e-7,
+                relative_tolerance: 1.0e-6,
+                max_attempts: 100_000,
+            },
+        )
+        .unwrap();
+
+        assert!(score.accepted_steps > 0);
+        assert!(score.rejected_steps > 0);
+        assert!(score.positive_states);
+        assert_small(score.max_abs_balance_residual, 1.0e-12);
+        assert!(score.max_abs_state_error < 5.0e-4);
+        assert!(score.max_accepted_local_error_norm <= 1.0);
+    }
+
+    #[test]
+    fn adaptive_flux_rejects_invalid_tolerances() {
+        let result = simulate_adaptive_conservative_flux(
+            asymmetric(),
+            AdaptiveConfig {
+                initial_step: 1.0,
+                min_step: 1.0e-4,
+                max_step: 2.0,
+                absolute_tolerance: 0.0,
+                relative_tolerance: 1.0e-6,
+                max_attempts: 100,
+            },
+        );
+        assert_eq!(result, Err(SimError::InvalidAdaptiveConfig));
+    }
+
+
