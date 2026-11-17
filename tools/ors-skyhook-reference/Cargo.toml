@@ -1,0 +1,15 @@
+[package]
+name = "ors-skyhook-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "ors_skyhook_reference"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ors-skyhook-reference"
+path = "src/main.rs"
+
+[workspace]
