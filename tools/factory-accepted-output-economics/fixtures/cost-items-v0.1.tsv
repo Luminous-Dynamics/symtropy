@@ -1,51 +1,51 @@
-case_id	cost_item_id	category	amount_minor_low	amount_minor_high	currency	price_date	amount_unit	evidence_class	scope	source_ref
-baseline_three_first_pass	cost:001:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:material
-baseline_three_first_pass	cost:001:labour	LABOUR	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:labour
-baseline_three_first_pass	cost:001:energy	ENERGY	15000	15000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:energy
-rework_one	cost:002:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:material
-rework_one	cost:002:labour	LABOUR	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:labour
-rework_one	cost:002:rework	REWORK	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:rework
-zero_released	cost:003:material	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:003:material
-zero_released	cost:003:inspection	INSPECTION	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:003:inspection
-route_ineligible	cost:004:material	MATERIAL	99999	99999	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:004:material
-route_unknown	cost:005:material	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:005:material
-unknown_cost	cost:006:material	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:006:material
-unknown_cost	cost:006:equipment	EQUIPMENT	-	-	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:006:equipment
-partial_release	cost:007:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:material
-partial_release	cost:007:labour	LABOUR	12000	12000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:labour
-partial_release	cost:007:inspection	INSPECTION	8000	8000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:inspection
-scrap_cost	cost:008:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:material
-scrap_cost	cost:008:replacement	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:replacement
-scrap_cost	cost:008:labour	LABOUR	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:labour
-repeat_inspection	cost:009:components	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:components
-repeat_inspection	cost:009:inspection	INSPECTION	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:inspection
-repeat_inspection	cost:009:repeat-inspection	REPEAT_INSPECTION	4000	4000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:repeat-inspection
-repeat_inspection	cost:009:rework	REWORK	2500	2500	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:rework
-supplier_moq	cost:010:materials	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:materials
-supplier_moq	cost:010:unused-moq	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:unused-moq
-supplier_moq	cost:010:freight	FREIGHT	15000	15000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:freight
-capital_amortization	cost:011:nre	NRE	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:nre
-capital_amortization	cost:011:recurring	LABOUR	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:recurring
-capital_amortization	cost:011:energy	ENERGY	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:energy
-out_of_scope_excluded	cost:012:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:012:material
-out_of_scope_excluded	cost:012:labour	LABOUR	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:012:labour
-out_of_scope_excluded	cost:012:marketing	OTHER	-	-	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	OUT_OF_SCOPE	source:cost:012:marketing
-first_pass_only	cost:013:material	MATERIAL	9000	9000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:013:material
-first_pass_only	cost:013:labour	LABOUR	3000	3000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:013:labour
-all_after_rework	cost:014:material	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:014:material
-all_after_rework	cost:014:rework	REWORK	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:014:rework
-zero_cost	cost:015:zero-valued	OTHER	0	0	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:015:zero-valued
-awaiting_inspection	cost:016:material	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:016:material
-awaiting_inspection	cost:016:test	INSPECTION	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:016:test
-bounded_cost	cost:017:materials	MATERIAL	10000	13000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:017:materials
-bounded_cost	cost:017:labour	LABOUR	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:017:labour
-partner_transport	cost:018:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:material
-partner_transport	cost:018:partner	PARTNER	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:partner
-partner_transport	cost:018:transport	FREIGHT	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:transport
-energy_water	cost:019:material	MATERIAL	1000	1000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:material
-energy_water	cost:019:energy	ENERGY	100	100	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:energy
-energy_water	cost:019:water	WATER	50	50	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:water
-complete_repair_refurb	cost:020:materials	MATERIAL	90000	90000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:materials
-complete_repair_refurb	cost:020:labour	LABOUR	40000	40000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:labour
-complete_repair_refurb	cost:020:testing	INSPECTION	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:testing
-complete_repair_refurb	cost:020:partner	PARTNER	25000	25000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:partner
+case_id	batch_ref	cost_item_id	category	amount_minor_low	amount_minor_high	currency	price_date	amount_unit	evidence_class	scope	source_ref
+baseline_three_first_pass	batch:run-ass	cost:001:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:material
+baseline_three_first_pass	batch:run-ass	cost:001:labour	LABOUR	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:labour
+baseline_three_first_pass	batch:run-ass	cost:001:energy	ENERGY	15000	15000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:001:energy
+rework_one	batch:run-one	cost:002:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:material
+rework_one	batch:run-one	cost:002:labour	LABOUR	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:labour
+rework_one	batch:run-one	cost:002:rework	REWORK	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:002:rework
+zero_released	batch:run-sed	cost:003:material	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:003:material
+zero_released	batch:run-sed	cost:003:inspection	INSPECTION	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:003:inspection
+route_ineligible	batch:run-ble	cost:004:material	MATERIAL	99999	99999	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:004:material
+route_unknown	batch:run-own	cost:005:material	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:005:material
+unknown_cost	batch:run-ost	cost:006:material	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:006:material
+unknown_cost	batch:run-ost	cost:006:equipment	EQUIPMENT	-	-	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:006:equipment
+partial_release	batch:run-ase	cost:007:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:material
+partial_release	batch:run-ase	cost:007:labour	LABOUR	12000	12000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:labour
+partial_release	batch:run-ase	cost:007:inspection	INSPECTION	8000	8000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:007:inspection
+scrap_cost	batch:run-ost	cost:008:material	MATERIAL	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:material
+scrap_cost	batch:run-ost	cost:008:replacement	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:replacement
+scrap_cost	batch:run-ost	cost:008:labour	LABOUR	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:008:labour
+repeat_inspection	batch:run-ion	cost:009:components	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:components
+repeat_inspection	batch:run-ion	cost:009:inspection	INSPECTION	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:inspection
+repeat_inspection	batch:run-ion	cost:009:repeat-inspection	REPEAT_INSPECTION	4000	4000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:repeat-inspection
+repeat_inspection	batch:run-ion	cost:009:rework	REWORK	2500	2500	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:009:rework
+supplier_moq	batch:run-moq	cost:010:materials	MATERIAL	50000	50000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:materials
+supplier_moq	batch:run-moq	cost:010:unused-moq	MATERIAL	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:unused-moq
+supplier_moq	batch:run-moq	cost:010:freight	FREIGHT	15000	15000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:010:freight
+capital_amortization	batch:run-ion	cost:011:nre	NRE	100000	100000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:nre
+capital_amortization	batch:run-ion	cost:011:recurring	LABOUR	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:recurring
+capital_amortization	batch:run-ion	cost:011:energy	ENERGY	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:011:energy
+out_of_scope_excluded	batch:run-ded	cost:012:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:012:material
+out_of_scope_excluded	batch:run-ded	cost:012:labour	LABOUR	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:012:labour
+out_of_scope_excluded	batch:run-ded	cost:012:marketing	OTHER	-	-	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	OUT_OF_SCOPE	source:cost:012:marketing
+first_pass_only	batch:run-nly	cost:013:material	MATERIAL	9000	9000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:013:material
+first_pass_only	batch:run-nly	cost:013:labour	LABOUR	3000	3000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:013:labour
+all_after_rework	batch:run-ork	cost:014:material	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:014:material
+all_after_rework	batch:run-ork	cost:014:rework	REWORK	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:014:rework
+zero_cost	batch:run-ost	cost:015:zero-valued	OTHER	0	0	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:015:zero-valued
+awaiting_inspection	batch:run-ion	cost:016:material	MATERIAL	20000	20000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:016:material
+awaiting_inspection	batch:run-ion	cost:016:test	INSPECTION	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:016:test
+bounded_cost	batch:run-ost	cost:017:materials	MATERIAL	10000	13000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:017:materials
+bounded_cost	batch:run-ost	cost:017:labour	LABOUR	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:017:labour
+partner_transport	batch:run-ort	cost:018:material	MATERIAL	30000	30000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:material
+partner_transport	batch:run-ort	cost:018:partner	PARTNER	5000	5000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:partner
+partner_transport	batch:run-ort	cost:018:transport	FREIGHT	2000	2000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:018:transport
+energy_water	batch:run-ter	cost:019:material	MATERIAL	1000	1000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:material
+energy_water	batch:run-ter	cost:019:energy	ENERGY	100	100	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:energy
+energy_water	batch:run-ter	cost:019:water	WATER	50	50	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:019:water
+complete_repair_refurb	batch:run-urb	cost:020:materials	MATERIAL	90000	90000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:materials
+complete_repair_refurb	batch:run-urb	cost:020:labour	LABOUR	40000	40000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:labour
+complete_repair_refurb	batch:run-urb	cost:020:testing	INSPECTION	10000	10000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:testing
+complete_repair_refurb	batch:run-urb	cost:020:partner	PARTNER	25000	25000	ZAR	2026-11-01	ZAR_CENT	SYNTHETIC	IN_SCOPE	source:cost:020:partner
