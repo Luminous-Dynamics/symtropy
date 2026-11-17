@@ -287,7 +287,7 @@ jobs:
                           digest_owners.setdefault(measurement["raw_record_digest"], set()).add(event["event_id"])
           if not any(len(owners) > 1 for owners in digest_owners.values()):
               raise SystemExit("WDN_VERIFIED_INTERVENTION_RAW_REPLAY_NEGATIVE_CONTROL_MISSING")
-          print("WDN_VERIFIED_INTERVENTION_SCHEMA_PASS: 14 cases; 15? no pooled score; no causal or annualized savings claims")
+          print("WDN_VERIFIED_INTERVENTION_SCHEMA_PASS: 14 cases; multi-axis metrics; no causal or annualized savings claims")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
