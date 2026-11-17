@@ -115,7 +115,31 @@ fn obligation_dimension_field(dimension: &str) -> Option<&'static str> {
     }
 }
 
-fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, String), String> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CoreIdentity {
+    product_family: String,
+    revision: String,
+    engineering_core_digest: String,
+    process_definition_refs: Vec<String>,
+    inspection_requirement_refs: Vec<String>,
+}
+
+fn sorted_unique_string_array(value: &Value, path: &str) -> Result<Vec<String>, String> {
+    let values = array(value, path)?;
+    if values.is_empty() {
+        return Err(format!("{path}: empty reference list"));
+    }
+    let mut refs = BTreeSet::new();
+    for (index, item) in values.iter().enumerate() {
+        let reference = string(item, &format!("{path}[{index}]"))?;
+        if !refs.insert(reference.to_owned()) {
+            return Err(format!("{path}: duplicate reference {reference}"));
+        }
+    }
+    Ok(refs.into_iter().collect())
+}
+
+fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdentity), String> {
     let path = format!("profiles[{index}]");
     let profile_id = string(
         field(profile, "profile_id", &path)?,
@@ -172,12 +196,28 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &format!("{path}.global_core"),
         )?,
         &format!("{path}.global_core.engineering_core_digest"),
-    )?;
+    )?
+    .to_owned();
     if digest != format!("sha256:{}", "0".repeat(64)) {
         return Err(format!(
             "{path}.global_core.engineering_core_digest: synthetic sentinel required"
         ));
     }
+    let process_definition_refs = sorted_unique_string_array(
+        field(core, "process_definition_refs", &format!("{path}.global_core"))?,
+        &format!("{path}.global_core.process_definition_refs"),
+    )?;
+    let inspection_requirement_refs = sorted_unique_string_array(
+        field(core, "inspection_requirement_refs", &format!("{path}.global_core"))?,
+        &format!("{path}.global_core.inspection_requirement_refs"),
+    )?;
+    let core_identity = CoreIdentity {
+        product_family,
+        revision,
+        engineering_core_digest: digest,
+        process_definition_refs,
+        inspection_requirement_refs,
+    };
 
     let site = field(profile, "manufacturing_site", &path)?;
     let site_jurisdiction = string(
@@ -337,6 +377,25 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     }
 
     let data = field(profile, "data_processing", &path)?;
+    let data_jurisdictions = array(
+        field(data, "processing_jurisdictions", &format!("{path}.data_processing"))?,
+        &format!("{path}.data_processing.processing_jurisdictions"),
+    )?;
+    if data_jurisdictions.is_empty() {
+        return Err(format!("{path}.data_processing.processing_jurisdictions: empty list"));
+    }
+    for (j, value) in data_jurisdictions.iter().enumerate() {
+        let jurisdiction = string(
+            value,
+            &format!("{path}.data_processing.processing_jurisdictions[{j}]"),
+        )?;
+        require_dimension_member(
+            context,
+            "data_processing_jurisdictions",
+            jurisdiction,
+            &format!("{path}.deployment_context"),
+        )?;
+    }
     require_not(
         data,
         "data_classification_status",
@@ -351,6 +410,25 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     )?;
 
     let service = field(profile, "service_lifecycle", &path)?;
+    let service_jurisdictions = array(
+        field(service, "service_jurisdictions", &format!("{path}.service_lifecycle"))?,
+        &format!("{path}.service_lifecycle.service_jurisdictions"),
+    )?;
+    if service_jurisdictions.is_empty() {
+        return Err(format!("{path}.service_lifecycle.service_jurisdictions: empty list"));
+    }
+    for (j, value) in service_jurisdictions.iter().enumerate() {
+        let jurisdiction = string(
+            value,
+            &format!("{path}.service_lifecycle.service_jurisdictions[{j}]"),
+        )?;
+        require_dimension_member(
+            context,
+            "service_jurisdictions",
+            jurisdiction,
+            &format!("{path}.deployment_context"),
+        )?;
+    }
     for (key, forbidden) in [
         ("critical_parts_status", "available_and_verified"),
         ("repair_capability_status", "verified_for_scope"),
@@ -489,7 +567,7 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         ));
     }
 
-    Ok((profile_id, product_family, revision))
+    Ok((profile_id, core_identity))
 }
 
 /// Validates the JSON Schema document and corpus against Draft 2020-12,
@@ -544,18 +622,18 @@ pub fn audit_corpus(input: &str) -> Result<Value, String> {
     }
 
     let mut profile_ids = BTreeSet::new();
-    let mut first_core: Option<(String, String)> = None;
+    let mut first_core: Option<CoreIdentity> = None;
     for (index, profile) in profiles.iter().enumerate() {
-        let (id, family, revision) = validate_profile(profile, index)?;
+        let (id, core_identity) = validate_profile(profile, index)?;
         if !profile_ids.insert(id.clone()) {
             return Err(format!("duplicate profile_id: {id}"));
         }
         match &first_core {
-            None => first_core = Some((family, revision)),
-            Some((expected_family, expected_revision)) => {
-                if &family != expected_family || &revision != expected_revision {
+            None => first_core = Some(core_identity),
+            Some(expected_core) => {
+                if &core_identity != expected_core {
                     return Err(format!(
-                        "profiles[{index}]: global engineering core identity changed across regional realization"
+                        "profiles[{index}]: global engineering core identity/digest/process/inspection references changed across regional realization"
                     ));
                 }
             }
@@ -590,15 +668,18 @@ pub fn audit_corpus(input: &str) -> Result<Value, String> {
         }
     }
 
-    let (product_family, product_revision) = first_core.ok_or_else(|| "no profiles".to_owned())?;
+    let core = first_core.ok_or_else(|| "no profiles".to_owned())?;
     Ok(json!({
         "corpus_id": "GLOBAL-MFG-DEPLOY-CORPUS-V0.1",
         "schema_version": "0.1.0",
         "profile_count": profiles.len(),
         "negative_control_count": controls.len(),
         "jurisdiction_dimension_count": REQUIRED_DIMENSIONS.len(),
-        "shared_product_family_id": product_family,
-        "shared_product_revision": product_revision,
+        "shared_product_family_id": core.product_family,
+        "shared_product_revision": core.revision,
+        "shared_engineering_core_digest": core.engineering_core_digest,
+        "shared_process_definition_ref_count": core.process_definition_refs.len(),
+        "shared_inspection_requirement_ref_count": core.inspection_requirement_refs.len(),
         "jurisdiction_dimensions": REQUIRED_DIMENSIONS,
         "all_profile_claims_not_established": true,
         "production_authorization": false,
@@ -733,6 +814,51 @@ mod tests {
         let mut fixture = fixture_value();
         fixture["profiles"][0]["market_access"][0]["destination_jurisdiction"] =
             Value::String("urn:luminous:synthetic:jurisdiction:site-1".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_engineering_core_digest_drift_between_regions() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][1]["global_core"]["engineering_core_digest"] =
+            Value::String(format!("sha256:{}", "1".repeat(64)));
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_process_definition_reference_drift_between_regions() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][1]["global_core"]["process_definition_refs"][0] =
+            Value::String("urn:luminous:synthetic:process:different-process".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_inspection_requirement_reference_drift_between_regions() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][1]["global_core"]["inspection_requirement_refs"][0] =
+            Value::String("urn:luminous:synthetic:inspection:different-plan".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_data_processing_jurisdiction_not_in_data_axis() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["data_processing"]["processing_jurisdictions"][0] =
+            Value::String("urn:luminous:synthetic:jurisdiction:site-1".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_service_jurisdiction_not_in_service_axis() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["service_lifecycle"]["service_jurisdictions"][0] =
+            Value::String("urn:luminous:synthetic:jurisdiction:market-1".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
     }
