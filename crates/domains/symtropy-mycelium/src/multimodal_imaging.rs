@@ -100,7 +100,10 @@ impl SpatialResolutionUm {
         {
             return Err(ModalityEvidenceError::InvalidSpatialResolution);
         }
-        if self.z_um.is_some_and(|value| !value.is_finite() || value <= 0.0) {
+        if self
+            .z_um
+            .is_some_and(|value| !value.is_finite() || value <= 0.0)
+        {
             return Err(ModalityEvidenceError::InvalidSpatialResolution);
         }
         Ok(())
@@ -238,7 +241,9 @@ impl ModalityObservation {
                 .spatial_resolution_um
                 .is_some_and(|resolution| resolution.z_um.is_some())
         {
-            return Err(ModalityEvidenceError::TwoDimensionalSupportCannotClaimThreeDimensionalResolution);
+            return Err(
+                ModalityEvidenceError::TwoDimensionalSupportCannotClaimThreeDimensionalResolution,
+            );
         }
         let expected = match self.modality {
             ImagingModality::BrightfieldZStack | ImagingModality::MicroComputedTomography => {
@@ -246,9 +251,7 @@ impl ModalityObservation {
             }
             ImagingModality::XrayFluorescence => MeasuredObservable::ElementalDistribution,
             ImagingModality::XrayAbsorptionNearEdge => MeasuredObservable::ChemicalSpeciation,
-            ImagingModality::PositronEmissionTomography => {
-                MeasuredObservable::RadiotracerDynamics
-            }
+            ImagingModality::PositronEmissionTomography => MeasuredObservable::RadiotracerDynamics,
             ImagingModality::FluorescentNanoparticleTracking => {
                 MeasuredObservable::LabelledParticleMovement
             }
@@ -276,27 +279,22 @@ impl ModalityObservation {
                 return Err(ModalityEvidenceError::DuplicateReceipt(receipt.id));
             }
         }
-        let acquisition = receipt_by_id
-            .get(&self.acquisition_evidence)
-            .ok_or(ModalityEvidenceError::MissingAcquisitionReceipt(
-                self.acquisition_evidence,
-            ))?;
-        acquisition
-            .validate()
-            .map_err(|source| ModalityEvidenceError::InvalidAcquisitionReceipt {
+        let acquisition = receipt_by_id.get(&self.acquisition_evidence).ok_or(
+            ModalityEvidenceError::MissingAcquisitionReceipt(self.acquisition_evidence),
+        )?;
+        acquisition.validate().map_err(|source| {
+            ModalityEvidenceError::InvalidAcquisitionReceipt {
                 id: self.acquisition_evidence,
                 source,
-            })?;
+            }
+        })?;
         if let Some(id) = self.calibration_evidence {
             let calibration = receipt_by_id
                 .get(&id)
                 .ok_or(ModalityEvidenceError::MissingCalibrationReceipt(id))?;
-            calibration
-                .validate()
-                .map_err(|source| ModalityEvidenceError::InvalidCalibrationReceipt {
-                    id,
-                    source,
-                })?;
+            calibration.validate().map_err(|source| {
+                ModalityEvidenceError::InvalidCalibrationReceipt { id, source }
+            })?;
         }
         Ok(())
     }
@@ -344,40 +342,30 @@ impl ModalityObservation {
                 ImagingModality::BrightfieldZStack | ImagingModality::MicroComputedTomography,
                 BiologicalClaim::HyphalConnectivity,
             ) => ClaimSupport::ContextualEvidenceOnly,
-            (
-                ImagingModality::XrayFluorescence,
-                BiologicalClaim::ElementalDistribution,
-            ) => {
+            (ImagingModality::XrayFluorescence, BiologicalClaim::ElementalDistribution) => {
                 if has_calibration && has_label {
                     ClaimSupport::DirectObservable
                 } else {
                     ClaimSupport::ContextualEvidenceOnly
                 }
             }
-            (
-                ImagingModality::XrayAbsorptionNearEdge,
-                BiologicalClaim::ChemicalSpeciation,
-            ) => {
+            (ImagingModality::XrayAbsorptionNearEdge, BiologicalClaim::ChemicalSpeciation) => {
                 if has_calibration && has_label {
                     ClaimSupport::DirectObservable
                 } else {
                     ClaimSupport::ContextualEvidenceOnly
                 }
             }
-            (
-                ImagingModality::PositronEmissionTomography,
-                BiologicalClaim::RadiotracerDynamics,
-            ) => {
+            (ImagingModality::PositronEmissionTomography, BiologicalClaim::RadiotracerDynamics) => {
                 if has_calibration && has_label && has_temporal_resolution {
                     ClaimSupport::DirectObservable
                 } else {
                     ClaimSupport::ContextualEvidenceOnly
                 }
             }
-            (
-                ImagingModality::PositronEmissionTomography,
-                BiologicalClaim::MetabolicActivity,
-            ) => ClaimSupport::ContextualEvidenceOnly,
+            (ImagingModality::PositronEmissionTomography, BiologicalClaim::MetabolicActivity) => {
+                ClaimSupport::ContextualEvidenceOnly
+            }
             (
                 ImagingModality::FluorescentNanoparticleTracking,
                 BiologicalClaim::LabelledParticleMovement,
@@ -408,7 +396,10 @@ impl ModalityObservation {
 mod tests {
     use super::*;
 
-    fn observation(modality: ImagingModality, observable: MeasuredObservable) -> ModalityObservation {
+    fn observation(
+        modality: ImagingModality,
+        observable: MeasuredObservable,
+    ) -> ModalityObservation {
         ModalityObservation {
             id: ModalityObservationId(1),
             modality,
