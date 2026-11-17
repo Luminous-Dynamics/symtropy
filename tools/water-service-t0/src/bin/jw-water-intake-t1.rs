@@ -10,11 +10,12 @@ use std::fs;
 use std::path::Path;
 
 const RECEIPT_SCHEMA: &str = "jw-watersearch-intake-t1-receipt-v0.1";
-const ALLOWED_LEVELS: [&str; 7] = [
+const ALLOWED_LEVELS: [&str; 8] = [
     "adequate",
     "fair",
     "pressure",
     "low",
+    "warned",
     "no_water",
     "critical",
     "no_report",
@@ -790,6 +791,24 @@ mod tests {
                 .unwrap_err()
                 .contains("outside requested date bounds")
         );
+    }
+
+    #[test]
+    fn warned_is_a_distinct_non_bad_level_even_when_on_bypass() {
+        let (body, headers, manifest_bytes, bundle) = fixture();
+        let mut value: Value = serde_json::from_slice(&body).unwrap();
+        value["days"][1]["level"] = json!("warned");
+        value["days"][1]["bad"] = json!(false);
+        value["days"][1]["on_bypass"] = json!(true);
+        value["days"][1]["boards"] = json!(1);
+        value["days"][1]["wording"] =
+            json!("Synthetic warning that poor pressure to no water may occur.");
+        let changed = serde_json::to_vec_pretty(&value).unwrap();
+        let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        let refreshed = refresh_manifest(&changed, &headers, &mut manifest);
+        let receipt = validate_capture(&changed, &headers, &refreshed, &bundle["schema"]).unwrap();
+        assert_eq!(receipt["level_counts"]["warned"], 1);
+        assert_eq!(receipt["bad_rows"], 2);
     }
 
     #[test]
