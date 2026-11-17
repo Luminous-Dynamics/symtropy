@@ -536,6 +536,16 @@ The 2026 global AMF hyphal-density study provides a large empirical infrastructu
 
 A new end-to-end reproduction contract is [AMF-GLOBAL-INFRASTRUCTURE-REPRO-001 #5639](https://github.com/Luminous-Dynamics/symtropy/issues/5639), with `benchmarks/mycelium/amf-global-infrastructure-v0-1.json`. The work is deliberately decomposed into study/core admission, unit harmonization, study- and spatial-blocked density modelling, leave-biome-out transfer, uncertainty calibration, effective-radius geometry, dry-biomass conversion, and active sampling. Hyphal length density, geometric volume fraction, dry biomass, carbon stock, nutrient flux and plant benefit remain separate outputs.
 
+### T22 — cross-study comparability for host-associated and host-free AMF
+
+The 2026 Klein et al. study is a separate host-free experiment, not the host-present counterfactual for the 2025 travelling-wave study. It uses Rhizophagus irregularis A5/C2, with and without 0.5 mM myristic acid, over 57 days at 2–4 hour intervals; it reports ~5,000 flow videos and ~25,000 trajectories. Bulk cytoplasmic flow speeds increased by about 50% with myristic acid, while Nile-red-labelled lipid movement averaged about 3 μm/s and showed no treatment effect. Raw data are available upon request, not in an open data archive. See [Klein et al. 2026](https://doi.org/10.1016/j.funbio.2026.101775) and [host-free flow qualification #5565](https://github.com/Luminous-Dynamics/symtropy/issues/5565).
+
+The authors caution that absolute growth comparisons against the 2025 host-associated study are not direct because the plate geometry and time origin differ (host-free imaging starts after spore germination; the symbiotic study begins after root colonization and fungal entry into the separate arena). Therefore the 2026 data support the existence of active bidirectional flow without a host under the named in-vitro conditions, but do not establish quantitative host independence or a host effect.
+
+The new study_comparability module makes this distinction executable. It includes taxon/strain, host exposure, carbon substrate, medium and geometry fingerprints, time origin, readout, method, cadence, duration and temperature. Missing context yields insufficient metadata; multiple differences yield non-comparability; different study IDs never trigger automatic pooling. Only host exposure and carbon source can be declared as single-factor intervention axes, and even a randomized contrast is only a design candidate, not an estimated causal effect.
+
+The comparability contract is [MYCO-STUDY-COMPARABILITY-001 #5733](https://github.com/Luminous-Dynamics/symtropy/issues/5733), with ten source-linked scenarios in benchmarks/mycelium/amf-study-comparability-v0-1.json. Eleven Rust tests are authored; the latest code head is still in CI. No raw-data reproduction is claimed.
+
 ### Current code boundary and validation
 
 The current PR adds the temporal alignment and checkpoint modules to the existing graph, transport, BMX reference, source-receipt, spatial-field, spectroscopy and hyphal-highway code. It also adds an explicit `cargo test --locked -p symtropy-mycelium --lib` step to CI; this corrects an earlier test-coverage gap where the workflow checked the workspace but did not run this crate's unit tests.
