@@ -64,6 +64,9 @@ jobs:
           echo "shared multi-channel fields:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin multichannel_sweep > artifacts/multichannel-fields.csv
           cat artifacts/multichannel-fields.csv
+          echo "geometric scale qualification:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin fractal_sweep > artifacts/fractal-geometry.csv
+          cat artifacts/fractal-geometry.csv
 
       - name: Upload raw benchmark outputs
         if: always()
