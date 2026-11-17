@@ -286,7 +286,7 @@ fn evaluate_layout(
     // excluded before defining the failure-component universe.
     let active_sensors: Vec<Sensor> = all_sensors
         .into_iter()
-        .filter(Sensor::is_baseline_eligible)
+        .filter(|sensor| sensor.is_baseline_eligible())
         .collect();
     for state in required_states {
         if !active_sensors.iter().any(|sensor| &sensor.state_id == state) {
@@ -485,11 +485,12 @@ fn evaluate_layout(
                 .map(|sensor| sensor.sensor_id.clone())
                 .collect();
             dependents.sort();
+            let fanout = dependents.len();
             domain_fanout.push(json!({
                 "domain_type": domain_type,
                 "domain_id": domain_id,
                 "dependent_sensor_ids": dependents,
-                "fanout": dependents.len()
+                "fanout": fanout
             }));
         }
     }
