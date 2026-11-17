@@ -590,14 +590,13 @@ pub fn run_evidence_conflict_campaign(
     let total_scenarios = replicate_count
         .checked_mul(4)
         .ok_or_else(|| "evidence conflict scenario count overflows usize".to_owned())?;
-    let last_event_timestamp = 1_000_000_000_u64
-        .checked_add(
-            last_offset
-                .checked_mul(10_000)
-                .ok_or_else(|| "evidence conflict event-time range overflows u64".to_owned())?,
-        )
+    let event_offset = last_offset
+        .checked_mul(10_000)
         .ok_or_else(|| "evidence conflict event-time range overflows u64".to_owned())?;
-    let _ = last_event_timestamp;
+    let event_time_end = 1_000_000_000_u64
+        .checked_add(event_offset)
+        .ok_or_else(|| "evidence conflict event-time range overflows u64".to_owned())?;
+    debug_assert!(event_time_end >= 1_000_000_000);
 
     let mut independent_agreement_safe_count = 0;
     let mut high_conflict_abstention_count = 0;
