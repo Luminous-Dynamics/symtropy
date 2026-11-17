@@ -211,8 +211,7 @@ fn native_data_rank(
         return 0;
     }
 
-    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64)
-        * maximum_absolute_value;
+    let tolerance = sensitivity_epsilon.max(f64::EPSILON * n as f64) * maximum_absolute_value;
     let mut pivot_row = 0;
     for column in 0..n {
         if pivot_row >= row_count {
@@ -243,8 +242,7 @@ fn native_data_rank(
             }
             matrix[row * n + column] = 0.0;
             for update_column in (column + 1)..n {
-                matrix[row * n + update_column] -=
-                    factor * matrix[pivot_row * n + update_column];
+                matrix[row * n + update_column] -= factor * matrix[pivot_row * n + update_column];
             }
         }
         pivot_row += 1;
@@ -620,11 +618,8 @@ mod tests {
         let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
         problem.admitted_native_channels[1] = false;
         problem.smoothness_penalty = 1.0;
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("regularized estimate");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("regularized estimate");
         assert_eq!(report.native_data_rank, 2);
         assert!(!report.native_data_full_column_rank);
         assert!(report.regularization_enabled);
@@ -633,11 +628,8 @@ mod tests {
     #[test]
     fn complete_identity_observations_have_full_native_data_rank() {
         let problem = identity_problem(vec![0.2, 0.4, 0.6]);
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("fully observed field");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("fully observed field");
         assert_eq!(report.native_data_rank, 3);
         assert!(report.native_data_full_column_rank);
         assert!(!report.regularization_enabled);
