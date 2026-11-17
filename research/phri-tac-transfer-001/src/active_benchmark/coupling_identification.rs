@@ -188,16 +188,23 @@ fn fit_row_least_squares(
     config: &CouplingIdentificationConfig,
 ) -> Result<LeastSquaresFit, String> {
     let required_rank = source_taxels.len();
+    let mut residual_columns: Vec<Vec<f64>> = source_taxels
+        .iter()
+        .map(|source_taxel| {
+            (0..training_pattern_count)
+                .map(|pattern| {
+                    problem.training_stimuli[pattern * problem.taxel_count + source_taxel]
+                })
+                .collect()
+        })
+        .collect();
+    let mut permutation: Vec<usize> = (0..required_rank).collect();
     let mut q_columns: Vec<Vec<f64>> = Vec::with_capacity(required_rank);
     let mut upper = vec![vec![0.0; required_rank]; required_rank];
-    let mut maximum_column_norm = 0.0_f64;
-
-    for source_taxel in source_taxels {
-        let column: Vec<_> = (0..training_pattern_count)
-            .map(|pattern| problem.training_stimuli[pattern * problem.taxel_count + source_taxel])
-            .collect();
-        maximum_column_norm = maximum_column_norm.max(dot(&column, &column).sqrt());
-    }
+    let maximum_column_norm = residual_columns
+        .iter()
+        .map(|column| dot(column, column).sqrt())
+        .fold(0.0_f64, f64::max);
 
     if maximum_column_norm <= f64::EPSILON {
         return Ok(LeastSquaresFit {
@@ -207,57 +214,93 @@ fn fit_row_least_squares(
         });
     }
 
-    for column_index in 0..required_rank {
-        let source_taxel = source_taxels[column_index];
-        let mut vector: Vec<_> = (0..training_pattern_count)
-            .map(|pattern| problem.training_stimuli[pattern * problem.taxel_count + source_taxel])
-            .collect();
+    // Column-pivoted, two-pass modified Gram-Schmidt. Pivoting reports the
+    // numerical rank even when an early taxel has no excitation while later
+    // source columns still contain independent information.
+    for pivot_step in 0..required_rank {
+        let pivot = (pivot_step..required_rank)
+            .max_by(|left, right| {
+                dot(
+                    &residual_columns[*left],
+                    &residual_columns[*left],
+                )
+                .total_cmp(&dot(
+                    &residual_columns[*right],
+                    &residual_columns[*right],
+                ))
+            })
+            .ok_or_else(|| "QR pivot selection produced no candidate".to_owned())?;
 
-        // Two-pass modified Gram-Schmidt reduces loss of orthogonality for
-        // correlated nonnegative spatial excitation patterns.
-        for pass in 0..2 {
-            for previous in 0..column_index {
-                let projection = dot(&q_columns[previous], &vector);
-                if pass == 0 {
-                    upper[previous][column_index] = projection;
-                } else {
-                    upper[previous][column_index] += projection;
-                }
-                for (value, basis) in vector.iter_mut().zip(&q_columns[previous]) {
-                    *value -= projection * basis;
-                }
-            }
-        }
-
-        let diagonal = dot(&vector, &vector).sqrt();
-        if diagonal <= config.rank_tolerance * maximum_column_norm {
+        let pivot_norm = dot(
+            &residual_columns[pivot],
+            &residual_columns[pivot],
+        )
+        .sqrt();
+        if pivot_norm <= config.rank_tolerance * maximum_column_norm {
             return Ok(LeastSquaresFit {
                 coefficients: None,
-                rank: column_index,
+                rank: pivot_step,
                 condition_proxy: None,
             });
         }
-        upper[column_index][column_index] = diagonal;
-        for value in &mut vector {
-            *value /= diagonal;
+
+        if pivot != pivot_step {
+            residual_columns.swap(pivot_step, pivot);
+            permutation.swap(pivot_step, pivot);
+            for previous in 0..pivot_step {
+                upper[previous].swap(pivot_step, pivot);
+            }
         }
-        q_columns.push(vector);
+
+        let diagonal = dot(
+            &residual_columns[pivot_step],
+            &residual_columns[pivot_step],
+        )
+        .sqrt();
+        upper[pivot_step][pivot_step] = diagonal;
+        let basis: Vec<_> = residual_columns[pivot_step]
+            .iter()
+            .map(|value| value / diagonal)
+            .collect();
+        q_columns.push(basis.clone());
+
+        for column in (pivot_step + 1)..required_rank {
+            for pass in 0..2 {
+                let projection = dot(&basis, &residual_columns[column]);
+                if pass == 0 {
+                    upper[pivot_step][column] = projection;
+                } else {
+                    upper[pivot_step][column] += projection;
+                }
+                for (value, component) in residual_columns[column].iter_mut().zip(&basis) {
+                    *value -= projection * component;
+                }
+            }
+        }
     }
 
     let response: Vec<_> = (0..training_pattern_count)
-        .map(|pattern| problem.training_responses[pattern * problem.taxel_count + output_taxel])
+        .map(|pattern| {
+            problem.training_responses[pattern * problem.taxel_count + output_taxel]
+        })
         .collect();
     let projected: Vec<_> = q_columns
         .iter()
         .map(|basis| dot(basis, &response))
         .collect();
 
-    let mut coefficients = vec![0.0; required_rank];
+    let mut pivoted_coefficients = vec![0.0; required_rank];
     for row in (0..required_rank).rev() {
         let upper_sum = ((row + 1)..required_rank)
-            .map(|column| upper[row][column] * coefficients[column])
+            .map(|column| upper[row][column] * pivoted_coefficients[column])
             .sum::<f64>();
-        coefficients[row] = (projected[row] - upper_sum) / upper[row][row];
+        pivoted_coefficients[row] =
+            (projected[row] - upper_sum) / upper[row][row];
+    }
+
+    let mut coefficients = vec![0.0; required_rank];
+    for (pivoted_index, original_index) in permutation.iter().copied().enumerate() {
+        coefficients[original_index] = pivoted_coefficients[pivoted_index];
     }
 
     let largest_diagonal = (0..required_rank)
@@ -552,6 +595,42 @@ mod tests {
             row.disposition == CouplingRowDisposition::UnderidentifiedByTrainingPatterns
                 && row.coefficient_estimates.iter().all(Option::is_none)
         }));
+    }
+
+    #[test]
+    fn pivoted_qr_reports_rank_after_an_unexcited_early_source_column() {
+        let problem = CouplingIdentificationProblem {
+            taxel_count: 3,
+            module_ids: vec![0, 0, 0],
+            support_radius: 1,
+            training_stimuli: vec![
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+                0.0, 1.0, 1.0,
+                0.0, 2.0, 0.0,
+            ],
+            training_responses: vec![0.0; 12],
+            heldout_stimuli: vec![
+                0.0, 1.0, 0.0,
+                0.0, 0.0, 1.0,
+            ],
+            heldout_responses: vec![0.0; 6],
+            admitted_output_channels: vec![true; 3],
+            forward_profile_digest: "sha256:pivoted-rank-known-answer".to_owned(),
+        };
+        let report = identify_coupling_operator(
+            &problem,
+            &CouplingIdentificationConfig::default(),
+        )
+        .expect("rank revealing design");
+        let middle = &report.rows[1];
+        assert_eq!(middle.required_rank, 3);
+        assert_eq!(middle.design_rank, 2);
+        assert_eq!(
+            middle.disposition,
+            CouplingRowDisposition::UnderidentifiedByTrainingPatterns
+        );
+        assert!(middle.coefficient_estimates.iter().all(Option::is_none));
     }
 
     #[test]
