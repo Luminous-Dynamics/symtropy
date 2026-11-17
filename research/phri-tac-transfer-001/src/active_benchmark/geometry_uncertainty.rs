@@ -116,6 +116,7 @@ pub struct GeometryWrenchUncertaintyReport {
     pub reference_frame_digest: String,
     pub transform_digest: String,
     pub sample_identity: String,
+    pub field_estimate_digest: String,
     pub native_observation_set_digest: String,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
@@ -309,9 +310,9 @@ pub fn propagate_geometry_wrench_uncertainty(
         .enumerate()
     {
         let offset = parameter * 3;
-        let normal_pressure = local_traction_pa[offset];
-        let tangent_u = local_traction_pa[offset + 1];
-        let tangent_v = local_traction_pa[offset + 2];
+        let normal_pressure = field.local_traction_pa[offset];
+        let tangent_u = field.local_traction_pa[offset + 1];
+        let tangent_v = field.local_traction_pa[offset + 2];
         let traction_density = vec_add(
             vec_add(
                 vec_scale(taxel.normal, normal_pressure),
