@@ -165,6 +165,7 @@ impl CrewHours {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum FieldAcceptanceError {
     EmptyManifestIdentity,
+    InvalidManifestDigest,
     EmptyEntityManifest,
     EmptyEntityId,
     DuplicateManifestEntityId(String),
@@ -285,10 +286,10 @@ pub fn score_field_layout_run(
             waiver.authority_role.as_str(),
             waiver.reason.as_str(),
             waiver.scope.as_str(),
-            waiver.waiver_receipt_sha256.as_str(),
         ]
         .into_iter()
         .any(|value| value.trim().is_empty())
+            || !is_sha256(&waiver.waiver_receipt_sha256)
         {
             return Err(FieldAcceptanceError::InvalidWaiver(
                 waiver.design_entity_id.clone(),
@@ -450,16 +451,18 @@ pub fn score_field_layout_run(
 }
 
 fn validate_manifest(manifest: &DesignIntentManifest) -> Result<(), FieldAcceptanceError> {
-    if [
-        manifest.package_sha256.as_str(),
-        manifest.design_revision_sha256.as_str(),
-        manifest.frame_id.as_str(),
-        manifest.entity_manifest_sha256.as_str(),
-    ]
-    .into_iter()
-    .any(|value| value.trim().is_empty())
+    if manifest.frame_id.trim().is_empty()
+        || manifest.package_sha256.trim().is_empty()
+        || manifest.design_revision_sha256.trim().is_empty()
+        || manifest.entity_manifest_sha256.trim().is_empty()
     {
         return Err(FieldAcceptanceError::EmptyManifestIdentity);
+    }
+    if !is_sha256(&manifest.package_sha256)
+        || !is_sha256(&manifest.design_revision_sha256)
+        || !is_sha256(&manifest.entity_manifest_sha256)
+    {
+        return Err(FieldAcceptanceError::InvalidManifestDigest);
     }
     if manifest.entities.is_empty() {
         return Err(FieldAcceptanceError::EmptyEntityManifest);
@@ -555,7 +558,7 @@ fn validate_observation(observation: &FieldEntityObservation) -> Result<(), Fiel
         if !finite
             || !optionals_finite
             || !uncertainties_nonnegative
-            || measurement.measurement_receipt_sha256.trim().is_empty()
+            || !is_sha256(&measurement.measurement_receipt_sha256)
         {
             return Err(FieldAcceptanceError::InvalidMeasurement(
                 observation.design_entity_id.clone(),
@@ -563,6 +566,13 @@ fn validate_observation(observation: &FieldEntityObservation) -> Result<(), Fiel
         }
     }
     Ok(())
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn evaluate_measurement(
@@ -584,8 +594,7 @@ fn evaluate_measurement(
         }
     }
 
-    if measurement.residual_x_mm.hypot(measurement.residual_y_mm) > profile.max_abs_xy_residual_mm
-    {
+    if measurement.residual_x_mm.hypot(measurement.residual_y_mm) > profile.max_abs_xy_residual_mm {
         return MeasurementEvaluation::Rejected;
     }
 
@@ -625,12 +634,16 @@ fn evaluate_measurement(
 mod tests {
     use super::*;
 
+    fn digest(value: char) -> String {
+        std::iter::repeat_n(value, 64).collect()
+    }
+
     fn manifest(ids: &[&str]) -> DesignIntentManifest {
         DesignIntentManifest {
-            package_sha256: "package-digest".into(),
-            design_revision_sha256: "revision-digest".into(),
+            package_sha256: digest('1'),
+            design_revision_sha256: digest('2'),
             frame_id: "site-world".into(),
-            entity_manifest_sha256: "manifest-digest".into(),
+            entity_manifest_sha256: digest('3'),
             entities: ids
                 .iter()
                 .enumerate()
@@ -666,7 +679,7 @@ mod tests {
             reference_u95_x_mm: u95,
             reference_u95_y_mm: u95,
             reference_u95_z_mm: None,
-            measurement_receipt_sha256: "measurement-receipt".into(),
+            measurement_receipt_sha256: digest('a'),
         }
     }
 
@@ -775,7 +788,7 @@ mod tests {
             authority_role: "site-quality-manager".into(),
             reason: "approved alternate marking method".into(),
             scope: "point-1 only".into(),
-            waiver_receipt_sha256: "waiver-digest".into(),
+            waiver_receipt_sha256: digest('b'),
         };
         let result =
             score_field_layout_run(&manifest(&["point-1"]), &[], &[waiver], profile(), crew())
@@ -888,19 +901,42 @@ mod tests {
             authority_role: "site-quality-manager".into(),
             reason: "approved alternate marking method".into(),
             scope: "point-1 only".into(),
-            waiver_receipt_sha256: "waiver-digest".into(),
+            waiver_receipt_sha256: digest('b'),
         };
-        let result = score_field_layout_run(
-            &manifest(&["point-1"]),
-            &[],
-            &[waiver],
-            profile(),
-            crew(),
-        )
-        .unwrap();
+        let result =
+            score_field_layout_run(&manifest(&["point-1"]), &[], &[waiver], profile(), crew())
+                .unwrap();
         assert_eq!(result.waived_count, 1);
         assert_eq!(result.attempted_count, 0);
         assert_eq!(result.first_pass_yield, None);
         assert_eq!(result.accepted_entities_per_crew_hour, Some(0.0));
     }
+
+    #[test]
+    fn malformed_manifest_and_measurement_digests_are_rejected() {
+        let mut invalid_manifest = manifest(&["point-1"]);
+        invalid_manifest.package_sha256 = "not-a-sha256".into();
+        assert_eq!(
+            score_field_layout_run(&invalid_manifest, &[], &[], profile(), crew()),
+            Err(FieldAcceptanceError::InvalidManifestDigest)
+        );
+
+        let mut invalid_measurement = measurement(0.1, 0.1);
+        invalid_measurement.measurement_receipt_sha256 = "not-a-sha256".into();
+        assert!(matches!(
+            score_field_layout_run(
+                &manifest(&["point-1"]),
+                &[observed(
+                    "point-1",
+                    RobotClaimedEntityState::Printed,
+                    invalid_measurement
+                )],
+                &[],
+                profile(),
+                crew(),
+            ),
+            Err(FieldAcceptanceError::InvalidMeasurement(id)) if id == "point-1"
+        ));
+    }
+
 }
