@@ -322,9 +322,10 @@ fn validate_schema_contract(schema: &serde_json::Value) -> Vec<String> {
         errors.push("expected findings must require action_option_ids".into());
     }
 
-    let evidence_statuses = schema["properties"]["fixtures"]["items"]["properties"]["evidence"]
-        ["items"]["properties"]["status"]["enum"]
-        .as_array();
+    let evidence_statuses =
+        schema["properties"]["fixtures"]["items"]["properties"]["evidence"]["items"]["properties"]
+            ["status"]["enum"]
+            .as_array();
     let has_not_recorded = evidence_statuses.is_some_and(|statuses| {
         statuses
             .iter()
@@ -427,11 +428,7 @@ fn validate_corpus(corpus: &Corpus) -> Result<ValidationSummary, Vec<String>> {
             &control.prohibited_inference,
             &mut errors,
         );
-        require_nonempty(
-            "required_behavior",
-            &control.required_behavior,
-            &mut errors,
-        );
+        require_nonempty("required_behavior", &control.required_behavior, &mut errors);
         insert_unique(
             &mut control_ids,
             &control.control_id,
@@ -692,12 +689,7 @@ fn require_nonempty(field: &str, value: &str, errors: &mut Vec<String>) {
     }
 }
 
-fn insert_unique(
-    set: &mut BTreeSet<String>,
-    value: &str,
-    field: &str,
-    errors: &mut Vec<String>,
-) {
+fn insert_unique(set: &mut BTreeSet<String>, value: &str, field: &str, errors: &mut Vec<String>) {
     if !set.insert(value.to_owned()) {
         errors.push(format!("duplicate {field}: {value}"));
     }
@@ -728,20 +720,17 @@ mod tests {
 
     #[test]
     fn schema_is_closed_and_requires_action_option_scope() {
-        let schema: Value =
-            serde_json::from_str(SCHEMA_JSON).expect("schema JSON must parse");
+        let schema: Value = serde_json::from_str(SCHEMA_JSON).expect("schema JSON must parse");
         assert_eq!(
             schema["$schema"],
             "https://json-schema.org/draft/2020-12/schema"
         );
         assert_eq!(schema["additionalProperties"], false);
-        let required = schema["properties"]["fixtures"]["items"]["properties"]
-            ["expected_findings"]["items"]["required"]
+        let required = schema["properties"]["fixtures"]["items"]["properties"]["expected_findings"]
+            ["items"]["required"]
             .as_array()
             .expect("expected findings must declare required fields");
-        assert!(required
-            .iter()
-            .any(|field| field == "action_option_ids"));
+        assert!(required.iter().any(|field| field == "action_option_ids"));
     }
 
     #[test]
@@ -806,8 +795,7 @@ mod tests {
         assert!(validate_corpus(&corpus).is_err());
 
         let mut corpus = parse_corpus(fixture_value()).unwrap();
-        corpus.fixtures[0].thermodynamics.status =
-            ThermodynamicStatus::QualifiedWithinScope;
+        corpus.fixtures[0].thermodynamics.status = ThermodynamicStatus::QualifiedWithinScope;
         assert!(validate_corpus(&corpus).is_err());
     }
 
@@ -827,13 +815,16 @@ mod tests {
             .collect::<BTreeSet<_>>();
         assert!(distinct_profiles.len() >= 3);
         assert_eq!(
-            fixture.evidence.iter().filter(|evidence| {
-                evidence.dimension == EvidenceDimension::ThermodynamicObservables
-            }).count(),
+            fixture
+                .evidence
+                .iter()
+                .filter(|evidence| {
+                    evidence.dimension == EvidenceDimension::ThermodynamicObservables
+                })
+                .count(),
             0
         );
     }
-
 
     #[test]
     fn unrecorded_or_unknown_consent_never_becomes_a_contradicted_consent_finding() {
@@ -846,9 +837,11 @@ mod tests {
                 )
             });
             if consent_is_uncertain {
-                for finding in fixture.expected_findings.iter().filter(|finding| {
-                    finding.premise_id == "consent_or_authority"
-                }) {
+                for finding in fixture
+                    .expected_findings
+                    .iter()
+                    .filter(|finding| finding.premise_id == "consent_or_authority")
+                {
                     assert_eq!(
                         finding.status,
                         FindingStatus::Undetermined,
@@ -886,10 +879,7 @@ mod tests {
             .find(|finding| finding.premise_id == "declared_output_floor")
             .unwrap();
         assert_eq!(output_finding.status, FindingStatus::Supported);
-        assert_eq!(
-            output_finding.evidence_refs,
-            vec![String::from("e4")]
-        );
+        assert_eq!(output_finding.evidence_refs, vec![String::from("e4")]);
 
         let welfare_finding = throughput
             .expected_findings
@@ -909,7 +899,10 @@ mod tests {
     fn all_v01_cases_remain_unqualified_and_non_authorizing() {
         let corpus = parse_corpus(fixture_value()).unwrap();
         for fixture in &corpus.fixtures {
-            assert_eq!(fixture.thermodynamics.status, ThermodynamicStatus::NotQualified);
+            assert_eq!(
+                fixture.thermodynamics.status,
+                ThermodynamicStatus::NotQualified
+            );
             assert!(fixture.thermodynamics.qualified_observables.is_empty());
             assert!(fixture.human_review_required);
             assert!(fixture.no_action_authority);
