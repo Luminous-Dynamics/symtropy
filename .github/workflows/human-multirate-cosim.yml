@@ -1,0 +1,49 @@
+name: Human multirate co-simulation kernel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "benchmarks/human-multirate-cosim/v0.1/**"
+      - ".github/workflows/human-multirate-cosim.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact qualification subject
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact head
+        if: github.event_name == 'pull_request'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Emit synthetic scorecard
+        run: |
+          cargo run --manifest-path benchmarks/human-multirate-cosim/v0.1/Cargo.toml --release > /tmp/human-multirate-scorecard.csv
+          test "$(wc -l < /tmp/human-multirate-scorecard.csv)" -gt 100

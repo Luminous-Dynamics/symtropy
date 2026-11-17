@@ -1,0 +1,9 @@
+[package]
+name = "human-multirate-cosim"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "Apache-2.0 OR MIT"
+description = "Synthetic-only co-simulation coupling algorithm qualification kernel"
+
+[workspace]
