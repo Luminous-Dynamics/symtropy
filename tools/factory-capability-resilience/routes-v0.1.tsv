@@ -1,0 +1,6 @@
+route_id	architecture	path_class	expected_dependency_rows
+local_a	local_cell	local_machining	8
+local_b	local_cell	local_machining	8
+partner_c	qualified_partner	partner_machining	9
+partner_d	qualified_partner	partner_machining	9
+independent_e	independent_cell	independent_machining	9

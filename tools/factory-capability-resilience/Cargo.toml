@@ -1,0 +1,14 @@
+[package]
+name = "factory-capability-resilience"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic synthetic evaluator for qualified manufacturing path resilience"
+
+[workspace]
+members = []
+
+[[bin]]
+name = "factory-capability-resilience"
+path = "src/main.rs"
