@@ -733,6 +733,14 @@ mod tests {
     #[test]
     fn port_order_permutation_does_not_change_results() {
         let mut original = scenario("MULTIPORT_3D");
+        original.ports[0].mass_flow_kg_s = 1.3;
+        original.ports[1].mass_flow_kg_s = 0.7;
+        original.ports[2].mass_flow_kg_s = 0.5;
+        original.ports[3].mass_flow_kg_s = 1.5;
+        original.ports[0].velocity_inertial_m_s = Vector3::new(5.1, 0.2, -0.1);
+        original.ports[1].velocity_inertial_m_s = Vector3::new(0.3, 4.9, 0.7);
+        original.ports[2].velocity_inertial_m_s = Vector3::new(-0.2, 0.1, 5.3);
+        original.ports[3].velocity_inertial_m_s = Vector3::new(-4.8, 0.4, 0.1);
         let expected = evaluate_scenario(&original).expect("original order");
         original.ports.reverse();
         let actual = evaluate_scenario(&original).expect("reversed order");
