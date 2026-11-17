@@ -246,6 +246,11 @@ fn parse_amount(value: &str, source: &str, line_no: usize) -> Result<Option<u64>
     if value == "-" {
         return Ok(None);
     }
+    if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(format!(
+            "{source}:{line_no}: invalid non-negative integer amount: {value}"
+        ));
+    }
     value
         .parse::<u64>()
         .map(Some)
@@ -1101,6 +1106,14 @@ mod tests {
         outputs.reverse();
         let reverse = evaluate(&cases, &costs, &outputs).unwrap();
         assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn signed_positive_cost_amount_is_rejected_by_parser() {
+        let corrupted = COST_ITEMS.replacen("100000", "+100000", 1);
+        assert!(parse_cost_items(&corrupted)
+            .unwrap_err()
+            .contains("invalid non-negative integer amount"));
     }
 
     #[test]
