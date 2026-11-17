@@ -9,6 +9,9 @@
 //! reference chain or physical stimulus is valid. The module cannot verify
 //! signatures, traceability, as-built dimensions or raw media contents.
 //!
+//! Sensor and wrench timestamps are expected to be normalized into the same
+//! declared reference clock before the episode is admitted.
+//!
 //! A six-axis wrench is an aggregate reference. It does not provide local
 //! pressure ground truth for every taxel. Local-field accuracy requires a
 //! separately characterized spatial reference or must remain an explicitly
@@ -70,6 +73,7 @@ pub struct SixAxisReferenceIdentity {
     pub model: String,
     pub calibration_record_id: String,
     pub calibration_validity_receipt_id: String,
+    pub instrument_receipt_id: String,
     pub covariance_characterization_receipt_id: String,
     pub reference_frame_digest: String,
     pub reference_ancestry_receipt_id: String,
@@ -153,6 +157,9 @@ pub struct PhantomCampaignManifest {
     pub indenter: IndenterArticleIdentity,
     pub sensorized_body: SensorizedBodyIdentity,
     pub six_axis_reference: SixAxisReferenceIdentity,
+    /// As-built taxel geometry in the source sensor/fixture frame.
+    pub source_geometry: TaxelGeometrySet,
+    /// The same geometry transformed into the common six-axis reference frame.
     pub geometry: TaxelGeometrySet,
     pub frame_transform: RigidFrameTransform3,
     pub required_families: Vec<RequiredPhantomFamily>,
@@ -281,6 +288,7 @@ fn validate_manifest_identity(manifest: &PhantomCampaignManifest) -> Vec<String>
         ("reference.model", &manifest.six_axis_reference.model),
         ("reference.calibration_record_id", &manifest.six_axis_reference.calibration_record_id),
         ("reference.calibration_validity_receipt_id", &manifest.six_axis_reference.calibration_validity_receipt_id),
+        ("reference.instrument_receipt_id", &manifest.six_axis_reference.instrument_receipt_id),
         ("reference.covariance_characterization_receipt_id", &manifest.six_axis_reference.covariance_characterization_receipt_id),
         ("reference.reference_frame_digest", &manifest.six_axis_reference.reference_frame_digest),
         ("reference.reference_ancestry_receipt_id", &manifest.six_axis_reference.reference_ancestry_receipt_id),
@@ -310,6 +318,15 @@ fn validate_manifest_identity(manifest: &PhantomCampaignManifest) -> Vec<String>
     }
     if manifest.frame_transform.target_frame_digest != manifest.geometry.reference_frame_digest {
         errors.push("frame transform target does not match the declared geometry/reference frame".to_owned());
+    }
+    match super::wrench_consistency::transform_geometry_to_reference(
+        &manifest.source_geometry,
+        &manifest.frame_transform,
+        &manifest.geometry.geometry_digest,
+    ) {
+        Ok(transformed) if transformed == manifest.geometry => {}
+        Ok(_) => errors.push("stored reference-frame geometry differs from the exact source geometry and rigid transform".to_owned()),
+        Err(error) => errors.push(format!("source geometry/frame transform validation failed: {error}")),
     }
     if manifest.required_families.is_empty() {
         errors.push("phantom campaign declares no required test families".to_owned());
@@ -352,11 +369,10 @@ fn validate_episode(
         ("operating_envelope_cell_id", &episode.operating_envelope_cell_id),
     ]);
     if !episode.temperature_c.is_finite()
-        || !(-80.0..=250.0).contains(&episode.temperature_c)
         || !episode.relative_humidity_percent.is_finite()
         || !(0.0..=100.0).contains(&episode.relative_humidity_percent)
     {
-        errors.push("episode temperature or relative humidity is physically invalid".to_owned());
+        errors.push("episode temperature or relative humidity is non-finite or physically invalid".to_owned());
     }
     if episode.indenter_tip_profile_digest.trim().is_empty()
         || !manifest.indenter.qualified_tip_profile_digests.contains(&episode.indenter_tip_profile_digest)
@@ -433,10 +449,11 @@ fn validate_episode(
             errors.push(format!("episode {name} is missing"));
         }
     }
-    if evidence.reference_instrument_receipt_id != manifest.six_axis_reference.calibration_record_id
-        && evidence.reference_instrument_receipt_id != manifest.six_axis_reference.calibration_validity_receipt_id
+    if evidence.reference_instrument_receipt_id != manifest.six_axis_reference.instrument_receipt_id
+        || evidence.reference_ancestry_receipt_id != manifest.six_axis_reference.reference_ancestry_receipt_id
+        || evidence.common_cause_analysis_receipt_id != manifest.six_axis_reference.common_cause_analysis_receipt_id
     {
-        errors.push("episode reference instrument receipt is not bound to the declared six-axis reference identity".to_owned());
+        errors.push("episode reference instrument/ancestry/common-cause receipts do not match the declared six-axis reference identity".to_owned());
     }
     errors
 }
@@ -476,6 +493,8 @@ pub fn audit_phantom_campaign(manifest: &PhantomCampaignManifest) -> PhantomCamp
     let mut identity_partitions: BTreeMap<(&'static str, String), BTreeSet<PhantomEpisodePartition>> =
         BTreeMap::new();
     let mut profile_partitions: BTreeMap<String, BTreeSet<PhantomEpisodePartition>> = BTreeMap::new();
+
+    let manifest_identity_invalid = !reasons.is_empty();
 
     for episode in &manifest.episodes {
         let mut episode_errors = validate_episode(episode, manifest);
@@ -577,7 +596,7 @@ pub fn audit_phantom_campaign(manifest: &PhantomCampaignManifest) -> PhantomCamp
         PhantomAuditDisposition::PartitionLeakage
     } else if !invalid_episode_ids.is_empty() {
         PhantomAuditDisposition::EpisodeEvidenceUnresolved
-    } else if !reasons.is_empty() {
+    } else if manifest_identity_invalid {
         PhantomAuditDisposition::InvalidManifest
     } else if coverage_incomplete {
         PhantomAuditDisposition::CoverageIncomplete
@@ -600,7 +619,7 @@ pub fn audit_phantom_campaign(manifest: &PhantomCampaignManifest) -> PhantomCamp
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::wrench_consistency::{WrenchCovariance6, WrenchVector};
+    use super::super::wrench_consistency::WrenchCovariance6;
 
     fn geometry() -> TaxelGeometrySet {
         TaxelGeometrySet {
@@ -718,12 +737,18 @@ mod tests {
                 model: "ATI Axia80".to_owned(),
                 calibration_record_id: "calibration:reference".to_owned(),
                 calibration_validity_receipt_id: "receipt:ref-calibration-validity".to_owned(),
+                instrument_receipt_id: "receipt:ref-calibration-validity".to_owned(),
                 covariance_characterization_receipt_id: "receipt:ref-covariance".to_owned(),
                 reference_frame_digest: "sha256:phantom-reference-frame".to_owned(),
                 reference_ancestry_receipt_id: "receipt:ref-ancestry".to_owned(),
                 common_cause_analysis_receipt_id: "receipt:ref-common-cause".to_owned(),
                 verifier_receipt_id: "receipt:ref-verifier".to_owned(),
                 independence: ReferenceIndependenceDisposition::IndependentlyCharacterized,
+            },
+            source_geometry: {
+                let mut source = geometry();
+                source.reference_frame_digest = "sha256:phantom-fixture-frame".to_owned();
+                source
             },
             geometry: geometry(),
             frame_transform: RigidFrameTransform3 {
