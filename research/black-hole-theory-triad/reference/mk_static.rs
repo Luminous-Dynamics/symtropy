@@ -193,6 +193,17 @@ mod tests {
     }
 
     #[test]
+    fn simple_horizon_bracketer_does_not_misclassify_extremal_double_root() {
+        // Schwarzschild-de Sitter Nariai limit: B(r)=1-2/r-r²/27
+        // has a double root at r=3 and no sign change across it.
+        let nariai = MkParameters { beta: 1.0, gamma: 0.0, kappa: 1.0 / 27.0 };
+        assert_eq!(
+            bracketed_horizon_root(nariai, 2.5, 3.5, 1e-12, 128),
+            Err(DomainError::RootNotBracketed)
+        );
+    }
+
+    #[test]
     fn quadratic_solver_handles_zero_linear_coefficient() {
         // beta*gamma = 1/3 makes the linear coefficient exactly zero;
         // the positive root is r=3 and the negative root is discarded.
