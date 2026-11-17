@@ -30,7 +30,7 @@ For one suburb and an explicitly bounded period where practical:
 
 1. Confirm current API docs, source page, release index, response licence field and X-Licence header.
 2. Capture the exact HTTP response body bytes and the raw response header block. Do not pretty-print, normalize or reserialize the body before hashing.
-3. Record GET URL, final URL, HTTP status, capture timestamp in UTC, content type, response headers, suburb slug, requested from/to dates and advertised release ID.
+3. Record GET URL, final URL, HTTP status, capture timestamp in UTC, content type, response headers, suburb slug, requested from/to dates and the exact advertised release ID in both the response-body comparison and `capture.expected_release`. The verifier requires exact body/manifest release equality.
 4. Hash the raw body and raw header bytes independently; record byte counts and SHA-256 values in the capture manifest.
 5. Run the offline verifier over those exact files.
 6. Keep rights review separate. A pending rights review yields an integrity-checked but not admitted receipt. A rights-approved receipt must cite a human review reference and still only admits publisher-reported asset status.
