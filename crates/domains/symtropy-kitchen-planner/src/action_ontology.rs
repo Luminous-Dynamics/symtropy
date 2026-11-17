@@ -8,7 +8,9 @@
 //! Unknown actions remain explicitly unmapped until a human-reviewed mapping is
 //! supplied. No lexical-similarity score is treated as execution authority.
 
-use crate::recipe_graph::{RecipeActionKindV1, RecipeEvidenceClassV1};
+use crate::recipe_graph::{
+    RECIPE_ACTION_KINDS_V1, RecipeActionKindV1, RecipeEvidenceClassV1,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -460,6 +462,65 @@ mod tests {
             assert_eq!(mapping.group, fixture.expected_group);
             assert_eq!(mapping.method, fixture.expected_method);
         }
+    }
+
+    #[test]
+    fn every_recipe_action_kind_has_exactly_one_fixture_mapping() {
+        let bundle: ActionMappingFixtureBundle = serde_json::from_str(include_str!(
+            "../schemas/fixtures/action-ontology-v1.json"
+        ))
+        .expect("action ontology fixture bundle must deserialize");
+        let fixture_kinds: Vec<_> = bundle
+            .mappings
+            .iter()
+            .map(|fixture| fixture.action_kind)
+            .collect();
+
+        assert_eq!(
+            fixture_kinds.len(),
+            RECIPE_ACTION_KINDS_V1.len(),
+            "fixture mapping count must equal the canonical recipe action vocabulary"
+        );
+        for kind in RECIPE_ACTION_KINDS_V1 {
+            assert_eq!(
+                fixture_kinds.iter().filter(|candidate| *candidate == kind).count(),
+                1,
+                "recipe action kind {kind:?} must have exactly one fixture mapping"
+            );
+        }
+    }
+
+    #[test]
+    fn unmapped_action_cannot_carry_a_core_or_group() {
+        let mut binding = rule_based_action_binding(
+            RecipeActionKindV1::Other,
+            RecipeEvidenceClassV1::Modelled,
+        );
+        binding.mapping.core = Some(ActionCoreV1::Preparing);
+        let report = validate_action_ontology_binding(RecipeActionKindV1::Other, &binding);
+        assert!(report.violations.iter().any(|entry| {
+            entry.code == ActionOntologyViolationCodeV1::InvalidUnmappedBinding
+        }));
+    }
+
+    #[test]
+    fn duplicate_action_parameters_are_rejected() {
+        let mut binding = rule_based_action_binding(
+            RecipeActionKindV1::Chop,
+            RecipeEvidenceClassV1::Declared,
+        );
+        let parameter = ActionParameterV1 {
+            name: "cut_width".to_owned(),
+            value: 5,
+            decimal_places: 0,
+            unit: ActionParameterUnitV1::Millimetre,
+            source_ref: Some("fixture:recipe-measurement".to_owned()),
+        };
+        binding.parameters = vec![parameter.clone(), parameter];
+        let report = validate_action_ontology_binding(RecipeActionKindV1::Chop, &binding);
+        assert!(report.violations.iter().any(|entry| {
+            entry.code == ActionOntologyViolationCodeV1::DuplicateParameter
+        }));
     }
 
     #[test]
