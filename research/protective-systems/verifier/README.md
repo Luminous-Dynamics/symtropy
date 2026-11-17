@@ -400,5 +400,5 @@ cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin
 cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-schema-evolution-e6
 ```
 
-E6 has 27 Rust unit tests written; exact-head hosted formatting, compilation,
+E6 has 29 Rust unit tests written; exact-head hosted formatting, compilation,
 Clippy, tests and executable evidence remain pending.
