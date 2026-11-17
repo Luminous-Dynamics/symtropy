@@ -834,6 +834,66 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn unrecorded_or_unknown_consent_never_becomes_a_contradicted_consent_finding() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE_JSON).unwrap();
+        for fixture in &corpus.fixtures {
+            let consent_is_uncertain = fixture.affected_parties.iter().any(|party| {
+                matches!(
+                    party.consent_status,
+                    ConsentStatus::NotRecorded | ConsentStatus::Unknown
+                )
+            });
+            if consent_is_uncertain {
+                for finding in fixture.expected_findings.iter().filter(|finding| {
+                    finding.premise_id == "consent_or_authority"
+                }) {
+                    assert_eq!(
+                        finding.status,
+                        FindingStatus::Undetermined,
+                        "fixture {} must not infer refusal or violation from an unrecorded/unknown consent state",
+                        fixture.fixture_id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn persistence_and_energy_input_do_not_substitute_for_output_or_severe_welfare_thresholds() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE_JSON).unwrap();
+        let tumour = corpus
+            .fixtures
+            .iter()
+            .find(|fixture| fixture.fixture_id == "LW-01-tumour-parasite")
+            .unwrap();
+        assert_eq!(
+            tumour.expected_findings.iter().find(|finding| finding.premise_id == "declared_output_floor").unwrap().status,
+            FindingStatus::Undetermined
+        );
+
+        let throughput = corpus
+            .fixtures
+            .iter()
+            .find(|fixture| fixture.fixture_id == "LW-03-throughput-welfare")
+            .unwrap();
+        let output_finding = throughput.expected_findings.iter()
+            .find(|finding| finding.premise_id == "declared_output_floor").unwrap();
+        assert_eq!(output_finding.status, FindingStatus::Supported);
+        assert_eq!(output_finding.evidence_refs, vec!["e4"]);
+        assert_eq!(
+            throughput.expected_findings.iter()
+                .find(|finding| finding.premise_id == "avoid_preventable_severe_harm").unwrap().status,
+            FindingStatus::Undetermined
+        );
+        assert!(throughput.evidence.iter().any(|evidence| {
+            evidence.evidence_id == "e1"
+                && evidence.dimension == EvidenceDimension::PhysicalFeasibility
+                && evidence.unit.as_deref() == Some("kWh")
+        }));
+    }
+
     #[test]
     fn all_v01_cases_remain_unqualified_and_non_authorizing() {
         let corpus = parse_corpus(fixture_value()).unwrap();
