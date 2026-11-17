@@ -201,6 +201,7 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
     let envelope = &input.envelope;
     if envelope.continuous_real_power_limit_w == 0
         || envelope.surge_real_power_limit_w < envelope.continuous_real_power_limit_w
+        || envelope.background_real_power_w > envelope.continuous_real_power_limit_w
         || envelope.background_real_power_w > envelope.surge_real_power_limit_w
     {
         violation(
@@ -730,6 +731,24 @@ mod tests {
         assert!(matches!(
             build_power_constrained_schedule(&input),
             Err(PowerScheduleErrorV1::NoScheduleFoundByHeuristics { .. })
+        ));
+    }
+
+    #[test]
+    fn background_load_above_continuous_limit_is_rejected() {
+        let mut envelope = standard_envelope();
+        envelope.background_real_power_w = 1_100;
+        let input = input(
+            vec![task("heater", 10, "heater")],
+            envelope,
+            vec![profile("heater", 10, 0)],
+        );
+        assert!(matches!(
+            build_power_constrained_schedule(&input),
+            Err(PowerScheduleErrorV1::InvalidInput(violations))
+                if violations.iter().any(|violation| {
+                    violation.code == PowerConstraintViolationCode::InvalidEnvelope
+                })
         ));
     }
 
