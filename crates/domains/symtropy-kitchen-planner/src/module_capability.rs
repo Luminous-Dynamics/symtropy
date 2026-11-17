@@ -468,11 +468,14 @@ pub fn validate_kitchen_module_capability(
         electrical
             .nominal_voltage_max_mv
             .is_some_and(|maximum| minimum > maximum)
-    }) || electrical.mains_frequency_min_millihz.is_some_and(|minimum| {
-        electrical
-            .mains_frequency_max_millihz
-            .is_some_and(|maximum| minimum > maximum)
-    }) {
+    }) || electrical
+        .mains_frequency_min_millihz
+        .is_some_and(|minimum| {
+            electrical
+                .mains_frequency_max_millihz
+                .is_some_and(|maximum| minimum > maximum)
+        })
+    {
         add_violation(
             &mut violations,
             ModuleCapabilityViolationCodeV1::InvalidElectricalRange,
@@ -497,14 +500,17 @@ pub fn validate_kitchen_module_capability(
             electrical
                 .peak_real_power_limit_w
                 .is_some_and(|peak| peak < continuous)
-        }) || electrical.peak_real_power_limit_w.is_some_and(|peak| {
-        electrical
-            .continuous_real_power_limit_w
-            .is_some_and(|continuous| peak > continuous)
-            && electrical
-                .maximum_surge_duration_ms
-                .is_none_or(|duration| duration == 0)
-    }) {
+        }) || electrical
+        .peak_real_power_limit_w
+        .is_some_and(|peak| {
+            electrical
+                .continuous_real_power_limit_w
+                .is_some_and(|continuous| peak > continuous)
+                && electrical
+                    .maximum_surge_duration_ms
+                    .is_none_or(|duration| duration == 0)
+        })
+    {
         add_violation(
             &mut violations,
             ModuleCapabilityViolationCodeV1::InvalidPowerEnvelope,
