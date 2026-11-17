@@ -537,7 +537,13 @@ impl SiteStateLedger {
                     .attempts
                     .get(attempt_id)
                     .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
-                validate_attempt_owner(attempt, package_sha256, entity_id, &event.actor_id)?;
+                validate_attempt_owner(
+                    attempt,
+                    package_sha256,
+                    entity_id,
+                    attempt_id,
+                    &event.actor_id,
+                )?;
                 if attempt.robot_disposition.is_some() {
                     return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
                 }
@@ -932,15 +938,18 @@ fn validate_attempt_owner(
     attempt: &ExecutionAttempt,
     package_sha256: &str,
     entity_id: &str,
+    attempt_id: &str,
     actor_id: &str,
 ) -> Result<(), SiteLedgerError> {
     if attempt.package_sha256 != package_sha256 || attempt.entity_id != entity_id {
         return Err(SiteLedgerError::AttemptContextMismatch(
-            attempt.entity_id.clone(),
+            attempt_id.to_owned(),
         ));
     }
     if attempt.robot_id != actor_id {
-        return Err(SiteLedgerError::AttemptActorMismatch(entity_id.to_owned()));
+        return Err(SiteLedgerError::AttemptActorMismatch(
+            attempt_id.to_owned(),
+        ));
     }
     Ok(())
 }
