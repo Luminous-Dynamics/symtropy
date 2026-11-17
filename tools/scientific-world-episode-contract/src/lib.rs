@@ -72,6 +72,8 @@ pub enum ContractError {
     DuplicateChannel,
     /// Action identities are duplicated.
     DuplicateAction,
+    /// An episode declares no observation channels.
+    EmptyObservationChannels,
     /// Observation identities are duplicated.
     DuplicateObservation,
     /// An observation refers to an undeclared channel.
@@ -98,6 +100,8 @@ pub enum ContractError {
     AttemptDenominatorMismatch,
     /// Attempt ordinals are not contiguous from zero.
     AttemptOrdinalGap,
+    /// Request timestamps regress relative to the declared attempt order.
+    PreviousAttemptTimeRegression,
     /// A logical effect was attempted again after an unknown outcome.
     RetryAfterUnknownOutcome,
     /// An in-progress attempt exists where a closed ledger was required.
@@ -131,12 +135,15 @@ pub fn validate_public_packet(packet: &PublicEpisodePacket) -> Result<(), Contra
     }
     validate_digest(&packet.contract_digest)?;
 
+    if packet.observation_channels.is_empty() {
+        return Err(ContractError::EmptyObservationChannels);
+    }
     let mut channels = BTreeSet::new();
     for channel in &packet.observation_channels {
         if !valid_identifier(channel) {
             return Err(ContractError::InvalidIdentifier);
         }
-        if !channels.insert(channel) {
+        if !channels.insert(channel.clone()) {
             return Err(ContractError::DuplicateChannel);
         }
     }
@@ -331,6 +338,7 @@ pub fn validate_attempt_ledger(
     ordered.sort_by_key(|attempt| attempt.ordinal);
 
     let mut unknown_effects = BTreeSet::new();
+    let mut previous_request_time = None;
     let mut summary = AttemptSummary {
         attempted: declared_attempt_count,
         ..AttemptSummary::default()
@@ -348,6 +356,10 @@ pub fn validate_attempt_ledger(
         if attempt.ordinal != expected_ordinal as u64 {
             return Err(ContractError::AttemptOrdinalGap);
         }
+        if previous_request_time.is_some_and(|previous| attempt.requested_at < previous) {
+            return Err(ContractError::PreviousAttemptTimeRegression);
+        }
+        previous_request_time = Some(attempt.requested_at);
 
         let expected_cost = action_costs
             .get(attempt.action_id.as_str())
