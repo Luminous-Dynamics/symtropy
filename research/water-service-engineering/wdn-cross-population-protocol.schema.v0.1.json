@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/wdn-cross-population-protocol.schema.v0.1.json",
+  "title": "WDN cross-population benchmark protocol v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "tracking_issue",
+    "parent_benchmark",
+    "status",
+    "no_pooled_leaderboard",
+    "claim_ceiling",
+    "global_rules",
+    "task_contract",
+    "baseline_ladder",
+    "populations",
+    "comparison_requirements",
+    "admission"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-cross-population-protocol-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-CROSSPOP-COMPARE-001"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "parent_benchmark": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "const": "metadata_only_no_data_admitted"
+    },
+    "no_pooled_leaderboard": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "global_rules": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "task_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "T1_detection",
+        "T2_localization",
+        "T3_characterization"
+      ],
+      "properties": {
+        "T1_detection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "definition",
+            "required_metrics",
+            "not_substitutable_by"
+          ],
+          "properties": {
+            "definition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_metrics": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "string"
+              }
+            },
+            "not_substitutable_by": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "T2_localization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "definition",
+            "required_metrics",
+            "not_substitutable_by"
+          ],
+          "properties": {
+            "definition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_metrics": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "string"
+              }
+            },
+            "not_substitutable_by": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "T3_characterization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "definition",
+            "required_metrics",
+            "not_substitutable_by"
+          ],
+          "properties": {
+            "definition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_metrics": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "string"
+              }
+            },
+            "not_substitutable_by": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "baseline_ladder": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "baseline_id",
+          "name",
+          "required_for",
+          "notes"
+        ],
+        "properties": {
+          "baseline_id": {
+            "type": "string",
+            "pattern": "^B[0-7]$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_for": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "T1",
+                "T2",
+                "T3"
+              ]
+            }
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "populations": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dataset_id",
+          "population_class",
+          "native_resolution",
+          "known_scale",
+          "label_granularity",
+          "allowed_tasks",
+          "split_policy",
+          "prohibited_claims",
+          "intake_status",
+          "files_acquired",
+          "archive_sha256",
+          "split_manifest"
+        ],
+        "properties": {
+          "dataset_id": {
+            "enum": [
+              "DITEC_WDN",
+              "LEAKDB",
+              "LEAKTESTBED_AGHASHASHI_2023",
+              "SLOVAK_UTILITY_SCADA_2026",
+              "BATTLEDIM_L_TOWN",
+              "NET3_47K_PAPER_CORPUS",
+              "PAMPLONA_DAS_2026",
+              "WDSEVENTDB"
+            ]
+          },
+          "population_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "native_resolution": {
+            "type": "string",
+            "minLength": 1
+          },
+          "known_scale": {
+            "type": "object",
+            "minProperties": 1
+          },
+          "label_granularity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "allowed_tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "split_policy": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prohibited_claims": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "intake_status": {
+            "enum": [
+              "catalogued_metadata_only",
+              "rights_pending_and_archive_not_acquired",
+              "rights_pending_and_archive_not_acquired",
+              "catalogued_metadata_only_file_level_rights_pending",
+              "paper_reference_only_artifact_recovery_blocked",
+              "request_only_raw_data_and_rights_not_admitted",
+              "catalogued_metadata_only_rights_need_primary_verification",
+              "catalogued_metadata_only_rights_and_files_pending"
+            ]
+          },
+          "files_acquired": {
+            "const": false
+          },
+          "archive_sha256": {
+            "type": "null"
+          },
+          "split_manifest": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "comparison_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "per_population_reporting",
+        "cross_population_pooled_metric_allowed",
+        "required_transfer_matrix",
+        "observability_report",
+        "T1_metrics",
+        "T2_metrics",
+        "T3_metrics",
+        "targets_not_achieved"
+      ],
+      "properties": {
+        "per_population_reporting": {
+          "const": true
+        },
+        "cross_population_pooled_metric_allowed": {
+          "const": false
+        },
+        "required_transfer_matrix": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "observability_report": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "T1_metrics": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "T2_metrics": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "T3_metrics": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "targets_not_achieved": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minProperties": 4
+        }
+      }
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_files_acquired",
+        "dataset_digests_created",
+        "split_manifests_created",
+        "model_performance_claimed"
+      ],
+      "properties": {
+        "dataset_files_acquired": {
+          "const": false
+        },
+        "dataset_digests_created": {
+          "const": false
+        },
+        "split_manifests_created": {
+          "const": false
+        },
+        "model_performance_claimed": {
+          "const": false
+        }
+      }
+    }
+  }
+}
