@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Water verified-intervention utility T1 oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "submission_id",
+    "arm_id",
+    "aggregate",
+    "scenarios",
+    "physical_qualification_status",
+    "statistical_inference_status",
+    "claim_eligibility"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "water-verified-intervention-utility-t1-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-VERIFIED-INTERVENTION-UTILITY-001"
+    },
+    "submission_id": {
+      "type": "string"
+    },
+    "arm_id": {
+      "type": "string"
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_count",
+        "leak_event_count",
+        "true_positive_count",
+        "false_positive_count",
+        "false_negative_count",
+        "abstention_count",
+        "false_safe_pipe_claim_count",
+        "localization_correct_count",
+        "inspection_confirmed_leak_count",
+        "false_dispatch_count",
+        "crew_hours",
+        "confirmed_leaks_per_crew_day",
+        "median_detection_delay_min",
+        "p95_detection_delay_min",
+        "median_confirmation_delay_min",
+        "p95_confirmation_delay_min",
+        "verified_lower_reduction_7d_m3_day",
+        "verified_lower_reduction_30d_m3_day",
+        "verified_lower_reduction_90d_m3_day"
+      ],
+      "properties": {
+        "scenario_count": {
+          "type": "integer"
+        },
+        "leak_event_count": {
+          "type": "integer"
+        },
+        "true_positive_count": {
+          "type": "integer"
+        },
+        "false_positive_count": {
+          "type": "integer"
+        },
+        "false_negative_count": {
+          "type": "integer"
+        },
+        "abstention_count": {
+          "type": "integer"
+        },
+        "false_safe_pipe_claim_count": {
+          "type": "integer"
+        },
+        "localization_correct_count": {
+          "type": "integer"
+        },
+        "inspection_confirmed_leak_count": {
+          "type": "integer"
+        },
+        "false_dispatch_count": {
+          "type": "integer"
+        },
+        "crew_hours": {
+          "type": "integer"
+        },
+        "confirmed_leaks_per_crew_day": {
+          "type": "number"
+        },
+        "median_detection_delay_min": {
+          "type": "number"
+        },
+        "p95_detection_delay_min": {
+          "type": "number"
+        },
+        "median_confirmation_delay_min": {
+          "type": "number"
+        },
+        "p95_confirmation_delay_min": {
+          "type": "number"
+        },
+        "verified_lower_reduction_7d_m3_day": {
+          "type": "integer"
+        },
+        "verified_lower_reduction_30d_m3_day": {
+          "type": "integer"
+        },
+        "verified_lower_reduction_90d_m3_day": {
+          "type": "integer"
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "scenario_id",
+          "true_positive",
+          "false_positive",
+          "false_negative",
+          "abstained",
+          "pipe_claim_eligible",
+          "false_safe_pipe_claim",
+          "localization_correct",
+          "inspection_confirmed",
+          "false_dispatch",
+          "repair_consistent",
+          "repair_verification"
+        ]
+      }
+    },
+    "physical_qualification_status": {
+      "const": "NotRun"
+    },
+    "statistical_inference_status": {
+      "const": "NotRun"
+    },
+    "claim_eligibility": {
+      "const": "NotEligible"
+    }
+  }
+}
