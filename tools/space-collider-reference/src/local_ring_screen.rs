@@ -476,7 +476,11 @@ mod tests {
         assert!(report.contains("\"derived_ringwide_effective_fill_fraction\":0.671099744"));
         assert!(report.contains("\"fill_sensitivity_cases\""));
         assert!(report.contains("\"fcc_hh_2025_updated_reference_comparator\""));
-        assert!(report.contains("\"power_comparison_status\":\"not_directly_compared_source_is_per_ring_screen_is_per_beam\""));
+        let power_convention_status = concat!(
+            "\"power_comparison_status\":",
+            "\"not_directly_compared_source_is_per_ring_screen_is_per_beam\""
+        );
+        assert!(report.contains(power_convention_status));
         assert!(report.contains("\"circumference_km\":100.000000"));
         assert!(
             report.contains("\"field_evidence_label\":\"hts_stretch_case_not_production_ready\"")
