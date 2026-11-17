@@ -678,6 +678,16 @@ pub fn assess_return_reserve(snapshot: &ReturnReserveSnapshot) -> ReserveAssessm
     };
     let conservative_return = estimated_return + snapshot.return_energy_uncertainty_j;
     let margin = remaining - conservative_return - reserve;
+    if !conservative_return.is_finite() || !reserve.is_finite() || !margin.is_finite() {
+        return ReserveAssessment {
+            disposition: ReserveDisposition::InvalidEvidence,
+            remaining_energy_j: None,
+            conservative_return_requirement_j: None,
+            required_reserve_j: None,
+            margin_j: None,
+            reason: Some("return reserve arithmetic overflowed".to_owned()),
+        };
+    }
     let disposition = if margin >= 0.0 {
         ReserveDisposition::Sufficient
     } else {
@@ -1031,6 +1041,19 @@ mod tests {
         snapshot.consumed_energy_j = 1100.0;
         let result = assess_return_reserve(&snapshot);
         assert_eq!(result.disposition, ReserveDisposition::InvalidEvidence);
+    }
+
+    #[test]
+    fn return_reserve_arithmetic_overflow_is_invalid_evidence() {
+        let mut snapshot = reserve_snapshot();
+        snapshot.estimated_return_energy_j = Some(f64::MAX);
+        snapshot.return_energy_uncertainty_j = f64::MAX;
+        snapshot.initial_energy_j = f64::MAX;
+        snapshot.consumed_energy_j = 0.0;
+        snapshot.required_reserve_fraction = 0.0;
+        let result = assess_return_reserve(&snapshot);
+        assert_eq!(result.disposition, ReserveDisposition::InvalidEvidence);
+        assert!(result.margin_j.is_none());
     }
 
     #[test]
