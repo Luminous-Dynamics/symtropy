@@ -172,7 +172,8 @@
             "source_reported_derived",
             "source_declared_parameter",
             "source_reported_model_fit",
-            "source_reported_announcement_claim"
+            "source_reported_announcement_claim",
+            "source_reported_simulation"
           ]
         }
       },
