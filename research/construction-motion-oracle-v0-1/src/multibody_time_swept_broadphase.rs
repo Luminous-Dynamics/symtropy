@@ -527,39 +527,48 @@ fn refine_time_swept_capsule_candidates(
         .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
 
     // The one-slab coarse SAP returns no candidate pairs for a sparse scene.
-    // Avoid allocating/building the slab cache when there is nothing to refine.
+    // Avoid even allocating the body × slab cache when there is nothing to refine.
+    if coarse.pairs.is_empty() {
+        return Ok(CandidateRefinementReport {
+            coarse_candidate_pairs: 0,
+            refinement_subdivision_count: subdivision_count,
+            body_slab_bounds_built: 0,
+            tested_pair_slabs: 0,
+            cached_bounds_fast_rejects: 0,
+            common_interval_rebuilds: 0,
+            pairs: Vec::new(),
+        });
+    }
     let mut cached_by_body = vec![vec![None; subdivision_count as usize]; bodies.len()];
     let mut body_slab_bounds_built = 0_u64;
-    if !coarse.pairs.is_empty() {
-        for (body_index, body) in bodies.iter().enumerate() {
-            for slab_index in 0..subdivision_count {
-                let slab_start_ms = slab_boundary(
-                    coarse.horizon_start_ms,
-                    horizon_duration,
-                    slab_index,
-                    subdivision_count,
-                )?;
-                let slab_end_ms = slab_boundary(
-                    coarse.horizon_start_ms,
-                    horizon_duration,
-                    slab_index + 1,
-                    subdivision_count,
-                )?;
-                let active_start_ms = slab_start_ms.max(body.motion.start_ms);
-                let active_end_ms = slab_end_ms.min(body.motion.end_ms);
-                if active_start_ms >= active_end_ms {
-                    continue;
-                }
-                let bounds = swept_bounds(&body.motion, active_start_ms, active_end_ms)?;
-                cached_by_body[body_index][slab_index as usize] = Some(CachedBodySlab {
-                    active_start_ms,
-                    active_end_ms,
-                    bounds,
-                });
-                body_slab_bounds_built = body_slab_bounds_built
-                    .checked_add(1)
-                    .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+    for (body_index, body) in bodies.iter().enumerate() {
+        for slab_index in 0..subdivision_count {
+            let slab_start_ms = slab_boundary(
+                coarse.horizon_start_ms,
+                horizon_duration,
+                slab_index,
+                subdivision_count,
+            )?;
+            let slab_end_ms = slab_boundary(
+                coarse.horizon_start_ms,
+                horizon_duration,
+                slab_index + 1,
+                subdivision_count,
+            )?;
+            let active_start_ms = slab_start_ms.max(body.motion.start_ms);
+            let active_end_ms = slab_end_ms.min(body.motion.end_ms);
+            if active_start_ms >= active_end_ms {
+                continue;
             }
+            let bounds = swept_bounds(&body.motion, active_start_ms, active_end_ms)?;
+            cached_by_body[body_index][slab_index as usize] = Some(CachedBodySlab {
+                active_start_ms,
+                active_end_ms,
+                bounds,
+            });
+            body_slab_bounds_built = body_slab_bounds_built
+                .checked_add(1)
+                .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
         }
     }
 
@@ -1226,6 +1235,15 @@ mod tests {
             assert!(
                 hierarchical.refinement.tested_pair_slabs
                     >= hierarchical.refinement.pairs.len() as u64
+            );
+            assert!(
+                hierarchical.refinement.body_slab_bounds_built
+                    <= (bodies.len() * subdivisions as usize) as u64
+            );
+            assert!(
+                hierarchical.refinement.cached_bounds_fast_rejects
+                    + hierarchical.refinement.common_interval_rebuilds
+                    <= hierarchical.refinement.tested_pair_slabs
             );
         }
     }
