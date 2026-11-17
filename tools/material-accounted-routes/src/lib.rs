@@ -13,7 +13,8 @@ pub const CASES: &str = include_str!("../fixtures/cases-v0.1.tsv");
 pub const RECEIPTS: &str = include_str!("../fixtures/receipts-v0.1.tsv");
 
 const CASE_HEADER: &str = "case_id\tmanifest_ref\troute_ref\tprocess_ref\tinput_lot_set_ref\tmaterial_state_ref\tfacility_profile_ref\tacceptance_profile_ref\toutput_ref\texpected_disposition";
-const RECEIPT_HEADER: &str = "case_id\tmanifest_ref\tgate\treceipt_ref\tsubject_ref\tscope_ref\tsource_digest\tstatus";
+const RECEIPT_HEADER: &str =
+    "case_id\tmanifest_ref\tgate\treceipt_ref\tsubject_ref\tscope_ref\tsource_digest\tstatus";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum Gate {
@@ -181,7 +182,9 @@ fn split_row(
         ));
     }
     if fields.iter().any(|field| field.trim() != *field) {
-        return Err(format!("{source}:{line_no}: leading/trailing whitespace is forbidden"));
+        return Err(format!(
+            "{source}:{line_no}: leading/trailing whitespace is forbidden"
+        ));
     }
     Ok(fields)
 }
@@ -354,7 +357,10 @@ fn evaluate_case(
     for receipt in receipts {
         by_gate.entry(receipt.gate).or_default().push(receipt);
         if !receipt_refs.insert(receipt.receipt_ref.as_str()) {
-            blocked.push(format!("receipt reference reused within case: {}", receipt.receipt_ref));
+            blocked.push(format!(
+                "receipt reference reused within case: {}",
+                receipt.receipt_ref
+            ));
         }
         if cross_case_duplicate_refs.contains(&receipt.receipt_ref) {
             blocked.push(format!(
@@ -442,12 +448,18 @@ pub fn evaluate(
     let mut cases_by_id: BTreeMap<&str, &CaseManifest> = BTreeMap::new();
     for case in cases {
         if cases_by_id.insert(case.case_id.as_str(), case).is_some() {
-            return Err(format!("duplicate case_id in evaluator input: {}", case.case_id));
+            return Err(format!(
+                "duplicate case_id in evaluator input: {}",
+                case.case_id
+            ));
         }
     }
     for receipt in receipts {
         if !cases_by_id.contains_key(receipt.case_id.as_str()) {
-            return Err(format!("orphan receipt for unknown case: {}", receipt.case_id));
+            return Err(format!(
+                "orphan receipt for unknown case: {}",
+                receipt.case_id
+            ));
         }
     }
 
@@ -463,14 +475,15 @@ pub fn evaluate(
     }
     let cross_case_duplicate_refs: BTreeSet<String> = receipt_case_ids
         .into_iter()
-        .filter_map(|(receipt_ref, case_ids)| {
-            (case_ids.len() > 1).then(|| receipt_ref.to_owned())
-        })
+        .filter_map(|(receipt_ref, case_ids)| (case_ids.len() > 1).then(|| receipt_ref.to_owned()))
         .collect();
 
     let mut grouped: BTreeMap<&str, Vec<&Receipt>> = BTreeMap::new();
     for receipt in receipts {
-        grouped.entry(receipt.case_id.as_str()).or_default().push(receipt);
+        grouped
+            .entry(receipt.case_id.as_str())
+            .or_default()
+            .push(receipt);
     }
 
     Ok(cases
@@ -529,10 +542,25 @@ mod tests {
     fn frozen_corpus_matches_all_expected_dispositions() {
         let report = evaluate_corpus(CASES, RECEIPTS).expect("frozen corpus parses");
         assert!(report.len() >= 20);
-        assert!(report.iter().all(|case| case.expected_matches), "{report:#?}");
-        assert!(report.iter().any(|case| case.actual == Disposition::AcceptedSynthetic));
-        assert!(report.iter().any(|case| case.actual == Disposition::Blocked));
-        assert!(report.iter().any(|case| case.actual == Disposition::Indeterminate));
+        assert!(
+            report.iter().all(|case| case.expected_matches),
+            "{report:#?}"
+        );
+        assert!(
+            report
+                .iter()
+                .any(|case| case.actual == Disposition::AcceptedSynthetic)
+        );
+        assert!(
+            report
+                .iter()
+                .any(|case| case.actual == Disposition::Blocked)
+        );
+        assert!(
+            report
+                .iter()
+                .any(|case| case.actual == Disposition::Indeterminate)
+        );
     }
 
     #[test]
@@ -542,7 +570,10 @@ mod tests {
         receipts.retain(|row| {
             !(row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance)
         });
-        let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "baseline_exact_closed")
+            .unwrap();
         let own: Vec<_> = receipts
             .iter()
             .filter(|row| row.case_id == case.case_id)
@@ -559,12 +590,13 @@ mod tests {
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         let row = receipts
             .iter_mut()
-            .find(|row| {
-                row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance
-            })
+            .find(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance)
             .unwrap();
         row.subject_ref = "process:similar-looking-name".into();
-        let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "baseline_exact_closed")
+            .unwrap();
         let own: Vec<_> = receipts
             .iter()
             .filter(|row| row.case_id == case.case_id)
@@ -582,18 +614,17 @@ mod tests {
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         let index_a = receipts
             .iter()
-            .position(|row| {
-                row.case_id == "baseline_exact_closed" && row.gate == Gate::Inspection
-            })
+            .position(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Inspection)
             .unwrap();
         let index_b = receipts
             .iter()
-            .position(|row| {
-                row.case_id == "baseline_exact_closed" && row.gate == Gate::Provenance
-            })
+            .position(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Provenance)
             .unwrap();
         receipts[index_b].receipt_ref = receipts[index_a].receipt_ref.clone();
-        let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "baseline_exact_closed")
+            .unwrap();
         let own: Vec<_> = receipts
             .iter()
             .filter(|row| row.case_id == case.case_id)
@@ -609,7 +640,10 @@ mod tests {
     fn malformed_digest_is_blocked_but_missing_digest_is_indeterminate() {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
-        let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "baseline_exact_closed")
+            .unwrap();
 
         let row = receipts
             .iter_mut()
@@ -621,7 +655,10 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
+        assert_eq!(
+            evaluate_case(case, &own, &BTreeSet::new()).actual,
+            Disposition::Blocked
+        );
 
         let row = receipts
             .iter_mut()
@@ -639,15 +676,16 @@ mod tests {
         );
     }
 
-
     #[test]
     fn duplicate_case_identity_is_rejected_by_public_evaluator() {
         let mut cases = parse_cases(CASES).unwrap();
         cases.push(cases[0].clone());
         let receipts = parse_receipts(RECEIPTS).unwrap();
-        assert!(evaluate(&cases, &receipts)
-            .unwrap_err()
-            .contains("duplicate case_id"));
+        assert!(
+            evaluate(&cases, &receipts)
+                .unwrap_err()
+                .contains("duplicate case_id")
+        );
     }
 
     #[test]
@@ -657,7 +695,6 @@ mod tests {
         receipts[0].case_id = "case:not-in-manifest".into();
         assert!(evaluate(&cases, &receipts).is_err());
     }
-
 
     #[test]
     fn receipt_reference_reuse_across_cases_blocks_both_cases() {
@@ -674,12 +711,13 @@ mod tests {
             .unwrap();
         assert_eq!(original.actual, Disposition::Blocked);
         assert_eq!(reused.actual, Disposition::Blocked);
-        assert!(original
-            .blocked_reasons
-            .iter()
-            .any(|reason| reason.contains("reused across cases")));
+        assert!(
+            original
+                .blocked_reasons
+                .iter()
+                .any(|reason| reason.contains("reused across cases"))
+        );
     }
-
 
     #[test]
     fn receipt_row_order_does_not_change_evaluation() {
@@ -697,17 +735,21 @@ mod tests {
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         let row = receipts
             .iter_mut()
-            .find(|row| {
-                row.case_id == "baseline_exact_closed" && row.gate == Gate::Utility
-            })
+            .find(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Utility)
             .unwrap();
         row.status = "GREEN_ENOUGH".into();
-        let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
+        let case = cases
+            .iter()
+            .find(|case| case.case_id == "baseline_exact_closed")
+            .unwrap();
         let own: Vec<_> = receipts
             .iter()
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
+        assert_eq!(
+            evaluate_case(case, &own, &BTreeSet::new()).actual,
+            Disposition::Blocked
+        );
     }
 }
