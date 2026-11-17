@@ -132,6 +132,14 @@ impl EvaluationDisposition {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CostBreakdown {
+    pub category: String,
+    pub evidence_class: String,
+    pub amount_low_minor: u64,
+    pub amount_high_minor: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EconomicsEvaluation {
     pub case_id: String,
     pub disposition: EvaluationDisposition,
@@ -140,6 +148,9 @@ pub struct EconomicsEvaluation {
     pub units_started: usize,
     pub first_pass_released: usize,
     pub final_released: usize,
+    /// Component totals retain their evidence class; an estimate is never
+    /// silently described as paid or measured cost.
+    pub cost_breakdown: Vec<CostBreakdown>,
     /// Exact minor-unit numerator and unique released-output denominator.
     /// No floating-point unit-cost value is produced.
     pub cost_per_released_low: Option<(u64, usize)>,
@@ -478,6 +489,7 @@ pub fn evaluate(
     }
 
     let mut output_ids = BTreeSet::new();
+    let mut release_refs = BTreeSet::new();
     for output in outputs {
         if !cases_by_id.contains_key(output.case_id.as_str()) {
             return Err(format!("orphan output for unknown case: {}", output.case_id));
@@ -491,6 +503,9 @@ pub fn evaluate(
         if output.final_disposition.is_released() {
             if !valid_ref(&output.release_ref) {
                 return Err(format!("released output {} lacks a valid release reference", output.output_id));
+            }
+            if !release_refs.insert(output.release_ref.as_str()) {
+                return Err(format!("release reference reused across outputs: {}", output.release_ref));
             }
         } else if output.release_ref != "-" {
             return Err(format!("non-released output {} carries a release reference", output.output_id));
@@ -526,6 +541,7 @@ pub fn evaluate(
             units_started,
             first_pass_released,
             final_released,
+            cost_breakdown: Vec::new(),
             cost_per_released_low: None,
             cost_per_released_high: None,
         };
@@ -556,14 +572,39 @@ pub fn evaluate(
 
         let mut total_low = 0_u64;
         let mut total_high = 0_u64;
+        let mut breakdown: BTreeMap<(String, String), (u64, u64)> = BTreeMap::new();
         for item in &case_costs {
+            let low = item.amount_minor_low.expect("known lower bound");
+            let high = item.amount_minor_high.expect("known upper bound");
             total_low = total_low
-                .checked_add(item.amount_minor_low.expect("known lower bound"))
+                .checked_add(low)
                 .ok_or_else(|| format!("case {}: lower cost total overflow", case.case_id))?;
             total_high = total_high
-                .checked_add(item.amount_minor_high.expect("known upper bound"))
+                .checked_add(high)
                 .ok_or_else(|| format!("case {}: upper cost total overflow", case.case_id))?;
+            let component = breakdown
+                .entry((item.category.clone(), item.evidence_class.clone()))
+                .or_insert((0, 0));
+            component.0 = component
+                .0
+                .checked_add(low)
+                .ok_or_else(|| format!("case {}: component lower total overflow", case.case_id))?;
+            component.1 = component
+                .1
+                .checked_add(high)
+                .ok_or_else(|| format!("case {}: component upper total overflow", case.case_id))?;
         }
+        result.cost_breakdown = breakdown
+            .into_iter()
+            .map(|((category, evidence_class), (amount_low_minor, amount_high_minor))| {
+                CostBreakdown {
+                    category,
+                    evidence_class,
+                    amount_low_minor,
+                    amount_high_minor,
+                }
+            })
+            .collect();
         result.total_cost_low_minor = Some(total_low);
         result.total_cost_high_minor = Some(total_high);
 
@@ -629,6 +670,25 @@ pub fn evaluate_corpus(
     let results = evaluate(&cases, &costs, &outputs)?;
     verify_expected(&results, &expected)?;
     Ok(results)
+}
+
+pub fn render_cost_breakdown(results: &[EconomicsEvaluation]) -> String {
+    let mut report = String::from(
+        "case_id\\tcategory\\tevidence_class\\tamount_low_minor\\tamount_high_minor\\n",
+    );
+    for row in results {
+        for item in &row.cost_breakdown {
+            report.push_str(&format!(
+                "{}\\t{}\\t{}\\t{}\\t{}\\n",
+                row.case_id,
+                item.category,
+                item.evidence_class,
+                item.amount_low_minor,
+                item.amount_high_minor
+            ));
+        }
+    }
+    report
 }
 
 pub fn render_report(results: &[EconomicsEvaluation]) -> String {
@@ -851,6 +911,15 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_release_reference_is_rejected_across_outputs() {
+        let (cases, costs, mut outputs) = parsed();
+        outputs[1].release_ref = outputs[0].release_ref.clone();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("release reference reused across outputs"));
+    }
+
+    #[test]
     fn unreleased_output_cannot_carry_release_reference() {
         let (cases, costs, mut outputs) = parsed();
         outputs.iter_mut().find(|row| row.final_disposition == FinalDisposition::Scrap).unwrap().release_ref =
@@ -882,8 +951,6 @@ mod tests {
     #[test]
     fn integer_overflow_is_rejected() {
         let (cases, mut costs, outputs) = parsed();
-        let case_index = cases.iter().position(|case| case.case_id == "baseline_three_first_pass").unwrap();
-        let _ = case_index;
         costs.retain(|item| item.case_id != "baseline_three_first_pass");
         costs.push(CostItem {
             case_id: "baseline_three_first_pass".into(),
