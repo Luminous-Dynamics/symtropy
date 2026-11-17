@@ -205,8 +205,8 @@ jobs:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PAIRED_BLOCK_FLOOR_FAIL")
           if any(case["physical_qualification_status"] != "NotRun" or case["statistical_inference_status"] != "NotRun" or case["claim_eligibility"] != "NotEligible" for case in t1_oracle["cases"]):
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_GUARD_BREACH")
-          if any(case["probability_interpretation"] if "probability_interpretation" in case else False for case in t1_oracle["cases"]):
-              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PROBABILITY_CLAIM_BREACH")
+          if any(case["energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_COVERAGE_BREACH")
           print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 13 cases; six paired blocks; synthetic-only; no physical or statistical claim")
           PY
       - name: Require an exact successful evaluator receipt
