@@ -150,6 +150,19 @@ jobs:
           test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/g4bl/cooling.g4bl)" = "dc0cb955ef657cdc1862b4b5c30e2fe415d4e377"
           test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/g4bl/g4bl.log)" = "a69acc28ea77d9055685c05936615460f87059d9"
 
+      - name: Fetch exact BDSIM muoncooler implementation source
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bdsim_commit="d18134084b3960ba07bea81a7e2772114062f8b3"
+          git init upstream-bdsim
+          git -C upstream-bdsim remote add origin https://github.com/bdsim-collaboration/bdsim.git
+          git -C upstream-bdsim fetch --depth=1 origin "$bdsim_commit"
+          git -C upstream-bdsim checkout --detach FETCH_HEAD
+          test "$(git -C upstream-bdsim rev-parse HEAD)" = "$bdsim_commit"
+          test "$(git -C upstream-bdsim rev-parse HEAD:examples/muoncooling/muoncooler.gmad)" = "a71dbf70605d3dbed9b27fab43436a77a8171d6d"
+          test "$(wc -c < upstream-bdsim/examples/muoncooling/muoncooler.gmad | tr -d ' ')" = "2489"
+
       - name: Audit pinned native BDSIM userfile
         if: runner.os == 'Linux'
         shell: bash
@@ -169,6 +182,9 @@ jobs:
           jq -e '.native_distribution_summary.native_rms_covariance_determinants.horizontal_x_xp.value > 0.0992 and .native_distribution_summary.native_rms_covariance_determinants.horizontal_x_xp.value < 0.0993 and .native_distribution_summary.native_rms_covariance_determinants.vertical_y_yp.value > 0.1005 and .native_distribution_summary.native_rms_covariance_determinants.vertical_y_yp.value < 0.1007' wg4-cooling-demonstrator-audit.json >/dev/null
           jq -e '.model_context.bdsim_lattice.absorber_count == 0 and .model_context.bdsim_lattice.rf_cavity_count == 0 and .model_context.bdsim_lattice.ionization_cooling_claim_admissible == false and .model_context.g4bl_baseline.equivalent_to_bdsim_model == false' wg4-cooling-demonstrator-audit.json >/dev/null
           jq -e '.model_context.g4bl_run_log.decay_process_disabled == true and .model_context.g4bl_run_log.muon_survival_status == "not_evaluated" and .claim_status.muon_survival_qualification == "not_evaluated" and .claim_status.normalized_emittance_emitted == false' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.bdsim_muoncooler_implementation.commit == "d18134084b3960ba07bea81a7e2772114062f8b3" and .model_context.bdsim_muoncooler_implementation.git_blob_sha1 == "a71dbf70605d3dbed9b27fab43436a77a8171d6d" and .model_context.bdsim_muoncooler_implementation.declared_configuration.absorbers == 2 and .model_context.bdsim_muoncooler_implementation.declared_configuration.rf_cavities == 12 and .model_context.bdsim_muoncooler_implementation.equivalence_to_wg4_102_coil_model == false' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.published_bdsim_references.mu_col_d4_1.channel_length_m == 80 and .model_context.published_bdsim_references.ipac26_mop1048.channel_length_m == 100 and .model_context.published_bdsim_references.ipac26_mop1048.six_d_emittance_reduction_factor_approx == 2.3 and .model_context.published_bdsim_references.ipac26_mop1048.transmission_fraction_approx == 0.93 and .model_context.published_bdsim_references.ipac26_mop1048.muon_decay_enabled == false and .model_context.published_bdsim_references.ipac26_mop1048.input_asset_identity_to_pinned_lowemittancebeam_dat == "not_verified"' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.benchmark_alignment.cross_code_equivalence == "not_established" and .claim_status.ionization_cooling_qualification == "not_evaluated" and .claim_status.rf_acceleration_qualification == "not_evaluated"' wg4-cooling-demonstrator-audit.json >/dev/null
 
       - name: Retain lockfile and validation receipts
         if: always()
