@@ -548,8 +548,9 @@ mod tests {
 
     #[test]
     fn finite_angle_turn_matches_chord_length_formula_not_small_angle_surrogate() {
-        let result = evaluate_scenario(&scenario("NEAR_REVERSAL_179")).expect("near-reversal");
-        let ports = &scenario("NEAR_REVERSAL_179").ports;
+        let near_reversal = scenario("NEAR_REVERSAL_179");
+        let result = evaluate_scenario(&near_reversal).expect("near-reversal");
+        let ports = &near_reversal.ports;
         let inlet = ports.iter().find(|p| p.direction == FlowDirection::Inflow).unwrap();
         let outlet = ports.iter().find(|p| p.direction == FlowDirection::Outflow).unwrap();
         let speed = inlet.velocity_inertial_m_s.norm();
