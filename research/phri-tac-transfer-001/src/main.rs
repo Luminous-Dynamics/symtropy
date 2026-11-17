@@ -314,6 +314,52 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::adaptive_readout::run_synthetic_readout_example(
+                20261117,
+            ) {
+                Ok(example) => {
+                    println!("adaptive_readout_example=synthetic_1024_taxel_v0_1");
+                    match serde_json::to_string(&example) {
+                        Ok(scorecard_json) => {
+                            println!("adaptive_readout_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("adaptive_readout_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    for score in &example.observable_event_scores {
+                        println!(
+                            "adaptive_readout_case=predicted_event policy={:?} reads={} unknown={} observed_fraction={:.4} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={} speedup_vs_full={:?}",
+                            score.policy,
+                            score.selected_taxel_count,
+                            score.unknown_taxel_count,
+                            score.observed_taxel_fraction,
+                            score.active_contact_recall,
+                            score.urgent_event_recall,
+                            score.estimated_total_latency_ns,
+                            score.estimated_total_energy_nj,
+                            score.speedup_vs_full_raster,
+                        );
+                    }
+                    for score in &example.off_prediction_region_event_scores {
+                        println!(
+                            "adaptive_readout_case=off_prediction_event policy={:?} reads={} unknown={} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={}",
+                            score.policy,
+                            score.selected_taxel_count,
+                            score.unknown_taxel_count,
+                            score.active_contact_recall,
+                            score.urgent_event_recall,
+                            score.estimated_total_latency_ns,
+                            score.estimated_total_energy_nj,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("adaptive_readout_example=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
