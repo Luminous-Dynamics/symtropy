@@ -53,7 +53,7 @@ fn main() {
 fn run_benchmark() -> Result<(), Box<dyn Error>> {
     println!("RUNNER\tprotocol=1\tcandidate=last-observation-baseline\ttruth=parent-only");
     println!(
-        "BOUNDARY\tchild_process=true\tenvironment=scrubbed\tfilesystem_sandbox=false\tnetwork_sandbox=false"
+        "BOUNDARY\tchild_process=true\tenvironment=scrubbed\tscenario_labels=parent_only\tfilesystem_sandbox=false\tnetwork_sandbox=false"
     );
 
     let mut candidate_processes = 0_usize;
@@ -82,7 +82,7 @@ fn run_benchmark() -> Result<(), Box<dyn Error>> {
 }
 
 fn encode_estimator_view(view: &EstimatorView) -> String {
-    let mut output = format!("{WIRE_MAGIC}\t{}\n", view.scenario_id.as_str());
+    let mut output = format!("{WIRE_MAGIC}\n");
     for event in &view.observations {
         output.push_str(&encode_event(event));
     }
@@ -401,15 +401,8 @@ fn candidate_main() -> io::Result<()> {
     let header = lines
         .next()
         .ok_or_else(|| invalid_data("missing estimator wire header"))??;
-    let header_fields: Vec<&str> = header.split('\t').collect();
-    if header_fields.len() != 2 || header_fields[0] != WIRE_MAGIC {
+    if header != WIRE_MAGIC {
         return Err(invalid_data("unsupported estimator wire version"));
-    }
-    if !ScenarioId::ALL
-        .iter()
-        .any(|scenario| scenario.as_str() == header_fields[1])
-    {
-        return Err(invalid_data("unknown scenario identity"));
     }
 
     let stdout = io::stdout();
@@ -532,4 +525,19 @@ fn format_metric(value: Option<f64>) -> String {
 
 fn invalid_data(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn estimator_wire_does_not_disclose_the_scenario_label() {
+        let generated = generate_scenario(ScenarioId::IndistinguishableWorlds, BASE_SEED);
+        let payload = encode_estimator_view(&generated.estimator_view);
+
+        assert_eq!(payload.lines().next(), Some(WIRE_MAGIC));
+        assert!(!payload.contains(ScenarioId::IndistinguishableWorlds.as_str()));
+    }
 }
