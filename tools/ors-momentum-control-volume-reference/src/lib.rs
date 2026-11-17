@@ -36,14 +36,6 @@ impl Vector3 {
         Self { x, y, z }
     }
 
-    pub fn add(self, other: Self) -> Self {
-        Self::new(self.x + other.x, self.y + other.y, self.z + other.z)
-    }
-
-    pub fn sub(self, other: Self) -> Self {
-        Self::new(self.x - other.x, self.y - other.y, self.z - other.z)
-    }
-
     pub fn scale(self, scalar: f64) -> Self {
         Self::new(self.x * scalar, self.y * scalar, self.z * scalar)
     }
@@ -62,6 +54,22 @@ impl Vector3 {
 
     pub fn max_abs_component(self) -> f64 {
         self.x.abs().max(self.y.abs()).max(self.z.abs())
+    }
+}
+
+impl std::ops::Add for Vector3 {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self::Output {
+        Self::new(self.x + other.x, self.y + other.y, self.z + other.z)
+    }
+}
+
+impl std::ops::Sub for Vector3 {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self::new(self.x - other.x, self.y - other.y, self.z - other.z)
     }
 }
 
@@ -372,7 +380,7 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
             }
         };
         advective_momentum_flux_n =
-            advective_momentum_flux_n.add(port.velocity_inertial_m_s.scale(signed_rate));
+            advective_momentum_flux_n + port.velocity_inertial_m_s.scale(signed_rate);
     }
 
     let mass_balance_residual_kg_s =
@@ -396,13 +404,11 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         ));
     }
 
-    let required_external_resultant_n = scenario
-        .momentum_accumulation_n
-        .add(advective_momentum_flux_n);
+    let required_external_resultant_n = scenario.momentum_accumulation_n + advective_momentum_flux_n;
     let support_on_stream_force_n =
-        required_external_resultant_n.sub(scenario.other_external_force_n);
+        required_external_resultant_n - scenario.other_external_force_n;
     let stream_on_support_reaction_n = support_on_stream_force_n.scale(-1.0);
-    let reaction_closure_residual_n = support_on_stream_force_n.add(stream_on_support_reaction_n);
+    let reaction_closure_residual_n = support_on_stream_force_n + stream_on_support_reaction_n;
 
     let derived = [
         advective_momentum_flux_n,
@@ -758,9 +764,8 @@ mod tests {
             frame_id: "BOOSTED_INERTIAL".to_owned(),
             epoch_s: original.epoch_s,
             mass_accumulation_kg_s: original.mass_accumulation_kg_s,
-            momentum_accumulation_n: original
-                .momentum_accumulation_n
-                .sub(boost.scale(original.mass_accumulation_kg_s)),
+            momentum_accumulation_n: original.momentum_accumulation_n
+                - boost.scale(original.mass_accumulation_kg_s),
             other_external_force_n: original.other_external_force_n,
             ports: original
                 .ports
@@ -769,7 +774,7 @@ mod tests {
                     port_id: port.port_id.clone(),
                     direction: port.direction,
                     mass_flow_kg_s: port.mass_flow_kg_s,
-                    velocity_inertial_m_s: port.velocity_inertial_m_s.sub(boost),
+                    velocity_inertial_m_s: port.velocity_inertial_m_s - boost,
                 })
                 .collect(),
         };
