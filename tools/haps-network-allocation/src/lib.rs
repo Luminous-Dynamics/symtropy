@@ -652,9 +652,95 @@ mod tests {
 
     const TRAFFIC_TRACE: &str =
         include_str!("../../../docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json");
+    const FULL_ALLOCATION_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_disaster_30day_allocation_v1.json"
+    );
+    const DYNAMIC_HOLDOUT_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_15day_holdout_dynamic_allocation_v1.json"
+    );
+    const STATIC_HOLDOUT_CASE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_15day_holdout_static_allocation_v1.json"
+    );
 
     fn fixture_trace() -> TrafficTrace {
         parse_trace_json(TRAFFIC_TRACE.as_bytes()).expect("traffic fixture parses and validates")
+    }
+
+    fn assert_matches_case(report: &AllocationReport, case_json: &str) {
+        let case: Value = serde_json::from_str(case_json).expect("allocation case JSON parses");
+        let expected = &case["expected_oracle"];
+        let close = |actual: f64, path: &str| {
+            let expected_value = expected[path]
+                .as_f64()
+                .unwrap_or_else(|| panic!("expected_oracle.{path} must be numeric"));
+            assert!(
+                (actual - expected_value).abs() < 1.0e-9,
+                "expected_oracle.{path}: actual {actual}, expected {expected_value}"
+            );
+        };
+
+        close(
+            report.totals.critical_excess_offered_mbps_intervals,
+            "total_critical_excess_offered_mbps_intervals",
+        );
+        close(
+            report.totals.critical_excess_served_mbps_intervals,
+            "total_critical_excess_served_mbps_intervals",
+        );
+        close(
+            report.totals.critical_excess_unserved_mbps_intervals,
+            "total_critical_excess_unserved_mbps_intervals",
+        );
+        close(
+            report.totals.critical_excess_offload_fraction,
+            "critical_excess_offload_fraction",
+        );
+        close(
+            report.totals.beam_utilization_fraction,
+            "beam_utilization_fraction",
+        );
+
+        let expected_intervals = expected["intervals"]
+            .as_array()
+            .expect("expected_oracle.intervals must be an array");
+        assert_eq!(report.intervals.len(), expected_intervals.len());
+        for (actual, expected_interval) in report.intervals.iter().zip(expected_intervals) {
+            let expected_offset = expected_interval["offset_s"]
+                .as_f64()
+                .expect("expected offset_s must be numeric");
+            assert!((actual.offset_s - expected_offset).abs() < 1.0e-9);
+
+            let mut actual_ids = actual.selected_cell_ids.clone();
+            actual_ids.sort();
+            let mut expected_ids: Vec<String> = expected_interval["selected_cell_ids"]
+                .as_array()
+                .expect("selected_cell_ids must be an array")
+                .iter()
+                .map(|value| value.as_str().expect("cell ID must be a string").to_owned())
+                .collect();
+            expected_ids.sort();
+            assert_eq!(actual_ids, expected_ids);
+
+            for (actual_value, key) in [
+                (
+                    actual.critical_excess_offered_mbps,
+                    "critical_excess_offered_mbps",
+                ),
+                (
+                    actual.critical_excess_served_mbps,
+                    "critical_excess_served_mbps",
+                ),
+                (
+                    actual.critical_excess_unserved_mbps,
+                    "critical_excess_unserved_mbps",
+                ),
+            ] {
+                let expected_value = expected_interval[key]
+                    .as_f64()
+                    .expect("interval oracle value must be numeric");
+                assert!((actual_value - expected_value).abs() < 1.0e-9);
+            }
+        }
     }
 
     #[test]
@@ -670,11 +756,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(report.totals.critical_excess_offered_mbps_intervals, 1018.0);
-        assert_eq!(report.totals.critical_excess_served_mbps_intervals, 548.0);
-        assert_eq!(report.totals.critical_excess_unserved_mbps_intervals, 470.0);
-        assert!((report.totals.critical_excess_offload_fraction - 548.0 / 1018.0).abs() < 1e-12);
-        assert!((report.totals.beam_utilization_fraction - 548.0 / 600.0).abs() < 1e-12);
+        assert_matches_case(&report, FULL_ALLOCATION_CASE);
     }
 
     #[test]
@@ -690,9 +772,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(report.totals.critical_excess_offered_mbps_intervals, 503.0);
-        assert_eq!(report.totals.critical_excess_served_mbps_intervals, 274.0);
-        assert_eq!(report.totals.critical_excess_unserved_mbps_intervals, 229.0);
+        assert_matches_case(&report, DYNAMIC_HOLDOUT_CASE);
     }
 
     #[test]
@@ -710,9 +790,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(report.totals.critical_excess_offered_mbps_intervals, 503.0);
-        assert_eq!(report.totals.critical_excess_served_mbps_intervals, 234.0);
-        assert_eq!(report.totals.critical_excess_unserved_mbps_intervals, 269.0);
+        assert_matches_case(&report, STATIC_HOLDOUT_CASE);
     }
 
     #[test]
