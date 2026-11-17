@@ -246,6 +246,20 @@
       "forcing": "selected_plant_fungus_system_with_intact_severed_no_fungus_and_diffusion_or_microbe_controls",
       "purpose": "test_only_the_resource_or_water_pathway_supported_by_admitted_measurements",
       "holdout": true
+    },
+    {
+      "id": "S8",
+      "name": "transient_hydraulic_storage",
+      "forcing": "short_soil_supply_and_atmospheric_demand_pulses_with_declared_lumped_capacitance",
+      "purpose": "evaluate_storage_buffering_and_transient_leaf_potential_response",
+      "holdout": true
+    },
+    {
+      "id": "S9",
+      "name": "time_step_and_sampling_refinement",
+      "forcing": "same_initial_state_and_forcing_integrated_at_multiple_time_steps_and_observation_cadences",
+      "purpose": "verify_numerical_convergence_and_observation_sampling_invariance_within_declared_tolerance",
+      "holdout": true
     }
   ],
   "observation_channels": [
@@ -410,10 +424,11 @@
         "empirical_vpd_response",
         "constant_conductance",
         "uncoupled_carbon_demand",
-        "two_resistance_linear_stomatal_closure_null"
+        "two_resistance_linear_stomatal_closure_null",
+        "one_compartment_backward_euler_hydraulic_capacitance_null"
       ],
       "role": "simple_negative_and_reference_baselines",
-      "note": "Internal analytical null reference; no biological calibration or source-paper reproduction is claimed."
+      "note": "The linear stomatal and one-compartment capacitance references are transparent internal null models; no biological calibration or source-paper reproduction is claimed."
     },
     {
       "id": "fast_signal_models",
@@ -464,7 +479,11 @@
     "out_of_domain_detection_and_abstention_quality",
     "causal_mechanism_discrimination_accuracy",
     "expected_information_gain_per_measurement_cost",
-    "runtime_peak_memory_and_energy_when_measured"
+    "runtime_peak_memory_and_energy_when_measured",
+    "plant_hydraulic_storage_change_and_cumulative_water_balance_residual",
+    "transient_leaf_water_potential_pulse_response_and_recovery",
+    "time_step_refinement_error_at_matched_observation_times",
+    "history_dependence_from_lumped_water_storage"
   ],
   "fair_comparison_rules": [
     "freeze source release code commit data checksum model configuration and parameter units",
@@ -474,7 +493,9 @@
     "compare models at matched predictive error and uncertainty coverage rather than equal time step count",
     "report parameter identifiability and confounding between soil supply and atmospheric demand",
     "include no-path and matched-control cases to measure false causal attribution",
-    "report each process scale and worst stratum separately; do not hide failure in pooled averages"
+    "report each process scale and worst stratum separately; do not hide failure in pooled averages",
+    "report capacitance and time-step values with units; distinguish numerical storage memory from biological acclimation or long-term stress memory",
+    "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting"
   ],
   "preregistration_receipt": [
     "model_and_source_revision",
