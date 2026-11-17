@@ -37,6 +37,16 @@ The published 2017 specification treats aerial-drone whole-array thermography as
 
 A module may be geometrically covered but radiometrically ineligible. A module with eligible radiometry but uncertain array registration is not qualified. The report never labels a module healthy, faulty, safe, accepted or in need of maintenance.
 
+## P2 camera-constrained flight envelope
+
+The camera envelope helper takes RGB and radiometric-IR horizontal/vertical field of view, pixel dimensions, maximum GSD and uncertainty, exposure/detector integration time, altitude bounds, maximum blur and speed uncertainty. It computes:
+- the maximum altitude that satisfies both cameras' horizontal and vertical GSD bounds;
+- the common RGB/IR footprint at the selected altitude;
+- the blur-limited speed for each modality;
+- the common commanded speed ceiling after subtracting speed uncertainty.
+
+The conservative GSD bound is nominal GSD plus its uncertainty. The motion-smear proxy uses the smaller axis GSD after subtracting GSD uncertainty and multiplies the speed upper bound by exposure/integration time. This is a first-order translation-only envelope; it omits rotation, gimbal motion, rolling shutter, vibration, propwash, terrain/array-plane relief and camera-specific image processing. It is not a flight controller or operational flight authorization.
+
 ## P1 raster route baseline
 
 The library includes a deterministic boustrophedon/lawnmower route generator. It derives the array-plane bounding rectangle from the exact module roster, computes along-lane and cross-lane waypoint spacing from the conservative camera footprint and requested overlap fractions, alternates lane direction, and reports which complete modules fall inside each planned footprint.
