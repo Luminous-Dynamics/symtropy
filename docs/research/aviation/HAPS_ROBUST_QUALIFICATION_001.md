@@ -132,6 +132,14 @@ The versioned [HAPS energy case schema](schemas/haps_energy_case_v1.schema.json)
 
 Both fixtures are synthetic arithmetic oracles, not aircraft profiles or measured performance. The interval contiguity, horizon sum, initial SoC/reserve bounds and ledger equations are semantic invariants in addition to JSON Schema validation. The current Symthaea Rust screen in PR #12674 evaluates an exact 24-hour profile; the case schema can represent longer horizons, but no multi-day execution implementation or validation is claimed yet.
 
+## 5. Service-level comparison contract
+
+HAPS communications and observation are area/coverage services, not point-to-point transport missions. Do not force them into the rural-cargo route profile. The new [HAPS service-profile schema](schemas/haps_service_profile_v1.schema.json) defines the common coverage region, device demand, aggregate throughput, latency, service window, altitude/weather envelope, candidate lift families, fleet redundancy, reserve policy and matched comparators.
+
+The accompanying [synthetic disaster-resilience connectivity profile](examples/synthetic_disaster_resilience_haps_service_v1.json) is deliberately illustrative: 10,000 km², 20,000 target devices, 100 Mbps aggregate throughput, 120 ms one-way latency, 99.5% service availability, a 30-day window, 95% coverage and a two-node minimum portfolio with one-node-loss tolerance. These values are benchmark fixtures, not a claim about Sceye, Zephyr, SoftBank or an actual Luminous platform.
+
+The fixture compares `solar_haps` and `buoyant_haps` on the same service contract and preserves separate candidate references. Energy cases remain separately versioned; service availability cannot be inferred from a daily Wh ledger. Export is disabled in this service profile. A future energy-export service requires a distinct profile and surplus-only admission after each platform's own reserve and service loads.
+
 ## 5. Qualification gates
 
 | Gate | Evidence | Permitted claim |
