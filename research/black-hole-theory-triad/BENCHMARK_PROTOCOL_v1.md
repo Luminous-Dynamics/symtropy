@@ -67,6 +67,9 @@ Do not collapse these into one opaque leaderboard score. Report a Pareto frontie
 
 ### Suite C — perturbations and response
 - Test-scalar spectrum is labelled test-scalar, never gravitational ringdown.
+- Operator-basis null tests: adding a redundant operator or applying a field redefinition that leaves on-shell observables unchanged must not create a physical first-order QNM shift.
+- Theory-identity null tests: where two actions reduce to the same equations on the chosen background (for example via a Ricci-flat identity), independently computed spectra must agree within truncation and numerical uncertainty.
+- Compute the same pole shifts with two independent algorithms (e.g. eigenvalue perturbation and continued-fraction methods) and require agreement across multipoles and overtones.
 - For fourth-order gravity, identify the actual perturbation variables, constraints, extra modes and boundary conditions.
 - Compare complex poles and residues, not frequencies alone.
 - Check retarded response, stability and mode completeness where feasible.
@@ -91,14 +94,19 @@ Do not collapse these into one opaque leaderboard score. Report a Pareto frontie
 | Capability | Relevant comparator | What we must match before claiming improvement |
 |---|---|---|
 | Adaptive stationary-metric shadow inference | Liu et al., PRD 114 (2026), DOI 10.1103/66x9-zj16 | Accuracy, scaling, posterior calibration, nuisance handling |
+| Rotating solution discovery | Akribeia, Agurto-Sepúlveda et al., PRD accepted 12 Nov 2026, DOI 10.1103/3kz2-6dvv | Branch discovery rate, spectral refinement residual, high-precision convergence, parameter continuation, independent residual verification |
 | Calibration-robust M87* morphology | Lai et al., Nature 659 (2026), DOI 10.1038/s41586-026-11241-9 | Closure-invariant likelihood, joint covariance, nuisance uncertainty, and direct forward-model comparison |
-| Kerr ray tracing | AART | Matched geodesics, lens maps, performance and convergence |
-| Perturbations / self-force | BHPT Toolkit | Teukolsky, MST, QNM and flux reference fixtures |
+| Kerr ray tracing | AART v1.0.0 (released 16 Nov 2026) | Matched Kerr geodesics, lens maps, photon-ring sampling, visibility outputs, performance and convergence |
+| Perturbations / self-force | BHPT Toolkit (26 packages) | Teukolsky, MST, QNM and flux reference fixtures |
 | Numerical relativity | SXS / SpEC, Einstein Toolkit, SpECTRE | Matched initial data, convergence and waveform error |
 | GW inference | Bilby / pyRing and LVK public analyses | Injection recovery, calibration and posterior coverage |
 | Rotating Weyl geometry | Published Kerr-Weyl solution and thermodynamic analyses | Independent horizon, ergoregion and extremality reproduction |
 
 Comparisons must be capability-specific. No single package is the baseline for every layer.
+
+### Discovery-method caveat: Akribeia
+
+Akribeia pairs a physics-informed neural-field search with pseudo-spectral Chebyshev refinement and extended precision. Its accepted 2026 paper demonstrates cohomogeneity-one, equal-angular-momenta rotating solutions in higher-dimensional Lovelock settings, validates against known five-dimensional solutions, and reports an extreme-precision Myers–Perry limit. The reported relative L2 figure of 10⁻¹⁶⁰ uses 300-digit arithmetic and should be treated as an author-reported result until independently reproduced. This is not a direct benchmark for four-dimensional pure Weyl gravity, scalar-conformal gravity, or generic axisymmetric PDEs. The reusable idea is the discovery/refinement split; each theory requires its own action, equations, regularity conditions, gauge, and boundary-value problem.
 
 ## 6. First blind challenge: M87* closure-domain discrimination
 
@@ -135,7 +143,9 @@ Failure at any stage is a useful result. Do not map graph distance to spacetime 
 3. Add finite-observer optical comparisons and cross-check the analytic photon-sphere fixtures.
 4. Reproduce the published rotating Weyl horizons / ergoregions before attempting a full rotating ray tracer.
 5. Build the closure-domain synthetic inference harness only by composing existing Symtropy observation and inference infrastructure; do not create a parallel imaging stack.
-6. Keep Chain Theory's finite-to-continuum bridge in Symthaea and link only qualified artifacts.
+6. Prototype a discovery/certification split for rotating branches: neural or other global search may propose candidates, but only an independent high-precision refiner and off-grid residual suite can qualify them. Start on known Kerr / Myers–Perry / static controls before applying it to a new theory.
+7. Add perturbation null tests and dual-algorithm pole comparisons before publishing modified-gravity QNM shifts.
+8. Keep Chain Theory's finite-to-continuum bridge in Symthaea and link only qualified artifacts.
 
 ## 9. Claim discipline
 
