@@ -435,13 +435,11 @@ pub fn reconstruct_contact_field(
     // upper bound. Sparse Hessian rows keep local tactile kernels efficient.
     for iteration in 0..config.maximum_iterations {
         let gradient = gradient(&quadratic, &extrapolated);
-        let mut maximum_delta = 0.0_f64;
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
             let updated = (extrapolated[index] - step_size * gradient[index]).max(0.0);
             next_field[index] = updated;
-            maximum_delta = maximum_delta.max((updated - field[index]).abs());
             maximum_field = maximum_field.max(updated.abs());
         }
 
@@ -473,7 +471,6 @@ pub fn reconstruct_contact_field(
             break;
         }
 
-        let _ = maximum_delta;
     }
 
     if field.iter().any(|value| !value.is_finite() || *value < 0.0) {
