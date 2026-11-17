@@ -256,7 +256,9 @@ impl SpatialIndex {
         let mut indexed_fact_ids = if missing_key {
             Vec::new()
         } else {
-            posting_lists.first().map_or_else(Vec::new, |posting| (*posting).clone())
+            posting_lists
+                .first()
+                .map_or_else(Vec::new, |posting| (*posting).clone())
         };
         for posting in posting_lists.iter().skip(1) {
             indexed_fact_ids.retain(|fact_id| posting.binary_search(fact_id).is_ok());
