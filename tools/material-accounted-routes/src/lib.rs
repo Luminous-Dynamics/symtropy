@@ -339,7 +339,11 @@ fn gate_result(gate: Gate, status: &str) -> GateResult {
     }
 }
 
-fn evaluate_case(case: &CaseManifest, receipts: &[Receipt]) -> CaseEvaluation {
+fn evaluate_case(
+    case: &CaseManifest,
+    receipts: &[Receipt],
+    cross_case_duplicate_refs: &BTreeSet<String>,
+) -> CaseEvaluation {
     let mut blocked = Vec::new();
     let mut indeterminate = Vec::new();
     let mut by_gate: BTreeMap<Gate, Vec<&Receipt>> = BTreeMap::new();
@@ -350,7 +354,13 @@ fn evaluate_case(case: &CaseManifest, receipts: &[Receipt]) -> CaseEvaluation {
     for receipt in receipts {
         by_gate.entry(receipt.gate).or_default().push(receipt);
         if !receipt_refs.insert(receipt.receipt_ref.as_str()) {
-            blocked.push(format!("receipt reference reused: {}", receipt.receipt_ref));
+            blocked.push(format!("receipt reference reused within case: {}", receipt.receipt_ref));
+        }
+        if cross_case_duplicate_refs.contains(&receipt.receipt_ref) {
+            blocked.push(format!(
+                "receipt reference reused across cases: {}",
+                receipt.receipt_ref
+            ));
         }
     }
 
@@ -437,6 +447,23 @@ pub fn evaluate(
         }
     }
 
+    // Receipt IDs are globally unique evidence identities, not merely unique
+    // within one case. Reusing a receipt across manifests must block every case
+    // that relies on that reused identity.
+    let mut receipt_case_ids: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
+    for receipt in receipts {
+        receipt_case_ids
+            .entry(receipt.receipt_ref.as_str())
+            .or_default()
+            .insert(receipt.case_id.as_str());
+    }
+    let cross_case_duplicate_refs: BTreeSet<String> = receipt_case_ids
+        .into_iter()
+        .filter_map(|(receipt_ref, case_ids)| {
+            (case_ids.len() > 1).then(|| receipt_ref.to_owned())
+        })
+        .collect();
+
     let mut grouped: BTreeMap<&str, Vec<&Receipt>> = BTreeMap::new();
     for receipt in receipts {
         grouped.entry(receipt.case_id.as_str()).or_default().push(receipt);
@@ -450,7 +477,7 @@ pub fn evaluate(
                 .into_iter()
                 .flat_map(|rows| rows.iter().map(|row| (**row).clone()))
                 .collect();
-            evaluate_case(case, &rows)
+            evaluate_case(case, &rows, &cross_case_duplicate_refs)
         })
         .collect())
 }
@@ -517,7 +544,7 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        let result = evaluate_case(case, &own);
+        let result = evaluate_case(case, &own, &BTreeSet::new());
         assert_eq!(result.actual, Disposition::Indeterminate);
         assert!(!result.expected_matches);
     }
@@ -539,7 +566,10 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
+        assert_eq!(
+            evaluate_case(case, &own, &BTreeSet::new()).actual,
+            Disposition::Blocked
+        );
     }
 
     #[test]
@@ -605,6 +635,28 @@ mod tests {
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         receipts[0].case_id = "case:not-in-manifest".into();
         assert!(evaluate(&cases, &receipts).is_err());
+    }
+
+
+    #[test]
+    fn receipt_reference_reuse_across_cases_blocks_both_cases() {
+        let cases = parse_cases(CASES).unwrap();
+        let receipts = parse_receipts(RECEIPTS).unwrap();
+        let report = evaluate(&cases, &receipts).unwrap();
+        let baseline = report
+            .iter()
+            .find(|row| row.case_id == "baseline_exact_closed")
+            .unwrap();
+        let reused = report
+            .iter()
+            .find(|row| row.case_id == "cross_case_receipt_reuse")
+            .unwrap();
+        assert_eq!(baseline.actual, Disposition::Blocked);
+        assert_eq!(reused.actual, Disposition::Blocked);
+        assert!(baseline
+            .blocked_reasons
+            .iter()
+            .any(|reason| reason.contains("reused across cases")));
     }
 
     #[test]
