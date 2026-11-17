@@ -38,6 +38,7 @@ These are source-attributed anchors, not interchangeable performance claims.
 | Dianovský et al., Drones 2026 | Curved-wing PV model: 6.0% RMS power error and 3.5% daily-energy agreement against ground charging measurements over three clear-sky days spanning a 90-day calendar range | PV-model validation; not a 90-day flight |
 | ACS Energy Letters 2026 battery study | Cell energy sweep from 100–1,000 Wh/kg; storage-to-solar-collection transition near 500 Wh/kg in the studied cases; predicted battery fractions of 30–40% of takeoff mass | Model-specific result, not a universal threshold or installed-pack result |
 | Stratospheric pouch battery-pack study (Journal of Energy Storage, 2025) | Coupled pack thermal-distribution and mechanical preload model at low temperature / low pressure conditions; paper highlights −65 °C and 5 kPa and cell-to-cell performance variation | Simulation/design study, not an installed HAPS pack qualification; motivates pressure, preload, temperature uniformity and ageing tests |
+| Liang et al., Progress in Aerospace Sciences (1 October 2026) | System-level review couples wind, thermal state, propulsion demand, onboard energy, vehicle control, payload and network performance; notes fully coupled multi-day assessments remain less common | Literature synthesis and gap assessment, not a demonstrated platform-performance result |
 | Reach Power / PowerLight | Vendor-reported 10-hour remotely powered UAV flight (October 2026) and in-flight laser power delivery to a fielded UAS (April 2026) | Ground-to-air power delivery; not an airborne HAPS transmitter demonstration |
 | Optical WPT research | Outdoor optical transfer reported at 15% over 1 km under atmospheric turbulence | Link experiment, not a moving-aircraft HAPS-to-UAV mission |
 
@@ -58,6 +59,8 @@ Primary references:
 - [Sceye / SoftBank five-year HAPS fleet agreement, 3 November 2026](https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms)
 - [DRDO HAPS flight trial, Ministry of Defence / PIB, 6 October 2026](https://www.pib.gov.in/PressReleasePage.aspx?PRID=2319551&lang=1&reg=48)
 - [Stratospheric pouch battery-pack modelling, Journal of Energy Storage, DOI 10.1016/j.est.2025.117290](https://doi.org/10.1016/j.est.2025.117290)
+- [Liang et al., system-level review of persistent high-altitude unmanned airships, 1 October 2026](https://doi.org/10.1016/j.paerosci.2026.101243)
+- [Shi and Wu, function-based HAPS authorisation framework under international law, September 2026](https://doi.org/10.1016/j.telpol.2026.103293)
 - [Mbarek et al., demand-aware HAPS congestion relief, 28 September 2026](https://doi.org/10.1016/j.comnet.2026.112795)
 
 The 2026 review identifies PV, hybrid storage, thermal regulation, power electronics and autonomous energy control as coupled design variables. The November 2026 motor-cooling study treats heat rejection as a specific near-space design problem. These motivate explicit coupling; neither establishes one universal cooling solution.
@@ -233,8 +236,9 @@ The service profile references a separate [HAPS wind-navigation case schema](sch
 | Q5 — integrated ground emulator | Integrated energy/thermal path, receiver emulator, interruption/reacquisition and fault injection | Ground-integrated research result |
 | Q6 — controlled flight campaign | Separately approved test plan, instrumentation, safety, recovery and authority | Flight-test result for exact configuration/envelope |
 | Q7 — service campaign | Observed operation, maintenance, downtime, handovers and delivered service | Service-availability result for observed period |
+| Q8 — jurisdictional operation authority | Applicable aircraft/airspace, operator, spectrum, payload/service, traffic-management, security and contingency permissions for the exact jurisdiction and configuration | Only the specifically authorized scope may be claimed; a spectrum allocation or technical demonstration alone is insufficient |
 
-Evidence does not automatically promote between gates. Keep NOT_COVERED, OUT_OF_DOMAIN, INDETERMINATE, FAILED and NOT_RUN distinct.
+Evidence does not automatically promote between gates. Keep NOT_COVERED, OUT_OF_DOMAIN, INDETERMINATE, FAILED and NOT_RUN distinct. HAPS authorisation is a function-of-operation question, not only a spectrum question: aircraft/airspace category, operator, service, payload, jurisdiction, security and contingency provisions all require applicable authority review. A 2026 international-law study proposes a functional authorisation framework and distinguishes public-interest and commercial pathways; it is research analysis, not a binding authorisation or legal opinion. No flight or service permission is inferred by this benchmark.
 
 ### Network and beam-allocation metrics
 
