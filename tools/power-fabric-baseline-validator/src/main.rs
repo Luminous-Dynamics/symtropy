@@ -392,8 +392,14 @@ mod tests {
     fn ntu_and_yigit_efficiencies_are_not_rankable_against_each_other() {
         let document = corpus();
         let records = document["records"].as_array().unwrap();
-        let ntt = records.iter().find(|r| r["id"] == "ntt-mhi-2025-1km-laser").unwrap();
-        let yigit = records.iter().find(|r| r["id"] == "yigit-2026-20m-laser").unwrap();
+        let ntt = records
+            .iter()
+            .find(|r| r["id"] == "ntt-mhi-2025-1km-laser")
+            .unwrap();
+        let yigit = records
+            .iter()
+            .find(|r| r["id"] == "yigit-2026-20m-laser")
+            .unwrap();
         assert_ne!(ntt["comparison_group"], yigit["comparison_group"]);
         assert_eq!(
             document["comparison_policy"]["global_efficiency_ranking"],
