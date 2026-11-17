@@ -264,8 +264,7 @@ pub fn validate_plan(plan: &KitchenPlanV1) -> PlanValidationReport {
         }
     }
 
-    let mut indegree: BTreeMap<&str, usize> =
-        index.keys().map(|id| (*id, 0_usize)).collect();
+    let mut indegree: BTreeMap<&str, usize> = index.keys().map(|id| (*id, 0_usize)).collect();
     let mut children: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     for task in &plan.tasks {
         if !index.contains_key(task.task_id.as_str()) {
@@ -317,11 +316,16 @@ pub fn validate_plan(plan: &KitchenPlanV1) -> PlanValidationReport {
     }
 
     violations.sort_by(|a, b| {
-        (a.code, a.task_id.as_deref().unwrap_or(""), a.detail.as_str()).cmp(&(
-            b.code,
-            b.task_id.as_deref().unwrap_or(""),
-            b.detail.as_str(),
-        ))
+        (
+            a.code,
+            a.task_id.as_deref().unwrap_or(""),
+            a.detail.as_str(),
+        )
+            .cmp(&(
+                b.code,
+                b.task_id.as_deref().unwrap_or(""),
+                b.detail.as_str(),
+            ))
     });
     PlanValidationReport {
         plan_id: plan.plan_id.clone(),
@@ -418,9 +422,7 @@ fn no_schedule(task_id: &str, reason: impl Into<String>) -> ScheduleError {
 
 /// Build a stable earliest-gap schedule. This is an executable baseline, not
 /// an optimality claim; a resource ordering choice can cause false negatives.
-pub fn build_schedule(
-    plan: &KitchenPlanV1,
-) -> Result<KitchenScheduleReceiptV1, ScheduleError> {
+pub fn build_schedule(plan: &KitchenPlanV1) -> Result<KitchenScheduleReceiptV1, ScheduleError> {
     let validation = validate_plan(plan);
     if !validation.is_valid() {
         return Err(ScheduleError::InvalidPlan(validation.violations));
@@ -444,7 +446,10 @@ pub fn build_schedule(
 
         for dep in &task.dependencies {
             let predecessor = assigned.get(&dep.predecessor_task_id).ok_or_else(|| {
-                no_schedule(&task.task_id, "predecessor was not scheduled before successor")
+                no_schedule(
+                    &task.task_id,
+                    "predecessor was not scheduled before successor",
+                )
             })?;
             let min_start = predecessor
                 .end_ms
@@ -461,7 +466,10 @@ pub fn build_schedule(
             }
         }
         if upper.is_some_and(|latest| lower > latest) {
-            return Err(no_schedule(&task.task_id, "dependency and deadline windows conflict"));
+            return Err(no_schedule(
+                &task.task_id,
+                "dependency and deadline windows conflict",
+            ));
         }
 
         let mut start = lower;
@@ -482,15 +490,17 @@ pub fn build_schedule(
                     && start < existing.end_ms
                     && existing.start_ms < end
                 {
-                    conflict_end = Some(
-                        conflict_end.map_or(existing.end_ms, |old| old.max(existing.end_ms)),
-                    );
+                    conflict_end =
+                        Some(conflict_end.map_or(existing.end_ms, |old| old.max(existing.end_ms)));
                 }
             }
 
             if let Some(next) = conflict_end {
                 if next <= start {
-                    return Err(no_schedule(&task.task_id, "resource conflict made no progress"));
+                    return Err(no_schedule(
+                        &task.task_id,
+                        "resource conflict made no progress",
+                    ));
                 }
                 start = next;
             } else {
@@ -509,9 +519,8 @@ pub fn build_schedule(
     }
 
     let mut scheduled: Vec<ScheduledTaskV1> = assigned.into_values().collect();
-    scheduled.sort_by(|a, b| {
-        (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str()))
-    });
+    scheduled
+        .sort_by(|a, b| (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str())));
     let makespan_ms = scheduled.iter().map(|task| task.end_ms).max().unwrap_or(0);
     let receipt = KitchenScheduleReceiptV1 {
         schema_version: KITCHEN_SCHEDULE_SCHEMA_VERSION,
@@ -551,7 +560,8 @@ pub fn build_serial_baseline(
 
     let mut receipt = build_schedule(&serial_plan)?;
     for task in &mut receipt.tasks {
-        task.resource_ids.retain(|resource| resource != &serial_resource);
+        task.resource_ids
+            .retain(|resource| resource != &serial_resource);
     }
     receipt.scheduler_id = "stable_serial_topological_baseline_v1".to_owned();
 
@@ -603,7 +613,10 @@ pub fn validate_schedule(
                 Some(&scheduled.task_id),
                 "scheduled task is not present in source plan",
             );
-        } else if by_id.insert(scheduled.task_id.as_str(), scheduled).is_some() {
+        } else if by_id
+            .insert(scheduled.task_id.as_str(), scheduled)
+            .is_some()
+        {
             schedule_violation(
                 &mut violations,
                 ScheduleViolationCode::DuplicateTask,
@@ -630,7 +643,10 @@ pub fn validate_schedule(
                 &mut violations,
                 ScheduleViolationCode::DurationMismatch,
                 Some(&task.task_id),
-                format!("end {} differs from expected {}", scheduled.end_ms, expected),
+                format!(
+                    "end {} differs from expected {}",
+                    scheduled.end_ms, expected
+                ),
             ),
             None => schedule_violation(
                 &mut violations,
@@ -650,7 +666,10 @@ pub fn validate_schedule(
                 "scheduled resource IDs differ from plan",
             );
         }
-        if task.earliest_start_ms.is_some_and(|earliest| scheduled.start_ms < earliest) {
+        if task
+            .earliest_start_ms
+            .is_some_and(|earliest| scheduled.start_ms < earliest)
+        {
             schedule_violation(
                 &mut violations,
                 ScheduleViolationCode::EarliestStartViolation,
@@ -658,7 +677,10 @@ pub fn validate_schedule(
                 "task starts before release time",
             );
         }
-        if task.latest_finish_ms.is_some_and(|deadline| scheduled.end_ms > deadline) {
+        if task
+            .latest_finish_ms
+            .is_some_and(|deadline| scheduled.end_ms > deadline)
+        {
             schedule_violation(
                 &mut violations,
                 ScheduleViolationCode::LatestFinishViolation,
@@ -731,13 +753,21 @@ pub fn validate_schedule(
         }
     }
 
-    let computed_makespan = receipt.tasks.iter().map(|task| task.end_ms).max().unwrap_or(0);
+    let computed_makespan = receipt
+        .tasks
+        .iter()
+        .map(|task| task.end_ms)
+        .max()
+        .unwrap_or(0);
     if computed_makespan != receipt.makespan_ms {
         schedule_violation(
             &mut violations,
             ScheduleViolationCode::MakespanMismatch,
             None,
-            format!("reported makespan {} != computed {}", receipt.makespan_ms, computed_makespan),
+            format!(
+                "reported makespan {} != computed {}",
+                receipt.makespan_ms, computed_makespan
+            ),
         );
     }
     violations.sort_by(|a, b| {
