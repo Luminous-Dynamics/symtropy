@@ -29,7 +29,17 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Check formatting
+      - name: Apply rustfmt and export formatted source for review
+        run: |
+          cargo fmt --all
+          tar -czf /tmp/robot-behaviour-conditioned-work-v0-1-formatted.tar.gz Cargo.toml README.md src
+      - name: Upload formatted source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: robot-behaviour-conditioned-work-v0-1-formatted
+          path: /tmp/robot-behaviour-conditioned-work-v0-1-formatted.tar.gz
+          if-no-files-found: error
+      - name: Verify formatted source
         run: cargo fmt --all -- --check
       - name: Run strict Clippy
         run: cargo clippy --all-targets -- -D warnings
