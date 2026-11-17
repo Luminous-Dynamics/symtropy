@@ -63,4 +63,6 @@ cargo run
 
 No third-party dependencies are required.
 
-The synthetic example runs all five policies on the same inputs and prints selected candidates, target completion, elapsed time and energy. The current unit suite includes policy-comparison and cross-policy gate-preservation tests. These checks are not a public benchmark leaderboard result.
+The example runs all five policies on the same synthetic inputs. The benchmark runner additionally executes **64 deterministic episodes**, each with 12 targets and 72 candidates, using seeds starting at 20261117. It reports mean, lower-decile and worst-case weighted completion, weighted evidence units per minute and Wh, elapsed time, energy, selected steps and gate-violation count. Candidate order is a serpentine route for the fixed-route baseline; all other policies receive the identical candidates and resource budgets.
+
+The current unit suite has 12 tests, including policy-comparison and cross-policy gate-preservation tests. The 64-episode synthetic corpus is a reproducibility/engineering baseline only: it is not a public leaderboard submission, real-world distribution, physical robot qualification, or evidence that any policy is superior. Before reporting a policy win, freeze the corpus and protocol, add held-out scenario families and report paired per-seed deltas with uncertainty intervals.
