@@ -27,14 +27,26 @@ pub enum RecipeRightsStatusV1 {
     Restricted,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RecipeUseScopeV1 {
+    LocalProcessing,
+    Redistribution,
+    ModelTraining,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct RecipeSourceV1 {
     /// Stable source pointer. It may refer to a user-supplied local document.
     pub source_ref: String,
     pub rights_status: RecipeRightsStatusV1,
+    /// Explicitly permitted uses. Unknown/restricted rights are local-only.
+    pub permitted_uses: Vec<RecipeUseScopeV1>,
+    /// Required to share or use the derived graph for model training.
+    pub permission_evidence_ref: Option<String>,
     /// Optional SHA-256 of the source artifact; this authenticates bytes only.
     pub content_sha256: Option<String>,
-    /// Optional attribution / license evidence pointer.
+    /// Optional attribution pointer; attribution alone is not permission.
     pub attribution_ref: Option<String>,
 }
 
@@ -44,7 +56,6 @@ pub enum RecipeEvidenceClassV1 {
     Declared,
     Modelled,
     Simulated,
-    Assayed,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -156,6 +167,8 @@ pub enum RecipeGraphViolationCodeV1 {
     MissingRequiredValue,
     InvalidRevision,
     InvalidSourceDigest,
+    InsufficientRightsEvidence,
+    DuplicateUseScope,
     DuplicateIngredientId,
     DuplicateTaskId,
     UnknownIngredientReference,
@@ -254,6 +267,55 @@ pub fn validate_recipe_task_graph(
             "content_sha256 must contain exactly 64 hexadecimal characters",
         );
     }
+    if graph.source.permitted_uses.is_empty() {
+        add_violation(
+            &mut violations,
+            RecipeGraphViolationCodeV1::InsufficientRightsEvidence,
+            Some(recipe_id),
+            None,
+            "at least one explicit permitted use is required",
+        );
+    }
+    let mut use_scopes = BTreeSet::new();
+    for scope in &graph.source.permitted_uses {
+        if !use_scopes.insert(*scope) {
+            add_violation(
+                &mut violations,
+                RecipeGraphViolationCodeV1::DuplicateUseScope,
+                Some(recipe_id),
+                None,
+                "permitted_uses must not contain duplicate scopes",
+            );
+        }
+    }
+    let has_non_local_use = graph.source.permitted_uses.iter().any(|scope| {
+        *scope != RecipeUseScopeV1::LocalProcessing
+    });
+    if has_non_local_use
+        && (graph.source.permission_evidence_ref.as_deref().is_none_or(|value| !nonempty(value))
+            || matches!(
+                graph.source.rights_status,
+                RecipeRightsStatusV1::Unknown | RecipeRightsStatusV1::Restricted
+            ))
+    {
+        add_violation(
+            &mut violations,
+            RecipeGraphViolationCodeV1::InsufficientRightsEvidence,
+            Some(recipe_id),
+            None,
+            "redistribution/model-training scope requires explicit permission evidence and non-restricted source rights",
+        );
+    }
+    if graph.source.permission_evidence_ref.as_deref().is_some_and(|value| !nonempty(value)) {
+        add_violation(
+            &mut violations,
+            RecipeGraphViolationCodeV1::InsufficientRightsEvidence,
+            Some(recipe_id),
+            None,
+            "permission_evidence_ref must be non-empty when supplied",
+        );
+    }
+
     if graph.claim_ceiling != RECIPE_GRAPH_CLAIM_CEILING {
         add_violation(
             &mut violations,
@@ -451,6 +513,8 @@ mod tests {
             source: RecipeSourceV1 {
                 source_ref: "fixture:synthetic-recipe".to_owned(),
                 rights_status: RecipeRightsStatusV1::UserSupplied,
+                permitted_uses: vec![RecipeUseScopeV1::LocalProcessing],
+                permission_evidence_ref: None,
                 content_sha256: None,
                 attribution_ref: None,
             },
@@ -570,14 +634,32 @@ mod tests {
     }
 
     #[test]
-    fn unknown_source_rights_remain_explicit_and_do_not_authorize_redistribution() {
+    fn unknown_source_rights_remain_local_only() {
         let mut graph = valid_graph();
         graph.source.rights_status = RecipeRightsStatusV1::Unknown;
         graph.evidence_class = RecipeEvidenceClassV1::Modelled;
+        graph.source.permitted_uses = vec![
+            RecipeUseScopeV1::LocalProcessing,
+            RecipeUseScopeV1::ModelTraining,
+        ];
         let report = validate_recipe_task_graph(&graph);
-        assert!(report.is_valid());
+        assert!(report.violations.iter().any(|violation| {
+            violation.code == RecipeGraphViolationCodeV1::InsufficientRightsEvidence
+        }));
         assert_eq!(graph.source.rights_status, RecipeRightsStatusV1::Unknown);
         assert_eq!(graph.evidence_class, RecipeEvidenceClassV1::Modelled);
+    }
+
+    #[test]
+    fn model_training_scope_requires_explicit_permission_evidence() {
+        let mut graph = valid_graph();
+        graph.source.permitted_uses = vec![
+            RecipeUseScopeV1::LocalProcessing,
+            RecipeUseScopeV1::ModelTraining,
+        ];
+        graph.source.permission_evidence_ref = Some("permission:fixture-grant".to_owned());
+        let report = validate_recipe_task_graph(&graph);
+        assert!(report.is_valid());
     }
 
     #[test]
