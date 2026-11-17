@@ -226,7 +226,8 @@ impl SpatialFieldMemory {
     }
 
     /// Payload estimate for the retained bipolar memory, scalar cleanup
-    /// codebook, and coordinate/value encoder base vectors. Excludes allocator,
+    /// codebook, coordinate encoder base vectors and coordinate role vectors.
+    /// Excludes allocator,
     /// flip-order index arrays, graph objects and sample source storage.
     pub fn retained_vector_payload_bytes_estimate(&self) -> usize {
         let dimension_bytes = self.spec.dimension * std::mem::size_of::<i8>();
@@ -238,7 +239,7 @@ impl SpatialFieldMemory {
 
     /// Auxiliary scalar-encoder index array bytes, excluding Vec headers.
     pub fn encoder_index_bytes_estimate(&self) -> usize {
-        3 * self.spec.dimension * std::mem::size_of::<usize>()
+        2 * self.spec.dimension * std::mem::size_of::<usize>()
     }
 }
 
@@ -288,7 +289,13 @@ pub fn run_regular_grid_field_benchmark(
         return Err(FieldError::InvalidGrid);
     }
 
-    let mut samples = Vec::with_capacity(grid_size * grid_size);
+    let sample_capacity = grid_size
+        .checked_mul(grid_size)
+        .ok_or(FieldError::InvalidGrid)?;
+    let query_capacity = (grid_size - 1)
+        .checked_mul(grid_size - 1)
+        .ok_or(FieldError::InvalidGrid)?;
+    let mut samples = Vec::with_capacity(sample_capacity);
     for y_index in 0..grid_size {
         for x_index in 0..grid_size {
             let x = x_index as f64 / (grid_size - 1) as f64;
@@ -314,13 +321,13 @@ pub fn run_regular_grid_field_benchmark(
         FieldRange { min: 0.0, max: 1.0 },
     )?;
 
-    let mut hdc_errors = Vec::new();
-    let mut nearest_errors = Vec::new();
-    let mut bilinear_errors = Vec::new();
-    let mut encode_times = Vec::new();
-    let mut unbind_times = Vec::new();
-    let mut cleanup_times = Vec::new();
-    let mut total_times = Vec::new();
+    let mut hdc_errors = Vec::with_capacity(query_capacity);
+    let mut nearest_errors = Vec::with_capacity(query_capacity);
+    let mut bilinear_errors = Vec::with_capacity(query_capacity);
+    let mut encode_times = Vec::with_capacity(query_capacity);
+    let mut unbind_times = Vec::with_capacity(query_capacity);
+    let mut cleanup_times = Vec::with_capacity(query_capacity);
+    let mut total_times = Vec::with_capacity(query_capacity);
 
     for y_index in 0..(grid_size - 1) {
         for x_index in 0..(grid_size - 1) {
@@ -343,6 +350,9 @@ pub fn run_regular_grid_field_benchmark(
         }
     }
 
+    let query_p50_micros = percentile(&mut total_times.clone(), 0.50);
+    let query_p95_micros = percentile(&mut total_times, 0.95);
+
     Ok(FieldBenchmarkReport {
         dimension,
         grid_size,
@@ -357,8 +367,8 @@ pub fn run_regular_grid_field_benchmark(
         mean_coordinate_encode_micros: mean(&encode_times),
         mean_positional_unbind_micros: mean(&unbind_times),
         mean_cleanup_micros: mean(&cleanup_times),
-        query_p50_micros: percentile(&mut total_times.clone(), 0.50),
-        query_p95_micros: percentile(&mut total_times, 0.95),
+        query_p50_micros,
+        query_p95_micros,
         build_micros: memory.build_micros(),
         retained_vector_payload_bytes_estimate: memory.retained_vector_payload_bytes_estimate(),
         encoder_index_bytes_estimate: memory.encoder_index_bytes_estimate(),
@@ -485,6 +495,48 @@ mod tests {
         assert_eq!(qa.codebook_level, qb.codebook_level);
         assert_eq!(qa.value, qb.value);
         assert!(qa.value.is_finite());
+    }
+
+    #[test]
+    fn one_sample_is_recalled_at_its_exact_position() {
+        let sample = [FieldSample {
+            x: 0.25,
+            y: 0.75,
+            value: 0.37,
+        }];
+        let memory = SpatialFieldMemory::build(
+            &sample,
+            spec(4_096, 83),
+            FieldRange { min: 0.0, max: 1.0 },
+            FieldRange { min: 0.0, max: 1.0 },
+            FieldRange { min: 0.0, max: 1.0 },
+        )
+        .unwrap();
+
+        let result = memory.query(0.25, 0.75).unwrap();
+        assert!(result.best_similarity > 0.999);
+        assert!((result.value - sample[0].value).abs() <= 0.5 / 256.0);
+    }
+
+    #[test]
+    fn queries_outside_declared_spatial_domain_fail_closed() {
+        let sample = [FieldSample {
+            x: 0.5,
+            y: 0.5,
+            value: 0.5,
+        }];
+        let memory = SpatialFieldMemory::build(
+            &sample,
+            spec(2_048, 89),
+            FieldRange { min: 0.0, max: 1.0 },
+            FieldRange { min: 0.0, max: 1.0 },
+            FieldRange { min: 0.0, max: 1.0 },
+        )
+        .unwrap();
+        assert!(matches!(
+            memory.query(1.01, 0.5),
+            Err(FieldError::SampleOutsideRange)
+        ));
     }
 
     #[test]
