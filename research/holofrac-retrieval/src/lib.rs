@@ -15,6 +15,7 @@ use symtropy_hdc_core::{
 };
 
 pub mod field;
+pub mod impact;
 pub mod partial;
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
