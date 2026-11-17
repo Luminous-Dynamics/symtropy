@@ -3,7 +3,7 @@
 Status: proposed, schema and Rust mapper on the recipe-graph branch. The graph maps into the existing KitchenPlanV1 scheduler; it is not a second planner.
 
 - `RecipeTaskGraphV1.schema.json`: typed recipe, rights, ingredient quantity and action-graph envelope.
-- `fixtures/recipe-task-graph-v1.json`: synthetic positive and adversarial fixtures.
+- `fixtures/recipe-task-graph-v1.json`: synthetic positive and adversarial fixtures, consumed by the Rust unit-test suite via `include_str!` and `serde_json`.
 - `src/recipe_graph.rs`: Rust types, validator and mapper to KitchenPlanV1.
 
 ## Important boundaries
@@ -15,6 +15,8 @@ Status: proposed, schema and Rust mapper on the recipe-graph branch. The graph m
 - The planner is advisory. It does not actuate appliances or override local safety systems.
 - Evidence class remains declared/modelled/simulated; human review does not promote modelled evidence into measured evidence.
 - A structurally valid graph can still fail runtime validation for unknown ingredient references, duplicate IDs, invalid schedule DAGs or rights-scope mismatch.
+
+The planner test target deserializes every fixture into the Rust types and checks each runtime-validity expectation. JSON Schema shape and Rust cross-record invariants remain separate layers; the Rust tests are the executable authority for task/reference semantics.
 
 Run through the existing planner test target:
 `cargo test -p symtropy-kitchen-planner --all-targets`
