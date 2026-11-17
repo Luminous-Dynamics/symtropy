@@ -21,6 +21,9 @@ pub mod sampling_rate;
 /// Typed synthetic action-assignment, delivery and exposure event chain.
 pub mod intervention;
 
+/// Typed, fail-closed contracts for cross-subsystem ports and coupling edges.
+pub mod coupling;
+
 /// Number of harmonics in the reference circadian expansion.
 pub const C_MAX_HARMONICS: usize = 5;
 

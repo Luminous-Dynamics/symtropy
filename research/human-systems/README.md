@@ -31,6 +31,24 @@ Start with a **human day / human operator** in an explicitly modelled environmen
 
 This gives us a non-clinical research target useful for human-centred robotics, workplaces, education, care environments and assistive systems. It also allows public observational datasets to inform selected state and sensor models without requiring controlled patient data.
 
+## Multi-scale biological systems
+
+- [Human multi-scale systems atlas v0.1](HUMAN_MULTISCALE_SYSTEMS_ATLAS_V0_1.md) — nested biological organization, 20 subsystem status entries, cross-organ coupling priorities, Symtropy/Symthaea ownership, standards and benchmark ladder.
+- [Machine-readable coupling register v0.1](HUMAN_MULTISCALE_COUPLING_REGISTER_V0_1.json) — versioned system/port/coupling inventory for future adapters and review.
+
+## Multiscale physiology and first coupled model
+
+- [Human multi-scale systems atlas v0.1](HUMAN_MULTISCALE_SYSTEMS_ATLAS_V0_1.md) — nested organization, subsystem status, high-value feedback loops and Symtropy/Symthaea ownership.
+- [Machine-readable coupling register v0.1](HUMAN_MULTISCALE_COUPLING_REGISTER_V0_1.json) — 20 subsystem entries and 12 proposed coupling edges; a catalogue, not yet a typed executable port graph.
+- [Thermophysiology model tournament v0.1](HUMAN_THERMOPHYSIOLOGY_MODEL_TOURNAMENT_V0_1.md) — matched Gagge/JOS-3/Stolwijk/Fiala/PHS comparison and the heat–workload–hydration–cardiovascular first integration slice.
+
+## Typed subsystem and model ports
+
+- [Typed subsystem port schema v0.1](HUMAN_SUBSYSTEM_PORT_SCHEMA_V0_1.schema.json) — structural contract for model, subsystem, port, time, uncertainty, balance and edge records. JSON Schema alone does not prove referential integrity or dimensional compatibility; semantic checks remain required.
+- Rust validator: `symtropy-human-systems::coupling` — validates model/subsystem/port references, direction, dimensional and quantity-kind compatibility, reviewed affine unit conversion, time bounds and balance-contract requirements. It is a contract validator, not a runtime coupling scheduler or biological solver.
+- [JOS-3 v0.5.0 port manifest](HUMAN_JOS3_PORT_MANIFEST_V0_1.json) — 12 source-mapped JOS-3 ports at a pinned upstream commit; deliberately no admitted edges yet.
+- Symtropy [HUMAN-SUBSYSTEM-PORT-SEMANTICS-001 / #5779](https://github.com/Luminous-Dynamics/symtropy/issues/5779) — owns port semantics, dimensional checks and fail-closed edge admission.
+
 ## Architecture and evidence boundaries
 
 - [Human-systems architecture v0.1](HUMAN_SYSTEMS_ARCHITECTURE_V0_1.md) — subsystem responsibilities, coupling contracts and fidelity levels.
