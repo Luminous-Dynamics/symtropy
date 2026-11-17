@@ -61,7 +61,9 @@ fn calculate_excavation(case: ExcavationCase) -> Result<ExcavationEstimate, Stri
     let design_bore_volume_m3 =
         circumference_m * case.excavated_section_m2 * f64::from(case.bore_count);
     let overbreak_volume_m3 = design_bore_volume_m3 * case.overbreak_fraction;
-    let ancillary_volume_m3 = ancillary.iter().sum::<f64>();
+    let ancillary_volume_m3 = case.ancillary.shafts_m3
+        + case.ancillary.caverns_m3
+        + case.ancillary.cross_passages_m3;
     let total_excavation_volume_m3 =
         design_bore_volume_m3 + overbreak_volume_m3 + ancillary_volume_m3;
 
@@ -259,6 +261,8 @@ mod tests {
         assert!(calculate_excavation(base_case(100.0, 30.0, 0, 0.0)).is_err());
         assert!(calculate_excavation(base_case(100.0, 30.0, 1, -0.01)).is_err());
         assert!(calculate_excavation(base_case(100.0, 30.0, 1, 1.01)).is_err());
+        assert!(calculate_excavation(base_case(100.0, 30.0, 1, f64::NAN)).is_err());
+        assert!(calculate_excavation(base_case(f64::MAX, 30.0, 1, 0.0)).is_err());
 
         let mut negative_ancillary = base_case(100.0, 30.0, 1, 0.0);
         negative_ancillary.ancillary.shafts_m3 = -1.0;
