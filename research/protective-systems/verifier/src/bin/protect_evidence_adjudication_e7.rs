@@ -221,10 +221,11 @@ struct AdjudicationReport {
     excluded_assertions: Vec<ExcludedAssertion>,
     incomparable_assertions: Vec<IncomparableFinding>,
     conflict_sets: Vec<ConflictSet>,
-    verified_independence_attestation_ids: Vec<String>,
+    admitted_independence_attestation_ids: Vec<String>,
     independence_attestation_receipts: Vec<IndependenceAttestationReceipt>,
-    verified_independent_evidence_ids: Vec<String>,
+    attested_independent_evidence_ids: Vec<String>,
     rejected_independence_attestations: Vec<IndependenceRejection>,
+    independence_validation_scope: &'static str,
     evidence_source_receipts: Vec<EvidenceSourceReceipt>,
     lifecycle_event_receipts: Vec<LifecycleEventReceipt>,
     dependency_relation_counts: BTreeMap<String, usize>,
@@ -541,7 +542,7 @@ fn comparable_scope_reason(assertion: &Assertion, claim: &Claim) -> Option<(&'st
     None
 }
 
-fn verified_independence(
+fn validate_independence_attestations(
     corpus: &Corpus,
     graph: &BTreeMap<String, BTreeSet<String>>,
     decision_time: &str,
@@ -562,7 +563,7 @@ fn verified_independence(
 
     for attestation in &corpus.independence_attestations {
         let mut rejection = None;
-        if attestation.status != "VERIFIED_INDEPENDENT" {
+        if attestation.status != "ATTESTED_INDEPENDENT" {
             rejection = Some("ATTESTATION_NOT_VERIFIED");
         } else if attestation.recorded_at.as_str() > decision_time {
             rejection = Some("ATTESTATION_NOT_KNOWN_AS_OF_DECISION_TIME");
@@ -744,12 +745,12 @@ fn evaluate(
         }]
     };
 
-    let (verified_attestations, verified_independent_evidence, rejected_attestations) =
-        verified_independence(corpus, &graph, decision_time, valid_at);
+    let (admitted_attestations, attested_independent_evidence, rejected_attestations) =
+        validate_independence_attestations(corpus, &graph, decision_time, valid_at);
     let mut independence_attestation_receipts = corpus
         .independence_attestations
         .iter()
-        .filter(|item| verified_attestations.contains(&item.attestation_id))
+        .filter(|item| admitted_attestations.contains(&item.attestation_id))
         .map(|item| IndependenceAttestationReceipt {
             attestation_id: item.attestation_id.clone(),
             claim_id: item.claim_id.clone(),
@@ -838,10 +839,11 @@ fn evaluate(
         excluded_assertions: excluded,
         incomparable_assertions: incomparable,
         conflict_sets,
-        verified_independence_attestation_ids: verified_attestations,
+        admitted_independence_attestation_ids: admitted_attestations,
         independence_attestation_receipts,
-        verified_independent_evidence_ids: verified_independent_evidence,
+        attested_independent_evidence_ids: attested_independent_evidence,
         rejected_independence_attestations: rejected_attestations,
+        independence_validation_scope: "SYNTHETIC_ATTESTATION_SCOPE_AND_DEPENDENCY_CHECKS_ONLY; signer identity, calibration certificates, sensor hardware and field measurements are not authenticated",
         evidence_source_receipts,
         lifecycle_event_receipts,
         dependency_relation_counts,
@@ -905,15 +907,15 @@ mod tests {
     #[test]
     fn copied_vendor_and_shared_calibration_reports_do_not_count_as_independent() {
         let report = default_report().expect("report");
-        assert_eq!(report.verified_independence_attestation_ids, vec!["ind-flow-001"]);
+        assert_eq!(report.admitted_independence_attestation_ids, vec!["ind-flow-001"]);
         assert_eq!(
-            report.verified_independent_evidence_ids,
+            report.attested_independent_evidence_ids,
             vec!["ev-independent-e".to_owned(), "ev-sensor-a".to_owned()]
         );
-        assert!(report.verified_independent_evidence_ids.contains(&"ev-sensor-a".to_owned()));
-        assert!(!report.verified_independent_evidence_ids.contains(&"ev-copy-a".to_owned()));
-        assert!(!report.verified_independent_evidence_ids.contains(&"ev-vendor-b".to_owned()));
-        assert!(!report.verified_independent_evidence_ids.contains(&"ev-calibration-c".to_owned()));
+        assert!(report.attested_independent_evidence_ids.contains(&"ev-sensor-a".to_owned()));
+        assert!(!report.attested_independent_evidence_ids.contains(&"ev-copy-a".to_owned()));
+        assert!(!report.attested_independent_evidence_ids.contains(&"ev-vendor-b".to_owned()));
+        assert!(!report.attested_independent_evidence_ids.contains(&"ev-calibration-c".to_owned()));
     }
 
     #[test]
@@ -1349,7 +1351,7 @@ mod tests {
     #[test]
     fn verified_independence_is_not_a_conflict_resolution() {
         let report = default_report().expect("report");
-        assert_eq!(report.verified_independent_evidence_ids.len(), 2);
+        assert_eq!(report.attested_independent_evidence_ids.len(), 2);
         assert_eq!(report.adjudication_status, "UNRESOLVED_CONFLICT");
         assert!(report.resolution_action.is_some());
     }
