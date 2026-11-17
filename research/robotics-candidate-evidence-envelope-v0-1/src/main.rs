@@ -75,8 +75,6 @@ fn fixture_binding() -> CandidateBinding {
         cost_model_id: "survey-cost-model".to_owned(),
         cost_model_revision: "cost-r1".to_owned(),
         cost_model_sha256: A.to_owned(),
-        estimated_travel_distance_m: 20.0,
-        estimated_travel_time_s: 10.0,
         estimated_acquisition_time_s: 4.0,
         estimated_energy_wh: 2.5,
         risk_penalty_s: 0.5,
