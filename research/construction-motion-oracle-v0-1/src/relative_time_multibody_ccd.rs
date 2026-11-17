@@ -1319,15 +1319,15 @@ mod tests {
             );
         }
         assert!(candidates.contains(&("robot-a".into(), "robot-b".into())));
-        assert!(accelerated.outer_aabb_pruned_pairs > 0);
+        assert!(accelerated.outer_space_time_pruned_pairs > 0);
         assert_eq!(
-            accelerated.reference_pair_count,
+            accelerated.broadphase_candidate_pairs,
             accelerated.pairs.len() as u64
         );
     }
 
     #[test]
-    fn sparse_scene_is_pruned_without_losing_any_pair_receipts() {
+    fn sparse_scene_is_pruned_without_materializing_quadratic_pruned_receipts() {
         let bodies: Vec<_> = (0..32)
             .map(|index| {
                 let id = format!("robot-{index:03}");
@@ -1343,9 +1343,9 @@ mod tests {
             evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config())
                 .unwrap();
         assert_eq!(report.reference_pair_count, 496);
-        assert_eq!(report.pairs.len(), 496);
+        assert_eq!(report.pairs.len(), 0);
         assert_eq!(report.broadphase_candidate_pairs, 0);
-        assert_eq!(report.outer_aabb_pruned_pairs, 496);
+        assert_eq!(report.outer_space_time_pruned_pairs, 496);
         assert_eq!(report.unresolved_pairs, 0);
     }
 
@@ -1363,10 +1363,10 @@ mod tests {
             evaluate_relative_time_multibody_ccd_with_broadphase(&missing, &broadphase_config())
                 .unwrap();
         assert_eq!(missing_report.unresolved_pairs, 1);
-        assert_eq!(
-            missing_report.pairs[0].disposition,
-            RelativeTimeBroadphasePairDisposition::Unresolved
-        );
+        assert!(matches!(
+            missing_report.body_mappings[0].disposition,
+            ClockMappingDisposition::Unresolved(ClockMappingFailure::MissingMapping)
+        ));
 
         let mut at_zero = span(0.0, 0.0, 0, 1_000, "clock-a");
         at_zero.clock_uncertainty_ms = 10;
@@ -1393,11 +1393,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(report.unresolved_pairs, 1);
+        assert_eq!(report.pairs.len(), 0);
         assert_eq!(
-            report.pairs[0].unresolved_reason,
-            Some(RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(
-                OuterEnvelopeFailure::TimestampUnderflow
-            ))
+            report.body_envelope_failures,
+            vec![("a".into(), OuterEnvelopeFailure::TimestampUnderflow)]
         );
     }
 
