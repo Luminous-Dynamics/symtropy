@@ -363,7 +363,10 @@ impl UsefulServiceContract {
         }
 
         for (field, value) in [
-            ("quality_profile_digest", spec.quality_profile_digest.as_deref()),
+            (
+                "quality_profile_digest",
+                spec.quality_profile_digest.as_deref(),
+            ),
             ("duty_cycle_digest", spec.duty_cycle_digest.as_deref()),
             ("scenario_digest", spec.scenario_digest.as_deref()),
             (
@@ -392,8 +395,7 @@ impl UsefulServiceContract {
             scenario_digest: spec.scenario_digest,
             location_environment_digest: spec.location_environment_digest,
             source_boundary_profile_digest: spec.source_boundary_profile_digest,
-            useful_service_boundary_profile_digest: spec
-                .useful_service_boundary_profile_digest,
+            useful_service_boundary_profile_digest: spec.useful_service_boundary_profile_digest,
         })
     }
 
@@ -584,9 +586,7 @@ pub fn assess_matched_service(
     );
     compare_optional_field!(
         ComparisonField::UsefulServiceBoundary,
-        |service: &UsefulServiceContract| service
-            .useful_service_boundary_profile_digest
-            .as_deref()
+        |service: &UsefulServiceContract| service.useful_service_boundary_profile_digest.as_deref()
     );
 
     for candidate in &ordered {
@@ -601,9 +601,9 @@ pub fn assess_matched_service(
         }
     }
 
-    let has_known_mismatch = reasons.iter().any(|reason| {
-        matches!(reason, MatchedServiceReason::MismatchedField { .. })
-    });
+    let has_known_mismatch = reasons
+        .iter()
+        .any(|reason| matches!(reason, MatchedServiceReason::MismatchedField { .. }));
     let status = if has_known_mismatch {
         MatchedServiceComparisonStatus::NotComparable
     } else if !reasons.is_empty() {
@@ -631,26 +631,21 @@ fn valid_carrier_mechanism_medium(
         (EnergyCarrier::Electrical, TransportMechanism::Conduction) => {
             matches!(medium, TransportMedium::Conductor | TransportMedium::Soil)
         }
-        (
-            EnergyCarrier::Electrical,
-            TransportMechanism::SuperconductingConduction,
-        ) => medium == TransportMedium::SuperconductingCable,
-        (
-            EnergyCarrier::ElectromagneticField,
-            TransportMechanism::MagneticInduction,
-        ) => medium == TransportMedium::Coil,
-        (
-            EnergyCarrier::ElectromagneticField,
-            TransportMechanism::CapacitiveCoupling,
-        ) => medium == TransportMedium::Electrodes,
-        (
-            EnergyCarrier::ElectromagneticField,
-            TransportMechanism::RadiativePropagation,
-        ) => medium == TransportMedium::FreeSpace,
-        (
-            EnergyCarrier::ElectromagneticField,
-            TransportMechanism::GuidedElectromagnetic,
-        ) => medium == TransportMedium::Waveguide,
+        (EnergyCarrier::Electrical, TransportMechanism::SuperconductingConduction) => {
+            medium == TransportMedium::SuperconductingCable
+        }
+        (EnergyCarrier::ElectromagneticField, TransportMechanism::MagneticInduction) => {
+            medium == TransportMedium::Coil
+        }
+        (EnergyCarrier::ElectromagneticField, TransportMechanism::CapacitiveCoupling) => {
+            medium == TransportMedium::Electrodes
+        }
+        (EnergyCarrier::ElectromagneticField, TransportMechanism::RadiativePropagation) => {
+            medium == TransportMedium::FreeSpace
+        }
+        (EnergyCarrier::ElectromagneticField, TransportMechanism::GuidedElectromagnetic) => {
+            medium == TransportMedium::Waveguide
+        }
         (EnergyCarrier::Thermal, TransportMechanism::ThermalConduction) => {
             medium == TransportMedium::Solid
         }
@@ -736,7 +731,10 @@ impl core::fmt::Display for TransportContractError {
         match self {
             Self::MissingField { field } => write!(f, "{field} must not be empty"),
             Self::SelfReferentialPorts { port_id } => {
-                write!(f, "transport primitive cannot connect port {port_id} to itself")
+                write!(
+                    f,
+                    "transport primitive cannot connect port {port_id} to itself"
+                )
             }
             Self::InvalidPhysicalCombination {
                 carrier,
@@ -747,7 +745,10 @@ impl core::fmt::Display for TransportContractError {
                 "unsupported carrier/mechanism/medium combination: {carrier:?}/{mechanism:?}/{medium:?}"
             ),
             Self::EmptyPath { path_id } => {
-                write!(f, "transport path {path_id} must contain at least one primitive")
+                write!(
+                    f,
+                    "transport path {path_id} must contain at least one primitive"
+                )
             }
             Self::DuplicatePrimitiveId { primitive_id } => {
                 write!(f, "duplicate transport primitive id {primitive_id}")
@@ -770,7 +771,10 @@ impl core::fmt::Display for TransportContractError {
                 "transport path destination mismatch: expected {expected}, got {actual}"
             ),
             Self::InsufficientCandidates { count } => {
-                write!(f, "matched-service comparison requires at least two candidates, got {count}")
+                write!(
+                    f,
+                    "matched-service comparison requires at least two candidates, got {count}"
+                )
             }
             Self::DuplicateCandidateId { candidate_id } => {
                 write!(f, "duplicate transport candidate id {candidate_id}")
@@ -825,7 +829,9 @@ mod tests {
             scenario_digest: Some("scenario-remote-sensor-node-v1".to_owned()),
             location_environment_digest: Some("environment-indoor-dry-ambient-v1".to_owned()),
             source_boundary_profile_digest: Some("source-site-ac-input-v1".to_owned()),
-            useful_service_boundary_profile_digest: Some("receiver-regulated-dc-output-v1".to_owned()),
+            useful_service_boundary_profile_digest: Some(
+                "receiver-regulated-dc-output-v1".to_owned(),
+            ),
         })
         .unwrap()
     }
@@ -890,8 +896,7 @@ mod tests {
             service("service-photonic"),
         );
 
-        let assessment =
-            assess_matched_service(&[photonic, wired, inductive], &policy()).unwrap();
+        let assessment = assess_matched_service(&[photonic, wired, inductive], &policy()).unwrap();
 
         assert_eq!(
             assessment.status(),
@@ -900,7 +905,11 @@ mod tests {
         assert!(assessment.reasons().is_empty());
         assert_eq!(
             assessment.ordered_candidate_ids(),
-            &["inductive".to_owned(), "photonic".to_owned(), "wired".to_owned()]
+            &[
+                "inductive".to_owned(),
+                "photonic".to_owned(),
+                "wired".to_owned()
+            ]
         );
     }
 
@@ -995,8 +1004,7 @@ mod tests {
             TransportMedium::Conductor,
         );
         let path =
-            TransportPathContract::new("two-stage", "source", "load", vec![first, second])
-                .unwrap();
+            TransportPathContract::new("two-stage", "source", "load", vec![first, second]).unwrap();
 
         assert_eq!(path.primitives().len(), 2);
         assert_eq!(path.source_port_id(), "source");
@@ -1237,9 +1245,11 @@ mod tests {
             TransportMechanism::Conduction,
             TransportMedium::Conductor,
         );
-        untrusted.evidence =
-            EvidenceClaim::new(ModuleEvidenceClass::ManufacturerDeclared, Some("vendor".to_owned()))
-                .unwrap();
+        untrusted.evidence = EvidenceClaim::new(
+            ModuleEvidenceClass::ManufacturerDeclared,
+            Some("vendor".to_owned()),
+        )
+        .unwrap();
 
         let first = candidate("a", untrusted, service("a"));
         let second = candidate(
@@ -1366,10 +1376,7 @@ mod tests {
         })
         .unwrap();
 
-        assert_eq!(
-            primitive.conversion_stages(),
-            &[ConversionStage::Rectifier]
-        );
+        assert_eq!(primitive.conversion_stages(), &[ConversionStage::Rectifier]);
         assert_eq!(primitive.storage_state(), StorageState::Battery);
         assert_eq!(primitive.mechanism(), TransportMechanism::MagneticInduction);
     }
@@ -1377,22 +1384,86 @@ mod tests {
     #[test]
     fn all_admitted_transport_families_have_explicit_physical_pairs() {
         let cases = [
-            (EnergyCarrier::Electrical, TransportMechanism::Conduction, TransportMedium::Conductor),
-            (EnergyCarrier::Electrical, TransportMechanism::SuperconductingConduction, TransportMedium::SuperconductingCable),
-            (EnergyCarrier::ElectromagneticField, TransportMechanism::MagneticInduction, TransportMedium::Coil),
-            (EnergyCarrier::ElectromagneticField, TransportMechanism::CapacitiveCoupling, TransportMedium::Electrodes),
-            (EnergyCarrier::ElectromagneticField, TransportMechanism::RadiativePropagation, TransportMedium::FreeSpace),
-            (EnergyCarrier::ElectromagneticField, TransportMechanism::GuidedElectromagnetic, TransportMedium::Waveguide),
-            (EnergyCarrier::Thermal, TransportMechanism::ThermalConduction, TransportMedium::Solid),
-            (EnergyCarrier::Thermal, TransportMechanism::ThermalAdvection, TransportMedium::Liquid),
-            (EnergyCarrier::Thermal, TransportMechanism::PhaseChangeCapillary, TransportMedium::Pipe),
-            (EnergyCarrier::Mechanical, TransportMechanism::ShaftDrive, TransportMedium::Shaft),
-            (EnergyCarrier::Mechanical, TransportMechanism::HydraulicFlow, TransportMedium::Pipe),
-            (EnergyCarrier::Mechanical, TransportMechanism::PneumaticFlow, TransportMedium::Gas),
-            (EnergyCarrier::Acoustic, TransportMechanism::AcousticWave, TransportMedium::Liquid),
-            (EnergyCarrier::Chemical, TransportMechanism::EnergyBearingLogistics, TransportMedium::Vessel),
-            (EnergyCarrier::Electrochemical, TransportMechanism::EnergyBearingLogistics, TransportMedium::Road),
-            (EnergyCarrier::GravitationalPotential, TransportMechanism::EnergyBearingLogistics, TransportMedium::Rail),
+            (
+                EnergyCarrier::Electrical,
+                TransportMechanism::Conduction,
+                TransportMedium::Conductor,
+            ),
+            (
+                EnergyCarrier::Electrical,
+                TransportMechanism::SuperconductingConduction,
+                TransportMedium::SuperconductingCable,
+            ),
+            (
+                EnergyCarrier::ElectromagneticField,
+                TransportMechanism::MagneticInduction,
+                TransportMedium::Coil,
+            ),
+            (
+                EnergyCarrier::ElectromagneticField,
+                TransportMechanism::CapacitiveCoupling,
+                TransportMedium::Electrodes,
+            ),
+            (
+                EnergyCarrier::ElectromagneticField,
+                TransportMechanism::RadiativePropagation,
+                TransportMedium::FreeSpace,
+            ),
+            (
+                EnergyCarrier::ElectromagneticField,
+                TransportMechanism::GuidedElectromagnetic,
+                TransportMedium::Waveguide,
+            ),
+            (
+                EnergyCarrier::Thermal,
+                TransportMechanism::ThermalConduction,
+                TransportMedium::Solid,
+            ),
+            (
+                EnergyCarrier::Thermal,
+                TransportMechanism::ThermalAdvection,
+                TransportMedium::Liquid,
+            ),
+            (
+                EnergyCarrier::Thermal,
+                TransportMechanism::PhaseChangeCapillary,
+                TransportMedium::Pipe,
+            ),
+            (
+                EnergyCarrier::Mechanical,
+                TransportMechanism::ShaftDrive,
+                TransportMedium::Shaft,
+            ),
+            (
+                EnergyCarrier::Mechanical,
+                TransportMechanism::HydraulicFlow,
+                TransportMedium::Pipe,
+            ),
+            (
+                EnergyCarrier::Mechanical,
+                TransportMechanism::PneumaticFlow,
+                TransportMedium::Gas,
+            ),
+            (
+                EnergyCarrier::Acoustic,
+                TransportMechanism::AcousticWave,
+                TransportMedium::Liquid,
+            ),
+            (
+                EnergyCarrier::Chemical,
+                TransportMechanism::EnergyBearingLogistics,
+                TransportMedium::Vessel,
+            ),
+            (
+                EnergyCarrier::Electrochemical,
+                TransportMechanism::EnergyBearingLogistics,
+                TransportMedium::Road,
+            ),
+            (
+                EnergyCarrier::GravitationalPotential,
+                TransportMechanism::EnergyBearingLogistics,
+                TransportMedium::Rail,
+            ),
         ];
 
         for (carrier, mechanism, medium) in cases {
