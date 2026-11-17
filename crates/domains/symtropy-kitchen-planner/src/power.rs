@@ -151,11 +151,11 @@ pub enum PowerScheduleErrorV1 {
     InvalidInput(Vec<PowerConstraintViolation>),
     NoScheduleFoundByHeuristics {
         parallel_schedule_error: Option<String>,
-        parallel_power_violations: Vec<PowerConstraintViolation>,
+        parallel_power_violations: Box<Vec<PowerConstraintViolation>>,
         power_aware_schedule_error: Option<String>,
-        power_aware_power_violations: Vec<PowerConstraintViolation>,
+        power_aware_power_violations: Box<Vec<PowerConstraintViolation>>,
         serial_schedule_error: Option<String>,
-        serial_power_violations: Vec<PowerConstraintViolation>,
+        serial_power_violations: Box<Vec<PowerConstraintViolation>>,
     },
 }
 
@@ -906,11 +906,11 @@ pub fn build_power_constrained_schedule(
 
     Err(PowerScheduleErrorV1::NoScheduleFoundByHeuristics {
         parallel_schedule_error,
-        parallel_power_violations,
+        parallel_power_violations: Box::new(parallel_power_violations),
         power_aware_schedule_error,
-        power_aware_power_violations,
+        power_aware_power_violations: Box::new(power_aware_power_violations),
         serial_schedule_error,
-        serial_power_violations,
+        serial_power_violations: Box::new(serial_power_violations),
     })
 }
 
