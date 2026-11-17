@@ -115,3 +115,7 @@ The beam_element module now provides a 12-DOF 3D Euler-Bernoulli element with:
 Its tests include matrix symmetry/finite checks, a cantilever tip deflection and rotation against the closed-form Euler-Bernoulli solution, local-frame orthonormality, transformation orthogonality/recovery, and rejection of parallel/ill-conditioned orientation hints.
 
 This is only an element kernel. It does not assemble a frame, solve global displacements, include shear deformation, geometric stiffness, global buckling eigenvalues, imperfections, nonlinear behavior or joint rotational springs. Euler-Bernoulli assumptions are inappropriate for sufficiently deep/short members; a Timoshenko element is a later requirement where shear deformation matters.
+
+## Frozen comparison protocol
+
+The benchmark campaign rules are versioned at research/ffmfe-benchmark/PROTOCOL_V1.md. The protocol freezes geometry, supports, loads, materials, solver fidelity, mass accounting, search budget, hold-out families and reporting metrics before candidate selection. B0 matched-topology reproduction is tracked in issue #5808.
