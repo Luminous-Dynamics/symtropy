@@ -535,6 +535,20 @@ fn refine_time_swept_capsule_candidates(
         });
     }
 
+    let pair_body_indices: Vec<(usize, usize)> = coarse
+        .pairs
+        .iter()
+        .map(|pair| {
+            let first_index = *span_by_id
+                .get(pair.first_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            let second_index = *span_by_id
+                .get(pair.second_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            Ok((first_index, second_index))
+        })
+        .collect::<Result<_, MultiBodyBroadphaseError>>()?;
+
     let horizon_duration = coarse
         .horizon_end_ms
         .checked_sub(coarse.horizon_start_ms)
@@ -585,17 +599,11 @@ fn refine_time_swept_capsule_candidates(
                 .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
         }
 
-        for (pair_index, pair) in coarse.pairs.iter().enumerate() {
-            let first_index = *span_by_id
-                .get(pair.first_body_id.as_str())
-                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-            let second_index = *span_by_id
-                .get(pair.second_body_id.as_str())
-                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-            let Some(first_cached) = cached_by_body[first_index] else {
+        for (pair_index, (first_index, second_index)) in pair_body_indices.iter().enumerate() {
+            let Some(first_cached) = cached_by_body[*first_index] else {
                 continue;
             };
-            let Some(second_cached) = cached_by_body[second_index] else {
+            let Some(second_cached) = cached_by_body[*second_index] else {
                 continue;
             };
 
@@ -634,12 +642,12 @@ fn refine_time_swept_capsule_candidates(
                     .checked_add(1)
                     .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
                 let first_common = swept_bounds(
-                    &bodies[first_index].motion,
+                    &bodies[*first_index].motion,
                     overlap_start_ms,
                     overlap_end_ms,
                 )?;
                 let second_common = swept_bounds(
-                    &bodies[second_index].motion,
+                    &bodies[*second_index].motion,
                     overlap_start_ms,
                     overlap_end_ms,
                 )?;
@@ -657,21 +665,18 @@ fn refine_time_swept_capsule_candidates(
     }
 
     let mut output_pairs = Vec::with_capacity(coarse.pairs.len());
-    for (pair, mut candidate_slabs) in
-        coarse.pairs.iter().zip(candidate_slabs_by_pair.into_iter())
+    for ((pair, (first_index, second_index)), mut candidate_slabs) in coarse
+        .pairs
+        .iter()
+        .zip(pair_body_indices.iter())
+        .zip(candidate_slabs_by_pair.into_iter())
     {
         if candidate_slabs.is_empty() {
             continue;
         }
         candidate_slabs.sort_by_key(|candidate| candidate.slab_index);
-        let first_index = *span_by_id
-            .get(pair.first_body_id.as_str())
-            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-        let second_index = *span_by_id
-            .get(pair.second_body_id.as_str())
-            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-        let first_span = &bodies[first_index].motion;
-        let second_span = &bodies[second_index].motion;
+        let first_span = &bodies[*first_index].motion;
+        let second_span = &bodies[*second_index].motion;
         let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
         let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
         if active_overlap_start_ms >= active_overlap_end_ms {
