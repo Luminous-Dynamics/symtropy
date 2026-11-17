@@ -429,7 +429,10 @@
         "edge_compute_required",
         "drone_data_relay_required",
         "platform_crosslink_required",
-        "terrestrial_gateway_required"
+        "terrestrial_gateway_required",
+        "demand_management",
+        "radio_resource_budget",
+        "backhaul_capacity"
       ],
       "properties": {
         "access_modes": {
@@ -470,6 +473,141 @@
         },
         "terrestrial_gateway_required": {
           "type": "boolean"
+        },
+        "demand_management": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "traffic_demand_profile_ref",
+            "network_allocation_case_refs",
+            "traffic_data_available_at_decision_time",
+            "reanalysis_not_used_as_live_forecast",
+            "priority_policy",
+            "forecast_horizon_s"
+          ],
+          "properties": {
+            "traffic_demand_profile_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "network_allocation_case_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "traffic_data_available_at_decision_time": {
+              "type": "boolean"
+            },
+            "reanalysis_not_used_as_live_forecast": {
+              "const": true
+            },
+            "priority_policy": {
+              "enum": [
+                "critical_excess_first",
+                "emergency_first",
+                "weighted_fair",
+                "static_fixed_assignment"
+              ]
+            },
+            "forecast_horizon_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "traffic_forecast_model_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "radio_resource_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "beam_budget",
+            "per_beam_capacity_mbps",
+            "max_cells_served_simultaneously",
+            "beam_reallocation_interval_s",
+            "allocation_policy"
+          ],
+          "properties": {
+            "beam_budget": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "per_beam_capacity_mbps": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "max_cells_served_simultaneously": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "beam_reallocation_interval_s": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "allocation_policy": {
+              "enum": [
+                "critical_excess_weighted_greedy",
+                "rolling_horizon_optimization",
+                "lyapunov_control",
+                "robust_mpc",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "backhaul_capacity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "terrestrial_gateway_capacity_mbps",
+            "satellite_backhaul_capacity_mbps",
+            "fso_backhaul_capacity_mbps",
+            "edge_compute_capacity_tops",
+            "platform_crosslink_capacity_mbps"
+          ],
+          "properties": {
+            "terrestrial_gateway_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "satellite_backhaul_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "fso_backhaul_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "edge_compute_capacity_tops": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "platform_crosslink_capacity_mbps": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
         }
       }
     }
