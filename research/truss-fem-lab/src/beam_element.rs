@@ -396,6 +396,54 @@ mod tests {
     }
 
     #[test]
+    fn local_global_transform_is_orthogonal_and_recovers_local_stiffness() {
+        let beam = BeamElement3D::new(
+            Vec3::new(-2.0, 1.0, 0.5),
+            Vec3::new(1.0, 3.0, 4.5),
+            Vec3::new(0.4, -0.2, 1.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let transform = beam.global_to_local_transform();
+        let global = beam.global_stiffness_matrix();
+        let mut recovered = [[0.0_f64; 12]; 12];
+        let mut temp = [[0.0_f64; 12]; 12];
+
+        for row in 0..12 {
+            for column in 0..12 {
+                let mut dot = 0.0;
+                for inner in 0..12 {
+                    dot += transform[row][inner] * transform[column][inner];
+                }
+                let expected = if row == column { 1.0 } else { 0.0 };
+                assert!((dot - expected).abs() < 1.0e-12);
+            }
+        }
+
+        for row in 0..12 {
+            for column in 0..12 {
+                for inner in 0..12 {
+                    temp[row][column] += transform[row][inner] * global[inner][column];
+                }
+            }
+        }
+        for row in 0..12 {
+            for column in 0..12 {
+                for inner in 0..12 {
+                    recovered[row][column] += temp[row][inner] * transform[column][inner];
+                }
+            }
+        }
+        let local = beam.local_stiffness_matrix();
+        for row in 0..12 {
+            for column in 0..12 {
+                assert!((recovered[row][column] - local[row][column]).abs() < 1.0e-6);
+            }
+        }
+    }
+
+    #[test]
     fn parallel_orientation_hint_fails_closed() {
         let error = BeamElement3D::new(
             Vec3::new(0.0, 0.0, 0.0),
