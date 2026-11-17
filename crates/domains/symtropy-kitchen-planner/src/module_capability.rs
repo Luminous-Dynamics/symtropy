@@ -179,6 +179,9 @@ pub enum ModuleCapabilityViolationCodeV1 {
     PressureModuleMissingQualification,
     IncompleteElectricalRange,
     InvalidCapabilityClaimEvidence,
+    PressureCapabilityKindMismatch,
+    InvalidOperatingRange,
+    MissingElectricalEvidence,
     EmptyInterfaceReference,
     DuplicateReference,
     EmptySafetyAuthorityReference,
@@ -338,6 +341,18 @@ pub fn validate_kitchen_module_capability(
                 "capability_id must be unique within a module revision",
             );
         }
+        if capability.minimum_batch_mass_g == Some(0)
+            || capability.maximum_batch_mass_g == Some(0)
+            || capability.nominal_throughput_g_per_min == Some(0)
+            || capability.maximum_continuous_run_ms == Some(0)
+        {
+            add_violation(
+                &mut violations,
+                ModuleCapabilityViolationCodeV1::InvalidOperatingRange,
+                Some(capability_id),
+                "batch, throughput and run-time limits must be positive when supplied",
+            );
+        }
         if capability.minimum_batch_mass_g.is_some_and(|minimum| {
             capability.maximum_batch_mass_g.is_some_and(|maximum| minimum > maximum)
         }) {
@@ -467,6 +482,18 @@ pub fn validate_kitchen_module_capability(
             "power_profile_ref must be non-empty when supplied",
         );
     }
+    let has_electrical_ratings = electrical.nominal_voltage_min_mv.is_some()
+        || electrical.mains_frequency_min_millihz.is_some()
+        || electrical.continuous_real_power_limit_w.is_some()
+        || electrical.power_profile_ref.is_some();
+    if has_electrical_ratings && electrical.electrical_evidence.is_none() {
+        add_violation(
+            &mut violations,
+            ModuleCapabilityViolationCodeV1::MissingElectricalEvidence,
+            None,
+            "electrical ratings/profiles require an explicit evidence source",
+        );
+    }
     if let Some(evidence) = electrical.electrical_evidence.as_ref() {
         validate_evidence(evidence, None, &mut violations);
     }
@@ -498,6 +525,17 @@ pub fn validate_kitchen_module_capability(
                 "capability claim status exceeds its evidence class",
             );
         }
+    }
+    let declares_pressure_cook = module.capabilities.iter().any(|capability| {
+        capability.action_group == ActionGroupV1::PressureCook
+    });
+    if (module.module_kind == KitchenModuleKindV1::PressureCooker) != declares_pressure_cook {
+        add_violation(
+            &mut violations,
+            ModuleCapabilityViolationCodeV1::PressureCapabilityKindMismatch,
+            None,
+            "PressureCook action capability and pressure-cooker module kind must be declared together",
+        );
     }
     if module.module_kind == KitchenModuleKindV1::PressureCooker {
         match module.pressure_safety.as_ref() {
