@@ -5,14 +5,14 @@ use construction_motion_oracle::{
     AnalyticPath, Capsule, CapsuleMotionSpan, ClockDomainCapsuleBody, QualifiedClockMapping,
     RelativeTimeBroadphaseConfig, RelativeTimeMultiBodyConfig, TimedCapsuleBody, Vec3,
     chord_collision, co_translating_capsule_capsule_collision,
-    co_translating_capsule_swept_aabb_candidate, co_translating_capsule_time_sliced_aabb_candidates,
-    co_translating_capsule_vs_capsule, endpoints_only_co_translating_capsule_collision,
-    endpoints_only_collision, endpoints_only_translating_capsule_collision,
-    evaluate_relative_time_multibody_ccd, evaluate_relative_time_multibody_ccd_with_broadphase,
-    moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
-    time_swept_capsule_broadphase, timed_co_translating_capsule_vs_capsule,
-    translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
-    translating_capsule_vs_capsule,
+    co_translating_capsule_swept_aabb_candidate,
+    co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
+    endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
+    endpoints_only_translating_capsule_collision, evaluate_relative_time_multibody_ccd,
+    evaluate_relative_time_multibody_ccd_with_broadphase, moving_sphere_capsule_collision,
+    swept_sphere_capsule_aabb_candidate, time_swept_capsule_broadphase,
+    timed_co_translating_capsule_vs_capsule, translating_capsule_aabb_candidate,
+    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -699,7 +699,6 @@ fn run_relative_time_multibody_benchmarks() {
         );
     }
 }
-
 
 fn run_relative_time_multibody_broadphase_benchmarks() {
     println!(
