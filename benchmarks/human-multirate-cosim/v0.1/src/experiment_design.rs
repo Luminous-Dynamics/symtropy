@@ -155,8 +155,8 @@ impl ExperimentDesignScenario {
 pub struct PairwiseModelSeparation {
     pub left_model_id: u32,
     pub right_model_id: u32,
-    /// One half of the accumulated squared Mahalanobis distance.
-    pub t_optimal_separation: f64,
+    /// Equal-covariance Gaussian KL divergence summed over observation times.
+    pub gaussian_kl_separation: f64,
 }
 
 /// Predicted sensor means for one candidate model, retained for the evaluator.
@@ -177,8 +177,8 @@ pub struct ExperimentDesignScore {
     pub maximum_abs_forcing: f64,
     pub integrated_squared_input: f64,
     pub pairwise_separations: Vec<PairwiseModelSeparation>,
-    pub minimum_pairwise_separation: f64,
-    pub mean_pairwise_separation: f64,
+    pub minimum_pairwise_gaussian_kl: f64,
+    pub mean_pairwise_gaussian_kl: f64,
     pub worst_case_indistinguishable: bool,
     pub model_observation_means: Vec<ModelObservationMeans>,
 }
@@ -350,18 +350,18 @@ pub fn evaluate_input_profile(
             pairwise_separations.push(PairwiseModelSeparation {
                 left_model_id: model_means[left].model_id,
                 right_model_id: model_means[right].model_id,
-                t_optimal_separation: separation.max(0.0),
+                gaussian_kl_separation: separation.max(0.0),
             });
         }
     }
 
-    let minimum_pairwise_separation = pairwise_separations
+    let minimum_pairwise_gaussian_kl = pairwise_separations
         .iter()
-        .map(|pair| pair.t_optimal_separation)
+        .map(|pair| pair.gaussian_kl_separation)
         .fold(f64::INFINITY, f64::min);
-    let mean_pairwise_separation = pairwise_separations
+    let mean_pairwise_gaussian_kl = pairwise_separations
         .iter()
-        .map(|pair| pair.t_optimal_separation)
+        .map(|pair| pair.gaussian_kl_separation)
         .sum::<f64>()
         / pairwise_separations.len() as f64;
     let sensor_cost: f64 = selected_indices
@@ -377,17 +377,19 @@ pub fn evaluate_input_profile(
         maximum_abs_forcing,
         integrated_squared_input,
         pairwise_separations,
-        minimum_pairwise_separation,
-        mean_pairwise_separation,
-        worst_case_indistinguishable: minimum_pairwise_separation
+        minimum_pairwise_gaussian_kl,
+        mean_pairwise_gaussian_kl,
+        worst_case_indistinguishable: minimum_pairwise_gaussian_kl
             <= INDISTINGUISHABLE_TOLERANCE,
         model_observation_means: model_means,
     })
 }
 
 /// Evaluate a deterministic input-profile catalogue. The best profile
-/// maximizes the minimum pairwise model separation; exact ties prefer lower
-/// input energy, then lower peak amplitude, then smaller profile ID.
+/// maximizes the minimum pairwise equal-covariance Gaussian KL separation;
+/// exact ties prefer lower input energy, then lower peak amplitude, then a
+/// smaller stable profile ID. This is a fixed-parameter special case, not a
+/// nuisance-parameter-profiled T-optimal design solver.
 pub fn evaluate_input_tournament(
     scenario: &ExperimentDesignScenario,
     profiles: &[InputProfile],
@@ -415,10 +417,10 @@ pub fn evaluate_input_tournament(
     let mut best: Option<ExperimentDesignScore> = None;
     for score in &scores {
         let replace = best.as_ref().is_none_or(|current| {
-            score.minimum_pairwise_separation
-                > current.minimum_pairwise_separation + FEASIBILITY_TOLERANCE
-                || ((score.minimum_pairwise_separation
-                    - current.minimum_pairwise_separation)
+            score.minimum_pairwise_gaussian_kl
+                > current.minimum_pairwise_gaussian_kl + FEASIBILITY_TOLERANCE
+                || ((score.minimum_pairwise_gaussian_kl
+                    - current.minimum_pairwise_gaussian_kl)
                     .abs()
                     <= FEASIBILITY_TOLERANCE
                     && (score.integrated_squared_input
@@ -640,18 +642,18 @@ mod tests {
     #[test]
     fn passive_observation_does_not_discriminate_equivalent_zero_state_models() {
         let score = evaluate_input_profile(&scenario(), &passive_profile(), &[30]).unwrap();
-        assert_eq!(score.minimum_pairwise_separation, 0.0);
+        assert_eq!(score.minimum_pairwise_gaussian_kl, 0.0);
         assert!(score.worst_case_indistinguishable);
     }
 
     #[test]
     fn bounded_pulse_discriminates_chain_from_bypass_model() {
         let score = evaluate_input_profile(&scenario(), &pulse_profile(), &[30]).unwrap();
-        assert!(score.minimum_pairwise_separation > 1.0e-6);
+        assert!(score.minimum_pairwise_gaussian_kl > 1.0e-6);
         assert!(
-            (score.minimum_pairwise_separation - 0.3344981676303682).abs() < 1.0e-9,
+            (score.minimum_pairwise_gaussian_kl - 0.3344981676303682).abs() < 1.0e-9,
             "T-optimal known-answer separation was {}",
-            score.minimum_pairwise_separation
+            score.minimum_pairwise_gaussian_kl
         );
         assert!(!score.worst_case_indistinguishable);
         assert!((score.integrated_squared_input - 0.5).abs() < 1.0e-12);
