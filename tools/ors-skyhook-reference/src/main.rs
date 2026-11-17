@@ -2,7 +2,7 @@ use std::env;
 use std::fmt::Write as _;
 use std::process::ExitCode;
 
-use ors_skyhook_reference::{evaluate_corpus, FixtureStatus};
+use ors_skyhook_reference::evaluate_corpus;
 
 fn valid_hex(value: &str, length: usize) -> bool {
     value.len() == length
