@@ -917,7 +917,8 @@ mod tests {
         fixture["profiles"][0]["obligations"][0]["source"]["translation_language"] =
             Value::String("en".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
-        let error = audit_schema_and_corpus(SCHEMA, &encoded).expect_err("missing translation artifact rejects");
+        let error = audit_schema_and_corpus(SCHEMA, &encoded)
+            .expect_err("missing translation artifact rejects");
         assert!(error.contains("corpus violates Draft 2020-12 schema"));
     }
 
@@ -929,7 +930,8 @@ mod tests {
         fixture["profiles"][0]["obligations"][0]["source"]["translation_artifact_ref"] =
             Value::String("urn:luminous:synthetic:translation:should-not-exist".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
-        let error = audit_schema_and_corpus(SCHEMA, &encoded).expect_err("unexpected translation artifact rejects");
+        let error = audit_schema_and_corpus(SCHEMA, &encoded)
+            .expect_err("unexpected translation artifact rejects");
         assert!(error.contains("corpus violates Draft 2020-12 schema"));
     }
 
