@@ -98,15 +98,22 @@ impl EntityKind {
         match self {
             Self::CrateDataset => "Dataset",
             Self::RawDataFile | Self::DerivedDataFile => "MediaObject",
-            Self::Laboratory | Self::Rig | Self::Instrument | Self::Detector | Self::OpticalSource
+            Self::Laboratory
+            | Self::Rig
+            | Self::Instrument
+            | Self::Detector
+            | Self::OpticalSource
             | Self::OpticalPath => "IndividualProduct",
             Self::MaterialFamily | Self::FeedstockBatch | Self::Sample | Self::ProductLot => {
                 "Thing"
             }
-            Self::CalibrationCertificate | Self::ReferenceMaterial | Self::Method
-            | Self::Protocol | Self::Software | Self::Firmware | Self::AuthorityReceipt => {
-                "CreativeWork"
-            }
+            Self::CalibrationCertificate
+            | Self::ReferenceMaterial
+            | Self::Method
+            | Self::Protocol
+            | Self::Software
+            | Self::Firmware
+            | Self::AuthorityReceipt => "CreativeWork",
             Self::OptimizerFantasy => "Thing",
         }
     }
@@ -296,9 +303,18 @@ pub enum ProfileFinding {
     MissingArtifact(String),
     InvalidArtifactMediaType(String),
     InvalidArtifactHash(String),
-    DuplicateUnknownField { node_id: String, field: String },
-    InvalidUnknownField { node_id: String, field: String },
-    UnknownNodeReference { source_id: String, target_id: String },
+    DuplicateUnknownField {
+        node_id: String,
+        field: String,
+    },
+    InvalidUnknownField {
+        node_id: String,
+        field: String,
+    },
+    UnknownNodeReference {
+        source_id: String,
+        target_id: String,
+    },
     InvalidProvRelation {
         kind: ProvRelationKind,
         subject_id: String,
@@ -309,7 +325,10 @@ pub enum ProfileFinding {
     MissingMeasurementNode(String),
     MissingMeasurementProvenance(String),
     DuplicateMeasurementClaim(String),
-    MissingMeasurementReference { claim_id: String, field: &'static str },
+    MissingMeasurementReference {
+        claim_id: String,
+        field: &'static str,
+    },
     InvalidMeasurementValue(String),
     InvalidMeasurementUncertainty(String),
     MeasurementTimeInverted(String),
@@ -368,12 +387,7 @@ impl PortableEvidenceProfile {
             .collect()
     }
 
-    fn has_relation(
-        &self,
-        kind: ProvRelationKind,
-        subject_id: &str,
-        object_id: &str,
-    ) -> bool {
+    fn has_relation(&self, kind: ProvRelationKind, subject_id: &str, object_id: &str) -> bool {
         self.relations.iter().any(|relation| {
             relation.kind == kind
                 && relation.subject_id == subject_id
@@ -381,31 +395,22 @@ impl PortableEvidenceProfile {
         })
     }
 
-    fn relation_valid(
-        kind: ProvRelationKind,
-        subject: &NodeClass,
-        object: &NodeClass,
-    ) -> bool {
+    fn relation_valid(kind: ProvRelationKind, subject: &NodeClass, object: &NodeClass) -> bool {
         match kind {
             ProvRelationKind::Used => {
-                matches!(subject, NodeClass::Activity(_))
-                    && matches!(object, NodeClass::Entity(_))
+                matches!(subject, NodeClass::Activity(_)) && matches!(object, NodeClass::Entity(_))
             }
             ProvRelationKind::WasGeneratedBy => {
-                matches!(subject, NodeClass::Entity(_))
-                    && matches!(object, NodeClass::Activity(_))
+                matches!(subject, NodeClass::Entity(_)) && matches!(object, NodeClass::Activity(_))
             }
             ProvRelationKind::WasAssociatedWith => {
-                matches!(subject, NodeClass::Activity(_))
-                    && matches!(object, NodeClass::Agent(_))
+                matches!(subject, NodeClass::Activity(_)) && matches!(object, NodeClass::Agent(_))
             }
             ProvRelationKind::WasAttributedTo => {
-                matches!(subject, NodeClass::Entity(_))
-                    && matches!(object, NodeClass::Agent(_))
+                matches!(subject, NodeClass::Entity(_)) && matches!(object, NodeClass::Agent(_))
             }
             ProvRelationKind::WasDerivedFrom => {
-                matches!(subject, NodeClass::Entity(_))
-                    && matches!(object, NodeClass::Entity(_))
+                matches!(subject, NodeClass::Entity(_)) && matches!(object, NodeClass::Entity(_))
             }
             ProvRelationKind::WasInformedBy => {
                 matches!(subject, NodeClass::Activity(_))
@@ -447,17 +452,12 @@ impl PortableEvidenceProfile {
 
             if let Some(artifact) = &node.artifact {
                 if !nonempty(&artifact.location)
-                    || (!artifact.location.starts_with("./")
-                        && !absolute_uri(&artifact.location))
+                    || (!artifact.location.starts_with("./") && !absolute_uri(&artifact.location))
                 {
-                    findings.push(ProfileFinding::InvalidArtifactLocation(
-                        node.id.clone(),
-                    ));
+                    findings.push(ProfileFinding::InvalidArtifactLocation(node.id.clone()));
                 }
                 if !nonempty(&artifact.media_type) {
-                    findings.push(ProfileFinding::InvalidArtifactMediaType(
-                        node.id.clone(),
-                    ));
+                    findings.push(ProfileFinding::InvalidArtifactMediaType(node.id.clone()));
                 }
                 if !valid_sha256(&artifact.sha256) {
                     findings.push(ProfileFinding::InvalidArtifactHash(node.id.clone()));
@@ -491,7 +491,9 @@ impl PortableEvidenceProfile {
         let mut fantasy_ids = BTreeSet::new();
         for fantasy in &self.synthetic_fantasies {
             if !fantasy_ids.insert(fantasy.id.as_str()) {
-                findings.push(ProfileFinding::FantasyNotExplicitlyTyped(fantasy.id.clone()));
+                findings.push(ProfileFinding::FantasyNotExplicitlyTyped(
+                    fantasy.id.clone(),
+                ));
             }
         }
 
@@ -524,7 +526,8 @@ impl PortableEvidenceProfile {
         }
 
         for fantasy in &self.synthetic_fantasies {
-            if !nonempty(&fantasy.id) || !nonempty(&fantasy.policy_id) || !nonempty(&fantasy.job_id) {
+            if !nonempty(&fantasy.id) || !nonempty(&fantasy.policy_id) || !nonempty(&fantasy.job_id)
+            {
                 findings.push(ProfileFinding::FantasyNotExplicitlyTyped(
                     fantasy.id.clone(),
                 ));
@@ -581,15 +584,17 @@ impl PortableEvidenceProfile {
             }
         }
 
-        if self.nodes.iter().any(|node| !visited.contains(node.id.as_str())) {
+        if self
+            .nodes
+            .iter()
+            .any(|node| !visited.contains(node.id.as_str()))
+        {
             findings.push(ProfileFinding::ProvenanceNotConnectedToCrateRoot);
         }
 
         for claim in &self.measurements {
             if !nodes.contains_key(claim.id.as_str()) {
-                findings.push(ProfileFinding::MissingMeasurementNode(
-                    claim.id.clone(),
-                ));
+                findings.push(ProfileFinding::MissingMeasurementNode(claim.id.clone()));
             }
         }
     }
@@ -600,7 +605,10 @@ impl PortableEvidenceProfile {
             for (field, id) in [
                 ("sample_id", claim.sample_id.as_str()),
                 ("instrument_id", claim.instrument_id.as_str()),
-                ("calibration_certificate_id", claim.calibration_certificate_id.as_str()),
+                (
+                    "calibration_certificate_id",
+                    claim.calibration_certificate_id.as_str(),
+                ),
                 ("activity_id", claim.activity_id.as_str()),
             ] {
                 if !nodes.contains_key(id) {
@@ -618,12 +626,25 @@ impl PortableEvidenceProfile {
                     findings.push(ProfileFinding::MissingMeasurementNode(claim.id.clone()));
                 }
             }
-            if !self.has_relation(ProvRelationKind::WasGeneratedBy, &claim.id, &claim.activity_id)
-                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.sample_id)
-                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.instrument_id)
-                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.calibration_certificate_id)
+            if !self.has_relation(
+                ProvRelationKind::WasGeneratedBy,
+                &claim.id,
+                &claim.activity_id,
+            ) || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.sample_id)
+                || !self.has_relation(
+                    ProvRelationKind::Used,
+                    &claim.activity_id,
+                    &claim.instrument_id,
+                )
+                || !self.has_relation(
+                    ProvRelationKind::Used,
+                    &claim.activity_id,
+                    &claim.calibration_certificate_id,
+                )
             {
-                findings.push(ProfileFinding::MissingMeasurementProvenance(claim.id.clone()));
+                findings.push(ProfileFinding::MissingMeasurementProvenance(
+                    claim.id.clone(),
+                ));
             }
             if !claim.value.is_finite() {
                 findings.push(ProfileFinding::InvalidMeasurementValue(claim.id.clone()));
@@ -634,9 +655,7 @@ impl PortableEvidenceProfile {
                 ));
             }
             if claim.observed_at_utc_s > claim.recorded_at_utc_s {
-                findings.push(ProfileFinding::MeasurementTimeInverted(
-                    claim.id.clone(),
-                ));
+                findings.push(ProfileFinding::MeasurementTimeInverted(claim.id.clone()));
             }
             if !claim.unit_uri.starts_with("http://qudt.org/vocab/unit/")
                 && !claim.unit_uri.starts_with("https://qudt.org/vocab/unit/")
@@ -646,20 +665,20 @@ impl PortableEvidenceProfile {
 
             let qcm_is_proxy_only = claim.modality == MeasurementModality::QcmArealMass
                 && claim.claim_kind == MeasurementClaimKind::MetrologyObservation;
-            let optical_witness_is_optical =
-                matches!(
-                    claim.modality,
-                    MeasurementModality::OpticalWitnessTransmittance
-                        | MeasurementModality::OpticalWitnessReflectance
-                ) && claim.claim_kind == MeasurementClaimKind::MetrologyObservation;
+            let optical_witness_is_optical = matches!(
+                claim.modality,
+                MeasurementModality::OpticalWitnessTransmittance
+                    | MeasurementModality::OpticalWitnessReflectance
+            ) && claim.claim_kind
+                == MeasurementClaimKind::MetrologyObservation;
 
             let claim_pair_valid = match claim.claim_kind {
                 MeasurementClaimKind::MetrologyObservation => {
-                    qcm_is_proxy_only || optical_witness_is_optical
+                    qcm_is_proxy_only
+                        || optical_witness_is_optical
                         || matches!(
                             claim.modality,
-                            MeasurementModality::Temperature
-                                | MeasurementModality::GasComposition
+                            MeasurementModality::Temperature | MeasurementModality::GasComposition
                         )
                 }
                 MeasurementClaimKind::IntermediateProxy => matches!(
@@ -677,9 +696,7 @@ impl PortableEvidenceProfile {
                 }
             };
             if !claim_pair_valid {
-                findings.push(ProfileFinding::InvalidModalityClaimPair(
-                    claim.id.clone(),
-                ));
+                findings.push(ProfileFinding::InvalidModalityClaimPair(claim.id.clone()));
             }
             if claim.modality == MeasurementModality::QcmArealMass
                 && claim.claim_kind != MeasurementClaimKind::MetrologyObservation
@@ -740,13 +757,19 @@ impl PortableEvidenceProfile {
             }
 
             if !matches!(
-                nodes.get(acceptance.acceptance_receipt_id.as_str()).map(|node| &node.class),
+                nodes
+                    .get(acceptance.acceptance_receipt_id.as_str())
+                    .map(|node| &node.class),
                 Some(NodeClass::Entity(EntityKind::AuthorityReceipt))
             ) || !matches!(
-                nodes.get(acceptance.acceptance_activity_id.as_str()).map(|node| &node.class),
+                nodes
+                    .get(acceptance.acceptance_activity_id.as_str())
+                    .map(|node| &node.class),
                 Some(NodeClass::Activity(_))
             ) || !matches!(
-                nodes.get(acceptance.acceptance_authority_agent_id.as_str()).map(|node| &node.class),
+                nodes
+                    .get(acceptance.acceptance_authority_agent_id.as_str())
+                    .map(|node| &node.class),
                 Some(NodeClass::Agent(_))
             ) {
                 findings.push(ProfileFinding::InvalidProductAcceptance(
@@ -781,18 +804,20 @@ impl PortableEvidenceProfile {
     }
 
     fn validate_p3(&self, findings: &mut Vec<ProfileFinding>) {
-        let has_protocol = self.nodes.iter().any(|node| {
-            node.class == NodeClass::Entity(EntityKind::Protocol)
-        });
+        let has_protocol = self
+            .nodes
+            .iter()
+            .any(|node| node.class == NodeClass::Entity(EntityKind::Protocol));
         let has_software = self.nodes.iter().any(|node| {
             matches!(
                 node.class,
                 NodeClass::Entity(EntityKind::Software | EntityKind::Firmware)
             )
         });
-        let has_stage_activity = self.nodes.iter().any(|node| {
-            matches!(node.class, NodeClass::Activity(_))
-        });
+        let has_stage_activity = self
+            .nodes
+            .iter()
+            .any(|node| matches!(node.class, NodeClass::Activity(_)));
         if !has_protocol {
             findings.push(ProfileFinding::MissingReplayProtocol);
         }
@@ -905,7 +930,11 @@ impl PortableEvidenceProfile {
         output.push_str(&json_escape(&self.profile_uri));
         output.push_str("\"}]");
 
-        for relation in self.relations.iter().filter(|relation| relation.subject_id == "./") {
+        for relation in self
+            .relations
+            .iter()
+            .filter(|relation| relation.subject_id == "./")
+        {
             output.push_str(",\"");
             output.push_str(relation.kind.jsonld_property());
             output.push_str("\":{\"@id\":\"");
@@ -1001,7 +1030,11 @@ impl PortableEvidenceProfile {
                 output.push_str("\"}");
             }
 
-            for relation in self.relations.iter().filter(|relation| relation.subject_id == node.id) {
+            for relation in self
+                .relations
+                .iter()
+                .filter(|relation| relation.subject_id == node.id)
+            {
                 output.push_str(",\"");
                 output.push_str(relation.kind.jsonld_property());
                 output.push_str("\":{\"@id\":\"");
@@ -1037,14 +1070,24 @@ fn node_type_name(class: &NodeClass) -> &'static str {
         NodeClass::Entity(kind) => match kind {
             EntityKind::CrateDataset => "schema:Dataset",
             EntityKind::Laboratory => "schema:Place",
-            EntityKind::Rig | EntityKind::Instrument | EntityKind::Detector
-            | EntityKind::OpticalSource | EntityKind::OpticalPath => "schema:IndividualProduct",
+            EntityKind::Rig
+            | EntityKind::Instrument
+            | EntityKind::Detector
+            | EntityKind::OpticalSource
+            | EntityKind::OpticalPath => "schema:IndividualProduct",
             EntityKind::RawDataFile | EntityKind::DerivedDataFile => "schema:MediaObject",
-            EntityKind::MaterialFamily | EntityKind::FeedstockBatch | EntityKind::Sample
-            | EntityKind::ProductLot | EntityKind::OptimizerFantasy => "schema:Thing",
-            EntityKind::CalibrationCertificate | EntityKind::ReferenceMaterial
-            | EntityKind::Method | EntityKind::Protocol | EntityKind::Software
-            | EntityKind::Firmware | EntityKind::AuthorityReceipt => "schema:CreativeWork",
+            EntityKind::MaterialFamily
+            | EntityKind::FeedstockBatch
+            | EntityKind::Sample
+            | EntityKind::ProductLot
+            | EntityKind::OptimizerFantasy => "schema:Thing",
+            EntityKind::CalibrationCertificate
+            | EntityKind::ReferenceMaterial
+            | EntityKind::Method
+            | EntityKind::Protocol
+            | EntityKind::Software
+            | EntityKind::Firmware
+            | EntityKind::AuthorityReceipt => "schema:CreativeWork",
         },
         NodeClass::Activity(_) => "schema:Action",
         NodeClass::Agent(kind) => match kind {
@@ -1109,91 +1152,346 @@ mod tests {
         value.artifact = Some(ArtifactMetadata {
             location: format!("./data/{filename}.csv"),
             media_type: "text/csv".to_string(),
-            sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            sha256: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                .to_string(),
         });
         value
     }
 
     fn profile() -> PortableEvidenceProfile {
         let nodes = vec![
-            node("./", "Optical ISRU campaign crate", NodeClass::Entity(EntityKind::CrateDataset)),
-            node("urn:lab:one", "Lab One", NodeClass::Entity(EntityKind::Laboratory)),
-            node("urn:lab:agent", "Laboratory organization", NodeClass::Agent(AgentKind::Organization)),
-            node("urn:rig:one", "Optical rig", NodeClass::Entity(EntityKind::Rig)),
-            node("urn:instrument:spec", "Spectrometer", NodeClass::Entity(EntityKind::Instrument)),
-            node("urn:instrument:qcm", "Quartz crystal microbalance", NodeClass::Entity(EntityKind::Instrument)),
-            node("urn:batch:one", "Feedstock batch", NodeClass::Entity(EntityKind::FeedstockBatch)),
-            node("urn:sample:one", "Specimen", NodeClass::Entity(EntityKind::Sample)),
-            node("urn:cal:one", "Spectrometer calibration cert", NodeClass::Entity(EntityKind::CalibrationCertificate)),
-            node("urn:cal:qcm", "QCM calibration cert", NodeClass::Entity(EntityKind::CalibrationCertificate)),
-            node("urn:method:one", "Witness method", NodeClass::Entity(EntityKind::Method)),
-            node("urn:reference:one", "Optical reference tile", NodeClass::Entity(EntityKind::ReferenceMaterial)),
-            node("urn:protocol:one", "Protocol v1", NodeClass::Entity(EntityKind::Protocol)),
-            node("urn:software:one", "Analysis code", NodeClass::Entity(EntityKind::Software)),
-            node("urn:activity:crate", "Evidence package assembly", NodeClass::Activity(ActivityKind::DataTransformation)),
-            node("urn:activity:prep", "Sample preparation", NodeClass::Activity(ActivityKind::SamplePreparation)),
-            node("urn:activity:qcm", "QCM deposition measurement", NodeClass::Activity(ActivityKind::QcmMeasurement)),
-            node("urn:activity:measure", "Optical witness reading", NodeClass::Activity(ActivityKind::OpticalWitnessMeasurement)),
-            node("urn:activity:capture", "Product capture", NodeClass::Activity(ActivityKind::Capture)),
-            node("urn:activity:assay", "Independent product assay", NodeClass::Activity(ActivityKind::IndependentAssay)),
-            node("urn:activity:acceptance", "Product acceptance", NodeClass::Activity(ActivityKind::Decision)),
-            node("urn:operator:one", "Operator", NodeClass::Agent(AgentKind::Person)),
-            node("urn:authority:one", "Assay authority", NodeClass::Agent(AgentKind::Authority)),
+            node(
+                "./",
+                "Optical ISRU campaign crate",
+                NodeClass::Entity(EntityKind::CrateDataset),
+            ),
+            node(
+                "urn:lab:one",
+                "Lab One",
+                NodeClass::Entity(EntityKind::Laboratory),
+            ),
+            node(
+                "urn:lab:agent",
+                "Laboratory organization",
+                NodeClass::Agent(AgentKind::Organization),
+            ),
+            node(
+                "urn:rig:one",
+                "Optical rig",
+                NodeClass::Entity(EntityKind::Rig),
+            ),
+            node(
+                "urn:instrument:spec",
+                "Spectrometer",
+                NodeClass::Entity(EntityKind::Instrument),
+            ),
+            node(
+                "urn:instrument:qcm",
+                "Quartz crystal microbalance",
+                NodeClass::Entity(EntityKind::Instrument),
+            ),
+            node(
+                "urn:batch:one",
+                "Feedstock batch",
+                NodeClass::Entity(EntityKind::FeedstockBatch),
+            ),
+            node(
+                "urn:sample:one",
+                "Specimen",
+                NodeClass::Entity(EntityKind::Sample),
+            ),
+            node(
+                "urn:cal:one",
+                "Spectrometer calibration cert",
+                NodeClass::Entity(EntityKind::CalibrationCertificate),
+            ),
+            node(
+                "urn:cal:qcm",
+                "QCM calibration cert",
+                NodeClass::Entity(EntityKind::CalibrationCertificate),
+            ),
+            node(
+                "urn:method:one",
+                "Witness method",
+                NodeClass::Entity(EntityKind::Method),
+            ),
+            node(
+                "urn:reference:one",
+                "Optical reference tile",
+                NodeClass::Entity(EntityKind::ReferenceMaterial),
+            ),
+            node(
+                "urn:protocol:one",
+                "Protocol v1",
+                NodeClass::Entity(EntityKind::Protocol),
+            ),
+            node(
+                "urn:software:one",
+                "Analysis code",
+                NodeClass::Entity(EntityKind::Software),
+            ),
+            node(
+                "urn:activity:crate",
+                "Evidence package assembly",
+                NodeClass::Activity(ActivityKind::DataTransformation),
+            ),
+            node(
+                "urn:activity:prep",
+                "Sample preparation",
+                NodeClass::Activity(ActivityKind::SamplePreparation),
+            ),
+            node(
+                "urn:activity:qcm",
+                "QCM deposition measurement",
+                NodeClass::Activity(ActivityKind::QcmMeasurement),
+            ),
+            node(
+                "urn:activity:measure",
+                "Optical witness reading",
+                NodeClass::Activity(ActivityKind::OpticalWitnessMeasurement),
+            ),
+            node(
+                "urn:activity:capture",
+                "Product capture",
+                NodeClass::Activity(ActivityKind::Capture),
+            ),
+            node(
+                "urn:activity:assay",
+                "Independent product assay",
+                NodeClass::Activity(ActivityKind::IndependentAssay),
+            ),
+            node(
+                "urn:activity:acceptance",
+                "Product acceptance",
+                NodeClass::Activity(ActivityKind::Decision),
+            ),
+            node(
+                "urn:operator:one",
+                "Operator",
+                NodeClass::Agent(AgentKind::Person),
+            ),
+            node(
+                "urn:authority:one",
+                "Assay authority",
+                NodeClass::Agent(AgentKind::Authority),
+            ),
             artifact_node("urn:observation:qcm", "QCM local deposition"),
             artifact_node("urn:observation:witness", "Optical witness transmission"),
             artifact_node("urn:observation:capture", "Captured product mass"),
             artifact_node("urn:observation:assay", "Independent product assay"),
-            node("urn:product:one", "Captured product lot", NodeClass::Entity(EntityKind::ProductLot)),
-            node("urn:receipt:acceptance", "Product acceptance receipt", NodeClass::Entity(EntityKind::AuthorityReceipt)),
+            node(
+                "urn:product:one",
+                "Captured product lot",
+                NodeClass::Entity(EntityKind::ProductLot),
+            ),
+            node(
+                "urn:receipt:acceptance",
+                "Product acceptance receipt",
+                NodeClass::Entity(EntityKind::AuthorityReceipt),
+            ),
         ];
 
         let relations = vec![
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "./".to_string(), object_id: "urn:activity:crate".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:crate".to_string(), object_id: "urn:lab:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasAssociatedWith, subject_id: "urn:activity:crate".to_string(), object_id: "urn:lab:agent".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:sample:one".to_string(), object_id: "urn:activity:prep".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasDerivedFrom, subject_id: "urn:sample:one".to_string(), object_id: "urn:batch:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:prep".to_string(), object_id: "urn:batch:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:prep".to_string(), object_id: "urn:rig:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:prep".to_string(), object_id: "urn:protocol:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:prep".to_string(), object_id: "urn:method:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:prep".to_string(), object_id: "urn:software:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasAssociatedWith, subject_id: "urn:activity:prep".to_string(), object_id: "urn:lab:agent".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:observation:qcm".to_string(), object_id: "urn:activity:qcm".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:qcm".to_string(), object_id: "urn:sample:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:qcm".to_string(), object_id: "urn:instrument:qcm".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:qcm".to_string(), object_id: "urn:cal:qcm".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:observation:witness".to_string(), object_id: "urn:activity:measure".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:measure".to_string(), object_id: "urn:sample:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:measure".to_string(), object_id: "urn:instrument:spec".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:measure".to_string(), object_id: "urn:cal:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:measure".to_string(), object_id: "urn:method:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:measure".to_string(), object_id: "urn:reference:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasAssociatedWith, subject_id: "urn:activity:measure".to_string(), object_id: "urn:operator:one".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:product:one".to_string(), object_id: "urn:activity:capture".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasDerivedFrom, subject_id: "urn:product:one".to_string(), object_id: "urn:sample:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:observation:capture".to_string(), object_id: "urn:activity:capture".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:capture".to_string(), object_id: "urn:sample:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:capture".to_string(), object_id: "urn:rig:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:capture".to_string(), object_id: "urn:instrument:spec".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:capture".to_string(), object_id: "urn:cal:one".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:observation:assay".to_string(), object_id: "urn:activity:assay".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:assay".to_string(), object_id: "urn:product:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:assay".to_string(), object_id: "urn:instrument:spec".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:assay".to_string(), object_id: "urn:cal:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:assay".to_string(), object_id: "urn:method:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:assay".to_string(), object_id: "urn:reference:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasAssociatedWith, subject_id: "urn:activity:assay".to_string(), object_id: "urn:authority:one".to_string() },
-
-            ProvRelation { kind: ProvRelationKind::WasGeneratedBy, subject_id: "urn:receipt:acceptance".to_string(), object_id: "urn:activity:acceptance".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:acceptance".to_string(), object_id: "urn:product:one".to_string() },
-            ProvRelation { kind: ProvRelationKind::Used, subject_id: "urn:activity:acceptance".to_string(), object_id: "urn:observation:assay".to_string() },
-            ProvRelation { kind: ProvRelationKind::WasAssociatedWith, subject_id: "urn:activity:acceptance".to_string(), object_id: "urn:authority:one".to_string() },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "./".to_string(),
+                object_id: "urn:activity:crate".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:crate".to_string(),
+                object_id: "urn:lab:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasAssociatedWith,
+                subject_id: "urn:activity:crate".to_string(),
+                object_id: "urn:lab:agent".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:sample:one".to_string(),
+                object_id: "urn:activity:prep".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasDerivedFrom,
+                subject_id: "urn:sample:one".to_string(),
+                object_id: "urn:batch:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:batch:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:rig:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:protocol:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:method:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:software:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasAssociatedWith,
+                subject_id: "urn:activity:prep".to_string(),
+                object_id: "urn:lab:agent".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:observation:qcm".to_string(),
+                object_id: "urn:activity:qcm".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:qcm".to_string(),
+                object_id: "urn:sample:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:qcm".to_string(),
+                object_id: "urn:instrument:qcm".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:qcm".to_string(),
+                object_id: "urn:cal:qcm".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:observation:witness".to_string(),
+                object_id: "urn:activity:measure".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:sample:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:instrument:spec".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:cal:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:method:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:reference:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasAssociatedWith,
+                subject_id: "urn:activity:measure".to_string(),
+                object_id: "urn:operator:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:product:one".to_string(),
+                object_id: "urn:activity:capture".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasDerivedFrom,
+                subject_id: "urn:product:one".to_string(),
+                object_id: "urn:sample:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:observation:capture".to_string(),
+                object_id: "urn:activity:capture".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:capture".to_string(),
+                object_id: "urn:sample:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:capture".to_string(),
+                object_id: "urn:rig:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:capture".to_string(),
+                object_id: "urn:instrument:spec".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:capture".to_string(),
+                object_id: "urn:cal:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:observation:assay".to_string(),
+                object_id: "urn:activity:assay".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:product:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:instrument:spec".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:cal:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:method:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:reference:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasAssociatedWith,
+                subject_id: "urn:activity:assay".to_string(),
+                object_id: "urn:authority:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasGeneratedBy,
+                subject_id: "urn:receipt:acceptance".to_string(),
+                object_id: "urn:activity:acceptance".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:acceptance".to_string(),
+                object_id: "urn:product:one".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::Used,
+                subject_id: "urn:activity:acceptance".to_string(),
+                object_id: "urn:observation:assay".to_string(),
+            },
+            ProvRelation {
+                kind: ProvRelationKind::WasAssociatedWith,
+                subject_id: "urn:activity:acceptance".to_string(),
+                object_id: "urn:authority:one".to_string(),
+            },
         ];
 
         let common_witness = MeasurementClaim {
@@ -1300,7 +1598,9 @@ mod tests {
     fn minimal_fixture_passes_p0_and_p2_when_required_evidence_is_present() {
         let value = profile();
         assert!(value.validate(ConformanceLevel::P0PackageValid).conforms());
-        assert!(value.validate(ConformanceLevel::P2MetrologyQualified).conforms());
+        assert!(value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .conforms());
     }
 
     #[test]
@@ -1308,18 +1608,27 @@ mod tests {
         let mut value = profile();
         value.measurements[0].calibration_verification_receipt_id = None;
         value.measurements[0].qualification_receipt_id = None;
-        let findings = value.validate(ConformanceLevel::P2MetrologyQualified).findings;
-        assert!(findings.iter().any(|f| matches!(f, ProfileFinding::MissingCalibrationVerificationReceipt(_))));
-        assert!(findings.iter().any(|f| matches!(f, ProfileFinding::MissingQualificationReceipt(_))));
+        let findings = value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings;
+        assert!(findings
+            .iter()
+            .any(|f| matches!(f, ProfileFinding::MissingCalibrationVerificationReceipt(_))));
+        assert!(findings
+            .iter()
+            .any(|f| matches!(f, ProfileFinding::MissingQualificationReceipt(_))));
     }
 
     #[test]
     fn retroactively_revoked_calibration_fails_p2() {
         let mut value = profile();
         value.measurements[0].calibration_disposition = CalibrationDisposition::Revoked;
-        assert!(value.validate(ConformanceLevel::P2MetrologyQualified).findings.contains(
-            &ProfileFinding::IneligibleCalibration("urn:observation:witness".to_string())
-        ));
+        assert!(value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings
+            .contains(&ProfileFinding::IneligibleCalibration(
+                "urn:observation:witness".to_string()
+            )));
     }
 
     #[test]
@@ -1327,8 +1636,12 @@ mod tests {
         let mut value = profile();
         value.measurements[0].modality = MeasurementModality::QcmArealMass;
         value.measurements[0].claim_kind = MeasurementClaimKind::CapturedProduct;
-        let findings = value.validate(ConformanceLevel::P2MetrologyQualified).findings;
-        assert!(findings.iter().any(|f| matches!(f, ProfileFinding::QcmCannotStandForOpticalTransmission(_))));
+        let findings = value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings;
+        assert!(findings
+            .iter()
+            .any(|f| matches!(f, ProfileFinding::QcmCannotStandForOpticalTransmission(_))));
     }
 
     #[test]
@@ -1340,16 +1653,21 @@ mod tests {
             job_id: "job-17".to_string(),
             seed: Some(42),
         });
-        assert!(value.validate(ConformanceLevel::P1ProvenanceComplete).conforms());
+        assert!(value
+            .validate(ConformanceLevel::P1ProvenanceComplete)
+            .conforms());
 
         value.relations.push(ProvRelation {
             kind: ProvRelationKind::WasDerivedFrom,
             subject_id: "urn:observation:witness".to_string(),
             object_id: "urn:fantasy:one".to_string(),
         });
-        assert!(value.validate(ConformanceLevel::P0PackageValid).findings.contains(
-            &ProfileFinding::FantasyConnectedToPhysicalEvidence("urn:fantasy:one".to_string())
-        ));
+        assert!(value
+            .validate(ConformanceLevel::P0PackageValid)
+            .findings
+            .contains(&ProfileFinding::FantasyConnectedToPhysicalEvidence(
+                "urn:fantasy:one".to_string()
+            )));
     }
 
     #[test]
@@ -1360,19 +1678,26 @@ mod tests {
             subject_id: "urn:sample:one".to_string(),
             object_id: "urn:activity:measure".to_string(),
         });
-        assert!(value.validate(ConformanceLevel::P1ProvenanceComplete).findings.iter().any(
-            |finding| matches!(finding, ProfileFinding::InvalidProvRelation { .. })
-        ));
+        assert!(value
+            .validate(ConformanceLevel::P1ProvenanceComplete)
+            .findings
+            .iter()
+            .any(|finding| matches!(finding, ProfileFinding::InvalidProvRelation { .. })));
     }
 
     #[test]
     fn unlinked_node_breaks_provenance_completeness_but_not_package_validity() {
         let mut value = profile();
-        value.nodes.push(node("urn:orphan:one", "Orphan", NodeClass::Entity(EntityKind::Method)));
-        assert!(value.validate(ConformanceLevel::P0PackageValid).conforms());
-        assert!(value.validate(ConformanceLevel::P1ProvenanceComplete).findings.contains(
-            &ProfileFinding::ProvenanceNotConnectedToCrateRoot
+        value.nodes.push(node(
+            "urn:orphan:one",
+            "Orphan",
+            NodeClass::Entity(EntityKind::Method),
         ));
+        assert!(value.validate(ConformanceLevel::P0PackageValid).conforms());
+        assert!(value
+            .validate(ConformanceLevel::P1ProvenanceComplete)
+            .findings
+            .contains(&ProfileFinding::ProvenanceNotConnectedToCrateRoot));
     }
 
     #[test]
@@ -1381,20 +1706,28 @@ mod tests {
         value.measurements[0].method_id = None;
         value.measurements[0].reference_material_id = None;
         value.measurements[0].laboratory_id = None;
-        let findings = value.validate(ConformanceLevel::P4CrossLabComparable).findings;
+        let findings = value
+            .validate(ConformanceLevel::P4CrossLabComparable)
+            .findings;
         assert!(findings.contains(&ProfileFinding::MissingCrossLabMethod));
         assert!(findings.contains(&ProfileFinding::MissingCrossLabReferenceMaterial));
-        assert!(findings.iter().any(|f| matches!(f, ProfileFinding::MissingLaboratory(_))));
+        assert!(findings
+            .iter()
+            .any(|f| matches!(f, ProfileFinding::MissingLaboratory(_))));
     }
 
     #[test]
     fn missing_protocol_software_and_stage_execution_fail_p3() {
         let mut value = profile();
-        value.nodes.retain(|node| !matches!(
-            node.class,
-            NodeClass::Entity(EntityKind::Protocol | EntityKind::Software)
-        ));
-        value.nodes.retain(|node| !matches!(node.class, NodeClass::Activity(_)));
+        value.nodes.retain(|node| {
+            !matches!(
+                node.class,
+                NodeClass::Entity(EntityKind::Protocol | EntityKind::Software)
+            )
+        });
+        value
+            .nodes
+            .retain(|node| !matches!(node.class, NodeClass::Activity(_)));
         let findings = value.validate(ConformanceLevel::P3Replayable).findings;
         assert!(findings.contains(&ProfileFinding::MissingReplayProtocol));
         assert!(findings.contains(&ProfileFinding::MissingSoftwareVersion));
@@ -1404,32 +1737,51 @@ mod tests {
     #[test]
     fn product_acceptance_requires_independent_assay_claim() {
         let mut value = profile();
-        value.product_acceptance.as_mut().unwrap().independent_assay_claim_id =
-            "urn:observation:witness".to_string();
-        assert!(value.validate(ConformanceLevel::P2MetrologyQualified).findings.iter().any(
-            |finding| matches!(finding, ProfileFinding::ProductAcceptanceNotIndependent(_))
-        ));
+        value
+            .product_acceptance
+            .as_mut()
+            .unwrap()
+            .independent_assay_claim_id = "urn:observation:witness".to_string();
+        assert!(value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings
+            .iter()
+            .any(|finding| matches!(finding, ProfileFinding::ProductAcceptanceNotIndependent(_))));
     }
 
     #[test]
     fn invalid_hashes_and_units_fail_package_and_metrology_checks() {
         let mut value = profile();
-        let file = value.nodes.iter_mut().find(|node| node.id == "urn:observation:witness").unwrap();
+        let file = value
+            .nodes
+            .iter_mut()
+            .find(|node| node.id == "urn:observation:witness")
+            .unwrap();
         file.artifact = Some(ArtifactMetadata {
             location: "./data/witness.csv".to_string(),
             media_type: "text/csv".to_string(),
             sha256: "not-a-hash".to_string(),
         });
         value.measurements[0].unit_uri = "urn:unit:unknown".to_string();
-        let findings = value.validate(ConformanceLevel::P2MetrologyQualified).findings;
-        assert!(findings.contains(&ProfileFinding::InvalidArtifactHash("urn:observation:witness".to_string())));
-        assert!(findings.contains(&ProfileFinding::InvalidQudtUnit("urn:observation:witness".to_string())));
+        let findings = value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings;
+        assert!(findings.contains(&ProfileFinding::InvalidArtifactHash(
+            "urn:observation:witness".to_string()
+        )));
+        assert!(findings.contains(&ProfileFinding::InvalidQudtUnit(
+            "urn:observation:witness".to_string()
+        )));
     }
 
     #[test]
     fn missing_unknowns_are_preserved_and_never_defaulted() {
         let mut value = profile();
-        let sample = value.nodes.iter_mut().find(|node| node.id == "urn:sample:one").unwrap();
+        let sample = value
+            .nodes
+            .iter_mut()
+            .find(|node| node.id == "urn:sample:one")
+            .unwrap();
         sample.unknown_fields.push(UnknownField {
             field: "collection_location".to_string(),
             reason: "not recorded in source campaign".to_string(),
@@ -1459,9 +1811,14 @@ mod tests {
     #[test]
     fn duplicate_node_ids_are_rejected() {
         let mut value = profile();
-        value.nodes.push(node("urn:sample:one", "Duplicate", NodeClass::Entity(EntityKind::Sample)));
-        assert!(value.validate(ConformanceLevel::P0PackageValid).findings.contains(
-            &ProfileFinding::DuplicateNode("urn:sample:one".to_string())
+        value.nodes.push(node(
+            "urn:sample:one",
+            "Duplicate",
+            NodeClass::Entity(EntityKind::Sample),
         ));
+        assert!(value
+            .validate(ConformanceLevel::P0PackageValid)
+            .findings
+            .contains(&ProfileFinding::DuplicateNode("urn:sample:one".to_string())));
     }
 }
