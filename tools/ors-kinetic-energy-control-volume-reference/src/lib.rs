@@ -658,6 +658,9 @@ mod tests {
         original.ports[1].mass_flow_kg_s = 0.7;
         original.ports[2].mass_flow_kg_s = 0.5;
         original.ports[3].mass_flow_kg_s = 1.5;
+        // Keep the frozen energy balance closed after changing port rates:
+        // the new net kinetic-energy flux is -2.2 W.
+        original.nonport_external_power_on_cv_w = -0.7;
         let expected = evaluate_scenario(&original).expect("original order");
         original.ports.reverse();
         let actual = evaluate_scenario(&original).expect("reverse order");
