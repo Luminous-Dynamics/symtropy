@@ -220,6 +220,83 @@ impl WrenchObservationBinding {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub enum FieldCovarianceStructure {
+    IndependentDiagonalComponents,
+    CorrelatedOrUnknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub enum FieldWrenchReferenceRelationship {
+    IndependentFromWrenchReference,
+    SharedReferenceOrCalibration,
+    Unresolved,
+}
+
+/// A field mean plus marginal standard uncertainties and the evidence for the
+/// covariance assumption. V0.1 admits only independent diagonal component
+/// uncertainty; unknown/correlated fields must not be silently diagonalized.
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct TractionFieldEstimate {
+    pub estimate_digest: String,
+    pub sample_identity: String,
+    pub local_traction_pa: Vec<f64>,
+    pub standard_uncertainties_pa: Vec<f64>,
+    pub uncertainty_method_digest: String,
+    pub uncertainty_reference_ancestry_receipt_id: String,
+    pub uncertainty_common_cause_analysis_receipt_id: String,
+    pub covariance_structure: FieldCovarianceStructure,
+    pub relationship_to_wrench_reference: FieldWrenchReferenceRelationship,
+}
+
+impl TractionFieldEstimate {
+    fn validate(
+        &self,
+        operator: &WrenchOperator,
+        binding: &WrenchObservationBinding,
+    ) -> Result<(), String> {
+        for (name, value) in [
+            ("estimate_digest", self.estimate_digest.as_str()),
+            ("sample_identity", self.sample_identity.as_str()),
+            ("uncertainty_method_digest", self.uncertainty_method_digest.as_str()),
+            (
+                "uncertainty_reference_ancestry_receipt_id",
+                self.uncertainty_reference_ancestry_receipt_id.as_str(),
+            ),
+            (
+                "uncertainty_common_cause_analysis_receipt_id",
+                self.uncertainty_common_cause_analysis_receipt_id.as_str(),
+            ),
+        ] {
+            if value.trim().is_empty() {
+                return Err(format!("traction-field estimate field {name} is missing"));
+            }
+        }
+        if self.sample_identity != binding.sample_identity {
+            return Err("traction-field estimate sample identity does not match the wrench sample".to_owned());
+        }
+        if self.local_traction_pa.len() != operator.parameter_count
+            || self.local_traction_pa.iter().any(|value| !value.is_finite())
+        {
+            return Err("traction-field estimate must contain exactly three finite Pa components per taxel".to_owned());
+        }
+        if self.standard_uncertainties_pa.len() != operator.parameter_count
+            || self.standard_uncertainties_pa.iter().any(|value| !value.is_finite() || *value < 0.0)
+        {
+            return Err("traction-field standard uncertainties must contain one finite nonnegative value per field component".to_owned());
+        }
+        if self.covariance_structure != FieldCovarianceStructure::IndependentDiagonalComponents {
+            return Err("field covariance is correlated or unknown; diagonal propagation is not admissible".to_owned());
+        }
+        if self.relationship_to_wrench_reference
+            != FieldWrenchReferenceRelationship::IndependentFromWrenchReference
+        {
+            return Err("field uncertainty shares or may share wrench-reference/calibration ancestry; cross-covariance is unresolved".to_owned());
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct WrenchReferenceEvidence {
     pub native_observation_set_digest: String,
@@ -245,6 +322,7 @@ pub enum WrenchConsistencyDisposition {
     SampleOrBoundaryMismatch,
     InvalidObservation,
     InvalidField,
+    FieldUncertaintyUnresolved,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -258,6 +336,10 @@ pub struct WrenchConsistencyReport {
     /// Mahalanobis distance sqrt(rᵀ Σ⁻¹ r); threshold is supplied by evaluator.
     pub mahalanobis_distance: Option<f64>,
     pub accepted_maximum_mahalanobis_distance: f64,
+    /// Row-major 6×6 contribution propagated from the tactile field covariance.
+    pub field_uncertainty_contribution_covariance_row_major: Option<Vec<f64>>,
+    /// Row-major 6×6 total residual covariance after independent-source addition.
+    pub residual_covariance_row_major: Option<Vec<f64>>,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
 }
@@ -674,6 +756,62 @@ fn cholesky_wrench_covariance(
     Ok(lower)
 }
 
+fn propagate_diagonal_field_covariance(
+    operator: &WrenchOperator,
+    standard_uncertainties_pa: &[f64],
+) -> Result<[[f64; 6]; 6], String> {
+    validate_operator(operator)?;
+    if standard_uncertainties_pa.len() != operator.parameter_count
+        || standard_uncertainties_pa.iter().any(|value| !value.is_finite() || *value < 0.0)
+    {
+        return Err("field uncertainty vector has invalid dimensions or values".to_owned());
+    }
+
+    let mut contribution = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            let mut covariance = 0.0;
+            for parameter in 0..operator.parameter_count {
+                let sigma = standard_uncertainties_pa[parameter];
+                let row_coefficient = operator.coefficients[row * operator.parameter_count + parameter];
+                let column_coefficient =
+                    operator.coefficients[column * operator.parameter_count + parameter];
+                covariance += row_coefficient * column_coefficient * sigma * sigma;
+            }
+            contribution[row][column] = covariance;
+        }
+    }
+    if contribution.iter().flatten().any(|value| !value.is_finite()) {
+        return Err("propagated field covariance contains non-finite values".to_owned());
+    }
+    Ok(contribution)
+}
+
+fn combine_wrench_covariances(
+    reference: &WrenchCovariance6,
+    field_contribution: &[[f64; 6]; 6],
+) -> Result<WrenchCovariance6, String> {
+    // Validate the reference covariance on its own; a field contribution must
+    // not repair an invalid or indefinite reference covariance.
+    cholesky_wrench_covariance(reference)?;
+    let mut combined = vec![0.0; 36];
+    for row in 0..6 {
+        for column in 0..6 {
+            combined[row * 6 + column] =
+                reference.matrix_row_major[row * 6 + column] + field_contribution[row][column];
+        }
+    }
+    let result = WrenchCovariance6 {
+        matrix_row_major: combined,
+    };
+    cholesky_wrench_covariance(&result)?;
+    Ok(result)
+}
+
+fn covariance_matrix_to_row_major(matrix: &[[f64; 6]; 6]) -> Vec<f64> {
+    matrix.iter().flat_map(|row| row.iter().copied()).collect()
+}
+
 fn whiten_wrench_residual(lower: &[[f64; 6]; 6], residual: &[f64; 6]) -> [f64; 6] {
     let mut whitened = [0.0; 6];
     for row in 0..6 {
@@ -687,7 +825,7 @@ fn whiten_wrench_residual(lower: &[[f64; 6]; 6], residual: &[f64; 6]) -> [f64; 6
 
 pub fn assess_wrench_consistency(
     operator: &WrenchOperator,
-    local_traction_pa: &[f64],
+    field: &TractionFieldEstimate,
     observed: &WrenchObservation,
     evidence: &WrenchReferenceEvidence,
     binding: &WrenchObservationBinding,
@@ -701,6 +839,8 @@ pub fn assess_wrench_consistency(
         whitened_residual_components: None,
         mahalanobis_distance: None,
         accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
+        field_uncertainty_contribution_covariance_row_major: None,
+        residual_covariance_row_major: None,
         reasons,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     };
@@ -729,19 +869,44 @@ pub fn assess_wrench_consistency(
             vec![error],
         );
     }
+    if let Err(error) = field.validate(operator, binding) {
+        return base(
+            WrenchConsistencyDisposition::FieldUncertaintyUnresolved,
+            vec![error],
+        );
+    }
     if !observed.force_n.is_finite() || !observed.moment_nm.is_finite() {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
             vec!["wrench force and moment observations must be finite".to_owned()],
         );
     }
-    let covariance_cholesky = match cholesky_wrench_covariance(&observed.covariance) {
+
+    let field_contribution = match propagate_diagonal_field_covariance(
+        operator,
+        &field.standard_uncertainties_pa,
+    ) {
+        Ok(value) => value,
+        Err(error) => {
+            return base(WrenchConsistencyDisposition::FieldUncertaintyUnresolved, vec![error]);
+        }
+    };
+    let residual_covariance = match combine_wrench_covariances(
+        &observed.covariance,
+        &field_contribution,
+    ) {
         Ok(value) => value,
         Err(error) => {
             return base(WrenchConsistencyDisposition::InvalidObservation, vec![error]);
         }
     };
-    let predicted = match integrate_tactile_field(operator, local_traction_pa) {
+    let covariance_cholesky = match cholesky_wrench_covariance(&residual_covariance) {
+        Ok(value) => value,
+        Err(error) => {
+            return base(WrenchConsistencyDisposition::InvalidObservation, vec![error]);
+        }
+    };
+    let predicted = match integrate_tactile_field(operator, &field.local_traction_pa) {
         Ok(value) => value,
         Err(error) => {
             return base(WrenchConsistencyDisposition::InvalidField, vec![error]);
@@ -772,8 +937,12 @@ pub fn assess_wrench_consistency(
         whitened_residual_components: Some(whitened),
         mahalanobis_distance: Some(distance),
         accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
+        field_uncertainty_contribution_covariance_row_major: Some(
+            covariance_matrix_to_row_major(&field_contribution),
+        ),
+        residual_covariance_row_major: Some(residual_covariance.matrix_row_major),
         reasons: if disposition == WrenchConsistencyDisposition::Mismatch {
-            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared full-covariance Mahalanobis threshold".to_owned()]
+            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the combined field/reference full-covariance Mahalanobis threshold".to_owned()]
         } else {
             Vec::new()
         },
@@ -943,9 +1112,20 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
         timestamp_alignment_uncertainty_ns: 100_000,
         maximum_permitted_alignment_uncertainty_ns: 500_000,
     };
+    let field_estimate = TractionFieldEstimate {
+        estimate_digest: "sha256:synthetic-field-estimate".to_owned(),
+        sample_identity: "sample:synthetic-001".to_owned(),
+        local_traction_pa: field.clone(),
+        standard_uncertainties_pa: vec![25.0; field.len()],
+        uncertainty_method_digest: "sha256:synthetic-field-uncertainty-method".to_owned(),
+        uncertainty_reference_ancestry_receipt_id: "receipt:synthetic-field-uncertainty-ancestry".to_owned(),
+        uncertainty_common_cause_analysis_receipt_id: "receipt:synthetic-field-uncertainty-cca".to_owned(),
+        covariance_structure: FieldCovarianceStructure::IndependentDiagonalComponents,
+        relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
+    };
     let consistency = assess_wrench_consistency(
         &operator,
-        &field,
+        &field_estimate,
         &observed,
         &evidence,
         &binding,
@@ -1017,6 +1197,20 @@ mod tests {
             sample_identity: "sample:001".to_owned(),
             native_observation_set_digest: "sha256:native-observations".to_owned(),
             wrench_observation_digest: "sha256:wrench-observation".to_owned(),
+        }
+    }
+
+    fn traction_field_estimate(values: &[f64]) -> TractionFieldEstimate {
+        TractionFieldEstimate {
+            estimate_digest: "sha256:traction-field-estimate".to_owned(),
+            sample_identity: "sample:001".to_owned(),
+            local_traction_pa: values.to_vec(),
+            standard_uncertainties_pa: vec![10.0; values.len()],
+            uncertainty_method_digest: "sha256:field-uncertainty-method".to_owned(),
+            uncertainty_reference_ancestry_receipt_id: "receipt:field-uncertainty-ancestry".to_owned(),
+            uncertainty_common_cause_analysis_receipt_id: "receipt:field-uncertainty-cca".to_owned(),
+            covariance_structure: FieldCovarianceStructure::IndependentDiagonalComponents,
+            relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
         }
     }
 
@@ -1204,7 +1398,7 @@ mod tests {
         let observation = observation_from_field(&operator, &field);
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &evidence(),
             &binding(),
@@ -1220,7 +1414,7 @@ mod tests {
         shared.reference_independence = ReferenceIndependenceDisposition::SharedCommonCause;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &shared,
             &binding(),
@@ -1235,7 +1429,7 @@ mod tests {
         wrong_frame.reference_frame_digest = "sha256:wrong-frame".to_owned();
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &wrong_frame,
             &binding(),
@@ -1255,7 +1449,7 @@ mod tests {
         observation.force_n.z += 0.2;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &evidence(),
             &binding(),
@@ -1291,7 +1485,7 @@ mod tests {
         observation.covariance.matrix_row_major[6] = 0.00005;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &evidence(),
             &binding(),
@@ -1313,7 +1507,7 @@ mod tests {
         asymmetric.covariance.matrix_row_major[1] = 0.00001;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &asymmetric,
             &evidence(),
             &binding(),
@@ -1325,7 +1519,7 @@ mod tests {
         non_positive_definite.covariance.matrix_row_major[0] = 0.0;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &non_positive_definite,
             &evidence(),
             &binding(),
@@ -1341,7 +1535,7 @@ mod tests {
         let observation = observation_from_field(&operator, &field);
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation,
             &evidence(),
             &WrenchObservationBinding {
