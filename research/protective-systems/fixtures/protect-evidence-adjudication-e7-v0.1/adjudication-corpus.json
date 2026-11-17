@@ -351,7 +351,7 @@
         "ev-sensor-a",
         "ev-independent-e"
       ],
-      "status": "VERIFIED_INDEPENDENT",
+      "status": "ATTESTED_INDEPENDENT",
       "basis": "Separate sensor hardware, separate calibration chain, separate operator, and a documented independent metrology review; synthetic fixture assertion only.",
       "attested_by": "synthetic-independent-metrology-reviewer",
       "recorded_at": "2026-11-16T11:00:00Z",
