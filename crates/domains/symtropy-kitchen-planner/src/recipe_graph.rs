@@ -8,16 +8,13 @@
 //! to recipe instructions rather than copying source text. Mapping preserves
 //! the embedded KitchenTaskV1 scheduling fields exactly.
 
+use crate::action_ontology::{ActionOntologyBindingV1, validate_action_ontology_binding};
 use crate::{KitchenPlanV1, KitchenTaskV1, KITCHEN_PLAN_SCHEMA_VERSION, validate_plan};
-use crate::action_ontology::{
-    ActionOntologyBindingV1, validate_action_ontology_binding,
-};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 pub const RECIPE_TASK_GRAPH_SCHEMA_VERSION: u32 = 1;
-pub const RECIPE_GRAPH_CLAIM_CEILING: &str =
-    "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality.";
+pub const RECIPE_GRAPH_CLAIM_CEILING: &str = "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality.";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -30,9 +27,7 @@ pub enum RecipeRightsStatusV1 {
     Restricted,
 }
 
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize,
-)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RecipeUseScopeV1 {
     LocalProcessing,
@@ -289,9 +284,7 @@ fn nonempty(value: &str) -> bool {
 
 /// Validate the recipe graph and its embedded schedule plan without changing
 /// task order, units, dependencies or ingredient quantities.
-pub fn validate_recipe_task_graph(
-    graph: &RecipeTaskGraphV1,
-) -> RecipeGraphValidationReportV1 {
+pub fn validate_recipe_task_graph(graph: &RecipeTaskGraphV1) -> RecipeGraphValidationReportV1 {
     let mut violations = Vec::new();
     let recipe_id = graph.recipe_id.as_str();
 
@@ -301,7 +294,10 @@ pub fn validate_recipe_task_graph(
             RecipeGraphViolationCodeV1::UnsupportedSchemaVersion,
             Some(recipe_id),
             None,
-            format!("unsupported recipe task graph schema version {}", graph.schema_version),
+            format!(
+                "unsupported recipe task graph schema version {}",
+                graph.schema_version
+            ),
         );
     }
     if !nonempty(recipe_id) || !nonempty(&graph.title) || !nonempty(&graph.source.source_ref) {
@@ -354,9 +350,11 @@ pub fn validate_recipe_task_graph(
             );
         }
     }
-    let has_non_local_use = graph.source.permitted_uses.iter().any(|scope| {
-        *scope != RecipeUseScopeV1::LocalProcessing
-    });
+    let has_non_local_use = graph
+        .source
+        .permitted_uses
+        .iter()
+        .any(|scope| *scope != RecipeUseScopeV1::LocalProcessing);
     if has_non_local_use
         && (graph.source.permission_evidence_ref.as_deref().is_none_or(|value| !nonempty(value))
             || matches!(
@@ -372,7 +370,12 @@ pub fn validate_recipe_task_graph(
             "redistribution/model-training scope requires explicit permission evidence and non-restricted source rights",
         );
     }
-    if graph.source.permission_evidence_ref.as_deref().is_some_and(|value| !nonempty(value)) {
+    if graph
+        .source
+        .permission_evidence_ref
+        .as_deref()
+        .is_some_and(|value| !nonempty(value))
+    {
         add_violation(
             &mut violations,
             RecipeGraphViolationCodeV1::InsufficientRightsEvidence,
@@ -421,7 +424,11 @@ pub fn validate_recipe_task_graph(
                 format!("duplicate ingredient_id {}", ingredient.ingredient_id),
             );
         }
-        if ingredient.product_lot_ref.as_deref().is_some_and(|value| !nonempty(value)) {
+        if ingredient
+            .product_lot_ref
+            .as_deref()
+            .is_some_and(|value| !nonempty(value))
+        {
             add_violation(
                 &mut violations,
                 RecipeGraphViolationCodeV1::MissingRequiredValue,
@@ -435,7 +442,11 @@ pub fn validate_recipe_task_graph(
     let schedule_plan = KitchenPlanV1 {
         schema_version: KITCHEN_PLAN_SCHEMA_VERSION,
         plan_id: graph.recipe_id.clone(),
-        tasks: graph.tasks.iter().map(|node| node.schedule.clone()).collect(),
+        tasks: graph
+            .tasks
+            .iter()
+            .map(|node| node.schedule.clone())
+            .collect(),
     };
     let schedule_report = validate_plan(&schedule_plan);
     if !schedule_report.is_valid() {
@@ -444,7 +455,10 @@ pub fn validate_recipe_task_graph(
             RecipeGraphViolationCodeV1::InvalidSchedulePlan,
             Some(recipe_id),
             None,
-            format!("embedded KitchenPlanV1 has {} validation violation(s)", schedule_report.violations.len()),
+            format!(
+                "embedded KitchenPlanV1 has {} validation violation(s)",
+                schedule_report.violations.len()
+            ),
         );
     }
 
@@ -461,7 +475,10 @@ pub fn validate_recipe_task_graph(
             );
         }
         if node.action_kind == RecipeActionKindV1::Other
-            && node.action_label.as_deref().is_none_or(|label| !nonempty(label))
+            && node
+                .action_label
+                .as_deref()
+                .is_none_or(|label| !nonempty(label))
         {
             add_violation(
                 &mut violations,
@@ -471,7 +488,11 @@ pub fn validate_recipe_task_graph(
                 "action_label is required when action_kind is other",
             );
         }
-        if node.instruction_ref.as_deref().is_some_and(|value| !nonempty(value)) {
+        if node
+            .instruction_ref
+            .as_deref()
+            .is_some_and(|value| !nonempty(value))
+        {
             add_violation(
                 &mut violations,
                 RecipeGraphViolationCodeV1::MissingRequiredValue,
@@ -502,7 +523,10 @@ pub fn validate_recipe_task_graph(
                     RecipeGraphViolationCodeV1::UnknownIngredientReference,
                     Some(recipe_id),
                     Some(task_id),
-                    format!("ingredient reference {} is not declared", usage.ingredient_id),
+                    format!(
+                        "ingredient reference {} is not declared",
+                        usage.ingredient_id
+                    ),
                 );
             }
             if !ingredient_uses.insert(usage.ingredient_id.as_str()) {
@@ -511,7 +535,10 @@ pub fn validate_recipe_task_graph(
                     RecipeGraphViolationCodeV1::DuplicateIngredientUse,
                     Some(recipe_id),
                     Some(task_id),
-                    format!("ingredient {} is listed more than once; combine quantities explicitly", usage.ingredient_id),
+                    format!(
+                        "ingredient {} is listed more than once; combine quantities explicitly",
+                        usage.ingredient_id
+                    ),
                 );
             }
             if usage.quantity.value == 0 {
@@ -520,7 +547,10 @@ pub fn validate_recipe_task_graph(
                     RecipeGraphViolationCodeV1::InvalidQuantity,
                     Some(recipe_id),
                     Some(task_id),
-                    format!("ingredient {} quantity must be positive", usage.ingredient_id),
+                    format!(
+                        "ingredient {} quantity must be positive",
+                        usage.ingredient_id
+                    ),
                 );
             }
             if usage.quantity.decimal_places > 6 {
@@ -529,7 +559,10 @@ pub fn validate_recipe_task_graph(
                     RecipeGraphViolationCodeV1::InvalidQuantityScale,
                     Some(recipe_id),
                     Some(task_id),
-                    format!("ingredient {} quantity scale exceeds six decimal places", usage.ingredient_id),
+                    format!(
+                        "ingredient {} quantity scale exceeds six decimal places",
+                        usage.ingredient_id
+                    ),
                 );
             }
         }
@@ -548,11 +581,16 @@ pub fn validate_recipe_task_graph(
     }
 
     violations.sort_by(|a, b| {
-        (a.code, a.task_id.as_deref().unwrap_or(""), a.detail.as_str()).cmp(&(
-            b.code,
-            b.task_id.as_deref().unwrap_or(""),
-            b.detail.as_str(),
-        ))
+        (
+            a.code,
+            a.task_id.as_deref().unwrap_or(""),
+            a.detail.as_str(),
+        )
+            .cmp(&(
+                b.code,
+                b.task_id.as_deref().unwrap_or(""),
+                b.detail.as_str(),
+            ))
     });
 
     RecipeGraphValidationReportV1 {
@@ -703,7 +741,11 @@ mod tests {
         assert_eq!(mapped.plan_id, graph.recipe_id);
         assert_eq!(
             mapped.tasks,
-            graph.tasks.iter().map(|node| node.schedule.clone()).collect::<Vec<_>>()
+            graph
+                .tasks
+                .iter()
+                .map(|node| node.schedule.clone())
+                .collect::<Vec<_>>()
         );
         assert!(validate_plan(&mapped).is_valid());
     }
@@ -711,12 +753,10 @@ mod tests {
     #[test]
     fn graph_accepts_explicit_rule_based_action_ontology_binding() {
         let mut graph = valid_graph();
-        graph.tasks[0].ontology_binding = Some(
-            crate::action_ontology::rule_based_action_binding(
-                RecipeActionKindV1::Chop,
-                RecipeEvidenceClassV1::Declared,
-            ),
-        );
+        graph.tasks[0].ontology_binding = Some(crate::action_ontology::rule_based_action_binding(
+            RecipeActionKindV1::Chop,
+            RecipeEvidenceClassV1::Declared,
+        ));
         assert!(validate_recipe_task_graph(&graph).is_valid());
     }
 
@@ -730,15 +770,25 @@ mod tests {
         binding.mapping.group = Some(crate::action_ontology::ActionGroupV1::Dice);
         binding.mapping.core = Some(crate::action_ontology::ActionCoreV1::Cutting);
         graph.tasks[0].ontology_binding = Some(binding);
-        assert!(validate_recipe_task_graph(&graph).violations.iter().any(|entry| {
-            entry.code == RecipeGraphViolationCodeV1::InvalidActionOntologyBinding
-        }));
+        assert!(
+            validate_recipe_task_graph(&graph)
+                .violations
+                .iter()
+                .any(|entry| {
+                    entry.code == RecipeGraphViolationCodeV1::InvalidActionOntologyBinding
+                })
+        );
     }
 
     #[test]
     fn older_recipe_task_nodes_without_ontology_binding_remain_valid() {
         let graph = valid_graph();
-        assert!(graph.tasks.iter().all(|node| node.ontology_binding.is_none()));
+        assert!(
+            graph
+                .tasks
+                .iter()
+                .all(|node| node.ontology_binding.is_none())
+        );
         assert!(validate_recipe_task_graph(&graph).is_valid());
     }
 
@@ -755,10 +805,8 @@ mod tests {
     #[test]
     fn invalid_action_ontology_binding_blocks_recipe_graph_mapping() {
         let mut graph = valid_graph();
-        let mut binding = rule_based_action_binding(
-            RecipeActionKindV1::Chop,
-            RecipeEvidenceClassV1::Declared,
-        );
+        let mut binding =
+            rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
         binding.mapping.group = Some(ActionGroupV1::Dice);
         graph.tasks[0].ontology_binding = Some(binding);
         let report = validate_recipe_task_graph(&graph);
@@ -835,9 +883,11 @@ mod tests {
             RecipeUseScopeV1::LocalProcessing,
         ];
         let report = validate_recipe_task_graph(&graph);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == RecipeGraphViolationCodeV1::DuplicateUseScope
-        }));
+        assert!(
+            report.violations.iter().any(|violation| {
+                violation.code == RecipeGraphViolationCodeV1::DuplicateUseScope
+            })
+        );
     }
 
     #[test]
@@ -856,9 +906,12 @@ mod tests {
         graph.tasks[0].ingredient_inputs[0].quantity.value = 0;
         graph.tasks[0].ingredient_inputs[0].quantity.decimal_places = 7;
         let report = validate_recipe_task_graph(&graph);
-        assert!(report.violations.iter().any(|violation| {
-            violation.code == RecipeGraphViolationCodeV1::InvalidQuantity
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|violation| { violation.code == RecipeGraphViolationCodeV1::InvalidQuantity })
+        );
         assert!(report.violations.iter().any(|violation| {
             violation.code == RecipeGraphViolationCodeV1::InvalidQuantityScale
         }));
