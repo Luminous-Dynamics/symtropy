@@ -399,17 +399,15 @@ mod tests {
                 1,
             ),
             (
-                PartialSpatialQuery::new(
-                    Some("water-main".into()),
-                    None,
-                    Some("bathroom".into()),
-                ),
+                PartialSpatialQuery::new(Some("water-main".into()), None, Some("bathroom".into())),
                 1,
             ),
         ];
 
         for (query, expected_count) in cases {
-            let report = index.rank_partial_query(&graph, &encoder, &query, 5).unwrap();
+            let report = index
+                .rank_partial_query(&graph, &encoder, &query, 5)
+                .unwrap();
             assert_eq!(report.exact_indexed_results, report.verified_results);
             assert_eq!(report.exact_indexed_results.len(), expected_count);
         }
@@ -422,7 +420,9 @@ mod tests {
         let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
         let query = PartialSpatialQuery::new(Some("corridor".into()), None, None);
 
-        let report = index.rank_partial_query(&graph, &encoder, &query, 5).unwrap();
+        let report = index
+            .rank_partial_query(&graph, &encoder, &query, 5)
+            .unwrap();
         assert!(report.exact_indexed_results.is_empty());
         assert!(report.verified_results.is_empty());
         assert!(report.abstained);
