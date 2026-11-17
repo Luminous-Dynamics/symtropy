@@ -383,6 +383,10 @@ pub fn score_acquisition_plan(
     {
         return Err("acquisition plan context does not match the current sensor/readout profile".to_owned());
     }
+    let deterministic_replay = plan_adaptive_readout(problem, plan.policy)?;
+    if &deterministic_replay != plan {
+        return Err("acquisition plan does not match a deterministic replay of its declared policy".to_owned());
+    }
     if plan.evidence_state_by_taxel.len() != taxel_count
         || plan.selected_taxel_count != plan.selected_taxel_indices.len()
         || plan.maximum_taxel_reads != problem.maximum_taxel_reads
@@ -1073,6 +1077,19 @@ mod tests {
         let mut bad_mask = plan;
         bad_mask.evidence_state_by_taxel[0] = TaxelEvidenceState::Observed;
         assert!(score_acquisition_plan(&input, &bad_mask, &evaluator_truth).is_err());
+    }
+
+    #[test]
+    fn evaluator_rejects_forged_selected_taxel_set_under_a_valid_policy_label() {
+        let input = problem(DEFAULT_READOUT_BUDGET);
+        let plan = plan_adaptive_readout(&input, AcquisitionPolicy::RiskAdaptive)
+            .expect("risk plan");
+        let truth = truth(32, 32, [15, 15], [16, 16]);
+        let mut forged = plan.clone();
+        forged.selected_taxel_indices.swap(0, 10);
+        let error = score_acquisition_plan(&input, &forged, &truth)
+            .expect_err("forged sample plan must be rejected");
+        assert!(error.contains("deterministic replay"));
     }
 
     #[test]
