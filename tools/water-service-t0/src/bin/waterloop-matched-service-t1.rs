@@ -13,7 +13,7 @@ const INPUT_VERSION: &str = "waterloop-matched-service-t1-input-v0.1";
 const ORACLE_VERSION: &str = "waterloop-matched-service-t1-oracle-v0.1";
 const BENCHMARK_ID: &str = "WATERLOOP-MATCHED-SERVICE-T1-EXECUTOR-001";
 const EXPECTED_PLAN_BLOB_SHA: &str = "3b64690fa02ac47b3bc430a22b1392c65583bba7";
-const CASE_COUNT: usize = 13;
+const CASE_COUNT: usize = 15;
 const MINIMUM_PAIRED_BLOCKS: usize = 6;
 
 #[derive(Clone, Debug)]
@@ -27,6 +27,8 @@ struct Measurement {
     calibration_ref: String,
     method_ref: String,
     raw_record_digest: String,
+    time_window_start_utc: String,
+    time_window_end_utc: String,
 }
 
 fn field<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a Value, String> {
@@ -82,7 +84,12 @@ fn valid_canonical_utc(value: &str) -> bool {
         })
 }
 
-fn parse_measurement(value: &Value, context: &str) -> Result<Measurement, String> {
+fn parse_measurement(
+    value: &Value,
+    context: &str,
+    run_start_utc: &str,
+    run_end_utc: &str,
+) -> Result<Measurement, String> {
     ensure_keys(
         value,
         &[
@@ -96,6 +103,8 @@ fn parse_measurement(value: &Value, context: &str) -> Result<Measurement, String
             "method_ref",
             "raw_record_digest",
             "validity",
+            "time_window_start_utc",
+            "time_window_end_utc",
         ],
         context,
     )?;
@@ -109,6 +118,10 @@ fn parse_measurement(value: &Value, context: &str) -> Result<Measurement, String
     let method_ref = string(value, "method_ref", context)?.to_owned();
     let raw_record_digest = string(value, "raw_record_digest", context)?.to_owned();
     let validity = string(value, "validity", context)?;
+    let time_window_start_utc =
+        string(value, "time_window_start_utc", context)?.to_owned();
+    let time_window_end_utc =
+        string(value, "time_window_end_utc", context)?.to_owned();
 
     if channel_id.trim().is_empty()
         || instrument_id.trim().is_empty()
@@ -126,6 +139,16 @@ fn parse_measurement(value: &Value, context: &str) -> Result<Measurement, String
     if !valid_digest(&raw_record_digest) {
         return Err(format!("{context}: raw_record_digest must be 64 hexadecimal characters"));
     }
+    if !valid_canonical_utc(&time_window_start_utc)
+        || !valid_canonical_utc(&time_window_end_utc)
+        || time_window_start_utc >= time_window_end_utc
+        || time_window_start_utc != run_start_utc
+        || time_window_end_utc != run_end_utc
+    {
+        return Err(format!(
+            "{context}: measurement time window must be valid and equal its run window"
+        ));
+    }
     Ok(Measurement {
         channel_id,
         instrument_id,
@@ -136,6 +159,8 @@ fn parse_measurement(value: &Value, context: &str) -> Result<Measurement, String
         calibration_ref,
         method_ref,
         raw_record_digest,
+        time_window_start_utc,
+        time_window_end_utc,
     })
 }
 
@@ -154,31 +179,107 @@ fn expect_measurement<'a>(
     Ok(measurement)
 }
 
-fn empty_block(block_id: &str, disposition: &str, energy: Option<f64>) -> Value {
+fn empty_block(
+    block_id: &str,
+    disposition: &str,
+    control_energy_kwh: Option<f64>,
+    treatment_energy_kwh: Option<f64>,
+) -> Value {
+    let net_energy_delta_kwh = match (control_energy_kwh, treatment_energy_kwh) {
+        (Some(control), Some(treatment)) => Some(treatment - control),
+        _ => None,
+    };
     json!({
         "block_id": block_id,
         "disposition": disposition,
         "point_credit_l": 0.0,
         "uncertainty_screened_lower_credit_l": 0.0,
+        "matched_control_mains_normalized_l": null,
         "matched_control_displacement_l": null,
         "lower_displacement_l": null,
-        "energy_kwh": energy,
-        "energy_per_1000l_lower_credit": null
+        "control_energy_kwh": control_energy_kwh,
+        "energy_kwh": treatment_energy_kwh,
+        "net_energy_delta_kwh": net_energy_delta_kwh,
+        "energy_per_1000l_lower_credit": null,
+        "net_energy_per_1000l_lower_credit": null
     })
 }
 
-fn empty_block_from_input(block: &Value, block_id: &str, disposition: &str) -> Value {
-    let energy = block
-        .get("treatment")
-        .filter(|value| !value.is_null())
-        .and_then(|treatment| treatment.get("energy"))
-        .and_then(|raw| parse_measurement(raw, "treatment.energy").ok())
+fn read_energy(run: Option<&Value>, context: &str) -> Option<f64> {
+    let run = run?;
+    let start = run.get("start_utc")?.as_str()?;
+    let end = run.get("end_utc")?.as_str()?;
+    let raw = run.get("energy")?;
+    parse_measurement(raw, context, start, end)
+        .ok()
         .filter(|measurement| {
             measurement.unit == "kWh"
                 && measurement.boundary == "whole_treatment_pump_train_electrical_boundary"
         })
-        .map(|measurement| measurement.value);
-    empty_block(block_id, disposition, energy)
+        .map(|measurement| measurement.value)
+}
+
+fn empty_block_from_input(block: &Value, block_id: &str, disposition: &str) -> Value {
+    let control_energy = read_energy(block.get("control").filter(|value| !value.is_null()), "control.energy");
+    let treatment_energy = read_energy(block.get("treatment").filter(|value| !value.is_null()), "treatment.energy");
+    empty_block(block_id, disposition, control_energy, treatment_energy)
+}
+
+fn count_duplicate_raw_record_blocks(blocks: &[Value]) -> BTreeSet<String> {
+    let measurement_fields = [
+        ("control", "mains_fixture"),
+        ("control", "energy"),
+        ("treatment", "quality_qualified_delivery"),
+        ("treatment", "recovered_fixture_use"),
+        ("treatment", "mains_fallback"),
+        ("treatment", "gross_product"),
+        ("treatment", "reject"),
+        ("treatment", "purge"),
+        ("treatment", "overflow"),
+        ("treatment", "energy"),
+    ];
+    let mut digest_blocks = BTreeMap::<String, BTreeSet<String>>::new();
+    for block in blocks {
+        let Some(block_id) = block.get("block_id").and_then(Value::as_str) else {
+            continue;
+        };
+        for (arm, field_name) in measurement_fields {
+            if let Some(digest) = block
+                .get(arm)
+                .filter(|value| !value.is_null())
+                .and_then(|run| run.get(field_name))
+                .and_then(|measurement| measurement.get("raw_record_digest"))
+                .and_then(Value::as_str)
+            {
+                digest_blocks
+                    .entry(digest.to_owned())
+                    .or_default()
+                    .insert(block_id.to_owned());
+            }
+        }
+    }
+    let duplicate_digests: BTreeSet<String> = digest_blocks
+        .into_iter()
+        .filter_map(|(digest, block_ids)| (block_ids.len() > 1).then_some(digest))
+        .collect();
+    let mut affected_blocks = BTreeSet::new();
+    for block in blocks {
+        let Some(block_id) = block.get("block_id").and_then(Value::as_str) else {
+            continue;
+        };
+        if measurement_fields.iter().any(|(arm, field_name)| {
+            block
+                .get(*arm)
+                .filter(|value| !value.is_null())
+                .and_then(|run| run.get(*field_name))
+                .and_then(|measurement| measurement.get("raw_record_digest"))
+                .and_then(Value::as_str)
+                .is_some_and(|digest| duplicate_digests.contains(digest))
+        }) {
+            affected_blocks.insert(block_id.to_owned());
+        }
+    }
+    affected_blocks
 }
 
 fn count_duplicate_allocations(blocks: &[Value]) -> Result<BTreeSet<String>, String> {
@@ -200,12 +301,16 @@ fn eval_block(
     block: &Value,
     case: &Value,
     duplicate_allocations: &BTreeSet<String>,
+    duplicate_raw_record_blocks: &BTreeSet<String>,
 ) -> Result<Value, String> {
     let block_id = string(block, "block_id", "block")?;
     let context = format!("block {block_id}");
     let allocation_id = string(block, "recovered_allocation_id", &context)?;
     if duplicate_allocations.contains(allocation_id) {
         return Ok(empty_block_from_input(block, block_id, "zero_credit_duplicate_recovered_allocation"));
+    }
+    if duplicate_raw_record_blocks.contains(block_id) {
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_duplicate_raw_record_across_blocks"));
     }
 
     let control_value = field(block, "control", &context)?;
@@ -317,8 +422,28 @@ fn eval_block(
         || string(quality, "source_profile_id", &context)? != source_profile
         || quality.get("independent_review").and_then(Value::as_bool) != Some(true)
         || quality.get("release_ref").and_then(Value::as_str).is_none_or(str::is_empty)
+        || quality.get("method_revision_ref").and_then(Value::as_str).is_none_or(str::is_empty)
+        || quality.get("independent_reviewer_ref").and_then(Value::as_str).is_none_or(str::is_empty)
+        || quality.get("sample_set_digest").and_then(Value::as_str).is_none_or(|value| !valid_digest(value))
     {
         return Ok(empty_block_from_input(block, block_id, "zero_credit_quality_not_released_for_profile"));
+    }
+
+    let treatment_start = string(treatment, "start_utc", &context)?;
+    let treatment_end = string(treatment, "end_utc", &context)?;
+    let quality_valid_from = string(quality, "valid_from_utc", &context)?;
+    let quality_valid_until = string(quality, "valid_until_utc", &context)?;
+    if !valid_canonical_utc(quality_valid_from)
+        || !valid_canonical_utc(quality_valid_until)
+        || quality_valid_from > treatment_start
+        || treatment_end > quality_valid_until
+        || quality_valid_from >= quality_valid_until
+    {
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_quality_release_out_of_validity_window",
+        ));
     }
 
     let raw_measurements = [
@@ -336,7 +461,23 @@ fn eval_block(
     let mut measurements = BTreeMap::new();
     for (key, run, field_name) in raw_measurements {
         let raw = field(run, field_name, &context)?;
-        let parsed = parse_measurement(raw, &format!("{context}.{field_name}"))?;
+        let run_start = string(run, "start_utc", &context)?;
+        let run_end = string(run, "end_utc", &context)?;
+        let parsed = match parse_measurement(
+            raw,
+            &format!("{context}.{field_name}"),
+            run_start,
+            run_end,
+        ) {
+            Ok(measurement) => measurement,
+            Err(_) => {
+                return Ok(empty_block_from_input(
+                    block,
+                    block_id,
+                    "indeterminate_invalid_measurement_evidence",
+                ));
+            }
+        };
         measurements.insert(key.to_owned(), parsed);
     }
 
@@ -405,8 +546,20 @@ fn eval_block(
     let mains_fallback = measurements.get("mains_fallback").expect("parsed above");
     let treatment_energy = measurements.get("treatment_energy").expect("parsed above");
 
+    if control_demand <= 0.0 {
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_demand_not_comparable",
+        ));
+    }
+    // Normalize measured control mains volume to the treatment-arm fixture
+    // demand before computing displacement; demand uncertainty is not modeled
+    // in this synthetic contract and remains an explicit limitation.
+    let matched_control_mains_normalized =
+        control_mains.value * (treatment_demand / control_demand);
     let matched_control_displacement =
-        (control_mains.value - mains_fallback.value).max(0.0);
+        (matched_control_mains_normalized - mains_fallback.value).max(0.0);
     let point_credit = quality_delivery
         .value
         .min(recovered_use.value)
@@ -422,8 +575,10 @@ fn eval_block(
         (recovered_use.value - expansion_factor * recovered_use.standard_uncertainty).max(0.0);
     // Conservative bound for a difference: add standard uncertainties; do not
     // assume independent calibration errors or a covariance model.
+    let demand_ratio = treatment_demand / control_demand;
     let displacement_uncertainty =
-        control_mains.standard_uncertainty + mains_fallback.standard_uncertainty;
+        control_mains.standard_uncertainty * demand_ratio
+            + mains_fallback.standard_uncertainty;
     let displacement_lower =
         (matched_control_displacement - expansion_factor * displacement_uncertainty).max(0.0);
     let lower_credit = quality_lower.min(use_lower).min(displacement_lower);
@@ -437,17 +592,27 @@ fn eval_block(
     } else {
         "credited"
     };
-    let energy = treatment_energy.value;
+    let control_energy = measurements.get("control_energy").expect("parsed above").value;
+    let treatment_energy = treatment_energy.value;
+    let net_energy_delta = treatment_energy - control_energy;
     Ok(json!({
         "block_id": block_id,
         "disposition": disposition,
         "point_credit_l": point_credit,
         "uncertainty_screened_lower_credit_l": lower_credit,
+        "matched_control_mains_normalized_l": matched_control_mains_normalized,
         "matched_control_displacement_l": matched_control_displacement,
         "lower_displacement_l": displacement_lower,
-        "energy_kwh": energy,
+        "control_energy_kwh": control_energy,
+        "energy_kwh": treatment_energy,
+        "net_energy_delta_kwh": net_energy_delta,
         "energy_per_1000l_lower_credit": if lower_credit > 0.0 {
-            Some(energy / lower_credit * 1000.0)
+            Some(treatment_energy / lower_credit * 1000.0)
+        } else {
+            None::<f64>
+        },
+        "net_energy_per_1000l_lower_credit": if lower_credit > 0.0 {
+            Some(net_energy_delta / lower_credit * 1000.0)
         } else {
             None::<f64>
         }
@@ -478,6 +643,7 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         ));
     }
     let duplicate_allocations = count_duplicate_allocations(blocks)?;
+    let duplicate_raw_record_blocks = count_duplicate_raw_record_blocks(blocks);
     let mut block_ids = BTreeSet::new();
     let mut run_ids = BTreeSet::new();
     let mut outputs = Vec::with_capacity(blocks.len());
@@ -498,7 +664,12 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
                 }
             }
         }
-        outputs.push(eval_block(block, case, &duplicate_allocations)?);
+        outputs.push(eval_block(
+            block,
+            case,
+            &duplicate_allocations,
+            &duplicate_raw_record_blocks,
+        )?);
     }
 
     let point_credit: f64 = outputs
@@ -516,6 +687,22 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
     let energy_observed_block_count = outputs
         .iter()
         .filter(|block| block["energy_kwh"].is_number())
+        .count();
+    let control_energy: f64 = outputs
+        .iter()
+        .map(|block| block["control_energy_kwh"].as_f64().unwrap_or(0.0))
+        .sum();
+    let control_energy_observed_block_count = outputs
+        .iter()
+        .filter(|block| block["control_energy_kwh"].is_number())
+        .count();
+    let net_energy_delta: f64 = outputs
+        .iter()
+        .map(|block| block["net_energy_delta_kwh"].as_f64().unwrap_or(0.0))
+        .sum();
+    let net_energy_observed_block_count = outputs
+        .iter()
+        .filter(|block| block["net_energy_delta_kwh"].is_number())
         .count();
     let credited_block_count = outputs
         .iter()
@@ -538,7 +725,12 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         "uncertainty_screened_lower_credit_l": lower_credit,
         "energy_kwh": energy,
         "energy_observed_block_count": energy_observed_block_count,
+        "control_energy_kwh": control_energy,
+        "control_energy_observed_block_count": control_energy_observed_block_count,
+        "net_energy_delta_kwh": net_energy_delta,
+        "net_energy_observed_block_count": net_energy_observed_block_count,
         "energy_kwh_per_1000l_lower_credit": energy_intensity,
+        "net_energy_kwh_per_1000l_lower_credit": (lower_credit > 0.0).then_some(net_energy_delta / lower_credit * 1000.0),
         "block_dispositions": outputs,
         "disposition_counts": disposition_counts,
         "physical_qualification_status": "NotRun",
@@ -783,8 +975,8 @@ mod tests {
     fn canonical_thirteen_case_oracle_matches() {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        assert_eq!(result["case_count"], 13);
-        assert_eq!(result["matched_case_count"], 13);
+        assert_eq!(result["case_count"], 15);
+        assert_eq!(result["matched_case_count"], 15);
         assert_eq!(result["mismatch_count"], 0);
         assert_eq!(result["physical_qualification_status"], "NotRun");
         assert_eq!(result["statistical_inference_status"], "NotRun");
@@ -921,6 +1113,31 @@ mod tests {
             "zero_credit_uncertainty_dominates_apparent_credit"
         );
         assert!(block["energy_per_1000l_lower_credit"].is_null());
+    }
+
+    #[test]
+    fn raw_record_replayed_across_blocks_rejects_every_affected_block() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][13]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "zero_credit_duplicate_raw_record_across_blocks"
+        );
+        assert_eq!(
+            output["block_dispositions"][1]["disposition"],
+            "zero_credit_duplicate_raw_record_across_blocks"
+        );
+    }
+
+    #[test]
+    fn expired_quality_release_never_earns_service_credit() {
+        let (input, _, _) = fixture();
+        let output = evaluate_case(&input["cases"][14]).unwrap();
+        assert_eq!(
+            output["block_dispositions"][0]["disposition"],
+            "zero_credit_quality_release_out_of_validity_window"
+        );
+        assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
     }
 
     #[test]
