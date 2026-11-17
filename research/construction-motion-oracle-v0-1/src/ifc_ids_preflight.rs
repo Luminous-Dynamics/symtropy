@@ -479,7 +479,8 @@ fn is_ifc_global_id(value: &str) -> bool {
         && value.as_bytes().first().is_some_and(|byte| (b'0'..=b'3').contains(byte))
         && value
             .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 0x24)
+}
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
