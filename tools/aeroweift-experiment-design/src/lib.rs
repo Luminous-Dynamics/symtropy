@@ -549,7 +549,10 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !is_sha256(&policy.adaptive_data_manifest_sha256)
         || policy.minimum_estimate_independent_units == 0
         || !is_sha256(&policy.required_estimator_build_sha256)
-        || policy.expected_utility_estimator_issuer_id.trim().is_empty()
+        || policy
+            .expected_utility_estimator_issuer_id
+            .trim()
+            .is_empty()
         || !is_sha256(&policy.required_estimate_method_sha256)
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
