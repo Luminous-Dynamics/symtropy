@@ -4,10 +4,10 @@
 
 //! Independent bounded receiver for mathematical-to-physical symmetry handoffs.
 //!
-//! This verifier checks exact source-artifact bytes and recomputes a frozen 3D
-//! coordinate re-description. It never treats the source's PASS as a physical
-//! PASS. Discrete step-map equivariance, physical observables, and numerical
-//! forward-error qualification remain INCONCLUSIVE until separately evidenced.
+//! This verifier checks exact source-artifact bytes, a frozen 3D coordinate
+//! re-description, and a bounded 6-DOF constrained midpoint-step witness. It
+//! never treats the source's PASS as a physical PASS. Broader physical
+//! observables and numerical forward-error qualification remain INCONCLUSIVE.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -2178,7 +2178,7 @@ mod tests {
                         .unwrap(),
                     solver_profile_id: "constrained-midpoint-profile-v0.1".to_owned(),
                     integration_method: "implicit-midpoint".to_owned(),
-                    time_step_seconds: 0.01,
+                    time_step_seconds: 0.02,
                     units_profile_id: "SI-v1".to_owned(),
                 },
                 full_task_semantics: TaskSemanticsRefV1 {
