@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
     println!(
-        "field_family,dimension,grid_size,samples,held_out_queries,hdc_mae,hdc_rmse,hdc_r2,nearest_mae,nearest_rmse,nearest_r2,bilinear_mae,bilinear_rmse,bilinear_r2,coordinate_encode_us,positional_unbind_us,cleanup_us,query_p50_us,query_p95_us,build_us,retained_vector_payload_bytes,encoder_index_bytes"
+        "field_family,dimension,grid_size,samples,held_out_queries,hdc_mae,hdc_rmse,hdc_r2,nearest_mae,nearest_rmse,nearest_r2,bilinear_mae,bilinear_rmse,bilinear_r2,coordinate_encode_us,positional_unbind_us,cleanup_us,query_p50_us,query_p95_us,build_us,retained_vector_payload_bytes,encoder_index_bytes,hdc_payload_plus_encoder_index_bytes,reference_grid_value_bytes,reference_sample_records_bytes,hdc_to_grid_value_payload_ratio"
     );
 
     for family in FieldFamily::ALL {
@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     family,
                 )?;
                 println!(
-                    "{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{}",
+                    "{},{},{},{},{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{:.3}",
                     report.field_family.as_str(),
                     report.dimension,
                     report.grid_size,
@@ -53,7 +53,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     report.query_p95_micros,
                     report.build_micros,
                     report.retained_vector_payload_bytes_estimate,
-                    report.encoder_index_bytes_estimate
+                    report.encoder_index_bytes_estimate,
+                    report.hdc_payload_plus_encoder_index_bytes_estimate,
+                    report.reference_grid_value_payload_bytes_estimate,
+                    report.reference_sample_record_payload_bytes_estimate,
+                    report.hdc_to_grid_value_payload_ratio
                 );
             }
         }
