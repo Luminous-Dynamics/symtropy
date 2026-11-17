@@ -1044,6 +1044,66 @@ mod tests {
                 ..
             })
         ));
+
+        // A rejected first attempt may be reworked. The follow-up is not
+        // accepted until a second independent assessment resolves it.
+        let retry_start = event(
+            "event-start-rework",
+            6,
+            ledger.last_event_sha256().map(str::to_owned),
+            '7',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::ExecutionStarted {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: "attempt-2".into(),
+                station_qualification_event_id: "event-station".into(),
+            },
+        );
+        ledger.apply(retry_start).unwrap();
+        let retry_observation = event(
+            "event-robot-rework",
+            7,
+            ledger.last_event_sha256().map(str::to_owned),
+            '8',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: "attempt-2".into(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(retry_observation).unwrap();
+        let unresolved = event(
+            "event-referee-unresolved",
+            8,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: "attempt-2".into(),
+                assessment: SiteRefereeAssessment::Unresolved {
+                    receipt_sha256: digest('a'),
+                    reason: "reference instrument lost lock".into(),
+                },
+            },
+        );
+        ledger.apply(unresolved).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::Held {
+                attempt_id,
+                reason: EntityScoreReason::MeasurementUnavailable,
+                ..
+            }) if attempt_id == "attempt-2"
+        ));
     }
 
     #[test]
@@ -1270,6 +1330,84 @@ mod tests {
             ledger.entity_state(&package_digest, "line-1"),
             Some(SiteEntityState::ExecutionInProgress { .. })
         ));
+    }
+
+
+    #[test]
+    fn previous_event_digest_mismatch_fails_closed_without_advancing_state() {
+        let mut ledger = SiteStateLedger::new();
+        let package_digest = publish_package(&mut ledger, package('a', &["point-1"]));
+        let mut event = station_event(&ledger, 2, "event-station");
+        event.previous_event_sha256 = Some(digest('0'));
+        event.payload = SiteEventPayload::StationQualified {
+            package_sha256: package_digest,
+            station_id: "station-1".into(),
+            frame_sha256: digest('c'),
+            transform_sha256: digest('d'),
+            calibration_sha256: digest('9'),
+        };
+        assert_eq!(
+            ledger.apply(event),
+            Err(SiteLedgerError::PreviousEventDigestMismatch)
+        );
+        assert_eq!(ledger.last_sequence(), 1);
+        assert_eq!(ledger.event_count(), 1);
+    }
+
+    #[test]
+    fn accepted_entities_are_terminal_within_a_work_package() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let referee = event(
+            "event-referee",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::Measured(measurement(0.2, 0.1)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+        let retry = event(
+            "event-start-after-accepted",
+            6,
+            ledger.last_event_sha256().map(str::to_owned),
+            '7',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::ExecutionStarted {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: "attempt-3".into(),
+                station_qualification_event_id: "event-station".into(),
+            },
+        );
+        assert_eq!(
+            ledger.apply(retry),
+            Err(SiteLedgerError::EntityTransitionDenied("line-1".into()))
+        );
+        assert_eq!(ledger.last_sequence(), 5);
+        assert_eq!(ledger.accepted_count(&package_digest), Some(1));
     }
 
 }
