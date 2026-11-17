@@ -29,17 +29,17 @@
       "files": [
         {
           "filename": "EBC_data.7z",
-          "size_bytes": 273100000,
           "published_md5": "c6252cecac4d46d856196f0a565026e5",
           "sha256": null,
-          "retrieval_state": "not_retrieved"
+          "retrieval_state": "not_retrieved",
+          "reported_size": "273.1 MB (Zenodo display)"
         },
         {
           "filename": "EBC_data_README.md",
-          "size_bytes": 9800,
           "published_md5": "e072368b147941bbf28fea85f9d71114",
           "sha256": null,
-          "retrieval_state": "not_retrieved"
+          "retrieval_state": "not_retrieved",
+          "reported_size": "9.8 kB (Zenodo display)"
         }
       ],
       "downloaded": false,
