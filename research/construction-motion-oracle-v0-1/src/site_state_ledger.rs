@@ -15,7 +15,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::field_layout_acceptance::{
-    CrewHours, DesignIntentEntity, DesignIntentManifest, EntityScoreReason, FieldAcceptanceError,
+    CrewHours, DesignIntentEntity, DesignIntentManifest, EntityScoreReason,
     FieldAcceptanceProfile, FieldEntityObservation, HumanWaiver, MeasurementDisposition,
     RefereeEntityState, RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
