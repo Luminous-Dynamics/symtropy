@@ -1,0 +1,51 @@
+name: WPT Transport Session Binding Validator
+
+on:
+  push:
+    branches:
+      - research/wpt-session-binding-validator-v0.1
+  pull_request:
+    branches:
+      - research/wpt-energy-interface-v0-1-20261104
+    paths:
+      - "tools/wpt-energy-interface-validator/**"
+      - "benchmarks/wpt-energy-interface/v1/transport-session-binding*"
+      - ".github/workflows/wpt-session-binding-validator.yml"
+
+concurrency:
+  group: wpt-session-binding-validator-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate evidence-only session/path binding
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/wpt-energy-interface-validator/Cargo.toml -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --locked -p wpt-energy-interface-validator --all-targets -- -D warnings
+
+      - name: Run WPT session and binding tests
+        run: cargo test --locked -p wpt-energy-interface-validator
+
+      - name: Validate frozen WPT session corpus
+        run: cargo run --locked -p wpt-energy-interface-validator -- benchmarks/wpt-energy-interface/v1/known-truth.jsonl
+
+      - name: Validate positive transport-session binding
+        run: cargo run --locked -p wpt-energy-interface-validator -- validate-binding benchmarks/wpt-energy-interface/v1/transport-session-binding.example.json benchmarks/wpt-energy-interface/v1/transport-session-binding-context.example.json
