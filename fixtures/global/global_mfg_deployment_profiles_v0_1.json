@@ -1,0 +1,1076 @@
+{
+  "corpus_id": "GLOBAL-MFG-DEPLOY-CORPUS-V0.1",
+  "schema_version": "0.1.0",
+  "evidence_class": "synthetic_fixture",
+  "profiles": [
+    {
+      "profile_id": "GMDP-SYNTH-URBAN-LIMITED-CHARGING",
+      "profile_class": "synthetic_archetype",
+      "profile_revision": 1,
+      "scenario_label": "Dense urban / limited private charging",
+      "deployment_context": {
+        "manufacturing_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:site-1"
+        ],
+        "destination_market_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:market-1"
+        ],
+        "component_origin_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-1-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-1-b"
+        ],
+        "data_processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-1"
+        ],
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-1"
+        ]
+      },
+      "global_core": {
+        "product_family_id": "LD-EV-COMMERCIAL-UTILITY-SYNTH-001",
+        "product_revision": "0.1.0-synthetic",
+        "engineering_core_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "process_definition_refs": [
+          "urn:luminous:synthetic:process:final-assembly",
+          "urn:luminous:synthetic:process:end-of-line-inspection"
+        ],
+        "inspection_requirement_refs": [
+          "urn:luminous:synthetic:inspection:visual-dimensional",
+          "urn:luminous:synthetic:inspection:eol-functional"
+        ]
+      },
+      "manufacturing_site": {
+        "site_id": "SYNTHETIC-SITE-01",
+        "site_jurisdiction": "urn:luminous:synthetic:jurisdiction:site-1",
+        "site_evidence_class": "synthetic_fixture",
+        "process_capability_refs": [
+          "urn:luminous:synthetic:capability:non-hv-final-assembly",
+          "urn:luminous:synthetic:capability:inspection"
+        ],
+        "utilities": [
+          {
+            "utility": "electricity",
+            "availability": "constrained",
+            "units": "synthetic_kW_envelope",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "water",
+            "availability": "available",
+            "units": "synthetic_m3_per_shift",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "connectivity",
+            "availability": "available",
+            "units": "synthetic_connectivity_profile",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "operating_envelope": {
+          "climate_archetype": "temperate_urban",
+          "environmental_constraints": [
+            "limited_private_charging",
+            "restricted_factory_footprint",
+            "high_service_density"
+          ],
+          "connectivity_mode": "online"
+        },
+        "workforce": {
+          "shift_model": "synthetic_shift_2",
+          "skills_status": "synthetic_assumption",
+          "languages": [
+            "en",
+            "local_language_unspecified"
+          ]
+        }
+      },
+      "market_access": [
+        {
+          "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-1",
+          "product_category": "synthetic commercial EV reference",
+          "approval_status": "not_assessed",
+          "responsible_operator_status": "unknown"
+        }
+      ],
+      "supply_chain": {
+        "components": [
+          {
+            "component_ref": "urn:luminous:synthetic:component:traction-battery-module",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-1-a",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-1-b",
+            "origin_evidence_status": "unknown",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:cell-to-module",
+              "urn:luminous:synthetic:transformation:module-test"
+            ]
+          },
+          {
+            "component_ref": "urn:luminous:synthetic:component:power-electronics",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-1-b",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-1-a",
+            "origin_evidence_status": "synthetic_assumption",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:pcb-assembly",
+              "urn:luminous:synthetic:transformation:eol-test"
+            ]
+          }
+        ],
+        "origin_claims": "not_established"
+      },
+      "data_processing": {
+        "processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-1"
+        ],
+        "data_classification_status": "unknown",
+        "transfer_review_status": "not_assessed"
+      },
+      "service_lifecycle": {
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-1"
+        ],
+        "languages": [
+          "en",
+          "local_language_unspecified"
+        ],
+        "critical_parts_status": "synthetic_assumption",
+        "repair_capability_status": "synthetic_assumption",
+        "end_of_life_status": "synthetic_assumption"
+      },
+      "obligations": [
+        {
+          "obligation_id": "SYNTH-OB-1-SITE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:site-1",
+          "actor_scope": "site_operator",
+          "object_scope": "manufacturing_site",
+          "operation_scope": "operate_factory",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-1-MARKET",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:market-1",
+          "actor_scope": "manufacturer_or_importer",
+          "object_scope": "vehicle_product",
+          "operation_scope": "place_on_market",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-1-DATA",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:data-1",
+          "actor_scope": "data_controller_or_processor",
+          "object_scope": "manufacturing_telemetry",
+          "operation_scope": "process_or_transfer_data",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-1-SERVICE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:service-1",
+          "actor_scope": "service_provider",
+          "object_scope": "vehicle_and_battery",
+          "operation_scope": "repair_or_end_of_life",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        }
+      ],
+      "claims": {
+        "global_compliance_claim": "not_established",
+        "site_readiness_claim": "not_established",
+        "market_approval_claim": "not_established",
+        "production_authorization": false
+      }
+    },
+    {
+      "profile_id": "GMDP-SYNTH-HOT-DUST-WATER-CONSTRAINED",
+      "profile_class": "synthetic_archetype",
+      "profile_revision": 1,
+      "scenario_label": "Hot dusty / water constrained",
+      "deployment_context": {
+        "manufacturing_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:site-2"
+        ],
+        "destination_market_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:market-2"
+        ],
+        "component_origin_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-2-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-2-b"
+        ],
+        "data_processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-2"
+        ],
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-2"
+        ]
+      },
+      "global_core": {
+        "product_family_id": "LD-EV-COMMERCIAL-UTILITY-SYNTH-001",
+        "product_revision": "0.1.0-synthetic",
+        "engineering_core_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "process_definition_refs": [
+          "urn:luminous:synthetic:process:final-assembly",
+          "urn:luminous:synthetic:process:end-of-line-inspection"
+        ],
+        "inspection_requirement_refs": [
+          "urn:luminous:synthetic:inspection:visual-dimensional",
+          "urn:luminous:synthetic:inspection:eol-functional"
+        ]
+      },
+      "manufacturing_site": {
+        "site_id": "SYNTHETIC-SITE-02",
+        "site_jurisdiction": "urn:luminous:synthetic:jurisdiction:site-2",
+        "site_evidence_class": "synthetic_fixture",
+        "process_capability_refs": [
+          "urn:luminous:synthetic:capability:non-hv-final-assembly",
+          "urn:luminous:synthetic:capability:inspection"
+        ],
+        "utilities": [
+          {
+            "utility": "electricity",
+            "availability": "constrained",
+            "units": "synthetic_kW_envelope",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "water",
+            "availability": "constrained",
+            "units": "synthetic_m3_per_shift",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "connectivity",
+            "availability": "unknown",
+            "units": "synthetic_connectivity_profile",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "operating_envelope": {
+          "climate_archetype": "hot_dry_dusty",
+          "environmental_constraints": [
+            "high_ambient_temperature",
+            "airborne_dust",
+            "water_constraint",
+            "thermal_derating_risk"
+          ],
+          "connectivity_mode": "intermittent"
+        },
+        "workforce": {
+          "shift_model": "synthetic_shift_1",
+          "skills_status": "synthetic_assumption",
+          "languages": [
+            "en",
+            "local_language_unspecified"
+          ]
+        }
+      },
+      "market_access": [
+        {
+          "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-2",
+          "product_category": "synthetic commercial EV reference",
+          "approval_status": "not_assessed",
+          "responsible_operator_status": "unknown"
+        }
+      ],
+      "supply_chain": {
+        "components": [
+          {
+            "component_ref": "urn:luminous:synthetic:component:traction-battery-module",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-2-a",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-2-b",
+            "origin_evidence_status": "unknown",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:cell-to-module",
+              "urn:luminous:synthetic:transformation:module-test"
+            ]
+          },
+          {
+            "component_ref": "urn:luminous:synthetic:component:power-electronics",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-2-b",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-2-a",
+            "origin_evidence_status": "synthetic_assumption",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:pcb-assembly",
+              "urn:luminous:synthetic:transformation:eol-test"
+            ]
+          }
+        ],
+        "origin_claims": "not_established"
+      },
+      "data_processing": {
+        "processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-2"
+        ],
+        "data_classification_status": "unknown",
+        "transfer_review_status": "not_assessed"
+      },
+      "service_lifecycle": {
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-2"
+        ],
+        "languages": [
+          "en",
+          "local_language_unspecified"
+        ],
+        "critical_parts_status": "unknown",
+        "repair_capability_status": "training_required",
+        "end_of_life_status": "synthetic_assumption"
+      },
+      "obligations": [
+        {
+          "obligation_id": "SYNTH-OB-2-SITE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:site-2",
+          "actor_scope": "site_operator",
+          "object_scope": "manufacturing_site",
+          "operation_scope": "operate_factory",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-2-MARKET",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:market-2",
+          "actor_scope": "manufacturer_or_importer",
+          "object_scope": "vehicle_product",
+          "operation_scope": "place_on_market",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-2-DATA",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:data-2",
+          "actor_scope": "data_controller_or_processor",
+          "object_scope": "manufacturing_telemetry",
+          "operation_scope": "process_or_transfer_data",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-2-SERVICE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:service-2",
+          "actor_scope": "service_provider",
+          "object_scope": "vehicle_and_battery",
+          "operation_scope": "repair_or_end_of_life",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        }
+      ],
+      "claims": {
+        "global_compliance_claim": "not_established",
+        "site_readiness_claim": "not_established",
+        "market_approval_claim": "not_established",
+        "production_authorization": false
+      }
+    },
+    {
+      "profile_id": "GMDP-SYNTH-COLD-ALTITUDE-WEAK-GRID",
+      "profile_class": "synthetic_archetype",
+      "profile_revision": 1,
+      "scenario_label": "Cold high altitude / weak grid",
+      "deployment_context": {
+        "manufacturing_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:site-3"
+        ],
+        "destination_market_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:market-3"
+        ],
+        "component_origin_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-3-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-3-b"
+        ],
+        "data_processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-3"
+        ],
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-3"
+        ]
+      },
+      "global_core": {
+        "product_family_id": "LD-EV-COMMERCIAL-UTILITY-SYNTH-001",
+        "product_revision": "0.1.0-synthetic",
+        "engineering_core_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "process_definition_refs": [
+          "urn:luminous:synthetic:process:final-assembly",
+          "urn:luminous:synthetic:process:end-of-line-inspection"
+        ],
+        "inspection_requirement_refs": [
+          "urn:luminous:synthetic:inspection:visual-dimensional",
+          "urn:luminous:synthetic:inspection:eol-functional"
+        ]
+      },
+      "manufacturing_site": {
+        "site_id": "SYNTHETIC-SITE-03",
+        "site_jurisdiction": "urn:luminous:synthetic:jurisdiction:site-3",
+        "site_evidence_class": "synthetic_fixture",
+        "process_capability_refs": [
+          "urn:luminous:synthetic:capability:non-hv-final-assembly",
+          "urn:luminous:synthetic:capability:inspection"
+        ],
+        "utilities": [
+          {
+            "utility": "electricity",
+            "availability": "constrained",
+            "units": "synthetic_kW_envelope",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "water",
+            "availability": "available",
+            "units": "synthetic_m3_per_shift",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "connectivity",
+            "availability": "constrained",
+            "units": "synthetic_connectivity_profile",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "operating_envelope": {
+          "climate_archetype": "cold_high_altitude",
+          "environmental_constraints": [
+            "low_temperature_start",
+            "altitude_derating",
+            "grid_interruption",
+            "heating_load"
+          ],
+          "connectivity_mode": "offline_capable"
+        },
+        "workforce": {
+          "shift_model": "synthetic_shift_2",
+          "skills_status": "synthetic_assumption",
+          "languages": [
+            "en",
+            "local_language_unspecified"
+          ]
+        }
+      },
+      "market_access": [
+        {
+          "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-3",
+          "product_category": "synthetic commercial EV reference",
+          "approval_status": "not_assessed",
+          "responsible_operator_status": "unknown"
+        }
+      ],
+      "supply_chain": {
+        "components": [
+          {
+            "component_ref": "urn:luminous:synthetic:component:traction-battery-module",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-3-a",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-3-b",
+            "origin_evidence_status": "unknown",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:cell-to-module",
+              "urn:luminous:synthetic:transformation:module-test"
+            ]
+          },
+          {
+            "component_ref": "urn:luminous:synthetic:component:power-electronics",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-3-b",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-3-a",
+            "origin_evidence_status": "synthetic_assumption",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:pcb-assembly",
+              "urn:luminous:synthetic:transformation:eol-test"
+            ]
+          }
+        ],
+        "origin_claims": "not_established"
+      },
+      "data_processing": {
+        "processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-3"
+        ],
+        "data_classification_status": "unknown",
+        "transfer_review_status": "not_assessed"
+      },
+      "service_lifecycle": {
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-3"
+        ],
+        "languages": [
+          "en",
+          "local_language_unspecified"
+        ],
+        "critical_parts_status": "unknown",
+        "repair_capability_status": "training_required",
+        "end_of_life_status": "synthetic_assumption"
+      },
+      "obligations": [
+        {
+          "obligation_id": "SYNTH-OB-3-SITE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:site-3",
+          "actor_scope": "site_operator",
+          "object_scope": "manufacturing_site",
+          "operation_scope": "operate_factory",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-3-MARKET",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:market-3",
+          "actor_scope": "manufacturer_or_importer",
+          "object_scope": "vehicle_product",
+          "operation_scope": "place_on_market",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-3-DATA",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:data-3",
+          "actor_scope": "data_controller_or_processor",
+          "object_scope": "manufacturing_telemetry",
+          "operation_scope": "process_or_transfer_data",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-3-SERVICE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:service-3",
+          "actor_scope": "service_provider",
+          "object_scope": "vehicle_and_battery",
+          "operation_scope": "repair_or_end_of_life",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        }
+      ],
+      "claims": {
+        "global_compliance_claim": "not_established",
+        "site_readiness_claim": "not_established",
+        "market_approval_claim": "not_established",
+        "production_authorization": false
+      }
+    },
+    {
+      "profile_id": "GMDP-SYNTH-ISLAND-IMPORT-DEPENDENT",
+      "profile_class": "synthetic_archetype",
+      "profile_revision": 1,
+      "scenario_label": "Island import dependent / sparse service",
+      "deployment_context": {
+        "manufacturing_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:site-4"
+        ],
+        "destination_market_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:market-4"
+        ],
+        "component_origin_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-4-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-4-b"
+        ],
+        "data_processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-4"
+        ],
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-4"
+        ]
+      },
+      "global_core": {
+        "product_family_id": "LD-EV-COMMERCIAL-UTILITY-SYNTH-001",
+        "product_revision": "0.1.0-synthetic",
+        "engineering_core_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "process_definition_refs": [
+          "urn:luminous:synthetic:process:final-assembly",
+          "urn:luminous:synthetic:process:end-of-line-inspection"
+        ],
+        "inspection_requirement_refs": [
+          "urn:luminous:synthetic:inspection:visual-dimensional",
+          "urn:luminous:synthetic:inspection:eol-functional"
+        ]
+      },
+      "manufacturing_site": {
+        "site_id": "SYNTHETIC-SITE-04",
+        "site_jurisdiction": "urn:luminous:synthetic:jurisdiction:site-4",
+        "site_evidence_class": "synthetic_fixture",
+        "process_capability_refs": [
+          "urn:luminous:synthetic:capability:non-hv-final-assembly",
+          "urn:luminous:synthetic:capability:inspection"
+        ],
+        "utilities": [
+          {
+            "utility": "electricity",
+            "availability": "synthetic_assumption",
+            "units": "synthetic_kW_envelope",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "water",
+            "availability": "synthetic_assumption",
+            "units": "synthetic_m3_per_shift",
+            "evidence_class": "synthetic_fixture"
+          },
+          {
+            "utility": "connectivity",
+            "availability": "unknown",
+            "units": "synthetic_connectivity_profile",
+            "evidence_class": "synthetic_fixture"
+          }
+        ],
+        "operating_envelope": {
+          "climate_archetype": "humid_coastal",
+          "environmental_constraints": [
+            "salt_corrosion",
+            "port_dependency",
+            "long_parts_lead_time",
+            "limited_specialist_service"
+          ],
+          "connectivity_mode": "intermittent"
+        },
+        "workforce": {
+          "shift_model": "synthetic_shift_1",
+          "skills_status": "synthetic_assumption",
+          "languages": [
+            "en",
+            "local_language_unspecified"
+          ]
+        }
+      },
+      "market_access": [
+        {
+          "destination_jurisdiction": "urn:luminous:synthetic:jurisdiction:market-4",
+          "product_category": "synthetic commercial EV reference",
+          "approval_status": "not_assessed",
+          "responsible_operator_status": "unknown"
+        }
+      ],
+      "supply_chain": {
+        "components": [
+          {
+            "component_ref": "urn:luminous:synthetic:component:traction-battery-module",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-4-a",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-4-b",
+            "origin_evidence_status": "unknown",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:cell-to-module",
+              "urn:luminous:synthetic:transformation:module-test"
+            ]
+          },
+          {
+            "component_ref": "urn:luminous:synthetic:component:power-electronics",
+            "supplier_site_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-4-b",
+            "material_origin_jurisdiction": "urn:luminous:synthetic:jurisdiction:supplier-4-a",
+            "origin_evidence_status": "synthetic_assumption",
+            "transformation_refs": [
+              "urn:luminous:synthetic:transformation:pcb-assembly",
+              "urn:luminous:synthetic:transformation:eol-test"
+            ]
+          }
+        ],
+        "origin_claims": "not_established"
+      },
+      "data_processing": {
+        "processing_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:data-4"
+        ],
+        "data_classification_status": "unknown",
+        "transfer_review_status": "not_assessed"
+      },
+      "service_lifecycle": {
+        "service_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:service-4"
+        ],
+        "languages": [
+          "en",
+          "local_language_unspecified"
+        ],
+        "critical_parts_status": "unknown",
+        "repair_capability_status": "synthetic_assumption",
+        "end_of_life_status": "unknown"
+      },
+      "obligations": [
+        {
+          "obligation_id": "SYNTH-OB-4-SITE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:site-4",
+          "actor_scope": "site_operator",
+          "object_scope": "manufacturing_site",
+          "operation_scope": "operate_factory",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-4-MARKET",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:market-4",
+          "actor_scope": "manufacturer_or_importer",
+          "object_scope": "vehicle_product",
+          "operation_scope": "place_on_market",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-4-DATA",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:data-4",
+          "actor_scope": "data_controller_or_processor",
+          "object_scope": "manufacturing_telemetry",
+          "operation_scope": "process_or_transfer_data",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        },
+        {
+          "obligation_id": "SYNTH-OB-4-SERVICE",
+          "jurisdiction": "urn:luminous:synthetic:jurisdiction:service-4",
+          "actor_scope": "service_provider",
+          "object_scope": "vehicle_and_battery",
+          "operation_scope": "repair_or_end_of_life",
+          "requirement_basis": "unknown",
+          "source_status": "synthetic_fixture",
+          "source": {
+            "issuer": "SYNTHETIC FIXTURE — NOT A REAL AUTHORITY",
+            "instrument_id": "SYNTHETIC-OBLIGATION-NOT-LAW",
+            "edition": "synthetic-only",
+            "official_url": "https://example.invalid/global-mfg/synthetic-obligation",
+            "publication_date": null,
+            "entry_into_force_date": null,
+            "application_date": null,
+            "source_digest": "synthetic"
+          },
+          "applicability": {
+            "product_category": "synthetic commercial EV reference",
+            "territorial_scope": "synthetic test scope only",
+            "applicability_status": "unknown",
+            "rationale": "No real jurisdiction, legal source or applicability determination is represented in this corpus."
+          },
+          "disposition": "unknown",
+          "reviewer_status": "not_reviewed"
+        }
+      ],
+      "claims": {
+        "global_compliance_claim": "not_established",
+        "site_readiness_claim": "not_established",
+        "market_approval_claim": "not_established",
+        "production_authorization": false
+      }
+    }
+  ],
+  "negative_controls": [
+    {
+      "case_id": "NC-01",
+      "mutation": "proposal_as_law",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A proposed instrument is mutated to appear in force and satisfy a binding legal obligation."
+    },
+    {
+      "case_id": "NC-02",
+      "mutation": "wrong_destination_market",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A source from one destination market is used to satisfy a different destination market."
+    },
+    {
+      "case_id": "NC-03",
+      "mutation": "wrong_product_category",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A vehicle or component requirement is applied to a different product category without evidence."
+    },
+    {
+      "case_id": "NC-04",
+      "mutation": "expired_source_as_current",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A superseded or expired source is treated as current after its validity ended."
+    },
+    {
+      "case_id": "NC-05",
+      "mutation": "false_mutual_recognition",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A 1998 Agreement GTR is treated as mutual recognition of approval, or a 1958 approval is assumed recognized by a party that does not apply that UN Regulation."
+    },
+    {
+      "case_id": "NC-06",
+      "mutation": "supplier_location_as_origin",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Supplier-site jurisdiction is substituted for material origin or legally relevant transformation evidence."
+    },
+    {
+      "case_id": "NC-07",
+      "mutation": "unknown_origin_as_eligible",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Unknown origin or customs classification is treated as qualifying for preference or local-content benefit."
+    },
+    {
+      "case_id": "NC-08",
+      "mutation": "unknown_as_satisfied",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Missing, stale or unknown evidence is converted to a satisfied disposition."
+    },
+    {
+      "case_id": "NC-09",
+      "mutation": "data_processing_jurisdiction_omitted",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "Data processing or cross-border transfer jurisdiction is omitted from the deployment context."
+    },
+    {
+      "case_id": "NC-10",
+      "mutation": "silent_global_core_change",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A regional profile silently changes the shared engineering product revision or digest."
+    }
+  ]
+}
