@@ -496,4 +496,28 @@ mod tests {
         coverages.get_mut(&first.coverage_id).unwrap().map_generation = "MAP-WRONG".to_owned();
         assert!(validate_observations(&observations, &coverages, &scenarios).is_err());
     }
+
+    #[test]
+    fn declared_sensor_gap_cannot_be_used_as_coverage() {
+        let scenarios = parse_scenarios(SCENARIOS).unwrap();
+        let mut coverages = parse_coverage(COVERAGE, &scenarios).unwrap();
+        let observations = parse_observations(OBSERVATIONS, &scenarios).unwrap();
+        let first = observations.values().next().unwrap();
+        coverages.get_mut(&first.coverage_id).unwrap().coverage_state = "GAP".to_owned();
+        assert!(validate_observations(&observations, &coverages, &scenarios).is_err());
+    }
+
+    #[test]
+    fn route_predecessor_change_is_rejected() {
+        let changed = ROUTE.replace("OP-ROUGH\\t", "OP-ROUGH-X\\t");
+        assert!(validate_route_contract(&changed).is_err());
+    }
+
+    #[test]
+    fn ambiguous_rtls_samples_remain_valid_input_not_confirmed_location() {
+        let results = validate_reference_corpus().expect("coverage-aware input contract should pass");
+        let ambiguous = results.iter().find(|result| result.scenario_id == "S06").unwrap();
+        assert!(ambiguous.contract_clear);
+        assert!(ambiguous.observations_checked >= 3);
+    }
 }
