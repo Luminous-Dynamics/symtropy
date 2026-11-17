@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop_matched_service_run.schema.v0.1.json",
+  "title": "WaterLoop matched-service measured run record v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "run_id",
+    "plan_digest",
+    "arm_id",
+    "block_id",
+    "use_profile_id",
+    "quality_evidence_profile_id",
+    "quality_release_ref",
+    "start_utc",
+    "end_utc",
+    "demand_trace_digest",
+    "measurement_records",
+    "quality_sample_records",
+    "validity",
+    "claim_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-matched-service-run-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-MATCHED-SERVICE-BENCH-001"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "arm_id": {
+      "enum": [
+        "CONTROL-MAINS",
+        "TREATMENT-RECOVERED"
+      ]
+    },
+    "block_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "use_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quality_evidence_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quality_release_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "start_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "demand_trace_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "measurement_records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "instrument_id",
+          "boundary",
+          "unit",
+          "value",
+          "standard_uncertainty",
+          "calibration_ref",
+          "method_ref",
+          "time_window_start_utc",
+          "time_window_end_utc",
+          "raw_record_digest",
+          "validity"
+        ],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrument_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "standard_uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "calibration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time_window_start_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "time_window_end_utc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "raw_record_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "validity": {
+            "enum": [
+              "valid",
+              "stale",
+              "missing",
+              "contradictory",
+              "out_of_range",
+              "unobservable"
+            ]
+          }
+        }
+      }
+    },
+    "quality_sample_records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sample_id",
+          "analyte_id",
+          "method_revision",
+          "laboratory_ref",
+          "custody_ref",
+          "result_value",
+          "unit",
+          "detection_limit",
+          "uncertainty",
+          "sample_digest",
+          "disposition"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "analyte_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method_revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "laboratory_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "custody_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result_value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "detection_limit": {
+            "type": "number",
+            "minimum": 0
+          },
+          "uncertainty": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sample_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "disposition": {
+            "enum": [
+              "accepted_for_declared_profile",
+              "rejected",
+              "pending_review"
+            ]
+          }
+        }
+      }
+    },
+    "validity": {
+      "enum": [
+        "valid",
+        "indeterminate",
+        "invalid"
+      ]
+    },
+    "claim_status": {
+      "const": "not_qualified_until_independent_review"
+    }
+  }
+}
