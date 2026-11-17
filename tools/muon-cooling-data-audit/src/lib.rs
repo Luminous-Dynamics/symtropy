@@ -35,10 +35,7 @@ pub struct UserfileStats {
     pub vertical_native_emittance: NativeEmittance,
 }
 
-pub fn audit_files(
-    manifest_path: &Path,
-    input_path: &Path,
-) -> Result<Value, Vec<String>> {
+pub fn audit_files(manifest_path: &Path, input_path: &Path) -> Result<Value, Vec<String>> {
     let manifest_bytes = fs::read(manifest_path).map_err(|error| {
         vec![format!(
             "cannot read source manifest {}: {error}",
@@ -119,7 +116,9 @@ pub fn audit_bytes(manifest: &Value, input_bytes: &[u8]) -> Result<Value, Vec<St
     let expected_count = manifest
         .pointer("/input/expected_record_count")
         .and_then(Value::as_u64)
-        .ok_or_else(|| vec!["input.expected_record_count must be an unsigned integer".to_owned()])?;
+        .ok_or_else(|| {
+            vec!["input.expected_record_count must be an unsigned integer".to_owned()]
+        })?;
 
     if stats.record_count as u64 != expected_count {
         return Err(vec![format!(
@@ -188,13 +187,14 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
     {
         errors.push("source manifest must declare upstream_native_input_distribution".to_owned());
     }
-    if manifest.pointer("/upstream/repository").and_then(Value::as_str)
+    if manifest
+        .pointer("/upstream/repository")
+        .and_then(Value::as_str)
         != Some("MuonCollider-WG4/cooling_demonstrator")
     {
         errors.push("unexpected upstream repository".to_owned());
     }
-    if manifest.pointer("/upstream/ref").and_then(Value::as_str)
-        != Some("2026-11-09-prerelease")
+    if manifest.pointer("/upstream/ref").and_then(Value::as_str) != Some("2026-11-09-prerelease")
     {
         errors.push("unexpected upstream ref; pin the 2026-11-09 prerelease snapshot".to_owned());
     }
@@ -215,37 +215,63 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
     {
         errors.push("input.expected_record_count must be a positive integer".to_owned());
     }
-    if manifest.pointer("/input/expected_header").and_then(Value::as_str)
-        != Some("\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"")
+    if manifest
+        .pointer("/input/expected_header")
+        .and_then(Value::as_str)
+        != Some(
+            "\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+        )
     {
-        errors.push("input.expected_header does not match the pinned BDSIM userfile header".to_owned());
+        errors.push(
+            "input.expected_header does not match the pinned BDSIM userfile header".to_owned(),
+        );
     }
-    if manifest.pointer("/bdsim_declaration/distr_type").and_then(Value::as_str)
+    if manifest
+        .pointer("/bdsim_declaration/distr_type")
+        .and_then(Value::as_str)
         != Some("userfile")
-        || manifest.pointer("/bdsim_declaration/distr_file").and_then(Value::as_str)
+        || manifest
+            .pointer("/bdsim_declaration/distr_file")
+            .and_then(Value::as_str)
             != Some("lowemittancebeam.dat")
-        || manifest.pointer("/bdsim_declaration/distr_file_format").and_then(Value::as_str)
+        || manifest
+            .pointer("/bdsim_declaration/distr_file_format")
+            .and_then(Value::as_str)
             != Some("x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]")
     {
-        errors.push("BDSIM declaration must preserve the pinned userfile, file name and native units".to_owned());
+        errors.push(
+            "BDSIM declaration must preserve the pinned userfile, file name and native units"
+                .to_owned(),
+        );
     }
-    if manifest.pointer("/bdsim_declaration/particle").and_then(Value::as_str) != Some("mu-") {
+    if manifest
+        .pointer("/bdsim_declaration/particle")
+        .and_then(Value::as_str)
+        != Some("mu-")
+    {
         errors.push("the BDSIM beam declaration must identify mu-".to_owned());
     }
-    if manifest.pointer("/bdsim_declaration/nlines_ignore").and_then(Value::as_u64) != Some(1) {
-        errors.push("the BDSIM userfile declaration must ignore exactly one header line".to_owned());
+    if manifest
+        .pointer("/bdsim_declaration/nlines_ignore")
+        .and_then(Value::as_u64)
+        != Some(1)
+    {
+        errors
+            .push("the BDSIM userfile declaration must ignore exactly one header line".to_owned());
     }
-    if manifest.pointer("/bdsim_declaration/path").and_then(Value::as_str)
+    if manifest
+        .pointer("/bdsim_declaration/path")
+        .and_then(Value::as_str)
         != Some("cooling/bdsim/lowemittancebeam.gmad")
-        || manifest.pointer("/bdsim_declaration/git_blob_sha1").and_then(Value::as_str)
+        || manifest
+            .pointer("/bdsim_declaration/git_blob_sha1")
+            .and_then(Value::as_str)
             != Some("f5ff777ee61ec8985a03f5439b272903917c8e8e")
     {
         errors.push("BDSIM userfile declaration identity does not match the pinned upstream object".to_owned());
     }
 
-    let columns = manifest
-        .pointer("/input/columns")
-        .and_then(Value::as_array);
+    let columns = manifest.pointer("/input/columns").and_then(Value::as_array);
     match columns {
         Some(columns) if columns.len() == COLUMN_COUNT => {
             for (index, column) in columns.iter().enumerate() {
@@ -260,8 +286,7 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
                 if unit != Some(MOMENT_UNITS[index]) {
                     errors.push(format!(
                         "column {} must use native unit {}",
-                        MOMENT_NAMES[index],
-                        MOMENT_UNITS[index]
+                        MOMENT_NAMES[index], MOMENT_UNITS[index]
                     ));
                 }
             }
@@ -273,11 +298,21 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
         None => errors.push("input.columns must be an array".to_owned()),
     }
 
-    if manifest.pointer("/input/explicit_particle_ids").and_then(Value::as_bool) != Some(false) {
+    if manifest
+        .pointer("/input/explicit_particle_ids")
+        .and_then(Value::as_bool)
+        != Some(false)
+    {
         errors.push("the pinned native userfile does not contain explicit particle IDs".to_owned());
     }
-    if manifest.pointer("/input/explicit_weights").and_then(Value::as_bool) != Some(false) {
-        errors.push("the pinned native userfile does not contain an explicit weight column".to_owned());
+    if manifest
+        .pointer("/input/explicit_weights")
+        .and_then(Value::as_bool)
+        != Some(false)
+    {
+        errors.push(
+            "the pinned native userfile does not contain an explicit weight column".to_owned(),
+        );
     }
 
     let bdsim_lattice = manifest.get("bdsim_lattice");
@@ -285,9 +320,13 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
         model.get("coil_count").and_then(Value::as_u64) == Some(102)
             && model.get("absorber_count").and_then(Value::as_u64) == Some(0)
             && model.get("rf_cavity_count").and_then(Value::as_u64) == Some(0)
-            && model.get("ionization_cooling_claim_admissible").and_then(Value::as_bool)
+            && model
+                .get("ionization_cooling_claim_admissible")
+                .and_then(Value::as_bool)
                 == Some(false)
-            && model.get("rf_acceleration_claim_admissible").and_then(Value::as_bool)
+            && model
+                .get("rf_acceleration_claim_admissible")
+                .and_then(Value::as_bool)
                 == Some(false)
     });
     if !has_no_cooling_hardware {
@@ -296,37 +335,64 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
                 .to_owned(),
         );
     }
-    if manifest.pointer("/bdsim_lattice/path").and_then(Value::as_str)
+    if manifest
+        .pointer("/bdsim_lattice/path")
+        .and_then(Value::as_str)
         != Some("cooling/bdsim/solenoidsheetdemonstrator102.gmad")
-        || manifest.pointer("/bdsim_lattice/git_blob_sha1").and_then(Value::as_str)
+        || manifest
+            .pointer("/bdsim_lattice/git_blob_sha1")
+            .and_then(Value::as_str)
             != Some("1f564a733fcc63d46d0eff6ece5c89d2b93519c9")
     {
         errors.push("BDSIM lattice identity does not match the pinned upstream object".to_owned());
     }
-    if manifest.pointer("/g4bl_baseline/path").and_then(Value::as_str)
+    if manifest
+        .pointer("/g4bl_baseline/path")
+        .and_then(Value::as_str)
         != Some("cooling/g4bl/cooling.g4bl")
-        || manifest.pointer("/g4bl_baseline/git_blob_sha1").and_then(Value::as_str)
+        || manifest
+            .pointer("/g4bl_baseline/git_blob_sha1")
+            .and_then(Value::as_str)
             != Some("dc0cb955ef657cdc1862b4b5c30e2fe415d4e377")
-        || manifest.pointer("/g4bl_baseline/cell_count").and_then(Value::as_u64) != Some(60)
+        || manifest
+            .pointer("/g4bl_baseline/cell_count")
+            .and_then(Value::as_u64)
+            != Some(60)
     {
         errors.push("G4Beamline baseline identity or source cell count does not match the pinned upstream object".to_owned());
     }
 
-    if manifest.pointer("/g4bl_baseline/equivalent_to_bdsim_model").and_then(Value::as_bool)
+    if manifest
+        .pointer("/g4bl_baseline/equivalent_to_bdsim_model")
+        .and_then(Value::as_bool)
         != Some(false)
     {
-        errors.push("G4BL and BDSIM models must remain distinct until equivalence is established".to_owned());
+        errors.push(
+            "G4BL and BDSIM models must remain distinct until equivalence is established"
+                .to_owned(),
+        );
     }
-    if manifest.pointer("/g4bl_run_log/path").and_then(Value::as_str)
+    if manifest
+        .pointer("/g4bl_run_log/path")
+        .and_then(Value::as_str)
         != Some("cooling/g4bl/g4bl.log")
-        || manifest.pointer("/g4bl_run_log/git_blob_sha1").and_then(Value::as_str)
+        || manifest
+            .pointer("/g4bl_run_log/git_blob_sha1")
+            .and_then(Value::as_str)
             != Some("a69acc28ea77d9055685c05936615460f87059d9")
-        || manifest.pointer("/g4bl_run_log/decay_process_disabled").and_then(Value::as_bool)
+        || manifest
+            .pointer("/g4bl_run_log/decay_process_disabled")
+            .and_then(Value::as_bool)
             != Some(true)
-        || manifest.pointer("/g4bl_run_log/muon_survival_status").and_then(Value::as_str)
+        || manifest
+            .pointer("/g4bl_run_log/muon_survival_status")
+            .and_then(Value::as_str)
             != Some("not_evaluated")
     {
-        errors.push("the G4BL source log must preserve decay-disabled and survival-not-evaluated semantics".to_owned());
+        errors.push(
+            "the G4BL source log must preserve decay-disabled and survival-not-evaluated semantics"
+                .to_owned(),
+        );
     }
 
     if !errors.is_empty() {
@@ -407,7 +473,9 @@ fn parse_records<'a>(
     }
 
     if count == 0 {
-        return Err(vec!["BDSIM userfile contains no particle records".to_owned()]);
+        return Err(vec![
+            "BDSIM userfile contains no particle records".to_owned(),
+        ]);
     }
 
     let mut means = [0.0_f64; COLUMN_COUNT];
@@ -441,16 +509,10 @@ fn parse_records<'a>(
         });
     }
 
-    let horizontal_native_emittance = native_emittance(
-        covariance[0][0],
-        covariance[0][1],
-        covariance[1][1],
-    )?;
-    let vertical_native_emittance = native_emittance(
-        covariance[2][2],
-        covariance[2][3],
-        covariance[3][3],
-    )?;
+    let horizontal_native_emittance =
+        native_emittance(covariance[0][0], covariance[0][1], covariance[1][1])?;
+    let vertical_native_emittance =
+        native_emittance(covariance[2][2], covariance[2][3], covariance[3][3])?;
 
     Ok(UserfileStats {
         record_count: count,
@@ -465,8 +527,8 @@ fn native_emittance(
     position_angle_covariance: f64,
     angle_variance: f64,
 ) -> Result<NativeEmittance, Vec<String>> {
-    let determinant = position_variance * angle_variance
-        - position_angle_covariance * position_angle_covariance;
+    let determinant =
+        position_variance * angle_variance - position_angle_covariance * position_angle_covariance;
     if !determinant.is_finite() || determinant < -1.0e-12 {
         return Err(vec![
             "native 2D covariance determinant is negative or not finite".to_owned(),
@@ -641,10 +703,7 @@ mod tests {
             report["native_distribution_summary"]["coordinate_representation"],
             "native_bdsim_userfile"
         );
-        assert_eq!(
-            report["claim_status"]["canonical_momenta_emitted"],
-            false
-        );
+        assert_eq!(report["claim_status"]["canonical_momenta_emitted"], false);
         assert_eq!(
             report["claim_status"]["normalized_emittance_emitted"],
             false
@@ -692,7 +751,10 @@ mod tests {
         let bytes = fixture();
         let changed = String::from_utf8(bytes.clone())
             .expect("fixture UTF-8")
-            .replace("-1.0 -0.1 -2.0 -0.2 0.0 200.0 -1.0", "-1.0 -0.1 -2.0 -0.2 0.0 200.0");
+            .replace(
+                "-1.0 -0.1 -2.0 -0.2 0.0 200.0 -1.0",
+                "-1.0 -0.1 -2.0 -0.2 0.0 200.0",
+            );
         assert!(audit_bytes(&manifest_for(changed.as_bytes()), changed.as_bytes()).is_err());
     }
 
