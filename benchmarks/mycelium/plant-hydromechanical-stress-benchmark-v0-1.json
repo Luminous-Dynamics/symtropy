@@ -88,6 +88,45 @@
       "scope": "three AMF profiles in a 2D-constrained in-vitro root-organ-culture system",
       "admission_status": "code_data_and_derivative_rights_audit_required",
       "prohibited_inference": "in_vitro_2d_flow_observations_do_not_establish_field_scale_plant_water_transfer"
+    },
+    {
+      "id": "buckley-process-stomatal-2026",
+      "citation": "Buckley et al. (2026), A Simple Stomatal Model That Unifies the Metabolic and Hydraulic Control of Carbon and Water Flux",
+      "doi": "10.1111/gcb.70999",
+      "published": "2026-07-11",
+      "role": "process-based stomatal comparator coupling hydraulic water status and photosynthetic bioenergetics",
+      "equations": [
+        "b = A_m - A + b_o",
+        "g_sw = s*b*(psi_s - psi_c)/(1 + s*b*delta_w/K)"
+      ],
+      "parameterization": {
+        "empirically_fitted": [
+          "s",
+          "b_o"
+        ],
+        "separately_measured_or_estimated": [
+          "K",
+          "psi_c"
+        ],
+        "c3_co2_saturated_assimilation": "A_m = J/4 - R_d"
+      },
+      "code_data_release_doi": "10.5281/zenodo.21105704",
+      "code_data_release": "TomBuckleyLab/stomatal-model-GCB v1.0",
+      "release_license_status": "Zenodo record does not populate a license field; paper is CC BY-NC-ND. The equation-level clean-room implementation does not copy source code or data. Inspect artifacts and resolve reuse rights before any ingestion or redistribution.",
+      "admission_status": "equation_level_clean_room_reference_implemented; published_data_and_code_reproduction_not_run",
+      "implementation": {
+        "module": "crates/domains/symtropy-mycelium/src/plant_stomatal_buckley_2026.rs",
+        "scope": "Eq 3a/3b, C3 A_m relation and VPD-to-delta_w boundary conversion",
+        "c4_scope": "not_implemented",
+        "authored_tests": 12,
+        "result_status": "pending_exact_head_ci",
+        "no_claims": [
+          "paper_dataset_reproduction",
+          "parameter_fit",
+          "cross_species_validation",
+          "SOTA_superiority"
+        ]
+      }
     }
   ],
   "process_scales": [
@@ -323,6 +362,37 @@
         ]
       },
       "required_model_behavior": "report the mechanism as non-identifiable from the ambiguous observation bundle; do not infer soil limitation or atmospheric demand from leaf water potential alone"
+    },
+    {
+      "id": "S11",
+      "name": "process_based_buckley_stomatal_comparator",
+      "forcing": "matched_soil_water_potential_hydraulic_conductance_photosynthetic_capacity_and_leaf_to_air_vapor_mole_fraction_difference",
+      "purpose": "compare_process_based_hydraulic_bioenergetic_stomatal_response_with_linear_closure_empirical_vpd_and_constant_conductance_baselines",
+      "holdout": true,
+      "required_observables": [
+        "soil_water_potential",
+        "soil_leaf_hydraulic_conductance",
+        "leaf_to_air_delta_w",
+        "net_assimilation",
+        "co2_saturated_assimilation",
+        "stomatal_conductance",
+        "transpiration"
+      ],
+      "required_parameter_fit_budget": [
+        "s",
+        "b_o"
+      ],
+      "measured_or_independently_qualified_parameters": [
+        "K",
+        "psi_c"
+      ],
+      "negative_controls": [
+        "zero_vpd",
+        "dark_or_low_assimilation_with_basal_capacity",
+        "closure_threshold",
+        "reduced_hydraulic_conductance"
+      ],
+      "fairness": "same_leaf_area_basis_units_forcing_and_independent_plant_or_leaf_holdouts; never fit s or b_o on held-out leaves"
     }
   ],
   "observation_channels": [
@@ -532,6 +602,14 @@
         "HYDRUS_1D"
       ],
       "role": "soil constitutive and transient-flow comparison; retain SOIL-HYDRAULIC-001 #2861 as the source of soil water retention/conductivity authority"
+    },
+    {
+      "id": "buckley_process_stomatal_model",
+      "families": [
+        "Buckley_2026_Eq_3a_3b_clean_room_reference"
+      ],
+      "role": "process-based hydraulic and photosynthetic stomatal comparator, paired with measured K and psi_c and two fitted coefficients s and b_o",
+      "implementation_status": "equation_level_implementation_present_data_reproduction_not_run"
     }
   ],
   "metrics": [
@@ -555,7 +633,11 @@
     "transient_leaf_water_potential_pulse_response_and_recovery",
     "time_step_refinement_error_at_matched_observation_times",
     "history_dependence_from_lumped_water_storage",
-    "mechanism_identifiability_and_correct_abstention_under_observational_equivalence"
+    "mechanism_identifiability_and_correct_abstention_under_observational_equivalence",
+    "stomatal_conductance_error_by_soil_potential_and_assimilation_stratum",
+    "transpiration_error_under_matched_delta_w_and_hydraulic_conductance",
+    "dark_or_low_assimilation_basal_stomatal_response",
+    "parameter_recovery_and_identifiability_for_s_and_b_o"
   ],
   "fair_comparison_rules": [
     "freeze source release code commit data checksum model configuration and parameter units",
@@ -570,7 +652,10 @@
     "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting",
     "HydroRoot root-side output must be coupled through an explicit soil boundary adapter; do not interpret its soilless boundary model as a soil-root interaction solver",
     "respect source-specific software licenses; a public code/data record with missing license metadata is not automatically a grant to modify or redistribute",
-    "include paired cases with observationally equivalent measured states but different causal inputs; score correct abstention until a discriminating measurement is available"
+    "include paired cases with observationally equivalent measured states but different causal inputs; score correct abstention until a discriminating measurement is available",
+    "Buckley Eq 3a/3b comparison must use the paper's stated units, compatible leaf-area basis, source-specific A_m derivation and independent-plant/leaf holdouts",
+    "do not claim paper reproduction from the clean-room equation implementation; pin and rights-admit the Zenodo release and other source datasets before reproducing fitted values or reported figures",
+    "C3 A_m helper does not authorize use for C4 species; a separate source-faithful C4 profile is required"
   ],
   "preregistration_receipt": [
     "model_and_source_revision",
