@@ -199,14 +199,9 @@ impl BeamElement3D {
             self.local_frame.z_axis_global,
         ];
         for node_offset in [0usize, 6usize] {
-            for local_axis in 0..3 {
-                let components = [
-                    axes[local_axis].x,
-                    axes[local_axis].y,
-                    axes[local_axis].z,
-                ];
-                for global_axis in 0..3 {
-                    let component = components[global_axis];
+            for (local_axis, axis) in axes.iter().enumerate() {
+                let components = [axis.x, axis.y, axis.z];
+                for (global_axis, component) in components.iter().copied().enumerate() {
                     transform[node_offset + local_axis][node_offset + global_axis] = component;
                     transform[node_offset + 3 + local_axis][node_offset + 3 + global_axis] =
                         component;
@@ -223,18 +218,22 @@ impl BeamElement3D {
         let mut temp = [[0.0_f64; 12]; 12];
         let mut global = [[0.0_f64; 12]; 12];
 
-        for row in 0..12 {
-            for column in 0..12 {
-                for inner in 0..12 {
-                    temp[row][column] += local[row][inner] * transform[inner][column];
-                }
+        for (row, output_row) in temp.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate() {
+                *output = local[row]
+                    .iter()
+                    .zip(transform.iter())
+                    .map(|(local_value, transform_row)| local_value * transform_row[column])
+                    .sum();
             }
         }
-        for row in 0..12 {
-            for column in 0..12 {
-                for inner in 0..12 {
-                    global[row][column] += transform[inner][row] * temp[inner][column];
-                }
+        for (row, output_row) in global.iter_mut().enumerate() {
+            for (column, output) in output_row.iter_mut().enumerate() {
+                *output = transform
+                    .iter()
+                    .zip(temp.iter())
+                    .map(|(transform_row, temp_row)| transform_row[row] * temp_row[column])
+                    .sum();
             }
         }
         global
@@ -259,9 +258,9 @@ fn add_four_dof_block(
     block: [[f64; 4]; 4],
     scale: f64,
 ) {
-    for row in 0..4 {
-        for column in 0..4 {
-            matrix[indices[row]][indices[column]] += scale * block[row][column];
+    for (local_row, global_row) in indices.iter().copied().enumerate() {
+        for (local_column, global_column) in indices.iter().copied().enumerate() {
+            matrix[global_row][global_column] += scale * block[local_row][local_column];
         }
     }
 }
@@ -324,10 +323,10 @@ mod tests {
         )
         .unwrap();
         let stiffness = beam.local_stiffness_matrix();
-        for row in 0..12 {
-            for column in 0..12 {
-                assert!(stiffness[row][column].is_finite());
-                assert!((stiffness[row][column] - stiffness[column][row]).abs() < 1.0e-8);
+        for (row, row_values) in stiffness.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert!(value.is_finite());
+                assert!((*value - stiffness[column][row]).abs() < 1.0e-8);
             }
         }
     }
@@ -347,9 +346,9 @@ mod tests {
         let k = beam.local_stiffness_matrix();
         let mut reduced = [[0.0; 6]; 6];
         let mut rhs = [0.0; 6];
-        for row in 0..6 {
-            for column in 0..6 {
-                reduced[row][column] = k[row + 6][column + 6];
+        for (row, reduced_row) in reduced.iter_mut().enumerate() {
+            for (column, value) in reduced_row.iter_mut().enumerate() {
+                *value = k[row + 6][column + 6];
             }
         }
         // Tip local-y force; node i is fully fixed.
@@ -396,10 +395,10 @@ mod tests {
         )
         .unwrap();
         let stiffness = beam.global_stiffness_matrix();
-        for row in 0..12 {
-            for column in 0..12 {
-                assert!(stiffness[row][column].is_finite());
-                assert!((stiffness[row][column] - stiffness[column][row]).abs() < 1.0e-7);
+        for (row, row_values) in stiffness.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
+                assert!(value.is_finite());
+                assert!((*value - stiffness[column][row]).abs() < 1.0e-7);
             }
         }
     }
@@ -419,29 +418,34 @@ mod tests {
         let mut recovered = [[0.0_f64; 12]; 12];
         let mut temp = [[0.0_f64; 12]; 12];
 
-        for row in 0..12 {
-            for column in 0..12 {
-                let mut dot = 0.0;
-                for inner in 0..12 {
-                    dot += transform[row][inner] * transform[column][inner];
-                }
+        for (row, transform_row) in transform.iter().enumerate() {
+            for (column, other_row) in transform.iter().enumerate() {
+                let dot: f64 = transform_row
+                    .iter()
+                    .zip(other_row.iter())
+                    .map(|(left, right)| left * right)
+                    .sum();
                 let expected = if row == column { 1.0 } else { 0.0 };
                 assert!((dot - expected).abs() < 1.0e-12);
             }
         }
 
-        for row in 0..12 {
-            for column in 0..12 {
-                for inner in 0..12 {
-                    temp[row][column] += transform[row][inner] * global[inner][column];
-                }
+        for (row, temp_row) in temp.iter_mut().enumerate() {
+            for (column, value) in temp_row.iter_mut().enumerate() {
+                *value = transform[row]
+                    .iter()
+                    .zip(global.iter())
+                    .map(|(transform_value, global_row)| transform_value * global_row[column])
+                    .sum();
             }
         }
-        for row in 0..12 {
-            for column in 0..12 {
-                for inner in 0..12 {
-                    recovered[row][column] += temp[row][inner] * transform[column][inner];
-                }
+        for (row, recovered_row) in recovered.iter_mut().enumerate() {
+            for (column, value) in recovered_row.iter_mut().enumerate() {
+                *value = temp[row]
+                    .iter()
+                    .zip(transform[column].iter())
+                    .map(|(temp_value, transform_value)| temp_value * transform_value)
+                    .sum();
             }
         }
         let local = beam.local_stiffness_matrix();
@@ -451,10 +455,10 @@ mod tests {
             .map(|value| value.abs())
             .fold(0.0_f64, f64::max);
         let tolerance = matrix_scale * 1.0e-12;
-        for row in 0..12 {
-            for column in 0..12 {
+        for (row, row_values) in recovered.iter().enumerate() {
+            for (column, value) in row_values.iter().enumerate() {
                 assert!(
-                    (recovered[row][column] - local[row][column]).abs() < tolerance,
+                    (*value - local[row][column]).abs() < tolerance,
                     "transform mismatch at ({row}, {column})"
                 );
             }
