@@ -147,40 +147,31 @@
                   "type": "number"
                 },
                 "failure_domains": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "physical_interface",
-                    "calibration_lineage",
-                    "power_supply",
-                    "communications_path",
-                    "clock_domain",
-                    "measurement_principle"
-                  ],
-                  "properties": {
-                    "physical_interface": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "calibration_lineage": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "power_supply": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "communications_path": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "clock_domain": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "measurement_principle": {
-                      "type": "string",
-                      "minLength": 1
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "domain_type",
+                      "domain_id"
+                    ],
+                    "properties": {
+                      "domain_type": {
+                        "enum": [
+                          "physical_interface",
+                          "calibration_lineage",
+                          "power_supply",
+                          "communications_path",
+                          "clock_domain",
+                          "measurement_principle"
+                        ]
+                      },
+                      "domain_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
                     }
                   }
                 }
