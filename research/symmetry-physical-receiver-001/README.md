@@ -40,10 +40,10 @@ The transform, metric, generator and all derived arrays are checked for finite v
     cargo fmt --manifest-path research/symmetry-physical-receiver-001/Cargo.toml --all -- --check
     cargo test --locked --manifest-path research/symmetry-physical-receiver-001/Cargo.toml
     cargo clippy --locked --manifest-path research/symmetry-physical-receiver-001/Cargo.toml --all-targets -- -D warnings
-    cargo run --locked --manifest-path research/symmetry-physical-receiver-001/Cargo.toml --bin verify-symmetry-handoff -- fixtures/synthetic-receiver-package-v0.1.json
+    cargo run --locked --manifest-path research/symmetry-physical-receiver-001/Cargo.toml --bin verify-symmetry-handoff -- path/to/admissible-receiver-package-v0.2.json
 
 ## Test fixture and limits
 
-The unit-test package is synthetic and exists to exercise exact byte binding, independent transformation checks, wrong-law mutations, digest mutation and fail-closed outcomes. It is not a real source receipt. The checker currently supports one bounded 3D dense coordinate-re-description, one SPD metric, a small generator set and a two-row full-rank constraint map.
+The unit-test package is synthetic and exists to exercise exact byte binding, independent transformation checks, canonical/dense step-map replay, wrong-law mutations, digest mutation and fail-closed outcomes. It is not a real source receipt. The CLI expects a separately assembled admissible receiver-package v0.2 document; the checked-in synthetic handoff JSON is only an envelope/schema fixture. The checker currently supports one bounded 3D dense coordinate-re-description, one SPD metric, a small generator set and a two-row full-rank constraint map.
 
 It does not qualify arbitrary manifolds, arbitrary nonlinear integrators, contact/friction, sparse articulated dynamics, or scientific search pruning. The receiver marks the bounded `discrete_step_equivariance` obligation PASS only when both frame traces satisfy the declared residual profile. The broader physical-observables bundle and numerical forward-error envelope remain INCONCLUSIVE, so the overall receipt remains INCONCLUSIVE and physical-equivalence authority stays NONE.
