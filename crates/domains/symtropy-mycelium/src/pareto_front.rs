@@ -208,12 +208,12 @@ fn validate_samples(samples: &[ParetoPhenotypeSample]) -> Result<(), ParetoAnaly
         }
 
         let identity = (sample.plant_genotype, sample.fungal_strain);
-        if let Some(existing) = growth_unit_identity.insert(sample.growth_unit, identity) {
-            if existing != identity {
-                return Err(ParetoAnalysisError::InvalidGrowthUnitIdentity(
-                    sample.growth_unit,
-                ));
-            }
+        if let Some(existing) = growth_unit_identity.insert(sample.growth_unit, identity)
+            && existing != identity
+        {
+            return Err(ParetoAnalysisError::InvalidGrowthUnitIdentity(
+                sample.growth_unit,
+            ));
         }
         growth_unit_windows
             .entry(sample.growth_unit)
