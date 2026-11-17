@@ -787,7 +787,7 @@ mod tests {
     fn pairwise_independent_path_count_matches_separate_subset_oracle() {
         fn mask_set(mask: u8) -> BTreeSet<String> {
             (0..3)
-                .filter(|bit| mask & (1 << bit) != 0)
+                .filter(|bit| mask & (1 << *bit) != 0)
                 .map(|bit| format!("fd-{bit}"))
                 .collect()
         }
@@ -799,7 +799,7 @@ mod tests {
                         let mut oracle = 0;
                         for subset in 0..(1_usize << sets.len()) {
                             let selected = (0..sets.len())
-                                .filter(|index| subset & (1 << index) != 0)
+                                .filter(|index| subset & (1 << *index) != 0)
                                 .collect::<Vec<_>>();
                             let pairwise_disjoint = selected.iter().enumerate().all(|(i, left)| {
                                 selected.iter().skip(i + 1).all(|right| {
