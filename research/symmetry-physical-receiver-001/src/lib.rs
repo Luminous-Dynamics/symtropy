@@ -1036,6 +1036,532 @@ fn validate_profile(profile: ReceiverProfileV1) -> Result<(), ReceiverErrorV1> {
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq)]
+struct StepMapVerificationV1 {
+    diagnostics: StepMapDiagnosticsV1,
+    qualified: bool,
+}
+
+fn step_norm6(vector: &Vector6) -> f64 {
+    vector
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
+}
+
+fn step_norm3(vector: &Vector3) -> f64 {
+    vector
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
+}
+
+fn step_dot6(left: &Vector6, right: &Vector6) -> f64 {
+    left.iter()
+        .zip(right)
+        .map(|(left_value, right_value)| left_value * right_value)
+        .sum()
+}
+
+fn step_dot3(left: &Vector3, right: &Vector3) -> f64 {
+    left.iter()
+        .zip(right)
+        .map(|(left_value, right_value)| left_value * right_value)
+        .sum()
+}
+
+fn step_apply6(matrix: &Matrix6, vector: &Vector6) -> Vector6 {
+    std::array::from_fn(|row| {
+        matrix[row]
+            .iter()
+            .zip(vector)
+            .map(|(coefficient, value)| coefficient * value)
+            .sum()
+    })
+}
+
+fn step_transpose6(matrix: &Matrix6) -> Matrix6 {
+    std::array::from_fn(|row| std::array::from_fn(|column| matrix[column][row]))
+}
+
+fn step_multiply6(left: &Matrix6, right: &Matrix6) -> Matrix6 {
+    std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            (0..6)
+                .map(|inner| left[row][inner] * right[inner][column])
+                .sum()
+        })
+    })
+}
+
+fn step_matrix6_inf_norm(matrix: &Matrix6) -> f64 {
+    matrix
+        .iter()
+        .map(|row| row.iter().map(|value| value.abs()).sum::<f64>())
+        .fold(0.0_f64, f64::max)
+}
+
+fn step_inverse6_condition(
+    matrix: &Matrix6,
+    profile: ReceiverProfileV1,
+) -> Result<(Matrix6, f64), ReceiverErrorV1> {
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(ReceiverErrorV1::NonFiniteInput);
+    }
+    let matrix_norm = step_matrix6_inf_norm(matrix);
+    if !matrix_norm.is_finite() || matrix_norm == 0.0 {
+        return Err(ReceiverErrorV1::SingularCoordinateChange { pivot: 0 });
+    }
+    let threshold = profile.relative_transform_pivot_tolerance * matrix_norm;
+    if !threshold.is_finite() {
+        return Err(ReceiverErrorV1::NonFiniteDerivedValue);
+    }
+
+    let mut left = *matrix;
+    let mut inverse = [[0.0; 6]; 6];
+    for (index, row) in inverse.iter_mut().enumerate() {
+        row[index] = 1.0;
+    }
+
+    for pivot_column in 0..6 {
+        let mut pivot_row = pivot_column;
+        let mut pivot_magnitude = left[pivot_column][pivot_column].abs();
+        for candidate in (pivot_column + 1)..6 {
+            let magnitude = left[candidate][pivot_column].abs();
+            if magnitude > pivot_magnitude {
+                pivot_magnitude = magnitude;
+                pivot_row = candidate;
+            }
+        }
+        if !pivot_magnitude.is_finite() || pivot_magnitude <= threshold {
+            return Err(ReceiverErrorV1::SingularCoordinateChange {
+                pivot: pivot_column,
+            });
+        }
+        if pivot_row != pivot_column {
+            left.swap(pivot_row, pivot_column);
+            inverse.swap(pivot_row, pivot_column);
+        }
+
+        let pivot = left[pivot_column][pivot_column];
+        for entry in 0..6 {
+            left[pivot_column][entry] /= pivot;
+            inverse[pivot_column][entry] /= pivot;
+        }
+        for row in 0..6 {
+            if row == pivot_column {
+                continue;
+            }
+            let factor = left[row][pivot_column];
+            for entry in 0..6 {
+                left[row][entry] -= factor * left[pivot_column][entry];
+                inverse[row][entry] -= factor * inverse[pivot_column][entry];
+            }
+        }
+    }
+
+    if left.iter().flatten().any(|value| !value.is_finite())
+        || inverse.iter().flatten().any(|value| !value.is_finite())
+    {
+        return Err(ReceiverErrorV1::NonFiniteDerivedValue);
+    }
+    let condition = matrix_norm * step_matrix6_inf_norm(&inverse);
+    if !condition.is_finite() {
+        return Err(ReceiverErrorV1::NonFiniteDerivedValue);
+    }
+    Ok((inverse, condition))
+}
+
+fn step_apply_jacobian(jacobian: &Jacobian3x6, vector: &Vector6) -> Vector3 {
+    std::array::from_fn(|row| {
+        jacobian[row]
+            .iter()
+            .zip(vector)
+            .map(|(coefficient, value)| coefficient * value)
+            .sum()
+    })
+}
+
+fn step_jacobian_transpose_apply(jacobian: &Jacobian3x6, vector: &Vector3) -> Vector6 {
+    std::array::from_fn(|column| {
+        jacobian
+            .iter()
+            .zip(vector)
+            .map(|(row, value)| row[column] * value)
+            .sum()
+    })
+}
+
+fn step_jacobian_basis(jacobian: &Jacobian3x6, basis: &Matrix6) -> Jacobian3x6 {
+    std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            (0..6)
+                .map(|inner| jacobian[row][inner] * basis[inner][column])
+                .sum()
+        })
+    })
+}
+
+fn step_relative_vector_defect6(left: &Vector6, right: &Vector6) -> f64 {
+    let difference = std::array::from_fn(|index| left[index] - right[index]);
+    step_norm6(&difference) / step_norm6(left).max(step_norm6(right)).max(1.0e-300)
+}
+
+fn step_relative_vector_defect3(left: &Vector3, right: &Vector3) -> f64 {
+    let difference = std::array::from_fn(|index| left[index] - right[index]);
+    step_norm3(&difference) / step_norm3(left).max(step_norm3(right)).max(1.0e-300)
+}
+
+fn step_relative_scalar_defect(left: f64, right: f64) -> f64 {
+    (left - right).abs() / left.abs().max(right.abs()).max(1.0e-300)
+}
+
+fn step_mass_matrix(masses_kg: [f64; 2]) -> Matrix6 {
+    let mut mass = [[0.0; 6]; 6];
+    for axis in 0..3 {
+        mass[axis][axis] = masses_kg[0];
+        mass[axis + 3][axis + 3] = masses_kg[1];
+    }
+    mass
+}
+
+fn step_relative_position_jacobian() -> Jacobian3x6 {
+    [
+        [-1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        [0.0, -1.0, 0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, -1.0, 0.0, 0.0, 1.0],
+    ]
+}
+
+fn step_mass_apply(mass: &Matrix6, vector: &Vector6) -> Vector6 {
+    step_apply6(mass, vector)
+}
+
+fn step_kinetic_energy(mass: &Matrix6, velocity: &Vector6) -> f64 {
+    0.5 * step_dot6(velocity, &step_mass_apply(mass, velocity))
+}
+
+fn step_momentum_balance_defect(
+    mass: &Matrix6,
+    velocity_initial: &Vector6,
+    velocity_next: &Vector6,
+    force: &Vector6,
+    jacobian: &Jacobian3x6,
+    midpoint_relative_position: &Vector3,
+    multiplier: f64,
+    time_step: f64,
+) -> f64 {
+    let velocity_change = std::array::from_fn(|index| {
+        (velocity_next[index] - velocity_initial[index]) / time_step
+    });
+    let lhs = step_mass_apply(mass, &velocity_change);
+    let reaction_direction = step_jacobian_transpose_apply(jacobian, midpoint_relative_position);
+    let rhs = std::array::from_fn(|index| force[index] + multiplier * reaction_direction[index]);
+    let residual = std::array::from_fn(|index| lhs[index] - rhs[index]);
+    step_norm6(&residual) / (step_norm6(&lhs) + step_norm6(&rhs)).max(1.0e-300)
+}
+
+fn verify_step_map_witness(
+    witness: &StepMapWitnessV1,
+    expected_time_step: f64,
+    profile: ReceiverProfileV1,
+) -> Result<StepMapVerificationV1, ReceiverErrorV1> {
+    if witness.model_id != "two-point-mass-fixed-link-midpoint-step-v0.1"
+        || witness.masses_kg.iter().any(|value| !value.is_finite() || *value <= 0.0)
+        || !witness.link_length_m.is_finite()
+        || witness.link_length_m <= 0.0
+        || !witness.time_step_s.is_finite()
+        || witness.time_step_s <= 0.0
+        || (witness.time_step_s - expected_time_step).abs()
+            > 1.0e-14 * expected_time_step.abs().max(1.0)
+        || !witness.multiplier.is_finite()
+    {
+        return Err(ReceiverErrorV1::InvalidStepMapWitness);
+    }
+    let arrays_finite = witness.coordinate_basis_s.iter().flatten().all(|value| value.is_finite())
+        && witness.initial_position_q.iter().all(|value| value.is_finite())
+        && witness.initial_velocity_q.iter().all(|value| value.is_finite())
+        && witness.force_covector_q.iter().all(|value| value.is_finite())
+        && witness.position_next_q.iter().all(|value| value.is_finite())
+        && witness.velocity_next_q.iter().all(|value| value.is_finite())
+        && witness.midpoint_velocity_q.iter().all(|value| value.is_finite())
+        && witness.position_next_y.iter().all(|value| value.is_finite())
+        && witness.velocity_next_y.iter().all(|value| value.is_finite())
+        && witness.midpoint_velocity_y.iter().all(|value| value.is_finite());
+    if !arrays_finite {
+        return Err(ReceiverErrorV1::NonFiniteInput);
+    }
+
+    let (inverse_basis, basis_condition) =
+        step_inverse6_condition(&witness.coordinate_basis_s, profile)?;
+    let mut diagnostics = StepMapDiagnosticsV1 {
+        basis_condition_inf_estimate: basis_condition,
+        canonical_kinematics_relative_defect: 0.0,
+        dense_kinematics_relative_defect: 0.0,
+        dense_lift_relative_defect: 0.0,
+        canonical_midpoint_constraint_relative_defect: 0.0,
+        dense_midpoint_constraint_relative_defect: 0.0,
+        canonical_momentum_balance_relative_defect: 0.0,
+        dense_momentum_balance_relative_defect: 0.0,
+        canonical_discrete_constraint_identity_relative_defect: 0.0,
+        dense_discrete_constraint_identity_relative_defect: 0.0,
+        canonical_energy_work_relative_defect: 0.0,
+        dense_energy_work_relative_defect: 0.0,
+    };
+    if basis_condition > profile.maximum_transform_condition_inf {
+        return Ok(StepMapVerificationV1 {
+            diagnostics,
+            qualified: false,
+        });
+    }
+
+    let h = witness.time_step_s;
+    let basis = &witness.coordinate_basis_s;
+    let basis_t = step_transpose6(basis);
+    let mass_q = step_mass_matrix(witness.masses_kg);
+    let mass_y = step_multiply6(&basis_t, &step_multiply6(&mass_q, basis));
+    let force_q = witness.force_covector_q;
+    let force_y = step_apply6(&basis_t, &force_q);
+    let jacobian_q = step_relative_position_jacobian();
+    let jacobian_y = step_jacobian_basis(&jacobian_q, basis);
+
+    let q0 = witness.initial_position_q;
+    let v0 = witness.initial_velocity_q;
+    let q1 = witness.position_next_q;
+    let v1 = witness.velocity_next_q;
+    let u = witness.midpoint_velocity_q;
+    let q_mid = std::array::from_fn(|index| q0[index] + 0.5 * h * u[index]);
+
+    let q1_from_midpoint = std::array::from_fn(|index| q0[index] + h * u[index]);
+    let v1_from_midpoint =
+        std::array::from_fn(|index| 2.0 * u[index] - v0[index]);
+    diagnostics.canonical_kinematics_relative_defect = step_relative_vector_defect6(
+        &q1,
+        &q1_from_midpoint,
+    )
+    .max(step_relative_vector_defect6(&v1, &v1_from_midpoint));
+
+    let r0 = step_apply_jacobian(&jacobian_q, &q0);
+    let r_mid = step_apply_jacobian(&jacobian_q, &q_mid);
+    let r1 = step_apply_jacobian(&jacobian_q, &q1);
+    let j_u = step_apply_jacobian(&jacobian_q, &u);
+    let midpoint_constraint_residual = step_dot3(&r_mid, &j_u);
+    diagnostics.canonical_midpoint_constraint_relative_defect =
+        midpoint_constraint_residual.abs()
+            / (step_norm3(&r_mid) * step_norm3(&j_u)).max(1.0e-300);
+
+    let position_constraint_change = 0.5 * (step_dot3(&r1, &r1) - step_dot3(&r0, &r0));
+    let canonical_identity_residual = position_constraint_change - h * midpoint_constraint_residual;
+    diagnostics.canonical_discrete_constraint_identity_relative_defect =
+        canonical_identity_residual.abs()
+            / (position_constraint_change.abs()
+                + (h * midpoint_constraint_residual).abs()
+                + 0.5 * step_dot3(&r0, &r0))
+                .max(1.0e-300);
+
+    diagnostics.canonical_momentum_balance_relative_defect = step_momentum_balance_defect(
+        &mass_q,
+        &v0,
+        &v1,
+        &force_q,
+        &jacobian_q,
+        &r_mid,
+        witness.multiplier,
+        h,
+    );
+
+    let kinetic_change_q =
+        step_kinetic_energy(&mass_q, &v1) - step_kinetic_energy(&mass_q, &v0);
+    let work_q = h * step_dot6(&force_q, &u);
+    diagnostics.canonical_energy_work_relative_defect =
+        step_relative_scalar_defect(kinetic_change_q, work_q);
+
+    let q0_y = step_apply6(&inverse_basis, &q0);
+    let v0_y = step_apply6(&inverse_basis, &v0);
+    let q1_y = witness.position_next_y;
+    let v1_y = witness.velocity_next_y;
+    let u_y = witness.midpoint_velocity_y;
+    let q1_y_from_midpoint = std::array::from_fn(|index| q0_y[index] + h * u_y[index]);
+    let v1_y_from_midpoint =
+        std::array::from_fn(|index| 2.0 * u_y[index] - v0_y[index]);
+
+    let q1_y_from_lift = step_apply6(&inverse_basis, &q1);
+    let v1_y_from_lift = step_apply6(&inverse_basis, &v1);
+    let u_y_from_lift = step_apply6(&inverse_basis, &u);
+    diagnostics.dense_lift_relative_defect = step_relative_vector_defect6(
+        &q1_y,
+        &q1_y_from_lift,
+    )
+    .max(step_relative_vector_defect6(&v1_y, &v1_y_from_lift))
+    .max(step_relative_vector_defect6(&u_y, &u_y_from_lift));
+
+    diagnostics.dense_kinematics_relative_defect = step_relative_vector_defect6(
+        &q1_y,
+        &q1_y_from_midpoint,
+    )
+    .max(step_relative_vector_defect6(&v1_y, &v1_y_from_midpoint));
+
+    let q_mid_y = std::array::from_fn(|index| q0_y[index] + 0.5 * h * u_y[index]);
+    let r_mid_y = step_apply_jacobian(&jacobian_y, &q_mid_y);
+    let j_u_y = step_apply_jacobian(&jacobian_y, &u_y);
+    let dense_constraint_residual = step_dot3(&r_mid_y, &j_u_y);
+    diagnostics.dense_midpoint_constraint_relative_defect = dense_constraint_residual.abs()
+        / (step_norm3(&r_mid_y) * step_norm3(&j_u_y)).max(1.0e-300);
+
+    let r0_y = step_apply_jacobian(&jacobian_y, &q0_y);
+    let r1_y = step_apply_jacobian(&jacobian_y, &q1_y);
+    let dense_position_constraint_change =
+        0.5 * (step_dot3(&r1_y, &r1_y) - step_dot3(&r0_y, &r0_y));
+    let dense_identity_residual = dense_position_constraint_change - h * dense_constraint_residual;
+    diagnostics.dense_discrete_constraint_identity_relative_defect =
+        dense_identity_residual.abs()
+            / (dense_position_constraint_change.abs()
+                + (h * dense_constraint_residual).abs()
+                + 0.5 * step_dot3(&r0_y, &r0_y))
+                .max(1.0e-300);
+
+    diagnostics.dense_momentum_balance_relative_defect = step_momentum_balance_defect(
+        &mass_y,
+        &v0_y,
+        &v1_y,
+        &force_y,
+        &jacobian_y,
+        &r_mid_y,
+        witness.multiplier,
+        h,
+    );
+
+    let kinetic_change_y =
+        step_kinetic_energy(&mass_y, &v1_y) - step_kinetic_energy(&mass_y, &v0_y);
+    let work_y = h * step_dot6(&force_y, &u_y);
+    diagnostics.dense_energy_work_relative_defect =
+        step_relative_scalar_defect(kinetic_change_y, work_y);
+
+    let initial_length_defect = step_relative_scalar_defect(
+        step_norm3(&r0),
+        witness.link_length_m,
+    );
+    let final_length_defect = step_relative_scalar_defect(
+        step_norm3(&r1),
+        witness.link_length_m,
+    );
+    let dense_initial_length_defect = step_relative_scalar_defect(
+        step_norm3(&r0_y),
+        witness.link_length_m,
+    );
+    let dense_final_length_defect = step_relative_scalar_defect(
+        step_norm3(&r1_y),
+        witness.link_length_m,
+    );
+
+    let maximum_defect = [
+        diagnostics.canonical_kinematics_relative_defect,
+        diagnostics.dense_kinematics_relative_defect,
+        diagnostics.dense_lift_relative_defect,
+        diagnostics.canonical_midpoint_constraint_relative_defect,
+        diagnostics.dense_midpoint_constraint_relative_defect,
+        diagnostics.canonical_momentum_balance_relative_defect,
+        diagnostics.dense_momentum_balance_relative_defect,
+        diagnostics.canonical_discrete_constraint_identity_relative_defect,
+        diagnostics.dense_discrete_constraint_identity_relative_defect,
+        diagnostics.canonical_energy_work_relative_defect,
+        diagnostics.dense_energy_work_relative_defect,
+        initial_length_defect,
+        final_length_defect,
+        dense_initial_length_defect,
+        dense_final_length_defect,
+    ]
+    .into_iter()
+    .fold(0.0_f64, f64::max);
+
+    if !maximum_defect.is_finite() {
+        return Err(ReceiverErrorV1::NonFiniteDerivedValue);
+    }
+    if diagnostics.canonical_kinematics_relative_defect > profile.maximum_relative_law_defect
+        || diagnostics.dense_kinematics_relative_defect > profile.maximum_relative_law_defect
+    {
+        return Err(ReceiverErrorV1::StepKinematicsViolation {
+            defect_bits: diagnostics
+                .canonical_kinematics_relative_defect
+                .max(diagnostics.dense_kinematics_relative_defect)
+                .to_bits(),
+        });
+    }
+    if diagnostics.canonical_midpoint_constraint_relative_defect
+        > profile.maximum_relative_law_defect
+        || diagnostics.dense_midpoint_constraint_relative_defect
+            > profile.maximum_relative_law_defect
+        || diagnostics.canonical_discrete_constraint_identity_relative_defect
+            > profile.maximum_relative_law_defect
+        || diagnostics.dense_discrete_constraint_identity_relative_defect
+            > profile.maximum_relative_law_defect
+        || initial_length_defect > profile.maximum_relative_law_defect
+        || final_length_defect > profile.maximum_relative_law_defect
+        || dense_initial_length_defect > profile.maximum_relative_law_defect
+        || dense_final_length_defect > profile.maximum_relative_law_defect
+    {
+        return Err(ReceiverErrorV1::StepConstraintViolation {
+            defect_bits: diagnostics
+                .canonical_midpoint_constraint_relative_defect
+                .max(diagnostics.dense_midpoint_constraint_relative_defect)
+                .max(diagnostics.canonical_discrete_constraint_identity_relative_defect)
+                .max(diagnostics.dense_discrete_constraint_identity_relative_defect)
+                .max(initial_length_defect)
+                .max(final_length_defect)
+                .max(dense_initial_length_defect)
+                .max(dense_final_length_defect)
+                .to_bits(),
+        });
+    }
+    if diagnostics.canonical_momentum_balance_relative_defect
+        > profile.maximum_relative_law_defect
+        || diagnostics.dense_momentum_balance_relative_defect
+            > profile.maximum_relative_law_defect
+    {
+        return Err(ReceiverErrorV1::StepMomentumBalanceViolation {
+            defect_bits: diagnostics
+                .canonical_momentum_balance_relative_defect
+                .max(diagnostics.dense_momentum_balance_relative_defect)
+                .to_bits(),
+        });
+    }
+    if diagnostics.canonical_energy_work_relative_defect > profile.maximum_relative_law_defect
+        || diagnostics.dense_energy_work_relative_defect > profile.maximum_relative_law_defect
+    {
+        return Err(ReceiverErrorV1::StepEnergyWorkViolation {
+            defect_bits: diagnostics
+                .canonical_energy_work_relative_defect
+                .max(diagnostics.dense_energy_work_relative_defect)
+                .to_bits(),
+        });
+    }
+    if diagnostics.dense_lift_relative_defect > profile.maximum_relative_law_defect {
+        return Err(ReceiverErrorV1::StepCoordinateLiftViolation {
+            defect_bits: diagnostics.dense_lift_relative_defect.to_bits(),
+        });
+    }
+
+    Ok(StepMapVerificationV1 {
+        diagnostics,
+        qualified: true,
+    })
+}
+
+fn default_step_map_diagnostics(condition_estimate: f64) -> StepMapDiagnosticsV1 {
+    StepMapDiagnosticsV1 {
+        basis_condition_inf_estimate: condition_estimate,
+        canonical_kinematics_relative_defect: 0.0,
+        dense_kinematics_relative_defect: 0.0,
+        dense_lift_relative_defect: 0.0,
+        canonical_midpoint_constraint_relative_defect: 0.0,
+        dense_midpoint_constraint_relative_defect: 0.0,
+        canonical_momentum_balance_relative_defect: 0.0,
+        dense_momentum_balance_relative_defect: 0.0,
+        canonical_discrete_constraint_identity_relative_defect: 0.0,
+        dense_discrete_constraint_identity_relative_defect: 0.0,
+        canonical_energy_work_relative_defect: 0.0,
+        dense_energy_work_relative_defect: 0.0,
+    }
+}
+
 pub fn verify_package(
     package: &ReceiverPackageV1,
     profile: ReceiverProfileV1,
