@@ -483,8 +483,10 @@ pub fn evaluate_decision_regret(
     let mut oracle_sum = 0.0;
     let mut selected_sum = 0.0;
     let mut maximum_regret: f64 = 0.0;
+    let mut ordered_cases: Vec<&DecisionCase> = cases.iter().collect();
+    ordered_cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
 
-    for case in cases {
+    for case in ordered_cases {
         if case.case_id.trim().is_empty() {
             return Err(DecisionRegretError::InvalidCase);
         }
@@ -519,7 +521,11 @@ pub fn evaluate_decision_regret(
             .filter(|alternative| {
                 alternative.feasible && alternative.resource_use.within(case.resource_budget)
             })
-            .max_by(|left, right| left.decision_utility.total_cmp(&right.decision_utility));
+            .max_by(|left, right| {
+                left.decision_utility
+                    .total_cmp(&right.decision_utility)
+                    .then_with(|| right.candidate_id.cmp(&left.candidate_id))
+            });
         let oracle_utility = oracle.map_or(0.0, |alternative| alternative.decision_utility);
         let oracle_candidate_id = oracle.map(|alternative| alternative.candidate_id.clone());
 
