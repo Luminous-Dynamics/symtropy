@@ -792,7 +792,7 @@ fn build_clock_mapped_bodies_with_distribution(
 
 fn run_relative_time_multibody_comparison_benchmarks() {
     println!(
-        "distribution,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
+        "distribution,body_count,subdivisions,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
     );
 
     let distributions = [
@@ -817,133 +817,155 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                 site_clock_domain_id: "benchmark-site-clock".into(),
                 max_pair_checks: 524_288,
             };
-            let broadphase_config = RelativeTimeBroadphaseConfig {
-                clock_mapping: clock_config.clone(),
-                subdivision_count: 8,
-            };
+            let reference_report = evaluate_relative_time_multibody_ccd(&bodies, &clock_config)
+                .expect("bounded exhaustive multi-clock inputs are valid");
             let samples =
                 if matches!(distribution, ClockBroadphaseDistribution::Dense) && *count >= 128 {
                     7
                 } else {
-                    15
+                    11
                 };
 
-            // Warm both paths once before timing to reduce cold-start bias.
-            let reference_report = evaluate_relative_time_multibody_ccd(&bodies, &clock_config)
-                .expect("bounded exhaustive multi-clock inputs are valid");
-            let broadphase_report =
-                evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config)
-                    .expect("bounded clock-aware broadphase inputs are valid");
-            let mut reference_durations = Vec::with_capacity(samples);
-            let mut broadphase_durations = Vec::with_capacity(samples);
-
-            for sample in 0..samples {
-                if sample % 2 == 0 {
-                    let start = Instant::now();
-                    black_box(
-                        evaluate_relative_time_multibody_ccd(
-                            black_box(&bodies),
-                            black_box(&clock_config),
-                        )
-                        .expect("bounded exhaustive multi-clock inputs are valid"),
-                    );
-                    reference_durations.push(start.elapsed());
-
-                    let start = Instant::now();
-                    black_box(
-                        evaluate_relative_time_multibody_ccd_with_broadphase(
-                            black_box(&bodies),
-                            black_box(&broadphase_config),
-                        )
-                        .expect("bounded clock-aware broadphase inputs are valid"),
-                    );
-                    broadphase_durations.push(start.elapsed());
-                } else {
-                    let start = Instant::now();
-                    black_box(
-                        evaluate_relative_time_multibody_ccd_with_broadphase(
-                            black_box(&bodies),
-                            black_box(&broadphase_config),
-                        )
-                        .expect("bounded clock-aware broadphase inputs are valid"),
-                    );
-                    broadphase_durations.push(start.elapsed());
-
-                    let start = Instant::now();
-                    black_box(
-                        evaluate_relative_time_multibody_ccd(
-                            black_box(&bodies),
-                            black_box(&clock_config),
-                        )
-                        .expect("bounded exhaustive multi-clock inputs are valid"),
-                    );
-                    reference_durations.push(start.elapsed());
-                }
-            }
-            reference_durations.sort_unstable();
-            broadphase_durations.sort_unstable();
-
-            if *count <= 64 {
-                for pair in reference_report.pairs.iter().filter(|pair| {
-                    matches!(
-                        pair.disposition,
-                        construction_motion_oracle::RelativeTimePairDisposition::ExactContact
-                            | construction_motion_oracle::RelativeTimePairDisposition::BoundaryCandidateUnresolved
-                            | construction_motion_oracle::RelativeTimePairDisposition::PotentialContactUnresolved
+            for subdivision_count in [1_u32, 2, 4, 8, 16] {
+                let broadphase_config = RelativeTimeBroadphaseConfig {
+                    clock_mapping: clock_config.clone(),
+                    subdivision_count,
+                };
+                let broadphase_report =
+                    evaluate_relative_time_multibody_ccd_with_broadphase(
+                        &bodies,
+                        &broadphase_config,
                     )
-                }) {
-                    assert!(
-                        broadphase_report.pairs.iter().any(|candidate| {
-                            candidate.first_body_id == pair.first_body_id
-                                && candidate.second_body_id == pair.second_body_id
-                        }),
-                        "clock-aware broad phase pruned a reference potential pair in {}",
-                        distribution.label()
-                    );
+                    .expect("bounded clock-aware broadphase inputs are valid");
+
+                // Warm both paths once before timing to reduce cold-start bias.
+                black_box(
+                    evaluate_relative_time_multibody_ccd(&bodies, &clock_config)
+                        .expect("bounded exhaustive multi-clock inputs are valid"),
+                );
+                black_box(
+                    evaluate_relative_time_multibody_ccd_with_broadphase(
+                        &bodies,
+                        &broadphase_config,
+                    )
+                    .expect("bounded clock-aware broadphase inputs are valid"),
+                );
+
+                let mut reference_durations = Vec::with_capacity(samples);
+                let mut broadphase_durations = Vec::with_capacity(samples);
+                for sample in 0..samples {
+                    if sample % 2 == 0 {
+                        let start = Instant::now();
+                        black_box(
+                            evaluate_relative_time_multibody_ccd(
+                                black_box(&bodies),
+                                black_box(&clock_config),
+                            )
+                            .expect("bounded exhaustive multi-clock inputs are valid"),
+                        );
+                        reference_durations.push(start.elapsed());
+
+                        let start = Instant::now();
+                        black_box(
+                            evaluate_relative_time_multibody_ccd_with_broadphase(
+                                black_box(&bodies),
+                                black_box(&broadphase_config),
+                            )
+                            .expect("bounded clock-aware broadphase inputs are valid"),
+                        );
+                        broadphase_durations.push(start.elapsed());
+                    } else {
+                        let start = Instant::now();
+                        black_box(
+                            evaluate_relative_time_multibody_ccd_with_broadphase(
+                                black_box(&bodies),
+                                black_box(&broadphase_config),
+                            )
+                            .expect("bounded clock-aware broadphase inputs are valid"),
+                        );
+                        broadphase_durations.push(start.elapsed());
+
+                        let start = Instant::now();
+                        black_box(
+                            evaluate_relative_time_multibody_ccd(
+                                black_box(&bodies),
+                                black_box(&clock_config),
+                            )
+                            .expect("bounded exhaustive multi-clock inputs are valid"),
+                        );
+                        reference_durations.push(start.elapsed());
+                    }
                 }
+                reference_durations.sort_unstable();
+                broadphase_durations.sort_unstable();
+
+                if *count <= 64 {
+                    for pair in reference_report.pairs.iter().filter(|pair| {
+                        matches!(
+                            pair.disposition,
+                            construction_motion_oracle::RelativeTimePairDisposition::ExactContact
+                                | construction_motion_oracle::RelativeTimePairDisposition::BoundaryCandidateUnresolved
+                                | construction_motion_oracle::RelativeTimePairDisposition::PotentialContactUnresolved
+                        )
+                    }) {
+                        assert!(
+                            broadphase_report.pairs.iter().any(|candidate| {
+                                candidate.first_body_id == pair.first_body_id
+                                    && candidate.second_body_id == pair.second_body_id
+                            }),
+                            "clock-aware broad phase pruned a reference potential pair in {} at {} slabs",
+                            distribution.label(),
+                            subdivision_count
+                        );
+                    }
+                }
+
+                assert_eq!(
+                    broadphase_report.reference_pair_count,
+                    broadphase_report.broadphase_candidate_pairs
+                        + broadphase_report.outer_space_time_pruned_pairs
+                        + broadphase_report.unresolved_pairs,
+                    "pair accounting does not reconcile in {} at {} slabs",
+                    distribution.label(),
+                    subdivision_count
+                );
+                assert_eq!(
+                    broadphase_report.pairwise_checked_pairs,
+                    broadphase_report.broadphase_candidate_pairs
+                );
+
+                let reference_p50 = percentile(&reference_durations, 50);
+                let reference_p95 = percentile(&reference_durations, 95);
+                let reference_p99 = percentile(&reference_durations, 99);
+                let broadphase_p50 = percentile(&broadphase_durations, 50);
+                let broadphase_p95 = percentile(&broadphase_durations, 95);
+                let broadphase_p99 = percentile(&broadphase_durations, 99);
+                let speedup = reference_p50.as_nanos() as f64
+                    / broadphase_p50.as_nanos().max(1) as f64;
+
+                println!(
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    distribution.label(),
+                    count,
+                    subdivision_count,
+                    reference_report.pair_checks,
+                    broadphase_report.valid_outer_envelope_bodies,
+                    broadphase_report.broadphase_candidate_pairs,
+                    broadphase_report.pairwise_checked_pairs,
+                    broadphase_report.outer_space_time_pruned_pairs,
+                    reference_report.unresolved_pairs,
+                    broadphase_report.unresolved_pairs,
+                    broadphase_report.pairwise_noncontact_candidates,
+                    reference_p50.as_micros(),
+                    reference_p95.as_micros(),
+                    reference_p99.as_micros(),
+                    broadphase_p50.as_micros(),
+                    broadphase_p95.as_micros(),
+                    broadphase_p99.as_micros(),
+                    speedup,
+                );
             }
-
-            assert_eq!(
-                broadphase_report.reference_pair_count,
-                broadphase_report.broadphase_candidate_pairs
-                    + broadphase_report.outer_space_time_pruned_pairs
-                    + broadphase_report.unresolved_pairs,
-                "pair accounting does not reconcile in {}",
-                distribution.label()
-            );
-            assert_eq!(
-                broadphase_report.pairwise_checked_pairs,
-                broadphase_report.broadphase_candidate_pairs
-            );
-
-            let reference_p50 = percentile(&reference_durations, 50);
-            let reference_p95 = percentile(&reference_durations, 95);
-            let reference_p99 = percentile(&reference_durations, 99);
-            let broadphase_p50 = percentile(&broadphase_durations, 50);
-            let broadphase_p95 = percentile(&broadphase_durations, 95);
-            let broadphase_p99 = percentile(&broadphase_durations, 99);
-            let speedup = reference_p50.as_nanos() as f64 / broadphase_p50.as_nanos().max(1) as f64;
-
-            println!(
-                "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
-                distribution.label(),
-                count,
-                reference_report.pair_checks,
-                broadphase_report.valid_outer_envelope_bodies,
-                broadphase_report.broadphase_candidate_pairs,
-                broadphase_report.pairwise_checked_pairs,
-                broadphase_report.outer_space_time_pruned_pairs,
-                reference_report.unresolved_pairs,
-                broadphase_report.unresolved_pairs,
-                broadphase_report.pairwise_noncontact_candidates,
-                reference_p50.as_micros(),
-                reference_p95.as_micros(),
-                reference_p99.as_micros(),
-                broadphase_p50.as_micros(),
-                broadphase_p95.as_micros(),
-                broadphase_p99.as_micros(),
-                speedup,
-            );
         }
     }
 }
+
