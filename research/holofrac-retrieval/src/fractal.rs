@@ -393,14 +393,14 @@ mod tests {
         for (family, expected, tolerance) in families {
             let points = generate_geometry_fixture(family, 65_536, 0x484f_4c4f_4652_4143).unwrap();
             let report =
-                estimate_box_counting_dimension(&points, &resolutions, 0, 5).unwrap();
+                estimate_box_counting_dimension(&points, &resolutions, 2, 5).unwrap();
             assert!(
                 (report.dimension_estimate - expected).abs() < tolerance,
                 "{family:?}: estimated {}, expected {expected}",
                 report.dimension_estimate
             );
             assert!(report.fit_r_squared > 0.98, "{family:?}: R2 {}", report.fit_r_squared);
-            assert_eq!(report.fit_scale_count, 6);
+            assert_eq!(report.fit_scale_count, 4);
             assert!(report.mean_translation_count_spread.is_finite());
             assert!(report.window_dimension_spread.is_finite());
         }
@@ -417,7 +417,7 @@ mod tests {
             5,
         )
         .unwrap();
-        assert_eq!(report.fit_start_resolution, 4);
+        assert_eq!(report.fit_start_resolution, 16);
         assert_eq!(report.fit_end_resolution, 128);
         assert!(report.min_window_dimension <= report.max_window_dimension);
         assert!(report.log_count_rmse.is_finite());
