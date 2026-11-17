@@ -10,8 +10,7 @@ use std::time::Instant;
 use symtropy_hdc_core::{BipolarBundle, BipolarHV};
 
 use crate::{
-    FactSlot, HoloFracEncoder, HoloFracError, RelationKind, SpatialFact, SpatialGraph,
-    SpatialIndex,
+    FactSlot, HoloFracEncoder, HoloFracError, RelationKind, SpatialFact, SpatialGraph, SpatialIndex,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -95,9 +94,21 @@ pub struct PartialQueryReport {
     pub exact_oracle_micros: f64,
 }
 
-fn candidate_order(left: &PartialCandidate, right: &PartialCandidate, slot: bool) -> std::cmp::Ordering {
-    let left_score = if slot { left.slot_score } else { left.holistic_score };
-    let right_score = if slot { right.slot_score } else { right.holistic_score };
+fn candidate_order(
+    left: &PartialCandidate,
+    right: &PartialCandidate,
+    slot: bool,
+) -> std::cmp::Ordering {
+    let left_score = if slot {
+        left.slot_score
+    } else {
+        left.holistic_score
+    };
+    let right_score = if slot {
+        right.slot_score
+    } else {
+        right.holistic_score
+    };
     right_score
         .total_cmp(&left_score)
         .then_with(|| left.fact.canonical_key().cmp(&right.fact.canonical_key()))
@@ -109,14 +120,17 @@ fn metrics_at_k(
     top_k: usize,
 ) -> PartialRetrievalMetrics {
     let selected = &ranked[..ranked.len().min(top_k)];
-    let exact_hits = selected.iter().filter(|candidate| candidate.exact_match).count();
+    let exact_hits = selected
+        .iter()
+        .filter(|candidate| candidate.exact_match)
+        .count();
     let precision_at_k = if selected.is_empty() {
         0.0
     } else {
         exact_hits as f64 / selected.len() as f64
     };
-    let recall_at_k = (exact_match_count > 0)
-        .then_some(exact_hits as f64 / exact_match_count as f64);
+    let recall_at_k =
+        (exact_match_count > 0).then_some(exact_hits as f64 / exact_match_count as f64);
     let reciprocal_rank = if exact_match_count == 0 {
         None
     } else {
@@ -167,11 +181,10 @@ impl SpatialIndex {
         if let Some(subject) = query.subject.as_deref() {
             let scale = graph.entity_scale(subject)?;
             let subject_vector = encoder.memory.bind_role_value("subject", "entity", subject);
-            let scale_vector = encoder.memory.bind_role_value(
-                "subject_scale",
-                "spatial_scale",
-                scale.as_str(),
-            );
+            let scale_vector =
+                encoder
+                    .memory
+                    .bind_role_value("subject_scale", "spatial_scale", scale.as_str());
             query_bundle.add(&subject_vector)?;
             query_bundle.add(&scale_vector)?;
             query_slots.push((FactSlot::Subject, subject_vector));
@@ -179,11 +192,10 @@ impl SpatialIndex {
         }
 
         if let Some(relation) = query.relation {
-            let relation_vector = encoder.memory.bind_role_value(
-                "predicate",
-                "relation",
-                relation.as_str(),
-            );
+            let relation_vector =
+                encoder
+                    .memory
+                    .bind_role_value("predicate", "relation", relation.as_str());
             query_bundle.add(&relation_vector)?;
             query_slots.push((FactSlot::Predicate, relation_vector));
         }
@@ -202,8 +214,7 @@ impl SpatialIndex {
         }
 
         let query_vector = query_bundle.finish(&encoder.memory.tie_breaker("spatial-fact-v2"))?;
-        let query_encoding_micros =
-            query_started.elapsed().as_secs_f64() * 1_000_000.0;
+        let query_encoding_micros = query_started.elapsed().as_secs_f64() * 1_000_000.0;
 
         let exact_started = Instant::now();
         let mut verified_results: Vec<_> = graph
@@ -246,8 +257,7 @@ impl SpatialIndex {
             });
         }
         holistic_ranked.sort_by(|left, right| candidate_order(left, right, false));
-        let holistic_ranking_micros =
-            holistic_started.elapsed().as_secs_f64() * 1_000_000.0;
+        let holistic_ranking_micros = holistic_started.elapsed().as_secs_f64() * 1_000_000.0;
 
         let slot_metrics = metrics_at_k(&slot_ranked, exact_match_count, top_k);
         let holistic_metrics = metrics_at_k(&holistic_ranked, exact_match_count, top_k);
@@ -274,7 +284,7 @@ impl SpatialIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{reference_architecture_graph, EncoderSpec};
+    use crate::{EncoderSpec, reference_architecture_graph};
 
     fn make_encoder(dimension: usize, seed: u64) -> HoloFracEncoder {
         HoloFracEncoder::new(EncoderSpec {
@@ -297,7 +307,9 @@ mod tests {
             None,
         );
 
-        let report = index.rank_partial_query(&graph, &encoder, &query, 2).unwrap();
+        let report = index
+            .rank_partial_query(&graph, &encoder, &query, 2)
+            .unwrap();
         assert_eq!(report.exact_match_count, 2);
         assert_eq!(report.verified_results.len(), 2);
         assert!(!report.abstained);
@@ -317,7 +329,9 @@ mod tests {
             None,
         );
 
-        let report = index.rank_partial_query(&graph, &encoder, &query, 3).unwrap();
+        let report = index
+            .rank_partial_query(&graph, &encoder, &query, 3)
+            .unwrap();
         assert_eq!(report.exact_match_count, 0);
         assert!(report.verified_results.is_empty());
         assert!(report.abstained);
@@ -333,23 +347,14 @@ mod tests {
         let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
 
         assert!(matches!(
-            index.rank_partial_query(
-                &graph,
-                &encoder,
-                &PartialSpatialQuery::default(),
-                3
-            ),
+            index.rank_partial_query(&graph, &encoder, &PartialSpatialQuery::default(), 3),
             Err(HoloFracError::EmptyPartialQuery)
         ));
         assert!(matches!(
             index.rank_partial_query(
                 &graph,
                 &encoder,
-                &PartialSpatialQuery::new(
-                    Some("water-main".into()),
-                    None,
-                    None
-                ),
+                &PartialSpatialQuery::new(Some("water-main".into()), None, None),
                 0
             ),
             Err(HoloFracError::InvalidTopK)
@@ -374,13 +379,12 @@ mod tests {
         let graph = reference_architecture_graph().unwrap();
         let encoder = make_encoder(8_192, 41);
         let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
-        let query = PartialSpatialQuery::new(
-            Some("kitchen".into()),
-            Some(RelationKind::Supplies),
-            None,
-        );
+        let query =
+            PartialSpatialQuery::new(Some("kitchen".into()), Some(RelationKind::Supplies), None);
 
-        let report = index.rank_partial_query(&graph, &encoder, &query, 5).unwrap();
+        let report = index
+            .rank_partial_query(&graph, &encoder, &query, 5)
+            .unwrap();
         assert_eq!(report.exact_match_count, 0);
         assert!(report.abstained);
     }
