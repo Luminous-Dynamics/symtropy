@@ -126,21 +126,21 @@ fn verify_local_schema_snapshots(registry: &Value) -> Result<usize, String> {
             DATACITE_XSD,
             DATACITE_BLOB,
             DATACITE_DIGEST,
-            "research/protective-systems/verifier/schemas/datacite-4.7/metadata.xsd",
+            "schemas/datacite-4.7/metadata.xsd",
         ),
         (
             OGC_PROFILE,
             OGC_RECORD_SCHEMA,
             OGC_BLOB,
             OGC_DIGEST,
-            "research/protective-systems/verifier/schemas/ogc-records-1.0/recordGeoJSON.yaml",
+            "schemas/ogc-records-1.0/recordGeoJSON.yaml",
         ),
         (
             OPENLINEAGE_PROFILE,
             OPENLINEAGE_SCHEMA,
             OPENLINEAGE_BLOB,
             OPENLINEAGE_DIGEST,
-            "research/protective-systems/fixtures/protective-evidence-multiprovider-e3-v0.1/schemas/openlineage-2.0.2.schema.json",
+            "../fixtures/protective-evidence-multiprovider-e3-v0.1/schemas/openlineage-2.0.2.schema.json",
         ),
     ];
     for (profile_id, bytes, blob, digest, expected_path) in assets {
@@ -212,6 +212,14 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
         .and_then(Value::as_str)
         .filter(|value| is_lower_hex(value, 64));
     let schema_digest_verified = digest.is_some();
+    let validator_identity_present = profile
+        .get("validator_id")
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty());
+    let mapping_manifest_present = profile
+        .get("mapping_manifest_version")
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty());
 
     let (admission_state, reason) = match lifecycle.as_str() {
         "DRAFT" => (
@@ -241,7 +249,9 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
             if bundle == "COMPLETE_LOCAL_SCHEMA"
                 && (scope == "FULL_RUN_EVENT_JSON_SCHEMA"
                     || scope == "FULL_PROFILE_CONFORMANCE")
-                && receipt == "PENDING_EXACT_HEAD_CI" =>
+                && receipt == "PENDING_EXACT_HEAD_CI"
+                && validator_identity_present
+                && mapping_manifest_present =>
         {
             (
                 AdmissionState::FinalConformancePending,
@@ -252,7 +262,9 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
             if bundle == "COMPLETE_LOCAL_SCHEMA"
                 && (scope == "FULL_RUN_EVENT_JSON_SCHEMA"
                     || scope == "FULL_PROFILE_CONFORMANCE")
-                && receipt == "PASS_EXACT_HEAD" =>
+                && receipt == "PASS_EXACT_HEAD"
+                && validator_identity_present
+                && mapping_manifest_present =>
         {
             (
                 AdmissionState::FullyAdmitted,
@@ -261,7 +273,7 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
         }
         "FINAL" => (
             AdmissionState::AbstainUnverified,
-            "Profile lacks a complete supported validation path or an admissible validator receipt.",
+            "Profile lacks a complete supported validation path, validator identity, mapping manifest or admissible validator receipt.",
         ),
         _ => (
             AdmissionState::AbstainUnverified,
@@ -546,6 +558,30 @@ mod tests {
         assert_eq!(
             evaluate_profile(&item).admission_state,
             AdmissionState::FinalSelectedProfileOnly
+        );
+    }
+
+    #[test]
+    fn full_admission_requires_a_validator_implementation_identity() {
+        let value = registry();
+        let mut item = profile(&value, OPENLINEAGE_PROFILE);
+        item["validator_receipt"] = Value::String("PASS_EXACT_HEAD".into());
+        item["validator_id"] = Value::Null;
+        assert_eq!(
+            evaluate_profile(&item).admission_state,
+            AdmissionState::AbstainUnverified
+        );
+    }
+
+    #[test]
+    fn full_admission_requires_a_mapping_manifest_version() {
+        let value = registry();
+        let mut item = profile(&value, OPENLINEAGE_PROFILE);
+        item["validator_receipt"] = Value::String("PASS_EXACT_HEAD".into());
+        item["mapping_manifest_version"] = Value::Null;
+        assert_eq!(
+            evaluate_profile(&item).admission_state,
+            AdmissionState::AbstainUnverified
         );
     }
 
