@@ -21,9 +21,9 @@ pub type Vector6 = [f64; 6];
 pub type Matrix6 = [[f64; 6]; 6];
 pub type Jacobian3x6 = [[f64; 6]; 3];
 
-pub const RECEIVER_SCHEMA_VERSION: &str = "luminous.symmetry_physical_receiver.v0.1";
-pub const RECEIVER_PROFILE_ID: &str = "symtropy-dense-3d-receiver-profile-v0.1";
-pub const RECEIVER_ID: &str = "symtropy-independent-physical-handoff-verifier-v0.1";
+pub const RECEIVER_SCHEMA_VERSION: &str = "luminous.symmetry_physical_receiver.v0.2";
+pub const RECEIVER_PROFILE_ID: &str = "symtropy-dense-3d-plus-step-receiver-profile-v0.2";
+pub const RECEIVER_ID: &str = "symtropy-independent-physical-handoff-verifier-v0.2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
