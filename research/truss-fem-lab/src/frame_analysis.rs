@@ -382,7 +382,7 @@ pub fn audit_frame_equilibrium(
     let mut support_moment = Vec3::new(0.0, 0.0, 0.0);
     let mut external_work_j = 0.0_f64;
 
-    for (node, (position, ((load, reaction), (fixed, displacement)))) in model
+    for (position, ((load, reaction), (fixed, displacement))) in model
         .nodes
         .iter()
         .zip(
@@ -397,7 +397,6 @@ pub fn audit_frame_equilibrium(
                         .zip(result.nodal_displacements.iter()),
                 ),
         )
-        .enumerate()
     {
         let force = Vec3::new(load[0], load[1], load[2]);
         let couple = Vec3::new(load[3], load[4], load[5]);
