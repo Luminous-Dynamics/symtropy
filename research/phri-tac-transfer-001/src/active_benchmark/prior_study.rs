@@ -110,6 +110,11 @@ pub struct L1PenaltyCandidateSummary {
     /// Equal-weight mean of per-morphology development RMSE means.
     pub development_mean_field_rmse: f64,
     pub development_mean_delta_vs_independent: f64,
+    /// Worst relative RMSE regression against the independent baseline across
+    /// all development morphologies.
+    pub maximum_family_relative_regression: f64,
+    /// Promotion requires mean non-inferiority and a <=2% worst-family guard.
+    pub eligible_for_promotion: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,9 +124,24 @@ pub struct PriorStudyReport {
     pub replicate_count_per_morphology: usize,
     pub development: Vec<MorphologyPriorReport>,
     pub development_l1_candidates: Vec<L1PenaltyCandidateSummary>,
-    pub selected_l1_penalty: f64,
+    pub selected_l1_penalty: Option<f64>,
+    pub l1_selection_disposition: &'static str,
     pub final_test: Vec<MorphologyPriorReport>,
     pub claim_class: &'static str,
+}
+
+const MAXIMUM_ALLOWED_FAMILY_REGRESSION: f64 = 0.02;
+
+fn select_l1_penalty(candidates: &[L1PenaltyCandidateSummary]) -> Option<f64> {
+    candidates
+        .iter()
+        .filter(|candidate| candidate.eligible_for_promotion)
+        .min_by(|left, right| {
+            left.development_mean_field_rmse
+                .total_cmp(&right.development_mean_field_rmse)
+                .then_with(|| left.penalty.total_cmp(&right.penalty))
+        })
+        .map(|candidate| candidate.penalty)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -519,7 +539,7 @@ fn run_morphology_final(
     morphology: ContactMorphology,
     first_seed: u64,
     replicate_count: usize,
-    frozen_l1_penalty: f64,
+    frozen_l1_penalty: Option<f64>,
     config: &FieldReconstructionConfig,
 ) -> Result<MorphologyPriorReport, String> {
     let mut baseline_scores = Vec::with_capacity(replicate_count);
@@ -544,42 +564,48 @@ fn run_morphology_final(
         let graph = reconstruct_contact_field(&graph_problem, config)?;
         graph_scores.push(score_model_report(&graph, &case.evaluator_truth)?);
 
-        let mut sparse_problem = case.mechanics_problem.clone();
-        sparse_problem.sparsity_penalty = frozen_l1_penalty;
-        sparse_problem.forward_model_digest = format!(
-            "{}-frozen-l1-{frozen_l1_penalty:.3}",
-            sparse_problem.forward_model_digest
-        );
-        let sparse = reconstruct_contact_field(&sparse_problem, config)?;
-        frozen_l1_scores.push(score_model_report(&sparse, &case.evaluator_truth)?);
+        if let Some(penalty) = frozen_l1_penalty {
+            let mut sparse_problem = case.mechanics_problem.clone();
+            sparse_problem.sparsity_penalty = penalty;
+            sparse_problem.forward_model_digest = format!(
+                "{}-frozen-l1-{penalty:.3}",
+                sparse_problem.forward_model_digest
+            );
+            let sparse = reconstruct_contact_field(&sparse_problem, config)?;
+            frozen_l1_scores.push(score_model_report(&sparse, &case.evaluator_truth)?);
+        }
+    }
+
+    let mut estimators = vec![
+        summarize(
+            "independent_taxel".to_owned(),
+            &baseline_scores,
+            &baseline_scores,
+        )?,
+        summarize(
+            "mechanics_no_prior".to_owned(),
+            &mechanics_scores,
+            &baseline_scores,
+        )?,
+        summarize(
+            "mechanics_graph_l2_0_02".to_owned(),
+            &graph_scores,
+            &baseline_scores,
+        )?,
+    ];
+    if let Some(penalty) = frozen_l1_penalty {
+        estimators.push(summarize(
+            format!("mechanics_frozen_l1_{penalty:.3}"),
+            &frozen_l1_scores,
+            &baseline_scores,
+        )?);
     }
 
     Ok(MorphologyPriorReport {
         morphology: morphology.as_str(),
         seed_first: first_seed,
         replicate_count,
-        estimators: vec![
-            summarize(
-                "independent_taxel".to_owned(),
-                &baseline_scores,
-                &baseline_scores,
-            )?,
-            summarize(
-                "mechanics_no_prior".to_owned(),
-                &mechanics_scores,
-                &baseline_scores,
-            )?,
-            summarize(
-                "mechanics_graph_l2_0_02".to_owned(),
-                &graph_scores,
-                &baseline_scores,
-            )?,
-            summarize(
-                format!("mechanics_frozen_l1_{frozen_l1_penalty:.3}"),
-                &frozen_l1_scores,
-                &baseline_scores,
-            )?,
-        ],
+        estimators,
     })
 }
 
@@ -656,27 +682,34 @@ pub fn run_prior_study(
             .collect::<Result<_, _>>()?;
 
         let count = development.len() as f64;
+        let development_mean_delta_vs_independent = per_morphology
+            .iter()
+            .zip(&baseline_per_morphology)
+            .map(|(candidate, baseline)| candidate - baseline)
+            .sum::<f64>()
+            / count;
+        let maximum_family_relative_regression = per_morphology
+            .iter()
+            .zip(&baseline_per_morphology)
+            .map(|(candidate, baseline)| (candidate - baseline) / baseline)
+            .fold(f64::NEG_INFINITY, f64::max);
         candidate_summaries.push(L1PenaltyCandidateSummary {
             penalty,
             development_mean_field_rmse: per_morphology.iter().sum::<f64>() / count,
-            development_mean_delta_vs_independent: per_morphology
-                .iter()
-                .zip(&baseline_per_morphology)
-                .map(|(candidate, baseline)| candidate - baseline)
-                .sum::<f64>()
-                / count,
+            development_mean_delta_vs_independent,
+            maximum_family_relative_regression,
+            eligible_for_promotion: development_mean_delta_vs_independent <= 0.0
+                && maximum_family_relative_regression
+                    <= MAXIMUM_ALLOWED_FAMILY_REGRESSION,
         });
     }
 
-    let selected_l1_penalty = candidate_summaries
-        .iter()
-        .min_by(|left, right| {
-            left.development_mean_field_rmse
-                .total_cmp(&right.development_mean_field_rmse)
-                .then_with(|| left.penalty.total_cmp(&right.penalty))
-        })
-        .map(|summary| summary.penalty)
-        .ok_or_else(|| "no L1 development candidates were evaluated".to_owned())?;
+    let selected_l1_penalty = select_l1_penalty(&candidate_summaries);
+    let l1_selection_disposition = if selected_l1_penalty.is_some() {
+        "accepted_development_noninferiority_and_worst_family_guard"
+    } else {
+        "none_meets_development_noninferiority_and_worst_family_guard"
+    };
 
     let mut final_test = Vec::with_capacity(ContactMorphology::ALL.len());
     for morphology in ContactMorphology::ALL {
@@ -696,6 +729,7 @@ pub fn run_prior_study(
         development,
         development_l1_candidates: candidate_summaries,
         selected_l1_penalty,
+        l1_selection_disposition,
         final_test,
         claim_class: "development_selected_prior_on_disjoint_synthetic_holdout",
     })
@@ -736,6 +770,55 @@ mod tests {
         assert_eq!(unique.len(), ContactMorphology::ALL.len());
         assert_eq!(MODULE_SIZES.iter().sum::<usize>(), TAXEL_COUNT);
         assert_eq!(module_ranges().len(), MODULE_COUNT);
+    }
+
+    #[test]
+    fn L1_prior_is_not_promoted_when_all_development_candidates_regress() {
+        let candidates = vec![
+            L1PenaltyCandidateSummary {
+                penalty: 0.001,
+                development_mean_field_rmse: 0.12,
+                development_mean_delta_vs_independent: 0.08,
+                maximum_family_relative_regression: 0.30,
+                eligible_for_promotion: false,
+            },
+            L1PenaltyCandidateSummary {
+                penalty: 0.01,
+                development_mean_field_rmse: 0.11,
+                development_mean_delta_vs_independent: 0.07,
+                maximum_family_relative_regression: 0.20,
+                eligible_for_promotion: false,
+            },
+        ];
+        assert_eq!(select_l1_penalty(&candidates), None);
+    }
+
+    #[test]
+    fn L1_prior_requires_mean_noninferiority_and_worst_family_guard() {
+        let candidates = vec![
+            L1PenaltyCandidateSummary {
+                penalty: 0.001,
+                development_mean_field_rmse: 0.10,
+                development_mean_delta_vs_independent: -0.001,
+                maximum_family_relative_regression: 0.021,
+                eligible_for_promotion: false,
+            },
+            L1PenaltyCandidateSummary {
+                penalty: 0.003,
+                development_mean_field_rmse: 0.11,
+                development_mean_delta_vs_independent: 0.001,
+                maximum_family_relative_regression: 0.01,
+                eligible_for_promotion: false,
+            },
+            L1PenaltyCandidateSummary {
+                penalty: 0.01,
+                development_mean_field_rmse: 0.12,
+                development_mean_delta_vs_independent: -0.002,
+                maximum_family_relative_regression: 0.02,
+                eligible_for_promotion: true,
+            },
+        ];
+        assert_eq!(select_l1_penalty(&candidates), Some(0.01));
     }
 
     #[test]
