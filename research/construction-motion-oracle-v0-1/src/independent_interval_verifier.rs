@@ -28,6 +28,7 @@ pub enum IntervalVerifierError {
     InvalidTimeWindow,
     InvalidConfiguration,
     ArithmeticOverflow,
+    ReceiptMismatch,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -433,7 +434,7 @@ pub fn replay_interval_verification_receipt(
     if replay == receipt {
         Ok(())
     } else {
-        Err(IntervalVerifierError::ArithmeticOverflow)
+        Err(IntervalVerifierError::ReceiptMismatch)
     }
 }
 
@@ -778,15 +779,19 @@ mod tests {
             AdaptiveSubdivisionConfig, co_translating_capsule_adaptive_query_with_certificate,
         };
 
+        let moving = point_capsule(0.0, 0.0, 0.0, 0.25);
+        let obstacle = point_capsule(6.0, 0.0, 0.0, 0.25);
+        let common_translation = p(10.0, 0.0, 0.0);
+        let config = AdaptiveSubdivisionConfig {
+            maximum_depth: 2,
+            minimum_window_width: 0.25,
+        };
         let mut certificate = co_translating_capsule_adaptive_query_with_certificate(
-            point_capsule(0.0, 0.0, 0.0, 0.5),
-            p(0.0, 0.0, 0.0),
-            point_capsule(10.0, 0.0, 0.0, 0.5),
-            p(0.0, 0.0, 0.0),
-            AdaptiveSubdivisionConfig {
-                maximum_depth: 2,
-                minimum_window_width: 0.25,
-            },
+            moving,
+            common_translation,
+            obstacle,
+            common_translation,
+            config,
         )
         .unwrap();
         assert!(certificate.leaves.len() > 1);
@@ -800,14 +805,11 @@ mod tests {
         );
 
         certificate = co_translating_capsule_adaptive_query_with_certificate(
-            point_capsule(0.0, 0.0, 0.0, 0.5),
-            p(0.0, 0.0, 0.0),
-            point_capsule(10.0, 0.0, 0.0, 0.5),
-            p(0.0, 0.0, 0.0),
-            AdaptiveSubdivisionConfig {
-                maximum_depth: 2,
-                minimum_window_width: 0.25,
-            },
+            moving,
+            common_translation,
+            obstacle,
+            common_translation,
+            config,
         )
         .unwrap();
         certificate.leaves.swap(0, 1);
@@ -985,6 +987,32 @@ mod tests {
             receipt,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn tampered_interval_receipt_is_a_receipt_mismatch_not_numeric_overflow() {
+        let moving = point_capsule(0.0, 0.0, 0.0, 0.5);
+        let obstacle = point_capsule(10.0, 0.0, 0.0, 0.5);
+        let mut receipt = verify_capsule_interval_no_contact(
+            moving,
+            p(0.0, 0.0, 0.0),
+            obstacle,
+            p(0.0, 0.0, 0.0),
+            window(),
+            IntervalVerifierConfig::default(),
+        )
+        .unwrap();
+        receipt.parameter_boxes_visited += 1;
+        assert_eq!(
+            replay_interval_verification_receipt(
+                moving,
+                p(0.0, 0.0, 0.0),
+                obstacle,
+                p(0.0, 0.0, 0.0),
+                receipt,
+            ),
+            Err(IntervalVerifierError::ReceiptMismatch)
+        );
     }
 
     #[test]
