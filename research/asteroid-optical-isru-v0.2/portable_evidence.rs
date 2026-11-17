@@ -92,7 +92,6 @@ pub enum EntityKind {
     OptimizerFantasy,
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActivityKind {
     SamplePreparation,
@@ -353,7 +352,6 @@ impl PortableEvidenceProfile {
             .map(|node| (node.id.as_str(), node))
             .collect()
     }
-
 
     fn has_relation(&self, kind: ProvRelationKind, subject_id: &str, object_id: &str) -> bool {
         self.relations.iter().any(|relation| {
