@@ -228,7 +228,10 @@ fn main() {
     println!("suite=FLIGHT-PV-ARRAY-SURVEY-001");
     println!("survey_disposition={:?}", survey.disposition);
     println!("p1_raster_waypoints={}", raster_plan.waypoints.len());
-    println!("p2_selected_height_m={:.3}", camera_envelope.selected_height_m);
+    println!(
+        "p2_selected_height_m={:.3}",
+        camera_envelope.selected_height_m
+    );
     println!(
         "p2_maximum_commanded_speed_m_per_s={:.3}",
         camera_envelope.maximum_commanded_speed_m_per_s
