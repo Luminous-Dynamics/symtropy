@@ -219,6 +219,8 @@ pub struct ExperimentCandidate {
     pub estimate_confidence_level: f64,
     /// Frozen estimation-method digest.
     pub estimate_method_sha256: String,
+    /// Digest of the exact reported conservative utility vector.
+    pub utility_vector_sha256: String,
     /// Required provenance for the conservative utility estimates.
     pub utility_estimate_evidence: Option<UtilityEstimateEvidence>,
     /// Exact utility-estimator build digest.
@@ -625,6 +627,7 @@ fn utility_estimate_evidence_matches(
         && is_sha256(&receipt.prior_manifest_sha256)
         && is_sha256(&receipt.uncertainty_set_manifest_sha256)
         && is_sha256(&receipt.utility_vector_sha256)
+        && receipt.utility_vector_sha256 == candidate.utility_vector_sha256
 }
 
 fn independent_group_count(candidate: &ExperimentCandidate) -> usize {
@@ -855,6 +858,7 @@ fn candidate_rejection_reasons(
         || !is_sha256(&candidate.design_sha256)
         || !is_sha256(&candidate.scenario_manifest_sha256)
         || !is_sha256(&candidate.measurement_plan_sha256)
+        || !is_sha256(&candidate.utility_vector_sha256)
         || candidate
             .authorization_receipt_sha256
             .as_deref()
