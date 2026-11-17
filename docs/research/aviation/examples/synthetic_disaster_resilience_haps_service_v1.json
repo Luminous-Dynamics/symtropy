@@ -125,6 +125,31 @@
     "edge_compute_required": true,
     "drone_data_relay_required": true,
     "platform_crosslink_required": false,
-    "terrestrial_gateway_required": true
+    "terrestrial_gateway_required": true,
+    "demand_management": {
+      "traffic_demand_profile_ref": "synthetic.demand.disaster-connectivity.001",
+      "network_allocation_case_refs": [
+        "synthetic.haps.cell-demand.beam-budget.001@1"
+      ],
+      "traffic_data_available_at_decision_time": false,
+      "reanalysis_not_used_as_live_forecast": true,
+      "priority_policy": "critical_excess_first",
+      "forecast_horizon_s": 3600,
+      "traffic_forecast_model_ref": null
+    },
+    "radio_resource_budget": {
+      "beam_budget": 4,
+      "per_beam_capacity_mbps": 25,
+      "max_cells_served_simultaneously": 4,
+      "beam_reallocation_interval_s": 60,
+      "allocation_policy": "critical_excess_weighted_greedy"
+    },
+    "backhaul_capacity": {
+      "terrestrial_gateway_capacity_mbps": 200,
+      "satellite_backhaul_capacity_mbps": 100,
+      "fso_backhaul_capacity_mbps": 1000,
+      "edge_compute_capacity_tops": 10,
+      "platform_crosslink_capacity_mbps": 200
+    }
   }
 }
