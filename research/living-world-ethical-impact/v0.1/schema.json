@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/living-world-ethical-impact-v0.1.schema.json",
+  "title": "Living World Ethical Impact Fixture Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "claim_ceiling",
+    "profiles",
+    "anti_derivation_controls",
+    "fixtures"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "LIVING-WORLD-ETHICAL-IMPACT-001/v0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "description",
+          "premises",
+          "status_semantics"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "premises": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "premise_id",
+                "statement",
+                "required_dimensions"
+              ],
+              "properties": {
+                "premise_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "statement": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "required_dimensions": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "physical_feasibility",
+                      "ecological_integrity",
+                      "individual_welfare",
+                      "moral_patient_uncertainty",
+                      "human_community_impacts",
+                      "intergenerational_effects",
+                      "consent_and_custodianship",
+                      "thermodynamic_observables"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "status_semantics": {
+            "const": "conditional_premise_finding_not_global_moral_verdict"
+          }
+        }
+      }
+    },
+    "anti_derivation_controls": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "control_id",
+          "prohibited_inference",
+          "required_behavior"
+        ],
+        "properties": {
+          "control_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prohibited_inference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required_behavior": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "fixtures": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fixture_id",
+          "factset_id",
+          "family",
+          "scenario",
+          "evidence_class",
+          "evidence",
+          "affected_parties",
+          "action_options",
+          "thermodynamics",
+          "expected_findings",
+          "required_control_ids",
+          "human_review_required",
+          "no_action_authority"
+        ],
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "factset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "family": {
+            "enum": [
+              "tumour_parasite_countermodel",
+              "stable_exploitation",
+              "high_dissipation_lower_welfare",
+              "predator_prey_conflict",
+              "invasive_species_management",
+              "forest_restoration",
+              "fungal_network",
+              "water_commons",
+              "uncertain_possible_moral_patient",
+              "reversible_irreversible_intervention",
+              "ecological_value_without_sentience_evidence",
+              "same_facts_different_premises"
+            ]
+          },
+          "scenario": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "const": "synthetic_known_answer"
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "evidence_id",
+                "dimension",
+                "status",
+                "claim"
+              ],
+              "properties": {
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "dimension": {
+                  "enum": [
+                    "physical_feasibility",
+                    "ecological_integrity",
+                    "individual_welfare",
+                    "moral_patient_uncertainty",
+                    "human_community_impacts",
+                    "intergenerational_effects",
+                    "consent_and_custodianship",
+                    "thermodynamic_observables"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "observed",
+                    "modelled",
+                    "missing",
+                    "not_tested",
+                    "not_observable",
+                    "contradictory",
+                    "out_of_domain",
+                    "not_applicable",
+                    "unqualified",
+                    "not_recorded"
+                  ]
+                },
+                "claim": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "source_ref": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "affected_parties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "party_id",
+                "level",
+                "impact",
+                "evidence_refs",
+                "consent_status",
+                "time_horizon"
+              ],
+              "properties": {
+                "party_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "level": {
+                  "enum": [
+                    "individual",
+                    "population",
+                    "ecosystem",
+                    "community",
+                    "institution",
+                    "future_generation"
+                  ]
+                },
+                "impact": {
+                  "enum": [
+                    "benefit",
+                    "harm",
+                    "mixed",
+                    "unknown",
+                    "no_claim"
+                  ]
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                "consent_status": {
+                  "enum": [
+                    "granted",
+                    "refused",
+                    "not_recorded",
+                    "not_applicable",
+                    "unknown"
+                  ]
+                },
+                "time_horizon": {
+                  "enum": [
+                    "immediate",
+                    "short_term",
+                    "long_term",
+                    "intergenerational",
+                    "unknown"
+                  ]
+                }
+              }
+            }
+          },
+          "action_options": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "option_id",
+                "description",
+                "reversibility",
+                "monitoring"
+              ],
+              "properties": {
+                "option_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "description": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reversibility": {
+                  "enum": [
+                    "reversible",
+                    "staged_reversible",
+                    "partly_reversible",
+                    "irreversible",
+                    "unknown"
+                  ]
+                },
+                "monitoring": {
+                  "enum": [
+                    "continuous",
+                    "periodic",
+                    "none",
+                    "unknown"
+                  ]
+                }
+              }
+            }
+          },
+          "thermodynamics": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "qualified_observables",
+              "notes"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_qualified",
+                  "qualified_within_scope",
+                  "inconclusive",
+                  "not_applicable"
+                ]
+              },
+              "qualified_observables": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "open_system_energy_balance",
+                    "entropy_production",
+                    "exergy_balance",
+                    "heat_flow",
+                    "work_flow",
+                    "landauer_erasure_bound"
+                  ]
+                }
+              },
+              "notes": {
+                "type": "string"
+              }
+            }
+          },
+          "expected_findings": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "profile_id",
+                "premise_id",
+                "status",
+                "evidence_refs",
+                "rationale",
+                "action_option_ids"
+              ],
+              "properties": {
+                "profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "premise_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "status": {
+                  "enum": [
+                    "supported",
+                    "contradicted",
+                    "undetermined"
+                  ]
+                },
+                "evidence_refs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                },
+                "rationale": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "action_option_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required_control_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "human_review_required": {
+            "const": true
+          },
+          "no_action_authority": {
+            "const": true
+          }
+        }
+      }
+    }
+  }
+}
