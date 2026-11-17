@@ -604,6 +604,42 @@ mod tests {
     }
 
     #[test]
+    fn cells_cannot_cross_sensor_article_identity() {
+        let mut changed_sensor = cell(
+            "cell-new-sensor",
+            NumericRange { minimum: 0.0, maximum: 5.0 },
+            NumericRange { minimum: 20.0, maximum: 30.0 },
+        );
+        changed_sensor.sensor_identity_digest = "sha256:replacement-sensor".to_owned();
+        let assessment = assess_operating_point(&envelope(vec![changed_sensor]), &point());
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert!(assessment.reasons.iter().any(|reason| {
+            reason.contains("sensor identity differs from envelope sensor identity")
+        }));
+    }
+
+    #[test]
+    fn physically_invalid_humidity_and_force_ranges_fail_closed() {
+        let mut invalid_humidity = cell(
+            "bad-humidity",
+            NumericRange { minimum: 0.0, maximum: 5.0 },
+            NumericRange { minimum: 20.0, maximum: 30.0 },
+        );
+        invalid_humidity.humidity_percent = NumericRange { minimum: 10.0, maximum: 120.0 };
+        let assessment = assess_operating_point(&envelope(vec![invalid_humidity]), &point());
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+
+        let mut negative_force = cell(
+            "negative-force",
+            NumericRange { minimum: -1.0, maximum: 5.0 },
+            NumericRange { minimum: 20.0, maximum: 30.0 },
+        );
+        negative_force.evidence.qualification_status = CellQualificationStatus::NotValidated;
+        let assessment = assess_operating_point(&envelope(vec![negative_force]), &point());
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+    }
+
+    #[test]
     fn reference_model_observability_and_uncertainty_gates_remain_independent() {
         let mut unresolved_reference = cell(
             "cell-a",
