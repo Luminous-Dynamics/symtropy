@@ -1,104 +1,116 @@
-# Water verified-intervention utility T1 protocol v0.1
+# Water Service Engineering — Research and Benchmark Programme v0.1
 
-**Tracking issue:** #5951 WATER-VERIFIED-INTERVENTION-UTILITY-001  
-**Parents:** #4963 leak diagnostics, #5047 observability qualification, #5893 survival frontier and #5018 controller robustness  
-**Evidence class:** synthetic-first known-answer contract; no field action is authorized.
+**Status:** research contract / synthetic-first; no physical product or system qualified  
+**Tracking:** Symtropy [#4958 potable-water trains](https://github.com/Luminous-Dynamics/symtropy/issues/4958) · [#4959 pump-system service](https://github.com/Luminous-Dynamics/symtropy/issues/4959)
 
-## 1. Paradigm: benchmark the verified intervention, not the alert
+## Mission
 
-Leak detection, localization, inspection, confirmation, repair and verified savings are different events. An alert is not a confirmed leak. A pipe guess is not a safe inspection scope. A work order is not proof of repair. A post-repair flow reduction is not verified savings unless operating conditions and independent metrology are comparable.
+Develop water infrastructure that delivers the required quantity and quality of water, at the point of use, through disturbances and across its full operating life — while minimizing energy, consumables, residuals, cost, maintenance burden and environmental harm.
 
-The benchmark therefore evaluates the complete evidence chain:
+The engineering unit is **delivered service**, not a filter cartridge, pump nameplate, treatment-stage removal percentage or AI score.
 
-`event → detection → observability → bounded localization → safe decision → inspection → confirmation → repair → independent verification → persistent service benefit`
+## Programme boundaries
 
-An action may be `inspect`, `prioritize`, or `abstain`. A system must not issue pipe-level certainty when the state is unobservable, indeterminate, topology-invalid, or its estimator is outside the declared scope.
+This directory starts two deliberately bounded benchmark families:
 
-## 2. Localization eligibility
+1. **Potable-water treatment:** household / point-of-use, community / small supply and municipal / utility treatment trains. It evaluates source-to-tap service and contaminant-specific claims.
+2. **Pump-system service:** household/building booster, community transfer, municipal distribution, wastewater lift, storm/flood drainage and remote/solar duty. It evaluates the complete pump + drive + piping + storage + controls system.
 
-Pipe/within-pipe claims require one of:
-- current direct observation with a valid topology; or
-- an independently qualified estimator whose declared scope matches the current topology and sensor set.
+They share typed service profiles, uncertainty discipline, comparable lifecycle metrics and fail-closed evidence rules. They do not collapse drinking water, wastewater, stormwater, floodwater, process water or recovered materials into one untyped quantity.
 
-Structural-only observability may support a broader inspection region, but it does not establish a direct physical observation. Unobservable, indeterminate and topology-invalid dispositions prohibit pipe-level and within-pipe claims. Candidate sets with more than one asset are not counted as correct pipe localization even when the true asset happens to be in the set.
+## Compose with existing work — do not duplicate it
 
-`abstain` is a legitimate safe action, but it is not a true positive, correct localization, completed inspection or verified intervention.
+| Existing owner | What this programme consumes |
+|---|---|
+| Symtropy #2152 | Process water/material/utility/residual closure and its known-answer accounting |
+| Symtropy #4902 / #4917 / #4919 | Whole-chain sanitation, wastewater reference and toilet bench |
+| Symtropy #4386 / #4397 / #4398 / #4401 / #4420 | PAT component physics, network pressure/leakage/PAT coordination, EPANET differential qualification, uncertainty and PAT product family |
+| Symtropy #4905 | Sewer inspection robot mission and condition evidence |
+| Symtropy #3372 | Water-asset maintenance, renewal and service feedback |
+| Mycelix #6100 / #3233 | Raw water observation versus profile-bound derived assessment |
+| Mycelix #6034 / #6057 / #6025 / #6029 | Instrument capability, calibration, condition applicability and measurand profiles |
+| Mycelix #5431 | Provenance-first Johannesburg water-service evidence |
+| Sol-Atlas water/catchment owners | Site, source, network, geography, exposure and rights-cleared regional evidence |
 
-## 3. Inspection and repair evidence
+**Important separation:** the existing PAT work studies recovering electricity from pressure/flow. It does not qualify pump-mode performance of a water-supply or drainage pump. Likewise, the existing water-purity evidence work defines how to represent observations and assessments; this programme tests treatment performance and does not mint safety/certification authority.
 
-An inspection result is one of `confirmed_leak`, `no_leak`, `inconclusive`, or `not_attempted`. Crew/travel time, cost, confirmed asset IDs and confirmation time are bound to the event. False dispatches are inspections that return `no_leak` on a non-leak event; inconclusive inspections are reported separately.
+## Paradigm shifts
 
-A repair is a separate record with an intervention ID, asset ID, repair time, cost and outage minutes. Repair credit requires a confirmed leak and exact asset agreement between inspection and repair. An asserted repair without matching confirmation is rejected.
+- **From product rating to service delivered:** litres reaching a named endpoint that meet a declared use-specific profile.
+- **From one-shot removal to lifetime breakthrough:** performance is tracked from run-in through fouling, cleaning, breakthrough, replacement and restart.
+- **From pump efficiency to system efficiency:** pump, motor, drive, piping, control, storage and delivered head are measured together.
+- **From average water quality to barrier integrity:** each critical contaminant/pathogen has its own claim, method, uncertainty and release rule; no scalar score can compensate for a failed barrier.
+- **From centralization vs decentralization to composable service topology:** select household, distributed, central or hybrid treatment based on raw-water risk, operator capability, lifecycle and failure containment.
+- **From forecast-driven actuation to evidence-gated intervention:** prediction may recommend; independent measurements and bounded local protections govern physical operation.
+- **From maintenance schedules to condition evidence:** infer degradation only within validated observability envelopes; unknown state triggers inspection, not confident diagnosis.
+- **From nominal resilience to graceful degradation:** preserve minimum safe service, isolate failed stages, retain local operation and recover without assuming cloud, grid or communications.
 
-## 4. Independent post-repair verification
+## Benchmark philosophy
 
-Pre-repair baseline and post-repair readings must bind to instrument identity, calibration, method revision, raw-record digest, physical boundary and time window. The post-repair observation must be compared under matched:
-- demand (within the declared relative tolerance);
-- pressure (within the declared relative tolerance);
-- pump/valve operating state;
-- topology revision;
-- meter, unit, method and calibration scope.
+Every comparison freezes the service boundary, raw-water / duty profile, measurement methods, hardware configuration, software revision, lifecycle boundary and failure cases. Use paired/matched baselines, blind laboratory samples where applicable, held-out sites/seasons/batches, and publish non-converged cases and failures.
 
-Replaying a raw record is invalid. The baseline and follow-up windows must not overlap. A simulator counterfactual cannot replace a physical observation.
+Report a **Pareto surface**, not a weighted composite that can hide safety or service regression.
 
-Per follow-up day, point reduction is `pre_repair_leak_flow - post_repair_leak_flow`. The conservative lower bound is:
+### Evidence tiers
 
-`max(0, point_reduction - k * (u_pre + u_post))`
+| Tier | Evidence permitted | Claim ceiling |
+|---|---|---|
+| T0 | Schema, analytic identities, synthetic fixtures, unit and accounting checks | Contract/arithmetic correctness only |
+| T1 | Controlled clean-water / component or system bench | Bench performance within the tested envelope |
+| T2 | Qualified independent laboratory / endurance testing | Method- and specimen-specific results |
+| T3 | Approved supervised pilot with independent sampling and site/operator approvals | Site-, season- and profile-specific service results |
+| T4 | Replicated independent deployments and lifecycle evidence | Only this tier supports broad transfer claims |
 
-v0.1 uses `k=2` as an uncertainty expansion factor only; it is not a 95% confidence interval or population-level inference. Keep 7-, 30- and 90-day follow-up results separate. Missing or incomparable follow-up is `indeterminate`, not a zero-loss repair.
+Synthetic, modelled, sensor-proxy, operator-reported, laboratory, regulatory and field evidence remain separate. An assessment is not a certification, and neither is an actuation authorization.
 
-## 5. Comparator arms
+## Current external comparator snapshot
 
-Future matched submissions must evaluate the same held-out event IDs, topology, sensor budget, alarm budget, observation window and crew-hour budget for:
+- WHO published the fourth edition of its *Guidelines for Drinking-water Quality* incorporating the first, second and third addenda on **17 June 2026**. The current framework emphasizes health-based targets, water safety plans and independent surveillance from catchment to consumer: <https://www.who.int/publications/i/item/9789240121225>.
+- WHO's HWT Scheme published Rounds III–IV results on **18 March 2026**; 51 household water-treatment products have now been evaluated across all rounds: <https://www.who.int/publications/b/80163>.
+- WHO HWT Scheme microbial targets provide an external reference: 3-star = at least 4-log bacteria, 5-log viruses and 4-log protozoa; 2-star = at least 2-, 3- and 2-log respectively. This is a household-treatment microbial-performance scheme, not a complete chemical-water-quality certification: <https://www.who.int/tools/international-scheme-to-evaluate-household-water-treatment-technologies>.
+- ANSI/HI 14.6-2022 defines repeatable rotodynamic pump hydraulic acceptance testing, including performance, NPSH and hydrostatic pressure testing: <https://webstore.ansi.org/standards/hi/ansihi142022>.
+- DOE's Pump Systems resources emphasize system-level assessment and matching pump, controls and piping to actual requirements: <https://www.energy.gov/cmei/ito/pump-systems>.
+- 2026 leak-detection benchmarking shows that high detection accuracy on simulated networks does not solve field localization/generalization by itself. A May 2026 benchmark reported >95% leak detection accuracy on 47,000+ EPANET/WNTR scenarios but identified localization as the harder task: <https://doi.org/10.1016/j.jwpe.2026.110114>. A separate 2026 review highlights real-world validation, heterogeneous networks and comparability gaps: <https://doi.org/10.2166/hydro.2026.069>.
 
-1. Operator rule/threshold process.
-2. Classical minimum-night-flow / district balance / pressure-management process, where applicable.
-3. Hydraulic-model residual baseline.
-4. Best matched graph/transformer benchmark baseline.
-5. Luminous detection + observability + abstention + inspection prioritization + repair verification.
+External results are comparators to reproduce, not Luminous results. Standards must be pinned to the exact current edition, jurisdiction and claim before numerical limits are used.
 
-The T1 fixture identifies a submission arm explicitly but does not claim that the synthetic fixture is a fair industry comparison. A real tournament requires utility-approved common data and a preregistered intervention protocol.
+## Initial research increments
 
-## 6. Metrics
+1. Freeze the two benchmark protocols and typed service boundaries.
+2. Create a machine-readable test manifest and T0 known-answer / negative-control cases.
+3. Reconcile every proposed measurement channel to existing Mycelix metrology owners.
+4. Freeze specific commercial product and pump baselines, revisions and test conditions before comparison.
+5. Define T1 bench designs and independent reference instrumentation.
+6. Move to T2/T3 only with laboratory, electrical, mechanical, pressure-system, site and regulatory review.
 
-Report separately:
-- event-level TP, FP, FN, recall and detection delay;
-- abstentions, unobservable-event coverage and false-safe pipe claims;
-- zone/pipe/within-pipe localization only at ground-truth-supported resolution;
-- inspections, confirmed leaks, no-leak false dispatches and inconclusive inspections;
-- crew hours, crew-days, cost per confirmed leak and confirmed leaks per crew-day;
-- time to confirmation and time to repair;
-- repaired assets and actual outage minutes;
-- independently verified lower-bound reduction at 7, 30 and 90 days;
-- cost per verified cubic metre saved, only where the lower-bound saved volume is positive.
+## Nonclaims
 
-Do not combine these into one opaque accuracy or utility score. The operator must be able to see the trade-off among safe abstention, false dispatches, confirmed interventions, service disruption and verified saved water.
+This programme does not yet establish a safe-water product, treatment efficacy, pump efficiency, hydraulic model accuracy, regulatory conformity, laboratory accreditation, physical reliability, commercial readiness or SOTA superiority.
 
-## 7. Frozen 12-scenario challenge
 
-1. Observable leak, correct pipe, confirmed inspection, repaired, persistent 7/30/90-day reduction.
-2. Common-cause failure makes the state unobservable; pipe-level output must be flagged false-safe.
-3. Non-leak pressure change with a false alert and a no-leak inspection.
-4. Leak missed by the detector.
-5. Structural-only observability with multiple candidate pipes; pipe certainty is ineligible.
-6. Estimator scope mismatch; pipe certainty is ineligible.
-7. Confirmed leak and repair with only a 7-day follow-up; no 30/90-day claim.
-8. Apparent post-repair reduction under unmatched pressure; verification indeterminate.
-9. Replayed raw pre/post measurement digest; verification invalid.
-10. Repair asset differs from confirmed inspection asset; no repair credit.
-11. Zone-level localization with a confirmed leak but no independent post-repair record.
-12. Prioritized but not inspected event; no confirmation, repair or saved-volume credit.
+## Third benchmark family added — pressurized leak diagnostics
 
-## 8. Stretch targets — proposed, not achieved
+The programme now also includes household/building leak detection, community / district-metered-area diagnosis and municipal pressurized-network localization. This is separate from gravity-sewer robot inspection and from PAT energy recovery. See [Symtropy #4963](https://github.com/Luminous-Dynamics/symtropy/issues/4963) and [PRESSURIZED_WATER_DIAGNOSTICS_BENCHMARK_V0_1.md](./PRESSURIZED_WATER_DIAGNOSTICS_BENCHMARK_V0_1.md).
 
-- At least 25% fewer false dispatches at matched confirmed-leak recall than the strongest local baseline.
-- At least 25% lower P95 time-to-confirmation without worsening service-floor violations.
-- At least 20% more independently confirmed leaks per crew-day at the same crew-hour budget.
-- Zero false-safe pipe-level recommendations in the declared unobservable/topology-invalid challenge set.
-- Positive lower-bound post-repair reduction at the declared follow-up horizon, with a preregistered uncertainty method.
+The comparison set includes the 2026 47k+ synthetic EPANET/WNTR Net3 benchmark, the 2026 one-year hourly real-utility SCADA dataset, the physical LeakTestbed (280 controlled signals), and the 2026 systematic review. They remain separate populations; simulated detection accuracy is not field accuracy.
 
-These are research targets, not standards or results. They require matched baselines, independent utility data, and field verification.
 
-## 9. Claim ceiling
+## Physical test-cell concept
 
-The T1 evaluator is synthetic-only. `physical_qualification_status`, `statistical_inference_status` and `claim_eligibility` remain `NotRun` / `NotEligible`. A pass does not prove utility performance, safe field operation, leak detection SOTA, actual repair, NRW reduction, water savings or regulatory compliance. No work-order dispatch, SCADA write, crew dispatch or actuator interface is added.
+The staged, non-construction design basis is in [T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md](./T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md). It defines isolated PUMP-T1, FILTER-T1 and LEAK-T1 configurations, reuses Mycelix H1 instrumentation concepts without misrepresenting H1 as an industrial acceptance rig, and requires competent pressure/electrical/mechanical safety review before build or energization.
+
+
+## Specialized membrane-fouling benchmark
+
+A dedicated child workstream now benchmarks mechanism-aware membrane fouling estimation, prediction and safe intervention: [Symtropy #4977](https://github.com/Luminous-Dynamics/symtropy/issues/4977). A 2026 comparative review of 78 studies across MF/UF/NF/RO identifies a gap between prediction and deployable supervisory / actuator-linked control. We will evaluate cleaning decisions, membrane integrity, actual post-cleaning recovery and water-quality preservation—not just TMP prediction. Source: https://doi.org/10.3389/frwa.2026.1863523.
+
+## Executable T0 evaluator
+
+The 29-case input corpus now has a **separate expected-output oracle**. Five added WaterLoop service-credit cases distinguish gross treatment throughput from qualified delivered volume, metered recovered use and independently supported net mains displacement; they also reject unqualified quality, unmatched controls, unused output shared-meter double counting, and quality-evidence/use-profile mismatch. The Rust evaluator is in `tools/water-service-t0`, tracked by [#4978](https://github.com/Luminous-Dynamics/symtropy/issues/4978) and included in [PR #4962](https://github.com/Luminous-Dynamics/symtropy/pull/4962). It computes pump duty, VFD/throttling, water/marker closure and fail-closed treatment/network diagnosis outputs, and emits a digest-bound receipt. Source-level independent replay matched 23/23 oracle outputs; native Rust build/tests/Clippy/CI remain unverified until an exact-head run.
+
+## WaterLoop matched-service T1 test protocol
+
+The design-only [matched-service crossover protocol](./WATERLOOP_MATCHED_SERVICE_T1_PROTOCOL_V0_1.md), [plan](./waterloop-matched-service-plan.v0.1.json), [plan schema](./waterloop-matched-service-plan.schema.v0.1.json) and [measured-run schema](./waterloop-matched-service-run.schema.v0.1.json) freeze a prospective matched mains-only vs recovered-source trial for one exact end-use profile. It separates gross treatment output, quality-qualified delivery, actual fixture use, matched-control mains displacement, residual streams and energy. CI validates the schemas and insists the plan remain `design_only`, with all physical/procurement/occupied/network authorizations false, all measurement data `not_acquired`, and no quality release, savings, compliance or superiority claims. Tracked by [#5908](https://github.com/Luminous-Dynamics/symtropy/issues/5908).
+## Matched-service T1 executable evaluator
+
+The [paired-service evaluator protocol](./WATERLOOP_MATCHED_SERVICE_T1_EVALUATOR_PROTOCOL_V0_1.md) and Rust binary `waterloop-matched-service-t1` evaluate 15 synthetic paired mains-only/recovered-source cases. Per-block credit is bounded by quality-released delivery, metered recovered fixture use, and demand-normalized control mains displacement net of treatment-arm mains fallback. Per-measurement time windows must exactly bind to their run; a scoped quality release must have a current validity period, sample-set digest, method revision and independent reviewer. Raw-record replay across separate paired blocks invalidates every affected block. Control, treatment and incremental energy remain separately visible, including for zero-credit blocks when the energy observations themselves are valid. The uncertainty screen uses a conservative additive meter uncertainty and `k=2` as a declared expansion factor only; it is not a confidence interval. Physical qualification, statistical inference and claim eligibility remain `NotRun` / `NotEligible`. Tracked by [#5911](https://github.com/Luminous-Dynamics/symtropy/issues/5911).
