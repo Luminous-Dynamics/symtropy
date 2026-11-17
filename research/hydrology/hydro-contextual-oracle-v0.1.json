@@ -517,7 +517,7 @@
       "expected": {
         "probabilistic_disposition": "ADMITTED",
         "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE",
-        "reference_forecast_id": "seasonal-climatology-v1",
+        "reference_forecast_id": "seasonal_climatology-v1",
         "forecast_member_count": 3,
         "reference_member_count": 3,
         "forecast_crps": 0.6666666666666666,
