@@ -37,7 +37,7 @@ impl Default for TetrahedralConfig {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TetrahedralError {
     InvalidDepth,
     InvalidEdgeLength,
@@ -312,7 +312,7 @@ impl TetrahedralAssembly {
         };
         let mut cells = vec![root_cell];
         let mut members = Vec::with_capacity(config.expected_member_count()?);
-        let mut seen_edges = HashSet::with_capacity(config.expected_member_count());
+        let mut seen_edges = HashSet::with_capacity(config.expected_member_count()?);
 
         for (a, b) in [(0, 1), (1, 2), (2, 0), (0, 3), (1, 3), (2, 3)] {
             push_member(&mut members, &mut seen_edges, a, b)?;
