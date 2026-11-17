@@ -60,7 +60,7 @@ The input fixture, independent oracle, source manifest and schemas are separate 
 - the publisher-reported daily status and bypass flag;
 - scheduled-closure state where relevant;
 - the publisher's outage method ID and derived episode fields where relevant;
-- notice completion and first later fair/off-bypass times;
+- notice completion and the first later fair/off-bypass valid date;
 - hydrometric parameter, station identity, time basis and rating-curve reference;
 - point-of-use boundary, local pressure/flow and evidence class;
 - typed dependency evidence (or explicit unknown);
@@ -80,7 +80,7 @@ The oracle requires a single exact disposition for each case. It also preserves 
 | C06 | Four no-board days under C41 | Accept a single publisher-derived bridged episode |
 | C07 | Five no-board days under C41 | Reject a single merged episode over the declared bridge cap |
 | C08 | No reported end | Preserve right-censoring and duration lower bound |
-| C09 | Notice completion vs first later fair/off-bypass board | Compute reported return-to-status delay only |
+| C09 | Notice completion vs first later fair/off-bypass board | Compute a day-bounded reported return-to-status delay interval |
 | C10 | Notice and board reference different supplies | Reject the asset join |
 | C11 | Timezone/time basis absent | Do not perform an exact temporal join |
 | C12 | Gauge stage without rating relation | Do not call stage discharge |
@@ -99,9 +99,11 @@ C41 cases are *method-conformance checks against a supplied publisher-derived ep
 5. A same-day daily join is coarse alignment. It can support a stratified association test but not event ordering or causal attribution.
 6. A point-of-use sample/window joins only to its own declared boundary and observation window. It does not inherit the upstream supply's status as ground truth.
 
-Notice delay is:
+Notice delay is an interval when the first return evidence is daily:
 
-`first_later_fair_off_bypass_time - announced_completion_time`
+- Let the first fair/off-bypass supply-day be the half-open SAST interval `[00:00 on valid_date, 00:00 on the next date)`.
+- Subtract the offset-aware announced completion instant from both interval bounds.
+- Report `[lower_hours, upper_hours)`; do not invent an exact board observation time.
 
 It measures *reported return-to-status*. It is not physical repair completion, pressure restoration or customer-level service recovery.
 
@@ -165,7 +167,7 @@ For this T0 pack:
 - multi-supply outputs preserve supply identity;
 - C41 bridge cap is not exceeded;
 - censored duration remains a lower bound;
-- notice return-to-status joins require exact supply identity and ordered offset-aware timestamps;
+- notice return-to-status joins require exact supply identity, an offset-aware notice time and a day-bounded return interval;
 - unknown time basis produces an indeterminate join;
 - stage without rating-curve evidence does not become discharge;
 - unknown dependency never becomes causation;
