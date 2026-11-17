@@ -201,13 +201,14 @@ fn main() -> ExitCode {
                 }
             }
             match phri_tac_transfer_oracle::active_benchmark::prior_study::run_prior_study(
-                20261117,
-                20261217,
-                50,
+                20261117, 20261217, 50,
             ) {
                 Ok(study) => {
                     println!("field_prior_study=disjoint_development_final_v0_1");
-                    println!("prior_development_seed_first={}", study.development_seed_first);
+                    println!(
+                        "prior_development_seed_first={}",
+                        study.development_seed_first
+                    );
                     println!("prior_final_seed_first={}", study.final_seed_first);
                     println!(
                         "prior_replicates_per_morphology={}",

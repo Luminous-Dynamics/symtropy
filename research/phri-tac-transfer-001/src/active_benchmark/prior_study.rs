@@ -10,8 +10,8 @@
 #![forbid(unsafe_code)]
 
 use super::field_reconstruction::{
-    FieldReconstructionConfig, FieldReconstructionProblem, FieldReconstructionReport,
-    SpatialEdge, reconstruct_contact_field,
+    FieldReconstructionConfig, FieldReconstructionProblem, FieldReconstructionReport, SpatialEdge,
+    reconstruct_contact_field,
 };
 
 const TAXEL_COUNT: usize = 113;
@@ -198,9 +198,8 @@ fn patch(
     let available = range.end - range.start;
     let width = width_min + next_random(state) as usize % (width_max - width_min + 1);
     let margin = width.min(available / 2);
-    let center = range.start
-        + margin
-        + next_random(state) as usize % (available - 2 * margin).max(1);
+    let center =
+        range.start + margin + next_random(state) as usize % (available - 2 * margin).max(1);
     let amplitude = amplitude_min + random_unit(state) * (amplitude_max - amplitude_min);
     let lower = center.saturating_sub(width).max(range.start);
     let upper = (center + width + 1).min(range.end);
@@ -227,8 +226,8 @@ fn make_truth(seed: u64, morphology: ContactMorphology) -> Vec<f64> {
                 let phase = random_unit(&mut state) * std::f64::consts::TAU;
                 let amplitude = 0.25 + random_unit(&mut state) * 0.50;
                 for index in range.clone() {
-                    let position = (index - range.start) as f64
-                        / (range.end - range.start).max(1) as f64;
+                    let position =
+                        (index - range.start) as f64 / (range.end - range.start).max(1) as f64;
                     truth[index] = amplitude
                         * (0.55 + 0.45 * (std::f64::consts::TAU * position + phase).sin().abs());
                 }
@@ -263,10 +262,9 @@ fn make_truth(seed: u64, morphology: ContactMorphology) -> Vec<f64> {
             ContactMorphology::MixedSparseSmooth => {
                 let base = 0.08 + random_unit(&mut state) * 0.18;
                 for index in range.clone() {
-                    let position = (index - range.start) as f64
-                        / (range.end - range.start).max(1) as f64;
-                    truth[index] = base
-                        + 0.08 * (std::f64::consts::TAU * position).sin().abs();
+                    let position =
+                        (index - range.start) as f64 / (range.end - range.start).max(1) as f64;
+                    truth[index] = base + 0.08 * (std::f64::consts::TAU * position).sin().abs();
                 }
                 if random_unit(&mut state) >= 0.25 {
                     patch(&mut truth, &range, &mut state, 0.25, 0.90, 1, 3);
@@ -300,12 +298,10 @@ fn make_case(seed: u64, morphology: ContactMorphology) -> SyntheticFieldCase {
 
     let mut admitted_native_channels = vec![true; TAXEL_COUNT];
     for (module_index, range) in module_ranges().into_iter().enumerate() {
-        let dropped = range.start
-            + next_random(&mut state) as usize % (range.end - range.start);
+        let dropped = range.start + next_random(&mut state) as usize % (range.end - range.start);
         admitted_native_channels[dropped] = false;
         if module_index % 2 == 1 {
-            let second = range.start
-                + next_random(&mut state) as usize % (range.end - range.start);
+            let second = range.start + next_random(&mut state) as usize % (range.end - range.start);
             admitted_native_channels[second] = false;
         }
     }
@@ -469,8 +465,10 @@ fn run_morphology_development(
 
         let mut graph_problem = case.mechanics_problem.clone();
         graph_problem.smoothness_penalty = GRAPH_L2_PENALTY;
-        graph_problem.forward_model_digest =
-            format!("{}-graph-l2-{GRAPH_L2_PENALTY:.3}", graph_problem.forward_model_digest);
+        graph_problem.forward_model_digest = format!(
+            "{}-graph-l2-{GRAPH_L2_PENALTY:.3}",
+            graph_problem.forward_model_digest
+        );
         let graph = reconstruct_contact_field(&graph_problem, config)?;
         graph_scores.push(score_model_report(&graph, &case.evaluator_truth)?);
 
@@ -485,9 +483,21 @@ fn run_morphology_development(
     }
 
     let mut estimators = vec![
-        summarize("independent_taxel".to_owned(), &baseline_scores, &baseline_scores)?,
-        summarize("mechanics_no_prior".to_owned(), &mechanics_scores, &baseline_scores)?,
-        summarize("mechanics_graph_l2_0_02".to_owned(), &graph_scores, &baseline_scores)?,
+        summarize(
+            "independent_taxel".to_owned(),
+            &baseline_scores,
+            &baseline_scores,
+        )?,
+        summarize(
+            "mechanics_no_prior".to_owned(),
+            &mechanics_scores,
+            &baseline_scores,
+        )?,
+        summarize(
+            "mechanics_graph_l2_0_02".to_owned(),
+            &graph_scores,
+            &baseline_scores,
+        )?,
     ];
     for (index, penalty) in DEVELOPMENT_L1_PENALTIES.iter().enumerate() {
         estimators.push(summarize(
@@ -527,15 +537,19 @@ fn run_morphology_final(
 
         let mut graph_problem = case.mechanics_problem.clone();
         graph_problem.smoothness_penalty = GRAPH_L2_PENALTY;
-        graph_problem.forward_model_digest =
-            format!("{}-graph-l2-{GRAPH_L2_PENALTY:.3}", graph_problem.forward_model_digest);
+        graph_problem.forward_model_digest = format!(
+            "{}-graph-l2-{GRAPH_L2_PENALTY:.3}",
+            graph_problem.forward_model_digest
+        );
         let graph = reconstruct_contact_field(&graph_problem, config)?;
         graph_scores.push(score_model_report(&graph, &case.evaluator_truth)?);
 
         let mut sparse_problem = case.mechanics_problem.clone();
         sparse_problem.sparsity_penalty = frozen_l1_penalty;
-        sparse_problem.forward_model_digest =
-            format!("{}-frozen-l1-{frozen_l1_penalty:.3}", sparse_problem.forward_model_digest);
+        sparse_problem.forward_model_digest = format!(
+            "{}-frozen-l1-{frozen_l1_penalty:.3}",
+            sparse_problem.forward_model_digest
+        );
         let sparse = reconstruct_contact_field(&sparse_problem, config)?;
         frozen_l1_scores.push(score_model_report(&sparse, &case.evaluator_truth)?);
     }
@@ -545,9 +559,21 @@ fn run_morphology_final(
         seed_first: first_seed,
         replicate_count,
         estimators: vec![
-            summarize("independent_taxel".to_owned(), &baseline_scores, &baseline_scores)?,
-            summarize("mechanics_no_prior".to_owned(), &mechanics_scores, &baseline_scores)?,
-            summarize("mechanics_graph_l2_0_02".to_owned(), &graph_scores, &baseline_scores)?,
+            summarize(
+                "independent_taxel".to_owned(),
+                &baseline_scores,
+                &baseline_scores,
+            )?,
+            summarize(
+                "mechanics_no_prior".to_owned(),
+                &mechanics_scores,
+                &baseline_scores,
+            )?,
+            summarize(
+                "mechanics_graph_l2_0_02".to_owned(),
+                &graph_scores,
+                &baseline_scores,
+            )?,
             summarize(
                 format!("mechanics_frozen_l1_{frozen_l1_penalty:.3}"),
                 &frozen_l1_scores,
@@ -572,8 +598,8 @@ pub fn run_prior_study(
     if replicate_count < MIN_REPLICATES {
         return Err("prior study requires at least fifty seeds per morphology".to_owned());
     }
-    let final_offset = u64::try_from(replicate_count - 1)
-        .map_err(|_| "replicate count exceeds u64".to_owned())?;
+    let final_offset =
+        u64::try_from(replicate_count - 1).map_err(|_| "replicate count exceeds u64".to_owned())?;
     let development_last = development_seed_first
         .checked_add(final_offset)
         .ok_or_else(|| "development seed range overflows u64".to_owned())?;
@@ -623,7 +649,9 @@ pub fn run_prior_study(
                     .iter()
                     .find(|summary| summary.estimator_id == "independent_taxel")
                     .map(|summary| summary.mean_field_rmse)
-                    .ok_or_else(|| "development campaign is missing the independent baseline".to_owned())
+                    .ok_or_else(|| {
+                        "development campaign is missing the independent baseline".to_owned()
+                    })
             })
             .collect::<Result<_, _>>()?;
 
@@ -684,15 +712,26 @@ mod tests {
             let second = make_case(20261117, morphology);
             assert_eq!(first, second);
             assert_eq!(first.evaluator_truth.len(), TAXEL_COUNT);
-            assert!(first.evaluator_truth.iter().all(|value| value.is_finite() && *value >= 0.0));
+            assert!(
+                first
+                    .evaluator_truth
+                    .iter()
+                    .all(|value| value.is_finite() && *value >= 0.0)
+            );
             assert_eq!(first.mechanics_problem.native_response.len(), TAXEL_COUNT);
-            assert_eq!(first.mechanics_problem.coupling_matrix.len(), TAXEL_COUNT * TAXEL_COUNT);
+            assert_eq!(
+                first.mechanics_problem.coupling_matrix.len(),
+                TAXEL_COUNT * TAXEL_COUNT
+            );
         }
     }
 
     #[test]
     fn morphology_names_are_unique_and_module_geometry_is_exact() {
-        let names: Vec<_> = ContactMorphology::ALL.iter().map(|family| family.as_str()).collect();
+        let names: Vec<_> = ContactMorphology::ALL
+            .iter()
+            .map(|family| family.as_str())
+            .collect();
         let unique: std::collections::BTreeSet<_> = names.iter().copied().collect();
         assert_eq!(unique.len(), ContactMorphology::ALL.len());
         assert_eq!(MODULE_SIZES.iter().sum::<usize>(), TAXEL_COUNT);
@@ -705,5 +744,4 @@ mod tests {
         assert!(run_prior_study(0, 20261217, 50).is_err());
         assert!(run_prior_study(20261117, 20261217, 49).is_err());
     }
-
 }
