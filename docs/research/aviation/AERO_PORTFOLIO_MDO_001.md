@@ -83,7 +83,7 @@ Do not force a universal winner. A family can dominate for one service and lose 
 
 ## 4. Frozen mission contract
 
-Each benchmark case must be a versioned data profile, not a hidden code constant. The first executable profile contract is [aero_mission_profile_v1.schema.json](schemas/aero_mission_profile_v1.schema.json), with a schema-only example at [synthetic_rural_medical_logistics_v1.json](examples/synthetic_rural_medical_logistics_v1.json). The example's values are deliberately synthetic schema fixtures, not measured South African operating data or aircraft performance claims.
+Each benchmark case must be a versioned data profile, not a hidden code constant. The first executable mission contract is [aero_mission_profile_v1.schema.json](schemas/aero_mission_profile_v1.schema.json), with [synthetic_rural_medical_logistics_v1.json](examples/synthetic_rural_medical_logistics_v1.json) as a schema fixture. Candidate identity and owner-model references are defined in [aero_aircraft_candidate_v1.schema.json](schemas/aero_aircraft_candidate_v1.schema.json), with three conceptual records in [synthetic_three_family_candidate_portfolio_v1.json](examples/synthetic_three_family_candidate_portfolio_v1.json). All example values and architecture records are explicitly synthetic; the candidate records intentionally contain no aircraft performance values or closed physical model receipts.
 
 The profile binds:
 
@@ -412,8 +412,9 @@ Evidence stages do not automatically promote one another. Any physical test or f
 ## 14. Definition of done for v0.1
 
 - [x] Versioned mission-profile JSON Schema and synthetic schema fixture.
-- [ ] Candidate-configuration schema with exact owner-supplied physical model references.
-- [ ] Three-family synthetic comparison: fixed-wing, eSTOL and lift-plus-cruise.
+- [x] Candidate identity/profile schema and three-family conceptual portfolio with explicit unknowns and owner-work references.
+- [ ] Candidate-specific physical model receipts and configuration/closure outputs.
+- [ ] Three-family evaluated synthetic comparison: fixed-wing, eSTOL and lift-plus-cruise.
 - [ ] Exact whole-aircraft closure inputs/outputs and unknown-field semantics.
 - [ ] Independent tiny oracle and adversarial known-answer fixtures.
 - [ ] At least three matched optimization baselines under identical candidate/evaluation budgets.
