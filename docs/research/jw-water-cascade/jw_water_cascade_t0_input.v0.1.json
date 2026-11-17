@@ -1,0 +1,476 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "JW-WATER-CASCADE-T0",
+  "evidence_class": "synthetic_only",
+  "source_context": {
+    "publisher_release_id": "SYNTHETIC-ONLY",
+    "outage_method_id": "C41",
+    "time_zone": "Africa/Johannesburg",
+    "note": "All identifiers, dates, statuses and measurements in this fixture are fabricated conformance values. No publisher or utility rows are embedded."
+  },
+  "cases": [
+    {
+      "case_id": "C01_NO_REPORT_IS_NOT_NORMAL",
+      "family": "no_report",
+      "description": "A missing daily board record must remain no_report and must not be converted to normal/fair service.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-01",
+          "valid_date": "2026-11-12",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C02_REPORTED_STATUS_NOT_TAP_TRUTH",
+      "family": "reported_status",
+      "description": "A valid publisher-compiled daily asset status is evidence of what was reported for that supply/day only.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-02",
+          "valid_date": "2026-11-12",
+          "status": "low",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C03_MULTI_SUPPLY_SUBURB_VECTOR",
+      "family": "multi_supply",
+      "description": "Two linked supplies have different reports; preserve them separately and do not infer one suburb-wide or tap-level status.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-03A",
+          "valid_date": "2026-11-12",
+          "status": "fair",
+          "bypass": false,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-03B",
+          "valid_date": "2026-11-12",
+          "status": "critical",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C04_BYPASS_IS_SEPARATE",
+      "family": "bypass",
+      "description": "A warned/on-bypass report must preserve bypass as a distinct condition and must not be normalised to fair/off-bypass.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-04",
+          "valid_date": "2026-11-12",
+          "status": "warned",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C05_SCHEDULED_CLOSURE_IS_NOT_UNPLANNED",
+      "family": "scheduled_closure",
+      "description": "A no-water report within a separately declared scheduled closure is not silently counted as an unplanned outage.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-05",
+          "valid_date": "2026-11-12",
+          "status": "no_water",
+          "bypass": false,
+          "scheduled_closure": true
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C06_C41_FOUR_DAY_GAP_BRIDGED",
+      "family": "c41_bridge",
+      "description": "A publisher-derived C41 episode bridges four no_report days between severe reports and later has a fair/off-bypass report.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-04",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-05",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-06",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-07",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-08",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-09",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-06",
+          "valid_date": "2026-02-10",
+          "status": "fair",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": {
+        "method_id": "C41",
+        "episode_count": 1,
+        "no_board_days_between_severe_reports": 4,
+        "reported_end_kind": "fair_off_bypass",
+        "duration_hours_lower_bound": null
+      },
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C07_C41_FIVE_DAY_GAP_NOT_BRIDGED",
+      "family": "c41_bridge",
+      "description": "Five no_report days exceed the C41 bridge cap; a single merged episode is invalid.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-01",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-02",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-03",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-04",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-05",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-06",
+          "status": "no_report",
+          "bypass": null,
+          "scheduled_closure": false
+        },
+        {
+          "supply_id": "SYN-SUP-07",
+          "valid_date": "2026-03-07",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": {
+        "method_id": "C41",
+        "episode_count": 2,
+        "no_board_days_between_severe_reports": 5,
+        "reported_end_kind": "split_at_bridge_cap",
+        "duration_hours_lower_bound": null
+      },
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C08_CENSORED_DURATION_IS_LOWER_BOUND",
+      "family": "censored_duration",
+      "description": "An episode with no reported return-to-fair/off-bypass end remains right-censored and its duration is a lower bound.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-08",
+          "valid_date": "2026-02-04",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": {
+        "method_id": "C41",
+        "episode_count": 1,
+        "no_board_days_between_severe_reports": 0,
+        "reported_end_kind": "right_censored",
+        "duration_hours_lower_bound": 157.25
+      },
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C09_NOTICE_TO_REPORTED_RETURN_DELAY",
+      "family": "notice_delay",
+      "description": "Compute a day-bounded interval from announced completion to the first later fair/off-bypass supply-day; do not invent an exact board timestamp.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-09",
+          "valid_date": "2026-02-06",
+          "status": "fair",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": {
+        "supply_id": "SYN-SUP-09",
+        "announced_completion_at": "2026-02-04T18:00:00+02:00",
+        "first_return_valid_date": "2026-02-06"
+      },
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C10_NOTICE_SUPPLY_MISMATCH_REJECTED",
+      "family": "asset_join",
+      "description": "A notice for one supply cannot be joined to another supply solely because their names or locations appear related.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-10A",
+          "valid_date": "2026-02-06",
+          "status": "fair",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": {
+        "supply_id": "SYN-SUP-10B",
+        "announced_completion_at": "2026-02-04T18:00:00+02:00",
+        "first_return_valid_date": "2026-02-06"
+      },
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C11_TIMEBASE_UNKNOWN_BLOCKS_JOIN",
+      "family": "timebase",
+      "description": "A hydrometric observation without a declared time basis cannot be aligned to a SAST daily utility status as if timestamps were exact.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-11",
+          "valid_date": "2026-11-10",
+          "status": "low",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": {
+        "station_id": "SYN-GAUGE-11",
+        "parameter": "discharge",
+        "observed_at": "2026-11-10T12:00:00",
+        "time_basis": "unspecified",
+        "rating_curve_ref": null
+      },
+      "point_of_use": null,
+      "dependency": {
+        "kind": "unknown",
+        "source_ref": "SYN-GAUGE-11",
+        "target_ref": "SYN-SUP-11",
+        "evidence_ref": null
+      },
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C12_STAGE_WITHOUT_RATING_CURVE_IS_NOT_FLOW",
+      "family": "hydrometric_semantics",
+      "description": "Stage/level cannot be relabelled as discharge without a station- and period-valid rating relation and its uncertainty.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-12",
+          "valid_date": "2026-11-10",
+          "status": "critical",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": {
+        "station_id": "SYN-GAUGE-12",
+        "parameter": "stage",
+        "observed_at": "2026-11-10T12:00:00+02:00",
+        "time_basis": "Africa/Johannesburg",
+        "rating_curve_ref": null
+      },
+      "point_of_use": null,
+      "dependency": {
+        "kind": "unknown",
+        "source_ref": "SYN-GAUGE-12",
+        "target_ref": "SYN-SUP-12",
+        "evidence_ref": null
+      },
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C13_UNKNOWN_DEPENDENCY_MEANS_ASSOCIATION_ONLY",
+      "family": "dependency",
+      "description": "Temporal co-occurrence and a plausible upstream/downstream relation do not establish causal dependency without admitted evidence.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-13",
+          "valid_date": "2026-10-01",
+          "status": "critical",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": {
+        "station_id": "SYN-GAUGE-13",
+        "parameter": "discharge",
+        "observed_at": "2026-10-01T12:00:00+02:00",
+        "time_basis": "Africa/Johannesburg",
+        "rating_curve_ref": "SYN-RATING-13"
+      },
+      "point_of_use": null,
+      "dependency": {
+        "kind": "unknown",
+        "source_ref": "SYN-GAUGE-13",
+        "target_ref": "SYN-SUP-13",
+        "evidence_ref": null
+      },
+      "requested_claim": "reported_asset_status"
+    },
+    {
+      "case_id": "C14_POINT_OF_USE_IS_A_SEPARATE_BOUNDARY",
+      "family": "point_of_use",
+      "description": "A synthetic fixture has local pressure and flow measurements; those observations are not inferred from the upstream utility status and remain synthetic.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-14",
+          "valid_date": "2026-10-01",
+          "status": "fair",
+          "bypass": false,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": {
+        "boundary_id": "SYN-FIXTURE-14",
+        "observed_at": "2026-10-01T12:00:00+02:00",
+        "time_basis": "Africa/Johannesburg",
+        "measurement_kind": "fixture_pressure_flow",
+        "pressure_kpa": 150,
+        "flow_lpm": 5,
+        "evidence_class": "synthetic_only"
+      },
+      "dependency": {
+        "kind": "unknown",
+        "source_ref": "SYN-SUP-14",
+        "target_ref": "SYN-FIXTURE-14",
+        "evidence_ref": null
+      },
+      "requested_claim": "household_service"
+    },
+    {
+      "case_id": "C15_SYNTHETIC_TO_FIELD_PROMOTION_REJECTED",
+      "family": "claim_ceiling",
+      "description": "A synthetic-only scenario cannot be used to claim field qualification, verified household outage or measured water savings.",
+      "utility_reports": [
+        {
+          "supply_id": "SYN-SUP-15",
+          "valid_date": "2026-10-01",
+          "status": "no_water",
+          "bypass": true,
+          "scheduled_closure": false
+        }
+      ],
+      "outage": null,
+      "notice": null,
+      "hydrometric": null,
+      "point_of_use": null,
+      "dependency": null,
+      "requested_claim": "field_qualified"
+    }
+  ]
+}
