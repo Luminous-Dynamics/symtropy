@@ -631,4 +631,50 @@ mod tests {
         changed.frame_id = "another-frame".into();
         assert_ne!(baseline, canonical_query_bytes(&moving, &changed).unwrap());
     }
+
+    #[test]
+    fn inconsistent_time_offset_is_unresolved() {
+        let moving = span(-10.0, 20.0, 0, 1_000);
+        let obstacle = span(10.0, -20.0, 0, 1_000);
+        let mut reported = timed_co_translating_capsule_vs_capsule(&moving, &obstacle).unwrap();
+        reported.closest_time_offset_ms += 1.0;
+        let receipt = verify_timed_co_translating_result(
+            &moving,
+            &obstacle,
+            Some(&reported),
+            TimedCcdVerifierConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(receipt.reason, TimedCcdVerificationReason::ReportedValueMismatch);
+    }
+
+    #[test]
+    fn a_consistent_but_non_minimizing_separated_point_fails_kkt() {
+        let moving = span(0.0, 4.0, 0, 1_000);
+        let obstacle = span(10.0, 0.0, 0, 1_000);
+        let mut reported = timed_co_translating_capsule_vs_capsule(&moving, &obstacle).unwrap();
+        let u = reported.closest.moving_axis_parameter;
+        let v = reported.closest.obstacle_axis_parameter;
+        reported.closest_time_parameter = 0.0;
+        reported.closest_time_offset_ms = 0.0;
+        reported.closest_at_terminal_limit = false;
+        reported.closest.time_parameter = 0.0;
+        reported.closest.moving_point = point(0.0, -1.0 + 2.0 * u, 0.0);
+        reported.closest.obstacle_point = point(10.0, -1.0 + 2.0 * v, 0.0);
+        reported.closest.distance_mm = 10.0;
+
+        let receipt = verify_timed_co_translating_result(
+            &moving,
+            &obstacle,
+            Some(&reported),
+            TimedCcdVerifierConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(receipt.reason, TimedCcdVerificationReason::KktConditionsFailed);
+        assert!(receipt.kkt_checked);
+        assert!(receipt.max_kkt_gradient_residual_mm2 > 1.0e-6);
+    }
+
 }
