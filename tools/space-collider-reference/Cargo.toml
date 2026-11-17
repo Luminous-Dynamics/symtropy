@@ -1,0 +1,9 @@
+[package]
+name = "space-collider-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Dependency-free checks for collider energy conventions, rigidity and orbital revolution frequency"
+
+[workspace]
+members = []

@@ -1,0 +1,103 @@
+name: space-collider-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/space-collider-reference.yml"
+      - "tools/space-collider-reference/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/space-collider-reference.yml"
+      - "tools/space-collider-reference/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: collider convention and orbital reference checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact source revision
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/space-collider-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/space-collider-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/space-collider-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute report twice and require deterministic output
+        run: |
+          cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release > report-1.json
+          cargo run --manifest-path tools/space-collider-reference/Cargo.toml --release > report-2.json
+          cmp report-1.json report-2.json
+          mv report-1.json space-collider-reference.json
+          jq -e . space-collider-reference.json >/dev/null
+          jq -e '.performance_closure.evidence_class == "analytical_performance_closure" and .performance_closure.derived.burnoff_lifetime_min > 17 and .performance_closure.derived.burnoff_lifetime_min < 18 and .performance_closure.derived.annual_integrated_luminosity_ab_inv > 1900' space-collider-reference.json >/dev/null
+          jq -e '.performance_closure.derived.stored_energy_per_beam_from_bunch_population_j > 1.3e14 and .performance_closure.derived.stored_energy_per_beam_from_bunch_population_j < 1.4e14 and .performance_closure.derived.ccm_to_fcc_stored_energy_ratio > 16000' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.source_reference.derived_injection_power_mw_two_beams > 14.3 and .muon_scaling.source_reference.derived_injection_power_mw_two_beams < 14.5 and .muon_scaling.source_reference.derived_luminosity_decay_turns > 1360 and .muon_scaling.source_reference.derived_luminosity_decay_turns < 1370' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.fixed_energy_lunar_ring.muon_decay_turns < 3 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns > 2700 and .muon_scaling.fixed_field_sweep[3].muon_decay_turns < 2760 and .muon_scaling.fixed_field_sweep[3].synchrotron_loss_fraction_per_turn > 4.7' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.fixed_field_lunar_species_comparison.muon_quantum_chi < 0.001 and .muon_scaling.fixed_field_lunar_species_comparison.electron_quantum_chi > 1 and .muon_scaling.fixed_field_fractional_loss_thresholds.circumference_km_for_100_percent_loss_per_turn > 5000' space-collider-reference.json >/dev/null
+          jq -e '.muon_scaling.rcs_chain_survival.evidence_class == "analytic_linear_energy_ramp_decay_integration" and (.muon_scaling.rcs_chain_survival.stages | length) == 4 and .muon_scaling.rcs_chain_survival.total_acceleration_time_ms == 10.18 and .muon_scaling.rcs_chain_survival.total_turns == 193 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction > 0.6563 and .muon_scaling.rcs_chain_survival.integrated_survival_fraction < 0.6565' space-collider-reference.json >/dev/null
+          jq -e '.plasma_screen.evidence_class == "source_bound_plasma_acceleration_screen" and .plasma_screen.muon_energy_gain_factor > 133.3 and .plasma_screen.muon_energy_gain_factor < 133.4 and .plasma_screen.energy_spread_gap_ratio_if_definitions_match == 188.5 and .plasma_screen.conditional_emittance_gap_ratio_if_definitions_match == 354.4' space-collider-reference.json >/dev/null
+          jq -e '.plasma_screen.acceleration_result_initial_distribution == "zero initial energy spread and zero initial emittance" and (.plasma_screen.data_availability | contains("not publicly available at publication"))' space-collider-reference.json >/dev/null
+          jq -e '.rcs_emittance_budget.evidence_class == "source_table_arithmetic_screen" and .rcs_emittance_budget.conditional_chain_budget.composition_status == "conditional_sequential_composition" and .rcs_emittance_budget.conditional_chain_budget.physical_qualification_status == "not_evaluated"' space-collider-reference.json >/dev/null
+          jq -e '(.rcs_emittance_budget.conditional_chain_budget.stages | length) == 4 and .rcs_emittance_budget.conditional_chain_budget.derived.additive_first_order_growth_pct == 9.7 and .rcs_emittance_budget.conditional_chain_budget.derived.multiplicative_compound_growth_pct > 9.9239 and .rcs_emittance_budget.conditional_chain_budget.derived.multiplicative_compound_growth_pct < 9.9241 and .rcs_emittance_budget.conditional_chain_budget.derived.budget_consumption_pct > 99.23 and .rcs_emittance_budget.conditional_chain_budget.derived.budget_consumption_pct < 99.25 and .rcs_emittance_budget.conditional_chain_budget.derived.remaining_margin_percentage_points > 0.076 and .rcs_emittance_budget.conditional_chain_budget.derived.remaining_margin_percentage_points < 0.077' space-collider-reference.json >/dev/null
+          jq -e '.rcs_emittance_budget.case_separation.rf_distribution_comparison.eight_arc_horizontal_emittance_growth_gt_pct == 500 and .rcs_emittance_budget.case_separation.rf_distribution_comparison.thirty_two_arc_horizontal_emittance_growth_pct == 13' space-collider-reference.json >/dev/null
+          jq -e '.local_ring_screen.evidence_class == "local_ring_rigidity_and_species_scaling_screen" and .local_ring_screen.comparison_matrix_count == 12 and .local_ring_screen.fcc_hh_geometry_comparator.screened_rigidity_only_centre_of_mass_energy_tev > 99.9 and .local_ring_screen.fcc_hh_geometry_comparator.screened_rigidity_only_centre_of_mass_energy_tev < 100.1 and .local_ring_screen.fcc_hh_geometry_comparator.screened_proton_synchrotron_power_mw_per_beam_at_0p5_a > 2.3 and .local_ring_screen.fcc_hh_geometry_comparator.screened_proton_synchrotron_power_mw_per_beam_at_0p5_a < 2.4' space-collider-reference.json >/dev/null
+          jq -e '.local_ring_screen.fcc_hh_fill_derivation.source_arc_length_km == 82 and .local_ring_screen.fcc_hh_fill_derivation.source_arc_cell_dipole_packing_fraction == 0.8 and .local_ring_screen.fcc_hh_fill_derivation.derived_ringwide_effective_fill_fraction > 0.671 and .local_ring_screen.fcc_hh_fill_derivation.derived_ringwide_effective_fill_fraction < 0.672 and (.local_ring_screen.fill_sensitivity_cases | length) == 4' space-collider-reference.json >/dev/null
+          jq -e '.local_ring_screen.fcc_hh_2025_updated_reference_comparator.source_circumference_km == 90.7 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.source_dipole_field_t == 14 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.source_centre_of_mass_energy_tev == 85 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.screened_rigidity_only_centre_of_mass_energy_tev > 85.2 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.screened_rigidity_only_centre_of_mass_energy_tev < 85.4 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.energy_relative_difference_vs_source > 0.003 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.energy_relative_difference_vs_source < 0.004 and .local_ring_screen.fcc_hh_2025_updated_reference_comparator.power_comparison_status == "not_directly_compared_source_is_per_ring_screen_is_per_beam"' space-collider-reference.json >/dev/null
+          jq -e '([.local_ring_screen.fill_sensitivity_cases[] | select(.dipole_fill_fraction == 0.6)][0].proton_centre_of_mass_energy_tev_rigidity_only < [.local_ring_screen.fill_sensitivity_cases[] | select(.dipole_fill_fraction == 0.67)][0].proton_centre_of_mass_energy_tev_rigidity_only) and ([.local_ring_screen.fill_sensitivity_cases[] | select(.dipole_fill_fraction == 0.75)][0].proton_centre_of_mass_energy_tev_rigidity_only > [.local_ring_screen.fill_sensitivity_cases[] | select(.dipole_fill_fraction == 0.67)][0].proton_centre_of_mass_energy_tev_rigidity_only)' space-collider-reference.json >/dev/null
+          jq -e 'any(.local_ring_screen.cases[]; .circumference_km == 100 and .dipole_field_t == 16 and .proton_centre_of_mass_energy_tev_rigidity_only > 102 and .muon_decay_efold_turns > 3180 and .muon_synchrotron_to_injection_power_ratio_formal > 1.9)' space-collider-reference.json >/dev/null
+          jq -e '([.local_ring_screen.cases[] | select(.circumference_km == 50 and .dipole_field_t == 14)][0].muon_decay_efold_turns == [.local_ring_screen.cases[] | select(.circumference_km == 100 and .dipole_field_t == 14)][0].muon_decay_efold_turns) and ([.local_ring_screen.cases[] | select(.circumference_km == 100 and .dipole_field_t == 16)][0].field_evidence_label == "fcc_hh_conceptual_target_not_operational") and ([.local_ring_screen.cases[] | select(.circumference_km == 100 and .dipole_field_t == 20)][0].field_evidence_label == "hts_stretch_case_not_production_ready")' space-collider-reference.json >/dev/null
+          grep -q '"evidence_class": "analytical_reference_check"' space-collider-reference.json
+          grep -q '"gamma_ratio_under_center_of_mass_convention": 71.428571' space-collider-reference.json
+          grep -q '"performance_closure"' space-collider-reference.json
+          grep -q '"burnoff_lifetime_min": 17.667845' space-collider-reference.json
+          grep -q '"annual_integrated_luminosity_ab_inv": 1935.360000' space-collider-reference.json
+
+      - name: Fingerprint exact source and retained report
+        run: |
+          {
+            echo "source_commit=$(git rev-parse HEAD)"
+            echo "rustc=$(rustc +1.96.0 --version)"
+            echo "cargo=$(cargo +1.96.0 --version)"
+            sha256sum tools/space-collider-reference/Cargo.toml
+            sha256sum tools/space-collider-reference/src/main.rs
+            sha256sum tools/space-collider-reference/src/luminosity.rs
+            sha256sum tools/space-collider-reference/src/muon_scaling.rs
+            sha256sum tools/space-collider-reference/src/plasma_screen.rs
+            sha256sum tools/space-collider-reference/src/rcs_emittance_budget.rs
+            sha256sum tools/space-collider-reference/src/local_ring_screen.rs
+            sha256sum space-collider-reference.json
+          } > evidence-manifest.txt
+
+      - name: Retain reference report and evidence manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: space-collider-reference-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            space-collider-reference.json
+            evidence-manifest.txt
+          if-no-files-found: error
+          retention-days: 90
