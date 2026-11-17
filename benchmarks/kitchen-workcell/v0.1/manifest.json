@@ -531,6 +531,21 @@
       "denominator": "all human-reviewed task graphs",
       "method": "Count edits before a practitioner accepts the graph.",
       "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "staggered_makespan_savings_vs_serial",
+      "unit": "fraction of serial makespan saved",
+      "denominator": "matched plan/envelope instances where both the power-aware and serial schedulers return verified feasible schedules",
+      "method": "(serial makespan - power-aware makespan) / serial makespan; same task graph, profiles, envelope and verification rules.",
+      "evidence_class": "measured",
+      "notes": "Report per instance and median; do not omit instances where only one scheduler succeeds."
+    },
+    {
+      "metric_id": "power_aware_event_search_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "one power-constrained schedule attempt",
+      "method": "Monotonic-clock time for candidate generation, schedule construction and final independent power verification; report task count and event count.",
+      "evidence_class": "measured"
     }
   ],
   "target_hypotheses": [
@@ -625,6 +640,18 @@
         "recipe rights missing",
         "human corrections or failed graphs omitted"
       ]
+    },
+    {
+      "hypothesis_id": "H-POWER-STAGGER",
+      "metric_id": "staggered_makespan_savings_vs_serial",
+      "target": "Demonstrate positive median makespan savings over the serial baseline on cases where naive parallel execution violates the envelope but a feasible interleaving exists; freeze suite and report failures before selecting a percentage target.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "serial and power-aware cases use different input graphs or envelopes",
+        "either schedule bypasses the independent verifier",
+        "heuristic failure is described as proof of infeasibility",
+        "only successful cases are reported"
+      ]
     }
   ],
   "instruments": [],
@@ -667,13 +694,13 @@
       "evaluation_role": "Primary scheduler baseline."
     },
     {
-      "baseline_id": "power-envelope-serial-fallback",
+      "baseline_id": "power-aware-event-boundary-heuristic",
       "class": "power_constrained",
       "status": "existing_local",
-      "description": "Power-envelope check with parallel schedule attempt and serial fallback.",
+      "description": "Three-stage scheduling: existing parallel earliest-gap, deterministic event-boundary power-aware staggering, then serial topological fallback. This is a heuristic and is not globally optimal.",
       "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs",
       "dataset_ref": null,
-      "evaluation_role": "Initial household power-constrained baseline."
+      "evaluation_role": "Power-feasible makespan and concurrency; compare to naive parallel, serial and exact-solver bounds on identical plans/envelopes."
     },
     {
       "baseline_id": "recipe2plan-emnlp-2025",
@@ -701,6 +728,15 @@
       "implementation_ref": null,
       "dataset_ref": null,
       "evaluation_role": "Lower-bound measurement."
+    },
+    {
+      "baseline_id": "ortools-cp-sat-small-instance-reference",
+      "class": "exact_solver_lower_bound",
+      "status": "proposed_not_implemented",
+      "description": "Reference exact-model implementation using interval variables, NoOverlap and cumulative power/resource constraints on a frozen small-instance suite. Solver proof status and time budget must be recorded.",
+      "implementation_ref": "https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md",
+      "dataset_ref": "https://scheduleopt.github.io/benchmarks/",
+      "evaluation_role": "Proven lower bound / optimality comparison, only for instances solved to optimality."
     }
   ]
 }
