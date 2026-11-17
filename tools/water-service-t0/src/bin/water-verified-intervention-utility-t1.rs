@@ -588,6 +588,16 @@ fn evaluate_all(input: &Value, input_schema: &Value, oracle: &Value) -> Result<V
         "verified_lower_reduction_30d_m3_day": sum("verified_lower_reduction_30d_m3_day"),
         "verified_lower_reduction_90d_m3_day": sum("verified_lower_reduction_90d_m3_day")
     });
+    let scenario_mismatch_count = mismatches.len();
+    let expected_aggregate = field(oracle, "aggregate", "oracle")?;
+    let aggregate_matches = aggregate == *expected_aggregate;
+    if !aggregate_matches {
+        mismatches.push(json!({
+            "scenario_id": "__aggregate__",
+            "expected": expected_aggregate,
+            "actual": aggregate.clone()
+        }));
+    }
     let mismatch_count = mismatches.len();
     Ok(json!({
         "schema_version": "water-verified-intervention-utility-t1-evaluation-v0.1",
@@ -595,7 +605,8 @@ fn evaluate_all(input: &Value, input_schema: &Value, oracle: &Value) -> Result<V
         "submission_id": string(input, "submission_id", "input")?,
         "arm_id": string(input, "arm_id", "input")?,
         "scenario_count": SCENARIO_COUNT,
-        "matched_scenario_count": SCENARIO_COUNT - mismatch_count,
+        "matched_scenario_count": SCENARIO_COUNT - scenario_mismatch_count,
+        "aggregate_matches": aggregate_matches,
         "mismatch_count": mismatch_count,
         "mismatches": mismatches,
         "aggregate": aggregate,
@@ -900,6 +911,17 @@ mod tests {
             output["repair_verification"][1]["status"],
             "indeterminate_evidence_scope"
         );
+    }
+
+    #[test]
+    fn altered_aggregate_oracle_is_not_hidden_by_matching_scenarios() {
+        let (input, schema, mut oracle) = fixture();
+        oracle["aggregate"]["false_safe_pipe_claim_count"] = json!(0);
+        let result = evaluate_all(&input, &schema, &oracle).unwrap();
+        assert_eq!(result["matched_scenario_count"], 12);
+        assert_eq!(result["aggregate_matches"], false);
+        assert_eq!(result["mismatch_count"], 1);
+        assert_eq!(result["mismatches"][0]["scenario_id"], "__aggregate__");
     }
 
     #[test]
