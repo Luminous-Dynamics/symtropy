@@ -92,31 +92,6 @@ pub enum EntityKind {
     OptimizerFantasy,
 }
 
-impl EntityKind {
-    fn schema_type(self) -> &'static str {
-        match self {
-            Self::CrateDataset => "Dataset",
-            Self::RawDataFile | Self::DerivedDataFile => "MediaObject",
-            Self::Laboratory
-            | Self::Rig
-            | Self::Instrument
-            | Self::Detector
-            | Self::OpticalSource
-            | Self::OpticalPath => "IndividualProduct",
-            Self::MaterialFamily | Self::FeedstockBatch | Self::Sample | Self::ProductLot => {
-                "Thing"
-            }
-            Self::CalibrationCertificate
-            | Self::ReferenceMaterial
-            | Self::Method
-            | Self::Protocol
-            | Self::Software
-            | Self::Firmware
-            | Self::AuthorityReceipt => "CreativeWork",
-            Self::OptimizerFantasy => "Thing",
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ActivityKind {
@@ -379,12 +354,6 @@ impl PortableEvidenceProfile {
             .collect()
     }
 
-    fn measurement_index(&self) -> BTreeMap<&str, &MeasurementClaim> {
-        self.measurements
-            .iter()
-            .map(|claim| (claim.id.as_str(), claim))
-            .collect()
-    }
 
     fn has_relation(&self, kind: ProvRelationKind, subject_id: &str, object_id: &str) -> bool {
         self.relations.iter().any(|relation| {
