@@ -1,0 +1,12 @@
+[package]
+name = "manipulator-placement-geometry-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Uncertainty-bounded geometric placement reference for a four-part assembly workcell"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
