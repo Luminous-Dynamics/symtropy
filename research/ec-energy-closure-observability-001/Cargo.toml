@@ -1,0 +1,9 @@
+[workspace]
+
+[package]
+name = "ec-energy-closure-observability"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Source-independent reference semantics for ecosystem energy-balance closure diagnostics"
