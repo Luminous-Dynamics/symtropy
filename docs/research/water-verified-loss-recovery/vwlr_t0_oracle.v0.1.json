@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "vwlr-t0-oracle-v0.1",
+  "benchmark_id": "WATER-VERIFIED-LOSS-RECOVERY-T0-001",
+  "cases": [
+    {
+      "case_id": "VWLR-T0-001-successful-repair",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-1-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-002-work-order-closed-no-post-test",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-2-1",
+          "disposition": "not_verified_missing_post_or_control",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-003-measurable-partial-repair",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-3-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-004-pressure-confounds-reduction",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-4-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-005-demand-change-confounds-reduction",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-5-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-006-calibration-lapse",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-6-1",
+          "disposition": "attribution_indeterminate_invalid_measurement",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-007-wrong-pipe-repaired-no-effect",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-7-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": false,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-008-false-alarm-no-leak",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-8-1",
+          "disposition": "no_leak_confirmed",
+          "localization_correct": null,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 0,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-009-concurrent-leaks-one-repaired",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-9-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 5200,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-010-repair-failed-no-material-reduction",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-10-1",
+          "disposition": "repair_not_successful",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-011-recurrence-defeats-sustained-claim",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-11-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-012-duplicate-recovery-claim",
+      "event_count": 2,
+      "events": [
+        {
+          "event_id": "EV-12-1",
+          "disposition": "duplicate_recovery_claim_rejected",
+          "localization_correct": null,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        },
+        {
+          "event_id": "EV-12-2",
+          "disposition": "duplicate_recovery_claim_rejected",
+          "localization_correct": null,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    },
+    {
+      "case_id": "VWLR-T0-013-topology-boundary-mismatch",
+      "event_count": 1,
+      "events": [
+        {
+          "event_id": "EV-13-1",
+          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "localization_correct": true,
+          "inspection_cost_zar": 1200,
+          "crew_hours": 2,
+          "repair_cost_zar": 4500,
+          "point_recovered_l_per_day": null,
+          "lower_bound_recovered_l_per_day": null,
+          "sustained_recovery_eligible": false
+        }
+      ],
+      "verified_recovery_event_count": 0,
+      "partial_recovery_event_count": 0,
+      "lower_bound_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 0,
+      "claim_eligibility": "NotEligible"
+    }
+  ]
+}
