@@ -36,3 +36,10 @@ Each recipe task may optionally carry an `ActionOntologyBindingV1`:
 The field is optional for backward compatibility. A missing binding means no ontology enrichment was performed. `Other` stays unmapped by default. Human-reviewed mapping requires its own provenance and a valid core/group pair. Parameters and capability/precondition references are descriptive only; no hardware command or robot trajectory can be emitted.
 
 The action taxonomy is aligned with the six-core actionable-knowledge-graph research, but Symtropy's mapping table is a deterministic V1 subset. Do not compare raw coverage to the paper's 76.5% until the same corpus, normalization and similarity protocol are reproduced.
+
+
+## Hierarchical action ontology integration
+
+Each task node has an optional `ontology_binding`. When present, the recipe graph validator checks the ontology version, mapping provenance, action core/group coherence and typed references. A malformed binding blocks mapping to `KitchenPlanV1`. Existing graphs without the optional binding remain valid for backwards compatibility.
+
+The current action vocabulary has 38 variants. The canonical Rust list and fixture test require exactly one fixture mapping per verb. Unsupported `other` actions remain unmapped by default. A human-reviewed mapping requires a provenance reference. This taxonomy does not authorize robot or appliance control.
