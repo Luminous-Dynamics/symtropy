@@ -15,7 +15,7 @@ const REQUIRED_DIMENSIONS: [&str; 5] = [
     "service_jurisdictions",
 ];
 
-const REQUIRED_CONTROLS: [&str; 10] = [
+const REQUIRED_CONTROLS: [&str; 15] = [
     "proposal_as_law",
     "wrong_destination_market",
     "wrong_product_category",
@@ -26,6 +26,11 @@ const REQUIRED_CONTROLS: [&str; 10] = [
     "unknown_as_satisfied",
     "data_processing_jurisdiction_omitted",
     "silent_global_core_change",
+    "unknown_customs_classification_as_eligible",
+    "origin_preference_without_evidence",
+    "responsible_party_mismatch",
+    "effective_window_mismatch",
+    "local_content_claim_without_method",
 ];
 
 fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
@@ -155,6 +160,7 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             "independently_established",
         )?;
         require_not(market, "responsible_operator_status", &mpath, "authorized")?;
+        require_string(market, "approval_route_class", &mpath, "unknown")?;
     }
 
     let supply = field(profile, "supply_chain", &path)?;
@@ -181,6 +187,18 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &cpath,
             "independently_verified",
         )?;
+        require_string(component, "customs_classification_status", &cpath, "unknown")?;
+        require_string(component, "preference_claim_status", &cpath, "unknown")?;
+        require_string(component, "local_content_status", &cpath, "unknown")?;
+        for key in [
+            "customs_classification_code",
+            "origin_rule_ref",
+            "local_content_method_ref",
+        ] {
+            if !field(component, key, &cpath)?.is_null() {
+                return Err(format!("{cpath}.{key}: synthetic fixture cannot claim customs/origin/local-content evidence"));
+            }
+        }
     }
 
     let data = field(profile, "data_processing", &path)?;
@@ -220,6 +238,19 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         require_string(obligation, "source_status", &opath, "synthetic_fixture")?;
         require_string(obligation, "disposition", &opath, "unknown")?;
         require_string(obligation, "reviewer_status", &opath, "not_reviewed")?;
+        require_string(obligation, "conformity_route", &opath, "unknown")?;
+        let required_evidence = array(
+            field(obligation, "required_evidence_refs", &opath)?,
+            &format!("{opath}.required_evidence_refs"),
+        )?;
+        if !required_evidence.is_empty() {
+            return Err(format!("{opath}.required_evidence_refs: synthetic fixture cannot claim real evidence"));
+        }
+        for key in ["responsible_party_ref", "reviewer_ref"] {
+            if !field(obligation, key, &opath)?.is_null() {
+                return Err(format!("{opath}.{key}: synthetic fixture cannot identify a real responsible party or reviewer"));
+            }
+        }
         let source = field(obligation, "source", &opath)?;
         if string(
             field(source, "source_digest", &format!("{opath}.source"))?,
@@ -230,10 +261,15 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
                 "{opath}.source.source_digest: synthetic sentinel required"
             ));
         }
+        require_string(source, "source_language", &format!("{opath}.source"), "undetermined")?;
         for date_key in [
             "publication_date",
             "entry_into_force_date",
             "application_date",
+            "source_checked_at",
+            "transition_start_date",
+            "transition_end_date",
+            "expiry_date",
         ] {
             if !field(source, date_key, &format!("{opath}.source"))?.is_null() {
                 return Err(format!(
@@ -449,10 +485,55 @@ mod tests {
     }
 
     #[test]
+    fn rejects_customs_eligibility_from_unknown_classification() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["supply_chain"]["components"][0]
+            ["customs_classification_status"] = Value::String("verified".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_unsubstantiated_preference_claim() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["supply_chain"]["components"][0]
+            ["preference_claim_status"] = Value::String("verified_eligible".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_responsible_party_or_reviewer_promotion_in_synthetic_profile() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["responsible_party_ref"] =
+            Value::String("urn:luminous:entity:unreviewed".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_out_of_window_source_evidence() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["source"]["expiry_date"] =
+            Value::String("2026-01-01".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_local_content_claim_without_named_method() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["supply_chain"]["components"][0]["local_content_status"] =
+            Value::String("verified".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
     fn accepts_frozen_synthetic_corpus() {
         let report = audit_corpus(FIXTURE).expect("synthetic corpus is structurally valid");
         assert_eq!(report["profile_count"], 4);
-        assert_eq!(report["negative_control_count"], 10);
+        assert_eq!(report["negative_control_count"], 15);
         assert_eq!(report["production_authorization"], false);
         assert_eq!(report["legal_or_market_approval"], false);
     }
