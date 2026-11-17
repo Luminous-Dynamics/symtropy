@@ -1985,6 +1985,82 @@ mod tests {
             .map(|generator| multiply(&multiply(&inverse_s, generator), &transform_s))
             .collect::<Vec<_>>();
 
+        let step_map_witness = StepMapWitnessV1 {
+            model_id: "two-point-mass-fixed-link-midpoint-step-v0.1".to_owned(),
+            masses_kg: [1.3, 2.1],
+            link_length_m: 1.2,
+            time_step_s: 0.02,
+            coordinate_basis_s: [
+                [1.0, 1.0, 1.0, -1.0, 1.0, 1.0],
+                [1.0, 2.0, 2.0, 0.0, 0.0, 2.0],
+                [1.0, 2.0, 3.0, 1.0, 1.0, 1.0],
+                [-1.0, 0.0, 1.0, 4.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0, 5.0, 1.0],
+                [1.0, 2.0, 1.0, 0.0, 1.0, 6.0],
+            ],
+            initial_position_q: [
+                0.3, -0.2, 0.7, 1.1, 0.6000000000000001, 1.1,
+            ],
+            initial_velocity_q: [
+                0.4711764705882353,
+                -0.2476470588235294,
+                -0.14705882352941174,
+                -0.04882352941176471,
+                0.07235294117647058,
+                0.2529411764705882,
+            ],
+            force_covector_q: [0.18, -0.07, 0.11, 0.0, 0.0, 0.0],
+            position_next_q: [
+                0.30948070025553753,
+                -0.20493391960276255,
+                0.6970907306106298,
+                1.099005280794191,
+                0.6014286168969484,
+                1.1050495477172293,
+            ],
+            velocity_next_q: [
+                0.4768935549655203,
+                -0.2457449014527256,
+                -0.14386811540761218,
+                -0.05064839116913167,
+                0.07050874851835394,
+                0.25201359525233136,
+            ],
+            midpoint_velocity_q: [
+                0.4740350127768772,
+                -0.24669598013812716,
+                -0.14546346946850974,
+                -0.04973596029045346,
+                0.07143084484741435,
+                0.2524773858614604,
+            ],
+            multiplier: -0.24109156520070787,
+            position_next_y: [
+                18.120115379930116,
+                -19.053171762176195,
+                6.554147641446088,
+                3.166243254819554,
+                -5.481866775088584,
+                3.3364994709636657,
+            ],
+            velocity_next_y: [
+                16.06624387536439,
+                -12.702470335266238,
+                2.7159406151969843,
+                3.3249137172495686,
+                -4.108442214740744,
+                1.830535331660696,
+            ],
+            midpoint_velocity_y: [
+                16.005768996505665,
+                -12.658588108809571,
+                2.707382072304386,
+                3.3121627409777066,
+                -4.093338754429185,
+                1.8249735481832896,
+            ],
+        };
+
         let fixture = PhysicalFixtureV1 {
             transform_s,
             mass_metric_q: mass_q,
@@ -1998,6 +2074,7 @@ mod tests {
             declared_momentum_covector_y: momentum_y,
             declared_constraint_jacobian_y: jacobian_y,
             declared_generators_y: generators_y,
+            step_map_witness,
         };
 
         let task = TaskSemanticsArtifactsV1 {
@@ -2371,6 +2448,98 @@ mod tests {
             verify_package(&package, test_profile()),
             Err(ReceiverErrorV1::ClaimAlreadyPromoted)
         );
+    }
+
+    #[test]
+    fn discrete_step_witness_is_qualified_in_canonical_and_dense_coordinates() {
+        let package = build_package();
+        let receipt = verify_package(&package, test_profile()).unwrap();
+
+        assert_eq!(
+            receipt.payload.obligations.discrete_step_equivariance,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.physical_observables,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.numerical_error_envelope,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(receipt.payload.status, ObligationStatusV1::Inconclusive);
+        assert_eq!(receipt.payload.physical_equivalence_authority, "NONE");
+        assert!(!receipt.payload.scientific_search_pruning_authorized);
+        assert!(
+            receipt
+                .payload
+                .diagnostics
+                .step_map
+                .canonical_momentum_balance_relative_defect
+                < 5.0e-10
+        );
+        assert!(
+            receipt
+                .payload
+                .diagnostics
+                .step_map
+                .dense_momentum_balance_relative_defect
+                < 5.0e-10
+        );
+        assert!(
+            receipt
+                .payload
+                .diagnostics
+                .step_map
+                .dense_lift_relative_defect
+                < 5.0e-10
+        );
+    }
+
+    #[test]
+    fn dense_step_velocity_mutation_is_rejected_after_digest_rebinding() {
+        let mut package = build_package();
+        package.physical_fixture.step_map_witness.velocity_next_y[0] += 0.1;
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+
+        assert!(matches!(
+            verify_package(&package, test_profile()),
+            Err(ReceiverErrorV1::StepKinematicsViolation { .. })
+        ));
+    }
+
+    #[test]
+    fn step_force_mutation_is_rejected_after_digest_rebinding() {
+        let mut package = build_package();
+        package.physical_fixture.step_map_witness.force_covector_q[0] += 0.02;
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+
+        assert!(matches!(
+            verify_package(&package, test_profile()),
+            Err(ReceiverErrorV1::StepMomentumBalanceViolation { .. })
+        ));
+    }
+
+    #[test]
+    fn step_basis_outside_condition_envelope_abstains() {
+        let mut package = build_package();
+        package.physical_fixture.step_map_witness.coordinate_basis_s[0][0] = 1.0e-8;
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+
+        let receipt = verify_package(&package, test_profile()).unwrap();
+        assert_eq!(
+            receipt.payload.obligations.discrete_step_equivariance,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(
+            receipt.payload.obligations.physical_observables,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(receipt.payload.status, ObligationStatusV1::Inconclusive);
+        assert_eq!(receipt.payload.physical_equivalence_authority, "NONE");
     }
 
     #[test]
