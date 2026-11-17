@@ -1374,7 +1374,7 @@ mod tests {
     fn cached_refinement_rebuilds_only_when_active_intervals_differ() {
         let bodies = [
             body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
-            body("b", span(0.0, 0.0, 0.0, 250, 750)),
+            body("b", span(0.0, 0.0, 0.0, 275, 725)),
         ];
         let hierarchical =
             time_swept_capsule_broadphase_hierarchical(&bodies, 4).unwrap();
