@@ -1,0 +1,332 @@
+{
+  "schema_version": "luminous.plasma-synthetic-waveform-benchmark.v0.1",
+  "benchmark_id": "PLASMA-WAVEFORM-FAULT-001",
+  "evidence_class": "SYNTHETIC_WAVEFORM_FAULT_REPLAY",
+  "physical_measurements": false,
+  "claim_ceiling": "DETERMINISTIC_SYNTHETIC_TRANSFORM_ONLY_NO_PHYSICAL_DIAGNOSTIC_OR_FAILURE_RATE_CLAIM",
+  "cases": [
+    {
+      "case_id": "nominal",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-nominal",
+        "input_values": [
+          1,
+          2,
+          3
+        ],
+        "faults": []
+      },
+      "expected_states": [
+        "synthetic_nominal",
+        "synthetic_nominal",
+        "synthetic_nominal"
+      ],
+      "expected_values": [
+        1,
+        2,
+        3
+      ],
+      "expected_source_sample_indices": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "case_id": "dropout",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-dropout",
+        "input_values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "faults": [
+          {
+            "fault_id": "drop",
+            "start_sample": 1,
+            "end_sample": 3,
+            "mode": "dropout"
+          }
+        ]
+      },
+      "expected_states": [
+        "synthetic_nominal",
+        "unavailable",
+        "unavailable",
+        "synthetic_nominal"
+      ],
+      "expected_values": [
+        1,
+        null,
+        null,
+        4
+      ],
+      "expected_source_sample_indices": [
+        0,
+        null,
+        null,
+        3
+      ]
+    },
+    {
+      "case_id": "integrity",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-integrity",
+        "input_values": [
+          1,
+          2,
+          3
+        ],
+        "faults": [
+          {
+            "fault_id": "integrity",
+            "start_sample": 1,
+            "end_sample": 2,
+            "mode": "integrity_failure"
+          }
+        ]
+      },
+      "expected_states": [
+        "synthetic_nominal",
+        "invalid",
+        "synthetic_nominal"
+      ],
+      "expected_values": [
+        1,
+        null,
+        3
+      ],
+      "expected_source_sample_indices": [
+        0,
+        null,
+        2
+      ]
+    },
+    {
+      "case_id": "delay",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-delay",
+        "input_values": [
+          1,
+          2,
+          3
+        ],
+        "faults": [
+          {
+            "fault_id": "delay",
+            "start_sample": 0,
+            "end_sample": 3,
+            "mode": {
+              "mode": "delay",
+              "lag_samples": 1
+            }
+          }
+        ]
+      },
+      "expected_states": [
+        "delayed",
+        "delayed",
+        "delayed"
+      ],
+      "expected_values": [
+        null,
+        1,
+        2
+      ],
+      "expected_source_sample_indices": [
+        null,
+        0,
+        1
+      ]
+    },
+    {
+      "case_id": "saturation",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-saturation",
+        "input_values": [
+          -1,
+          0.5,
+          2
+        ],
+        "faults": [
+          {
+            "fault_id": "clamp",
+            "start_sample": 0,
+            "end_sample": 3,
+            "mode": {
+              "mode": "saturation",
+              "lower": 0,
+              "upper": 1
+            }
+          }
+        ]
+      },
+      "expected_states": [
+        "degraded",
+        "degraded",
+        "degraded"
+      ],
+      "expected_values": [
+        0,
+        0.5,
+        1
+      ],
+      "expected_source_sample_indices": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "case_id": "bias",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-bias",
+        "input_values": [
+          0.5,
+          1
+        ],
+        "faults": [
+          {
+            "fault_id": "offset",
+            "start_sample": 0,
+            "end_sample": 2,
+            "mode": {
+              "mode": "bias",
+              "offset": 0.25
+            }
+          }
+        ]
+      },
+      "expected_states": [
+        "degraded",
+        "degraded"
+      ],
+      "expected_values": [
+        0.75,
+        1.25
+      ],
+      "expected_source_sample_indices": [
+        0,
+        1
+      ]
+    },
+    {
+      "case_id": "gain-drift",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-gain-drift",
+        "input_values": [
+          1,
+          1,
+          1
+        ],
+        "faults": [
+          {
+            "fault_id": "gain",
+            "start_sample": 0,
+            "end_sample": 3,
+            "mode": {
+              "mode": "gain_drift",
+              "start_gain": 1,
+              "end_gain": 2
+            }
+          }
+        ]
+      },
+      "expected_states": [
+        "degraded",
+        "degraded",
+        "degraded"
+      ],
+      "expected_values": [
+        1,
+        1.5,
+        2
+      ],
+      "expected_source_sample_indices": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "case_id": "stale-calibration",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-synthetic-waveform.v0.1",
+        "channel_id": "density",
+        "units": "synthetic-unit",
+        "time_origin_ns": 1000,
+        "sample_interval_ns": 10,
+        "scenario_id": "synthetic-waveform-stale-calibration",
+        "input_values": [
+          1,
+          2
+        ],
+        "faults": [
+          {
+            "fault_id": "stale",
+            "start_sample": 0,
+            "end_sample": 2,
+            "mode": "stale_calibration"
+          }
+        ]
+      },
+      "expected_states": [
+        "invalid",
+        "invalid"
+      ],
+      "expected_values": [
+        null,
+        null
+      ],
+      "expected_source_sample_indices": [
+        null,
+        null
+      ]
+    }
+  ]
+}
