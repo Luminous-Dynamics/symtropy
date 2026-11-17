@@ -546,6 +546,21 @@ The new study_comparability module makes this distinction executable. It include
 
 The comparability contract is [MYCO-STUDY-COMPARABILITY-001 #5733](https://github.com/Luminous-Dynamics/symtropy/issues/5733), with ten source-linked scenarios in benchmarks/mycelium/amf-study-comparability-v0-1.json. Eleven Rust tests are authored; the latest code head is still in CI. No raw-data reproduction is claimed.
 
+### T23 — multi-modal root–mycorrhizal evidence semantics
+
+The July 2026 *Journal of Experimental Botany* review describes a technology shift from destructive/static sampling toward 3D and functional imaging, including micro-CT, XRF, XANES, PET, fluorescent nanoparticles and electrical-signal measurements ([DOI 10.1093/jxb/erag309](https://doi.org/10.1093/jxb/erag309)). These modalities answer different questions and must not be merged into one undifferentiated “nutrient transfer” signal:
+
+- micro-CT and brightfield Z-stacks: structural geometry and spatial support, not solute flow;
+- XRF: elemental spatial distribution, not oxidation state/speciation;
+- XANES: chemical speciation at the probed region, not movement or transfer;
+- PET: tracer dynamics, not automatically fungal-specific route or host delivery;
+- fluorescent nanoparticles: movement of the labelled particle, not necessarily natural nutrient cargo;
+- electrical measurements: electrical dynamics, not mass transport.
+
+The new multimodal_imaging module pairs each modality with a typed observable and a bounded claim-support result: DirectObservable, ContextualEvidenceOnly or InsufficientAlone. Calibration, analyte/label identity, depth resolution and temporal sampling are explicit. The module never lets a single instrument observation prove nutrient delivery to a host; a donor-to-route-to-recipient tracer chain plus matched controls remains required.
+
+Tracked in [MYCO-MULTIMODAL-CLAIMS-001 #5742](https://github.com/Luminous-Dynamics/symtropy/issues/5742), with seven modality mappings and twelve known-answer cases in benchmarks/mycelium/multimodal-imaging-claim-boundaries-v0-1.json. Twelve Rust tests are authored; exact-head CI is running. The review provides a methods taxonomy, not a performance benchmark or biological dataset.
+
 ### Current code boundary and validation
 
 The current PR adds the temporal alignment and checkpoint modules to the existing graph, transport, BMX reference, source-receipt, spatial-field, spectroscopy and hyphal-highway code. It also adds an explicit `cargo test --locked -p symtropy-mycelium --lib` step to CI; this corrects an earlier test-coverage gap where the workflow checked the workspace but did not run this crate's unit tests.
