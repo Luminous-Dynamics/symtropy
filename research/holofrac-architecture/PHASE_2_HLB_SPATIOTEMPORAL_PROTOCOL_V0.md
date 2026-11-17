@@ -333,3 +333,35 @@ Split by complete temporal episodes / years, spatial regions and sensor deployme
 
 An inferred virtual-sensor value must remain typed as inferred and retain its model/source lineage and uncertainty. It must not be relabelled as an observed measurement, counted as an independent physical source, or used to preserve current engineering evidence as if an actual sensor observation existed. A measurement request is a proposal; Symtropy applies budgets and exact request admission.
 
+
+
+## 12. Sensor-network co-design and virtual sensing
+
+Treat the observation network as part of the spatial design problem. HoloFrac should investigate not only how to infer fields from a fixed sensor deployment, but how to choose sensor locations, identify redundant/complementary observations, estimate virtual sensors with calibrated uncertainty, and request new measurements when they are likely to change a decision.
+
+A relevant comparison is Yu, Ding and Zhou, *Data-driven discovery of sensor relationships for virtual sensing in predictive building operations*, Energy and Buildings (15 October 2026), DOI 10.1016/j.enbuild.2026.117836. The work uses two years of Harvard HouseZero operational data and evaluates Year-1 to Year-2 transfer. This is a reproduction target, not evidence of HoloFrac capability.
+
+Symtropy issue #5974 tracks this programme:
+https://github.com/Luminous-Dynamics/symtropy/issues/5974
+
+Current synthetic executable slices on the HoloFrac implementation branch:
+- bitemporal observations: \`research/holofrac-retrieval/src/temporal.rs\`;
+- observation sweep: \`src/bin/temporal_fixture_sweep.rs\`;
+- sensor placement baselines: \`src/sensor_placement.rs\`;
+- placement sweep: \`src/bin/sensor_placement_sweep.rs\`;
+- protocols: \`TEMPORAL_FIXTURE_PROTOCOL_V0.md\` and \`SENSOR_PLACEMENT_PROTOCOL_V0.md\`.
+
+The initial placement benchmark compares regular-grid, seeded-random and greedy-maximin selection on the same synthetic six-channel fields, using nearest-sensor virtual sensing. It isolates geometric coverage only: it is noise-free, does not model real calibration, and does not establish sensor-placement optimality.
+
+### T8 hypotheses
+
+- T8.1 — At matched sensor count and cost, information-aware placement improves held-out field reconstruction or decision quality over regular-grid, random and maximin layouts.
+- T8.2 — Multichannel virtual sensing can reconstruct selected missing sensors with calibrated uncertainty and acceptable cross-year / cross-deployment degradation.
+- T8.3 — Expected-decision-value measurement selection reduces observation/solver cost at non-inferior decision quality compared with uncertainty-only, sequential A-optimal and fixed schedules.
+- T8.4 — Sensor failures, drift, delayed events and correlated common-mode losses produce explicit uncertainty/unknown states rather than overconfident virtual observations.
+
+Mandatory metrics include per-channel/per-horizon MAE/RMSE, NLL/CRPS, interval coverage and width, spatial coverage, nearest-sensor distance, calibration, virtual-sensor error, false alarms/detection delay, sensor count/cost, energy/bandwidth, peak RSS and p50/p95/p99 latency.
+
+Split by complete temporal episode/year, spatial region and sensor deployment. Report in-year interpolation separately from held-out-year and held-out-deployment generalization. Never randomly split neighboring samples from one episode.
+
+**Authority boundary:** a virtual-sensor estimate remains typed as inferred and carries model/source lineage and uncertainty. It cannot be relabelled as an observation, counted as an independent physical source, or used to preserve engineering evidence as if an actual sensor measurement existed. HLB may propose placements and requests; Symtropy applies exact validation, budget policy and solver/measurement execution.
