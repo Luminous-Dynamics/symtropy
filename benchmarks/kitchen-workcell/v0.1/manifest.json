@@ -420,6 +420,54 @@
       ],
       "safety_boundary": "Generated task graphs are advisory proposals and do not directly actuate appliances.",
       "control_condition": "Compare human-authored graph, deterministic recipe rules, LREC-style recipe grounding and Symthaea proposal on frozen recipes; then compare mapped plans with identical downstream schedulers."
+    },
+    {
+      "task_id": "workflow-action-ontology-grounding",
+      "domain": "workflow",
+      "operation": "map recipe instruction verbs to a hierarchical six-core action ontology with explicit provenance and unmapped handling",
+      "input_manifest_required": [
+        "licensed or otherwise authorized recipe corpus and split",
+        "verbatim instruction references",
+        "annotated action verbs and gold action-core/group labels",
+        "ontology version and mapping table",
+        "human adjudication rubric",
+        "language/locale and preprocessing protocol"
+      ],
+      "primary_metrics": [
+        "action_core_coverage_fraction",
+        "action_group_precision",
+        "action_group_recall",
+        "action_unmapped_verb_fraction",
+        "action_mapping_human_override_rate",
+        "task_graph_feasibility_rate",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Ontology labels are planning semantics only. They do not generate motion trajectories, device commands, safety interlocks or food-safety assessments. Ambiguous verbs remain unmapped or require human review.",
+      "control_condition": "Compare deterministic Symtropy action rules, human annotation, and the published 2025 Actionable Knowledge Graph protocol on identical licensed recipe text, normalization, split and verb annotation; evaluate exact group labels as well as coverage."
+    },
+    {
+      "task_id": "workflow-kitchen-r-simulated-integration",
+      "domain": "workflow",
+      "operation": "evaluate language-grounded kitchen plans, low-level mobile-manipulation policies and integrated execution in a licensed Kitchen-R digital-twin setup",
+      "input_manifest_required": [
+        "Kitchen-R dataset/version and benchmark split",
+        "simulator version and physics configuration",
+        "robot model and actuator/control limits",
+        "licensed environment and object assets",
+        "instruction IDs and gold task decomposition",
+        "planner and low-level policy revisions",
+        "random seeds and initial-state distributions"
+      ],
+      "primary_metrics": [
+        "kitchen_r_planning_success_rate",
+        "kitchen_r_low_level_control_success_rate",
+        "kitchen_r_integrated_success_rate",
+        "kitchen_r_task_recovery_rate",
+        "kitchen_r_human_takeover_rate",
+        "kitchen_r_execution_time_s"
+      ],
+      "safety_boundary": "Simulation benchmark only. Success in Kitchen-R does not validate physical robot safety, food hygiene, pressure equipment, culinary quality or appliance compatibility. Planner, controller and integrated results must be reported separately.",
+      "control_condition": "Reproduce the published VLM planning baseline and diffusion-policy low-level baseline where assets and licenses permit. Run planning-only, control-only and integrated evaluations on matched episodes and splits; report simulator-to-real transfer as untested unless separately measured."
     }
   ],
   "metrics": [
@@ -550,6 +598,84 @@
       "denominator": "one power-constrained schedule attempt",
       "method": "Monotonic-clock time for candidate generation, schedule construction and final independent power verification; report task count and event count.",
       "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_core_coverage_fraction",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action verbs in the frozen recipe split",
+      "method": "number of action verbs assigned to a valid core divided by all annotated action verbs; report unmapped/ambiguous separately and freeze tokenizer, lemmatization and language coverage.",
+      "evidence_class": "measured",
+      "notes": "Do not compare directly to the 2025 paper's 76.5% until its corpus and cosine matching protocol are reproduced."
+    },
+    {
+      "metric_id": "action_group_precision",
+      "unit": "fraction",
+      "denominator": "all predicted non-unmapped action groups",
+      "method": "micro and macro precision against human-adjudicated gold labels on a frozen split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_group_recall",
+      "unit": "fraction",
+      "denominator": "all human-adjudicated gold action-group labels",
+      "method": "micro and macro recall against human-adjudicated gold labels on a frozen split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_unmapped_verb_fraction",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action verbs",
+      "method": "unmapped or intentionally ambiguous verbs divided by all annotated action verbs.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_mapping_human_override_rate",
+      "unit": "fraction",
+      "denominator": "all proposed ontology mappings reviewed by humans",
+      "method": "fraction of mappings changed or rejected during blinded adjudication.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "kitchen_r_planning_success_rate",
+      "unit": "fraction",
+      "denominator": "all planning-only benchmark episodes",
+      "method": "published Kitchen-R task completion and instruction-planning evaluator; retain failed plans in denominator.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_low_level_control_success_rate",
+      "unit": "fraction",
+      "denominator": "all low-level policy episodes",
+      "method": "published policy evaluator success and time limits, with failures retained.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_integrated_success_rate",
+      "unit": "fraction",
+      "denominator": "all end-to-end integrated benchmark episodes",
+      "method": "end-to-end planner plus control success on the same seeded episodes; do not impute perfect atomic execution.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_task_recovery_rate",
+      "unit": "fraction",
+      "denominator": "all episodes with a declared recoverable perturbation or recoverable failure",
+      "method": "fraction restored to a valid goal state without human takeover under frozen perturbation protocol.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_human_takeover_rate",
+      "unit": "fraction",
+      "denominator": "all integrated benchmark episodes",
+      "method": "episodes requiring human intervention divided by all episodes, including timeouts.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_execution_time_s",
+      "unit": "seconds",
+      "denominator": "all successful and failed episodes",
+      "method": "publish per-episode wall-clock/simulation time and summarize successful and failed episodes separately.",
+      "evidence_class": "measured"
     }
   ],
   "target_hypotheses": [
@@ -656,6 +782,41 @@
         "heuristic failure is described as proof of infeasibility",
         "only successful cases are reported"
       ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-ONTOLOGY-COVERAGE",
+      "metric_id": "action_core_coverage_fraction",
+      "target": "Reproduce the published corpus/preprocessing protocol first; then improve exact action-group precision and recall without inflating coverage by forcing ambiguous verbs into a core.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "corpus license or split is not documented",
+        "unmapped verbs are omitted from denominator",
+        "cosine/LLM candidate matches are reported as deterministic rules",
+        "precision falls while coverage rises"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-INTEGRATION",
+      "metric_id": "kitchen_r_integrated_success_rate",
+      "target": "Establish separate planning-only, low-level-control-only and integrated baselines; reduce the integrated success gap without treating either component as perfect.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "dataset/simulator revision not frozen",
+        "initial-state seeds differ between systems",
+        "planning or low-level failures are hidden",
+        "simulated results are described as physical robot qualification"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-RECOVERY",
+      "metric_id": "kitchen_r_task_recovery_rate",
+      "target": "Measure recovery under a preregistered set of perception, placement and resource perturbations; no numeric target until baseline reproduction.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "perturbation severity is not fixed",
+        "human takeover is omitted",
+        "recovery is counted without reaching a verified goal state"
+      ]
     }
   ],
   "instruments": [],
@@ -741,6 +902,42 @@
       "implementation_ref": "https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md",
       "dataset_ref": "https://scheduleopt.github.io/benchmarks/",
       "evaluation_role": "Proven lower bound / optimality comparison, only for instances solved to optimality."
+    },
+    {
+      "baseline_id": "actionable-knowledge-graph-six-core-recipe1mplus-2025",
+      "class": "action_ontology_external",
+      "status": "external_public_benchmark",
+      "description": "Published six Action Core / Action Group ontology over Recipe1M+; the paper reports 76.5% verb coverage after direct matching plus cosine similarity and separately discusses neuro-symbolic handling of unmatched verbs.",
+      "implementation_ref": "https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1682031/full",
+      "dataset_ref": null,
+      "evaluation_role": "External action-core coverage and grouping reference; reproduce corpus, normalization and matching protocol before comparing. Coverage is not precision or physical execution."
+    },
+    {
+      "baseline_id": "kitchen-r-planning-only-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R planning-only VLM baseline on 500+ language instructions in an Isaac Sim kitchen digital twin.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Planning module baseline; evaluate task decomposition and instruction success separately from control."
+    },
+    {
+      "baseline_id": "kitchen-r-low-level-policy-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R diffusion-policy low-level control baseline on the same licensed simulator/episode suite.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Low-level navigation/manipulation baseline; keep independent from planning score."
+    },
+    {
+      "baseline_id": "kitchen-r-integrated-system-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R integrated mobile-manipulator planning plus low-level control evaluation.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Integrated execution baseline on identical simulator episodes; no physical transfer claim."
     }
   ]
 }
