@@ -238,7 +238,7 @@ jobs:
                               cal_end = value.get("calibration_valid_until_utc")
                               if not cal_start or not cal_end:
                                   raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CALIBRATION_WINDOW_MISSING")
-                              if instant(cal_start) >= run_start or instant(cal_end) < run_end:
+                              if instant(cal_start) > run_start or instant(cal_end) < run_end:
                                   expired_calibration_records.append((case["case_id"], block["block_id"], arm_name, key))
                       if not isinstance(run.get("energy"), dict):
                           raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_RECORD_MISSING")
