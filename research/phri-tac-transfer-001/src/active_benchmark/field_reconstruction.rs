@@ -63,6 +63,9 @@ pub struct FieldReconstructionProblem {
     pub spatial_edges: Vec<SpatialEdge>,
     /// Nonnegative graph-Laplacian penalty. Zero disables spatial smoothing.
     pub smoothness_penalty: f64,
+    /// Nonnegative L1 penalty on contact-field intensity. For a nonnegative
+    /// field this is a sparse-support prior, not an additional observation.
+    pub sparsity_penalty: f64,
     /// Stable digest/reference for the supplied forward model.
     pub forward_model_digest: String,
 }
@@ -104,6 +107,7 @@ pub struct FieldReconstructionReport {
     /// A graph prior can select one solution from an ambiguous set but does
     /// not increase native-data rank or create a new physical measurement.
     pub regularization_enabled: bool,
+    pub sparsity_prior_enabled: bool,
     /// Infinity-norm projected-gradient fixed-point residual at the final iterate.
     /// This is a numerical optimality diagnostic, not a physical uncertainty.
     pub projected_gradient_residual: f64,
@@ -154,6 +158,9 @@ fn validate_problem(
     }
     if !problem.smoothness_penalty.is_finite() || problem.smoothness_penalty < 0.0 {
         return Err("smoothness penalty must be finite and nonnegative".to_owned());
+    }
+    if !problem.sparsity_penalty.is_finite() || problem.sparsity_penalty < 0.0 {
+        return Err("sparsity penalty must be finite and nonnegative".to_owned());
     }
     if config.maximum_iterations == 0
         || !config.convergence_tolerance.is_finite()
@@ -368,7 +375,9 @@ fn objective(problem: &FieldReconstructionProblem, field: &[f64], n: usize) -> f
         })
         .sum::<f64>();
 
-    0.5 * residual_sum + 0.5 * problem.smoothness_penalty * smoothness_sum
+    0.5 * residual_sum
+        + 0.5 * problem.smoothness_penalty * smoothness_sum
+        + problem.sparsity_penalty * field.iter().sum::<f64>()
 }
 
 fn predicted_response(coupling_matrix: &[f64], field: &[f64], n: usize) -> Vec<f64> {
@@ -420,6 +429,7 @@ pub fn reconstruct_contact_field(
     let native_data_rank = native_data_rank(problem, n, config.sensitivity_epsilon);
     let native_data_full_column_rank = native_data_rank == n;
     let regularization_enabled = problem.smoothness_penalty > 0.0;
+    let sparsity_prior_enabled = problem.sparsity_penalty > 0.0;
     let quadratic = build_quadratic(problem, n)?;
     let step_size = 1.0 / quadratic.lipschitz_upper_bound;
 
@@ -525,6 +535,7 @@ pub fn reconstruct_contact_field(
         native_data_rank,
         native_data_full_column_rank,
         regularization_enabled,
+        sparsity_prior_enabled,
         projected_gradient_residual,
         iterations,
         converged,
@@ -549,6 +560,7 @@ mod tests {
             admitted_native_channels: vec![true; n],
             spatial_edges: Vec::new(),
             smoothness_penalty: 0.0,
+            sparsity_penalty: 0.0,
             forward_model_digest: "sha256:synthetic-identity-kernel".to_owned(),
         }
     }
@@ -618,6 +630,34 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![0.0, 0.2, 0.0]
         );
+    }
+
+    #[test]
+    fn nonnegative_l1_prior_suppresses_subthreshold_contact_without_minting_support() {
+        let mut problem = identity_problem(vec![1.0, 0.005, 0.0]);
+        problem.sparsity_penalty = 0.01;
+        let report = reconstruct_contact_field(
+            &problem,
+            &FieldReconstructionConfig::default(),
+        )
+        .expect("sparse contact prior");
+        assert!(report.converged);
+        assert!(report.sparsity_prior_enabled);
+        assert!((report.estimates[0].latent_contact_intensity.expect("supported") - 0.99).abs() < 1.0e-7);
+        assert_eq!(report.estimates[1].latent_contact_intensity, Some(0.0));
+        assert_eq!(report.estimates[2].latent_contact_intensity, Some(0.0));
+        assert_eq!(report.native_data_rank, 3);
+    }
+
+    #[test]
+    fn negative_sparsity_penalty_is_rejected() {
+        let mut problem = identity_problem(vec![0.1, 0.2]);
+        problem.sparsity_penalty = -0.1;
+        assert!(reconstruct_contact_field(
+            &problem,
+            &FieldReconstructionConfig::default()
+        )
+        .is_err());
     }
 
     #[test]
