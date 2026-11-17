@@ -6,9 +6,9 @@ Standalone, offline Rust S0 evaluator for deterministic synthetic diagnostic-fau
 
 From the repository root:
 
-    cargo test --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml
-    cargo run --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml -- benchmarks/plasma/diagnostic-fault-replay-v0.json
-    cargo clippy --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml --all-targets -- -D warnings
+    cargo test --locked --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml
+    cargo run --locked --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml -- benchmarks/plasma/diagnostic-fault-replay-v0.json
+    cargo clippy --locked --manifest-path crates/tools/plasma-diagnostic-fault-replay/Cargo.toml --all-targets -- -D warnings
 
 The crate has its own Cargo workspace boundary and does not join the Symtropy root workspace. The evaluator performs no network calls and launches no external solver.
 
@@ -25,4 +25,4 @@ The crate has its own Cargo workspace boundary and does not join the Symtropy ro
 
 ## Important boundary
 
-The fixture does not contain plasma measurements, reconstruct diagnostic values, estimate sensor failure rates, model instrument physics, or demonstrate disruption prediction. Fault injection patterns are software challenge inputs only. A valid replay receipt proves scenario/fault identity and replay-contract consistency, not diagnostic accuracy or physical truth.
+The fixture does not contain plasma measurements, reconstruct diagnostic values, estimate sensor failure rates, model instrument physics, or demonstrate disruption prediction. Fault injection patterns are software challenge inputs only. A valid replay receipt proves only the recorded scenario/fault identity and replay-contract consistency. SHA-256 here is an integrity identifier, not a digital signature or proof of author identity. It does not establish diagnostic accuracy or physical truth.
