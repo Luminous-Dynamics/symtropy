@@ -1,0 +1,817 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/KitchenModuleCapabilityV1.schema.json",
+  "title": "KitchenModuleCapabilityV1",
+  "description": "Versioned, vendor-neutral description of a kitchen module's advertised capabilities and evidence. It does not authorize control or establish safety certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "module_id",
+    "module_revision",
+    "module_kind",
+    "manufacturer",
+    "model",
+    "sku",
+    "market_region",
+    "hardware_revision",
+    "firmware_revision",
+    "capabilities",
+    "electrical",
+    "interfaces",
+    "service",
+    "local_safety_authority_ref",
+    "qualification_refs",
+    "pressure_safety",
+    "source_evidence",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "module_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module_kind": {
+      "enum": [
+        "prep_drive",
+        "food_processor",
+        "cutter",
+        "mixer",
+        "thermal_vessel",
+        "pressure_cooker",
+        "induction_heater",
+        "sensor",
+        "scale",
+        "cleaning_station",
+        "storage",
+        "portioning_station",
+        "packaging_handler",
+        "other"
+      ]
+    },
+    "manufacturer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sku": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "market_region": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hardware_revision": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "firmware_revision": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "capability_id",
+          "action_group",
+          "input_form_refs",
+          "output_form_refs",
+          "minimum_batch_mass_g",
+          "maximum_batch_mass_g",
+          "nominal_throughput_g_per_min",
+          "maximum_continuous_run_ms",
+          "parameter_ranges",
+          "claim_status",
+          "evidence"
+        ],
+        "properties": {
+          "capability_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_group": {
+            "enum": [
+              "chop",
+              "slice",
+              "dice",
+              "grate",
+              "shred",
+              "halve",
+              "pour",
+              "drain",
+              "sprinkle",
+              "stir",
+              "add",
+              "combine",
+              "whisk",
+              "mix",
+              "knead",
+              "blend",
+              "emulsify",
+              "wash",
+              "peel",
+              "trim",
+              "pick",
+              "place",
+              "move",
+              "serve",
+              "cover",
+              "saute",
+              "cook",
+              "heat",
+              "freeze",
+              "boil",
+              "simmer",
+              "steam",
+              "bake",
+              "roast",
+              "pressure_cook",
+              "cool",
+              "rest"
+            ]
+          },
+          "input_form_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "output_form_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "minimum_batch_mass_g": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "maximum_batch_mass_g": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "nominal_throughput_g_per_min": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "maximum_continuous_run_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "parameter_ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter_name",
+                "minimum_value",
+                "maximum_value",
+                "decimal_places",
+                "unit",
+                "evidence"
+              ],
+              "properties": {
+                "parameter_name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minimum_value": {
+                  "type": "integer"
+                },
+                "maximum_value": {
+                  "type": "integer"
+                },
+                "decimal_places": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "evidence": {
+                  "$ref": "#/$defs/evidence"
+                }
+              }
+            }
+          },
+          "claim_status": {
+            "enum": [
+              "declared",
+              "evaluated",
+              "independently_verified"
+            ]
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "claim_status": {
+                  "const": "evaluated"
+                }
+              },
+              "required": [
+                "claim_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "evidence": {
+                  "properties": {
+                    "evidence_class": {
+                      "enum": [
+                        "measured",
+                        "independently_assayed",
+                        "independently_qualified"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "claim_status": {
+                  "const": "independently_verified"
+                }
+              },
+              "required": [
+                "claim_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "evidence": {
+                  "properties": {
+                    "evidence_class": {
+                      "const": "independently_qualified"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "electrical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nominal_voltage_min_mv",
+        "nominal_voltage_max_mv",
+        "mains_frequency_min_millihz",
+        "mains_frequency_max_millihz",
+        "continuous_real_power_limit_w",
+        "peak_real_power_limit_w",
+        "maximum_surge_duration_ms",
+        "power_profile_ref",
+        "electrical_evidence"
+      ],
+      "properties": {
+        "nominal_voltage_min_mv": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "nominal_voltage_max_mv": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "mains_frequency_min_millihz": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "mains_frequency_max_millihz": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "continuous_real_power_limit_w": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "peak_real_power_limit_w": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "maximum_surge_duration_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "power_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "electrical_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/evidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "interfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanical_interface_ref",
+        "electrical_interface_ref",
+        "data_protocol_ref"
+      ],
+      "properties": {
+        "mechanical_interface_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "electrical_interface_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "data_protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "user_manual_ref",
+        "service_manual_ref",
+        "spare_parts_ref",
+        "repair_procedure_ref",
+        "warranty_ref",
+        "cleaning_sanitation_ref",
+        "food_contact_material_refs"
+      ],
+      "properties": {
+        "user_manual_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "service_manual_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "spare_parts_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "repair_procedure_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "warranty_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "cleaning_sanitation_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "food_contact_material_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "local_safety_authority_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "qualification_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "pressure_safety": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "pressure_vessel_qualification_ref",
+        "pressure_relief_test_ref",
+        "independent_test_report_ref",
+        "qualification_evidence"
+      ],
+      "properties": {
+        "pressure_vessel_qualification_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pressure_relief_test_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_test_report_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "qualification_evidence": {
+          "$ref": "#/$defs/evidence"
+        }
+      }
+    },
+    "source_evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "claim_ceiling": {
+      "const": "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification."
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "method_ref",
+        "calibration_ref",
+        "uncertainty_ref",
+        "evidence_class"
+      ],
+      "properties": {
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "calibration_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "uncertainty_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "declared",
+            "modelled",
+            "simulated",
+            "measured",
+            "independently_assayed",
+            "independently_qualified"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_class": {
+                "const": "measured"
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "calibration_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_class": {
+                "enum": [
+                  "independently_assayed",
+                  "independently_qualified"
+                ]
+              }
+            },
+            "required": [
+              "evidence_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "module_kind": {
+            "const": "pressure_cooker"
+          }
+        },
+        "required": [
+          "module_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "pressure_safety": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "nominal_voltage_min_mv": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "nominal_voltage_max_mv": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "continuous_real_power_limit_w": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "peak_real_power_limit_w": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "module_kind": {
+            "const": "pressure_cooker"
+          }
+        },
+        "required": [
+          "module_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capabilities": {
+            "contains": {
+              "properties": {
+                "action_group": {
+                  "const": "pressure_cook"
+                }
+              },
+              "required": [
+                "action_group"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "module_kind": {
+            "not": {
+              "const": "pressure_cooker"
+            }
+          }
+        },
+        "required": [
+          "module_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capabilities": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "action_group": {
+                    "const": "pressure_cook"
+                  }
+                },
+                "required": [
+                  "action_group"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "nominal_voltage_min_mv": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "mains_frequency_min_millihz": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "continuous_real_power_limit_w": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "power_profile_ref": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "electrical_evidence": {
+                "$ref": "#/$defs/evidence"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
