@@ -12,8 +12,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 pub const KITCHEN_MODULE_CAPABILITY_SCHEMA_VERSION: u32 = 1;
-pub const KITCHEN_MODULE_CLAIM_CEILING: &str =
-    "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification.";
+pub const KITCHEN_MODULE_CLAIM_CEILING: &str = "Descriptive module capability only; not controller authorization, safety certification, food-contact approval, or physical qualification.";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -236,9 +235,18 @@ fn validate_evidence(
             "source_ref must be non-empty",
         );
     }
-    if evidence.method_ref.as_deref().is_some_and(|value| !nonempty(value))
-        || evidence.calibration_ref.as_deref().is_some_and(|value| !nonempty(value))
-        || evidence.uncertainty_ref.as_deref().is_some_and(|value| !nonempty(value))
+    if evidence
+        .method_ref
+        .as_deref()
+        .is_some_and(|value| !nonempty(value))
+        || evidence
+            .calibration_ref
+            .as_deref()
+            .is_some_and(|value| !nonempty(value))
+        || evidence
+            .uncertainty_ref
+            .as_deref()
+            .is_some_and(|value| !nonempty(value))
     {
         add_violation(
             violations,
@@ -248,7 +256,10 @@ fn validate_evidence(
         );
     }
     if evidence.evidence_class == ModuleEvidenceClassV1::Measured
-        && evidence.calibration_ref.as_deref().is_none_or(|value| !nonempty(value))
+        && evidence
+            .calibration_ref
+            .as_deref()
+            .is_none_or(|value| !nonempty(value))
     {
         add_violation(
             violations,
@@ -259,9 +270,11 @@ fn validate_evidence(
     }
     if matches!(
         evidence.evidence_class,
-        ModuleEvidenceClassV1::IndependentlyAssayed
-            | ModuleEvidenceClassV1::IndependentlyQualified
-    ) && evidence.method_ref.as_deref().is_none_or(|value| !nonempty(value))
+        ModuleEvidenceClassV1::IndependentlyAssayed | ModuleEvidenceClassV1::IndependentlyQualified
+    ) && evidence
+        .method_ref
+        .as_deref()
+        .is_none_or(|value| !nonempty(value))
     {
         add_violation(
             violations,
@@ -283,7 +296,10 @@ pub fn validate_kitchen_module_capability(
             &mut violations,
             ModuleCapabilityViolationCodeV1::UnsupportedSchemaVersion,
             None,
-            format!("unsupported module capability schema version {}", module.schema_version),
+            format!(
+                "unsupported module capability schema version {}",
+                module.schema_version
+            ),
         );
     }
 
@@ -293,7 +309,10 @@ pub fn validate_kitchen_module_capability(
         ("manufacturer", module.manufacturer.as_str()),
         ("model", module.model.as_str()),
         ("market_region", module.market_region.as_str()),
-        ("local_safety_authority_ref", module.local_safety_authority_ref.as_str()),
+        (
+            "local_safety_authority_ref",
+            module.local_safety_authority_ref.as_str(),
+        ),
     ] {
         if !nonempty(value) {
             add_violation(
@@ -354,7 +373,9 @@ pub fn validate_kitchen_module_capability(
             );
         }
         if capability.minimum_batch_mass_g.is_some_and(|minimum| {
-            capability.maximum_batch_mass_g.is_some_and(|maximum| minimum > maximum)
+            capability
+                .maximum_batch_mass_g
+                .is_some_and(|maximum| minimum > maximum)
         }) {
             add_violation(
                 &mut violations,
@@ -363,8 +384,7 @@ pub fn validate_kitchen_module_capability(
                 "minimum batch mass must not exceed maximum batch mass",
             );
         }
-        if capability.minimum_batch_mass_g.is_some() && capability.maximum_batch_mass_g.is_none()
-        {
+        if capability.minimum_batch_mass_g.is_some() && capability.maximum_batch_mass_g.is_none() {
             add_violation(
                 &mut violations,
                 ModuleCapabilityViolationCodeV1::InvalidBatchRange,
@@ -386,7 +406,10 @@ pub fn validate_kitchen_module_capability(
                     &mut violations,
                     ModuleCapabilityViolationCodeV1::InvalidParameterRange,
                     Some(capability_id),
-                    format!("parameter {} has minimum greater than maximum", parameter.parameter_name),
+                    format!(
+                        "parameter {} has minimum greater than maximum",
+                        parameter.parameter_name
+                    ),
                 );
             }
             if parameter.decimal_places > 6 {
@@ -394,7 +417,10 @@ pub fn validate_kitchen_module_capability(
                     &mut violations,
                     ModuleCapabilityViolationCodeV1::InvalidParameterScale,
                     Some(capability_id),
-                    format!("parameter {} exceeds six decimal places", parameter.parameter_name),
+                    format!(
+                        "parameter {} exceeds six decimal places",
+                        parameter.parameter_name
+                    ),
                 );
             }
             validate_evidence(&parameter.evidence, Some(capability_id), &mut violations);
@@ -439,9 +465,13 @@ pub fn validate_kitchen_module_capability(
         );
     }
     if electrical.nominal_voltage_min_mv.is_some_and(|minimum| {
-        electrical.nominal_voltage_max_mv.is_some_and(|maximum| minimum > maximum)
+        electrical
+            .nominal_voltage_max_mv
+            .is_some_and(|maximum| minimum > maximum)
     }) || electrical.mains_frequency_min_millihz.is_some_and(|minimum| {
-        electrical.mains_frequency_max_millihz.is_some_and(|maximum| minimum > maximum)
+        electrical
+            .mains_frequency_max_millihz
+            .is_some_and(|maximum| minimum > maximum)
     }) {
         add_violation(
             &mut violations,
@@ -461,11 +491,19 @@ pub fn validate_kitchen_module_capability(
             "a surge duration requires continuous and peak real-power limits",
         );
     }
-    if electrical.continuous_real_power_limit_w.is_some_and(|continuous| {
-        electrical.peak_real_power_limit_w.is_some_and(|peak| peak < continuous)
-    }) || electrical.peak_real_power_limit_w.is_some_and(|peak| {
-        electrical.continuous_real_power_limit_w.is_some_and(|continuous| peak > continuous)
-            && electrical.maximum_surge_duration_ms.is_none_or(|duration| duration == 0)
+    if electrical
+        .continuous_real_power_limit_w
+        .is_some_and(|continuous| {
+            electrical
+                .peak_real_power_limit_w
+                .is_some_and(|peak| peak < continuous)
+        }) || electrical.peak_real_power_limit_w.is_some_and(|peak| {
+        electrical
+            .continuous_real_power_limit_w
+            .is_some_and(|continuous| peak > continuous)
+            && electrical
+                .maximum_surge_duration_ms
+                .is_none_or(|duration| duration == 0)
     }) {
         add_violation(
             &mut violations,
@@ -474,7 +512,11 @@ pub fn validate_kitchen_module_capability(
             "peak real-power limit must be at least the continuous real-power limit",
         );
     }
-    if electrical.power_profile_ref.as_deref().is_some_and(|value| !nonempty(value)) {
+    if electrical
+        .power_profile_ref
+        .as_deref()
+        .is_some_and(|value| !nonempty(value))
+    {
         add_violation(
             &mut violations,
             ModuleCapabilityViolationCodeV1::EmptyPowerProfileReference,
@@ -526,9 +568,10 @@ pub fn validate_kitchen_module_capability(
             );
         }
     }
-    let declares_pressure_cook = module.capabilities.iter().any(|capability| {
-        capability.action_group == ActionGroupV1::PressureCook
-    });
+    let declares_pressure_cook = module
+        .capabilities
+        .iter()
+        .any(|capability| capability.action_group == ActionGroupV1::PressureCook);
     if (module.module_kind == KitchenModuleKindV1::PressureCooker) != declares_pressure_cook {
         add_violation(
             &mut violations,
@@ -541,9 +584,18 @@ pub fn validate_kitchen_module_capability(
         match module.pressure_safety.as_ref() {
             Some(pressure) => {
                 for (name, reference) in [
-                    ("pressure_vessel_qualification_ref", pressure.pressure_vessel_qualification_ref.as_str()),
-                    ("pressure_relief_test_ref", pressure.pressure_relief_test_ref.as_str()),
-                    ("independent_test_report_ref", pressure.independent_test_report_ref.as_str()),
+                    (
+                        "pressure_vessel_qualification_ref",
+                        pressure.pressure_vessel_qualification_ref.as_str(),
+                    ),
+                    (
+                        "pressure_relief_test_ref",
+                        pressure.pressure_relief_test_ref.as_str(),
+                    ),
+                    (
+                        "independent_test_report_ref",
+                        pressure.independent_test_report_ref.as_str(),
+                    ),
                 ] {
                     if !nonempty(reference) {
                         add_violation(
@@ -631,11 +683,16 @@ pub fn validate_kitchen_module_capability(
     }
 
     violations.sort_by(|a, b| {
-        (a.code, a.capability_id.as_deref().unwrap_or(""), a.detail.as_str()).cmp(&(
-            b.code,
-            b.capability_id.as_deref().unwrap_or(""),
-            b.detail.as_str(),
-        ))
+        (
+            a.code,
+            a.capability_id.as_deref().unwrap_or(""),
+            a.detail.as_str(),
+        )
+            .cmp(&(
+                b.code,
+                b.capability_id.as_deref().unwrap_or(""),
+                b.detail.as_str(),
+            ))
     });
     ModuleCapabilityValidationReportV1 {
         module_id: module.module_id.clone(),
@@ -724,7 +781,9 @@ mod tests {
                 repair_procedure_ref: None,
                 warranty_ref: None,
                 cleaning_sanitation_ref: Some("fixture:cleaning-protocol".to_owned()),
-                food_contact_material_refs: vec!["fixture:food-contact-polymer-datasheet".to_owned()],
+                food_contact_material_refs: vec![
+                    "fixture:food-contact-polymer-datasheet".to_owned(),
+                ],
             },
             local_safety_authority_ref: "controller:appliance-local-safety".to_owned(),
             qualification_refs: vec![],
@@ -797,8 +856,11 @@ mod tests {
         module.capabilities[0].minimum_batch_mass_g = Some(1_000);
         module.capabilities[0].maximum_batch_mass_g = Some(50);
         let report = validate_kitchen_module_capability(&module);
-        assert!(report.violations.iter().any(|v| {
-            v.code == ModuleCapabilityViolationCodeV1::InvalidBatchRange
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|v| v.code == ModuleCapabilityViolationCodeV1::InvalidBatchRange)
+        );
     }
 }
