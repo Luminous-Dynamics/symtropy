@@ -58,13 +58,13 @@ Malformed/missing/mismatched identities, digests, receipt domains, timebases, ti
 
 ## Canonical binding
 
-CandidateBinding::canonical_binding_bytes() produces deterministic, length-prefixed preimage bytes. Target IDs are sorted before encoding; floating-point negative zero is normalized. The caller must compute SHA-256 over these exact bytes and bind that digest into each receipt.
+CandidateBinding::canonical_binding_bytes() produces deterministic, length-prefixed preimage bytes. Target IDs are sorted before encoding; floating-point negative zero is normalized. The caller must compute SHA-256 over these exact bytes, place that commitment on the envelope and receipts, and pass the independently computed digest into validate_candidate_envelope. The validator rejects a computed digest that does not match the envelope commitment.
 
-**Cryptographic boundary:** this crate does not implement SHA-256, authenticate issuer identity, validate signatures, fetch source records or verify custody. A syntactically valid digest string is not proof that the digest is correct. Those responsibilities remain with the independent digest/provenance/authentication infrastructure (including Mycelix). This package checks only exact string consistency and structural shape.
+**Cryptographic boundary:** this crate does not implement SHA-256, authenticate issuer identity, validate signatures, fetch source records or verify custody. It requires the caller to supply the computed binding digest, but cannot independently prove that the caller used a trusted cryptographic implementation. Receipt/result/source digests are checked for syntax and binding consistency, not checked against fetched content or signatures. Those responsibilities remain with the independent digest/provenance/authentication infrastructure (including Mycelix).
 
 ## Implementation status
 
-The reference crate includes 24 deterministic tests for eligibility precedence, exact binding/source digests, revision/clock binding, target coverage, calibration validity, replay/duplicate receipts, numeric bounds and canonical target-order invariance. The validation token exposes a QualifiedCandidateProjection only for fully Qualified candidates.
+The reference crate includes 25 deterministic tests for eligibility precedence, externally computed binding digest matching, exact receipt/source binding, timebase binding, target coverage, calibration validity, duplicate receipts, numeric bounds and canonical target-order invariance. A private-field validation token exposes a QualifiedCandidateProjection only for structurally consistent, fully Qualified candidates.
 
 ## Claim boundary
 
