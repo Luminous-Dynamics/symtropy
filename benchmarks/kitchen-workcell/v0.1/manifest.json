@@ -1,0 +1,1658 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "luminous-kitchen-workcell-2026-11-v0.1",
+  "status": "draft_not_run",
+  "claim_ceiling": "No physical performance, food-safety, conformity, sensory or lifecycle claim is established.",
+  "preregistration": {
+    "protocol_revision": "KITCHEN-WORKCELL-001-V0.1",
+    "frozen_before_trials": false,
+    "frozen_at": null,
+    "reviewer_refs": []
+  },
+  "comparators": [
+    {
+      "comparator_id": "zavor-lux-zsell02",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Zavor",
+      "model": "LUX LCD",
+      "sku": "ZSELL02",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/multi-cookers/best-multi-cookers-of-the-year-a7136971834/"
+      ],
+      "notes": "Consumer Reports lists this 6 qt model as its highest-rated multicooker in its 2026 overview; exact local-market revision and availability must be verified."
+    },
+    {
+      "comparator_id": "breville-fast-slow-pro-bpr700",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Breville",
+      "model": "Fast Slow Pro",
+      "sku": "BPR700BSS",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/multi-cookers/best-multi-cookers-of-the-year-a7136971834/"
+      ],
+      "notes": "6 qt comparator; verify regional SKU, voltage and accessories."
+    },
+    {
+      "comparator_id": "instant-pot-duo-crisp-8qt",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Instant Pot",
+      "model": "Duo Crisp 11-in-1 8 qt",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [],
+      "notes": "Exact regional model/SKU to be fixed before acquisition."
+    },
+    {
+      "comparator_id": "breville-paradice-9-bfp638",
+      "domain": "food_processor",
+      "manufacturer": "Breville",
+      "model": "the Paradice 9",
+      "sku": "BFP638",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/",
+        "https://www.breville.com/en-us/product/BFP638"
+      ],
+      "notes": "Consumer Reports' 2026 test describes a 7-cup model; other regional technical sheets identify a 9-cup pack, so regional model variant must be fixed."
+    },
+    {
+      "comparator_id": "cuisinart-core-custom-fp130",
+      "domain": "food_processor",
+      "manufacturer": "Cuisinart",
+      "model": "Core Custom",
+      "sku": "FP-130",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/"
+      ],
+      "notes": "Verify market-specific accessories and technical revision."
+    },
+    {
+      "comparator_id": "magimix-5200xl",
+      "domain": "food_processor",
+      "manufacturer": "Magimix",
+      "model": "5200XL",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.consumerreports.org/appliances/food-processors-choppers/best-food-processors-of-the-year-a7878155198/"
+      ],
+      "notes": "Verify regional voltage, bowl accessories and SKU."
+    },
+    {
+      "comparator_id": "thermomix-tm7",
+      "domain": "integrated_cooking_machine",
+      "manufacturer": "Vorwerk",
+      "model": "Thermomix TM7",
+      "sku": null,
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://globalsupport.vorwerk.com/hc/en-us/articles/18535706925724-What-are-the-technical-specifications-of-the-new-Thermomix-TM7"
+      ],
+      "notes": "Architectural comparator only. Manufacturer lists 2.2 L mixing bowl and 6.8 L Varoma set; not a pressure cooker or full-size food processor."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhep7",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "6L Digital Pressure Cooker",
+      "sku": "RHEP7 / 856295",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/6l-electric-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing states 6 L, 1000 W and 16 menu functions. Confirm current stock, type-plate voltage/frequency, pot material, pressure operating profile and warranty before acquisition."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhep6n",
+      "domain": "pressure_multicooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "6L Electronic Pressure Cooker",
+      "sku": "RHEP6N / 863201",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/russell-hobbs-6l-electronic-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing states 6 L enamel removable pot, 1000 W, 17 menu functions and variable pressure. Manufacturer marketing claims require independent testing; verify exact type plate and documentation."
+    },
+    {
+      "comparator_id": "russell-hobbs-rhpc06",
+      "domain": "stovetop_pressure_cooker",
+      "manufacturer": "Russell Hobbs South Africa",
+      "model": "Stainless Steel 6L Stovetop Pressure Cooker",
+      "sku": "RHPC06",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://russellhobbs.co.za/products/russell-hobbs-stainless-steel-6l-pressure-cooker"
+      ],
+      "notes": "South African manufacturer listing specifies 80 kPa gravity pressure valve and stainless-steel construction. Keep as a separate stovetop class; meter cooktop energy and report heat-source type rather than comparing watts directly to electric appliances."
+    },
+    {
+      "comparator_id": "kenwood-fdp65-400wh",
+      "domain": "food_processor",
+      "manufacturer": "Kenwood",
+      "model": "MultiPro Express",
+      "sku": "FDP65.400WH",
+      "market_status": "candidate_not_acquired",
+      "exact_revision_status": "unverified",
+      "source_refs": [
+        "https://www.pricecheck.co.za/offers/220870801/Kenwood%2BFDP65.400WH%2B3L%2BMultipro%2BExpress%2BFood%2BProcessor"
+      ],
+      "notes": "South African retail listings describe a 3 L, 1000 W model with multiple accessories. Retail listing is discovery evidence only; verify manufacturer datasheet, included accessories, local stock and warranty."
+    }
+  ],
+  "tasks": [
+    {
+      "task_id": "thermal-ribs",
+      "domain": "thermal",
+      "operation": "pressure-cook pork ribs",
+      "input_manifest_required": [
+        "ingredient lot",
+        "initial mass",
+        "cut dimensions",
+        "starting temperature",
+        "liquid mass",
+        "vessel fill fraction",
+        "ambient temperature",
+        "supply voltage"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "energy_wh",
+        "accepted_edible_yield_g",
+        "texture_assay",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Use certified commercial equipment only; do not defeat lid, pressure, vent or thermal protections.",
+      "control_condition": "Identical ingredient lot and mass; manufacturer's prescribed safe settings."
+    },
+    {
+      "task_id": "thermal-chili",
+      "domain": "thermal",
+      "operation": "prepare beef-and-bean chili",
+      "input_manifest_required": [
+        "ingredient lot",
+        "initial masses",
+        "bean hydration state",
+        "starting temperature",
+        "liquid mass",
+        "vessel fill fraction"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "energy_wh",
+        "accepted_edible_yield_g",
+        "scorching_incidence",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Certified product instructions govern pressure, fill and release; no unsafe overfill or blocked-vent trials.",
+      "control_condition": "Same recipe, ingredient lots and serving endpoint."
+    },
+    {
+      "task_id": "thermal-rice",
+      "domain": "thermal",
+      "operation": "cook rice",
+      "input_manifest_required": [
+        "rice lot",
+        "dry mass",
+        "water mass",
+        "rinse protocol",
+        "starting temperature",
+        "vessel fill fraction"
+      ],
+      "primary_metrics": [
+        "energy_wh",
+        "time_to_plate_s",
+        "cooked_mass_g",
+        "moisture_assay",
+        "texture_assay"
+      ],
+      "safety_boundary": "Normal user operation only.",
+      "control_condition": "Same rice-to-water ratio and blinded texture endpoint."
+    },
+    {
+      "task_id": "thermal-vegetables",
+      "domain": "thermal",
+      "operation": "steam mixed vegetables",
+      "input_manifest_required": [
+        "vegetable lots",
+        "cut size",
+        "initial mass",
+        "starting temperature",
+        "basket loading map"
+      ],
+      "primary_metrics": [
+        "temperature_uniformity_c",
+        "time_to_plate_s",
+        "energy_wh",
+        "texture_assay",
+        "sensory_liking_9pt"
+      ],
+      "safety_boundary": "Normal user operation only.",
+      "control_condition": "Same cut geometry, mass and endpoint."
+    },
+    {
+      "task_id": "prep-chop-onion",
+      "domain": "processing",
+      "operation": "uniform chopping of onion",
+      "input_manifest_required": [
+        "onion lot",
+        "peeled starting mass",
+        "dimensions",
+        "starting temperature",
+        "blade and bowl revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "yield_loss_fraction",
+        "temperature_rise_c",
+        "noise_dba"
+      ],
+      "safety_boundary": "Guarded commercial equipment; no hand access during operation.",
+      "control_condition": "Same lot, mass, pulse sequence and particle-size assay."
+    },
+    {
+      "task_id": "prep-grate-cheese",
+      "domain": "processing",
+      "operation": "grate chilled cheese",
+      "input_manifest_required": [
+        "cheese lot",
+        "fat/moisture label",
+        "starting temperature",
+        "mass",
+        "grating disc revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "yield_loss_fraction",
+        "residue_mass_g",
+        "cleaning_time_s"
+      ],
+      "safety_boundary": "Manufacturer-approved pusher and guard only.",
+      "control_condition": "Same cheese lot and temperature window."
+    },
+    {
+      "task_id": "prep-small-herbs",
+      "domain": "processing",
+      "operation": "small-batch herb chopping",
+      "input_manifest_required": [
+        "herb lot",
+        "leaf mass",
+        "moisture condition",
+        "starting temperature",
+        "bowl/accessory configuration"
+      ],
+      "primary_metrics": [
+        "unprocessed_fraction",
+        "particle_size_cv",
+        "fines_mass_fraction",
+        "residue_mass_g",
+        "cleaning_time_s"
+      ],
+      "safety_boundary": "No manual intervention while blade is energized.",
+      "control_condition": "Same herb lot and target mass; compare full-bowl and mini-bowl configurations."
+    },
+    {
+      "task_id": "prep-dice-carrot",
+      "domain": "processing",
+      "operation": "repeatable carrot dicing",
+      "input_manifest_required": [
+        "carrot lot",
+        "diameter range",
+        "starting mass",
+        "feed orientation",
+        "dicing grid revision"
+      ],
+      "primary_metrics": [
+        "particle_size_cv",
+        "out_of_spec_mass_fraction",
+        "yield_loss_fraction",
+        "throughput_g_per_min"
+      ],
+      "safety_boundary": "Use stock chute and pusher; do not bypass guards.",
+      "control_condition": "Same geometry and orientation; image or sieve assay with blinded labels."
+    },
+    {
+      "task_id": "workflow-multidish",
+      "domain": "workflow",
+      "operation": "coordinate a multi-dish meal with synchronized serving",
+      "input_manifest_required": [
+        "full recipe manifests",
+        "appliance IDs",
+        "available outlets/power cap",
+        "user time budget",
+        "serve time"
+      ],
+      "primary_metrics": [
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "late_dish_count",
+        "energy_wh",
+        "accepted_servings"
+      ],
+      "safety_boundary": "Scheduler proposes sequences only; appliances retain local deterministic control.",
+      "control_condition": "Compare manual plan, fixed-rule scheduler and Symtropy schedule on same tasks."
+    },
+    {
+      "task_id": "cleaning-processor",
+      "domain": "cleaning",
+      "operation": "clean bowl, lid, pusher, blade hub and attachments after standardized task",
+      "input_manifest_required": [
+        "soil recipe",
+        "part list",
+        "pre-clean residue mass",
+        "cleaning protocol",
+        "water temperature"
+      ],
+      "primary_metrics": [
+        "cleaning_time_s",
+        "water_l",
+        "parts_count",
+        "residual_soil_mass_g",
+        "damage_incidence"
+      ],
+      "safety_boundary": "Do not infer microbiological cleanliness from visual cleanliness.",
+      "control_condition": "Same soil and cleaning instruction; independent residue/hygiene method if claimed."
+    },
+    {
+      "task_id": "workflow-power-envelope",
+      "domain": "workflow",
+      "operation": "coordinate a multi-dish meal under a declared household power envelope",
+      "input_manifest_required": [
+        "full recipe manifests",
+        "appliance IDs and type plates",
+        "continuous real-power cap",
+        "surge limit and duration",
+        "voltage/frequency range",
+        "permitted concurrent loads",
+        "user time budget",
+        "serve time"
+      ],
+      "primary_metrics": [
+        "peak_real_power_w",
+        "power_cap_violation_count",
+        "energy_wh",
+        "total_time_to_plate_s",
+        "user_present_time_s",
+        "late_dish_count",
+        "accepted_servings",
+        "staggered_makespan_savings_vs_serial",
+        "makespan_relative_gap_to_lower_bound",
+        "power_aware_event_search_latency_ms",
+        "schedule_feasibility_rate"
+      ],
+      "safety_boundary": "Scheduler is advisory only. Local appliance protections remain authoritative. No pressure-cycle restart after power restoration unless manufacturer-approved; no power-interruption test outside the approved safe procedure.",
+      "control_condition": "On identical task graphs, profiles and envelope, compare human/manual plan, fixed-rule schedule, earliest-gap resource-greedy, event-boundary power-aware staggering, serial topological fallback and a CP-SAT exact reference on small instances. Record all failed attempts and verifier outputs."
+    },
+    {
+      "task_id": "workflow-recipe-action-grounding",
+      "domain": "workflow",
+      "operation": "translate recipe text and current kitchen capability state into an executable task graph",
+      "input_manifest_required": [
+        "recipe text and source rights",
+        "ingredient identities and typed quantities",
+        "appliance capabilities",
+        "current resource availability",
+        "action timing constraints",
+        "practitioner review rubric"
+      ],
+      "primary_metrics": [
+        "action_grounding_precision",
+        "action_grounding_recall",
+        "task_graph_feasibility_rate",
+        "temporal_constraint_violation_count",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Generated task graphs are advisory proposals and do not directly actuate appliances.",
+      "control_condition": "Compare human-authored graph, deterministic recipe rules, LREC-style recipe grounding and Symthaea proposal on frozen recipes; then compare mapped plans with identical downstream schedulers."
+    },
+    {
+      "task_id": "workflow-action-ontology-grounding",
+      "domain": "workflow",
+      "operation": "map recipe instruction verbs to a hierarchical six-core action ontology with explicit provenance and unmapped handling",
+      "input_manifest_required": [
+        "licensed or otherwise authorized recipe corpus and split",
+        "verbatim instruction references",
+        "annotated action verbs and gold action-core/group labels",
+        "ontology version and mapping table",
+        "human adjudication rubric",
+        "language/locale and preprocessing protocol"
+      ],
+      "primary_metrics": [
+        "action_core_coverage_fraction",
+        "action_group_precision",
+        "action_group_recall",
+        "action_unmapped_verb_fraction",
+        "action_mapping_human_override_rate",
+        "task_graph_feasibility_rate",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Ontology labels are planning semantics only. They do not generate motion trajectories, device commands, safety interlocks or food-safety assessments. Ambiguous verbs remain unmapped or require human review.",
+      "control_condition": "Compare deterministic Symtropy action rules, human annotation, and the published 2025 Actionable Knowledge Graph protocol on identical licensed recipe text, normalization, split and verb annotation; evaluate exact group labels as well as coverage."
+    },
+    {
+      "task_id": "workflow-kitchen-r-simulated-integration",
+      "domain": "workflow",
+      "operation": "evaluate language-grounded kitchen plans, low-level mobile-manipulation policies and integrated execution in a licensed Kitchen-R digital-twin setup",
+      "input_manifest_required": [
+        "Kitchen-R dataset/version and benchmark split",
+        "simulator version and physics configuration",
+        "robot model and actuator/control limits",
+        "licensed environment and object assets",
+        "instruction IDs and gold task decomposition",
+        "planner and low-level policy revisions",
+        "random seeds and initial-state distributions"
+      ],
+      "primary_metrics": [
+        "kitchen_r_planning_success_rate",
+        "kitchen_r_low_level_control_success_rate",
+        "kitchen_r_integrated_success_rate",
+        "kitchen_r_task_recovery_rate",
+        "kitchen_r_human_takeover_rate",
+        "kitchen_r_execution_time_s",
+        "kitchen_r_environment_restoration_rate",
+        "kitchen_r_collision_incidence",
+        "kitchen_r_recovery_latency_s"
+      ],
+      "safety_boundary": "Simulation benchmark only. Success in Kitchen-R does not validate physical robot safety, food hygiene, pressure equipment, culinary quality or appliance compatibility. Planner, controller and integrated results must be reported separately.",
+      "control_condition": "Reproduce the published VLM planning baseline and diffusion-policy low-level baseline where assets and licenses permit. Run planning-only, control-only and integrated evaluations on matched episodes and splits; report simulator-to-real transfer as untested unless separately measured."
+    },
+    {
+      "task_id": "workflow-offline-manual-resilience",
+      "domain": "workflow",
+      "operation": "complete eligible preparation and meal workflows with WAN/cloud unavailable and verify immediate user takeover",
+      "input_manifest_required": [
+        "frozen workflow and eligible manual-control states",
+        "WAN-disconnected test record",
+        "cloud-service dependency inventory",
+        "camera/microphone disabled state",
+        "appliance local-control instructions",
+        "override input and state-indication log",
+        "operator and accessibility cohort"
+      ],
+      "primary_metrics": [
+        "offline_manual_completion_rate",
+        "manual_override_success_rate",
+        "manual_override_latency_ms",
+        "user_present_time_s",
+        "total_time_to_plate_s"
+      ],
+      "safety_boundary": "Use certified appliances and manufacturer-supported manual modes only. Never bypass appliance-local safety interlocks or attempt takeover of a hazardous live pressure/blade/thermal state.",
+      "control_condition": "Run matched workflows with the normal network available and with WAN/cloud unavailable; preserve local manual operation and log every failure, exclusion and user takeover."
+    },
+    {
+      "task_id": "lifecycle-module-serviceability",
+      "domain": "lifecycle",
+      "operation": "replace a designated user-serviceable non-safety module and verify normal operation",
+      "input_manifest_required": [
+        "exact appliance/module revision",
+        "service manual and declared user-serviceability boundary",
+        "safe isolation procedure",
+        "replacement part identity and availability",
+        "required tools and consumables",
+        "operator training class",
+        "manufacturer post-service functional test"
+      ],
+      "primary_metrics": [
+        "service_module_replacement_time_s",
+        "post_service_functional_verification_rate",
+        "parts_count",
+        "damage_incidence"
+      ],
+      "safety_boundary": "No consumer repair of pressure vessels, high-voltage assemblies, blade guards, safety interlocks or other safety-critical components. Exact manufacturer service instructions govern.",
+      "control_condition": "Compare modular workcell against the best matched incumbent repair procedure; include failed, inconclusive and repeat interventions and record parts availability."
+    },
+    {
+      "task_id": "accounting-whole-process-water-mass",
+      "domain": "lifecycle",
+      "operation": "reconcile whole-process food and water flows per accepted edible serving",
+      "input_manifest_required": [
+        "exact ingredient lots and input masses",
+        "all added water masses and source-meter readings",
+        "preparation/cooking/cleaning boundary definitions",
+        "accepted edible output mass",
+        "trim/reject/residue mass",
+        "drainage/condensate/evaporation capture or bounded uncertainty",
+        "accepted serving count",
+        "meter and scale identity/calibration"
+      ],
+      "primary_metrics": [
+        "water_l_per_accepted_serving",
+        "mass_balance_unaccounted_fraction",
+        "energy_wh_per_accepted_serving",
+        "accepted_edible_yield_g",
+        "avoidable_prep_loss_fraction"
+      ],
+      "safety_boundary": "Accounting does not establish food safety, sanitation or suitability. Missing flow measurements remain unknown and cannot support a complete superiority claim.",
+      "control_condition": "Compare matched ingredient lots, output endpoint and accepted serving size; report preparation, cooking and cleaning water separately before summing the declared boundary."
+    },
+    {
+      "task_id": "workflow-replan-under-disturbance",
+      "domain": "workflow",
+      "operation": "replan a multi-dish workflow after bounded task/resource/power/observation disturbances in deterministic simulation",
+      "input_manifest_required": [
+        "frozen initial task graph and module revisions",
+        "simulator and scheduler revision",
+        "seeded disturbance catalogue",
+        "task delay/resource outage/power-cap change/stale-observation event",
+        "user deadline and hard constraints",
+        "raw episode and schedule receipts"
+      ],
+      "primary_metrics": [
+        "replan_success_rate_under_disturbance",
+        "replan_latency_ms",
+        "temporal_constraint_violation_count",
+        "power_cap_violation_count",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Synthetic/simulated evaluation only. Do not inject disturbances into active pressure, heating, cutting or other physical appliance operation.",
+      "control_condition": "Compare no-replan baseline, fixed-rule repair, resource-greedy repair and Symtropy event-boundary replanning on identical seeds; retain every failed or abstained episode."
+    },
+    {
+      "task_id": "safety-kitchen-r-episode-audit",
+      "domain": "safety",
+      "operation": "post-hoc task-aware safety audit of integrated kitchen-robot episodes",
+      "input_manifest_required": [
+        "exact host benchmark and release (RoboCasa365 or Kitchen-R)",
+        "simulator version and physics/config digest",
+        "robot embodiment and control limits",
+        "episode seed and raw trajectory digest",
+        "native task success predicate and outcome",
+        "task-specific safety-spec registry and applicability tags",
+        "contact-force, object-pose, held-object, bystander and robot-state signals as applicable",
+        "signal sampling cadence, validity and missingness record",
+        "STL or equivalent temporal invariant thresholds frozen before evaluation"
+      ],
+      "primary_metrics": [
+        "kitchen_r_integrated_success_rate",
+        "safety_spec_compliance_rate",
+        "safety_success_but_unsafe_rate",
+        "safety_violation_severity_index",
+        "safety_signal_coverage_rate",
+        "safety_safe_stop_success_rate",
+        "kitchen_r_collision_incidence"
+      ],
+      "safety_boundary": "Simulation/post-hoc audit only. Do not activate a physical robot or appliance based on these results. Unknown signals cannot produce a safe label; appliance-local interlocks remain authoritative.",
+      "control_condition": "Run native policies with unchanged host task observations, action space, seeds and success predicates; log trajectories and score native success and safety separately. Keep task-aware N/A rules, unsafe successes, failed episodes and missing signals."
+    }
+  ],
+  "metrics": [
+    {
+      "metric_id": "energy_wh_per_accepted_serving",
+      "unit": "Wh/accepted serving",
+      "denominator": "accepted edible serving count",
+      "method": "calibrated mains power meter; include preheat, cook, release, transfer and cleaning where assigned to task",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.9,
+      "notes": "Exploratory target: at least 10% lower than best matched baseline without worse food quality or safety."
+    },
+    {
+      "metric_id": "user_present_time_per_accepted_meal",
+      "unit": "minutes/accepted meal",
+      "denominator": "accepted meal",
+      "method": "timestamped direct observation; separate total elapsed time",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.85,
+      "notes": "Exploratory target: at least 15% lower; no substitution of unattended elapsed time."
+    },
+    {
+      "metric_id": "particle_size_cv",
+      "unit": "coefficient of variation",
+      "denominator": "all sampled output particles by mass/size method",
+      "method": "predeclared image/sieve measurement with calibration and sampling plan",
+      "evidence_class": "assayed",
+      "target_ratio_max": 0.75,
+      "notes": "Exploratory target: at least 25% reduction without greater fines or yield loss."
+    },
+    {
+      "metric_id": "avoidable_prep_loss_fraction",
+      "unit": "fraction of edible input mass",
+      "denominator": "edible input mass",
+      "method": "tare-corrected mass balance of input, accepted output, residue and declared inedible trim",
+      "evidence_class": "measured",
+      "target_ratio_max": 0.8,
+      "notes": "Exploratory target: at least 20% reduction in avoidable trim and transfer loss."
+    },
+    {
+      "metric_id": "sensory_liking_9pt",
+      "unit": "points on 9-point liking scale",
+      "denominator": "valid blinded panel responses",
+      "method": "randomized blinded consumer or trained panel protocol, prespecified analysis",
+      "evidence_class": "assayed",
+      "non_inferiority_margin": 0.5,
+      "notes": "Non-inferiority margin is exploratory and requires power calculation before confirmatory trial."
+    },
+    {
+      "metric_id": "food_safety_validation",
+      "unit": "not a numeric optimization metric",
+      "denominator": "product-specific independent conformity and food-safety evidence",
+      "method": "competent laboratory and applicable authority review",
+      "evidence_class": "assayed",
+      "notes": "Hard gate; no AI estimate or modelled microbial lethality is accepted as qualification."
+    },
+    {
+      "metric_id": "cleaning_time",
+      "unit": "seconds/task",
+      "denominator": "complete post-task cleaning cycle",
+      "method": "timestamped observation under frozen cleaning procedure",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "peak_real_power_w",
+      "unit": "W real power",
+      "denominator": "complete multi-dish task window",
+      "method": "calibrated true-power meter with time series and recorded power-quality conditions",
+      "evidence_class": "measured",
+      "notes": "Report peak and duration above each declared threshold; not a marketing nameplate estimate."
+    },
+    {
+      "metric_id": "power_cap_violation_count",
+      "unit": "count",
+      "denominator": "complete multi-dish task window",
+      "method": "evaluate measured concurrent draw against frozen declared envelope",
+      "evidence_class": "measured",
+      "notes": "Target is zero observed cap violations for a schedule represented as feasible; record all exceptions."
+    },
+    {
+      "metric_id": "schedule_feasibility_rate",
+      "unit": "fraction of submitted schedules independently valid",
+      "denominator": "all submitted schedules including failures",
+      "method": "Independent checks of dependencies, time windows, resources, power envelope and task coverage.",
+      "evidence_class": "measured",
+      "notes": "Failed/infeasible plans remain in denominator."
+    },
+    {
+      "metric_id": "makespan_relative_gap_to_lower_bound",
+      "unit": "fraction above proven lower bound",
+      "denominator": "instances with a proven exact/lower-bound result",
+      "method": "(observed makespan - proven lower bound) / proven lower bound; report solver proof status.",
+      "evidence_class": "measured",
+      "notes": "Do not call heuristic estimates proven lower bounds."
+    },
+    {
+      "metric_id": "temporal_constraint_violation_count",
+      "unit": "count",
+      "denominator": "all declared action windows",
+      "method": "Independent temporal verifier against frozen task graph.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "replan_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "one declared replanning trigger",
+      "method": "Monotonic-clock duration for schedule computation plus verification; report hardware and task count.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "human_correction_count",
+      "unit": "corrections/task graph",
+      "denominator": "all human-reviewed task graphs",
+      "method": "Count edits before a practitioner accepts the graph.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "staggered_makespan_savings_vs_serial",
+      "unit": "fraction of serial makespan saved",
+      "denominator": "matched plan/envelope instances where both the power-aware and serial schedulers return verified feasible schedules",
+      "method": "(serial makespan - power-aware makespan) / serial makespan; same task graph, profiles, envelope and verification rules.",
+      "evidence_class": "measured",
+      "notes": "Report per instance and median; do not omit instances where only one scheduler succeeds."
+    },
+    {
+      "metric_id": "power_aware_event_search_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "one power-constrained schedule attempt",
+      "method": "Monotonic-clock time for candidate generation, schedule construction and final independent power verification; report task count and event count.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_core_coverage_fraction",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action verbs in the frozen recipe split",
+      "method": "number of action verbs assigned to a valid core divided by all annotated action verbs; report unmapped/ambiguous separately and freeze tokenizer, lemmatization and language coverage.",
+      "evidence_class": "measured",
+      "notes": "Do not compare directly to the 2025 paper's 76.5% until its corpus and cosine matching protocol are reproduced."
+    },
+    {
+      "metric_id": "action_group_precision",
+      "unit": "fraction",
+      "denominator": "all predicted non-unmapped action groups",
+      "method": "micro and macro precision against human-adjudicated gold labels on a frozen split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_group_recall",
+      "unit": "fraction",
+      "denominator": "all human-adjudicated gold action-group labels",
+      "method": "micro and macro recall against human-adjudicated gold labels on a frozen split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_unmapped_verb_fraction",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action verbs",
+      "method": "unmapped or intentionally ambiguous verbs divided by all annotated action verbs.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_mapping_human_override_rate",
+      "unit": "fraction",
+      "denominator": "all proposed ontology mappings reviewed by humans",
+      "method": "fraction of mappings changed or rejected during blinded adjudication.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "kitchen_r_planning_success_rate",
+      "unit": "fraction",
+      "denominator": "all planning-only benchmark episodes",
+      "method": "published Kitchen-R task completion and instruction-planning evaluator; retain failed plans in denominator.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_low_level_control_success_rate",
+      "unit": "fraction",
+      "denominator": "all low-level policy episodes",
+      "method": "published policy evaluator success and time limits, with failures retained.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_integrated_success_rate",
+      "unit": "fraction",
+      "denominator": "all end-to-end integrated benchmark episodes",
+      "method": "end-to-end planner plus control success on the same seeded episodes; do not impute perfect atomic execution.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_task_recovery_rate",
+      "unit": "fraction",
+      "denominator": "all episodes with a declared recoverable perturbation or recoverable failure",
+      "method": "fraction restored to a valid goal state without human takeover under frozen perturbation protocol.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_human_takeover_rate",
+      "unit": "fraction",
+      "denominator": "all integrated benchmark episodes",
+      "method": "episodes requiring human intervention divided by all episodes, including timeouts.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "kitchen_r_execution_time_s",
+      "unit": "seconds",
+      "denominator": "all successful and failed episodes",
+      "method": "publish per-episode wall-clock/simulation time and summarize successful and failed episodes separately.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "accepted_edible_yield_g",
+      "unit": "grams",
+      "denominator": "one completed cooking task or meal",
+      "method": "weigh the edible output after a preregistered removal of non-edible matter; record rejected fraction and assessors separately.",
+      "evidence_class": "assayed",
+      "notes": "Do not infer food safety from visual or sensory acceptance."
+    },
+    {
+      "metric_id": "accepted_servings",
+      "unit": "count",
+      "denominator": "one completed meal",
+      "method": "count portions meeting frozen serving mass and acceptance rubric; record rejected portions separately.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_grounding_precision",
+      "unit": "fraction",
+      "denominator": "all predicted action units",
+      "method": "true positive grounded action units divided by all predicted action units, with action-span and group matching rules frozen.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "action_grounding_recall",
+      "unit": "fraction",
+      "denominator": "all gold-annotated action units",
+      "method": "true positive grounded action units divided by all gold action units on the same annotated split.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "cleaning_time_s",
+      "unit": "seconds",
+      "denominator": "one standardized post-task cleaning cycle",
+      "method": "measure elapsed active cleaning time from first cleaning action to a preregistered visual/residue endpoint; do not equate visual cleanliness with microbiological cleanliness.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "cooked_mass_g",
+      "unit": "grams",
+      "denominator": "one standardized cooking batch",
+      "method": "weigh cooked output after fixed rest/drain protocol and before serving; retain initial mass and water addition.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "damage_incidence",
+      "unit": "fraction of trials",
+      "denominator": "all appliance/workcell trials for a defined task family",
+      "method": "count trials with a preregistered permanent damage/failure event divided by all trials; document severity and repairability.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "energy_wh",
+      "unit": "watt-hours",
+      "denominator": "one task execution or complete meal, stated per run",
+      "method": "integrate calibrated real-power measurements over the complete task/meal interval; record meter class, sampling rate, voltage and uncertainty.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "fines_mass_fraction",
+      "unit": "fraction of processed input mass",
+      "denominator": "total recovered processed mass",
+      "method": "sieve or calibrated image-size assay; fines are particles below a preregistered lower size threshold. Freeze threshold and recovery procedure.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "late_dish_count",
+      "unit": "count",
+      "denominator": "all dishes in a multi-dish meal",
+      "method": "count dishes whose ready timestamp is after the preregistered serve time; never omit failed or incomplete dishes.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "moisture_assay",
+      "unit": "mass fraction or protocol-specific moisture result",
+      "denominator": "one sampled cooked batch with stated sampling locations",
+      "method": "use a documented gravimetric or validated moisture-analyzer protocol; report method, sample preparation and instrument calibration.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "noise_dba",
+      "unit": "dB(A)",
+      "denominator": "one task run over a fixed measurement window",
+      "method": "measure A-weighted equivalent sound level with a calibrated meter at a preregistered distance, orientation and background-noise condition.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "out_of_spec_mass_fraction",
+      "unit": "fraction of recovered product mass",
+      "denominator": "total recovered product mass",
+      "method": "weigh product outside preregistered geometry/size specification using blinded sieve or calibrated image classification.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "parts_count",
+      "unit": "count",
+      "denominator": "one standardized cleaning cycle",
+      "method": "count detachable parts that the prescribed cleaning process requires the operator to handle; freeze the part inventory by SKU/revision.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "residual_soil_mass_g",
+      "unit": "grams",
+      "denominator": "one standardized cleaning cycle",
+      "method": "measure residue after fixed soil loading and cleaning protocol using a validated gravimetric or chemical assay; report detection limit.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "residue_mass_g",
+      "unit": "grams",
+      "denominator": "one processing task",
+      "method": "weigh recoverable material left on bowl, blade, disc, lid and accessories immediately after task under a fixed recovery protocol.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "scorching_incidence",
+      "unit": "fraction of trials",
+      "denominator": "all cooking trials for a task/recipe",
+      "method": "blinded assessors apply a preregistered visible-scorch and/or chemical endpoint; report both separately if both used.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "task_graph_feasibility_rate",
+      "unit": "fraction of generated task graphs",
+      "denominator": "all submitted recipe task graphs including rejected outputs",
+      "method": "independent validation of ingredient references, action graph integrity, dependency DAG, resource requirements and temporal windows; retain parse/generation failures in denominator.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "temperature_rise_c",
+      "unit": "degrees Celsius",
+      "denominator": "one processing task",
+      "method": "measure maximum product temperature minus initial product temperature with calibrated probes at preregistered locations and timing.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "temperature_uniformity_c",
+      "unit": "degrees Celsius (spatial standard deviation)",
+      "denominator": "one standardized batch sampled at fixed positions",
+      "method": "measure product temperature at preregistered spatial positions after a fixed cooking endpoint; report mean, standard deviation and max-min range.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "texture_assay",
+      "unit": "protocol-specific instrument output",
+      "denominator": "one batch with fixed sample count and geometry",
+      "method": "use a calibrated texture analyzer or frozen blinded sensory rubric; report probe/geometry/protocol and do not conflate different assay units.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "throughput_g_per_min",
+      "unit": "grams per minute",
+      "denominator": "one processing task",
+      "method": "recovered processed mass divided by active processing time; report setup, feeding and cleaning time separately.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "time_to_plate_s",
+      "unit": "seconds",
+      "denominator": "one dish or dish-specific task",
+      "method": "elapsed time from preregistered start event to dish meeting its blinded ready-to-serve endpoint.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "total_time_to_plate_s",
+      "unit": "seconds",
+      "denominator": "one complete multi-dish meal",
+      "method": "elapsed time from meal workflow start to all accepted dishes ready for service; unfinished/late dishes are failures, not censored.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "unprocessed_fraction",
+      "unit": "fraction of input mass",
+      "denominator": "total input mass for the task",
+      "method": "mass of input remaining outside the target processing specification divided by starting input mass.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "user_present_time_s",
+      "unit": "seconds",
+      "denominator": "one task or complete meal, stated per run",
+      "method": "time-motion study of active hands-on user effort, including setup, feeding, monitoring requiring presence, handling and cleaning; separate passive waiting.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "water_l",
+      "unit": "litres",
+      "denominator": "one standardized cleaning or meal workflow",
+      "method": "integrate calibrated water-meter readings for all in-scope operations; state included activities and sampling resolution.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "yield_loss_fraction",
+      "unit": "fraction of starting input mass",
+      "denominator": "total starting ingredient mass",
+      "method": "(starting mass - recovered usable output mass) / starting mass; account for intentional peel/seed/bone removals separately.",
+      "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "kitchen_r_environment_restoration_rate",
+      "unit": "fraction",
+      "denominator": "all integrated episodes whose protocol requires environment restoration",
+      "method": "episodes whose final scene digest and object placements satisfy the preregistered restoration predicate divided by all restoration-required episodes.",
+      "evidence_class": "measured",
+      "notes": "Do not infer restoration from task success alone; compare final state to the declared target scene."
+    },
+    {
+      "metric_id": "kitchen_r_collision_incidence",
+      "unit": "fraction of episodes",
+      "denominator": "all low-level-control and integrated episodes",
+      "method": "episodes with one or more simulator collision/contact events divided by all applicable episodes; also report counts and severity.",
+      "evidence_class": "measured",
+      "notes": "Simulated collision incidence is not physical risk qualification."
+    },
+    {
+      "metric_id": "kitchen_r_recovery_latency_s",
+      "unit": "seconds",
+      "denominator": "all recovery attempts, with failed attempts retained and right-censored separately",
+      "method": "time from perturbation/failure trigger to independently verified restoration of the affected subgoal; report successful recovery median and failed/censored count.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_abstention_precision",
+      "unit": "fraction",
+      "denominator": "all verb instances for which the ontology abstains or marks unmapped",
+      "method": "Correctly abstained ambiguous/unsupported verbs divided by all abstentions, scored against human-adjudicated labels.",
+      "evidence_class": "assayed",
+      "notes": "A low coverage system can obtain high precision by abstaining; report coverage and group recall alongside this metric."
+    },
+    {
+      "metric_id": "action_verb_occurrence_weighted_coverage",
+      "unit": "fraction",
+      "denominator": "all action verb occurrences in the frozen recipe corpus",
+      "method": "Frequency-weighted fraction of verb occurrences mapped to a validated action core; report type-level unique-verb coverage separately.",
+      "evidence_class": "measured",
+      "notes": "Must use fixed corpus, language normalization, tokenization and split. Not directly comparable to the 2025 paper until its full protocol is reproduced."
+    },
+    {
+      "metric_id": "action_human_corrections_per_100_verbs",
+      "unit": "corrections per 100 verb instances",
+      "denominator": "all mapped or abstained verb instances presented for review",
+      "method": "Count adjudicator edits/rejections divided by verb instances, multiplied by 100.",
+      "evidence_class": "assayed",
+      "notes": "Blind reviewers to system identity; retain inter-annotator agreement and unresolved disagreements."
+    },
+    {
+      "metric_id": "offline_manual_completion_rate",
+      "unit": "fraction",
+      "denominator": "eligible end-to-end workflow trials with WAN/cloud unavailable and local manual mode available",
+      "method": "disconnect WAN and disable cloud dependencies before the frozen run; count completed accepted workflows without remote service, camera or microphone divided by all eligible attempts; retain failures and exclusions",
+      "evidence_class": "measured",
+      "notes": "Manual mode remains subject to all appliance-local interlocks; this is not permission to bypass a safety function."
+    },
+    {
+      "metric_id": "manual_override_success_rate",
+      "unit": "fraction",
+      "denominator": "eligible user takeover or override attempts in supported non-hazardous workflows",
+      "method": "count overrides that transfer control to the user, expose current state and stop autonomous recommendations/actions without hidden restart, divided by all eligible attempts",
+      "evidence_class": "measured",
+      "notes": "Never test override by defeating pressure, thermal, blade, motor or electrical protection."
+    },
+    {
+      "metric_id": "manual_override_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "eligible user takeover or override attempt",
+      "method": "time from deliberate user override input to clearly indicated stable manual-control state; report median, p95 and failures",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "service_module_replacement_time_s",
+      "unit": "seconds",
+      "denominator": "one declared user-serviceable non-safety module replacement",
+      "method": "time from safe electrical isolation to completion of manufacturer-defined post-replacement functional check; report tools, operator class, steps and consumables",
+      "evidence_class": "measured",
+      "notes": "Exclude pressure vessels, high-voltage assemblies and safety-critical parts unless separately qualified for the exact service procedure."
+    },
+    {
+      "metric_id": "post_service_functional_verification_rate",
+      "unit": "fraction",
+      "denominator": "all completed declared module-service interventions",
+      "method": "count interventions passing the exact manufacturer-defined post-service functional verification divided by all completed interventions; failed and inconclusive checks remain in denominator",
+      "evidence_class": "measured",
+      "notes": "Functional verification is not independent safety certification."
+    },
+    {
+      "metric_id": "water_l_per_accepted_serving",
+      "unit": "litres per accepted serving",
+      "denominator": "accepted edible servings",
+      "method": "meter preparation, cooking and cleaning water separately; sum only complete, boundary-matched terms and divide by accepted servings; preserve unknown terms and meter uncertainty",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "mass_balance_unaccounted_fraction",
+      "unit": "fraction of measured input mass",
+      "denominator": "total weighed ingredient and process-liquid input mass",
+      "method": "weigh accepted edible output, trim, rejects, residues, collected drainage/condensate and other declared outputs; include evaporation only when measured or bounded with disclosed uncertainty; compute absolute unaccounted mass divided by total input mass",
+      "evidence_class": "measured",
+      "notes": "Unknown mass flows are not zero. Do not claim closure by omitting evaporation, drainage or cleaning residues."
+    },
+    {
+      "metric_id": "model_energy_absolute_percentage_error",
+      "unit": "fraction",
+      "denominator": "calibrated measured wall-plug energy per frozen trial",
+      "method": "freeze the model prediction before each run and calculate absolute(predicted minus measured) divided by measured energy; report distribution by workload, power/load class and held-out trial",
+      "evidence_class": "measured",
+      "notes": "A model prediction is not measurement; do not train or tune on held-out evaluation trials."
+    },
+    {
+      "metric_id": "replan_success_rate_under_disturbance",
+      "unit": "fraction",
+      "denominator": "all preregistered simulated disturbance episodes",
+      "method": "count episodes where deterministic replanning reaches a valid schedule without temporal, resource, module-capability or power-envelope violations divided by all injected episodes; report abstentions, failures and latency separately",
+      "evidence_class": "simulated",
+      "notes": "Disturbances are injected in simulation only unless a separate physical safety case permits a specific test."
+    },
+    {
+      "metric_id": "safety_spec_compliance_rate",
+      "unit": "fraction",
+      "denominator": "all simulated episodes with a fully observable set of applicable task-aware safety specifications",
+      "method": "post-hoc evaluation of each episode against frozen task-specific temporal safety invariants; numerator requires every applicable spec to satisfy its threshold throughout the rollout; missing required signals are excluded from safe claims and reported separately",
+      "evidence_class": "simulated",
+      "notes": "Never treat this as native task success. An episode is safe only relative to the declared, valid, observable specification set."
+    },
+    {
+      "metric_id": "safety_success_but_unsafe_rate",
+      "unit": "fraction",
+      "denominator": "all simulated episodes, with conditional-on-success rate additionally reported",
+      "method": "count episodes that satisfy the native task success predicate but violate one or more active applicable safety specifications; report both count/all episodes and count/native-success episodes",
+      "evidence_class": "simulated",
+      "notes": "Unsafe success is not accepted success. Do not average this against speed, task success or energy."
+    },
+    {
+      "metric_id": "safety_violation_severity_index",
+      "unit": "normalized index [0,1]",
+      "denominator": "all simulated episodes with at least one applicable safety specification",
+      "method": "compute normalized worst violation depth per episode using frozen spec robustness thresholds; report distribution, p95 and worst case, preserving spec and signal provenance",
+      "evidence_class": "simulated",
+      "notes": "A low event frequency does not erase the severity of a rare severe violation."
+    },
+    {
+      "metric_id": "safety_signal_coverage_rate",
+      "unit": "fraction",
+      "denominator": "all safety specifications declared applicable to an episode",
+      "method": "count applicable specs whose required signals are present, valid and within sampling/quality requirements divided by all applicable specs; N/A must have a valid task-aware reason",
+      "evidence_class": "simulated",
+      "notes": "Unavailable required signals are unknown, not safe and not N/A by default."
+    },
+    {
+      "metric_id": "safety_safe_stop_success_rate",
+      "unit": "fraction",
+      "denominator": "all preregistered simulated hazard-trigger episodes",
+      "method": "count episodes where the controller reaches the declared safe stopped state within the task-specific time bound without violating another active spec divided by all trigger episodes",
+      "evidence_class": "simulated",
+      "notes": "Simulation only; physical emergency-stop and appliance-local protection require separate independent qualification."
+    }
+  ],
+  "target_hypotheses": [
+    {
+      "hypothesis_id": "H-ENERGY-10",
+      "metric_id": "energy_wh_per_accepted_serving",
+      "target": "<=0.90 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "taste or texture non-inferior margin fails",
+        "safety or conformity concern",
+        "water or cleaning burden materially increases"
+      ]
+    },
+    {
+      "hypothesis_id": "H-LABOR-15",
+      "metric_id": "user_present_time_per_accepted_meal",
+      "target": "<=0.85 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "total time-to-plate worsens beyond declared service tolerance",
+        "operator intervention burden increases"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PRECISION-25",
+      "metric_id": "particle_size_cv",
+      "target": "<=0.75 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "fines or yield loss increase",
+        "output bruising/temperature rise worsens"
+      ]
+    },
+    {
+      "hypothesis_id": "H-WASTE-20",
+      "metric_id": "avoidable_prep_loss_fraction",
+      "target": "<=0.80 x best matched comparator",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "food mass balance fails closure tolerance",
+        "waste is shifted to another process stage"
+      ]
+    },
+    {
+      "hypothesis_id": "H-POWER-CAP",
+      "metric_id": "power_cap_violation_count",
+      "target": "0 measured violations against the declared real-power envelope for schedules marked feasible",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any measured cap violation",
+        "appliance unsafe state after supply loss",
+        "scheduler assumes unknown power budget is available"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PLAN-FEASIBILITY",
+      "metric_id": "schedule_feasibility_rate",
+      "target": "100% of schedules returned as feasible pass the independent verifier; failures remain explicit.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any invalid schedule is labelled feasible",
+        "failed schedules omitted from denominator"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PLAN-GAP",
+      "metric_id": "makespan_relative_gap_to_lower_bound",
+      "target": "Measure first; propose <=10% median gap only on a frozen small-instance suite with proven lower bounds.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "lower bound unproven",
+        "solver timeout reported as optimality"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPLAN-LATENCY",
+      "metric_id": "replan_latency_ms",
+      "target": "Establish 50/100/500 task scaling curves before choosing a numeric target.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "verification time omitted",
+        "hardware/workload not recorded"
+      ]
+    },
+    {
+      "hypothesis_id": "H-RECIPE-GROUNDING",
+      "metric_id": "human_correction_count",
+      "target": "Reduce median practitioner corrections versus deterministic rules without increasing graph infeasibility.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "recipe rights missing",
+        "human corrections or failed graphs omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-POWER-STAGGER",
+      "metric_id": "staggered_makespan_savings_vs_serial",
+      "target": "Demonstrate positive median makespan savings over the serial baseline on cases where naive parallel execution violates the envelope but a feasible interleaving exists; freeze suite and report failures before selecting a percentage target.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "serial and power-aware cases use different input graphs or envelopes",
+        "either schedule bypasses the independent verifier",
+        "heuristic failure is described as proof of infeasibility",
+        "only successful cases are reported"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-ONTOLOGY-COVERAGE",
+      "metric_id": "action_core_coverage_fraction",
+      "target": "Reproduce the published corpus/preprocessing protocol first; then improve exact action-group precision and recall without inflating coverage by forcing ambiguous verbs into a core.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "corpus license or split is not documented",
+        "unmapped verbs are omitted from denominator",
+        "cosine/LLM candidate matches are reported as deterministic rules",
+        "precision falls while coverage rises"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-INTEGRATION",
+      "metric_id": "kitchen_r_integrated_success_rate",
+      "target": "Establish separate planning-only, low-level-control-only and integrated baselines; reduce the integrated success gap without treating either component as perfect.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "dataset/simulator revision not frozen",
+        "initial-state seeds differ between systems",
+        "planning or low-level failures are hidden",
+        "simulated results are described as physical robot qualification"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-RECOVERY",
+      "metric_id": "kitchen_r_task_recovery_rate",
+      "target": "Measure recovery under a preregistered set of perception, placement and resource perturbations; no numeric target until baseline reproduction.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "perturbation severity is not fixed",
+        "human takeover is omitted",
+        "recovery is counted without reaching a verified goal state"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-ENVIRONMENT-RECOVERY",
+      "metric_id": "kitchen_r_environment_restoration_rate",
+      "target": "Measure environment restoration and recovery under frozen perturbations; improve them without increasing collisions or human takeover.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "scene restoration predicate is not frozen",
+        "failed episodes are omitted",
+        "recovery is counted without independent subgoal verification",
+        "simulation results are reported as physical robot qualification"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-QUALITY",
+      "metric_id": "action_group_precision",
+      "target": "On a frozen, rights-cleared, human-adjudicated recipe split, target at least 0.95 macro precision and 0.85 macro recall; preserve explicit abstention for unsupported or genuinely ambiguous verbs.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "unmapped verbs are removed from denominators",
+        "macro and micro metrics are conflated",
+        "model or cosine candidate is treated as deterministic evidence",
+        "annotator agreement is not reported"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-COVERAGE",
+      "metric_id": "action_verb_occurrence_weighted_coverage",
+      "target": "After reproducing the published Recipe1M+ normalization/protocol, target at least 0.85 frequency-weighted core coverage while maintaining at least 0.95 macro precision; do not compare against the published 0.765 figure until protocol parity is established.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "corpus/split rights are unclear",
+        "coverage rises by assigning ambiguous verbs without review",
+        "precision/recall or abstention quality is omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-ABSTENTION",
+      "metric_id": "action_abstention_precision",
+      "target": "Target 1.0 precision for explicit unmapped/abstain cases in the adjudicated test subset; unknown verbs must not acquire a device/robot action binding by default.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "unmapped verbs are force-mapped",
+        "human review provenance is absent",
+        "a taxonomy binding is interpreted as low-level control authorization"
+      ]
+    },
+    {
+      "hypothesis_id": "H-OFFLINE-MANUAL-99",
+      "metric_id": "offline_manual_completion_rate",
+      "target": ">=0.99 of preregistered eligible workflows completed with WAN/cloud unavailable",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any workflow requires a cloud account or remote service to reach local manual mode",
+        "any appliance-local interlock is bypassed",
+        "failed or excluded offline trials are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-OVERRIDE-99",
+      "metric_id": "manual_override_success_rate",
+      "target": ">=0.99 successful, clearly indicated user takeovers on eligible non-hazardous workflows",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "hidden restart after takeover",
+        "ambiguous physical state presented as known",
+        "any safety interlock bypass"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPAIR-25",
+      "metric_id": "service_module_replacement_time_s",
+      "target": "<=0.75 x matched incumbent median time for the same user-serviceable non-safety intervention",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "damage or functional verification failure increases",
+        "replacement requires unsafe disassembly",
+        "replacement parts or instructions are unavailable"
+      ]
+    },
+    {
+      "hypothesis_id": "H-WATER-15-ACCEPTED",
+      "metric_id": "water_l_per_accepted_serving",
+      "target": "<=0.85 x best matched comparator water use per accepted serving, with equivalent food and cleaning outcomes",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "water boundary is incomplete",
+        "cleaning or food-quality result deteriorates",
+        "missing water is treated as zero"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MASS-CLOSURE-98",
+      "metric_id": "mass_balance_unaccounted_fraction",
+      "target": "<=0.02 on a preregistered closed measurement protocol with uncertainty reported",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "evaporation, drainage or cleaning residues are omitted",
+        "mass-balance tolerance is changed after observing results",
+        "input and output boundaries differ"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODEL-ENERGY-10",
+      "metric_id": "model_energy_absolute_percentage_error",
+      "target": "<=0.10 median absolute percentage error on held-out, calibrated trials across declared load classes",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "predictions are tuned on held-out trials",
+        "meter calibration is invalid or absent",
+        "load classes or appliance revisions are silently pooled"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPLAN-95",
+      "metric_id": "replan_success_rate_under_disturbance",
+      "target": ">=0.95 of preregistered feasible simulated disturbances repaired with zero hard-constraint violations",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any accepted schedule violates resource, timing, module or power constraints",
+        "failed or aborted episodes are dropped",
+        "unknown state is converted to a safe/available assumption"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFETY-SPEC-100",
+      "metric_id": "safety_spec_compliance_rate",
+      "target": "1.00 on preregistered applicable and fully observable simulated task safety specs; zero severe violations",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any severe violation",
+        "a required signal is missing but the episode is labelled safe",
+        "task-specific applicability rules are edited after evaluation"
+      ]
+    },
+    {
+      "hypothesis_id": "H-UNSAFE-SUCCESS-ZERO",
+      "metric_id": "safety_success_but_unsafe_rate",
+      "target": "0.00 successful-but-unsafe episodes in the frozen simulated kitchen safety suite",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any successful episode violates an applicable safety spec",
+        "unsafe success is merged into ordinary task success",
+        "failed or aborted episodes are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFETY-SIGNAL-100",
+      "metric_id": "safety_signal_coverage_rate",
+      "target": "1.00 required safety-signal coverage for every episode included in a safe-compliance claim",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "required signal unavailable or invalid",
+        "an unobservable spec is marked N/A without a frozen task-aware justification",
+        "sample cadence is insufficient for the invariant"
+      ]
+    },
+    {
+      "hypothesis_id": "H-SAFE-STOP-100",
+      "metric_id": "safety_safe_stop_success_rate",
+      "target": "1.00 of preregistered simulated hazard-trigger episodes reach the frozen safe stopped state within its bound",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any hazard episode fails to stop or enters an unsafe state",
+        "safe-stop time threshold is changed after results",
+        "physical emergency-stop is inferred from simulator outcome"
+      ]
+    }
+  ],
+  "instruments": [
+    {
+      "instrument_id": "ac-power-analyzer",
+      "measurement": "True real power/energy, voltage, frequency, power factor, current and safe transient/startup capture; record bandwidth, sampling cadence and uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "water-flow-meter-set",
+      "measurement": "Separate preparation, cooking and cleaning water flow/volume; hot/cold source and meter uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "precision-balance",
+      "measurement": "Ingredient, small-batch output, trim, residue and cleaning material mass; include check-weight verification.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "platform-scale",
+      "measurement": "Vessel, bulk ingredient, accepted output, reject and process-water mass; include capacity and check-weight verification.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "temperature-probe-array",
+      "measurement": "Food temperature and spatial uniformity; record probe type, response, placement, calibration and uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "environment-monitor",
+      "measurement": "Ambient temperature, relative humidity and relevant environmental conditions during trials.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "particle-size-imaging-rig",
+      "measurement": "Calibrated imaging or sieve-based particle-size distribution, including scale, illumination, sampling and fines measurement.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "sound-level-meter",
+      "measurement": "A-weighted sound levels and background noise, with meter class, placement and calibration.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "cleaning-residue-assay",
+      "measurement": "Standardized soil loading and gravimetric or chemical residue measurement with method and detection limit.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    }
+  ],
+  "runs": [],
+  "power_scheduler": {
+    "status": "linked_unrun",
+    "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs",
+    "issue_ref": "https://github.com/Luminous-Dynamics/symtropy/issues/2227",
+    "schema_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/PowerConstrainedPlanV1.schema.json",
+    "fixtures_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/fixtures/power-envelope-v1.json",
+    "unit": "W_real",
+    "claim_boundary": "Power limits and demand profiles must be site- and appliance-specific. Synthetic fixtures are not household measurements; profile evidence and calibration remain explicit."
+  },
+  "planner_baselines": [
+    {
+      "baseline_id": "human-practitioner-reference",
+      "class": "human_practitioner",
+      "status": "proposed_not_implemented",
+      "description": "Practitioner-authored reference plan including task timing and manual effort.",
+      "implementation_ref": null,
+      "dataset_ref": null,
+      "evaluation_role": "Human usability and craft reference."
+    },
+    {
+      "baseline_id": "serial-topological",
+      "class": "serial_greedy",
+      "status": "existing_local",
+      "description": "Deterministic serial topological schedule.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/lib.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Feasibility baseline and fallback."
+    },
+    {
+      "baseline_id": "earliest-gap-resource-greedy",
+      "class": "resource_greedy",
+      "status": "existing_local",
+      "description": "Deterministic earliest-gap schedule respecting precedence, time windows and exclusive resources.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/lib.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Primary scheduler baseline."
+    },
+    {
+      "baseline_id": "power-aware-event-boundary-heuristic",
+      "class": "power_constrained",
+      "status": "existing_local",
+      "description": "Three-stage scheduling: existing parallel earliest-gap, deterministic event-boundary power-aware staggering, then serial topological fallback. This is a heuristic and is not globally optimal.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Power-feasible makespan and concurrency; compare to naive parallel, serial and exact-solver bounds on identical plans/envelopes."
+    },
+    {
+      "baseline_id": "recipe2plan-emnlp-2025",
+      "class": "recipe2plan_external",
+      "status": "external_public_benchmark",
+      "description": "Public concurrent cooking benchmark with temporal constraints between actions.",
+      "implementation_ref": "https://github.com/WilliamZR/Recipe2Plan",
+      "dataset_ref": "https://aclanthology.org/2025.findings-emnlp.229/",
+      "evaluation_role": "Temporal multitasking comparison."
+    },
+    {
+      "baseline_id": "lrec-recipe-understanding-2024",
+      "class": "recipe_grounding_external",
+      "status": "external_public_benchmark",
+      "description": "Public recipe-to-executable-action grounding benchmark with kitchen simulators.",
+      "implementation_ref": null,
+      "dataset_ref": "https://aclanthology.org/2024.lrec-main.3/",
+      "evaluation_role": "Recipe grounding comparison."
+    },
+    {
+      "baseline_id": "small-instance-exact-lower-bound",
+      "class": "exact_solver_lower_bound",
+      "status": "proposed_not_implemented",
+      "description": "Exact solver baseline for a small declared instance suite; report proof status.",
+      "implementation_ref": null,
+      "dataset_ref": null,
+      "evaluation_role": "Lower-bound measurement."
+    },
+    {
+      "baseline_id": "ortools-cp-sat-small-instance-reference",
+      "class": "exact_solver_lower_bound",
+      "status": "proposed_not_implemented",
+      "description": "Reference exact-model implementation using interval variables, NoOverlap and cumulative power/resource constraints on a frozen small-instance suite. Solver proof status and time budget must be recorded.",
+      "implementation_ref": "https://github.com/google/or-tools/blob/stable/ortools/sat/docs/scheduling.md",
+      "dataset_ref": "https://scheduleopt.github.io/benchmarks/",
+      "evaluation_role": "Proven lower bound / optimality comparison, only for instances solved to optimality."
+    },
+    {
+      "baseline_id": "actionable-knowledge-graph-six-core-recipe1mplus-2025",
+      "class": "action_ontology_external",
+      "status": "external_public_benchmark",
+      "description": "Published six Action Core / Action Group ontology over Recipe1M+; the paper reports 76.5% verb coverage after direct matching plus cosine similarity and separately discusses neuro-symbolic handling of unmatched verbs.",
+      "implementation_ref": "https://www.frontiersin.org/journals/robotics-and-ai/articles/10.3389/frobt.2025.1682031/full",
+      "dataset_ref": null,
+      "evaluation_role": "External action-core coverage and grouping reference; reproduce corpus, normalization and matching protocol before comparing. Coverage is not precision or physical execution."
+    },
+    {
+      "baseline_id": "kitchen-r-planning-only-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R planning-only VLM baseline on 500+ language instructions in an Isaac Sim kitchen digital twin.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Planning module baseline; evaluate task decomposition and instruction success separately from control."
+    },
+    {
+      "baseline_id": "kitchen-r-low-level-policy-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R diffusion-policy low-level control baseline on the same licensed simulator/episode suite.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Low-level navigation/manipulation baseline; keep independent from planning score."
+    },
+    {
+      "baseline_id": "kitchen-r-integrated-system-2025",
+      "class": "kitchen_r_external",
+      "status": "external_public_benchmark",
+      "description": "Kitchen-R integrated mobile-manipulator planning plus low-level control evaluation.",
+      "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
+      "evaluation_role": "Integrated execution baseline on identical simulator episodes; no physical transfer claim."
+    },
+    {
+      "baseline_id": "behavior-1k-2026",
+      "class": "behavior_1k_external",
+      "status": "external_public_benchmark",
+      "description": "BEHAVIOR-1K / 2026 BEHAVIOR Challenge: broad, long-horizon household mobile-manipulation tasks in realistic home scenes. Use only a declared kitchen-adjacent task subset for matched comparisons; this is not a kitchen-appliance benchmark.",
+      "implementation_ref": "https://behavior.stanford.edu/",
+      "dataset_ref": "https://proceedings.mlr.press/v205/li23a.html",
+      "evaluation_role": "Complement RoboCasa365 with long-horizon household service tasks such as pantry/household organization and kitchen-adjacent manipulation. Report task subset, split, environment, embodiment, sensing, partial-credit rubric, recovery and human takeover separately; never compare the overall BEHAVIOR-1K score directly with RoboCasa365."
+    },
+    {
+      "baseline_id": "safevla-bench-2026",
+      "class": "safevla_bench_external",
+      "status": "external_public_benchmark",
+      "description": "SafeVLA-Bench post-hoc, task-aware STL safety-evaluation layer on native simulator VLA benchmarks, reporting safety compliance, native success, success-but-unsafe and worst-violation severity.",
+      "implementation_ref": "https://safevla.org/leaderboard",
+      "dataset_ref": "https://arxiv.org/abs/2606.00773",
+      "evaluation_role": "Add safety auditing to matched RoboCasa-365/Kitchen-R trajectories without changing host observations, actions, seeds or native success predicates. Record SafeVLA release 2026-09-26 and spec registry; do not equate this simulator safety score with real-world appliance or human safety."
+    }
+  ]
+}
