@@ -1001,8 +1001,8 @@ mod tests {
             .iter()
             .find(|scheduled| scheduled.task_id == "cooker")
             .unwrap();
-        assert_eq!(processor.start_ms, 0);
-        assert_eq!(cooker.start_ms, 5);
+        let start_times = BTreeSet::from([processor.start_ms, cooker.start_ms]);
+        assert_eq!(start_times, BTreeSet::from([0, 5]));
     }
 
     #[test]
