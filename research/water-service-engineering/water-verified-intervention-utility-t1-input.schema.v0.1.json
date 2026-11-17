@@ -272,11 +272,14 @@
             ],
             "properties": {
               "baseline": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "$ref": "#/$defs/measurement"
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/measurement"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
               "followups": {
                 "type": "array",
