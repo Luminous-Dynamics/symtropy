@@ -1,0 +1,70 @@
+name: Factory Accepted Output Economics
+
+on:
+  pull_request:
+    paths:
+      - "tools/factory-accepted-output-economics/**"
+      - "docs/research/FACTORY_ACCEPTED_OUTPUT_ECONOMICS_V0_1.md"
+      - ".github/workflows/factory-accepted-output-economics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage0:
+    name: Synthetic accepted-output accounting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/factory-accepted-output-economics/Cargo.toml -- --check
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/factory-accepted-output-economics/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --locked --manifest-path tools/factory-accepted-output-economics/Cargo.toml --all-targets
+
+      - name: Emit deterministic reports and evidence manifest
+        run: |
+          mkdir -p stage0-evidence
+          cargo run --locked --manifest-path tools/factory-accepted-output-economics/Cargo.toml -- --summary > stage0-evidence/summary.tsv 2> stage0-evidence/run.log
+          cargo run --locked --manifest-path tools/factory-accepted-output-economics/Cargo.toml -- --breakdown > stage0-evidence/cost-breakdown.tsv 2>> stage0-evidence/run.log
+          test "$(wc -l < stage0-evidence/summary.tsv)" -eq 21
+          test "$(wc -l < stage0-evidence/cost-breakdown.tsv)" -gt 1
+          {
+            echo "workflow_run_id=${GITHUB_RUN_ID}"
+            echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "checkout_sha=$(git rev-parse HEAD)"
+            echo "source_head_sha=${{ github.event.pull_request.head.sha || github.sha }}"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "case_count=$(($(wc -l < tools/factory-accepted-output-economics/fixtures/cases-v0.1.tsv) - 1))"
+            echo "cost_item_count=$(($(wc -l < tools/factory-accepted-output-economics/fixtures/cost-items-v0.1.tsv) - 1))"
+            echo "output_disposition_count=$(($(wc -l < tools/factory-accepted-output-economics/fixtures/outputs-v0.1.tsv) - 1))"
+            echo "summary_line_count=$(wc -l < stage0-evidence/summary.tsv)"
+            echo "cost_breakdown_line_count=$(wc -l < stage0-evidence/cost-breakdown.tsv)"
+          } > stage0-evidence/manifest.txt
+          sha256sum \
+            tools/factory-accepted-output-economics/fixtures/cases-v0.1.tsv \
+            tools/factory-accepted-output-economics/fixtures/cost-items-v0.1.tsv \
+            tools/factory-accepted-output-economics/fixtures/outputs-v0.1.tsv \
+            tools/factory-accepted-output-economics/fixtures/expected-v0.1.tsv \
+            stage0-evidence/summary.tsv \
+            stage0-evidence/cost-breakdown.tsv >> stage0-evidence/manifest.txt
+
+      - name: Upload exact-run evidence bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-accepted-output-economics-stage0-${{ github.sha }}
+          path: stage0-evidence/
+          if-no-files-found: error
+          retention-days: 30
