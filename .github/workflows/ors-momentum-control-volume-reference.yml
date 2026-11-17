@@ -55,6 +55,8 @@ jobs:
             and (.max_abs_mass_balance_residual_kg_s <= 1.0e-12)
             and (.max_abs_reaction_closure_residual_n == 0)
             and (.cases | length == 6)
+            and all(.cases[]; .frame_id == "INERTIAL_SYNTHETIC")
+            and all(.cases[]; .epoch_s == 0)
           ' momentum-cv-a.json
           sha256sum "$cases" "$ports" momentum-cv-a.json
       - name: Upload exact outputs
