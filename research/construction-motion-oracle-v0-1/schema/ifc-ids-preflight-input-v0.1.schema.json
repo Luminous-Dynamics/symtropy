@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-ifc-ids-preflight-input-v0.1.json",
+  "title": "Construction IFC 4.3 / IDS 1.0 Preflight Input v0.1",
+  "description": "Typed handoff from an IFC/IDS reader to the preflight compiler. The consumer must verify each digest against canonical source bytes and the IDS evaluation receipt before compilation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "package_sha256",
+    "source_model_sha256",
+    "source_schema_release",
+    "ids_spec_sha256",
+    "ids_version",
+    "design_revision_sha256",
+    "frame_id",
+    "frame_sha256",
+    "transform_sha256",
+    "entity_manifest_sha256",
+    "acceptance_profile_sha256",
+    "acceptance_profile",
+    "entities"
+  ],
+  "properties": {
+    "package_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "source_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "source_schema_release": {
+      "const": "IFC4X3_ADD2"
+    },
+    "ids_spec_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "ids_version": {
+      "const": "1.0"
+    },
+    "design_revision_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "transform_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "entity_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "acceptance_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "acceptance_profile": {
+      "$ref": "#/$defs/acceptance_profile"
+    },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source_entity"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ifc_global_id": {
+      "type": "string",
+      "pattern": "^[0-9A-Za-z_$]{22}$"
+    },
+    "acceptance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_abs_xy_residual_mm",
+        "max_reference_u95_xy_mm"
+      ],
+      "properties": {
+        "max_abs_xy_residual_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_reference_u95_xy_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_abs_z_residual_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_reference_u95_z_mm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_abs_endpoint_residual_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "max_abs_z_residual_mm"
+            ]
+          },
+          "then": {
+            "required": [
+              "max_reference_u95_z_mm"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "max_reference_u95_z_mm"
+            ]
+          },
+          "then": {
+            "required": [
+              "max_abs_z_residual_mm"
+            ]
+          }
+        }
+      ]
+    },
+    "ids_requirement_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirement_id",
+        "passed",
+        "evaluation_receipt_sha256"
+      ],
+      "properties": {
+        "requirement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "evaluation_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "source_entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "global_id",
+        "entity_type",
+        "geometry_sha256",
+        "required_ids_properties",
+        "delivered_ids_properties",
+        "applicable_ids_requirement_ids",
+        "ids_requirement_evaluations",
+        "in_work_scope"
+      ],
+      "properties": {
+        "global_id": {
+          "$ref": "#/$defs/ifc_global_id"
+        },
+        "entity_type": {
+          "enum": [
+            "line",
+            "point",
+            "arc",
+            "text",
+            "opening",
+            "elevation",
+            "other"
+          ]
+        },
+        "geometry_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_ids_properties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "delivered_ids_properties": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "applicable_ids_requirement_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "ids_requirement_evaluations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ids_requirement_evaluation"
+          }
+        },
+        "in_work_scope": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
