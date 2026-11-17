@@ -1,3 +1,6 @@
+#![allow(clippy::needless_range_loop)]
+// Fixed-size multi-index tensor algebra intentionally uses explicit index loops.
+
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
