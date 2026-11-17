@@ -172,6 +172,7 @@ pub enum SensorDesignError {
     NonFiniteCovariance,
     AsymmetricCovariance,
     CovarianceNotPositiveDefinite,
+    EmptySelection,
     UnknownSensorId(u32),
     DuplicateSelectedSensor(u32),
     BudgetExceeded,
@@ -210,6 +211,7 @@ impl fmt::Display for SensorDesignError {
             Self::CovarianceNotPositiveDefinite => {
                 write!(f, "noise covariance must be strictly positive definite")
             }
+            Self::EmptySelection => write!(f, "at least one sensor must be selected"),
             Self::UnknownSensorId(id) => write!(f, "unknown selected sensor ID {id}"),
             Self::DuplicateSelectedSensor(id) => {
                 write!(f, "sensor ID {id} was selected more than once")
@@ -371,7 +373,7 @@ fn resolve_selected_indices(
     selected_sensor_ids: &[u32],
 ) -> Result<Vec<usize>, SensorDesignError> {
     if selected_sensor_ids.is_empty() {
-        return Err(SensorDesignError::DuplicateSelectedSensor(0));
+        return Err(SensorDesignError::EmptySelection);
     }
     let mut seen = HashSet::new();
     let lookup: HashMap<u32, usize> = scenario
