@@ -420,6 +420,7 @@ pub fn preflight_ifc_ids_work_package(
         return Err(errors);
     }
 
+    let in_scope_entity_count = source_entity_bindings.len() as u64;
     Ok(IfcIdsPreflightReport {
         work_package: SiteWorkPackage {
             package_sha256: input.package_sha256,
@@ -438,7 +439,7 @@ pub fn preflight_ifc_ids_work_package(
         },
         source_entity_bindings,
         source_entity_count: input.entities.len() as u64,
-        in_scope_entity_count: source_entity_bindings.len() as u64,
+        in_scope_entity_count,
         ifc_schema_release: input.source_schema_release,
         ids_version: input.ids_version,
         coordinate_context: input.coordinate_context,
