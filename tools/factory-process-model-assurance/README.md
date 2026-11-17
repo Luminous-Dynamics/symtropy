@@ -3,7 +3,7 @@
 **Owner:** Symtropy FACTORY-PROCESS-MODEL-ASSURANCE-001 [#5729](https://github.com/Luminous-Dynamics/symtropy/issues/5729)  
 **Canonical process semantics:** Symthaea MFG-PROC-000 [#5686](https://github.com/Luminous-Dynamics/symthaea/issues/5686)  
 **Fixture generation:** `pump-valve-model-change-v0.1`  
-**Status:** frozen synthetic task/mutation design; Rust harness and solver-backed oracle not yet implemented or qualified.
+**Status:** frozen synthetic task/mutation corpus plus a dependency-free Rust obligation-trace contract checker; exact-head CI qualification is pending. No solver-backed semantic oracle is claimed.
 
 ## Research question
 
@@ -53,7 +53,7 @@ Task strata:
 - **S01–S08 structural extensions:** qualified workers, tooling/fixtures, AGV transport, maintenance calendars, sequence-dependent setup/segregation, material genealogy, inspection hold points, and calibration scope.
 - **C01–C05 compositional changes:** worker/resource interaction, transport plus sequencing, material/process/inspection coupling, version/time/source conflict, and non-anticipative future changes.
 
-Files include `tasks-v0.1.tsv` (18 tasks), `obligations-v0.1.tsv` (29 typed obligation projections), and `mutations-v0.1.tsv` (16 semantic mutations). Every obligation and mutation target is cross-referenced against the obligation manifest. Task identifiers use `synthetic-ref:` handles, not fabricated SHA-256 digests. Each task binds a base model revision, a source/change-request revision, effective and observed times, an exact product/process scope, expected obligation IDs, expected model-delta IDs, and forbidden side effects. A production-grade harness must reject source revision, identity, unit, timestamp and applicability mismatch. The obligation manifest is a local verifier projection; canonical quantity, material, process, inspection and authority semantics remain with their existing owners.
+Files include `tasks-v0.1.tsv` (18 tasks), `obligations-v0.1.tsv` (29 typed obligation projections), and `mutations-v0.1.tsv` (16 semantic mutations). Every obligation and mutation target is cross-referenced against the obligation manifest. Task identifiers use `synthetic-ref:` handles, not fabricated SHA-256 digests. Each task binds a base model revision, a source/change-request revision, effective and observed times, an exact product/process scope, expected obligation IDs, expected model-delta IDs, and forbidden side effects. A production-grade harness must reject source revision, identity, unit, timestamp and applicability mismatch. The obligation manifest is a local verifier projection; canonical quantity, material, process, inspection and authority semantics remain with their existing owners. The current checker validates trace completeness and declared constraint-family identity only; it does not inspect an actual CP-SAT model or prove that a referenced constraint's operands/scope are semantically correct. Synthetic constraint/evidence references are placeholders for contract tests, not executable-model receipts.
 
 ## Semantic obligation contract
 
@@ -129,4 +129,13 @@ v0.1 is synthetic process-model assurance research. It does not establish univer
 
 ## Run state
 
-No Rust compiler, CP-SAT integration, independent semantic verifier, exact-solver paired mutant test, CI workflow, physical data replay, or production evidence is claimed in this initial data/specification slice.
+Run the trace contract checker with:
+
+```sh
+cargo fmt --manifest-path tools/factory-process-model-assurance/Cargo.toml -- --check
+cargo clippy --manifest-path tools/factory-process-model-assurance/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path tools/factory-process-model-assurance/Cargo.toml --all-targets
+cargo run --quiet --manifest-path tools/factory-process-model-assurance/Cargo.toml --bin factory-process-model-assurance
+```
+
+The current executable checks obligation coverage, disposition admissibility, evidence currentness and declared constraint-family matching. It does not inspect CP-SAT internals, confirm objective-preserving mutants, or establish full semantic model correctness. Those remain next-stage work, alongside physical data replay and any production evidence.
