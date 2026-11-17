@@ -45,9 +45,10 @@ fn case_id(case: &Value) -> Result<&str, String> {
 }
 
 fn reports(case: &Value) -> Result<&Vec<Value>, String> {
-    field(case, "utility_reports", case_id(case)?)?
+    let id = case_id(case)?;
+    field(case, "utility_reports", id)?
         .as_array()
-        .ok_or_else(|| format!("{}: utility_reports must be an array", case_id(case).unwrap_or_default()))
+        .ok_or_else(|| format!("{id}: utility_reports must be an array"))
 }
 
 fn status_vector(case: &Value) -> Result<Vec<String>, String> {
@@ -257,6 +258,9 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
             reported_episode_count = Some(episodes);
             no_board_gap = Some(gap);
             let end_kind = string(outage, "reported_end_kind", &context)?;
+            if !matches!(end_kind, "right_censored" | "fair_off_bypass" | "split_at_bridge_cap") {
+                return Err(format!("{id}: unsupported reported_end_kind '{end_kind}'"));
+            }
             if end_kind == "right_censored" {
                 censoring = "RIGHT_CENSORED";
                 duration_lower_bound = field(outage, "duration_hours_lower_bound", &context)?
@@ -443,6 +447,9 @@ fn run(args: &[String]) -> Result<Value, String> {
         .as_array().ok_or_else(|| "input cases must be an array".to_owned())?;
     let oracle_cases = field(&oracle, "cases", "oracle")?
         .as_array().ok_or_else(|| "oracle cases must be an array".to_owned())?;
+    if input_cases.len() != 15 || oracle_cases.len() != 15 {
+        return Err("JW-WATER-CASCADE-T0 requires exactly 15 frozen cases".to_owned());
+    }
     let input_ids: BTreeSet<String> = input_cases.iter()
         .map(case_id).collect::<Result<Vec<_>, _>>()?
         .into_iter().map(str::to_owned).collect();
@@ -484,6 +491,7 @@ fn run(args: &[String]) -> Result<Value, String> {
         return Err("JW_WATER_CASCADE_REVISION must be a 40-character hexadecimal SHA".to_owned());
     }
 
+    let case_count = results.len();
     let receipt = json!({
         "receipt_schema_version": "jw-water-cascade-t0-receipt-v0.1",
         "benchmark_id": BENCHMARK_ID,
@@ -491,8 +499,8 @@ fn run(args: &[String]) -> Result<Value, String> {
         "evidence_class": "synthetic_only",
         "qualification_status": "NotRun",
         "claim_ceiling": CLAIM_CEILING,
-        "case_count": results.len(),
-        "matched_case_count": results.len(),
+        "case_count": case_count,
+        "matched_case_count": case_count,
         "mismatch_count": 0,
         "input_sha256": sha256(&input_bytes),
         "oracle_sha256": sha256(&oracle_bytes),
@@ -515,8 +523,8 @@ fn run(args: &[String]) -> Result<Value, String> {
 
     Ok(json!({
         "benchmark_id": BENCHMARK_ID,
-        "case_count": results.len(),
-        "matched_case_count": results.len(),
+        "case_count": case_count,
+        "matched_case_count": case_count,
         "mismatch_count": 0,
         "qualification_status": "NotRun",
         "evidence_class": "synthetic_only",
@@ -597,7 +605,7 @@ mod tests {
         for case in input["cases"].as_array().unwrap() {
             let result = evaluate_case(case).unwrap();
             let id = result["case_id"].as_str().unwrap();
-            assert_eq!(&result["expected"], expected[id], "case {id}");
+            assert_eq!(&result["expected"], *expected.get(id).unwrap(), "case {id}");
             count += 1;
         }
         assert_eq!(count, 15);
