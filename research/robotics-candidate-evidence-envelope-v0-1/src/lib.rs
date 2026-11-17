@@ -83,6 +83,8 @@ pub struct CandidateBinding {
 #[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceReceipt {
     pub domain: EvidenceDomain,
+    pub timebase_id: String,
+    pub timebase_revision: String,
     pub record_id: String,
     pub issuer_id: String,
     pub issuer_revision: String,
@@ -137,6 +139,7 @@ pub enum EnvelopeError {
     MalformedValidityInterval(EvidenceDomain),
     CalibrationNotValidForAcquisition,
     ReceiptValidityDoesNotCoverAcquisition(EvidenceDomain),
+    ReceiptTimebaseMismatch(EvidenceDomain),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -145,6 +148,62 @@ pub struct CandidateEvidenceAssessment {
     pub non_qualified_domains: Vec<EvidenceDomain>,
     pub unknown_domains: Vec<EvidenceDomain>,
     pub invalid_domains: Vec<EvidenceDomain>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct QualifiedCandidateProjection {
+    pub candidate_id: String,
+    pub pass_id: String,
+    pub covered_target_ids: Vec<String>,
+    pub u_m: f64,
+    pub v_m: f64,
+    pub view_angle_rad: f64,
+    pub estimated_travel_distance_m: f64,
+    pub estimated_travel_time_s: f64,
+    pub acquisition_time_s: f64,
+    pub energy_wh: f64,
+    pub risk_penalty_s: f64,
+}
+
+/// Proof token produced only by successful structural validation. Its fields
+/// are private so callers cannot manufacture planner eligibility by setting
+/// a boolean or copying a receipt status.
+#[derive(Clone, Debug)]
+pub struct ValidatedCandidateEnvelope<'a> {
+    envelope: &'a CandidateEvidenceEnvelope,
+    assessment: CandidateEvidenceAssessment,
+}
+
+impl ValidatedCandidateEnvelope<'_> {
+    pub fn assessment(&self) -> &CandidateEvidenceAssessment {
+        &self.assessment
+    }
+
+    pub fn eligibility(&self) -> CandidateEligibility {
+        self.assessment.eligibility
+    }
+
+    /// Produce planner inputs only when all three evidence domains are
+    /// Qualified and all structural bindings have passed validation.
+    pub fn qualified_projection(&self) -> Option<QualifiedCandidateProjection> {
+        if self.assessment.eligibility != CandidateEligibility::Qualified {
+            return None;
+        }
+        let binding = &self.envelope.binding;
+        Some(QualifiedCandidateProjection {
+            candidate_id: binding.candidate_id.clone(),
+            pass_id: binding.pass_id.clone(),
+            covered_target_ids: binding.target_ids.clone(),
+            u_m: binding.position_u_m,
+            v_m: binding.position_v_m,
+            view_angle_rad: binding.view_angle_rad,
+            estimated_travel_distance_m: binding.estimated_travel_distance_m,
+            estimated_travel_time_s: binding.estimated_travel_time_s,
+            acquisition_time_s: binding.estimated_acquisition_time_s,
+            energy_wh: binding.estimated_energy_wh,
+            risk_penalty_s: binding.risk_penalty_s,
+        })
+    }
 }
 
 impl CandidateBinding {
@@ -204,9 +263,9 @@ impl CandidateBinding {
     }
 }
 
-pub fn validate_candidate_envelope(
-    envelope: &CandidateEvidenceEnvelope,
-) -> Result<CandidateEvidenceAssessment, Vec<EnvelopeError>> {
+pub fn validate_candidate_envelope<'a>(
+    envelope: &'a CandidateEvidenceEnvelope,
+) -> Result<ValidatedCandidateEnvelope<'a>, Vec<EnvelopeError>> {
     let mut errors = Vec::new();
     if envelope.schema_version != SCHEMA_VERSION {
         errors.push(EnvelopeError::UnsupportedSchemaVersion);
@@ -253,6 +312,11 @@ pub fn validate_candidate_envelope(
 
         if receipt.binding_sha256 != envelope.binding_sha256 {
             errors.push(EnvelopeError::BindingDigestMismatch(receipt.domain));
+        }
+        if receipt.timebase_id != envelope.binding.timebase_id
+            || receipt.timebase_revision != envelope.binding.timebase_revision
+        {
+            errors.push(EnvelopeError::ReceiptTimebaseMismatch(receipt.domain));
         }
 
         let expected_source = match receipt.domain {
@@ -341,11 +405,14 @@ pub fn validate_candidate_envelope(
         CandidateEligibility::Qualified
     };
 
-    Ok(CandidateEvidenceAssessment {
-        eligibility,
-        non_qualified_domains,
-        unknown_domains,
-        invalid_domains,
+    Ok(ValidatedCandidateEnvelope {
+        envelope,
+        assessment: CandidateEvidenceAssessment {
+            eligibility,
+            non_qualified_domains,
+            unknown_domains,
+            invalid_domains,
+        },
     })
 }
 
@@ -621,6 +688,8 @@ mod tests {
         let binding = binding();
         EvidenceReceipt {
             domain,
+            timebase_id: binding.timebase_id.clone(),
+            timebase_revision: binding.timebase_revision.clone(),
             record_id: record_id.to_owned(),
             issuer_id: format!("evaluator-{domain:?}"),
             issuer_revision: "evaluator-r1".to_owned(),
@@ -680,10 +749,10 @@ mod tests {
     #[test]
     fn all_three_qualified_receipts_make_candidate_eligible() {
         let result = validate_candidate_envelope(&envelope()).unwrap();
-        assert_eq!(result.eligibility, CandidateEligibility::Qualified);
-        assert!(result.non_qualified_domains.is_empty());
-        assert!(result.unknown_domains.is_empty());
-        assert!(result.invalid_domains.is_empty());
+        assert_eq!(result.eligibility(), CandidateEligibility::Qualified);
+        assert!(result.assessment().non_qualified_domains.is_empty());
+        assert!(result.assessment().unknown_domains.is_empty());
+        assert!(result.assessment().invalid_domains.is_empty());
     }
 
     #[test]
@@ -691,8 +760,8 @@ mod tests {
         let mut value = envelope();
         value.receipts[1].status = EvidenceStatus::NotQualified;
         let result = validate_candidate_envelope(&value).unwrap();
-        assert_eq!(result.eligibility, CandidateEligibility::NotQualified);
-        assert_eq!(result.non_qualified_domains, vec![EvidenceDomain::SensorQuality]);
+        assert_eq!(result.eligibility(), CandidateEligibility::NotQualified);
+        assert_eq!(result.assessment().non_qualified_domains, vec![EvidenceDomain::SensorQuality]);
     }
 
     #[test]
@@ -700,7 +769,7 @@ mod tests {
         let mut value = envelope();
         value.receipts[0].status = EvidenceStatus::Unknown;
         let result = validate_candidate_envelope(&value).unwrap();
-        assert_eq!(result.eligibility, CandidateEligibility::Unknown);
+        assert_eq!(result.eligibility(), CandidateEligibility::Unknown);
     }
 
     #[test]
@@ -709,8 +778,32 @@ mod tests {
         value.receipts[0].status = EvidenceStatus::Unknown;
         value.receipts[2].status = EvidenceStatus::InvalidEvidence;
         let result = validate_candidate_envelope(&value).unwrap();
-        assert_eq!(result.eligibility, CandidateEligibility::InvalidEvidence);
-        assert_eq!(result.invalid_domains, vec![EvidenceDomain::Calibration]);
+        assert_eq!(result.eligibility(), CandidateEligibility::InvalidEvidence);
+        assert_eq!(result.assessment().invalid_domains, vec![EvidenceDomain::Calibration]);
+    }
+
+    #[test]
+    fn only_validated_fully_qualified_candidate_has_planner_projection() {
+        let qualified = validate_candidate_envelope(&envelope()).unwrap();
+        let projection = qualified.qualified_projection().unwrap();
+        assert_eq!(projection.candidate_id, "candidate-01");
+        assert_eq!(projection.covered_target_ids.len(), 2);
+
+        let mut unknown = envelope();
+        unknown.receipts[1].status = EvidenceStatus::Unknown;
+        let validated_unknown = validate_candidate_envelope(&unknown).unwrap();
+        assert!(validated_unknown.qualified_projection().is_none());
+    }
+
+    #[test]
+    fn receipt_timebase_must_match_candidate_binding() {
+        let mut value = envelope();
+        value.receipts[0].timebase_revision = "other-clock-revision".to_owned();
+        assert!(validate_candidate_envelope(&value)
+            .unwrap_err()
+            .contains(&EnvelopeError::ReceiptTimebaseMismatch(
+                EvidenceDomain::GeometryCoverage
+            )));
     }
 
     #[test]
