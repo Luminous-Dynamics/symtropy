@@ -10,7 +10,7 @@
     "benchmark_id",
     "evidence_class",
     "claim_ceiling",
-    "frozen_plan_sha256",
+    "frozen_plan_blob_sha",
     "minimum_paired_blocks",
     "cases"
   ],
@@ -31,17 +31,13 @@
       "type": "string",
       "minLength": 1
     },
-    "frozen_plan_sha256": {
-      "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
-    },
     "minimum_paired_blocks": {
       "const": 6
     },
     "cases": {
       "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "minItems": 13,
+      "maxItems": 13,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -336,6 +332,10 @@
           }
         }
       }
+    },
+    "frozen_plan_blob_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
     }
   },
   "$defs": {
