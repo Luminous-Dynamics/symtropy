@@ -433,6 +433,13 @@
           }
         }
       }
+    },
+    "buoyant_subtype": {
+      "enum": [
+        "free_balloon",
+        "airship",
+        "unknown"
+      ]
     }
   }
 }
