@@ -40,7 +40,7 @@ All IDs and values are synthetic. `fault_domain_id` is an owner-declared common-
 For each candidate path:
 
 1. All rows for the path are mandatory AND prerequisites.
-2. A path is `AVAILABLE` only when its dependency inventory is complete, every referenced qualification is current and applicable at the decision epoch, and none of its fault domains is failed in the scenario.
+2. A path is `AVAILABLE` only when its dependency inventory is complete, every referenced qualification is current and applicable at the decision epoch, and none of its fault domains is failed in the scenario. A known stale/revoked qualification makes the route `BLOCKED`; an unresolved qualification makes it `UNKNOWN`.
 3. A path with any declared unknown dependency remainder is `UNKNOWN`, not available and not silently dropped from the inventory.
 4. A path with a failed fault domain or revoked qualification is `BLOCKED`.
 5. Product disposition is four-valued: `ACCEPTED` (at least one complete route plus PASS first-article gate), `REJECTED` (a known available route plus FAIL first-article gate), `UNKNOWN` (only unknown routes remain, or acceptance evidence is unknown), or `BLOCKED` (no available or unknown route remains). A feasible route is not an accepted product.
@@ -127,7 +127,7 @@ Report separately:
 - WIP/genealogy, inspection, and blocked-output disposition;
 - runtime, memory, solver calls, and explicit `INCONCLUSIVE` outcomes.
 
-Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; `REJECTED`, `UNKNOWN` and `BLOCKED` cannot be collapsed into `ACCEPTED`; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
+Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; stale qualifications remain `BLOCKED` and unknown qualifications remain `UNKNOWN`; `REJECTED`, `UNKNOWN` and `BLOCKED` cannot be collapsed into `ACCEPTED`; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
 
 Performance targets are hypotheses only. Establish a baseline before preregistering percentage improvements. Do not combine correctness gates and performance metrics into one weighted score.
 
