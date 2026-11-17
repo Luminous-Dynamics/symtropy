@@ -55,8 +55,9 @@ impl PolicySummary {
             .iter()
             .map(|progress| {
                 let weight = weights[progress.target_id.as_str()];
-                let fraction = progress.qualifying_passes.min(progress.required_independent_passes)
-                    as f64
+                let fraction = progress
+                    .qualifying_passes
+                    .min(progress.required_independent_passes) as f64
                     / progress.required_independent_passes as f64;
                 weight * fraction
             })
@@ -136,7 +137,10 @@ impl PolicySummary {
 
 fn policies(seed: u64) -> [(&'static str, SelectionPolicy); 5] {
     [
-        ("evidence_gain_per_cost", SelectionPolicy::EvidenceGainPerCost),
+        (
+            "evidence_gain_per_cost",
+            SelectionPolicy::EvidenceGainPerCost,
+        ),
         ("nearest_feasible", SelectionPolicy::NearestFeasible),
         (
             "maximum_marginal_evidence",
@@ -150,7 +154,9 @@ fn policies(seed: u64) -> [(&'static str, SelectionPolicy); 5] {
     ]
 }
 
-fn generate_episode(seed: u64) -> (
+fn generate_episode(
+    seed: u64,
+) -> (
     Vec<EvidenceTarget>,
     Vec<QualifiedExistingPass>,
     Vec<AcquisitionCandidate>,
@@ -179,10 +185,7 @@ fn generate_episode(seed: u64) -> (
         let primary_target = (index * 7 + seed as usize) % TARGET_COUNT;
         let mut covered_target_ids = vec![format!("target-{primary_target:02}")];
         if index % 4 == 0 {
-            covered_target_ids.push(format!(
-                "target-{:02}",
-                (primary_target + 3) % TARGET_COUNT
-            ));
+            covered_target_ids.push(format!("target-{:02}", (primary_target + 3) % TARGET_COUNT));
         }
 
         let quality_roll = rng.next_unit();
@@ -243,12 +246,10 @@ fn run_matched_seeded_benchmark() {
                     std::process::exit(2);
                 }
             };
-            summaries.entry(name).or_default().record(
-                &plan,
-                &targets,
-                &candidates,
-                &budget,
-            );
+            summaries
+                .entry(name)
+                .or_default()
+                .record(&plan, &targets, &candidates, &budget);
         }
     }
 
