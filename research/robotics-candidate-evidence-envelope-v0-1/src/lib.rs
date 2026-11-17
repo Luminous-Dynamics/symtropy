@@ -194,8 +194,6 @@ impl ValidatedCandidateEnvelope<'_> {
             u_m: binding.position_u_m,
             v_m: binding.position_v_m,
             view_angle_rad: binding.view_angle_rad,
-            estimated_travel_distance_m: binding.estimated_travel_distance_m,
-            estimated_travel_time_s: binding.estimated_travel_time_s,
             acquisition_time_s: binding.estimated_acquisition_time_s,
             energy_wh: binding.estimated_energy_wh,
             risk_penalty_s: binding.risk_penalty_s,
