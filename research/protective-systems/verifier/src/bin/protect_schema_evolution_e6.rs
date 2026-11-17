@@ -11,7 +11,7 @@
 use serde::Serialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::process;
 
 const REGISTRY: &str = include_str!("../../fixtures/schema-lifecycle-registry-v0.1.json");
