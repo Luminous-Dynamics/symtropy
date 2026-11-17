@@ -23,6 +23,7 @@ pub mod observation_evidence;
 pub mod pareto_front;
 pub mod root_anatomy_energy;
 pub mod spatial_field_evidence;
+pub mod study_comparability;
 pub mod symbiosis_checkpoints;
 pub mod temporal_alignment;
 pub mod transport;
