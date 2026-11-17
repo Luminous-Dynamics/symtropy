@@ -71,9 +71,6 @@ impl Vec3 {
         }
     }
 
-    fn components(self) -> [f64; 3] {
-        [self.x, self.y, self.z]
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -773,17 +770,20 @@ fn propagate_diagonal_field_covariance(
     }
 
     let mut contribution = [[0.0; 6]; 6];
-    for row in 0..6 {
-        for column in 0..6 {
-            let mut covariance = 0.0;
-            for parameter in 0..operator.parameter_count {
-                let sigma = standard_uncertainties_pa[parameter];
-                let row_coefficient = operator.coefficients[row * operator.parameter_count + parameter];
-                let column_coefficient =
-                    operator.coefficients[column * operator.parameter_count + parameter];
-                covariance += row_coefficient * column_coefficient * sigma * sigma;
-            }
-            contribution[row][column] = covariance;
+    for (row, contribution_row) in contribution.iter_mut().enumerate() {
+        for (column, contribution_cell) in contribution_row.iter_mut().enumerate() {
+            let covariance = standard_uncertainties_pa
+                .iter()
+                .enumerate()
+                .map(|(parameter, sigma)| {
+                    let row_coefficient =
+                        operator.coefficients[row * operator.parameter_count + parameter];
+                    let column_coefficient =
+                        operator.coefficients[column * operator.parameter_count + parameter];
+                    row_coefficient * column_coefficient * sigma * sigma
+                })
+                .sum::<f64>();
+            *contribution_cell = covariance;
         }
     }
     if contribution.iter().flatten().any(|value| !value.is_finite()) {
