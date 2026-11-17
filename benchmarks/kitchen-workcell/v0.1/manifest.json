@@ -1640,10 +1640,10 @@
       "baseline_id": "behavior-1k-2026",
       "class": "behavior_1k_external",
       "status": "external_public_benchmark",
-      "description": "BEHAVIOR-1K / 2026 BEHAVIOR Challenge: broad, long-horizon household mobile-manipulation tasks in realistic home scenes. Use only a declared kitchen-adjacent task subset for matched comparisons; this is not a kitchen-appliance benchmark.",
+      "description": "BEHAVIOR-1K / 2026 BEHAVIOR Challenge: broad, long-horizon household mobile-manipulation tasks in realistic simulated homes. The 2026 challenge round is concluded (submission deadline 2026-10-16; winners announced 2026-11-04); use its released 100-task / 7-scene evaluation set for reproducible replay. This is not a kitchen-appliance benchmark.",
       "implementation_ref": "https://behavior.stanford.edu/",
       "dataset_ref": "https://proceedings.mlr.press/v205/li23a.html",
-      "evaluation_role": "Complement RoboCasa365 with long-horizon household service tasks such as pantry/household organization and kitchen-adjacent manipulation. Report task subset, split, environment, embodiment, sensing, partial-credit rubric, recovery and human takeover separately; never compare the overall BEHAVIOR-1K score directly with RoboCasa365."
+      "evaluation_role": "Use the concluded 2026 challenge release (100 full-length tasks in 7 scenes; RGB + depth + proprioception) for replay and explicitly declared kitchen-adjacent subsets. Base BEHAVIOR-1K spans 1,000 activities and 50 interactive scenes. Report exact release, task subset, split, embodiment, sensor suite, partial-credit rubric, recovery, collision and human takeover. Never compare aggregate BEHAVIOR score directly with RoboCasa365 or Kitchen-R."
     },
     {
       "baseline_id": "safevla-bench-2026",
