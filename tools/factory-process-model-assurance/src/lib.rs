@@ -289,8 +289,10 @@ fn trace_entry_blockers(entry: &TraceEntry, obligation: &Obligation) -> Vec<Stri
         "UNKNOWN" => blockers.push("UNKNOWN_OBLIGATION".to_owned()),
         _ => blockers.push("INVALID_DISPOSITION".to_owned()),
     }
-    if obligation.criticality == "CRITICAL" && entry.disposition != "SATISFIED" {
-        blockers.push("CRITICAL_OBLIGATION_NOT_SATISFIED".to_owned());
+    if obligation.criticality == "CRITICAL"
+        && matches!(entry.disposition.as_str(), "UNKNOWN" | "UNSUPPORTED")
+    {
+        blockers.push("CRITICAL_OBLIGATION_NOT_RESOLVED".to_owned());
     }
     blockers
 }
@@ -331,6 +333,35 @@ fn evaluate(
     results
 }
 
+fn validate_mutation_links(
+    tasks: &BTreeMap<String, Task>,
+    mutations: &[Mutation],
+) -> Result<(), String> {
+    let mut mutation_ids = BTreeSet::new();
+    let mut objective_preserving_candidates = 0;
+    for mutation in mutations {
+        if mutation.id.trim().is_empty() || !mutation_ids.insert(mutation.id.clone()) {
+            return Err(format!("mutation manifest contains a blank or duplicate id: {}", mutation.id));
+        }
+        if !tasks
+            .values()
+            .any(|task| task.required_obligations.contains(&mutation.target_obligation_id))
+        {
+            return Err(format!(
+                "mutation {} targets an obligation absent from all tasks: {}",
+                mutation.id, mutation.target_obligation_id
+            ));
+        }
+        if mutation.objective_preserving_candidate {
+            objective_preserving_candidates += 1;
+        }
+    }
+    if objective_preserving_candidates == 0 {
+        return Err("mutation manifest contains no objective-preserving candidates".to_owned());
+    }
+    Ok(())
+}
+
 fn load_reference() -> Result<
     (
         BTreeMap<String, Task>,
@@ -343,6 +374,7 @@ fn load_reference() -> Result<
     let obligations = parse_obligations(OBLIGATIONS)?;
     let tasks = parse_tasks(TASKS, &obligations)?;
     let mutations = parse_mutations(MUTATIONS, &obligations)?;
+    validate_mutation_links(&tasks, &mutations)?;
     let trace = parse_trace(REFERENCE_TRACE, &tasks, &obligations)?;
     Ok((tasks, obligations, mutations, trace))
 }
@@ -494,5 +526,23 @@ mod tests {
         );
         // The trace checker does not solve mutated models or confirm objective preservation.
         // That requires the later paired exact-solver + semantic-oracle campaign.
+    }
+
+    #[test]
+    fn justified_not_applicable_critical_obligation_can_be_resolved() {
+        let (tasks, obligations, _mutations, mut trace) =
+            load_reference().expect("reference data parses");
+        let key = ("E01".to_owned(), "OB-MACHINE-AVAIL".to_owned());
+        let entry = trace.get_mut(&key).unwrap();
+        entry.disposition = "NOT_APPLICABLE".to_owned();
+        entry.constraint_family = "-".to_owned();
+        entry.constraint_ref = "-".to_owned();
+        entry.evidence_ref = "synthetic-evidence:not-applicable".to_owned();
+        entry.disposition_reason = "The operation does not use this machine family in this task.".to_owned();
+        let result = evaluate(&tasks, &obligations, &trace)
+            .into_iter()
+            .find(|result| result.task_id == "E01")
+            .unwrap();
+        assert!(result.trace_contract_clear);
     }
 }
