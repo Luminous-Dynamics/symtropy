@@ -191,13 +191,13 @@ impl BeamElement3D {
         ];
         for node_offset in [0usize, 6usize] {
             for local_axis in 0..3 {
+                let components = [
+                    axes[local_axis].x,
+                    axes[local_axis].y,
+                    axes[local_axis].z,
+                ];
                 for global_axis in 0..3 {
-                    let component = match global_axis {
-                        0 => [axes[local_axis].x, axes[local_axis].y, axes[local_axis].z][local_axis],
-                        1 => [axes[local_axis].x, axes[local_axis].y, axes[local_axis].z][local_axis],
-                        2 => [axes[local_axis].x, axes[local_axis].y, axes[local_axis].z][local_axis],
-                        _ => unreachable!("global axis iterates over 0..3"),
-                    };
+                    let component = components[global_axis];
                     transform[node_offset + local_axis][node_offset + global_axis] = component;
                     transform[node_offset + 3 + local_axis][node_offset + 3 + global_axis] =
                         component;
@@ -374,6 +374,25 @@ mod tests {
         assert!(y.dot(z).abs() < 1.0e-12);
         assert!(z.dot(x).abs() < 1.0e-12);
         assert!((x.cross(y).dot(z) - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn global_stiffness_is_symmetric_after_coordinate_transformation() {
+        let beam = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(1.0, 2.0, 3.0),
+            Vec3::new(0.0, 1.0, 0.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let stiffness = beam.global_stiffness_matrix();
+        for row in 0..12 {
+            for column in 0..12 {
+                assert!(stiffness[row][column].is_finite());
+                assert!((stiffness[row][column] - stiffness[column][row]).abs() < 1.0e-7);
+            }
+        }
     }
 
     #[test]
