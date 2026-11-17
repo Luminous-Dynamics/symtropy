@@ -50,9 +50,9 @@ jobs:
             and .schema_version == "0.1.0"
             and .evidence_class == "synthetic_fixture"
             and (.profiles | length) == 4
-            and (.negative_controls | length) == 18
+            and (.negative_controls | length) == 20
             and ([.profiles[].profile_id] | unique | length) == 4
-            and ([.negative_controls[].case_id] | unique | length) == 18
+            and ([.negative_controls[].case_id] | unique | length) == 20
             and all(.profiles[];
               .profile_class == "synthetic_archetype"
               and .claims.global_compliance_claim == "not_established"
@@ -78,7 +78,7 @@ jobs:
           jq -e '
             .corpus_id == "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
             and .profile_count == 4
-            and .negative_control_count == 18
+            and .negative_control_count == 20
             and .jurisdiction_dimension_count == 7
             and (.jurisdiction_dimensions | length) == 7
             and .shared_engineering_core_digest == ("sha256:" + ("0" * 64))
