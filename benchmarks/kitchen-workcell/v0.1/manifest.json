@@ -538,5 +538,70 @@
     "fixtures_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/fixtures/power-envelope-v1.json",
     "unit": "W_real",
     "claim_boundary": "Power limits and demand profiles must be site- and appliance-specific. Synthetic fixtures are not household measurements; profile evidence and calibration remain explicit."
-  }
+  },
+  "planner_baselines": [
+    {
+      "baseline_id": "human-practitioner-reference",
+      "class": "human_practitioner",
+      "status": "proposed_not_implemented",
+      "description": "Practitioner-authored reference plan including task timing and manual effort.",
+      "implementation_ref": null,
+      "dataset_ref": null,
+      "evaluation_role": "Human usability and craft reference."
+    },
+    {
+      "baseline_id": "serial-topological",
+      "class": "serial_greedy",
+      "status": "existing_local",
+      "description": "Deterministic serial topological schedule.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/lib.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Feasibility baseline and fallback."
+    },
+    {
+      "baseline_id": "earliest-gap-resource-greedy",
+      "class": "resource_greedy",
+      "status": "existing_local",
+      "description": "Deterministic earliest-gap schedule respecting precedence, time windows and exclusive resources.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/lib.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Primary scheduler baseline."
+    },
+    {
+      "baseline_id": "power-envelope-serial-fallback",
+      "class": "power_constrained",
+      "status": "existing_local",
+      "description": "Power-envelope check with parallel schedule attempt and serial fallback.",
+      "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs",
+      "dataset_ref": null,
+      "evaluation_role": "Initial household power-constrained baseline."
+    },
+    {
+      "baseline_id": "recipe2plan-emnlp-2025",
+      "class": "recipe2plan_external",
+      "status": "external_public_benchmark",
+      "description": "Public concurrent cooking benchmark with temporal constraints between actions.",
+      "implementation_ref": "https://github.com/WilliamZR/Recipe2Plan",
+      "dataset_ref": "https://aclanthology.org/2025.findings-emnlp.229/",
+      "evaluation_role": "Temporal multitasking comparison."
+    },
+    {
+      "baseline_id": "lrec-recipe-understanding-2024",
+      "class": "recipe_grounding_external",
+      "status": "external_public_benchmark",
+      "description": "Public recipe-to-executable-action grounding benchmark with kitchen simulators.",
+      "implementation_ref": null,
+      "dataset_ref": "https://aclanthology.org/2024.lrec-main.3/",
+      "evaluation_role": "Recipe grounding comparison."
+    },
+    {
+      "baseline_id": "small-instance-exact-lower-bound",
+      "class": "exact_solver_lower_bound",
+      "status": "proposed_not_implemented",
+      "description": "Exact solver baseline for a small declared instance suite; report proof status.",
+      "implementation_ref": null,
+      "dataset_ref": null,
+      "evaluation_role": "Lower-bound measurement."
+    }
+  ]
 }
