@@ -38,6 +38,16 @@ For this ansatz, the independent combinations reduce to `B₁+B₂ = 0` and `B�
 
 The algebraic reduction was independently checked against the closed-form residual using separate arithmetic in this development session. This arithmetic check is not a compiled Rust test and is not a general tensor-code comparison.
 
+## Co-polar interferometric closure-invariant reference
+
+`closure_invariants.rs` is a separate dependency-free Rust research oracle for one scalar complex-visibility sample. It constructs reference-pinned triangular advariants, applies one shared L2 normalization, reports the independent real degree count, accepts reversed baseline orientation by Hermitian conjugation, and rejects missing/duplicate/zero/non-finite baseline inputs.
+
+The calibration negative control applies arbitrary complex station gains `V'ᵢⱼ=gᵢVᵢⱼconj(gⱼ)` and verifies that all normalized advariants are unchanged. A hand-calculated three-station fixture anchors the complex algebra; a seven-station fixture checks the 29-real-invariant count.
+
+**Important inference constraint:** normalized advariants are not statistically independent. The common normalization and reference-station choice induce covariance. The code intentionally does not provide a diagonal chi-square likelihood, uncertainty propagation, polarization leakage, scan averaging, or image reconstruction. Use a joint covariance model or evaluate the likelihood in visibility space. The 2026 M87* paper reports that reference-station selection affects covariance and combines high-sensitivity reference stations; production inference must preserve this issue.
+
+This reference follows Thyagarajan, Nityananda & Samuel, *Invariants in copolar interferometry: An Abelian gauge theory*, Phys. Rev. D 105, 043019 (2022), [DOI 10.1103/PhysRevD.105.043019](https://doi.org/10.1103/PhysRevD.105.043019), and was cross-inspected against the authors' [ClosureInvariants repository](https://github.com/nithyanandan/ClosureInvariants). The recent M87* application is Lai et al., *Nature* 659, 317–323 (2026), [DOI 10.1038/s41586-026-11241-9](https://doi.org/10.1038/s41586-026-11241-9).
+
 ## Run locally
 
 From the directory containing the file:
@@ -45,6 +55,8 @@ From the directory containing the file:
 ```sh
 rustc --edition=2024 --test mk_static.rs -o /tmp/mk_static_tests
 /tmp/mk_static_tests
+rustc --edition=2024 --test closure_invariants.rs -o /tmp/closure_invariants_tests
+/tmp/closure_invariants_tests
 ```
 
 ## Explicit non-claims / next qualification gates
@@ -55,7 +67,7 @@ rustc --edition=2024 --test mk_static.rs -o /tmp/mk_static_tests
 - No scalar-conformal matter action or massive-particle dynamics is represented.
 - No spin-2 perturbation, QNM, thermodynamic, EHT, or gravitational-wave result is produced.
 - This is a static spherical analytic reference kernel, not a replacement for the existing Lorentzian/curvature/geodesic architecture.
-- The test source is not evidence of a passing test run. Record compiler version, exact source digest, command, stdout and exit status when independently executed.
+- The test sources are not evidence of a passing test run. Record compiler version, exact source digest, command, stdout and exit status when independently executed.
 
 Before production integration, compare these reduced equations against a second independent tensor implementation and the pinned primary Mannheim–Kazanas source; add explicit parameter-domain fixtures and independent reproduction of the rotating branch.
 
