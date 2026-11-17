@@ -501,3 +501,66 @@ Do not attempt to out-feature nTop, Fusion, Altair or Materialise at general-pur
 - occupant-authored spatial infill separated from qualified structure.
 
 A meaningful result requires an independently verified improvement on at least one preregistered lifecycle metric without unacceptable loss elsewhere in the Pareto set.
+
+
+
+## Interface-compliance and mass-normalized comparison increment — 2026-11-17
+
+### Joint compliance is now explicit in the reference model
+
+The new research/truss-fem-lab/src/interfaces.rs provides an alternate truss solve with one axial translational spring at each member end. The member and the two end springs act in series:
+
+\[
+C_\mathrm{axial} = \frac{L}{EA} + \frac{1}{k_\mathrm{from}} + \frac{1}{k_\mathrm{to}},
+\qquad
+k_\mathrm{effective} = \frac{1}{C_\mathrm{axial}}.
+\]
+
+The result separates:
+- total node-to-node extension;
+- actual bar extension and axial stress;
+- connector slip at each member end;
+- energy stored in the bar and in the two connector springs.
+
+An analytical 2 m bar test uses 1 GN/m springs at both ends. Under 1 kN tension, bar extension remains 1 micrometre while each connector slips 1 micrometre, giving 3 micrometres total. A very stiff-spring test approaches the original rigid-joint solver. This validates the series-compliance implementation; it does not calibrate a real connector.
+
+### Interface model boundaries
+
+This is a one-dimensional axial spring idealization. It does not model rotational stiffness, fastener preload, friction, bearing/contact, clearance take-up, backlash, bolt slip, nonlinear behavior, local stress, multiaxial interaction or joint fatigue. It is the next rung above a perfect pin joint, not a realistic bolt or self-locking connector model.
+
+Next steps:
+1. Add six-degree-of-freedom connector stiffness matrices (three translations and three rotations).
+2. Add preload, clearance/gap and contact state with a nonlinear incremental solver.
+3. Calibrate connector models from physical coupons, measured load-displacement curves and repeated assembly cycles.
+4. Include temperature, wear and manufacturing tolerance distributions.
+5. Validate with independent commercial/academic FE models and physical assemblies.
+
+### Mass-normalized candidate evaluation
+
+The research/truss-fem-lab/src/benchmark.rs module now derives a uniform solid-round member cross-section from a declared member-only mass budget and material density. It then executes the candidate under the supplied boundary/load case and reports:
+- nodes, members and total member length;
+- target and computed member mass;
+- derived cross-sectional area and weak-axis second moment;
+- peak displacement, stress, strain energy and equilibrium residual;
+- yield utilization and ideal Euler utilization;
+- single-member removal solvability;
+- bounded two-member removal results and omitted-pair counts.
+
+For a solid circular member, the idealized weak-axis second moment is computed from A as I=A^2/(4*pi). This is a declared section hypothesis, not a universal section model.
+
+**Critical comparability condition:** the caller must freeze the same external envelope, support coordinates, load cases, material constitutive assumptions, density, member-mass accounting boundary, failure scenarios, numerical tolerances and search budget across all candidate topologies. The present mass budget includes only straight members. It excludes hubs, connectors, fasteners, service routing, stowage, manufacturing waste, inspection, robotic assembly, maintenance and lifecycle effects. Therefore it is not a whole-system mass or cost victory.
+
+### Revised comparison ladder
+
+| Level | Candidate comparison | Evidence required |
+|---|---|---|
+| L0 | Geometry/topology grammar | deterministic output, valid geometry, bounded complexity |
+| L1 | Perfect-joint axial truss | analytical member tests, support stability, equilibrium residual |
+| L2 | Joint-compliant axial truss | calibrated spring stiffness and separate bar/joint deformation |
+| L3 | Member yield and Euler screen | section properties, K-factor justification, correct slenderness regime |
+| L4 | Beam/frame and global stability | verified beam elements, eigenvalue buckling, imperfections and joint rotational stiffness |
+| L5 | Manufacturing and connector coupons | metrology, tolerance closure, load-displacement, repeated fit/assembly |
+| L6 | System lifecycle | mass/cost/repair/inspection/robot assembly and as-built evidence |
+| L7 | Habitat/flight qualification | mission-specific standards, safety authority, environmental testing and formal acceptance |
+
+No level should inherit a qualification claim from the previous one. Each higher level adds new physics and new evidence obligations.
