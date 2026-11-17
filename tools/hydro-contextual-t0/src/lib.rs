@@ -845,7 +845,6 @@ fn brier_reliability(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn crps_for_members(observed: f64, members: &[f64]) -> f64 {
     let count = members.len() as f64;
     let first_term = members
