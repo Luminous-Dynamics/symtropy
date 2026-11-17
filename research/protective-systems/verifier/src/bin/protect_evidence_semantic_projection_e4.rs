@@ -194,7 +194,7 @@ struct ProjectionReport {
     projection_roundtrip_equal: bool,
     mapping_decision_count: usize,
     class_counts: BTreeMap<String, usize>,
-    envelope_sha256: String,
+    envelope_serialization_sha256: String,
     semantic_fingerprint_algorithm: String,
     semantic_fingerprint_sha256: String,
     context_source_receipt: SourceReceipt,
@@ -1117,7 +1117,7 @@ fn build_report() -> Result<ProjectionReport, String> {
         projection_roundtrip_equal: roundtrip_equal,
         mapping_decision_count: envelope.mapping_decisions.len(),
         class_counts,
-        envelope_sha256: hash(&encoded),
+        envelope_serialization_sha256: hash(&encoded),
         semantic_fingerprint_algorithm: JCS_ALGORITHM.to_owned(),
         semantic_fingerprint_sha256,
         context_source_receipt: envelope.context_source_receipt,
@@ -1184,6 +1184,18 @@ mod tests {
         assert_eq!(report.class_counts.get("PRESERVED_RAW_ONLY"), Some(&14));
         assert_eq!(report.mapping_decision_count, 52);
         assert!(!report.class_counts.contains_key("UNKNOWN_OR_UNSUPPORTED"));
+    }
+
+    #[test]
+    fn report_separates_serialization_digest_from_semantic_fingerprint() {
+        let report = build_report().expect("report");
+        assert_eq!(report.semantic_fingerprint_algorithm, JCS_ALGORITHM);
+        assert_eq!(report.envelope_serialization_sha256.len(), 64);
+        assert_eq!(report.semantic_fingerprint_sha256.len(), 64);
+        assert_ne!(
+            report.envelope_serialization_sha256,
+            report.semantic_fingerprint_sha256
+        );
     }
 
     #[test]
