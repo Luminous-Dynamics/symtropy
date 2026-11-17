@@ -190,8 +190,8 @@ fn parse_trace(
             constraint_family: row[3].clone(),
             constraint_ref: row[4].clone(),
             scope_ref: row[5].clone(),
-            evidence_ref: row[6 - 1].clone(),
-            evidence_state: row[6].clone(),
+            evidence_ref: row[6].clone(),
+            evidence_state: row[7].clone(),
             disposition_reason: row[8].clone(),
         };
         let key = (row[0].clone(), row[1].clone());
@@ -346,6 +346,7 @@ mod tests {
     fn every_mutation_target_is_a_task_obligation() {
         let (tasks, obligations, mutations, trace) = load_reference().expect("reference data parses");
         for mutation in mutations {
+            assert!(!mutation.id.is_empty());
             assert!(obligations.contains_key(&mutation.target_obligation_id));
             assert!(tasks.values().any(|task| task.required_obligations.contains(&mutation.target_obligation_id)));
             assert!(trace.keys().any(|(_, obligation)| obligation == &mutation.target_obligation_id));
