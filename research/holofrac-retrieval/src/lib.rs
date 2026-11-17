@@ -14,6 +14,8 @@ use symtropy_hdc_core::{
     BipolarBundle, BipolarHV, ContinuousHV, EncoderSpec, HdcError, ItemMemory, StableHash64,
 };
 
+pub mod partial;
+
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ENCODER_RECIPE: &str = "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
 
@@ -135,6 +137,8 @@ pub enum HoloFracError {
     Hdc(HdcError),
     StaleIndex,
     EncoderMismatch,
+    EmptyPartialQuery,
+    InvalidTopK,
 }
 
 impl std::fmt::Display for HoloFracError {
@@ -144,8 +148,12 @@ impl std::fmt::Display for HoloFracError {
             Self::Hdc(error) => write!(f, "HDC encoding error: {error}"),
             Self::StaleIndex => f.write_str("spatial index source snapshot does not match graph"),
             Self::EncoderMismatch => {
-                f.write_str("query encoder fingerprint does not match index encoder")
+                f.write_str("query encoder specification does not match index encoder")
             }
+            Self::EmptyPartialQuery => {
+                f.write_str("partial spatial query must specify at least one field")
+            }
+            Self::InvalidTopK => f.write_str("partial retrieval top_k must be greater than zero"),
         }
     }
 }
@@ -321,10 +329,41 @@ fn hash_bytes(hash: &mut StableHash64, bytes: &[u8]) {
     hash.write(bytes);
 }
 
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum FactSlot {
+    Subject,
+    SubjectScale,
+    Predicate,
+    Object,
+    ObjectScale,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct EncodedFactSlots {
+    subject: BipolarHV,
+    subject_scale: BipolarHV,
+    predicate: BipolarHV,
+    object: BipolarHV,
+    object_scale: BipolarHV,
+}
+
+impl EncodedFactSlots {
+    pub(crate) fn get(&self, slot: FactSlot) -> &BipolarHV {
+        match slot {
+            FactSlot::Subject => &self.subject,
+            FactSlot::SubjectScale => &self.subject_scale,
+            FactSlot::Predicate => &self.predicate,
+            FactSlot::Object => &self.object,
+            FactSlot::ObjectScale => &self.object_scale,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EncodedFact {
     pub bipolar: BipolarHV,
     pub continuous_f32_view: ContinuousHV,
+    pub(crate) slots: EncodedFactSlots,
 }
 
 #[derive(Clone, Debug)]
@@ -371,34 +410,41 @@ impl HoloFracEncoder {
         let subject_scale = graph.entity_scale(&fact.subject)?;
         let object_scale = graph.entity_scale(&fact.object)?;
 
-        let subject = self
-            .memory
-            .bind_role_value("subject", "entity", &fact.subject);
-        let subject_scale =
-            self.memory
-                .bind_role_value("subject_scale", "spatial_scale", subject_scale.as_str());
-        let predicate =
-            self.memory
-                .bind_role_value("predicate", "relation", fact.relation.as_str());
-        let object = self
-            .memory
-            .bind_role_value("object", "entity", &fact.object);
-        let object_scale =
-            self.memory
-                .bind_role_value("object_scale", "spatial_scale", object_scale.as_str());
+        let slots = EncodedFactSlots {
+            subject: self
+                .memory
+                .bind_role_value("subject", "entity", &fact.subject),
+            subject_scale: self.memory.bind_role_value(
+                "subject_scale",
+                "spatial_scale",
+                subject_scale.as_str(),
+            ),
+            predicate: self
+                .memory
+                .bind_role_value("predicate", "relation", fact.relation.as_str()),
+            object: self
+                .memory
+                .bind_role_value("object", "entity", &fact.object),
+            object_scale: self.memory.bind_role_value(
+                "object_scale",
+                "spatial_scale",
+                object_scale.as_str(),
+            ),
+        };
 
         let mut bundle = BipolarBundle::new(self.spec.dimension);
-        bundle.add(&subject)?;
-        bundle.add(&subject_scale)?;
-        bundle.add(&predicate)?;
-        bundle.add(&object)?;
-        bundle.add(&object_scale)?;
+        bundle.add(&slots.subject)?;
+        bundle.add(&slots.subject_scale)?;
+        bundle.add(&slots.predicate)?;
+        bundle.add(&slots.object)?;
+        bundle.add(&slots.object_scale)?;
         let bipolar = bundle.finish(&self.memory.tie_breaker("spatial-fact-v2"))?;
         let continuous_f32_view = bipolar.to_continuous();
 
         Ok(EncodedFact {
             bipolar,
             continuous_f32_view,
+            slots,
         })
     }
 }
