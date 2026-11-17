@@ -307,7 +307,9 @@ pub fn score_field_layout_run(
     let mut rework_entity_count = 0_u64;
 
     for entity in &manifest.entities {
-        let observation = observations_by_id.get(entity.design_entity_id.as_str()).copied();
+        let observation = observations_by_id
+            .get(entity.design_entity_id.as_str())
+            .copied();
         let waiver = waivers_by_id.get(entity.design_entity_id.as_str()).copied();
 
         let robot_claimed_state = observation
@@ -416,13 +418,13 @@ pub fn score_field_layout_run(
     }
 
     let total_crew_hours = crew_hours.total();
-    let accepted_entities_per_crew_hour = (total_crew_hours > 0.0)
-        .then_some(accepted_count as f64 / total_crew_hours);
+    let accepted_entities_per_crew_hour =
+        (total_crew_hours > 0.0).then_some(accepted_count as f64 / total_crew_hours);
     let first_pass_yield =
         (attempted_count > 0).then_some(first_pass_accepted_count as f64 / attempted_count as f64);
     let total_rework_hours = crew_hours.rework;
-    let rework_crew_hour_fraction = (total_crew_hours > 0.0)
-        .then_some(total_rework_hours / total_crew_hours);
+    let rework_crew_hour_fraction =
+        (total_crew_hours > 0.0).then_some(total_rework_hours / total_crew_hours);
 
     Ok(FieldAcceptanceScore {
         package_sha256: manifest.package_sha256.clone(),
@@ -497,9 +499,7 @@ fn validate_profile(profile: FieldAcceptanceProfile) -> Result<(), FieldAcceptan
     Ok(())
 }
 
-fn validate_observation(
-    observation: &FieldEntityObservation,
-) -> Result<(), FieldAcceptanceError> {
+fn validate_observation(observation: &FieldEntityObservation) -> Result<(), FieldAcceptanceError> {
     match (
         observation.measurement_disposition,
         observation.measurement.as_ref(),
@@ -584,10 +584,7 @@ fn evaluate_measurement(
         }
     }
 
-    if measurement
-        .residual_x_mm
-        .hypot(measurement.residual_y_mm)
-        > profile.max_abs_xy_residual_mm
+    if measurement.residual_x_mm.hypot(measurement.residual_y_mm) > profile.max_abs_xy_residual_mm
     {
         return MeasurementEvaluation::Rejected;
     }
@@ -605,8 +602,7 @@ fn evaluate_measurement(
         }
     }
 
-    if profile.max_abs_endpoint_residual_mm.is_some()
-        && entity_type == FieldLayoutEntityType::Line
+    if profile.max_abs_endpoint_residual_mm.is_some() && entity_type == FieldLayoutEntityType::Line
     {
         let Some(start) = measurement.endpoint_start_mm else {
             return MeasurementEvaluation::Held(EntityScoreReason::RequiredEndpointMissing);
@@ -614,7 +610,9 @@ fn evaluate_measurement(
         let Some(end) = measurement.endpoint_end_mm else {
             return MeasurementEvaluation::Held(EntityScoreReason::RequiredEndpointMissing);
         };
-        let threshold = profile.max_abs_endpoint_residual_mm.unwrap_or(f64::INFINITY);
+        let threshold = profile
+            .max_abs_endpoint_residual_mm
+            .unwrap_or(f64::INFINITY);
         if start.abs() > threshold || end.abs() > threshold {
             return MeasurementEvaluation::Rejected;
         }
@@ -672,7 +670,11 @@ mod tests {
         }
     }
 
-    fn observed(id: &str, robot_claim: RobotClaimedEntityState, value: RefereeMeasurement) -> FieldEntityObservation {
+    fn observed(
+        id: &str,
+        robot_claim: RobotClaimedEntityState,
+        value: RefereeMeasurement,
+    ) -> FieldEntityObservation {
         FieldEntityObservation {
             design_entity_id: id.into(),
             robot_claimed_state: robot_claim,
@@ -726,7 +728,8 @@ mod tests {
                 rework_event_id: None,
             },
         ];
-        let result = score_field_layout_run(&manifest, &observations, &[], profile(), crew()).unwrap();
+        let result =
+            score_field_layout_run(&manifest, &observations, &[], profile(), crew()).unwrap();
         assert_eq!(result.design_entity_count, 4);
         assert_eq!(result.accepted_count, 1);
         assert_eq!(result.rejected_count, 1);
@@ -737,14 +740,21 @@ mod tests {
         assert!((result.total_crew_hours - 1.05).abs() < 1.0e-12);
         assert!((result.accepted_entities_per_crew_hour.unwrap() - (1.0 / 1.05)).abs() < 1.0e-12);
         assert!((result.first_pass_yield.unwrap() - (1.0 / 3.0)).abs() < 1.0e-12);
-        assert_eq!(result.entity_results[1].referee_state, RefereeEntityState::Rejected);
+        assert_eq!(
+            result.entity_results[1].referee_state,
+            RefereeEntityState::Rejected
+        );
     }
 
     #[test]
     fn insufficient_reference_resolution_is_held_not_accepted_or_rejected() {
         let result = score_field_layout_run(
             &manifest(&["point-1"]),
-            &[observed("point-1", RobotClaimedEntityState::Printed, measurement(0.0, 0.0, 0.5))],
+            &[observed(
+                "point-1",
+                RobotClaimedEntityState::Printed,
+                measurement(0.0, 0.0, 0.5),
+            )],
             &[],
             profile(),
             crew(),
@@ -767,17 +777,15 @@ mod tests {
             scope: "point-1 only".into(),
             waiver_receipt_sha256: "waiver-digest".into(),
         };
-        let result = score_field_layout_run(
-            &manifest(&["point-1"]),
-            &[],
-            &[waiver],
-            profile(),
-            crew(),
-        )
-        .unwrap();
+        let result =
+            score_field_layout_run(&manifest(&["point-1"]), &[], &[waiver], profile(), crew())
+                .unwrap();
         assert_eq!(result.waived_count, 1);
         assert_eq!(result.accepted_count, 0);
-        assert_eq!(result.entity_results[0].referee_state, RefereeEntityState::Waived);
+        assert_eq!(
+            result.entity_results[0].referee_state,
+            RefereeEntityState::Waived
+        );
     }
 
     #[test]
@@ -785,19 +793,27 @@ mod tests {
         let duplicate = manifest(&["line-1", "line-1"]);
         assert_eq!(
             score_field_layout_run(&duplicate, &[], &[], profile(), crew()),
-            Err(FieldAcceptanceError::DuplicateManifestEntityId("line-1".into()))
+            Err(FieldAcceptanceError::DuplicateManifestEntityId(
+                "line-1".into()
+            ))
         );
 
         let result = score_field_layout_run(
             &manifest(&["line-1"]),
-            &[observed("unknown", RobotClaimedEntityState::Printed, measurement(0.0, 0.0, 0.1))],
+            &[observed(
+                "unknown",
+                RobotClaimedEntityState::Printed,
+                measurement(0.0, 0.0, 0.1),
+            )],
             &[],
             profile(),
             crew(),
         );
         assert_eq!(
             result,
-            Err(FieldAcceptanceError::UnknownObservationEntity("unknown".into()))
+            Err(FieldAcceptanceError::UnknownObservationEntity(
+                "unknown".into()
+            ))
         );
     }
 
@@ -805,7 +821,11 @@ mod tests {
     fn zero_crew_hours_does_not_report_infinite_productivity() {
         let result = score_field_layout_run(
             &manifest(&["point-1"]),
-            &[observed("point-1", RobotClaimedEntityState::Printed, measurement(0.0, 0.0, 0.1))],
+            &[observed(
+                "point-1",
+                RobotClaimedEntityState::Printed,
+                measurement(0.0, 0.0, 0.1),
+            )],
             &[],
             profile(),
             CrewHours::default(),
@@ -855,13 +875,7 @@ mod tests {
             ..CrewHours::default()
         };
         assert_eq!(
-            score_field_layout_run(
-                &manifest(&["line-1"]),
-                &[],
-                &[],
-                profile(),
-                invalid_hours,
-            ),
+            score_field_layout_run(&manifest(&["line-1"]), &[], &[], profile(), invalid_hours,),
             Err(FieldAcceptanceError::InvalidCrewHours)
         );
     }
@@ -889,5 +903,4 @@ mod tests {
         assert_eq!(result.first_pass_yield, None);
         assert_eq!(result.accepted_entities_per_crew_hour, Some(0.0));
     }
-
 }
