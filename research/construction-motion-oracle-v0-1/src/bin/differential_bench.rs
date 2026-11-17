@@ -447,12 +447,10 @@ fn main() {
             .expect("generated adaptive certificate verifies");
     });
 
-    let interval_moving =
-        Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.6)
-            .expect("valid interval verifier moving capsule");
-    let interval_obstacle =
-        Capsule::new(Vec3::new(0.0, 0.9, 0.9), Vec3::new(0.0, 0.9, 0.9), 0.6)
-            .expect("valid interval verifier obstacle capsule");
+    let interval_moving = Capsule::new(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.0), 0.6)
+        .expect("valid interval verifier moving capsule");
+    let interval_obstacle = Capsule::new(Vec3::new(0.0, 0.9, 0.9), Vec3::new(0.0, 0.9, 0.9), 0.6)
+        .expect("valid interval verifier obstacle capsule");
     let interval_window = NormalizedTimeWindow {
         start_parameter: 0.0,
         end_parameter: 1.0,
@@ -547,5 +545,4 @@ fn main() {
             .expect("independent verifier confirms every adaptive no-contact leaf");
         },
     );
-
 }
