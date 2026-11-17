@@ -13,6 +13,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Household real-power envelope validation and safe scheduling fallback.
+pub mod power;
+
 pub const KITCHEN_PLAN_SCHEMA_VERSION: u32 = 1;
 pub const KITCHEN_SCHEDULE_SCHEMA_VERSION: u32 = 1;
 pub const GREEDY_SCHEDULER_ID: &str = "stable_topological_earliest_gap_v1";
