@@ -31,7 +31,7 @@ Do not reward the raw number of routes. Two geometrically different options shar
 
 ## Ownership and composition
 
-Track W owns:
+Track X owns:
 - the contingency trigger profile;
 - fallback-option identity and admission semantics;
 - conservative time, energy, occupancy, separation and ground-risk slack;
