@@ -401,3 +401,36 @@ fn wilson_bounds_have_expected_limits_for_all_success_and_no_uninformative_outco
         assert!(stratum.uninformative_rate.wilson_upper_bound < 0.05);
     }
 }
+
+
+#[test]
+fn known_failure_is_not_hidden_by_insufficient_data_in_another_stratum() {
+    let mut records = observations();
+    for record in records
+        .iter_mut()
+        .filter(|record| record.stratum_id == "corridor-edge")
+    {
+        record.realized.decision_relevance = 0.20;
+    }
+    records.retain(|record| {
+        record.stratum_id != "crosswind-high"
+            || record.independent_group_id.ends_with("000")
+            || record.independent_group_id.ends_with("001")
+    });
+
+    let result = assess(&claim(), &records, &policy()).unwrap();
+    assert_eq!(result.disposition, CalibrationDisposition::NotCalibrated);
+    let crosswind = result
+        .strata
+        .iter()
+        .find(|stratum| stratum.stratum_id == "crosswind-high")
+        .unwrap();
+    let corridor = result
+        .strata
+        .iter()
+        .find(|stratum| stratum.stratum_id == "corridor-edge")
+        .unwrap();
+    assert!(!crosswind.sufficient_data);
+    assert!(corridor.sufficient_data);
+    assert!(!corridor.passed);
+}
