@@ -564,3 +564,26 @@ For a solid circular member, the idealized weak-axis second moment is computed f
 | L7 | Habitat/flight qualification | mission-specific standards, safety authority, environmental testing and formal acceptance |
 
 No level should inherit a qualification claim from the previous one. Each higher level adds new physics and new evidence obligations.
+
+
+
+## Competitive systems and space-structure standards — source refresh (2026-11-17)
+
+The commercial baseline is broader than lattice generation alone:
+
+- nTop offers graph/TPMS/custom lattices, multi-objective topology optimization, structural/thermal FEA and build-preparation exports: https://www.ntop.com/software/capabilities/integrations/
+- Autodesk Fusion Generative Design already generates multiple editable alternatives against design objectives and manufacturing methods including additive, milling, cutting and casting: https://help.autodesk.com/cloudhelp/ENU/Fusion-GenerativeDesign/files/GD-DESIGN-CRITERIA.htm
+- Altair Inspire supports structural optimization, finite-element analysis, motion and additive-manufacturing analysis; Altair's topology and lattice optimization ecosystem is a serious comparison baseline: https://2024.help.altair.com/2024.1/inspire/en_us/topics/inspire/get_started/introduction_inspire_c.htm and https://2024.help.altair.com/2024/hwsolvers/altair_help/topics/getting_started/product_overviews_simulation_driven_design_r.htm
+- Materialise 3-matic supports mesh-level modification, lattice/conformal structures and validation-sample automation; Magics provides lattice creation and AM build preparation: https://www.materialise.com/en/industrial/software/3-matic and https://www.materialise.com/en/industrial/software/lattice and https://www.materialise.com/en/industrial/software/magics-data-build-preparation
+- NASA ARMADAS is explicitly developing autonomous assembly of modular voxels into habitats and antenna arrays; NASA ISAM describes the role of assembly in overcoming launch fairing limits: https://www.nasa.gov/automated-reconfigurable-mission-adaptive-digital-assembly-systems-armadas/ and https://www.nasa.gov/isam/
+- JPL is researching self-aligning modular truss components with structural and power interconnects and supervised autonomous assembly: https://robotics.jpl.nasa.gov/what-we-do/research-tasks/risk-reduction-for-robotic-in-space-telescope-assembly-concept/
+
+### Standards map for space structural work
+
+ISO 10786:2025, Edition 2, establishes requirements for design, material selection/characterization, fabrication, testing and inspection of space-system structural items across mission phases: https://www.iso.org/standard/85531.html
+
+NASA-STD-5001 B with Change 3 covers structural design, test and service-life factors for spaceflight hardware: https://standards.nasa.gov/standard/nasa/nasa-std-5001
+
+NASA-STD-5002 B (dated 2026-03-10) covers spacecraft and payload load analyses; NASA-STD-5019 A with Change 4 covers fracture control; NASA-STD-6030 covers additive manufacturing requirements for spaceflight systems; NASA-HDBK-5026 provides AM strength/fatigue/fracture implementation guidance: https://standards.nasa.gov/all-standards and https://standards.nasa.gov/standard/NASA/NASA-STD-5019 and https://standards.nasa.gov/standard/NASA/NASA-STD-6030 and https://standards.nasa.gov/standard/NASA/NASA-HDBK-5026
+
+These standards apply only when tailored by a responsible space programme and technical authority. They are not satisfied by this research crate.
