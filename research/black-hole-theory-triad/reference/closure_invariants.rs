@@ -355,9 +355,10 @@ mod tests {
         assert_eq!(missing, Err(ClosureError::IncompleteBaselineSet));
 
         let mut duplicate = base.clone();
+        duplicate.pop();
         duplicate.push(duplicate[0]);
         let duplicate_result = closure_invariants(4, 0, &duplicate);
-        assert_eq!(duplicate_result, Err(ClosureError::IncompleteBaselineSet));
+        assert_eq!(duplicate_result, Err(ClosureError::DuplicateBaseline));
 
         base[0].value = Complex64::new(0.0, 0.0);
         assert_eq!(closure_invariants(4, 0, &base), Err(ClosureError::ZeroVisibility));
