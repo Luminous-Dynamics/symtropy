@@ -17,7 +17,6 @@
 //! that an instrument reading or certificate is authentic.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::error::Error;
 use std::fmt;
 
 pub const RO_CRATE_VERSION: &str = "https://w3id.org/ro/crate/1.3";
@@ -278,7 +277,7 @@ pub struct SyntheticFantasy {
     pub seed: Option<u64>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PortableEvidenceProfile {
     pub crate_id: String,
     pub crate_name: String,
