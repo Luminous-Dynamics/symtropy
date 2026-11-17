@@ -311,6 +311,36 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::evidence_conflict::run_evidence_conflict_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("evidence_conflict_campaign=paired_synthetic_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("evidence_conflict_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("evidence_conflict_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "evidence_conflict_scenarios={} independent_agreement_safe={} high_conflict_abstentions={} high_conflict_dempster_comparators={} common_cause_rejections={} asynchronous_rejections={} mean_high_conflict_k={:.6}",
+                        campaign.total_scenarios,
+                        campaign.independent_agreement_safe_count,
+                        campaign.high_conflict_abstention_count,
+                        campaign.high_conflict_dempster_comparator_count,
+                        campaign.shared_common_cause_rejection_count,
+                        campaign.asynchronous_pair_rejection_count,
+                        campaign.mean_high_conflict_k,
+                    );
+                }
+                Err(error) => {
+                    eprintln!("evidence_conflict_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
