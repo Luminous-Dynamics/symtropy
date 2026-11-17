@@ -515,7 +515,10 @@ fn cholesky_wrench_covariance(
         for column in 0..6 {
             matrix[row][column] = covariance.matrix_row_major[row * 6 + column];
             let transpose = covariance.matrix_row_major[column * 6 + row];
-            let scale = matrix[row][column].abs().max(transpose.abs()).max(1.0);
+            let scale = matrix[row][column]
+                .abs()
+                .max(transpose.abs())
+                .max(f64::MIN_POSITIVE);
             if (matrix[row][column] - transpose).abs() > 1.0e-12 * scale {
                 return Err("wrench covariance must be symmetric".to_owned());
             }
