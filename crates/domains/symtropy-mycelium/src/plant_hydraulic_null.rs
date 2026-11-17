@@ -319,8 +319,17 @@ mod tests {
         high_vpd.vapor_pressure_deficit_pa = 2_000.0;
         let stressed = solve_two_resistance_null(high_vpd).unwrap();
 
-        assert!(stressed.hydraulic_transpiration_kg_m2_s > baseline.hydraulic_transpiration_kg_m2_s);
-        assert!((stressed.hydraulic_transpiration_kg_m2_s / baseline.hydraulic_transpiration_kg_m2_s - 2.0).abs() < 1e-10);
+        assert!(
+            stressed.hydraulic_transpiration_kg_m2_s
+                > baseline.hydraulic_transpiration_kg_m2_s
+        );
+        assert!(
+            (stressed.hydraulic_transpiration_kg_m2_s
+                / baseline.hydraulic_transpiration_kg_m2_s
+                - 2.0)
+                .abs()
+                < 1e-10
+        );
     }
 
     #[test]
@@ -337,8 +346,29 @@ mod tests {
         let dry_state = solve_two_resistance_null(dry).unwrap();
 
         assert!(dry_state.stomatal_conductance_mol_m2_s < wet_state.stomatal_conductance_mol_m2_s);
-        assert!(dry_state.hydraulic_transpiration_kg_m2_s < wet_state.hydraulic_transpiration_kg_m2_s);
+        assert!(
+            dry_state.hydraulic_transpiration_kg_m2_s
+                < wet_state.hydraulic_transpiration_kg_m2_s
+        );
         assert!(dry_state.leaf_water_potential_mpa < wet_state.leaf_water_potential_mpa);
+    }
+
+    #[test]
+    fn reduced_soil_to_root_conductance_reduces_transpiration() {
+        let baseline = solve_two_resistance_null(reference_inputs()).unwrap();
+        let mut restricted = reference_inputs();
+        restricted.soil_to_root_conductance_kg_m2_s_mpa = 0.00005;
+        restricted.root_to_leaf_conductance_kg_m2_s_mpa = 0.0002;
+        let restricted_state = solve_two_resistance_null(restricted).unwrap();
+
+        assert!(
+            restricted_state.hydraulic_transpiration_kg_m2_s
+                < baseline.hydraulic_transpiration_kg_m2_s
+        );
+        assert!(
+            restricted_state.stomatal_conductance_mol_m2_s
+                < baseline.stomatal_conductance_mol_m2_s
+        );
     }
 
     #[test]
