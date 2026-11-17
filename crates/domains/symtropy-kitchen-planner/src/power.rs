@@ -904,6 +904,7 @@ pub fn build_power_constrained_schedule(
 mod tests {
     use super::*;
     use crate::{KITCHEN_PLAN_SCHEMA_VERSION, KitchenTaskV1};
+    use serde::Deserialize;
 
     fn task(id: &str, duration_ms: u64, resource_id: &str) -> KitchenTaskV1 {
         KitchenTaskV1 {
