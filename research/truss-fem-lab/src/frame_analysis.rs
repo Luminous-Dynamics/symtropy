@@ -669,6 +669,47 @@ mod tests {
     }
 
     #[test]
+    fn two_member_elbow_frame_assembles_shared_six_dof_joint() {
+        let model = FrameModel3D {
+            nodes: vec![
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(2.0, 0.0, 0.0),
+                Vec3::new(2.0, 1.0, 0.0),
+            ],
+            members: vec![
+                FrameMember3D {
+                    from: 0,
+                    to: 1,
+                    orientation_hint_global: Vec3::new(0.0, 1.0, 0.0),
+                    material: material(),
+                    section: section(),
+                },
+                FrameMember3D {
+                    from: 1,
+                    to: 2,
+                    orientation_hint_global: Vec3::new(0.0, 0.0, 1.0),
+                    material: material(),
+                    section: section(),
+                },
+            ],
+        };
+        let mut boundary = FrameBoundaryConditions::new(3);
+        boundary.fix_node(0).unwrap();
+        boundary
+            .add_load(2, [0.0, 0.0, -500.0, 0.0, 0.0, 0.0])
+            .unwrap();
+
+        let result = model.analyze(&boundary).unwrap();
+        let audit = audit_frame_equilibrium(&model, &boundary, &result).unwrap();
+
+        assert_eq!(result.members.len(), 2);
+        assert!(result.nodal_displacements[2].iter().all(|value| value.is_finite()));
+        assert!(audit.net_force_residual_norm_n < 1.0e-6);
+        assert!(audit.net_moment_residual_norm_nm < 1.0e-6);
+        assert!(audit.energy_relative_error < 1.0e-10);
+    }
+
+    #[test]
     fn free_frame_detects_six_rigid_body_mechanisms() {
         let (model, boundary) = cantilever_model();
         let free = FrameBoundaryConditions::new(2);
