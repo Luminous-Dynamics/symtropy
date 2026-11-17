@@ -16,7 +16,6 @@ struct Scenario {
 
 #[derive(Clone, Debug)]
 struct Coverage {
-    id: String,
     scenario_id: String,
     sensor_id: String,
     covered_zones: BTreeSet<String>,
@@ -26,6 +25,7 @@ struct Coverage {
     calibration_ids: BTreeSet<String>,
     map_generation: String,
     position_uncertainty_m: Option<f64>,
+    notes: String,
 }
 
 #[derive(Clone, Debug)]
@@ -159,7 +159,6 @@ fn parse_coverage(input: &str, scenarios: &BTreeMap<String, Scenario>) -> Result
             Some(value)
         };
         let coverage = Coverage {
-            id: row[0].clone(),
             scenario_id: row[1].clone(),
             sensor_id: row[2].clone(),
             covered_zones: row[4].split(';').map(str::to_owned).collect(),
@@ -169,6 +168,7 @@ fn parse_coverage(input: &str, scenarios: &BTreeMap<String, Scenario>) -> Result
             calibration_ids: row[8].split(';').map(str::to_owned).collect(),
             map_generation: row[9].clone(),
             position_uncertainty_m: uncertainty,
+            notes: row[12].clone(),
         };
         if coverages.insert(row[0].clone(), coverage).is_some() {
             return Err(format!("coverage-v0.1.tsv: duplicate coverage id {}", row[0]));
@@ -254,6 +254,12 @@ fn validate_observations(
         if coverage.scenario_id != observation.scenario_id {
             return Err(format!("observation {} references coverage from another scenario", observation.id));
         }
+        if coverage.coverage_state == "GAP" {
+            return Err(format!("observation {} is attached to a declared sensor gap", observation.id));
+        }
+        if coverage.coverage_state == "AMBIGUOUS" && observation.stream_kind != "RTLS" {
+            return Err(format!("observation {} uses ambiguous coverage outside RTLS", observation.id));
+        }
         if !sensor_matches(&coverage.sensor_id, &observation.source_id) {
             return Err(format!("observation {} source does not match declared coverage sensor", observation.id));
         }
@@ -311,17 +317,18 @@ fn canonical_coverage_prefix(coverages: &[&Coverage]) -> BTreeSet<String> {
     coverages
         .iter()
         .map(|coverage| {
-            [
-                coverage.sensor_id.as_str(),
-                coverage.covered_zones.iter().cloned().collect::<Vec<_>>().join(";").as_str(),
-                coverage.start_utc.as_str(),
-                coverage.end_utc.as_str(),
-                coverage.coverage_state.as_str(),
-                coverage.calibration_ids.iter().cloned().collect::<Vec<_>>().join(";").as_str(),
-                coverage.map_generation.as_str(),
-                coverage.position_uncertainty_m.map(|v| v.to_string()).unwrap_or_else(|| "-".to_owned()).as_str(),
-            ]
-            .join("|")
+            format!(
+                "{}|{}|{}|{}|{}|{}|{}|{}|{}",
+                coverage.sensor_id,
+                coverage.covered_zones.iter().cloned().collect::<Vec<_>>().join(";"),
+                coverage.start_utc,
+                coverage.end_utc,
+                coverage.coverage_state,
+                coverage.calibration_ids.iter().cloned().collect::<Vec<_>>().join(";"),
+                coverage.map_generation,
+                coverage.position_uncertainty_m.map(|v| v.to_string()).unwrap_or_else(|| "-".to_owned()),
+                coverage.notes
+            )
         })
         .collect()
 }
@@ -368,8 +375,38 @@ fn verify_paired_future(
     Ok(checked)
 }
 
+fn validate_route_contract(input: &str) -> Result<usize, String> {
+    let rows = parse_rows(input, 10, "route-contract-v0.1.tsv")?;
+    if rows.len() != 6 {
+        return Err(format!("route-contract-v0.1.tsv: expected six operations, found {}", rows.len()));
+    }
+    let mut operation_ids = BTreeSet::new();
+    let route_id = rows[0][0].clone();
+    let mut predecessor = "-".to_owned();
+    for (index, row) in rows.iter().enumerate() {
+        let line = index + 2;
+        let sequence = row[1].parse::<usize>().map_err(|_| {
+            format!("route-contract-v0.1.tsv: line {line}: invalid sequence number")
+        })?;
+        if sequence != index + 1 || row[0] != route_id {
+            return Err(format!("route-contract-v0.1.tsv: line {line}: route identity/sequence is not contiguous"));
+        }
+        if row[2] == "-" || !operation_ids.insert(row[2].clone()) {
+            return Err(format!("route-contract-v0.1.tsv: line {line}: missing or duplicate operation id"));
+        }
+        if row[8] != predecessor {
+            return Err(format!("route-contract-v0.1.tsv: line {line}: predecessor does not match the preceding route operation"));
+        }
+        if row[4] == "-" || row[5] == "-" || row[6] == "-" || row[7] == "-" {
+            return Err(format!("route-contract-v0.1.tsv: line {line}: resource, zone, event or qualification is missing"));
+        }
+        predecessor = row[2].clone();
+    }
+    Ok(rows.len())
+}
+
 pub fn validate_reference_corpus() -> Result<Vec<ScenarioResult>, String> {
-    let _route_rows = parse_rows(ROUTE, 10, "route-contract-v0.1.tsv")?;
+    let _route_count = validate_route_contract(ROUTE)?;
     let scenarios = parse_scenarios(SCENARIOS)?;
     let coverages = parse_coverage(COVERAGE, &scenarios)?;
     let observations = parse_observations(OBSERVATIONS, &scenarios)?;
@@ -416,6 +453,7 @@ mod tests {
 
     #[test]
     fn frozen_input_corpus_passes_integrity_contract() {
+        assert_eq!(validate_route_contract(ROUTE).unwrap(), 6);
         let results = validate_reference_corpus().expect("reference execution corpus should validate");
         assert_eq!(results.len(), 12);
         assert!(results.iter().all(|result| result.contract_clear));
