@@ -5,7 +5,7 @@
 //! physical failure distributions. Every output is permanently labelled
 //! synthetic and cannot be promoted to measured evidence.
 
-use super::{digest_serialized, non_empty, ReplayError};
+use super::{ReplayError, digest_serialized, non_empty};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -204,14 +204,13 @@ fn validate_request(request: &WaveformRequest) -> Result<(), ReplayError> {
 /// Fault windows are half-open sample intervals. Multiple faults may affect a
 /// channel when their sample intervals do not overlap. The returned receipt
 /// binds the input and schedule digests and is permanently marked synthetic.
-pub fn run_waveform_replay(
-    request: &WaveformRequest,
-) -> Result<WaveformReceipt, ReplayError> {
+pub fn run_waveform_replay(request: &WaveformRequest) -> Result<WaveformReceipt, ReplayError> {
     validate_request(request)?;
 
     let input_sha256 = digest_serialized(&request.input_values)?;
     let mut canonical_faults = request.faults.clone();
-    canonical_faults.sort_by_key(|fault| (fault.start_sample, fault.end_sample, fault.fault_id.clone()));
+    canonical_faults
+        .sort_by_key(|fault| (fault.start_sample, fault.end_sample, fault.fault_id.clone()));
     let fault_schedule_sha256 = digest_serialized(&canonical_faults)?;
     let ordered_faults: Vec<&WaveformFault> = canonical_faults.iter().collect();
 
@@ -226,9 +225,10 @@ pub fn run_waveform_replay(
             .checked_add(sample_offset)
             .ok_or_else(|| waveform_error("sample timebase addition overflow"))?;
 
-        let active = ordered_faults.iter().copied().find(|fault| {
-            fault.start_sample <= sample_index && sample_index < fault.end_sample
-        });
+        let active = ordered_faults
+            .iter()
+            .copied()
+            .find(|fault| fault.start_sample <= sample_index && sample_index < fault.end_sample);
 
         let (state, value, source_sample_index, active_fault_id) = match active {
             None => (
@@ -240,18 +240,12 @@ pub fn run_waveform_replay(
             Some(fault) => {
                 let fault_id = Some(fault.fault_id.clone());
                 match &fault.mode {
-                    WaveformFaultMode::Dropout => (
-                        WaveformSampleState::Unavailable,
-                        None,
-                        None,
-                        fault_id,
-                    ),
-                    WaveformFaultMode::IntegrityFailure | WaveformFaultMode::StaleCalibration => (
-                        WaveformSampleState::Invalid,
-                        None,
-                        None,
-                        fault_id,
-                    ),
+                    WaveformFaultMode::Dropout => {
+                        (WaveformSampleState::Unavailable, None, None, fault_id)
+                    }
+                    WaveformFaultMode::IntegrityFailure | WaveformFaultMode::StaleCalibration => {
+                        (WaveformSampleState::Invalid, None, None, fault_id)
+                    }
                     WaveformFaultMode::Delay { lag_samples } => {
                         let source = sample_index.checked_sub(*lag_samples);
                         let delayed_value = source.map(|index| request.input_values[index]);
@@ -379,15 +373,21 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
         return Err(waveform_error("waveform receipt sample count mismatch"));
     }
     if body.sample_interval_ns == 0 {
-        return Err(waveform_error("waveform receipt sample interval is invalid"));
+        return Err(waveform_error(
+            "waveform receipt sample interval is invalid",
+        ));
     }
     let mut previous_time = None;
     for (index, sample) in body.samples.iter().enumerate() {
         if sample.sample_index != index {
-            return Err(waveform_error("waveform receipt sample indices are not contiguous"));
+            return Err(waveform_error(
+                "waveform receipt sample indices are not contiguous",
+            ));
         }
         if !sample.value.is_none_or(f64::is_finite) {
-            return Err(waveform_error("waveform receipt contains a non-finite value"));
+            return Err(waveform_error(
+                "waveform receipt contains a non-finite value",
+            ));
         }
         let offset = u64::try_from(index)
             .map_err(|_| waveform_error("waveform receipt sample index overflow"))?
@@ -398,12 +398,16 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
             .checked_add(offset)
             .ok_or_else(|| waveform_error("waveform receipt timebase overflow"))?;
         if sample.time_ns != expected_time {
-            return Err(waveform_error("waveform receipt timebase does not match its header"));
+            return Err(waveform_error(
+                "waveform receipt timebase does not match its header",
+            ));
         }
         if let Some(previous) = previous_time
             && sample.time_ns <= previous
         {
-            return Err(waveform_error("waveform receipt time is not strictly increasing"));
+            return Err(waveform_error(
+                "waveform receipt time is not strictly increasing",
+            ));
         }
         previous_time = Some(sample.time_ns);
         match sample.state {
@@ -430,7 +434,9 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
             WaveformSampleState::Delayed => {
                 if sample.value.is_some() != sample.source_sample_index.is_some()
                     || sample.active_fault_id.as_deref().is_none_or(str::is_empty)
-                    || sample.source_sample_index.is_some_and(|source| source >= index)
+                    || sample
+                        .source_sample_index
+                        .is_some_and(|source| source >= index)
                 {
                     return Err(waveform_error(
                         "delayed sample must bind an earlier source and non-empty fault identity",
@@ -511,7 +517,10 @@ mod tests {
         assert_eq!(first.body.samples[4].value, Some(6.0));
         assert_eq!(first.body.samples[5].value, Some(4.0));
         assert_eq!(first.body.samples[0].state, WaveformSampleState::Degraded);
-        assert_eq!(first.body.samples[5].state, WaveformSampleState::SyntheticNominal);
+        assert_eq!(
+            first.body.samples[5].state,
+            WaveformSampleState::SyntheticNominal
+        );
         verify_waveform_receipt(&first).expect("receipt should verify");
     }
 
@@ -570,10 +579,17 @@ mod tests {
             },
         ];
         let receipt = run_waveform_replay(&request).expect("valid fault schedule");
-        assert_eq!(receipt.body.samples[0].state, WaveformSampleState::Unavailable);
+        assert_eq!(
+            receipt.body.samples[0].state,
+            WaveformSampleState::Unavailable
+        );
         assert_eq!(receipt.body.samples[1].state, WaveformSampleState::Invalid);
         assert_eq!(receipt.body.samples[2].state, WaveformSampleState::Invalid);
-        assert!(receipt.body.samples[..3].iter().all(|sample| sample.value.is_none()));
+        assert!(
+            receipt.body.samples[..3]
+                .iter()
+                .all(|sample| sample.value.is_none())
+        );
         verify_waveform_receipt(&receipt).expect("receipt should verify");
     }
 
