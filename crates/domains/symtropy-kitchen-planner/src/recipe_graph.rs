@@ -9,7 +9,7 @@
 //! the embedded KitchenTaskV1 scheduling fields exactly.
 
 use crate::action_ontology::{ActionOntologyBindingV1, validate_action_ontology_binding};
-use crate::{KitchenPlanV1, KitchenTaskV1, KITCHEN_PLAN_SCHEMA_VERSION, validate_plan};
+use crate::{KITCHEN_PLAN_SCHEMA_VERSION, KitchenPlanV1, KitchenTaskV1, validate_plan};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -356,7 +356,11 @@ pub fn validate_recipe_task_graph(graph: &RecipeTaskGraphV1) -> RecipeGraphValid
         .iter()
         .any(|scope| *scope != RecipeUseScopeV1::LocalProcessing);
     if has_non_local_use
-        && (graph.source.permission_evidence_ref.as_deref().is_none_or(|value| !nonempty(value))
+        && (graph
+            .source
+            .permission_evidence_ref
+            .as_deref()
+            .is_none_or(|value| !nonempty(value))
             || matches!(
                 graph.source.rights_status,
                 RecipeRightsStatusV1::Unknown | RecipeRightsStatusV1::Restricted
@@ -612,7 +616,11 @@ pub fn recipe_graph_to_kitchen_plan(
     Ok(KitchenPlanV1 {
         schema_version: KITCHEN_PLAN_SCHEMA_VERSION,
         plan_id: graph.recipe_id.clone(),
-        tasks: graph.tasks.iter().map(|node| node.schedule.clone()).collect(),
+        tasks: graph
+            .tasks
+            .iter()
+            .map(|node| node.schedule.clone())
+            .collect(),
     })
 }
 
