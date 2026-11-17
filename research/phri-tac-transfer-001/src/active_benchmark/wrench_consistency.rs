@@ -109,13 +109,18 @@ pub struct WrenchVector {
     pub moment_nm: Vec3,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct WrenchCovariance6 {
+    /// Full symmetric positive-definite 6×6 covariance, row-major.
+    /// Component order: Fx,Fy,Fz,Mx,My,Mz.
+    pub matrix_row_major: Vec<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct WrenchObservation {
     pub force_n: Vec3,
     pub moment_nm: Vec3,
-    /// Per-axis one-standard-deviation uncertainty; diagonal approximation only.
-    pub force_standard_uncertainty_n: Vec3,
-    pub moment_standard_uncertainty_nm: Vec3,
+    pub covariance: WrenchCovariance6,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -158,9 +163,11 @@ pub struct WrenchConsistencyReport {
     pub predicted_wrench: Option<WrenchVector>,
     pub residual_force_n: Option<Vec3>,
     pub residual_moment_nm: Option<Vec3>,
-    pub standardized_residual_components: Option<[f64; 6]>,
-    pub maximum_absolute_standardized_residual: Option<f64>,
-    pub accepted_threshold: f64,
+    /// Whitened residual components from the covariance Cholesky factor.
+    pub whitened_residual_components: Option<[f64; 6]>,
+    /// Mahalanobis distance sqrt(rᵀ Σ⁻¹ r); threshold is supplied by evaluator.
+    pub mahalanobis_distance: Option<f64>,
+    pub accepted_maximum_mahalanobis_distance: f64,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
 }
@@ -495,6 +502,58 @@ impl WrenchReferenceEvidence {
     }
 }
 
+fn cholesky_wrench_covariance(
+    covariance: &WrenchCovariance6,
+) -> Result<[[f64; 6]; 6], String> {
+    if covariance.matrix_row_major.len() != 36
+        || covariance.matrix_row_major.iter().any(|value| !value.is_finite())
+    {
+        return Err("wrench covariance must contain 36 finite row-major values".to_owned());
+    }
+    let mut matrix = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for column in 0..6 {
+            matrix[row][column] = covariance.matrix_row_major[row * 6 + column];
+            let transpose = covariance.matrix_row_major[column * 6 + row];
+            let scale = matrix[row][column].abs().max(transpose.abs()).max(1.0);
+            if (matrix[row][column] - transpose).abs() > 1.0e-12 * scale {
+                return Err("wrench covariance must be symmetric".to_owned());
+            }
+        }
+    }
+
+    let mut lower = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for column in 0..=row {
+            let correction = (0..column)
+                .map(|index| lower[row][index] * lower[column][index])
+                .sum::<f64>();
+            if row == column {
+                let diagonal = matrix[row][row] - correction;
+                if !diagonal.is_finite() || diagonal <= 0.0 {
+                    return Err("wrench covariance must be positive definite".to_owned());
+                }
+                lower[row][column] = diagonal.sqrt();
+            } else {
+                lower[row][column] =
+                    (matrix[row][column] - correction) / lower[column][column];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+fn whiten_wrench_residual(lower: &[[f64; 6]; 6], residual: &[f64; 6]) -> [f64; 6] {
+    let mut whitened = [0.0; 6];
+    for row in 0..6 {
+        let correction = (0..row)
+            .map(|column| lower[row][column] * whitened[column])
+            .sum::<f64>();
+        whitened[row] = (residual[row] - correction) / lower[row][row];
+    }
+    whitened
+}
+
 pub fn assess_wrench_consistency(
     operator: &WrenchOperator,
     local_traction_pa: &[f64],
@@ -510,9 +569,9 @@ pub fn assess_wrench_consistency(
         predicted_wrench: None,
         residual_force_n: None,
         residual_moment_nm: None,
-        standardized_residual_components: None,
-        maximum_absolute_standardized_residual: None,
-        accepted_threshold: maximum_absolute_standardized_residual,
+        whitened_residual_components: None,
+        mahalanobis_distance: None,
+        accepted_maximum_mahalanobis_distance: maximum_absolute_standardized_residual,
         reasons,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     };
@@ -521,7 +580,7 @@ pub fn assess_wrench_consistency(
     {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
-            vec!["standardized residual threshold must be finite and positive".to_owned()],
+            vec!["maximum Mahalanobis-distance threshold must be finite and positive".to_owned()],
         );
     }
     if evidence.sample_identity != expected_sample_identity {
@@ -546,26 +605,18 @@ pub fn assess_wrench_consistency(
             vec![error],
         );
     }
-    if !observed.force_n.is_finite()
-        || !observed.moment_nm.is_finite()
-        || !observed.force_standard_uncertainty_n.is_finite()
-        || !observed.moment_standard_uncertainty_nm.is_finite()
-        || observed
-            .force_standard_uncertainty_n
-            .components()
-            .iter()
-            .any(|value| *value <= 0.0)
-        || observed
-            .moment_standard_uncertainty_nm
-            .components()
-            .iter()
-            .any(|value| *value <= 0.0)
-    {
+    if !observed.force_n.is_finite() || !observed.moment_nm.is_finite() {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
-            vec!["wrench observation and per-axis standard uncertainties must be finite, with positive uncertainties".to_owned()],
+            vec!["wrench force and moment observations must be finite".to_owned()],
         );
     }
+    let covariance_cholesky = match cholesky_wrench_covariance(&observed.covariance) {
+        Ok(value) => value,
+        Err(error) => {
+            return base(WrenchConsistencyDisposition::InvalidObservation, vec![error]);
+        }
+    };
     let predicted = match integrate_tactile_field(operator, local_traction_pa) {
         Ok(value) => value,
         Err(error) => {
@@ -582,23 +633,9 @@ pub fn assess_wrench_consistency(
         residual_moment.y,
         residual_moment.z,
     ];
-    let sigma = [
-        observed.force_standard_uncertainty_n.x,
-        observed.force_standard_uncertainty_n.y,
-        observed.force_standard_uncertainty_n.z,
-        observed.moment_standard_uncertainty_nm.x,
-        observed.moment_standard_uncertainty_nm.y,
-        observed.moment_standard_uncertainty_nm.z,
-    ];
-    let mut standardized = [0.0; 6];
-    for index in 0..6 {
-        standardized[index] = raw_residual[index] / sigma[index];
-    }
-    let maximum = standardized
-        .iter()
-        .map(|value| value.abs())
-        .fold(0.0_f64, f64::max);
-    let disposition = if maximum <= maximum_absolute_standardized_residual {
+    let whitened = whiten_wrench_residual(&covariance_cholesky, &raw_residual);
+    let distance = dot(&whitened, &whitened).sqrt();
+    let disposition = if distance <= maximum_absolute_standardized_residual {
         WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
     } else {
         WrenchConsistencyDisposition::Mismatch
@@ -608,11 +645,11 @@ pub fn assess_wrench_consistency(
         predicted_wrench: Some(predicted),
         residual_force_n: Some(residual_force),
         residual_moment_nm: Some(residual_moment),
-        standardized_residual_components: Some(standardized),
-        maximum_absolute_standardized_residual: Some(maximum),
-        accepted_threshold: maximum_absolute_standardized_residual,
+        whitened_residual_components: Some(whitened),
+        mahalanobis_distance: Some(distance),
+        accepted_maximum_mahalanobis_distance: maximum_absolute_standardized_residual,
         reasons: if disposition == WrenchConsistencyDisposition::Mismatch {
-            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared per-axis uncertainty threshold".to_owned()]
+            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared full-covariance Mahalanobis threshold".to_owned()]
         } else {
             Vec::new()
         },
@@ -760,11 +797,15 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
         8_000.0, 2_000.0, 1_000.0,
     ];
     let predicted = integrate_tactile_field(&operator, &field)?;
+    let standard_deviations = [0.01_f64, 0.01, 0.01, 0.001, 0.001, 0.001];
+    let mut covariance = vec![0.0; 36];
+    for index in 0..6 {
+        covariance[index * 6 + index] = standard_deviations[index].powi(2);
+    }
     let observed = WrenchObservation {
         force_n: predicted.force_n,
         moment_nm: predicted.moment_nm,
-        force_standard_uncertainty_n: Vec3 { x: 0.01, y: 0.01, z: 0.01 },
-        moment_standard_uncertainty_nm: Vec3 { x: 0.001, y: 0.001, z: 0.001 },
+        covariance: WrenchCovariance6 { matrix_row_major: covariance },
     };
     let evidence = WrenchReferenceEvidence {
         native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
@@ -879,19 +920,15 @@ mod tests {
 
     fn observation_from_field(operator: &WrenchOperator, field: &[f64]) -> WrenchObservation {
         let wrench = integrate_tactile_field(operator, field).unwrap();
+        let standard_deviations = [0.01_f64, 0.01, 0.01, 0.001, 0.001, 0.001];
+        let mut covariance = vec![0.0; 36];
+        for index in 0..6 {
+            covariance[index * 6 + index] = standard_deviations[index].powi(2);
+        }
         WrenchObservation {
             force_n: wrench.force_n,
             moment_nm: wrench.moment_nm,
-            force_standard_uncertainty_n: Vec3 {
-                x: 0.01,
-                y: 0.01,
-                z: 0.01,
-            },
-            moment_standard_uncertainty_nm: Vec3 {
-                x: 0.001,
-                y: 0.001,
-                z: 0.001,
-            },
+            covariance: WrenchCovariance6 { matrix_row_major: covariance },
         }
     }
 
@@ -975,7 +1012,7 @@ mod tests {
             report.disposition,
             WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
         );
-        assert_eq!(report.maximum_absolute_standardized_residual, Some(0.0));
+        assert_eq!(report.mahalanobis_distance, Some(0.0));
 
         let mut shared = evidence();
         shared.reference_independence = ReferenceIndependenceDisposition::SharedCommonCause;
