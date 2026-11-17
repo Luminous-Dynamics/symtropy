@@ -249,6 +249,12 @@
               "cool",
               "rest",
               "serve",
+              "pour",
+              "sprinkle",
+              "stir",
+              "pick",
+              "place",
+              "move",
               "other"
             ]
           },
@@ -324,6 +330,10 @@
               "null"
             ],
             "minLength": 1
+          },
+          "ontology_binding": {
+            "$ref": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBindingV1.schema.json",
+            "description": "Optional action-core/group enrichment. Absent means no ontology enrichment has been performed."
           }
         },
         "allOf": [
