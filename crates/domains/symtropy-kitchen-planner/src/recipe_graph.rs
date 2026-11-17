@@ -655,6 +655,40 @@ mod tests {
     }
 
     #[test]
+    fn graph_accepts_explicit_rule_based_action_ontology_binding() {
+        let mut graph = valid_graph();
+        graph.tasks[0].ontology_binding = Some(
+            crate::action_ontology::rule_based_action_binding(
+                RecipeActionKindV1::Chop,
+                RecipeEvidenceClassV1::Declared,
+            ),
+        );
+        assert!(validate_recipe_task_graph(&graph).is_valid());
+    }
+
+    #[test]
+    fn graph_rejects_action_ontology_rule_mismatch() {
+        let mut graph = valid_graph();
+        let mut binding = crate::action_ontology::rule_based_action_binding(
+            RecipeActionKindV1::Chop,
+            RecipeEvidenceClassV1::Declared,
+        );
+        binding.mapping.group = Some(crate::action_ontology::ActionGroupV1::Dice);
+        binding.mapping.core = Some(crate::action_ontology::ActionCoreV1::Cutting);
+        graph.tasks[0].ontology_binding = Some(binding);
+        assert!(validate_recipe_task_graph(&graph).violations.iter().any(|entry| {
+            entry.code == RecipeGraphViolationCodeV1::InvalidActionOntologyBinding
+        }));
+    }
+
+    #[test]
+    fn older_recipe_task_nodes_without_ontology_binding_remain_valid() {
+        let graph = valid_graph();
+        assert!(graph.tasks.iter().all(|node| node.ontology_binding.is_none()));
+        assert!(validate_recipe_task_graph(&graph).is_valid());
+    }
+
+    #[test]
     fn unknown_ingredient_reference_is_rejected() {
         let mut graph = valid_graph();
         graph.tasks[0].ingredient_inputs[0].ingredient_id = "missing".to_owned();
