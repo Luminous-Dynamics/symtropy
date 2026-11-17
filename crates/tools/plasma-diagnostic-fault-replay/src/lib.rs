@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
-use std::fmt::{self, Write as _};
+use std::fmt;
 
 pub const SCHEMA_VERSION: &str = "luminous.plasma-diagnostic-fault-replay.v0.1";
 pub const BENCHMARK_SCHEMA_VERSION: &str = "luminous.plasma-diagnostic-fault-replay-benchmark.v0.1";
@@ -198,9 +198,11 @@ pub struct AuditReport {
 
 fn digest_bytes(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
+    const HEX: &[u8; 16] = b"0123456789abcdef";
     let mut output = String::with_capacity(64);
     for byte in digest {
-        let _ = write!(&mut output, "{byte:02x}");
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
     }
     output
 }
@@ -325,10 +327,8 @@ fn validate_request(request: &ReplayRequest) -> Result<(), ReplayError> {
 
     // S0 uses unambiguous fault composition: two overlapping events cannot
     // affect the same channel, including channel-plus-system intersections.
-    for left_index in 0..request.schedule.faults.len() {
-        for right_index in (left_index + 1)..request.schedule.faults.len() {
-            let left = &request.schedule.faults[left_index];
-            let right = &request.schedule.faults[right_index];
+    for (left_index, left) in request.schedule.faults.iter().enumerate() {
+        for right in request.schedule.faults.iter().skip(left_index + 1) {
             let intervals_overlap =
                 left.start_time_ns < right.end_time_ns && right.start_time_ns < left.end_time_ns;
             if !intervals_overlap {
@@ -408,7 +408,7 @@ pub fn run_replay(request: &ReplayRequest) -> Result<ReplayReceipt, ReplayError>
                 })
                 .collect();
 
-            active.sort_by(|left, right| left.fault_id.cmp(&right.fault_id));
+            active.sort_by_key(|fault| &fault.fault_id);
             if active.len() > 1 {
                 return Err(ReplayError::new(format!(
                     "ambiguous active fault composition for channel {} at {} ns",
@@ -595,6 +595,14 @@ mod tests {
                     mode: FaultMode::Dropout,
                     start_time_ns: 20,
                     end_time_ns: 40,
+                }, FaultEvent {
+                    fault_id: "delay-temperature".to_owned(),
+                    target: FaultTarget::Channel {
+                        channel_id: "temperature".to_owned(),
+                    },
+                    mode: FaultMode::Delay,
+                    start_time_ns: 60,
+                    end_time_ns: 80,
                 }],
             },
             points: vec![
@@ -609,6 +617,10 @@ mod tests {
                 EvaluationPoint {
                     point_id: "p2".to_owned(),
                     time_ns: 40,
+                },
+                EvaluationPoint {
+                    point_id: "p3".to_owned(),
+                    time_ns: 60,
                 },
             ],
         }
