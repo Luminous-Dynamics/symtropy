@@ -70,6 +70,7 @@ pub enum ConformanceLevel {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum EntityKind {
+    CrateDataset,
     Laboratory,
     Rig,
     Instrument,
@@ -95,6 +96,7 @@ pub enum EntityKind {
 impl EntityKind {
     fn schema_type(self) -> &'static str {
         match self {
+            Self::CrateDataset => "Dataset",
             Self::RawDataFile | Self::DerivedDataFile => "MediaObject",
             Self::Laboratory | Self::Rig | Self::Instrument | Self::Detector | Self::OpticalSource
             | Self::OpticalPath => "IndividualProduct",
@@ -291,9 +293,11 @@ pub enum ProfileFinding {
     InvalidNodeId(String),
     InvalidNodeName(String),
     InvalidArtifactLocation(String),
+    MissingArtifact(String),
     InvalidArtifactMediaType(String),
     InvalidArtifactHash(String),
     DuplicateUnknownField { node_id: String, field: String },
+    InvalidUnknownField { node_id: String, field: String },
     UnknownNodeReference { source_id: String, target_id: String },
     InvalidProvRelation {
         kind: ProvRelationKind,
@@ -303,6 +307,7 @@ pub enum ProfileFinding {
     DuplicateProvRelation(ProvRelation),
     ProvenanceNotConnectedToCrateRoot,
     MissingMeasurementNode(String),
+    MissingMeasurementProvenance(String),
     DuplicateMeasurementClaim(String),
     MissingMeasurementReference { claim_id: String, field: &'static str },
     InvalidMeasurementValue(String),
@@ -410,7 +415,7 @@ impl PortableEvidenceProfile {
     }
 
     fn validate_p0(&self, findings: &mut Vec<ProfileFinding>) {
-        if !nonempty(&self.crate_id) || !nonempty(&self.crate_name) {
+        if !absolute_uri(&self.crate_id) || !nonempty(&self.crate_name) {
             findings.push(ProfileFinding::EmptyCrateIdentity);
         }
         if !absolute_uri(&self.profile_uri) {
@@ -430,6 +435,14 @@ impl PortableEvidenceProfile {
             }
             if nodes.insert(node.id.as_str(), node).is_some() {
                 findings.push(ProfileFinding::DuplicateNode(node.id.clone()));
+            }
+
+            if matches!(
+                node.class,
+                NodeClass::Entity(EntityKind::RawDataFile | EntityKind::DerivedDataFile)
+            ) && node.artifact.is_none()
+            {
+                findings.push(ProfileFinding::MissingArtifact(node.id.clone()));
             }
 
             if let Some(artifact) = &node.artifact {
@@ -454,7 +467,7 @@ impl PortableEvidenceProfile {
             let mut unknown_names = BTreeSet::new();
             for unknown in &node.unknown_fields {
                 if !nonempty(&unknown.field) || !nonempty(&unknown.reason) {
-                    findings.push(ProfileFinding::DuplicateUnknownField {
+                    findings.push(ProfileFinding::InvalidUnknownField {
                         node_id: node.id.clone(),
                         field: unknown.field.clone(),
                     });
@@ -465,6 +478,20 @@ impl PortableEvidenceProfile {
                         field: unknown.field.clone(),
                     });
                 }
+            }
+        }
+
+        let mut measurement_ids = BTreeSet::new();
+        for claim in &self.measurements {
+            if !measurement_ids.insert(claim.id.as_str()) {
+                findings.push(ProfileFinding::DuplicateMeasurementClaim(claim.id.clone()));
+            }
+        }
+
+        let mut fantasy_ids = BTreeSet::new();
+        for fantasy in &self.synthetic_fantasies {
+            if !fantasy_ids.insert(fantasy.id.as_str()) {
+                findings.push(ProfileFinding::FantasyNotExplicitlyTyped(fantasy.id.clone()));
             }
         }
 
@@ -523,9 +550,7 @@ impl PortableEvidenceProfile {
             findings.push(ProfileFinding::ProvenanceNotConnectedToCrateRoot);
             return;
         };
-        if root.class != NodeClass::Entity(EntityKind::Laboratory) {
-            // RO-Crate root must be a Dataset. A domain laboratory is a
-            // contextual entity, not the root data entity.
+        if root.class != NodeClass::Entity(EntityKind::CrateDataset) {
             findings.push(ProfileFinding::ProvenanceNotConnectedToCrateRoot);
         }
 
@@ -585,10 +610,23 @@ impl PortableEvidenceProfile {
                     });
                 }
             }
+            if let Some(measurement_node) = nodes.get(claim.id.as_str()) {
+                if !matches!(
+                    measurement_node.class,
+                    NodeClass::Entity(EntityKind::RawDataFile | EntityKind::DerivedDataFile)
+                ) {
+                    findings.push(ProfileFinding::MissingMeasurementNode(claim.id.clone()));
+                }
+            }
+            if !self.has_relation(ProvRelationKind::WasGeneratedBy, &claim.id, &claim.activity_id)
+                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.sample_id)
+                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.instrument_id)
+                || !self.has_relation(ProvRelationKind::Used, &claim.activity_id, &claim.calibration_certificate_id)
+            {
+                findings.push(ProfileFinding::MissingMeasurementProvenance(claim.id.clone()));
+            }
             if !claim.value.is_finite() {
-                findings.push(ProfileFinding::InvalidMeasurementValue(
-                    claim.id.clone(),
-                ));
+                findings.push(ProfileFinding::InvalidMeasurementValue(claim.id.clone()));
             }
             if !claim.absolute_uncertainty.is_finite() || claim.absolute_uncertainty < 0.0 {
                 findings.push(ProfileFinding::InvalidMeasurementUncertainty(
