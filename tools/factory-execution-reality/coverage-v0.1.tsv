@@ -1,0 +1,32 @@
+coverage_id	scenario_id	sensor_id	source_origin_group	covered_zone	start_utc	end_utc	coverage_state	calibration_id	map_generation	declared_position_uncertainty_m	sampling_interval_ms	notes
+COV-MES-00	S00	MES-A	origin:MES-A	ALL	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	-	MAP-01	-	-	MES registration stream available for the baseline.
+COV-PLC-00	S00	PLC-CNC-A;PLC-CNC-B	origin:PLC	CELL-CNC-A;CELL-CNC-B	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	CAL-PLC-01;CAL-PLC-02	MAP-01	-	100	Machine-cycle telemetry declared available in baseline.
+COV-RTLS-00	S00	RTLS-01	origin:RTLS-01	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Zone uncertainty declared for development data.
+COV-PLC-02	S02	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Machine telemetry coverage is declared adequate; no cycle observation is present for the claimed event.
+COV-RTLS-02	S02	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Spatial coverage is adequate for the target zone and time window.
+COV-PLC-03	S03	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:25:00Z	2026-11-01T08:35:00Z	GAP	-	MAP-01	-	100	No cycle observation during gap means UNKNOWN, not NOT_OBSERVED_WITH_COVERAGE.
+COV-RTLS-03	S03	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:25:00Z	2026-11-01T08:35:00Z	GAP	CAL-RTLS-01	MAP-01	-	1000	Declared telemetry gap.
+COV-RTLS-06	S06	RTLS-01	origin:RTLS-01	CELL-CNC-B;QA-LAB	2026-11-01T08:59:00Z	2026-11-01T09:01:00Z	AMBIGUOUS	CAL-RTLS-01	MAP-01	0.75	1000	Samples oscillate across two zones within the uncertainty envelope.
+COV-PLC-07	S07	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Rework cycle observed after inspection operation; route deviation must be evaluated.
+COV-RTLS-07	S07	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Spatial path observation supports the unrecorded loop.
+COV-CLEAN-00	S00	PLC-CLEAN-A	origin:PLC-CLEAN-A	CELL-CLEAN-A	2026-11-01T07:25:00Z	2026-11-01T07:35:00Z	ADEQUATE	CAL-CLEAN-01	MAP-01	-	100	Clean/deburr process-complete sensor coverage.
+COV-QA-00	S00	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T07:35:00Z	2026-11-01T07:45:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article inspection scope is current.
+COV-AUTH-00	S00	AUTH-A	origin:AUTH-A	RELEASE-ZONE	2026-11-01T07:45:00Z	2026-11-01T07:55:00Z	ADEQUATE	-	MAP-01	-	-	Authorized release record coverage.
+COV-QA-07	S07	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T09:05:00Z	2026-11-01T09:07:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article result precedes the unrecorded later rework cycle.
+COV-QA-08	S08	QMS-A;QMS-B	origin:MEASURE-ORIGINAL-77	QA-LAB	2026-11-01T09:15:00Z	2026-11-01T09:22:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	Both report records are covered but share one measurement origin.
+COV-MES-09	S09	MES-A	origin:MES-A	ALL	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	-	MAP-01	-	-	MES operation records through first-article decision.
+COV-PLC-09	S09	PLC-CNC-A;PLC-CNC-B;PLC-CLEAN-A	origin:PLC	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-PLC-01;CAL-PLC-02;CAL-CLEAN-01	MAP-01	-	100	Machine and process-cycle observations support route chronology.
+COV-RTLS-09	S09	RTLS-01	origin:RTLS-01	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Location evidence covers the route.
+COV-QA-09	S09	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T09:28:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article failure is within current inspection coverage.
+COV-PLC-01	S01	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:05:00Z	2026-11-01T08:12:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Machine cycle is covered despite the missing MES registration.
+COV-RTLS-01	S01	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:05:00Z	2026-11-01T08:12:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Independent zone evidence supports the observed route.
+COV-MES-02	S02	MES-A	origin:MES-A	ALL	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	-	MAP-01	-	-	MES registration coverage for the claimed finish event.
+COV-RTLS-04	S04	RTLS-02	origin:RTLS-02	CELL-CNC-B	2026-11-01T08:35:00Z	2026-11-01T08:45:00Z	ADEQUATE	CAL-RTLS-02	MAP-01	0.25	1000	RTLS identity evidence is in coverage but conflicts with barcode product binding.
+COV-SCAN-04	S04	SCAN-A	origin:SCAN-A	CELL-CNC-B	2026-11-01T08:35:00Z	2026-11-01T08:45:00Z	ADEQUATE	CAL-SCAN-01	MAP-01	-	-	Barcode scan evidence is in coverage for the identity conflict.
+COV-MES-05	S05	MES-A	origin:MES-A	ALL	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	-	MAP-01	-	-	MES registration is available at decision time.
+COV-PLC-05	S05	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Late-ingested machine event is available before the decision epoch.
+COV-CLEAN-09	S09	PLC-CLEAN-A	origin:PLC-CLEAN-A	CELL-CLEAN-A	2026-11-01T09:23:00Z	2026-11-01T09:26:00Z	ADEQUATE	CAL-CLEAN-01	MAP-01	-	100	Clean operation is observed before the failed first-article inspection.
+COV-MES-HF-10	S10	MES-A	origin:MES-A	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	-	MAP-01	-	-	Shared pre-event WIP status coverage for the paired-prefix control.
+COV-RTLS-HF-10	S10	RTLS-01	origin:RTLS-01	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Shared pre-event location coverage for the paired-prefix control.
+COV-MES-HF-11	S11	MES-A	origin:MES-A	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	-	MAP-01	-	-	Shared pre-event WIP status coverage for the paired-prefix control.
+COV-RTLS-HF-11	S11	RTLS-01	origin:RTLS-01	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Shared pre-event location coverage for the paired-prefix control.
