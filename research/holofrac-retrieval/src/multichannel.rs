@@ -8,7 +8,9 @@
 use std::collections::{BTreeMap, HashSet};
 use std::time::Instant;
 
-use symtropy_hdc_core::{BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder};
+use symtropy_hdc_core::{
+    BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder,
+};
 
 use crate::field::{FieldFamily, FieldRange, SpatialFieldMemory, field_value};
 
@@ -37,12 +39,22 @@ impl std::fmt::Display for MultiChannelError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptySamples => f.write_str("multi-channel field requires at least one sample"),
-            Self::EmptyChannel => f.write_str("field channel identifier must not be empty or contain control characters"),
-            Self::InvalidRange => f.write_str("field coordinate/value range must be finite with max > min"),
-            Self::SampleOutsideRange => f.write_str("field sample or query lies outside declared coordinate/value ranges"),
-            Self::DuplicateEncodedPosition => f.write_str("two samples for one channel quantize to the same encoded spatial position"),
+            Self::EmptyChannel => f.write_str(
+                "field channel identifier must not be empty or contain control characters",
+            ),
+            Self::InvalidRange => {
+                f.write_str("field coordinate/value range must be finite with max > min")
+            }
+            Self::SampleOutsideRange => {
+                f.write_str("field sample or query lies outside declared coordinate/value ranges")
+            }
+            Self::DuplicateEncodedPosition => f.write_str(
+                "two samples for one channel quantize to the same encoded spatial position",
+            ),
             Self::UnknownChannel(channel) => write!(f, "unknown field channel: {channel}"),
-            Self::InvalidGrid => f.write_str("multi-channel field grid requires at least two samples per axis"),
+            Self::InvalidGrid => {
+                f.write_str("multi-channel field grid requires at least two samples per axis")
+            }
             Self::Field(error) => write!(f, "independent field baseline error: {error}"),
             Self::Hdc(error) => write!(f, "multi-channel spatial VSA error: {error}"),
         }
@@ -116,13 +128,15 @@ impl MultiChannelFieldMemory {
         let mut channel_roles = BTreeMap::new();
         for sample in samples {
             validate_channel(&sample.channel)?;
-            channel_roles.entry(sample.channel.clone()).or_insert_with(|| {
-                item_memory.bind_role_value(
-                    "continuous-field-channel",
-                    "channel",
-                    &sample.channel,
-                )
-            });
+            channel_roles
+                .entry(sample.channel.clone())
+                .or_insert_with(|| {
+                    item_memory.bind_role_value(
+                        "continuous-field-channel",
+                        "channel",
+                        &sample.channel,
+                    )
+                });
         }
 
         let mut bundle = BipolarBundle::new(spec.dimension);
@@ -145,14 +159,7 @@ impl MultiChannelFieldMemory {
             }
 
             let position = encode_position(
-                &x_encoder,
-                &y_encoder,
-                &x_role,
-                &y_role,
-                x_range,
-                y_range,
-                sample.x,
-                sample.y,
+                &x_encoder, &y_encoder, &x_role, &y_role, x_range, y_range, sample.x, sample.y,
             )?;
             let channel_role = channel_roles
                 .get(&sample.channel)
@@ -223,8 +230,7 @@ impl MultiChannelFieldMemory {
             y,
         )?;
         let position_channel = position.bind(channel_role)?;
-        let coordinate_channel_encode_micros =
-            encode_started.elapsed().as_secs_f64() * 1_000_000.0;
+        let coordinate_channel_encode_micros = encode_started.elapsed().as_secs_f64() * 1_000_000.0;
 
         let unbind_started = Instant::now();
         let noisy_value = self.memory.bind(&position_channel)?;
@@ -388,13 +394,8 @@ pub fn run_multi_channel_benchmark(
         scalar_levels: 257,
     };
 
-    let shared_memory = MultiChannelFieldMemory::build(
-        &all_samples,
-        spec.clone(),
-        range,
-        range,
-        range,
-    )?;
+    let shared_memory =
+        MultiChannelFieldMemory::build(&all_samples, spec.clone(), range, range, range)?;
 
     let independent_started = Instant::now();
     let mut independent_memories = Vec::with_capacity(channel_count);
@@ -407,8 +408,7 @@ pub fn run_multi_channel_benchmark(
             range,
         )?);
     }
-    let independent_build_micros =
-        independent_started.elapsed().as_secs_f64() * 1_000_000.0;
+    let independent_build_micros = independent_started.elapsed().as_secs_f64() * 1_000_000.0;
 
     let mut shared_errors = Vec::with_capacity(sample_capacity);
     let mut independent_errors = Vec::with_capacity(sample_capacity);
@@ -422,30 +422,22 @@ pub fn run_multi_channel_benchmark(
                 let x = (x_index as f64 + 0.5) / (grid_size - 1) as f64;
                 let y = (y_index as f64 + 0.5) / (grid_size - 1) as f64;
                 let base = field_value(FieldFamily::Smooth, x, y);
-                let truth = (0.5 + (1.0 - channel_index as f64 * 0.08) * (base - 0.5))
-                    .clamp(0.0, 1.0);
+                let truth =
+                    (0.5 + (1.0 - channel_index as f64 * 0.08) * (base - 0.5)).clamp(0.0, 1.0);
 
                 let shared_started = Instant::now();
                 let shared_result = shared_memory.query(channel, x, y)?;
-                shared_query_times.push(
-                    shared_started.elapsed().as_secs_f64() * 1_000_000.0,
-                );
+                shared_query_times.push(shared_started.elapsed().as_secs_f64() * 1_000_000.0);
                 shared_errors.push(shared_result.value - truth);
 
                 let independent_started = Instant::now();
-                let independent_result =
-                    independent_memories[channel_index].query(x, y)?;
-                independent_query_times.push(
-                    independent_started.elapsed().as_secs_f64() * 1_000_000.0,
-                );
+                let independent_result = independent_memories[channel_index].query(x, y)?;
+                independent_query_times
+                    .push(independent_started.elapsed().as_secs_f64() * 1_000_000.0);
                 independent_errors.push(independent_result.value - truth);
 
-                let bilinear = bilinear_channel_value(
-                    &independent_samples[channel_index],
-                    grid_size,
-                    x,
-                    y,
-                );
+                let bilinear =
+                    bilinear_channel_value(&independent_samples[channel_index], grid_size, x, y);
                 bilinear_errors.push(bilinear - truth);
             }
         }
@@ -465,9 +457,8 @@ pub fn run_multi_channel_benchmark(
         .map(SpatialFieldMemory::encoder_index_bytes_estimate)
         .sum();
     let scalar_grid_value_bytes = sample_capacity * std::mem::size_of::<f64>();
-    let shared_total_payload_bytes = shared_vector_payload_bytes
-        + shared_encoder_index_bytes
-        + shared_channel_name_bytes;
+    let shared_total_payload_bytes =
+        shared_vector_payload_bytes + shared_encoder_index_bytes + shared_channel_name_bytes;
     let independent_total_payload_bytes =
         independent_vector_payload_bytes + independent_encoder_index_bytes;
 
