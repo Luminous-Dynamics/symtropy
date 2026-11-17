@@ -22,7 +22,8 @@
 //! avoids the explicit-step stability restriction for this passive subsystem.
 
 use super::plant_hydraulic_null::{
-    PlantHydraulicError, PlantHydraulicInputs, solve_two_resistance_null, stomatal_open_fraction,
+    PlantHydraulicError, PlantHydraulicInputs, equivalent_hydraulic_conductance,
+    stomatal_open_fraction,
 };
 
 const WATER_MOLAR_MASS_KG_PER_MOL: f64 = 0.018_015_28;
@@ -137,11 +138,10 @@ pub fn step_plant_hydraulic_capacitance(
         }
     }
 
-    // Reuse the validated steady-state reference for input validation and
-    // the series conductance. Its steady-state flux is not used by this step.
-    let reference =
-        solve_two_resistance_null(inputs).map_err(PlantHydraulicDynamicsError::HydraulicInput)?;
-    let equivalent_conductance = reference.equivalent_hydraulic_conductance_kg_m2_s_mpa;
+    // Validate the shared hydraulic parameters and obtain the series
+    // conductance without solving a second, unused steady-state trajectory.
+    let equivalent_conductance = equivalent_hydraulic_conductance(inputs)
+        .map_err(PlantHydraulicDynamicsError::HydraulicInput)?;
     let storage_rate = hydraulic_capacitance_kg_m2_mpa / time_step_s;
     let next_elapsed_time = previous.elapsed_time_s + time_step_s;
 
