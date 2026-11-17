@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/benchmarks/scientific-world-episodes/v0.1/evaluator-transfer-annotation.schema.json",
+  "title": "Scientific World Evaluator Transfer Annotation v0.1",
+  "description": "Evaluator-only development/qualification annotation. MUST NOT be serialized into a policy-visible episode packet or exposed to the research agent before terminal submission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "annotation_id",
+    "pair_id",
+    "source_episode_contract_digest",
+    "target_episode_contract_digest",
+    "transfer_relation",
+    "changed_dimensions",
+    "expected_disposition",
+    "identifiability",
+    "claim_scope",
+    "policy_visibility"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "org.luminous-dynamics.scientific-world-episode.evaluator-transfer-annotation"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "annotation_id": {
+      "$ref": "#/$defs/opaque_id"
+    },
+    "pair_id": {
+      "$ref": "#/$defs/opaque_id"
+    },
+    "source_episode_contract_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "target_episode_contract_digest": {
+      "$ref": "#/$defs/digest"
+    },
+    "transfer_relation": {
+      "enum": [
+        "parameter_shift",
+        "topology_composition_shift",
+        "measurement_map_shift",
+        "shared_submechanism",
+        "mechanism_mutation",
+        "unrelated_control"
+      ]
+    },
+    "changed_dimensions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "parameters",
+          "initial_state",
+          "topology",
+          "composition",
+          "measurement_map",
+          "calibration",
+          "missingness",
+          "sampling",
+          "mechanism",
+          "delay",
+          "feedback",
+          "state_persistence",
+          "noise_process",
+          "intervention_semantics",
+          "observation_channel"
+        ]
+      }
+    },
+    "expected_disposition": {
+      "enum": [
+        "reuse_after_validation",
+        "adapt_model",
+        "partial_transfer",
+        "reject_source_model",
+        "cold_start",
+        "abstain"
+      ]
+    },
+    "identifiability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "permitted_probe_set_digest",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "identifiable",
+            "partially_identifiable",
+            "non_identifiable",
+            "out_of_support"
+          ]
+        },
+        "permitted_probe_set_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "expected_supported_submechanism_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/opaque_id"
+      }
+    },
+    "expected_rejected_submechanism_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/opaque_id"
+      }
+    },
+    "claim_scope": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "policy_visibility": {
+      "const": "evaluator_only"
+    },
+    "development_only": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "opaque_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{16,96}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
