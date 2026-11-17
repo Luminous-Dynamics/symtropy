@@ -136,3 +136,49 @@ A result is better than the state of the art only if the comparison is matched a
 ## Claim ceiling
 
 This update is an evidence-bounded research prioritization. It does not select a construction site, validate a collider lattice, predict achievable luminosity, qualify a magnet / power / cryogenic / radiator system, establish radiation safety or claim that any off-Earth accelerator is feasible.
+
+
+## Addendum — local engineered rings change the host question (17 November 2026)
+
+The great-circle comparison is not sufficient to select a body host. The accelerator circumference is a design variable; a local ring on the Moon does not have to follow the Moon's 10,916 km great circle.
+
+A first-order **local-ring comparison has now been opened in [#5924](https://github.com/Luminous-Dynamics/symtropy/issues/5924) and implemented in the existing analytical reference on [PR #3962](https://github.com/Luminous-Dynamics/symtropy/pull/3962)**. It covers 50 km, 100 km and 150 km circumferences at 8.33 T, 14 T, 16 T and 20 T, with a declared 0.67 dipole fill fraction. This is deliberately an in-place extension of the existing space-collider reference, not a second calculator.
+
+### Key matched comparison
+
+At 97.75 km, 16 T and 0.67 fill:
+- the simplified proton rigidity screen gives **99.9959 TeV CM**, almost exactly the 100 TeV FCC-hh CDR geometry reference;
+- with a 0.5 A proton reference current, the isomagnetic synchrotron screen gives **2.3339 MW/beam**, versus the FCC-hh source reference of approximately 2.4 MW/beam;
+- both residuals are retained without fitting or calibration.
+
+At 100 km / 16 T / 0.67 fill, the screen gives **102.2976 TeV CM**. This makes a local 100 km lunar ring a more decision-relevant comparison to FCC-hh than the 11,000 km lunar great-circle concept. It does not establish that a lunar site, magnet system, lattice, detector, power plant or collider could be built.
+
+### Species changes the local-ring trade
+
+Under the same 100 km / 16 T / 0.67 geometry:
+- the simplified muon decay model gives about **3,188 particle-decay e-fold turns**, with about **1,594 two-beam luminosity decay e-fold turns**;
+- reusing the NLASG 1.8e12-muon bunch and 5 Hz repetition profile gives approximately **73.75 MW/beam injection power**;
+- the formal isomagnetic synchrotron estimate is approximately **142.9 MW/beam**, or about **1.94 times** the injection-power reference.
+
+This is a continuous repetition / exponential decay scaling calculation. It is not a bunch-resolved operating point or a credible power forecast. The executable now emits an explicit status when formal synchrotron replacement power exceeds the declared injection-power profile. The detector, decay-product transport, neutrino-dose, RF, magnet, and host utility questions remain separate owners.
+
+### Current industry frontier and the real improvement target
+
+- CERN's FCC programme reports a **14.1 T accelerator dipole demonstration at 4.5 K**. Its programme is developing Nb3Sn toward 16 T and investigating HTS inserts/demonstrators toward 20 T; field quality in a 50 mm aperture, protection, and large-scale manufacture remain explicit challenges. A 20 T input in our screen is therefore a stretch sensitivity case, not an available production field. Reference: https://fcc.web.cern.ch/magnet-design
+- The November 5, 2026 NLASG muon-collider report states that the integrated production–cooling–acceleration–collision chain has not been demonstrated. It argues for a systems-integrated R&D paradigm in which simulation, component tests, systems engineering and experiments retire full-machine risks together. The report's 10 TeV collider is the relevant current muon reference, not our PeV extrapolation. Reference: https://arxiv.org/abs/2611.06680
+- Beam-driven plasma wakefields can reach gradients up to **100 GV/m**, but the September 2026 accepted Reviews of Modern Physics review identifies efficiency and beam-quality preservation as challenges. The 2026 PDG accelerator review notes that plasma-based collider luminosity remains orders of magnitude below conventional collider projections and highlights positron focusing / beam transport problems. High gradient alone does not make a collider. References: https://doi.org/10.1103/2lw2-szhs and https://ccwww.kek.jp/pdg/2026/reviews/rpp2026-rev-accel-phys-colliders.pdf
+
+### New programme direction
+
+Compare machines using **accepted scientific output per delivered MW, installed mass and lifecycle effort**, under matched beam quality, detector acceptance, reliability and operating schedule. The near-term comparator should include:
+1. operating Earth facilities as the demonstrated baseline;
+2. FCC-hh as the future conventional 100 TeV hadron reference;
+3. a 50–150 km local Moon ring as a body-hosted geometry/power/thermal candidate;
+4. the 10 TeV muon programme as an emerging lepton architecture;
+5. plasma-wakefield acceleration as a staged-booster / hybrid research route, conditional on finite-emittance input and output, efficiency, positron/driver constraints and integrated luminosity.
+
+Do not average these into a single scalar winner. First reject concepts that fail hard beam-stability, detector, machine-protection, radiation, power or thermal gates; then compare Pareto trade-offs among feasible candidates.
+
+### Validation state
+
+The new local-ring module and deterministic JSON / workflow assertions are committed in PR #3962. The latest exact head at this update is expected to be checked by the PR-triggered focused and repository CI workflows; queued work is not a pass. The numerical results above are independently recomputable from the declared rigidity and classical isomagnetic equations, but the Rust executable's test/CI result must be reported only after exact-head completion.
