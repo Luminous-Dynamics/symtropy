@@ -44,6 +44,7 @@ This recovers the small-angle form used by Birch (1982) while retaining the exac
 ## Frozen v0.1 corpus
 
 - 6 named scenarios and 14 mass-flux ports.
+- An explicit inertial-frame identifier and evaluation epoch per scenario; every port in a scenario uses that same frame and epoch.
 - Straight-through control and 90-degree turn.
 - Unsteady storage case with nonzero mass and momentum accumulation.
 - Three-dimensional multiple-inlet/multiple-outlet case.
