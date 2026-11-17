@@ -1388,4 +1388,21 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn empty_coarse_candidate_set_skips_all_refinement_cache_work() {
+        let bodies = [
+            body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
+            body("b", span(10_000.0, 0.0, 0.0, 0, 1_000)),
+        ];
+        let hierarchical =
+            time_swept_capsule_broadphase_hierarchical(&bodies, 16).unwrap();
+        assert!(hierarchical.coarse.pairs.is_empty());
+        assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 0);
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 0);
+        assert_eq!(hierarchical.refinement.tested_pair_slabs, 0);
+        assert_eq!(hierarchical.refinement.cached_bounds_fast_rejects, 0);
+        assert_eq!(hierarchical.refinement.common_interval_rebuilds, 0);
+    }
+
 }
