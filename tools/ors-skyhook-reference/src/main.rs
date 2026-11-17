@@ -6,7 +6,9 @@ use ors_skyhook_reference::evaluate_corpus;
 
 fn valid_hex(value: &str, length: usize) -> bool {
     value.len() == length
-        && value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
 fn json_string(value: &str) -> String {
@@ -33,8 +35,18 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
     writeln!(&mut output, "{{").unwrap();
     writeln!(&mut output, "  \"receipt_schema_version\": \"0.1.0\",").unwrap();
     writeln!(&mut output, "  \"validator\": \"ors-skyhook-reference\",").unwrap();
-    writeln!(&mut output, "  \"source_commit\": {},", json_string(source_commit)).unwrap();
-    writeln!(&mut output, "  \"corpus_sha256\": {},", json_string(corpus_sha256)).unwrap();
+    writeln!(
+        &mut output,
+        "  \"source_commit\": {},",
+        json_string(source_commit)
+    )
+    .unwrap();
+    writeln!(
+        &mut output,
+        "  \"corpus_sha256\": {},",
+        json_string(corpus_sha256)
+    )
+    .unwrap();
     writeln!(&mut output, "  \"case_count\": {},", report.cases.len()).unwrap();
     writeln!(
         &mut output,
@@ -48,7 +60,12 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
         report.outside_source_domain_count
     )
     .unwrap();
-    writeln!(&mut output, "  \"max_relative_error\": {:.15e},", report.max_relative_error).unwrap();
+    writeln!(
+        &mut output,
+        "  \"max_relative_error\": {:.15e},",
+        report.max_relative_error
+    )
+    .unwrap();
     writeln!(&mut output, "  \"result\": \"pass\",").unwrap();
     let claim_ceiling = concat!(
         "Source-arithmetic reproduction of Birch (1982) Eqs. 35/44/53/54 ",
@@ -63,11 +80,25 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
     writeln!(&mut output, "  \"cases\": [").unwrap();
 
     for (index, case) in report.cases.iter().enumerate() {
-        let comma = if index + 1 == report.cases.len() { "" } else { "," };
+        let comma = if index + 1 == report.cases.len() {
+            ""
+        } else {
+            ","
+        };
         writeln!(&mut output, "    {{").unwrap();
-        writeln!(&mut output, "      \"case_id\": {},", json_string(&case.case_id)).unwrap();
+        writeln!(
+            &mut output,
+            "      \"case_id\": {},",
+            json_string(&case.case_id)
+        )
+        .unwrap();
         writeln!(&mut output, "      \"status\": {},", json_string(case.status.as_str())).unwrap();
-        writeln!(&mut output, "      \"turn_angle_rad\": {:.15e},", case.turn_angle_rad).unwrap();
+        writeln!(
+            &mut output,
+            "      \"turn_angle_rad\": {:.15e},",
+            case.turn_angle_rad
+        )
+        .unwrap();
         writeln!(
             &mut output,
             "      \"turn_angle_limit_rad\": {:.15e},",
@@ -83,13 +114,23 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
             (Some(speed), Some(force), Some(table_force), Some(error)) => {
                 writeln!(&mut output, "      \"orbital_speed_mps\": {:.15e},", speed).unwrap();
                 writeln!(&mut output, "      \"predicted_force_n\": {:.15e},", force).unwrap();
-                writeln!(&mut output, "      \"table_force_n\": {:.15e},", table_force).unwrap();
+                writeln!(
+                    &mut output,
+                    "      \"table_force_n\": {:.15e},",
+                    table_force
+                )
+                .unwrap();
                 writeln!(&mut output, "      \"relative_error\": {:.15e}", error).unwrap();
             }
             _ => {
                 writeln!(&mut output, "      \"orbital_speed_mps\": null,").unwrap();
                 writeln!(&mut output, "      \"predicted_force_n\": null,").unwrap();
-                writeln!(&mut output, "      \"table_force_n\": null,").unwrap();
+                writeln!(
+                    &mut output,
+                    "      \"table_force_n\": {:.15e},",
+                    table_force
+                )
+                .unwrap();
                 writeln!(&mut output, "      \"relative_error\": null").unwrap();
             }
         }
@@ -114,7 +155,9 @@ fn run() -> Result<(), String> {
         return Err("source commit must be a 40-character lowercase hexadecimal SHA".to_owned());
     }
     if !valid_hex(&args[3], 64) {
-        return Err("corpus digest must be a 64-character lowercase hexadecimal SHA-256".to_owned());
+        return Err(
+            "corpus digest must be a 64-character lowercase hexadecimal SHA-256".to_owned(),
+        );
     }
 
     let corpus = include_str!("../cases-v0.1.csv");
