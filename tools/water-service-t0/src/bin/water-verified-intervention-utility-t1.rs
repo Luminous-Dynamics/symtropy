@@ -220,9 +220,15 @@ fn verify_followups(
         Some(parse_measurement(baseline_value, &format!("{context}.baseline"))?)
     };
     let repair = field(scenario, "repair", context)?;
-    let repair_minute = field(repair, "repair_minute", context)?
-        .as_u64()
-        .ok_or_else(|| format!("{context}: repaired run requires repair_minute"))?;
+    let repair_minute = if repair_consistent {
+        Some(
+            field(repair, "repair_minute", context)?
+                .as_u64()
+                .ok_or_else(|| format!("{context}: repaired run requires repair_minute"))?,
+        )
+    } else {
+        None
+    };
     let mut by_day = std::collections::BTreeMap::<u64, &Value>::new();
     let mut post_digest_days = std::collections::BTreeMap::<String, Vec<u64>>::new();
     for followup in followups {
@@ -277,7 +283,7 @@ fn verify_followups(
             output.push(empty_followup(day, "indeterminate_evidence_scope"));
             continue;
         }
-        if pre.end > repair_minute || post.start < repair_minute {
+        if repair_minute.is_some_and(|minute| pre.end > minute || post.start < minute) {
             output.push(empty_followup(day, "indeterminate_evidence_scope"));
             continue;
         }
