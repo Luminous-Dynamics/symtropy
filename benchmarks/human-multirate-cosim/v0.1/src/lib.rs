@@ -673,5 +673,4 @@ mod tests {
         );
         assert_eq!(result, Err(SimError::InvalidAdaptiveConfig));
     }
-
-
+}
