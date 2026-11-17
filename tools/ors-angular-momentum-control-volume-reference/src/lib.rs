@@ -634,8 +634,13 @@ mod tests {
             1.0e-12,
         );
         close_vec(
-            result.stream_on_support_reaction_torque_n_m,
+            result.support_on_stream_torque_n_m,
             Vector3::new(0.0, 0.0, 2.0),
+            1.0e-12,
+        );
+        close_vec(
+            result.stream_on_support_reaction_torque_n_m,
+            Vector3::new(0.0, 0.0, -2.0),
             1.0e-12,
         );
     }
