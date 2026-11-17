@@ -712,9 +712,12 @@ mod tests {
 
     #[test]
     fn wrong_stage_operator_is_detected_by_the_independent_stage_observations() {
-        let mechanical = identity();
-        let electrical = diagonal_electrical();
         let true_mechanical = diagonal_mechanical();
+        let mut mechanical = identity();
+        // Keep the physical context fixed while the candidate operator is
+        // wrong; the independent stage observations must expose the mismatch.
+        mechanical.context_digest = true_mechanical.context_digest.clone();
+        let electrical = diagonal_electrical();
         let mechanical_observations = observations(
             &true_mechanical,
             inputs(),
