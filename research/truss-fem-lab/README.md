@@ -35,3 +35,5 @@ The companion damage module runs the intact model and then removes every member 
 That fraction is a deterministic stress-test scenario statistic, not a physical failure probability or reliability estimate. The campaign does not include fatigue, fracture, material scatter, joint failure distributions, progressive damage, dynamic impact or repair.
 
 The next extension should be a bounded two-member cut-set search and explicit joint/connector removal, with the search budget and every omitted scenario reported.
+
+The damage module also provides a bounded two-member-removal campaign. It selects evenly spaced ranks from the complete lexicographic pair space, caps execution at 1,024 scenarios, and reports total pairs, attempted scenarios and every omitted pair. The deterministic sample is a screening campaign—not exhaustive analysis and not a probability estimate. For any safety-relevant use, identify physically justified failure combinations and perform mission-specific progressive-damage analysis.
