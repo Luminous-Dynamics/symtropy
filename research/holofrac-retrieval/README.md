@@ -23,9 +23,13 @@ HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
 HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
   cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml \
   --bin field_sweep
+
+HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
+  cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml \
+  --bin impact_sweep
 ```
 
-The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact/reversed controls and four partial-context workloads per dimension. The factorization sweep varies graph size (100/1,000/5,000 facts) and entity reuse (high/medium/low) at 1K dimension, reporting unique codebook cardinality, factorized versus duplicated role-vector bytes, compact-reference bytes and build time. The continuous-field sweep tests 2K/4K dimensions on 4×4, 8×8 and 16×16 analytic training grids, querying the held-out cell centres. Its deterministic field is a bounded smooth sinusoid. It reports HDC MAE/RMSE against nearest-neighbour and bilinear interpolation, plus coordinate encoding, unbinding, codebook cleanup, p50/p95 query latency and vector/index payload estimates. Samples whose distinct coordinates collapse to the same encoded x/y level are rejected. CI uploads all three raw CSVs as a 14-day workflow artifact, alongside runner/toolchain details and the exact checked-out source SHA.
+The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact/reversed controls and four partial-context workloads per dimension. The factorization sweep varies graph size (100/1,000/5,000 facts) and entity reuse (high/medium/low) at 1K dimension, reporting unique codebook cardinality, factorized versus duplicated role-vector bytes, compact-reference bytes and build time. The continuous-field sweep tests five analytic families—smooth, high-frequency, discontinuous, anisotropic and localized. Smooth uses 2K/4K dimensions and 4×4/8×8/16×16 training grids; the other families use a bounded 2K, 4×4/8×8 sweep. Queries are held-out cell centres. It reports HDC, nearest-neighbour and bilinear MAE/RMSE/R², plus coordinate encoding, unbinding, cleanup, p50/p95 latency and payload estimates. Samples whose distinct coordinates collapse to the same encoded x/y level are rejected. The exact evidence-impact sweep measures DAG closure on 100/1,000/10,000/100,000 artifacts with 1/10/100 changed project roots. CI uploads all four raw CSVs as a 14-day workflow artifact, alongside runner/toolchain details and the exact checked-out source SHA.
 
 ## What is implemented
 
@@ -52,15 +56,18 @@ The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact
 - Controlled directed-circulant graph fixture generator with one-pass validation for large workloads.
 - Factorization capacity sweep across 100/1,000/5,000 facts and high/medium/low node reuse, avoiding the exact-retrieval O(E²) query loop.
 - Continuous 2D scalar-field prototype: bipolar positional/value encoding, spatial-memory bundling, coordinate unbinding and scalar-codebook cleanup.
+- Five continuous field families and held-out comparison against nearest-neighbour and bilinear interpolation, reporting MAE/RMSE/R² and stage-level timing.
 - Fail-closed detection when distinct source coordinates quantize to the same encoded spatial position.
-- Held-out continuous-field comparison against nearest-neighbour and bilinear interpolation, with stage-level timing and vector-payload estimates.
-- CI raw benchmark artifacts containing the discrete retrieval, factorization-capacity and continuous-field CSV outputs.
+- Exact engineering-evidence dependency DAG, reverse transitive impact closure and conservative full invalidation when dependency completeness is unknown.
+- Independent brute-force closure oracle tests and cycle/unknown-ID/unknown-endpoint fail-closed controls.
+- Evidence-impact capacity sweep over 100/1,000/10,000/100,000 artifacts and one/multi-source change sets.
+- CI raw benchmark artifacts containing discrete retrieval, factorization capacity, continuous-field and evidence-impact CSV outputs.
 
 ## Claim boundaries
 
 This is an initial discrete graph retrieval and analytic continuous-field research fixture, not a floor-plan generator, validated building model, GHRR implementation, or proof of fractal geometry. Current bipolar binding is commutative; direction is represented through distinct subject/object role vectors. This is **not** non-commutative matrix binding.
 
-The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The continuous-field experiment is a separate bipolar positional/value-memory pipeline; its analytic-field accuracy does not establish performance on measured building fields or validate a physical PDE solver. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
+The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The continuous-field experiment is a separate bipolar positional/value-memory pipeline; its analytic-field accuracy does not establish performance on measured building fields or validate a physical PDE solver. The evidence-impact module is exact over the declared dependency DAG; it cannot prove that the source dependency inventory is complete. Unless graph completeness is explicitly declared, all evidence is conservatively marked stale. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
 
 The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains one bipolar and one f32 holistic vector per fact, plus a shared bipolar role/value codebook. The role-slot payload therefore scales with the number of unique typed role/value pairs rather than five vectors per fact. Estimates include vector payload, per-fact codebook indices, fact IDs stored in exact postings and one vector header per postings list. They still exclude HashMap key/table allocations, fact/graph object overhead, canonical-key strings, vector allocator overhead and allocator fragmentation. The factorization sweep reports gross vector savings and net savings after compact index/postings metadata; neither is allocator-inclusive RSS. Larger qualification workloads must also measure process RSS and update costs. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
 
