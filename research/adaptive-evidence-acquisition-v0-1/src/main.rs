@@ -239,9 +239,7 @@ fn generate_episode(
             let delta_v = target_v_m - v_m;
             let local_u = delta_u * cosine + delta_v * sine;
             let local_v = -delta_u * sine + delta_v * cosine;
-            if local_u.abs() <= footprint_half_width_m
-                && local_v.abs() <= footprint_half_height_m
-            {
+            if local_u.abs() <= footprint_half_width_m && local_v.abs() <= footprint_half_height_m {
                 covered_target_ids.push(target_id.clone());
             }
         }
@@ -339,7 +337,9 @@ fn independent_gate_violations(
                 continue;
             }
             let previous = credited.entry(target_id.as_str()).or_default();
-            let duplicate_pass = previous.iter().any(|(pass_id, _)| *pass_id == candidate.pass_id);
+            let duplicate_pass = previous
+                .iter()
+                .any(|(pass_id, _)| *pass_id == candidate.pass_id.as_str());
             let insufficient_separation = previous.iter().any(|(_, angle)| {
                 let difference = (angle - candidate.view_angle_rad).abs();
                 difference.min(std::f64::consts::TAU - difference)
@@ -392,11 +392,12 @@ fn run_policy_split(
                 .entry(name)
                 .or_default()
                 .record(&plan, &targets, &candidates, &budget);
-            let violations =
-                independent_gate_violations(&plan, &targets, &candidates, &budget);
+            let violations = independent_gate_violations(&plan, &targets, &candidates, &budget);
             if violations > 0 {
-                summaries.get_mut(name).expect("summary was recorded").gate_violations +=
-                    violations;
+                summaries
+                    .get_mut(name)
+                    .expect("summary was recorded")
+                    .gate_violations += violations;
             }
         }
     }
