@@ -1319,7 +1319,7 @@ mod tests {
         let (input, schema, mut oracle) = fixture();
         oracle["cases"][0]["point_credit_l"] = json!(999.0);
         let output = evaluate_all(&input, &schema, &oracle).unwrap();
-        assert_eq!(output["matched_case_count"], 12);
+        assert_eq!(output["matched_case_count"], 14);
         assert_eq!(output["mismatch_count"], 1);
     }
 
