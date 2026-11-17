@@ -434,6 +434,12 @@ fn manifests_overlap(left: &DatasetManifest, right: &DatasetManifest) -> bool {
         .any(|id| right_ids.contains(id.as_str()))
 }
 
+fn supported_confidence_level(value: f64) -> bool {
+    [0.90, 0.95, 0.99]
+        .iter()
+        .any(|candidate| (value - candidate).abs() < 1e-9)
+}
+
 fn validate_policy(policy: &CalibrationPolicy) -> Result<f64, CalibrationError> {
     let valid_ids = [
         &policy.campaign_sha256,
@@ -470,6 +476,7 @@ fn validate_policy(policy: &CalibrationPolicy) -> Result<f64, CalibrationError> 
         || !bounded_unit(policy.maximum_mean_uninformative_upper_bound)
         || !bounded_unit(policy.maximum_primary_mean_regret)
         || !bounded_unit(policy.minimum_regret_improvement_vs_random)
+        || !supported_confidence_level(policy.confidence_level)
         || policy.minimum_units_per_stratum == 0
         || !policy.minimum_effective_sample_size.is_finite()
         || policy.minimum_effective_sample_size < 1.0
@@ -934,7 +941,6 @@ pub fn evaluate_calibration(
         .iter()
         .find(|item| item.selector_id == policy.random_baseline_selector_id)
         .ok_or(CalibrationError::InvalidSelectionDecision)?;
-    let improvement = random.mean_regret - primary.mean_regret;
     let primary_by_unit: BTreeMap<&str, f64> = expected_units
         .iter()
         .map(|unit| {
