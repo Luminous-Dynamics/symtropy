@@ -203,6 +203,7 @@ pub struct TetrahedralMetrics {
     pub maximum_member_length_m: f64,
     pub minimum_attachment_face_area_m2: f64,
     pub minimum_cell_volume_m3: f64,
+    pub blocked_attachment_faces: usize,
     pub bounds_min: Vec3,
     pub bounds_max: Vec3,
     pub same_build_digest_non_security: u64,
@@ -211,11 +212,14 @@ pub struct TetrahedralMetrics {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+/// Adaptive face-attached assembly. Faces blocked by connector-port limits
+/// are counted and left unexpanded rather than exceeding the interface budget.
 pub struct TetrahedralAssembly {
     pub config: TetrahedralConfig,
     pub nodes: Vec<TetraNode>,
     pub members: Vec<TetraMember>,
     pub cells: Vec<TetraCell>,
+    pub blocked_attachment_faces: usize,
 }
 
 impl TetrahedralConfig {
@@ -313,6 +317,8 @@ impl TetrahedralAssembly {
         let mut cells = vec![root_cell];
         let mut members = Vec::with_capacity(config.expected_member_count()?);
         let mut seen_edges = HashSet::with_capacity(config.expected_member_count()?);
+        let mut node_degrees = vec![3usize; 4];
+        let mut blocked_attachment_faces = 0usize;
 
         for (a, b) in [(0, 1), (1, 2), (2, 0), (0, 3), (1, 3), (2, 3)] {
             push_member(&mut members, &mut seen_edges, a, b)?;
@@ -364,6 +370,15 @@ impl TetrahedralAssembly {
                     return Err(TetrahedralError::NonFiniteGeometry);
                 }
 
+                // Do not create a hub whose connector count exceeds the
+                // configured manufacturing interface budget.
+                if [a, b, c].iter().any(|vertex| {
+                    node_degrees[*vertex as usize] >= config.max_ports_per_node
+                }) {
+                    blocked_attachment_faces += 1;
+                    continue;
+                }
+
                 let apex_id =
                     u32::try_from(nodes.len()).map_err(|_| TetrahedralError::ArithmeticOverflow)?;
                 let cell_id =
@@ -376,7 +391,9 @@ impl TetrahedralAssembly {
                 });
                 for endpoint in [a, b, c] {
                     push_member(&mut members, &mut seen_edges, endpoint, apex_id)?;
+                    node_degrees[endpoint as usize] += 1;
                 }
+                node_degrees.push(3);
 
                 cells.push(TetraCell {
                     id: cell_id,
@@ -431,6 +448,7 @@ impl TetrahedralAssembly {
             nodes,
             members,
             cells,
+            blocked_attachment_faces,
         };
         assembly.audit()?;
         Ok(assembly)
@@ -438,12 +456,17 @@ impl TetrahedralAssembly {
 
     pub fn audit(&self) -> Result<TetrahedralMetrics, TetrahedralError> {
         self.config.validate()?;
-        if self.nodes.len() != self.config.expected_node_count()?
-            || self.members.len() != self.config.expected_member_count()?
-            || self.cells.len() != self.config.expected_cell_count()?
+        if self.cells.is_empty()
+            || self.cells.len() > self.config.expected_cell_count()?
+            || self.nodes.len() != self.cells.len().checked_add(3)
+                .ok_or(TetrahedralError::ArithmeticOverflow)?
+            || self.members.len() != self.cells.len()
+                .checked_mul(3)
+                .and_then(|count| count.checked_add(3))
+                .ok_or(TetrahedralError::ArithmeticOverflow)?
         {
             return Err(TetrahedralError::InvalidGraph(
-                "counts do not match the declared grammar",
+                "adaptive counts do not match the declared attachment grammar",
             ));
         }
 
@@ -669,6 +692,7 @@ impl TetrahedralAssembly {
             maximum_member_length_m: maximum_length,
             minimum_attachment_face_area_m2: min_face_area,
             minimum_cell_volume_m3: min_cell_volume,
+            blocked_attachment_faces: self.blocked_attachment_faces,
             bounds_min,
             bounds_max,
             same_build_digest_non_security: self.digest_non_security(),
@@ -699,6 +723,10 @@ impl TetrahedralAssembly {
         mix(
             &mut hash,
             &(self.config.max_ports_per_node as u64).to_le_bytes(),
+        );
+        mix(
+            &mut hash,
+            &(self.blocked_attachment_faces as u64).to_le_bytes(),
         );
         for node in &self.nodes {
             mix(&mut hash, &node.id.to_le_bytes());
@@ -765,15 +793,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn depth_four_assembly_has_expected_tetrahedral_counts() {
+    fn depth_four_assembly_respects_port_budget_with_adaptive_cell_count() {
         let assembly = TetrahedralAssembly::generate(TetrahedralConfig::default()).unwrap();
         let metrics = assembly.audit().unwrap();
-        assert_eq!(metrics.cell_count, 31);
-        assert_eq!(metrics.node_count, 34);
-        assert_eq!(metrics.member_count, 96);
+        assert!(metrics.cell_count > 1);
+        assert!(metrics.cell_count <= 31);
+        assert_eq!(metrics.node_count, metrics.cell_count + 3);
+        assert_eq!(metrics.member_count, metrics.cell_count * 3 + 3);
         assert_eq!(metrics.connected_components, 1);
-        assert_eq!(metrics.cycle_rank, 63);
+        assert_eq!(metrics.cycle_rank, metrics.member_count - metrics.node_count + 1);
         assert!(metrics.maximum_node_degree <= 16);
+        assert!(metrics.blocked_attachment_faces > 0);
+    }
+
+    #[test]
+    fn three_port_budget_keeps_only_root_cell_without_overloaded_hubs() {
+        let config = TetrahedralConfig {
+            max_ports_per_node: 3,
+            ..TetrahedralConfig::default()
+        };
+        let assembly = TetrahedralAssembly::generate(config).unwrap();
+        let metrics = assembly.audit().unwrap();
+        assert_eq!(metrics.cell_count, 1);
+        assert_eq!(metrics.node_count, 4);
+        assert_eq!(metrics.member_count, 6);
+        assert!(metrics.blocked_attachment_faces > 0);
+        assert_eq!(metrics.maximum_node_degree, 3);
     }
 
     #[test]
