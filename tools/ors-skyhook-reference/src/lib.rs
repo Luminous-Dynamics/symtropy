@@ -119,7 +119,7 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
             ));
         }
         let table_scale_n: f64 = parse_number(fields[4], "table_scale_n")?;
-        let table_value = if fields[5].is_empty() {
+        let table_value: Option<f64> = if fields[5].is_empty() {
             None
         } else {
             Some(parse_number(fields[5], "table_value")?)
