@@ -835,6 +835,7 @@ mod tests {
     fn publisher_capture_requires_public_https_origin_and_rights_review_state() {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        manifest["capture"]["expected_release"] = json!("2026-11-17-deadbeef");
         manifest["capture_mode"] = json!("publisher_capture");
         manifest["evidence_class"] = json!("publisher_reported_asset_status");
         manifest["source"]["url"] =
@@ -855,7 +856,6 @@ mod tests {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut body_value: Value = serde_json::from_slice(&body).unwrap();
         body_value["release"] = json!("2026-11-17-deadbeef");
-        manifest["capture"]["expected_release"] = json!("2026-11-17-deadbeef");
         body_value["licence"] =
             json!("CC BY 4.0. Credit Johannesburg Water for the underlying facts.");
         let publisher_body = serde_json::to_vec_pretty(&body_value).unwrap();
