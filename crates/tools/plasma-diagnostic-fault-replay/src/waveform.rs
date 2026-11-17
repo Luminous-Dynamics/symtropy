@@ -357,6 +357,23 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
             "waveform receipt evidence class or claim ceiling was changed",
         ));
     }
+    non_empty(&body.scenario_id, "scenario_id")?;
+    non_empty(&body.channel_id, "channel_id")?;
+    non_empty(&body.units, "units")?;
+    for (digest, field) in [
+        (body.input_sha256.as_str(), "input_sha256"),
+        (body.fault_schedule_sha256.as_str(), "fault_schedule_sha256"),
+    ] {
+        if digest.len() != 64
+            || !digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(waveform_error(format!(
+                "waveform receipt {field} must be 64 lowercase hexadecimal characters",
+            )));
+        }
+    }
     if body.sample_count == 0 || body.samples.len() != body.sample_count {
         return Err(waveform_error("waveform receipt sample count mismatch"));
     }
@@ -389,24 +406,43 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
         }
         previous_time = Some(sample.time_ns);
         match sample.state {
-            WaveformSampleState::SyntheticNominal | WaveformSampleState::Degraded => {
-                if sample.value.is_none() || sample.source_sample_index != Some(index) {
+            WaveformSampleState::SyntheticNominal => {
+                if sample.value.is_none()
+                    || sample.source_sample_index != Some(index)
+                    || sample.active_fault_id.is_some()
+                {
                     return Err(waveform_error(
-                        "nominal/degraded sample must retain its own finite source value",
+                        "nominal sample must retain its own value and have no active fault",
+                    ));
+                }
+            }
+            WaveformSampleState::Degraded => {
+                if sample.value.is_none()
+                    || sample.source_sample_index != Some(index)
+                    || sample.active_fault_id.is_none()
+                {
+                    return Err(waveform_error(
+                        "degraded sample must retain its own value and fault identity",
                     ));
                 }
             }
             WaveformSampleState::Delayed => {
-                if sample.value.is_some() != sample.source_sample_index.is_some() {
+                if sample.value.is_some() != sample.source_sample_index.is_some()
+                    || sample.active_fault_id.is_none()
+                    || sample.source_sample_index.is_some_and(|source| source >= index)
+                {
                     return Err(waveform_error(
-                        "delayed sample value and source index must appear together",
+                        "delayed sample must bind an earlier source and active fault identity",
                     ));
                 }
             }
             WaveformSampleState::Unavailable | WaveformSampleState::Invalid => {
-                if sample.value.is_some() || sample.source_sample_index.is_some() {
+                if sample.value.is_some()
+                    || sample.source_sample_index.is_some()
+                    || sample.active_fault_id.is_none()
+                {
                     return Err(waveform_error(
-                        "unavailable/invalid sample must not expose a numeric source value",
+                        "unavailable/invalid sample must not expose a value and must identify its fault",
                     ));
                 }
             }
