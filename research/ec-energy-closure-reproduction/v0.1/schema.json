@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/ec-energy-closure-reproduction-v0.1.schema.json",
+  "title": "Eddy-Covariance Energy Closure Reproduction Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reproduction_id",
+    "claim_ceiling",
+    "article",
+    "records",
+    "published_targets",
+    "reproduction_gates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "reproduction_id": {
+      "const": "EC-ENERGY-CLOSURE-REPRO-001/v0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    },
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "doi",
+        "journal",
+        "first_published",
+        "sites",
+        "network_counts"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "doi": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "first_published": {
+          "type": "string",
+          "format": "date"
+        },
+        "sites": {
+          "type": "integer",
+          "const": 84
+        },
+        "network_counts": {
+          "type": "object",
+          "required": [
+            "ICOS",
+            "NEON"
+          ],
+          "properties": {
+            "ICOS": {
+              "const": 38
+            },
+            "NEON": {
+              "const": 46
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "role",
+          "doi",
+          "title",
+          "record_type",
+          "version",
+          "published_date",
+          "access_state",
+          "license_state",
+          "license_note",
+          "files",
+          "downloaded",
+          "data_ingested",
+          "next_gate"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "processed_analysis_data",
+              "original_analysis_software",
+              "raw_source_data"
+            ]
+          },
+          "doi": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "record_type": {
+            "enum": [
+              "dataset",
+              "software"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "published_date": {
+            "type": "string"
+          },
+          "access_state": {
+            "enum": [
+              "record_metadata_public_files_not_retrieved",
+              "not_verified"
+            ]
+          },
+          "license_state": {
+            "enum": [
+              "not_verified",
+              "source_specific_license_review_required"
+            ]
+          },
+          "license_note": {
+            "type": "string"
+          },
+          "network_or_scope": {
+            "type": "string"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "filename",
+                "size_bytes",
+                "published_md5",
+                "sha256",
+                "retrieval_state"
+              ],
+              "properties": {
+                "filename": {
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "published_md5": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "retrieval_state": {
+                  "enum": [
+                    "not_retrieved",
+                    "retrieved_checksum_verified",
+                    "not_applicable"
+                  ]
+                }
+              }
+            }
+          },
+          "downloaded": {
+            "const": false
+          },
+          "data_ingested": {
+            "const": false
+          },
+          "next_gate": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "published_targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_id",
+          "estimand",
+          "statistic",
+          "reported_value",
+          "units_or_scale",
+          "population",
+          "interpretation"
+        ],
+        "properties": {
+          "target_id": {
+            "type": "string"
+          },
+          "estimand": {
+            "type": "string"
+          },
+          "statistic": {
+            "type": "string"
+          },
+          "reported_value": {
+            "type": "string"
+          },
+          "units_or_scale": {
+            "type": "string"
+          },
+          "population": {
+            "type": "string"
+          },
+          "interpretation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reproduction_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gate_id",
+          "status",
+          "description"
+        ],
+        "properties": {
+          "gate_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "not_started",
+              "pending",
+              "passed",
+              "blocked",
+              "not_applicable"
+            ]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
