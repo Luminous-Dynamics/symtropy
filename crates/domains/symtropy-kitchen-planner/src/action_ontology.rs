@@ -8,9 +8,7 @@
 //! Unknown actions remain explicitly unmapped until a human-reviewed mapping is
 //! supplied. No lexical-similarity score is treated as execution authority.
 
-use crate::recipe_graph::{
-    RECIPE_ACTION_KINDS_V1, RecipeActionKindV1, RecipeEvidenceClassV1,
-};
+use crate::recipe_graph::{RECIPE_ACTION_KINDS_V1, RecipeActionKindV1, RecipeEvidenceClassV1};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -72,18 +70,42 @@ pub enum ActionGroupV1 {
 
 /// Canonical action-group universe in stable serialized/evaluation order.
 pub const ACTION_GROUPS_V1: &[ActionGroupV1] = &[
-    ActionGroupV1::Chop, ActionGroupV1::Slice, ActionGroupV1::Dice,
-    ActionGroupV1::Grate, ActionGroupV1::Shred, ActionGroupV1::Halve,
-    ActionGroupV1::Pour, ActionGroupV1::Drain, ActionGroupV1::Sprinkle,
-    ActionGroupV1::Stir, ActionGroupV1::Add, ActionGroupV1::Combine,
-    ActionGroupV1::Whisk, ActionGroupV1::Mix, ActionGroupV1::Knead,
-    ActionGroupV1::Blend, ActionGroupV1::Emulsify, ActionGroupV1::Wash,
-    ActionGroupV1::Peel, ActionGroupV1::Trim, ActionGroupV1::Pick,
-    ActionGroupV1::Place, ActionGroupV1::Move, ActionGroupV1::Serve,
-    ActionGroupV1::Cover, ActionGroupV1::Saute, ActionGroupV1::Cook,
-    ActionGroupV1::Heat, ActionGroupV1::Freeze, ActionGroupV1::Boil,
-    ActionGroupV1::Simmer, ActionGroupV1::Steam, ActionGroupV1::Bake,
-    ActionGroupV1::Roast, ActionGroupV1::PressureCook, ActionGroupV1::Cool,
+    ActionGroupV1::Chop,
+    ActionGroupV1::Slice,
+    ActionGroupV1::Dice,
+    ActionGroupV1::Grate,
+    ActionGroupV1::Shred,
+    ActionGroupV1::Halve,
+    ActionGroupV1::Pour,
+    ActionGroupV1::Drain,
+    ActionGroupV1::Sprinkle,
+    ActionGroupV1::Stir,
+    ActionGroupV1::Add,
+    ActionGroupV1::Combine,
+    ActionGroupV1::Whisk,
+    ActionGroupV1::Mix,
+    ActionGroupV1::Knead,
+    ActionGroupV1::Blend,
+    ActionGroupV1::Emulsify,
+    ActionGroupV1::Wash,
+    ActionGroupV1::Peel,
+    ActionGroupV1::Trim,
+    ActionGroupV1::Pick,
+    ActionGroupV1::Place,
+    ActionGroupV1::Move,
+    ActionGroupV1::Serve,
+    ActionGroupV1::Cover,
+    ActionGroupV1::Saute,
+    ActionGroupV1::Cook,
+    ActionGroupV1::Heat,
+    ActionGroupV1::Freeze,
+    ActionGroupV1::Boil,
+    ActionGroupV1::Simmer,
+    ActionGroupV1::Steam,
+    ActionGroupV1::Bake,
+    ActionGroupV1::Roast,
+    ActionGroupV1::PressureCook,
+    ActionGroupV1::Cool,
     ActionGroupV1::Rest,
 ];
 
@@ -94,9 +116,13 @@ impl ActionGroupV1 {
                 ActionCoreV1::Cutting
             }
             Self::Pour | Self::Drain | Self::Sprinkle => ActionCoreV1::Pouring,
-            Self::Stir | Self::Add | Self::Combine | Self::Whisk | Self::Mix | Self::Blend | Self::Emulsify => {
-                ActionCoreV1::Mixing
-            }
+            Self::Stir
+            | Self::Add
+            | Self::Combine
+            | Self::Whisk
+            | Self::Mix
+            | Self::Blend
+            | Self::Emulsify => ActionCoreV1::Mixing,
             Self::Wash | Self::Peel | Self::Trim | Self::Knead => ActionCoreV1::Preparing,
             Self::Pick | Self::Place | Self::Move | Self::Serve | Self::Cover => {
                 ActionCoreV1::PickAndPlace
@@ -310,7 +336,10 @@ pub fn validate_action_ontology_binding(
         violation(
             &mut violations,
             ActionOntologyViolationCodeV1::UnsupportedOntologyVersion,
-            format!("unsupported action ontology version {}", binding.ontology_version),
+            format!(
+                "unsupported action ontology version {}",
+                binding.ontology_version
+            ),
         );
     }
 
@@ -347,7 +376,12 @@ pub fn validate_action_ontology_binding(
                     "action group does not belong to the declared action core",
                 );
             }
-            if binding.mapping.provenance_ref.as_deref().is_none_or(|value| value.trim().is_empty()) {
+            if binding
+                .mapping
+                .provenance_ref
+                .as_deref()
+                .is_none_or(|value| value.trim().is_empty())
+            {
                 let code = if binding.mapping.method == ActionMappingMethodV1::HumanReviewed {
                     ActionOntologyViolationCodeV1::MissingHumanReviewProvenance
                 } else {
@@ -397,10 +431,17 @@ pub fn validate_action_ontology_binding(
             violation(
                 &mut violations,
                 ActionOntologyViolationCodeV1::InvalidParameterScale,
-                format!("parameter {} has more than six decimal places", parameter.name),
+                format!(
+                    "parameter {} has more than six decimal places",
+                    parameter.name
+                ),
             );
         }
-        if parameter.source_ref.as_deref().is_some_and(|value| value.trim().is_empty()) {
+        if parameter
+            .source_ref
+            .as_deref()
+            .is_some_and(|value| value.trim().is_empty())
+        {
             violation(
                 &mut violations,
                 ActionOntologyViolationCodeV1::EmptyParameterSource,
@@ -506,12 +547,18 @@ impl ActionOntologyBenchmarkSummaryV1 {
 
     /// Micro precision = correct mappings / all predicted mappings.
     pub fn micro_group_precision(&self) -> (u64, u64) {
-        (self.correct_mapped_occurrence_weight, self.mapped_occurrence_weight)
+        (
+            self.correct_mapped_occurrence_weight,
+            self.mapped_occurrence_weight,
+        )
     }
 
     /// Micro recall = correct mappings / all gold-mapped occurrences.
     pub fn micro_group_recall(&self) -> (u64, u64) {
-        (self.correct_mapped_occurrence_weight, self.gold_mapped_occurrence_weight)
+        (
+            self.correct_mapped_occurrence_weight,
+            self.gold_mapped_occurrence_weight,
+        )
     }
 
     /// Abstention precision = correct abstentions / all predicted abstentions.
@@ -564,14 +611,16 @@ pub fn evaluate_action_ontology_benchmark(
         correct_mapped_occurrence_weight: 0,
         abstained_occurrence_weight: 0,
         correctly_abstained_occurrence_weight: 0,
-        groups: ACTION_GROUPS_V1.iter().copied().map(|group| {
-            ActionGroupEvaluationCountsV1 {
+        groups: ACTION_GROUPS_V1
+            .iter()
+            .copied()
+            .map(|group| ActionGroupEvaluationCountsV1 {
                 group,
                 gold_occurrences: 0,
                 predicted_occurrences: 0,
                 true_positive_occurrences: 0,
-            }
-        }).collect(),
+            })
+            .collect(),
     };
 
     for case in cases {
@@ -602,7 +651,9 @@ pub fn evaluate_action_ontology_benchmark(
             return Err(ActionOntologyBenchmarkErrorV1 {
                 code: ActionOntologyBenchmarkErrorCodeV1::InvalidPrediction,
                 case_id: Some(case.case_id.clone()),
-                details: validation.violations.into_iter()
+                details: validation
+                    .violations
+                    .into_iter()
                     .map(|entry| format!("{:?}: {}", entry.code, entry.detail))
                     .collect(),
             });
