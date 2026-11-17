@@ -445,8 +445,30 @@ pub fn evaluate(
     cases: &[CaseManifest],
     receipts: &[Receipt],
 ) -> Result<Vec<CaseEvaluation>, String> {
+    if cases.is_empty() {
+        return Err("evaluator input contains no cases".into());
+    }
+
     let mut cases_by_id: BTreeMap<&str, &CaseManifest> = BTreeMap::new();
     for case in cases {
+        for (label, value) in [
+            ("case_id", case.case_id.as_str()),
+            ("manifest_ref", case.manifest_ref.as_str()),
+            ("route_ref", case.route_ref.as_str()),
+            ("process_ref", case.process_ref.as_str()),
+            ("input_lot_set_ref", case.input_lot_set_ref.as_str()),
+            ("material_state_ref", case.material_state_ref.as_str()),
+            ("facility_profile_ref", case.facility_profile_ref.as_str()),
+            ("acceptance_profile_ref", case.acceptance_profile_ref.as_str()),
+            ("output_ref", case.output_ref.as_str()),
+        ] {
+            if !valid_ref(value) {
+                return Err(format!(
+                    "case {}: invalid {label}: {value}",
+                    case.case_id
+                ));
+            }
+        }
         if cases_by_id.insert(case.case_id.as_str(), case).is_some() {
             return Err(format!(
                 "duplicate case_id in evaluator input: {}",
@@ -455,6 +477,39 @@ pub fn evaluate(
         }
     }
     for receipt in receipts {
+        for (label, value) in [
+            ("case_id", receipt.case_id.as_str()),
+            ("manifest_ref", receipt.manifest_ref.as_str()),
+            ("receipt_ref", receipt.receipt_ref.as_str()),
+        ] {
+            if !valid_ref(value) {
+                return Err(format!(
+                    "receipt for case {}: invalid {label}: {value}",
+                    receipt.case_id
+                ));
+            }
+        }
+        if receipt.subject_ref != "-" && !valid_ref(&receipt.subject_ref) {
+            return Err(format!(
+                "receipt {}: invalid subject_ref",
+                receipt.receipt_ref
+            ));
+        }
+        if receipt.scope_ref != "-" && !valid_ref(&receipt.scope_ref) {
+            return Err(format!(
+                "receipt {}: invalid scope_ref",
+                receipt.receipt_ref
+            ));
+        }
+        if receipt.source_digest.is_empty() {
+            return Err(format!(
+                "receipt {}: empty source_digest",
+                receipt.receipt_ref
+            ));
+        }
+        if receipt.status.is_empty() {
+            return Err(format!("receipt {}: empty status", receipt.receipt_ref));
+        }
         if !cases_by_id.contains_key(receipt.case_id.as_str()) {
             return Err(format!(
                 "orphan receipt for unknown case: {}",
@@ -727,6 +782,31 @@ mod tests {
         receipts.reverse();
         let reverse = evaluate(&cases, &receipts).unwrap();
         assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn direct_evaluator_rejects_empty_case_collection() {
+        assert!(evaluate(&[], &[]).unwrap_err().contains("no cases"));
+    }
+
+    #[test]
+    fn direct_evaluator_rejects_invalid_case_references() {
+        let mut cases = parse_cases(CASES).unwrap();
+        cases[0].output_ref = "-".into();
+        let receipts = parse_receipts(RECEIPTS).unwrap();
+        assert!(evaluate(&cases, &receipts)
+            .unwrap_err()
+            .contains("invalid output_ref"));
+    }
+
+    #[test]
+    fn direct_evaluator_rejects_invalid_receipt_references() {
+        let cases = parse_cases(CASES).unwrap();
+        let mut receipts = parse_receipts(RECEIPTS).unwrap();
+        receipts[0].receipt_ref = "-".into();
+        assert!(evaluate(&cases, &receipts)
+            .unwrap_err()
+            .contains("invalid receipt_ref"));
     }
 
     #[test]
