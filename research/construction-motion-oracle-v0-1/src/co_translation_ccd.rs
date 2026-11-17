@@ -1616,10 +1616,8 @@ pub fn verify_adaptive_collision_certificate(
                 )
                 .map_err(AdaptiveCertificateError::Geometry)?;
                 if actual != *closest
-                    || actual.is_contact(
-                        certificate.moving.radius_mm,
-                        certificate.obstacle.radius_mm,
-                    )
+                    || actual
+                        .is_contact(certificate.moving.radius_mm, certificate.obstacle.radius_mm)
                 {
                     return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
                 }
@@ -1638,10 +1636,8 @@ pub fn verify_adaptive_collision_certificate(
                 )
                 .map_err(AdaptiveCertificateError::Geometry)?;
                 if actual != *closest
-                    || !actual.is_contact(
-                        certificate.moving.radius_mm,
-                        certificate.obstacle.radius_mm,
-                    )
+                    || !actual
+                        .is_contact(certificate.moving.radius_mm, certificate.obstacle.radius_mm)
                 {
                     return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
                 }
