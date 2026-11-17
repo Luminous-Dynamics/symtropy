@@ -636,10 +636,18 @@ mod tests {
         let candidates = [
             candidate("candidate-two-pass", "p-two", 1.0, 0.0, &["two-pass"]),
             candidate("candidate-one-pass", "p-one", 1.0, 0.0, &["one-pass"]),
+            candidate(
+                "candidate-two-pass-second",
+                "p-two-2",
+                1.0,
+                1.0,
+                &["two-pass"],
+            ),
         ];
         let plan = plan_acquisition(&targets, &[], &candidates, &budget()).unwrap();
         assert_eq!(plan.steps[0].candidate_id, "candidate-one-pass");
         assert_eq!(plan.steps[1].candidate_id, "candidate-two-pass");
+        assert_eq!(plan.steps[2].candidate_id, "candidate-two-pass-second");
         assert_eq!(plan.disposition, PlanDisposition::Complete);
     }
 
