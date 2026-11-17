@@ -582,18 +582,32 @@ mod tests {
                 "explicit_weights": false
             },
             "bdsim_declaration": {
+                "path":"cooling/bdsim/lowemittancebeam.gmad",
+                "git_blob_sha1":"f5ff777ee61ec8985a03f5439b272903917c8e8e",
                 "particle":"mu-",
+                "distr_type":"userfile",
+                "distr_file":"lowemittancebeam.dat",
+                "distr_file_format":"x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]",
                 "nlines_ignore":1
             },
             "bdsim_lattice": {
+                "path":"cooling/bdsim/solenoidsheetdemonstrator102.gmad",
+                "git_blob_sha1":"1f564a733fcc63d46d0eff6ece5c89d2b93519c9",
                 "coil_count":102,
                 "absorber_count":0,
                 "rf_cavity_count":0,
                 "ionization_cooling_claim_admissible":false,
                 "rf_acceleration_claim_admissible":false
             },
-            "g4bl_baseline": {"equivalent_to_bdsim_model":false},
+            "g4bl_baseline": {
+                "path":"cooling/g4bl/cooling.g4bl",
+                "git_blob_sha1":"dc0cb955ef657cdc1862b4b5c30e2fe415d4e377",
+                "cell_count":60,
+                "equivalent_to_bdsim_model":false
+            },
             "g4bl_run_log": {
+                "path":"cooling/g4bl/g4bl.log",
+                "git_blob_sha1":"a69acc28ea77d9055685c05936615460f87059d9",
                 "decay_process_disabled":true,
                 "muon_survival_status":"not_evaluated"
             },
