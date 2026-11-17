@@ -16,7 +16,9 @@
         "Upstream source documents JOS-3 internal blood flow and heat transport variables.",
         "Not a heart-rate model; do not equate cardiac output to heart rate.",
         "Do not equate evaporative heat-loss power to measured fluid loss without a validated conversion and explicit assumptions.",
-        "Source README says non-shivering thermogenesis term Mnshiv in Equation 41 is not used in the referenced code path; AVA blood-flow equations were corrected in 0.5.0; pelvis capacity corrected in 0.4.0."
+        "Source README says non-shivering thermogenesis term Mnshiv in Equation 41 is not used in the referenced code path; AVA blood-flow equations were corrected in 0.5.0; pelvis capacity corrected in 0.4.0.",
+        "The source default simulation step is 60 seconds; min/max step bounds in this manifest are proposed benchmark admission guardrails, not independently validated supported limits.",
+        "The source 17-region ordering is Head, Neck, Chest, Back, Pelvis, Left-Shoulder, Left-Arm, Left-Hand, Right-Shoulder, Right-Arm, Right-Hand, Left-Thigh, Left-Leg, Left-Foot, Right-Thigh, Right-Leg, Right-Foot."
       ]
     }
   ],
@@ -107,7 +109,8 @@
         "receive_time_required": true,
         "notes": [
           "Model source describes input in degrees Celsius.",
-          "Step limits here are proposed admission bounds, not validated JOS-3 limits."
+          "Step limits here are proposed admission bounds, not validated JOS-3 limits.",
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
         ]
       },
       "uncertainty": {
@@ -149,7 +152,10 @@
         "interpolation": "zero_order_hold",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": true
+        "receive_time_required": true,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -190,7 +196,10 @@
         "interpolation": "zero_order_hold",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": true
+        "receive_time_required": true,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -231,7 +240,10 @@
         "interpolation": "zero_order_hold",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": true
+        "receive_time_required": true,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -273,7 +285,10 @@
         "interpolation": "zero_order_hold",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": true
+        "receive_time_required": true,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -317,7 +332,8 @@
         "receive_time_required": true,
         "notes": [
           "PAR is ratio of metabolic rate to basal metabolic rate in the JOS-3 source documentation.",
-          "Mapping from Symtropy mechanical work or MET estimates to PAR remains review_required."
+          "Mapping from Symtropy mechanical work or MET estimates to PAR remains review_required.",
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
         ]
       },
       "uncertainty": {
@@ -360,7 +376,10 @@
         "interpolation": "zero_order_hold",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": true
+        "receive_time_required": true,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -401,7 +420,10 @@
         "interpolation": "model_native",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": false
+        "receive_time_required": false,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -442,7 +464,10 @@
         "interpolation": "model_native",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": false
+        "receive_time_required": false,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -483,7 +508,10 @@
         "interpolation": "model_native",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": false
+        "receive_time_required": false,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -498,7 +526,7 @@
       "model_id": "JOS3",
       "variable_name": "CO",
       "semantic_name": "model_cardiac_output",
-      "quantity_class": "state",
+      "quantity_class": "conserved_flux",
       "direction": "output",
       "unit": {
         "symbol": "L/h",
@@ -525,7 +553,10 @@
         "interpolation": "model_native",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": false
+        "receive_time_required": false,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
@@ -540,7 +571,7 @@
       "model_id": "JOS3",
       "variable_name": "Esweat",
       "semantic_name": "sweating_evaporative_heat_loss_power",
-      "quantity_class": "rate",
+      "quantity_class": "conserved_flux",
       "direction": "output",
       "unit": {
         "symbol": "W",
@@ -567,7 +598,10 @@
         "interpolation": "model_native",
         "late_event_policy": "reject",
         "duplicate_event_policy": "reject",
-        "receive_time_required": false
+        "receive_time_required": false,
+        "notes": [
+          "Proposed benchmark guardrails only; no supported min/max range is claimed from source documentation."
+        ]
       },
       "uncertainty": {
         "representation": "none_declared",
