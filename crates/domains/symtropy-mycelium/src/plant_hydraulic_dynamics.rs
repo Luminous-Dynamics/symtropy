@@ -22,8 +22,7 @@
 //! avoids the explicit-step stability restriction for this passive subsystem.
 
 use super::plant_hydraulic_null::{
-    PlantHydraulicError, PlantHydraulicInputs, solve_two_resistance_null,
-    stomatal_open_fraction,
+    PlantHydraulicError, PlantHydraulicInputs, solve_two_resistance_null, stomatal_open_fraction,
 };
 
 const WATER_MOLAR_MASS_KG_PER_MOL: f64 = 0.018_015_28;
@@ -54,9 +53,7 @@ pub struct PlantHydraulicDynamicState {
 }
 
 impl PlantHydraulicDynamicState {
-    pub fn new(
-        initial_leaf_water_potential_mpa: f64,
-    ) -> Result<Self, PlantHydraulicDynamicsError> {
+    pub fn new(initial_leaf_water_potential_mpa: f64) -> Result<Self, PlantHydraulicDynamicsError> {
         if !initial_leaf_water_potential_mpa.is_finite() {
             return Err(PlantHydraulicDynamicsError::NonFiniteState(
                 "initial_leaf_water_potential_mpa",
@@ -109,9 +106,7 @@ pub fn step_plant_hydraulic_capacitance(
     time_step_s: f64,
     previous: PlantHydraulicDynamicState,
 ) -> Result<PlantHydraulicDynamicStep, PlantHydraulicDynamicsError> {
-    if !hydraulic_capacitance_kg_m2_mpa.is_finite()
-        || hydraulic_capacitance_kg_m2_mpa <= 0.0
-    {
+    if !hydraulic_capacitance_kg_m2_mpa.is_finite() || hydraulic_capacitance_kg_m2_mpa <= 0.0 {
         return Err(PlantHydraulicDynamicsError::InvalidCapacitance);
     }
     if !time_step_s.is_finite() || time_step_s <= 0.0 {
@@ -144,10 +139,9 @@ pub fn step_plant_hydraulic_capacitance(
 
     // Reuse the validated steady-state reference for input validation and
     // the series conductance. Its steady-state flux is not used by this step.
-    let reference = solve_two_resistance_null(inputs)
-        .map_err(PlantHydraulicDynamicsError::HydraulicInput)?;
-    let equivalent_conductance =
-        reference.equivalent_hydraulic_conductance_kg_m2_s_mpa;
+    let reference =
+        solve_two_resistance_null(inputs).map_err(PlantHydraulicDynamicsError::HydraulicInput)?;
+    let equivalent_conductance = reference.equivalent_hydraulic_conductance_kg_m2_s_mpa;
     let storage_rate = hydraulic_capacitance_kg_m2_mpa / time_step_s;
     let next_elapsed_time = previous.elapsed_time_s + time_step_s;
 
@@ -157,8 +151,7 @@ pub fn step_plant_hydraulic_capacitance(
         ));
     }
 
-    let vapor_fraction =
-        inputs.vapor_pressure_deficit_pa / inputs.atmospheric_pressure_pa;
+    let vapor_fraction = inputs.vapor_pressure_deficit_pa / inputs.atmospheric_pressure_pa;
     let stomatal_demand = |leaf_potential_mpa: f64| {
         let open_fraction = stomatal_open_fraction(
             leaf_potential_mpa,
@@ -187,8 +180,7 @@ pub fn step_plant_hydraulic_capacitance(
 
     let residual_at = |leaf_potential_mpa: f64| {
         storage_rate * (leaf_potential_mpa - previous.leaf_water_potential_mpa)
-            - equivalent_conductance
-                * (inputs.soil_water_potential_mpa - leaf_potential_mpa)
+            - equivalent_conductance * (inputs.soil_water_potential_mpa - leaf_potential_mpa)
             + stomatal_demand(leaf_potential_mpa)
     };
 
@@ -232,16 +224,13 @@ pub fn step_plant_hydraulic_capacitance(
     let leaf_potential = lower + (upper - lower) * 0.5;
     let soil_to_root_flux =
         equivalent_conductance * (inputs.soil_water_potential_mpa - leaf_potential);
-    let root_to_leaf_drop =
-        soil_to_root_flux / inputs.root_to_leaf_conductance_kg_m2_s_mpa;
-    let soil_to_root_drop =
-        soil_to_root_flux / inputs.soil_to_root_conductance_kg_m2_s_mpa;
+    let root_to_leaf_drop = soil_to_root_flux / inputs.root_to_leaf_conductance_kg_m2_s_mpa;
+    let soil_to_root_drop = soil_to_root_flux / inputs.soil_to_root_conductance_kg_m2_s_mpa;
     let root_potential = inputs.soil_water_potential_mpa - soil_to_root_drop;
     let transpiration = stomatal_demand(leaf_potential);
-    let storage_change = hydraulic_capacitance_kg_m2_mpa
-        * (leaf_potential - previous.leaf_water_potential_mpa);
-    let step_residual =
-        storage_change - (soil_to_root_flux - transpiration) * time_step_s;
+    let storage_change =
+        hydraulic_capacitance_kg_m2_mpa * (leaf_potential - previous.leaf_water_potential_mpa);
+    let step_residual = storage_change - (soil_to_root_flux - transpiration) * time_step_s;
 
     let cumulative_soil =
         previous.cumulative_soil_water_uptake_kg_m2 + soil_to_root_flux * time_step_s;
@@ -326,14 +315,10 @@ mod tests {
             step_plant_hydraulic_capacitance(reference_inputs(), 0.02, 60.0, initial).unwrap();
         let mut high_vpd = reference_inputs();
         high_vpd.vapor_pressure_deficit_pa = 2_000.0;
-        let stressed =
-            step_plant_hydraulic_capacitance(high_vpd, 0.02, 60.0, initial).unwrap();
+        let stressed = step_plant_hydraulic_capacitance(high_vpd, 0.02, 60.0, initial).unwrap();
 
         assert!(stressed.transpiration_kg_m2_s > baseline.transpiration_kg_m2_s);
-        assert!(
-            stressed.state.leaf_water_potential_mpa
-                < baseline.state.leaf_water_potential_mpa
-        );
+        assert!(stressed.state.leaf_water_potential_mpa < baseline.state.leaf_water_potential_mpa);
     }
 
     #[test]
@@ -343,17 +328,10 @@ mod tests {
             step_plant_hydraulic_capacitance(reference_inputs(), 0.02, 60.0, initial).unwrap();
         let mut dry_soil = reference_inputs();
         dry_soil.soil_water_potential_mpa = -1.0;
-        let stressed =
-            step_plant_hydraulic_capacitance(dry_soil, 0.02, 60.0, initial).unwrap();
+        let stressed = step_plant_hydraulic_capacitance(dry_soil, 0.02, 60.0, initial).unwrap();
 
-        assert!(
-            stressed.state.leaf_water_potential_mpa
-                < baseline.state.leaf_water_potential_mpa
-        );
-        assert!(
-            stressed.soil_to_root_water_flux_kg_m2_s
-                < baseline.soil_to_root_water_flux_kg_m2_s
-        );
+        assert!(stressed.state.leaf_water_potential_mpa < baseline.state.leaf_water_potential_mpa);
+        assert!(stressed.soil_to_root_water_flux_kg_m2_s < baseline.soil_to_root_water_flux_kg_m2_s);
     }
 
     #[test]
@@ -392,9 +370,7 @@ mod tests {
                 .state;
         }
 
-        assert!(
-            (state.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs() < 1e-8
-        );
+        assert!((state.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs() < 1e-8);
     }
 
     #[test]
@@ -437,8 +413,7 @@ mod tests {
         let steady = solve_two_resistance_null(inputs).unwrap();
         let coarse_error =
             (coarse.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs();
-        let fine_error =
-            (fine.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs();
+        let fine_error = (fine.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs();
         assert!(fine_error <= coarse_error + 1e-12);
     }
 
@@ -455,10 +430,9 @@ mod tests {
                 step_plant_hydraulic_capacitance(drought, 0.02, 10.0, drought_history)
                     .unwrap()
                     .state;
-            control_history =
-                step_plant_hydraulic_capacitance(normal, 0.02, 10.0, control_history)
-                    .unwrap()
-                    .state;
+            control_history = step_plant_hydraulic_capacitance(normal, 0.02, 10.0, control_history)
+                .unwrap()
+                .state;
         }
 
         // The external forcing is now identical. Remaining differences are
@@ -483,8 +457,7 @@ mod tests {
             PlantHydraulicDynamicState::new(-1.0).unwrap(),
         )
         .unwrap();
-        let total_drop =
-            step.soil_to_root_pressure_drop_mpa + step.root_to_leaf_pressure_drop_mpa;
+        let total_drop = step.soil_to_root_pressure_drop_mpa + step.root_to_leaf_pressure_drop_mpa;
 
         assert!(
             (reference_inputs().soil_water_potential_mpa
@@ -503,10 +476,7 @@ mod tests {
             10.0,
             PlantHydraulicDynamicState::new(-1.0).unwrap(),
         );
-        assert_eq!(
-            result,
-            Err(PlantHydraulicDynamicsError::InvalidCapacitance)
-        );
+        assert_eq!(result, Err(PlantHydraulicDynamicsError::InvalidCapacitance));
     }
 
     #[test]
@@ -517,10 +487,7 @@ mod tests {
             f64::NAN,
             PlantHydraulicDynamicState::new(-1.0).unwrap(),
         );
-        assert_eq!(
-            result,
-            Err(PlantHydraulicDynamicsError::InvalidTimeStep)
-        );
+        assert_eq!(result, Err(PlantHydraulicDynamicsError::InvalidTimeStep));
     }
 
     #[test]
