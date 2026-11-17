@@ -39,7 +39,7 @@ pub struct TetrahedralAssemblyPlan {
     pub claim_ceiling: &'static str,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AssemblyPlanError {
     InvalidGeometry(TetrahedralError),
     EmptyAssembly,
