@@ -291,3 +291,26 @@ A 97.75 km / 16 T fill sensitivity is also included at ring-wide fractions 0.60,
 These values are first-order uniform-bend comparisons. The source FCC 2.4 MW per beam is based on the actual lattice; our simplified radiation relation does not reproduce the detailed radiation integral or lattice configuration. The difference remains a model-discrepancy diagnostic, not a calibration target.
 
 Source: [FCC-hh Extended Conceptual Design Report, CERN-2025-006](https://doi.org/10.23731/CYRM-2025-006).
+
+
+### FCC-hh reference vintage: CDR versus 2025 updated study
+
+The 97.75 km / 16 T / 100 TeV / approximately 2.4 MW-per-beam row is the **FCC-hh CDR configuration** and is retained as an ambitious 100 TeV comparator. It should not be described as the latest revised study reference.
+
+The 2025 updated FCC-hh study also presents a lower-field / lower-energy reference at approximately **90.7 km / 14 T / 85 TeV CM**. Its table gives a 76.9 km arc length and 0.83 dipole packing within those arcs. Converting those values to the full-ring effective bending fraction gives:
+
+\[
+f_{ring,2025}=0.83\\times\\frac{76.9}{90.7}\\approx0.7037.
+\]
+
+This distinction matters:
+- 100 TeV / 16 T is the CDR stretch comparator used by the local-ring executable.
+- 85 TeV / 14 T is the updated 2025 study reference and a useful more conservative magnet-field comparator.
+- The 14.1 T demonstrated dipole and the continuing 16 T Nb3Sn / 20 T HTS development programme should not be conflated with a production-qualified 20 T collider magnet.
+
+The comparison therefore needs to report both reference vintages rather than describing the 100 TeV CDR as the sole current industry baseline.
+
+Sources:
+- [CERN FCC-hh CDR, CERN-2025-006](https://doi.org/10.23731/CYRM-2025-006)
+- [2025 FCC-hh parameter update](https://indico.cern.ch/event/1520755/attachments/3023021/5342322/FCC_FinalReport_Vol2-HFM.pdf)
+- [CERN High Field Magnets programme](https://hfm.web.cern.ch/)
