@@ -1,0 +1,418 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/water-verified-loss-recovery/vwlr_t0_input.schema.v0.1.json",
+  "title": "Verified Water Loss Recovery T0 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "max_pressure_difference_percent",
+    "max_demand_difference_percent",
+    "uncertainty_expansion_factor",
+    "minimum_follow_up_hours",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "vwlr-t0-input-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-VERIFIED-LOSS-RECOVERY-T0-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string"
+    },
+    "max_pressure_difference_percent": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_demand_difference_percent": {
+      "type": "number",
+      "minimum": 0
+    },
+    "uncertainty_expansion_factor": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "minimum_follow_up_hours": {
+      "const": 168
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "events"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^VWLR-T0-[0-9]{3}-"
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_id",
+                "recovery_claim_id",
+                "network_id",
+                "topology",
+                "measurement_boundary_id",
+                "diagnostic",
+                "inspection",
+                "field_confirmation",
+                "repair",
+                "treated_pre",
+                "treated_post",
+                "control_pre",
+                "control_post",
+                "max_pressure_difference_percent",
+                "max_demand_difference_percent",
+                "uncertainty_expansion_factor",
+                "follow_up"
+              ],
+              "properties": {
+                "event_id": {
+                  "type": "string"
+                },
+                "recovery_claim_id": {
+                  "type": "string"
+                },
+                "network_id": {
+                  "type": "string"
+                },
+                "topology": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "revision",
+                    "digest"
+                  ],
+                  "properties": {
+                    "revision": {
+                      "type": "string"
+                    },
+                    "digest": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    }
+                  }
+                },
+                "measurement_boundary_id": {
+                  "type": "string"
+                },
+                "diagnostic": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "disposition",
+                    "predicted_component_ids",
+                    "localization_level",
+                    "abstained",
+                    "model_result_ref"
+                  ],
+                  "properties": {
+                    "disposition": {
+                      "type": "string"
+                    },
+                    "predicted_component_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "localization_level": {
+                      "type": "string"
+                    },
+                    "abstained": {
+                      "type": "boolean"
+                    },
+                    "model_result_ref": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inspection": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "inspection_id",
+                    "disposition",
+                    "method",
+                    "crew_hours",
+                    "travel_hours",
+                    "cost_zar",
+                    "evidence_ref"
+                  ],
+                  "properties": {
+                    "inspection_id": {
+                      "type": "string"
+                    },
+                    "disposition": {
+                      "type": "string"
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "crew_hours": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "travel_hours": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cost_zar": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "evidence_ref": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "field_confirmation": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "disposition",
+                    "confirmed_component_ids",
+                    "method",
+                    "evidence_ref"
+                  ],
+                  "properties": {
+                    "disposition": {
+                      "enum": [
+                        "confirmed_leak",
+                        "confirmed_no_leak",
+                        "uncertain"
+                      ]
+                    },
+                    "confirmed_component_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "evidence_ref": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "repair": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "additionalProperties": false,
+                  "required": [
+                    "repair_id",
+                    "status",
+                    "target_component_ids",
+                    "work_order_status",
+                    "repair_cost_zar",
+                    "evidence_ref"
+                  ],
+                  "properties": {
+                    "repair_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "completed",
+                        "partial",
+                        "failed",
+                        "pending"
+                      ]
+                    },
+                    "target_component_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "work_order_status": {
+                      "type": "string"
+                    },
+                    "repair_cost_zar": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "evidence_ref": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "treated_pre": {
+                  "$ref": "#/$defs/measurement"
+                },
+                "treated_post": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/measurement"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "control_pre": {
+                  "$ref": "#/$defs/measurement"
+                },
+                "control_post": {
+                  "$ref": "#/$defs/measurement"
+                },
+                "max_pressure_difference_percent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "max_demand_difference_percent": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "uncertainty_expansion_factor": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "follow_up": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "window_hours",
+                    "recurrence_detected",
+                    "reopen_count"
+                  ],
+                  "properties": {
+                    "window_hours": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "recurrence_detected": {
+                      "type": "boolean"
+                    },
+                    "reopen_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_id",
+        "instrument_id",
+        "zone_id",
+        "boundary_id",
+        "topology_revision",
+        "topology_digest",
+        "net_loss_l_per_day",
+        "standard_uncertainty_l_per_day",
+        "pressure_kpa",
+        "demand_l_per_day",
+        "window_start_utc",
+        "window_end_utc",
+        "calibration_status",
+        "time_status",
+        "method_ref",
+        "raw_record_digest"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "zone_id": {
+          "type": "string"
+        },
+        "boundary_id": {
+          "type": "string"
+        },
+        "topology_revision": {
+          "type": "string"
+        },
+        "topology_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "net_loss_l_per_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty_l_per_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pressure_kpa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_l_per_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "window_start_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_status": {
+          "enum": [
+            "current",
+            "stale",
+            "missing"
+          ]
+        },
+        "time_status": {
+          "enum": [
+            "current",
+            "invalid"
+          ]
+        },
+        "method_ref": {
+          "type": "string"
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
