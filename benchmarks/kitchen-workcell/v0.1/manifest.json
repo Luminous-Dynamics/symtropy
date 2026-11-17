@@ -529,5 +529,14 @@
     }
   ],
   "instruments": [],
-  "runs": []
+  "runs": [],
+  "power_scheduler": {
+    "status": "linked_unrun",
+    "implementation_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs",
+    "issue_ref": "https://github.com/Luminous-Dynamics/symtropy/issues/2227",
+    "schema_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/PowerConstrainedPlanV1.schema.json",
+    "fixtures_ref": "https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/fixtures/power-envelope-v1.json",
+    "unit": "W_real",
+    "claim_boundary": "Power limits and demand profiles must be site- and appliance-specific. Synthetic fixtures are not household measurements; profile evidence and calibration remain explicit."
+  }
 }
