@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "WaterLoop Pilot Skid P&ID Tag Schedule v0.1",
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "tags",
+    "safety_invariants"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "waterloop-pilot-skid-tag-schedule-v0.1"
+    },
+    "evidence_class": {
+      "const": "conceptual_design"
+    },
+    "claim_ceiling": {
+      "const": "p_and_id_tag_and_measurement_boundary_schedule_only_not_a_construction_drawing"
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 21,
+      "items": {
+        "type": "object",
+        "required": [
+          "tag",
+          "function",
+          "boundary",
+          "interlocks",
+          "module_ids"
+        ],
+        "properties": {
+          "tag": {
+            "type": "string",
+            "minLength": 1
+          },
+          "function": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "interlocks": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "module_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "safety_invariants": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
