@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-energy-case:v1",
+  "title": "HAPS energy case v1",
+  "description": "A provenance-bound, time-resolved HAPS energy input and independent arithmetic-oracle fixture. This schema does not define solar, battery, thermal, aerodynamic or WPT physics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "scenario_family",
+    "horizon_s",
+    "configuration",
+    "intervals",
+    "expected_oracle",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-energy-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "modelled",
+        "mixed"
+      ]
+    },
+    "scenario_family": {
+      "enum": [
+        "reference_diurnal",
+        "weather_sequence",
+        "seasonal_holdout",
+        "battery_end_of_life",
+        "thermal_extreme",
+        "payload_duty_cycle",
+        "export_admission",
+        "fault_recovery",
+        "fleet_availability"
+      ]
+    },
+    "horizon_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pv_area_m2",
+        "pv_efficiency",
+        "mppt_efficiency",
+        "wiring_efficiency",
+        "battery_capacity_wh",
+        "initial_soc_wh",
+        "minimum_reserve_wh",
+        "charge_efficiency",
+        "discharge_efficiency",
+        "max_charge_power_w",
+        "max_discharge_power_w",
+        "export_link_efficiency"
+      ],
+      "properties": {
+        "pv_area_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pv_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "mppt_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "wiring_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "battery_capacity_wh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "initial_soc_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_reserve_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "charge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "discharge_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "max_charge_power_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_discharge_power_w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "export_link_efficiency": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offset_s",
+          "duration_s",
+          "incident_irradiance_w_m2",
+          "incidence_factor",
+          "pv_temperature_derate",
+          "station_keeping_power_w",
+          "payload_power_w",
+          "avionics_power_w",
+          "thermal_management_power_w",
+          "requested_receiver_power_w"
+        ],
+        "properties": {
+          "offset_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "duration_s": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "incident_irradiance_w_m2": {
+            "type": "number",
+            "minimum": 0
+          },
+          "incidence_factor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "pv_temperature_derate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "station_keeping_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "payload_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "avionics_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "thermal_management_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "requested_receiver_power_w": {
+            "type": "number",
+            "minimum": 0
+          },
+          "ambient_temperature_k": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "ambient_pressure_pa": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "wind_east_mps": {
+            "type": "number"
+          },
+          "wind_north_mps": {
+            "type": "number"
+          },
+          "wind_up_mps": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "environment_profile_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "aircraft_configuration_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "expected_oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracle_status",
+        "total_solar_generation_wh",
+        "total_own_load_demand_wh",
+        "total_battery_charge_input_wh",
+        "total_battery_energy_stored_wh",
+        "total_battery_discharge_output_wh",
+        "total_battery_discharge_withdrawn_wh",
+        "total_export_source_energy_wh",
+        "total_export_receiver_energy_wh",
+        "total_export_unserved_receiver_energy_wh",
+        "total_curtailed_solar_energy_wh",
+        "ending_soc_wh",
+        "minimum_soc_wh",
+        "reserve_respected",
+        "own_service_continuous",
+        "daily_energy_cycle_closed",
+        "export_service_admissible",
+        "max_abs_pv_bus_ledger_residual_wh"
+      ],
+      "properties": {
+        "oracle_status": {
+          "enum": [
+            "not_evaluated",
+            "independently_calculated",
+            "owner_model_replayed",
+            "measured"
+          ]
+        },
+        "total_solar_generation_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_own_load_demand_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_battery_charge_input_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_battery_energy_stored_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_battery_discharge_output_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_battery_discharge_withdrawn_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_export_source_energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_export_receiver_energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_export_unserved_receiver_energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_curtailed_solar_energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ending_soc_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_soc_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reserve_respected": {
+          "type": "boolean"
+        },
+        "own_service_continuous": {
+          "type": "boolean"
+        },
+        "daily_energy_cycle_closed": {
+          "type": "boolean"
+        },
+        "export_service_admissible": {
+          "type": "boolean"
+        },
+        "max_abs_pv_bus_ledger_residual_wh": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "claim_ceiling": {
+      "const": "synthetic_arithmetic_oracle"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "synthetic"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "claim_ceiling": {
+            "const": "synthetic_arithmetic_oracle"
+          }
+        }
+      }
+    }
+  ],
+  "$comment": "Additional semantic checks not expressible in this schema: interval offsets are ordered and contiguous; sum(duration_s) equals horizon_s; initial SoC is within [reserve, capacity]; reserve is no greater than capacity; expected values are independently recomputed; weather/time correlations are preserved; source and receiver meter planes are explicit."
+}
