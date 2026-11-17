@@ -25,7 +25,7 @@ HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
   --bin field_sweep
 ```
 
-The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact/reversed controls and four partial-context workloads per dimension. The factorization sweep varies graph size (100/1,000/5,000 facts) and entity reuse (high/medium/low) at 1K dimension, reporting unique codebook cardinality, factorized versus duplicated role-vector bytes, compact-reference bytes and build time. The continuous-field sweep tests 2K/4K dimensions on 4×4, 8×8 and 16×16 analytic training grids, querying the held-out cell centres. It reports HDC MAE/RMSE against nearest-neighbour and bilinear interpolation, plus coordinate encoding, unbinding, codebook cleanup, p50/p95 query latency and vector/index payload estimates. CI uploads all three raw CSVs as a 14-day workflow artifact, alongside runner/toolchain details and the exact checked-out source SHA.
+The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact/reversed controls and four partial-context workloads per dimension. The factorization sweep varies graph size (100/1,000/5,000 facts) and entity reuse (high/medium/low) at 1K dimension, reporting unique codebook cardinality, factorized versus duplicated role-vector bytes, compact-reference bytes and build time. The continuous-field sweep tests 2K/4K dimensions on 4×4, 8×8 and 16×16 analytic training grids, querying the held-out cell centres. Its deterministic field is a bounded smooth sinusoid. It reports HDC MAE/RMSE against nearest-neighbour and bilinear interpolation, plus coordinate encoding, unbinding, codebook cleanup, p50/p95 query latency and vector/index payload estimates. Samples whose distinct coordinates collapse to the same encoded x/y level are rejected. CI uploads all three raw CSVs as a 14-day workflow artifact, alongside runner/toolchain details and the exact checked-out source SHA.
 
 ## What is implemented
 
@@ -52,6 +52,7 @@ The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact
 - Controlled directed-circulant graph fixture generator with one-pass validation for large workloads.
 - Factorization capacity sweep across 100/1,000/5,000 facts and high/medium/low node reuse, avoiding the exact-retrieval O(E²) query loop.
 - Continuous 2D scalar-field prototype: bipolar positional/value encoding, spatial-memory bundling, coordinate unbinding and scalar-codebook cleanup.
+- Fail-closed detection when distinct source coordinates quantize to the same encoded spatial position.
 - Held-out continuous-field comparison against nearest-neighbour and bilinear interpolation, with stage-level timing and vector-payload estimates.
 - CI raw benchmark artifacts containing the discrete retrieval, factorization-capacity and continuous-field CSV outputs.
 
