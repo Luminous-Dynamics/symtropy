@@ -13,7 +13,7 @@ This prototype is a synthetic accounting oracle for pump/valve routes. It is not
 5. All cost items must match the case's exact batch reference, currency, price date and amount unit. No implicit FX, unit or date normalization occurs.
 6. Cost intervals are accumulated as integer minor-unit bounds. Cost per released unit is emitted as an exact numerator/denominator pair, not a floating-point estimate.
 7. Zero released output has a defined ZERO_RELEASED disposition and no finite cost-per-released-unit ratio.
-8. Output, release and cost-item identities are unique within each evaluated case, not globally across counterfactual cases.
+8. Output and cost-item identities are unique within each evaluated case, not globally across counterfactual cases. A batch-level release evidence reference may be shared by distinct output records only when its externally verified scope covers those units; the synthetic adapter does not authenticate coverage.
 9. Stage 0 source refs and evidence classes are synthetic metadata. No issuer/signature or source truth is authenticated.
 
 ## Run
