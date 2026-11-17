@@ -139,6 +139,7 @@ pub enum HoloFracError {
     EncoderMismatch,
     EmptyPartialQuery,
     InvalidTopK,
+    MissingCodebookEntry,
 }
 
 impl std::fmt::Display for HoloFracError {
@@ -154,6 +155,9 @@ impl std::fmt::Display for HoloFracError {
                 f.write_str("partial spatial query must specify at least one field")
             }
             Self::InvalidTopK => f.write_str("partial retrieval top_k must be greater than zero"),
+            Self::MissingCodebookEntry => {
+                f.write_str("factorized role codebook is missing an exact typed key")
+            }
         }
     }
 }
@@ -329,13 +333,38 @@ fn hash_bytes(hash: &mut StableHash64, bytes: &[u8]) {
     hash.write(bytes);
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum FactSlot {
     Subject,
     SubjectScale,
     Predicate,
     Object,
     ObjectScale,
+}
+
+impl FactSlot {
+    pub(crate) const ALL: [Self; 5] = [
+        Self::Subject,
+        Self::SubjectScale,
+        Self::Predicate,
+        Self::Object,
+        Self::ObjectScale,
+    ];
+}
+
+/// Exact, typed role value used as a factorized codebook key.
+pub(crate) fn fact_slot_value(
+    graph: &SpatialGraph,
+    fact: &SpatialFact,
+    slot: FactSlot,
+) -> Result<String, GraphError> {
+    match slot {
+        FactSlot::Subject => Ok(fact.subject.clone()),
+        FactSlot::SubjectScale => Ok(graph.entity_scale(&fact.subject)?.as_str().to_owned()),
+        FactSlot::Predicate => Ok(fact.relation.as_str().to_owned()),
+        FactSlot::Object => Ok(fact.object.clone()),
+        FactSlot::ObjectScale => Ok(graph.entity_scale(&fact.object)?.as_str().to_owned()),
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -452,7 +481,8 @@ impl HoloFracEncoder {
 #[derive(Clone, Debug)]
 struct IndexedFact {
     fact: SpatialFact,
-    encoded: EncodedFact,
+    bipolar: BipolarHV,
+    continuous_f32_view: ContinuousHV,
 }
 
 /// A prebuilt index. Candidate vectors and canonical keys are computed once;
@@ -464,6 +494,8 @@ pub struct SpatialIndex {
     encoder_spec: EncoderSpec,
     encoder_fingerprint_non_security: u64,
     canonical_keys: Vec<String>,
+    /// One deterministic bipolar vector per exact typed role/value key.
+    role_codebook: HashMap<(FactSlot, String), BipolarHV>,
     facts: Vec<IndexedFact>,
 }
 
@@ -480,10 +512,19 @@ impl SpatialIndex {
         let encoder_fingerprint_non_security = encoder.fingerprint();
 
         let mut facts = Vec::with_capacity(graph.facts.len());
+        let mut role_codebook = HashMap::new();
         for fact in &graph.facts {
+            let encoded = encoder.encode_fact(graph, fact)?;
+            for slot in FactSlot::ALL {
+                let value = fact_slot_value(graph, fact, slot)?;
+                role_codebook
+                    .entry((slot, value))
+                    .or_insert_with(|| encoded.slots.get(slot).clone());
+            }
             facts.push(IndexedFact {
                 fact: fact.clone(),
-                encoded: encoder.encode_fact(graph, fact)?,
+                bipolar: encoded.bipolar,
+                continuous_f32_view: encoded.continuous_f32_view,
             });
         }
 
@@ -495,6 +536,7 @@ impl SpatialIndex {
             encoder_spec,
             encoder_fingerprint_non_security,
             canonical_keys,
+            role_codebook,
             facts,
         };
         Ok((index, started.elapsed().as_secs_f64() * 1_000_000.0))
@@ -555,7 +597,7 @@ impl SpatialIndex {
         let bipolar_started = Instant::now();
         let mut bipolar_ranked = Vec::with_capacity(self.facts.len());
         for indexed in &self.facts {
-            let score = query_encoded.bipolar.similarity(&indexed.encoded.bipolar)?;
+            let score = query_encoded.bipolar.similarity(&indexed.bipolar)?;
             bipolar_ranked.push((score, indexed.fact.clone()));
         }
         bipolar_ranked.sort_by(|left, right| {
@@ -571,7 +613,7 @@ impl SpatialIndex {
         for indexed in &self.facts {
             let score = query_encoded
                 .continuous_f32_view
-                .similarity(&indexed.encoded.continuous_f32_view)?;
+                .similarity(&indexed.continuous_f32_view)?;
             f32_ranked.push((score, indexed.fact.clone()));
         }
         f32_ranked.sort_by(|left, right| {
@@ -670,9 +712,11 @@ pub struct BenchmarkReport {
     pub f32_index_bytes_estimate: usize,
     /// Bipolar and f32 vector payloads retained simultaneously.
     pub dual_view_index_bytes_estimate: usize,
-    /// Five bipolar role-slot vectors retained per fact for partial retrieval.
+    /// Number of unique typed role/value vectors retained in the factorized codebook.
+    pub unique_role_codebook_entries: usize,
+    /// Bipolar payload bytes for the unique typed role/value codebook.
     pub role_slot_index_bytes_estimate: usize,
-    /// All vector payload retained by the current index: bipolar + f32 + role slots.
+    /// All vector payload retained: per-fact bipolar + f32 + unique role codebook.
     /// Excludes allocator overhead, graph objects and canonical key strings.
     pub retained_vector_payload_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
@@ -765,15 +809,14 @@ pub fn run_benchmark(
         dual_view_index_bytes_estimate: graph.facts.len()
             * dimension
             * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>()),
-        role_slot_index_bytes_estimate: graph.facts.len()
+        unique_role_codebook_entries: index.role_codebook.len(),
+        role_slot_index_bytes_estimate: index.role_codebook.len()
             * dimension
-            * 5
             * std::mem::size_of::<i8>(),
         retained_vector_payload_bytes_estimate: graph.facts.len()
             * dimension
-            * (2 * std::mem::size_of::<i8>()
-                + std::mem::size_of::<f32>()
-                + 5 * std::mem::size_of::<i8>()),
+            * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
+            + index.role_codebook.len() * dimension * std::mem::size_of::<i8>(),
         outcomes,
     })
 }
@@ -1106,8 +1149,9 @@ mod tests {
         let facts = graph.facts().len();
         assert_eq!(
             report.role_slot_index_bytes_estimate,
-            facts * dimension * 5 * std::mem::size_of::<i8>()
+            report.unique_role_codebook_entries * dimension * std::mem::size_of::<i8>()
         );
+        assert!(report.unique_role_codebook_entries <= facts * 5);
         assert_eq!(
             report.retained_vector_payload_bytes_estimate,
             report.dual_view_index_bytes_estimate + report.role_slot_index_bytes_estimate
