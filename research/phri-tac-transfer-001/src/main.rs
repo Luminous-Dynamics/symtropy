@@ -282,6 +282,35 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::hysteresis_identifiability::run_hysteresis_identifiability_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("hysteresis_identifiability_campaign=paired_synthetic_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("hysteresis_identifiability_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("hysteresis_identifiability_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "hysteresis_pairs={} raw_observation_collisions={} mean_force_separation_n={:.6} static_single_frame_rmse_n={:.6} history_conditioned_rmse_n={:.6} missing_history_abstention_rate={:.4}",
+                        campaign.replicate_count,
+                        campaign.paired_raw_observation_collisions,
+                        campaign.mean_force_separation_for_equal_frames_n,
+                        campaign.static_single_frame_rmse_n,
+                        campaign.history_conditioned_rmse_n,
+                        campaign.missing_history_abstention_rate,
+                    );
+                }
+                Err(error) => {
+                    eprintln!("hysteresis_identifiability_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
