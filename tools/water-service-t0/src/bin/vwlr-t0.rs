@@ -918,6 +918,43 @@ mod tests {
     }
 
     #[test]
+    fn shared_validated_method_reference_is_allowed_for_distinct_meters() {
+        let (mut input, _, _) = fixture();
+        input["cases"][0]["events"][0]["treated_pre"]["method_ref"] =
+            json!("COMMON-VALIDATED-METHOD-v1");
+        input["cases"][0]["events"][0]["treated_post"]["method_ref"] =
+            json!("COMMON-VALIDATED-METHOD-v1");
+        let result = evaluate_case(&input["cases"][0], 168).unwrap();
+        assert_eq!(result["verified_recovery_event_count"], 1);
+        assert_eq!(result["lower_bound_recovered_l_per_day"], 640.0);
+    }
+
+    #[test]
+    fn wrong_zone_identity_makes_attribution_indeterminate() {
+        let (mut input, _, _) = fixture();
+        input["cases"][0]["events"][0]["control_zone_id"] = json!("TREATED");
+        let result = evaluate_case(&input["cases"][0], 168).unwrap();
+        assert_eq!(
+            result["events"][0]["disposition"],
+            "attribution_indeterminate_boundary_or_topology"
+        );
+        assert_eq!(result["lower_bound_recovered_l_per_day"], 0.0);
+    }
+
+    #[test]
+    fn overlapping_pre_post_measurement_windows_are_rejected() {
+        let (mut input, _, _) = fixture();
+        input["cases"][0]["events"][0]["treated_post"]["window_start_utc"] =
+            json!("2026-01-01T05:00:00Z");
+        let result = evaluate_case(&input["cases"][0], 168).unwrap();
+        assert_eq!(
+            result["events"][0]["disposition"],
+            "attribution_indeterminate_time_window"
+        );
+        assert_eq!(result["lower_bound_recovered_l_per_day"], 0.0);
+    }
+
+    #[test]
     fn duplicate_event_ids_are_rejected() {
         let (mut input, _, _) = fixture();
         input["cases"][0]["events"][0]["event_id"] = json!("DUPLICATE");
