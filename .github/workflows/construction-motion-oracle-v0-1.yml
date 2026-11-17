@@ -11,6 +11,7 @@ on:
       - research/construction-absolute-time-capsule-ccd-v0-1
       - research/construction-multibody-time-swept-broadphase-v0-1
       - research/construction-multibody-relative-clock-domain-ccd-v0-1
+      - research/construction-relative-time-conservative-broadphase-v0-1
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"

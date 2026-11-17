@@ -115,3 +115,23 @@ Every unordered pair receives a deterministic result. Non-zero timing uncertaint
 This initial owner is an O(n²) exhaustive reference implementation, capped at 1,024 bodies and 524,288 pair checks. The benchmark records pair count, disposition counts and p50/p95/p99 latency at 8/16/32/64 bodies. It deliberately does not reuse the exact-clock SAP broad phase, because that owner rejects non-zero clock uncertainty. A later conservative multi-clock broad phase must prove its candidate set is a superset of these reference results before it can replace the exhaustive evaluator.
 
 The drift model is a hard relative-rate bound over the complete source interval, not a statistical standard deviation, synchronization protocol or clock-drift estimator. The adapter assumes the input geometry has already been transformed into one common frame; it does not perform frame registration. This is software-level collision reasoning only—not real-time control, physical stopping validation, human-protection logic, motion authorization or site safety qualification. Tracks [#5823](https://github.com/Luminous-Dynamics/symtropy/issues/5823) and [#5649](https://github.com/Luminous-Dynamics/symtropy/issues/5649).
+
+
+## Clock-aware conservative multi-body broad phase
+
+The relative-time reference in #5849 checks every unordered pair. This extension converts each successfully mapped body into a conservative zero-clock-uncertainty outer span and feeds those spans into the existing dyadic sweep-and-prune broad phase.
+
+For an original span of duration T and hard symmetric timing bound epsilon, the outer span:
+- expands the half-open interval to [start-epsilon, end+epsilon);
+- extrapolates the starting capsule to the widened start;
+- scales the translation by (T+2 epsilon)/T so the nominal affine path is unchanged over the widened time axis;
+- expands radius by |translation| epsilon/T;
+- sets timing uncertainty to zero only after the complete outer envelope has been constructed.
+
+This is a conservative numerical enclosure of the same bounded-offset model consumed by the pairwise oracle. Candidate pairs are passed to the pairwise clock-uncertainty CCD owner. A body whose mapping is invalid or whose outer envelope cannot be represented is excluded from pruning; every pair touching it is counted unresolved.
+
+The report keeps detailed pair receipts only for emitted candidates. It reports the total possible pair count, valid outer-envelope body count, candidate count, pairwise checks, aggregate outer-space-time-pruned pair count and unresolved pair count. This avoids materializing O(n²) receipts for pruned pairs. The candidate/pairwise path remains evidence-carrying, while the omitted pairs are represented by aggregate counts and the deterministic broad-phase report.
+
+The existing SAP uses an eight-ULP numeric expansion; this is not a formally directed-rounded proof. Therefore outer_space_time_pruned_pairs is a benchmark/pruning disposition, not a production motion-authorization or formal clearance certificate. Before use in any safety-relevant path, the outer-bound arithmetic must be independently validated with interval/directed-rounding methods and a separately governed reference corpus.
+
+The paired benchmark compares the exhaustive multi-clock reference against the clock-aware broad phase on identical sparse scenes at 8/16/32/64/128/256/512 bodies and identical clustered, dense, long-thin, time-staggered and high-drift scenes at 32/64/128/256 bodies. For each workload it sweeps 1/2/4/8/16 temporal slabs, measures both paths with one warm-up and alternating execution order, and reports reference and broad-phase p50/p95/p99 separately plus p50 speedup. The CSV also reports total possible pairs, outer-envelope bodies, candidates, pairwise checks, pruned pairs, unresolved pairs and non-contact candidate count. At 8–64 bodies it checks that every exhaustive exact/potential/boundary contact pair appears in the candidate set at each slab count. A generated 64-body unit test performs the same candidate-superset check against the exhaustive oracle. These synthetic strata still do not represent field robot trajectories or independently calibrated site clocks. Vendor adapters, blind external geometry families and physical metrology remain separate qualification steps. Tracks #5823 and #5649.
