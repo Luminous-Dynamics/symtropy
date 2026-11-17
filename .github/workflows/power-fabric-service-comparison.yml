@@ -1,0 +1,44 @@
+name: Power Fabric Service Comparison
+
+on:
+  push:
+    branches:
+      - research/power-fabric-service-comparison-v0.1
+  pull_request:
+    branches:
+      - research/power-fabric-service-graph-v0.1
+    paths:
+      - "crates/domains/symtropy-energy-systems/**"
+      - ".github/workflows/power-fabric-service-comparison.yml"
+
+concurrency:
+  group: power-fabric-service-comparison-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate symtropy-energy-systems
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-energy-systems/Cargo.toml -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path crates/domains/symtropy-energy-systems/Cargo.toml --all-targets --locked -- -D warnings
+
+      - name: Run library tests
+        run: cargo test --manifest-path crates/domains/symtropy-energy-systems/Cargo.toml --locked --lib
