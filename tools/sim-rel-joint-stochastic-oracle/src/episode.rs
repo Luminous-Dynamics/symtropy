@@ -511,6 +511,64 @@ mod tests {
         }
     }
 
+    fn persistent_sensor_confounding_kernel() -> JointKernel {
+        let mut rows = Vec::new();
+        for hypothesis in 0..2 {
+            for physical_state in 0..2 {
+                for sensor_state in 0..2 {
+                    for action in 0..2 {
+                        let outcome = if action == 0 {
+                            JointOutcome {
+                                probability: Rational::one(),
+                                next_physical_state: physical_state,
+                                next_sensor_state: sensor_state,
+                                observation: Some(physical_state ^ sensor_state),
+                            }
+                        } else {
+                            JointOutcome {
+                                probability: Rational::one(),
+                                next_physical_state: physical_state,
+                                next_sensor_state: 0,
+                                observation: Some(0),
+                            }
+                        };
+                        rows.push(KernelRow {
+                            hypothesis,
+                            physical_state,
+                            sensor_state,
+                            action,
+                            outcomes: vec![outcome],
+                        });
+                    }
+                }
+            }
+        }
+
+        JointKernel {
+            hypothesis_ids: vec!["latent-mechanism-a".to_owned(), "latent-mechanism-b".to_owned()],
+            physical_state_count: 2,
+            sensor_state_count: 2,
+            action_ids: vec!["measure-combined-signal".to_owned(), "calibrate-sensor".to_owned()],
+            observation_ids: vec!["zero".to_owned(), "one".to_owned()],
+            action_costs: vec![1, 1],
+            initial_belief: vec![
+                JointMass {
+                    hypothesis: 0,
+                    physical_state: 0,
+                    sensor_state: 1,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+                JointMass {
+                    hypothesis: 1,
+                    physical_state: 1,
+                    sensor_state: 0,
+                    mass: Rational::new(1, 2).unwrap(),
+                },
+            ],
+            rows,
+        }
+    }
+
     fn stochastic_kernel() -> JointKernel {
         JointKernel {
             hypothesis_ids: vec!["private-h0".to_owned()],
@@ -676,6 +734,60 @@ mod tests {
         assert_eq!(rejected.disposition, AttemptDisposition::RejectedAttemptBudget);
         assert_eq!(provider.view().attempts.len(), 2);
         assert_eq!(provider.view().current_step, 1);
+    }
+
+    #[test]
+    fn physical_sensor_confound_requires_calibration_before_discriminating_measurement() {
+        let kernel = persistent_sensor_confounding_kernel();
+        let config = EpisodeConfig {
+            max_attempts: 4,
+            max_cost_units: 10,
+            max_world_steps: 4,
+        };
+        // With this fixture and SplitMix64 mapping, seed 3 selects the first
+        // initial tuple and seed 0 selects the second. The public histories
+        // remain identical until the final post-calibration measurement.
+        let mut first = EpisodeProvider::new("opaque-confound-a-0001", kernel.clone(), config, 3)
+            .expect("first episode");
+        let mut second = EpisodeProvider::new("opaque-confound-b-0001", kernel, config, 0)
+            .expect("second episode");
+
+        let first_measure = first.submit_action("measure-combined-signal").unwrap();
+        let second_measure = second.submit_action("measure-combined-signal").unwrap();
+        assert_eq!(
+            first_measure.disposition,
+            AttemptDisposition::Applied {
+                observation_id: "one".to_owned()
+            }
+        );
+        assert_eq!(first_measure.disposition, second_measure.disposition);
+        assert_eq!(first.view().observations, second.view().observations);
+
+        let first_calibration = first.submit_action("calibrate-sensor").unwrap();
+        let second_calibration = second.submit_action("calibrate-sensor").unwrap();
+        assert_eq!(
+            first_calibration.disposition,
+            AttemptDisposition::Applied {
+                observation_id: "zero".to_owned()
+            }
+        );
+        assert_eq!(first_calibration.disposition, second_calibration.disposition);
+        assert_eq!(first.view().observations, second.view().observations);
+
+        let first_discriminator = first.submit_action("measure-combined-signal").unwrap();
+        let second_discriminator = second.submit_action("measure-combined-signal").unwrap();
+        assert_eq!(
+            first_discriminator.disposition,
+            AttemptDisposition::Applied {
+                observation_id: "zero".to_owned()
+            }
+        );
+        assert_eq!(
+            second_discriminator.disposition,
+            AttemptDisposition::Applied {
+                observation_id: "one".to_owned()
+            }
+        );
     }
 
     #[test]
