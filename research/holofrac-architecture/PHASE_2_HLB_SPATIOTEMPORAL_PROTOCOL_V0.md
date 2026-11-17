@@ -296,3 +296,40 @@ Suggested sequence:
 A successful Phase 2 result can establish benchmark-specific predictive, retrieval, selection or evidence-closure improvements for the declared datasets, split, models, hardware, solver and applicability domain.
 
 It cannot by itself establish structural safety, code compliance, occupant health/comfort, real-world energy savings, certified fractality, causal truth, engineering approval or production readiness. Those require their own independent evidence and domain-specific validation.
+
+
+## 11. Sensor-network co-design and virtual sensing
+
+HoloFrac should optimize the observation system as well as the built environment. A spatial world model is only as useful as its observability, sensor placement, calibration lineage and uncertainty under missing/delayed observations.
+
+A recent research reference is Yu, Ding and Zhou, *Data-driven discovery of sensor relationships for virtual sensing in predictive building operations*, Energy and Buildings, 15 October 2026, DOI: 10.1016/j.enbuild.2026.117836. The study uses two years of Harvard HouseZero operational data, discovers sensor redundancy with multi-target relationships and evaluates generalization from Year 1 to Year 2. This is a relevant reference to reproduce or compare against; it is not evidence that HoloFrac has achieved virtual sensing.
+
+Symtropy issue #5974 tracks a deterministic synthetic event fixture and sensor placement / adaptive-observation benchmark:
+https://github.com/Luminous-Dynamics/symtropy/issues/5974
+
+The current synthetic fixture lives at:
+- \`research/holofrac-retrieval/src/temporal.rs\`
+- \`research/holofrac-retrieval/src/bin/temporal_fixture_sweep.rs\`
+- \`research/holofrac-architecture/TEMPORAL_FIXTURE_PROTOCOL_V0.md\`
+
+It is explicitly synthetic. Its typed observation event separates valid/effective time from recorded/available time; missing readings are \`None\`, never zero; corrections are new events with exact parent IDs and source revisions; and evaluator-only truth is excluded from decision snapshots. Its stable digest is a non-security regression identifier only.
+
+### New T8 hypotheses
+
+- T8.1 — Sensor-placement value: at a matched sensor count and cost, HLB-assisted / decision-aware placement improves held-out field reconstruction or decision quality over regular-grid, random and maximin placement.
+- T8.2 — Virtual-sensing value: multi-channel models can reconstruct selected missing sensors from a sparse network with calibrated uncertainty and acceptable cross-year / cross-deployment degradation.
+- T8.3 — Adaptive-observation value: selecting a new measurement by expected decision value reduces sensor/solver cost at non-inferior decision quality compared with uncertainty-only, sequential A-optimal and fixed schedules.
+- T8.4 — Observability robustness: sensor failure, calibration drift, correlated common-mode loss and delayed delivery produce explicit degradation/unknown states rather than overconfident virtual observations.
+
+### T8 baselines and metrics
+
+Compare regular-grid, random and maximin placement; nearest-neighbour, bilinear/trilinear, RBF and Gaussian-process virtual sensing; linear/VAR and Kalman/state-space models where applicable; LSTM/GRU and CfC/LTC; static HDC, temporal-only and HDC+temporal models; uncertainty-only, sequential A-optimal and decision-value measurement selectors.
+
+Report per-channel / per-horizon MAE and RMSE, NLL/CRPS, interval coverage and width, calibration, virtual-sensor error, sensor count/cost, spatial coverage, redundancy, observability rank/condition metrics only when mathematically defined, anomaly detection delay, false alarms, bandwidth/energy, inference/selection cost and p50/p95/p99 latency.
+
+Split by complete temporal episodes / years, spatial regions and sensor deployments. Report in-year interpolation separately from cross-year and cross-deployment generalization. Never randomly split neighbouring samples from the same episode across train and test.
+
+### T8 authority boundary
+
+An inferred virtual-sensor value must remain typed as inferred and retain its model/source lineage and uncertainty. It must not be relabelled as an observed measurement, counted as an independent physical source, or used to preserve current engineering evidence as if an actual sensor observation existed. A measurement request is a proposal; Symtropy applies budgets and exact request admission.
+
