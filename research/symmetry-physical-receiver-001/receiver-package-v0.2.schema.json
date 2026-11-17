@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/symmetry-physical-receiver-001/receiver-package-v0.2.schema.json",
+  "title": "Symtropy physical receiver package v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "envelope",
+    "source_receipt_bytes_hex",
+    "generator_set",
+    "physical_fixture",
+    "task_semantics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.symmetry_physical_receiver.v0.2"
+    },
+    "envelope": {
+      "$ref": "symmetry-physical-handoff-v0.1.schema.json"
+    },
+    "source_receipt_bytes_hex": {
+      "type": "string",
+      "pattern": "^(?:[a-fA-F0-9]{2})+$"
+    },
+    "generator_set": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/matrix3"
+      }
+    },
+    "physical_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_s",
+        "mass_metric_q",
+        "force_covector_q",
+        "momentum_covector_q",
+        "constraint_jacobian_q",
+        "initial_position_q",
+        "initial_velocity_q",
+        "declared_mass_metric_y",
+        "declared_force_covector_y",
+        "declared_momentum_covector_y",
+        "declared_constraint_jacobian_y",
+        "declared_generators_y",
+        "step_map_witness"
+      ],
+      "properties": {
+        "transform_s": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "mass_metric_q": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "force_covector_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "momentum_covector_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "constraint_jacobian_q": {
+          "$ref": "#/$defs/jacobian2x3"
+        },
+        "initial_position_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "initial_velocity_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_mass_metric_y": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "declared_force_covector_y": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_momentum_covector_y": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_constraint_jacobian_y": {
+          "$ref": "#/$defs/jacobian2x3"
+        },
+        "declared_generators_y": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/matrix3"
+          }
+        },
+        "step_map_witness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "model_id",
+            "masses_kg",
+            "link_length_m",
+            "time_step_s",
+            "coordinate_basis_s",
+            "initial_position_q",
+            "initial_velocity_q",
+            "force_covector_q",
+            "position_next_q",
+            "velocity_next_q",
+            "midpoint_velocity_q",
+            "multiplier",
+            "position_next_y",
+            "velocity_next_y",
+            "midpoint_velocity_y"
+          ],
+          "properties": {
+            "model_id": { "type": "string", "minLength": 1 },
+            "masses_kg": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "link_length_m": { "type": "number", "exclusiveMinimum": 0 },
+            "time_step_s": { "type": "number", "exclusiveMinimum": 0 },
+            "coordinate_basis_s": { "$ref": "#/$defs/matrix6" },
+            "initial_position_q": { "$ref": "#/$defs/vector6" },
+            "initial_velocity_q": { "$ref": "#/$defs/vector6" },
+            "force_covector_q": { "$ref": "#/$defs/vector6" },
+            "position_next_q": { "$ref": "#/$defs/vector6" },
+            "velocity_next_q": { "$ref": "#/$defs/vector6" },
+            "midpoint_velocity_q": { "$ref": "#/$defs/vector6" },
+            "multiplier": { "type": "number" },
+            "position_next_y": { "$ref": "#/$defs/vector6" },
+            "velocity_next_y": { "$ref": "#/$defs/vector6" },
+            "midpoint_velocity_y": { "$ref": "#/$defs/vector6" }
+          }
+        }
+      }
+    },
+    "task_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_domain",
+        "objective",
+        "feasibility_constraints",
+        "initial_and_boundary_conditions",
+        "observable_mapping",
+        "answer_interpretation"
+      ],
+      "properties": {
+        "candidate_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feasibility_constraints": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_and_boundary_conditions": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observable_mapping": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer_interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "finiteNumber": {
+      "type": "number"
+    },
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      }
+    },
+    "matrix3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/vector3"
+      }
+    },
+    "vector6": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      }
+    },
+    "matrix6": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/vector6"
+      }
+    },
+    "jacobian2x3": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/vector3"
+      }
+    }
+  }
+}
