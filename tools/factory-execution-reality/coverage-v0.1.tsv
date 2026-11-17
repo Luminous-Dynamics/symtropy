@@ -9,3 +9,12 @@ COV-RTLS-03	S03	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:25:00Z	2026-11-0
 COV-RTLS-06	S06	RTLS-01	origin:RTLS-01	CELL-CNC-B;QA-LAB	2026-11-01T08:59:00Z	2026-11-01T09:01:00Z	AMBIGUOUS	CAL-RTLS-01	MAP-01	0.75	1000	Samples oscillate across two zones within the uncertainty envelope.
 COV-PLC-07	S07	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Rework cycle observed after inspection operation; route deviation must be evaluated.
 COV-RTLS-07	S07	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Spatial path observation supports the unrecorded loop.
+COV-CLEAN-00	S00	PLC-CLEAN-A	origin:PLC-CLEAN-A	CELL-CLEAN-A	2026-11-01T07:25:00Z	2026-11-01T07:35:00Z	ADEQUATE	CAL-CLEAN-01	MAP-01	-	100	Clean/deburr process-complete sensor coverage.
+COV-QA-00	S00	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T07:35:00Z	2026-11-01T07:45:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article inspection scope is current.
+COV-AUTH-00	S00	AUTH-A	origin:AUTH-A	RELEASE-ZONE	2026-11-01T07:45:00Z	2026-11-01T07:55:00Z	ADEQUATE	-	MAP-01	-	-	Authorized release record coverage.
+COV-QA-07	S07	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T09:05:00Z	2026-11-01T09:07:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article result precedes the unrecorded later rework cycle.
+COV-QA-08	S08	QMS-A;QMS-B	origin:MEASURE-ORIGINAL-77	QA-LAB	2026-11-01T09:15:00Z	2026-11-01T09:22:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	Both report records are covered but share one measurement origin.
+COV-MES-09	S09	MES-A	origin:MES-A	ALL	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	-	MAP-01	-	-	MES operation records through first-article decision.
+COV-PLC-09	S09	PLC-CNC-A;PLC-CNC-B;PLC-CLEAN-A	origin:PLC	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-PLC-01;CAL-PLC-02;CAL-CLEAN-01	MAP-01	-	100	Machine and process-cycle observations support route chronology.
+COV-RTLS-09	S09	RTLS-01	origin:RTLS-01	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Location evidence covers the route.
+COV-QA-09	S09	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T09:28:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article failure is within current inspection coverage.
