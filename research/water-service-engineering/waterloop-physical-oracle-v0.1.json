@@ -790,6 +790,165 @@
         "direct_system_cost_per_critical_person_day_zar": 5.666666666666667,
         "monthly_water_spend_burden": null
       }
+    },
+    {
+      "case_id": "WL-T0-035-sizing-raw-equalization-periodic",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+        "reason": "PERIODIC_FEED_AND_PROCESS_SCHEDULE_BALANCED",
+        "profile_id": "GW-SYN-01-low-risk-shower",
+        "period_hours": 24,
+        "total_daily_inflow_l": 180,
+        "available_process_hours": 12,
+        "required_treatment_rate_l_per_h": 15,
+        "maximum_treatment_rate_l_per_h": 20,
+        "treatment_capacity_margin_l_per_h": 5,
+        "idealized_equalization_working_volume_l": 30,
+        "idealized_starting_inventory_l": 30,
+        "period_process_outflow_l": 180,
+        "period_mass_balance_residual_l": 0,
+        "sizing_assumptions": [
+          "Discrete source inflow is treated as arriving within each declared interval before that interval's process draw.",
+          "Process operates at the required average rate during declared available intervals.",
+          "The schedule repeats periodically and total process outflow equals total source inflow.",
+          "No freeboard, dead volume, fouling margin, safety factor, treatment loss, sludge, reject, purge or backwash allowance is included.",
+          "The result is an idealized minimum working inventory, not a tank selection or fabrication volume."
+        ],
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-036-sizing-treatment-capacity-insufficient",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "INFEASIBLE",
+        "reason": "MAX_TREATMENT_RATE_BELOW_REQUIRED_PERIODIC_THROUGHPUT",
+        "profile_id": "GW-SYN-01-low-risk-shower",
+        "period_hours": 24,
+        "total_daily_inflow_l": 180,
+        "available_process_hours": 12,
+        "required_treatment_rate_l_per_h": 15,
+        "maximum_treatment_rate_l_per_h": 14,
+        "treatment_capacity_margin_l_per_h": -1,
+        "idealized_equalization_working_volume_l": null,
+        "idealized_starting_inventory_l": null,
+        "period_mass_balance_residual_l": null,
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-037-sizing-treated-service-autonomy",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+        "reason": "DECLARED_ESSENTIAL_DEMAND_AUTONOMY_AND_RESERVE",
+        "profile_id": "nonpotable-toilet-v1",
+        "essential_daily_demand_l": 80,
+        "autonomy_hours": 72,
+        "reserve_fraction": 0.2,
+        "usable_fraction": 0.9,
+        "base_autonomy_volume_l": 240,
+        "usable_storage_volume_l": 288,
+        "gross_storage_volume_l": 320,
+        "sizing_assumptions": [
+          "Demand is constant at the declared daily average over the autonomy horizon.",
+          "Reserve fraction is applied to the base autonomy volume.",
+          "Usable fraction is an owner-supplied geometric/operational input.",
+          "No water-quality or cross-use credit is created by storage sizing.",
+          "Freeboard, dead zones, tank geometry, structural loading and code constraints are excluded."
+        ],
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-038-sizing-pump-hydraulic-energy",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+        "reason": "DECLARED_FLOW_HEAD_AND_WIRE_TO_WATER_EFFICIENCY",
+        "profile_id": "nonpotable-toilet-v1",
+        "flow_l_per_min": 10,
+        "flow_m3_s": 0.00016666666666666666,
+        "total_dynamic_head_m": 12,
+        "wire_to_water_efficiency": 0.55,
+        "water_density_kg_m3": 1000,
+        "gravity_m_s2": 9.80665,
+        "hydraulic_power_w": 35.66054545454545,
+        "hydraulic_specific_energy_kwh_m3": 0.05943424242424241,
+        "sizing_assumptions": [
+          "Steady incompressible water flow at the declared density.",
+          "Total dynamic head is supplied by the design owner and must include relevant static and dynamic losses.",
+          "Wire-to-water efficiency is an explicitly supplied assumption, not a pump curve guarantee.",
+          "No electrical auxiliary/standby loads or control losses are included.",
+          "This calculation does not select or qualify a pump."
+        ],
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-039-sizing-pump-efficiency-invalid",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "REJECT",
+        "reason": "WIRE_TO_WATER_EFFICIENCY_EXCEEDS_ONE",
+        "profile_id": "nonpotable-toilet-v1",
+        "flow_l_per_min": 10,
+        "total_dynamic_head_m": 12,
+        "wire_to_water_efficiency": 1.2,
+        "hydraulic_power_w": null,
+        "hydraulic_specific_energy_kwh_m3": null,
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-040-sizing-zero-process-availability",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "REJECT",
+        "reason": "ZERO_TREATMENT_AVAILABILITY",
+        "available_process_hours": 0,
+        "required_treatment_rate_l_per_h": null,
+        "qualification_status": "NotRun"
+      }
+    },
+    {
+      "case_id": "WL-T0-041-sizing-unadmitted-design-inputs",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "INDETERMINATE",
+        "reason": "DESIGN_INPUTS_NOT_ADMITTED",
+        "source_or_use_profile_id": "GW-SYN-01-low-risk-shower",
+        "qualification_status": "NotRun",
+        "required_treatment_rate_l_per_h": null,
+        "maximum_treatment_rate_l_per_h": null,
+        "treatment_capacity_margin_l_per_h": null,
+        "idealized_equalization_working_volume_l": null,
+        "idealized_starting_inventory_l": null,
+        "period_mass_balance_residual_l": null,
+        "essential_daily_demand_l": null,
+        "autonomy_hours": null,
+        "reserve_fraction": null,
+        "usable_storage_volume_l": null,
+        "usable_fraction": null,
+        "gross_storage_volume_l": null,
+        "flow_l_per_min": null,
+        "total_dynamic_head_m": null,
+        "wire_to_water_efficiency": null,
+        "hydraulic_power_w": null,
+        "hydraulic_specific_energy_kwh_m3": null
+      }
+    },
+    {
+      "case_id": "WL-T0-042-sizing-synthetic-claim-promotion-reject",
+      "family": "design_sizing",
+      "expected": {
+        "design_disposition": "REJECT_CLAIM_PROMOTION",
+        "reason": "SYNTHETIC_SIZING_CANNOT_SUPPORT_PROCESS_OR_FIELD_QUALIFICATION",
+        "evidence_class": "synthetic_only",
+        "requested_claim_class": "process_qualification",
+        "qualification_status": "NotRun"
+      }
     }
   ]
 }
