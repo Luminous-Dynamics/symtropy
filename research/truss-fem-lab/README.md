@@ -121,3 +121,17 @@ This is only an element kernel. It does not assemble a frame, solve global displ
 The benchmark campaign rules are versioned at research/ffmfe-benchmark/PROTOCOL_V1.md. The protocol freezes geometry, supports, loads, materials, solver fidelity, mass accounting, search budget, hold-out families and reporting metrics before candidate selection. B0 matched-topology reproduction is tracked in issue #5808.
 
 The beam-element fixtures additionally check both principal bending planes and all six rigid-body modes (zero element strain energy). These fixtures are authored but remain unexecuted until exact-head Rust CI is available.
+
+## 3D beam/frame assembly solver (research reference)
+
+The new frame_analysis module assembles the 12-DOF Euler-Bernoulli beam members into a global six-DOF-per-node stiffness system. It supports:
+- translational and rotational nodal DOFs;
+- nodal forces and couples;
+- prescribed zero-displacement/rotation supports;
+- global static stiffness assembly and dense solution;
+- member-local end action recovery and strain-energy calculation;
+- support reaction, global force/moment and strain-energy / half-external-work audit.
+
+The reference treats members meeting at the same node as rigidly connected in all six DOFs. It assumes small-displacement linear Euler-Bernoulli beam behavior. The model does not yet include Timoshenko shear, releases, flexible six-DOF connector matrices, distributed loads, geometric stiffness, global eigenvalue buckling, initial imperfections, contact, nonlinear/post-buckling, dynamics or fatigue/fracture. This is not a production FE solver or design-code check.
+
+Authored fixtures cover closed-form cantilever response in both principal bending planes, global force/moment/energy closure, a two-member elbow frame with a shared six-DOF joint, and singular detection for a completely unsupported frame. These tests remain unexecuted pending current-head Rust CI.
