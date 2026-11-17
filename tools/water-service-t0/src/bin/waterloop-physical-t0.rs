@@ -489,7 +489,6 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     }))
 }
 
-
 fn indeterminate_sizing(reason: &str, profile: Option<String>) -> Value {
     json!({
         "design_disposition": "INDETERMINATE",
@@ -566,14 +565,8 @@ fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> 
             let mut total_inflow = 0.0;
             let mut available_hours = 0.0;
             for (index, step) in steps.iter().enumerate() {
-                let duration = positive(
-                    number(step, "duration_hours")?,
-                    "duration_hours",
-                )?;
-                let inflow = nonnegative(
-                    number(step, "source_inflow_l")?,
-                    "source_inflow_l",
-                )?;
+                let duration = positive(number(step, "duration_hours")?, "duration_hours")?;
+                let inflow = nonnegative(number(step, "source_inflow_l")?, "source_inflow_l")?;
                 let available = boolean(step, "treatment_available")?;
                 total_duration += duration;
                 total_inflow += inflow;
@@ -694,18 +687,9 @@ fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> 
                 number(input, "essential_daily_demand_l")?,
                 "essential_daily_demand_l",
             )?;
-            let autonomy = positive(
-                number(input, "autonomy_hours")?,
-                "autonomy_hours",
-            )?;
-            let reserve = nonnegative(
-                number(input, "reserve_fraction")?,
-                "reserve_fraction",
-            )?;
-            let usable_fraction = positive(
-                number(input, "usable_fraction")?,
-                "usable_fraction",
-            )?;
+            let autonomy = positive(number(input, "autonomy_hours")?, "autonomy_hours")?;
+            let reserve = nonnegative(number(input, "reserve_fraction")?, "reserve_fraction")?;
+            let usable_fraction = positive(number(input, "usable_fraction")?, "usable_fraction")?;
             if usable_fraction > 1.0 {
                 return Ok(json!({
                     "design_disposition": "REJECT",
@@ -741,10 +725,12 @@ fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> 
                 "qualification_status": "NotRun"
             }))
         }
-        "WL-T0-038-sizing-pump-hydraulic-energy"
-        | "WL-T0-039-sizing-pump-efficiency-invalid" => {
+        "WL-T0-038-sizing-pump-hydraulic-energy" | "WL-T0-039-sizing-pump-efficiency-invalid" => {
             let flow_l_per_min = positive(number(input, "flow_l_per_min")?, "flow_l_per_min")?;
-            let head = positive(number(input, "total_dynamic_head_m")?, "total_dynamic_head_m")?;
+            let head = positive(
+                number(input, "total_dynamic_head_m")?,
+                "total_dynamic_head_m",
+            )?;
             let efficiency = positive(
                 number(input, "wire_to_water_efficiency")?,
                 "wire_to_water_efficiency",
@@ -794,10 +780,7 @@ fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> 
                 .as_array()
                 .ok_or_else(|| "steps: expected array".to_owned())?;
             let available = steps.iter().try_fold(0.0, |total, step| {
-                let duration = positive(
-                    number(step, "duration_hours")?,
-                    "duration_hours",
-                )?;
+                let duration = positive(number(step, "duration_hours")?, "duration_hours")?;
                 if boolean(step, "treatment_available")? {
                     Ok::<f64, String>(total + duration)
                 } else {
@@ -821,13 +804,13 @@ fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> 
                 }))
             }
         }
-        "WL-T0-041-sizing-unadmitted-design-inputs" => {
-            Ok(indeterminate_sizing(
-                "DESIGN_INPUTS_NOT_ADMITTED",
-                Some(profile),
-            ))
-        }
-        _ => Err(format!("unsupported WaterLoop design sizing case: {case_id}")),
+        "WL-T0-041-sizing-unadmitted-design-inputs" => Ok(indeterminate_sizing(
+            "DESIGN_INPUTS_NOT_ADMITTED",
+            Some(profile),
+        )),
+        _ => Err(format!(
+            "unsupported WaterLoop design sizing case: {case_id}"
+        )),
     }
 }
 
@@ -1197,9 +1180,7 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-039-sizing-pump-efficiency-invalid"
         | "WL-T0-040-sizing-zero-process-availability"
         | "WL-T0-041-sizing-unadmitted-design-inputs" => compute_design_sizing(&id, input),
-        "WL-T0-042-sizing-synthetic-claim-promotion-reject" => {
-            compute_design_sizing(&id, input)
-        }
+        "WL-T0-042-sizing-synthetic-claim-promotion-reject" => compute_design_sizing(&id, input),
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
@@ -1424,17 +1405,50 @@ fn run() -> Result<i32, String> {
         fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
 
     const DESIGN_ARTIFACTS: [(&str, &str); 11] = [
-        ("module_interface", "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json"),
-        ("pid_tag_schedule", "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json"),
-        ("preliminary_bom", "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json"),
-        ("fmea_starter", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json"),
-        ("challenge_profiles", "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json"),
-        ("architecture_document", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md"),
-        ("module_interface_schema", "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.schema.json"),
-        ("pid_schema", "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.schema.json"),
-        ("bom_schema", "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.schema.json"),
-        ("fmea_schema", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.schema.json"),
-        ("challenge_profile_schema", "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.schema.json"),
+        (
+            "module_interface",
+            "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json",
+        ),
+        (
+            "pid_tag_schedule",
+            "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json",
+        ),
+        (
+            "preliminary_bom",
+            "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json",
+        ),
+        (
+            "fmea_starter",
+            "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json",
+        ),
+        (
+            "challenge_profiles",
+            "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json",
+        ),
+        (
+            "architecture_document",
+            "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md",
+        ),
+        (
+            "module_interface_schema",
+            "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.schema.json",
+        ),
+        (
+            "pid_schema",
+            "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.schema.json",
+        ),
+        (
+            "bom_schema",
+            "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.schema.json",
+        ),
+        (
+            "fmea_schema",
+            "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.schema.json",
+        ),
+        (
+            "challenge_profile_schema",
+            "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.schema.json",
+        ),
     ];
     let mut design_artifact_digests = serde_json::Map::new();
     for (name, relative_path) in DESIGN_ARTIFACTS {
@@ -1513,7 +1527,6 @@ mod tests {
         serde_json::from_str(raw).expect("frozen fixture JSON parses")
     }
 
-
     fn modular_fixture(name: &str) -> Value {
         let raw = match name {
             "modules" => include_str!(
@@ -1566,21 +1579,32 @@ mod tests {
         let mut bom_module_coverage = BTreeSet::new();
 
         let Some(modules) = modules_doc.get("modules").and_then(Value::as_array) else {
-            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: expected array".to_owned(),
+            );
             return issues;
         };
         if modules.is_empty() {
-            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: must not be empty".to_owned());
+            issues.push(
+                "WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: must not be empty"
+                    .to_owned(),
+            );
         }
         for (index, module) in modules.iter().enumerate() {
             let prefix = format!("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules[{index}]");
-            let id = module.get("module_id").and_then(Value::as_str).unwrap_or("");
+            let id = module
+                .get("module_id")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if id.is_empty() {
                 issues.push(format!("{prefix}.module_id: missing"));
             } else if !module_ids.insert(id.to_owned()) {
                 issues.push(format!("{prefix}.module_id: duplicate {id}"));
             }
-            let failure = module.get("failure_state").and_then(Value::as_str).unwrap_or("");
+            let failure = module
+                .get("failure_state")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if failure.trim().is_empty() {
                 issues.push(format!("{prefix}.failure_state: missing"));
             }
@@ -1593,7 +1617,9 @@ mod tests {
                 issues.push(format!("{prefix}.required_ports: must not be empty"));
             }
             if required_ports.iter().any(|port| !port.starts_with("P-")) {
-                issues.push(format!("{prefix}.required_ports: every port must use the P- namespace"));
+                issues.push(format!(
+                    "{prefix}.required_ports: every port must use the P- namespace"
+                ));
             }
             let requirements = design_string_array(
                 &module["requirements"],
@@ -1604,9 +1630,13 @@ mod tests {
                 issues.push(format!("{prefix}.requirements: must not be empty"));
             }
             if module["module_class"] == "treatment_candidate"
-                && !["HOLD", "ISOLATE", "BYPASS"].iter().any(|word| failure.contains(word))
+                && !["HOLD", "ISOLATE", "BYPASS"]
+                    .iter()
+                    .any(|word| failure.contains(word))
             {
-                issues.push(format!("{prefix}.failure_state: treatment candidate must fail to hold/isolate/bypass"));
+                issues.push(format!(
+                    "{prefix}.failure_state: treatment candidate must fail to hold/isolate/bypass"
+                ));
             }
         }
         let universal_safe_state = modules_doc
@@ -1621,17 +1651,24 @@ mod tests {
             "WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:prohibited_connections",
             &mut issues,
         );
-        if !prohibited.iter().any(|value| value.contains("potable-to-reclaimed")) {
+        if !prohibited
+            .iter()
+            .any(|value| value.contains("potable-to-reclaimed"))
+        {
             issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:prohibited_connections: potable/reclaimed cross-tie prohibition missing".to_owned());
         }
 
         let Some(pid_tags) = pid_doc.get("tags").and_then(Value::as_array) else {
-            issues.push("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags: expected array"
+                    .to_owned(),
+            );
             return issues;
         };
         let mut pid_tag_ids = BTreeSet::new();
         for (index, tag) in pid_tags.iter().enumerate() {
-            let prefix = format!("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags[{index}]");
+            let prefix =
+                format!("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags[{index}]");
             let id = tag.get("tag").and_then(Value::as_str).unwrap_or("");
             if id.is_empty() {
                 issues.push(format!("{prefix}.tag: missing"));
@@ -1639,20 +1676,38 @@ mod tests {
                 issues.push(format!("{prefix}.tag: duplicate {id}"));
             }
             for required in ["function", "boundary"] {
-                if tag.get(required).and_then(Value::as_str).is_none_or(str::is_empty) {
+                if tag
+                    .get(required)
+                    .and_then(Value::as_str)
+                    .is_none_or(str::is_empty)
+                {
                     issues.push(format!("{prefix}.{required}: missing"));
                 }
             }
-            if design_string_array(&tag["interlocks"], &format!("{prefix}.interlocks"), &mut issues).is_empty() {
+            if design_string_array(
+                &tag["interlocks"],
+                &format!("{prefix}.interlocks"),
+                &mut issues,
+            )
+            .is_empty()
+            {
                 issues.push(format!("{prefix}.interlocks: must not be empty"));
             }
-            let refs = design_string_array(&tag["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            let refs = design_string_array(
+                &tag["module_ids"],
+                &format!("{prefix}.module_ids"),
+                &mut issues,
+            );
             if refs.is_empty() {
-                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+                issues.push(format!(
+                    "{prefix}.module_ids: must reference at least one module"
+                ));
             }
             for module_id in refs {
                 if !module_ids.contains(&module_id) {
-                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                    issues.push(format!(
+                        "{prefix}.module_ids: orphan module reference {module_id}"
+                    ));
                 }
             }
         }
@@ -1662,14 +1717,20 @@ mod tests {
             &mut issues,
         );
         if pid_invariants.len() < 3
-            || !pid_invariants.iter().any(|item| item.contains("pressurised cross-tie"))
-            || !pid_invariants.iter().any(|item| item.contains("No release"))
+            || !pid_invariants
+                .iter()
+                .any(|item| item.contains("pressurised cross-tie"))
+            || !pid_invariants
+                .iter()
+                .any(|item| item.contains("No release"))
         {
             issues.push("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:safety_invariants: cross-connection and no-release invariants required".to_owned());
         }
 
         let Some(items) = bom_doc.get("items").and_then(Value::as_array) else {
-            issues.push("WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json:items: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json:items: expected array".to_owned(),
+            );
             return issues;
         };
         for (index, item) in items.iter().enumerate() {
@@ -1680,30 +1741,51 @@ mod tests {
             } else if !bom_tags.insert(tag.to_owned()) {
                 issues.push(format!("{prefix}.tag: duplicate {tag}"));
             }
-            if !item.get("description").and_then(Value::as_str).is_some_and(|value| !value.is_empty()) {
+            if !item
+                .get("description")
+                .and_then(Value::as_str)
+                .is_some_and(|value| !value.is_empty())
+            {
                 issues.push(format!("{prefix}.description: missing"));
             }
             if !item.get("quantity").is_some_and(Value::is_null) {
-                issues.push(format!("{prefix}.quantity: must remain unset before design freeze"));
+                issues.push(format!(
+                    "{prefix}.quantity: must remain unset before design freeze"
+                ));
             }
-            let procurement = item.get("procurement_status").and_then(Value::as_str).unwrap_or("");
+            let procurement = item
+                .get("procurement_status")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if procurement != "not_specified" && procurement != "candidate_only" {
-                issues.push(format!("{prefix}.procurement_status: premature procurement state {procurement}"));
+                issues.push(format!(
+                    "{prefix}.procurement_status: premature procurement state {procurement}"
+                ));
             }
-            let refs = design_string_array(&item["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            let refs = design_string_array(
+                &item["module_ids"],
+                &format!("{prefix}.module_ids"),
+                &mut issues,
+            );
             if refs.is_empty() {
-                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+                issues.push(format!(
+                    "{prefix}.module_ids: must reference at least one module"
+                ));
             }
             for module_id in refs {
                 if !module_ids.contains(&module_id) {
-                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                    issues.push(format!(
+                        "{prefix}.module_ids: orphan module reference {module_id}"
+                    ));
                 } else {
                     bom_module_coverage.insert(module_id);
                 }
             }
             for forbidden in ["sku", "approved_material_grade", "final_pressure_rating"] {
                 if item.get(forbidden).is_some() {
-                    issues.push(format!("{prefix}.{forbidden}: must not be frozen in conceptual BOM"));
+                    issues.push(format!(
+                        "{prefix}.{forbidden}: must not be frozen in conceptual BOM"
+                    ));
                 }
             }
         }
@@ -1719,36 +1801,76 @@ mod tests {
         }
 
         let Some(hazards) = fmea_doc.get("hazards").and_then(Value::as_array) else {
-            issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards: expected array"
+                    .to_owned(),
+            );
             return issues;
         };
         let mut hazard_ids = BTreeSet::new();
         for (index, hazard) in hazards.iter().enumerate() {
-            let prefix = format!("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards[{index}]");
-            let id = hazard.get("hazard_id").and_then(Value::as_str).unwrap_or("");
+            let prefix =
+                format!("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards[{index}]");
+            let id = hazard
+                .get("hazard_id")
+                .and_then(Value::as_str)
+                .unwrap_or("");
             if id.is_empty() {
                 issues.push(format!("{prefix}.hazard_id: missing"));
             } else if !hazard_ids.insert(id.to_owned()) {
                 issues.push(format!("{prefix}.hazard_id: duplicate {id}"));
             }
-            for required in ["failure", "effect", "detection", "safe_state", "verification"] {
-                if !hazard.get(required).and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty()) {
+            for required in [
+                "failure",
+                "effect",
+                "detection",
+                "safe_state",
+                "verification",
+            ] {
+                if !hazard
+                    .get(required)
+                    .and_then(Value::as_str)
+                    .is_some_and(|value| !value.trim().is_empty())
+                {
                     issues.push(format!("{prefix}.{required}: missing"));
                 }
             }
-            let safe_state = hazard.get("safe_state").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
-            if !["hold", "held", "divert", "isolate", "stop", "lockout", "indeterminate", "disconnect", "do not commission"]
-                .iter().any(|word| safe_state.contains(word))
+            let safe_state = hazard
+                .get("safe_state")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_ascii_lowercase();
+            if ![
+                "hold",
+                "held",
+                "divert",
+                "isolate",
+                "stop",
+                "lockout",
+                "indeterminate",
+                "disconnect",
+                "do not commission",
+            ]
+            .iter()
+            .any(|word| safe_state.contains(word))
             {
                 issues.push(format!("{prefix}.safe_state: no fail-safe action detected"));
             }
-            let refs = design_string_array(&hazard["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            let refs = design_string_array(
+                &hazard["module_ids"],
+                &format!("{prefix}.module_ids"),
+                &mut issues,
+            );
             if refs.is_empty() {
-                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+                issues.push(format!(
+                    "{prefix}.module_ids: must reference at least one module"
+                ));
             }
             for module_id in refs {
                 if !module_ids.contains(&module_id) {
-                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                    issues.push(format!(
+                        "{prefix}.module_ids: orphan module reference {module_id}"
+                    ));
                 } else {
                     fmea_module_coverage.insert(module_id);
                 }
@@ -1764,44 +1886,81 @@ mod tests {
             "WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:invariants",
             &mut issues,
         );
-        if !invariants.iter().any(|value| value.contains("No automated release")) {
+        if !invariants
+            .iter()
+            .any(|value| value.contains("No automated release"))
+        {
             issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:invariants: no-automated-release invariant missing".to_owned());
         }
-        if fmea_doc.get("not_completed").and_then(Value::as_array).is_none_or(Vec::is_empty) {
+        if fmea_doc
+            .get("not_completed")
+            .and_then(Value::as_array)
+            .is_none_or(Vec::is_empty)
+        {
             issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:not_completed: unresolved formal safety work must remain visible".to_owned());
         }
 
         let Some(profiles) = profiles_doc.get("profiles").and_then(Value::as_array) else {
-            issues.push("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:profiles: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:profiles: expected array"
+                    .to_owned(),
+            );
             return issues;
         };
         let profile_ids = profiles
             .iter()
-            .filter_map(|profile| profile.get("profile_id").and_then(Value::as_str).map(str::to_owned))
+            .filter_map(|profile| {
+                profile
+                    .get("profile_id")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned)
+            })
             .collect::<BTreeSet<_>>();
         if let Some(scenarios) = profiles_doc.get("scenarios").and_then(Value::as_array) {
             for (index, scenario) in scenarios.iter().enumerate() {
-                let prefix = format!("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios[{index}]");
-                let profile_id = scenario.get("profile_id").and_then(Value::as_str).unwrap_or("");
+                let prefix =
+                    format!("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios[{index}]");
+                let profile_id = scenario
+                    .get("profile_id")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
                 if !profile_ids.contains(profile_id) {
                     issues.push(format!("{prefix}.profile_id: unknown profile {profile_id}"));
                 }
-                let disposition = scenario.get("expected_disposition").and_then(Value::as_str).unwrap_or("");
-                if profile_id == "GW-SYN-04-kitchen-source-excluded" && disposition != "REJECT_SOURCE" {
-                    issues.push(format!("{prefix}.expected_disposition: excluded kitchen source cannot be accepted"));
+                let disposition = scenario
+                    .get("expected_disposition")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                if profile_id == "GW-SYN-04-kitchen-source-excluded"
+                    && disposition != "REJECT_SOURCE"
+                {
+                    issues.push(format!(
+                        "{prefix}.expected_disposition: excluded kitchen source cannot be accepted"
+                    ));
                 }
-                if profile_id == "GW-SYN-05-source-unknown" && disposition != "INDETERMINATE_HOLD_OR_DIVERT" {
-                    issues.push(format!("{prefix}.expected_disposition: unknown source must remain indeterminate"));
+                if profile_id == "GW-SYN-05-source-unknown"
+                    && disposition != "INDETERMINATE_HOLD_OR_DIVERT"
+                {
+                    issues.push(format!(
+                        "{prefix}.expected_disposition: unknown source must remain indeterminate"
+                    ));
                 }
-                if profile_id == "GW-SYN-06-storage-age-violation" && disposition != "HOLD_NO_REUSE_RELEASE" {
+                if profile_id == "GW-SYN-06-storage-age-violation"
+                    && disposition != "HOLD_NO_REUSE_RELEASE"
+                {
                     issues.push(format!("{prefix}.expected_disposition: over-age untreated source must not be released"));
                 }
-                if disposition.contains("QUALITY_QUALIFIED") || disposition == "APPROVED_FOR_HUMAN_USE" {
+                if disposition.contains("QUALITY_QUALIFIED")
+                    || disposition == "APPROVED_FOR_HUMAN_USE"
+                {
                     issues.push(format!("{prefix}.expected_disposition: synthetic challenge cannot qualify water quality"));
                 }
             }
         } else {
-            issues.push("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios: expected array".to_owned());
+            issues.push(
+                "WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios: expected array"
+                    .to_owned(),
+            );
         }
         issues
     }
@@ -2052,7 +2211,6 @@ mod tests {
         assert_eq!(actual["economic_preference_eligible"], false);
     }
 
-
     #[test]
     fn modular_skid_design_artifacts_pass_cross_file_audit() {
         let issues = audit_modular_design(
@@ -2062,7 +2220,11 @@ mod tests {
             &modular_fixture("fmea"),
             &modular_fixture("profiles"),
         );
-        assert!(issues.is_empty(), "design artefact violations:\\n{}", issues.join("\\n"));
+        assert!(
+            issues.is_empty(),
+            "design artefact violations:\\n{}",
+            issues.join("\\n")
+        );
     }
 
     #[test]
@@ -2070,10 +2232,17 @@ mod tests {
         let mut pid = modular_fixture("pid");
         pid["tags"][0]["module_ids"][0] = json!("MISSING-MODULE");
         let issues = audit_modular_design(
-            &modular_fixture("modules"), &pid, &modular_fixture("bom"),
-            &modular_fixture("fmea"), &modular_fixture("profiles"),
+            &modular_fixture("modules"),
+            &pid,
+            &modular_fixture("bom"),
+            &modular_fixture("fmea"),
+            &modular_fixture("profiles"),
         );
-        assert!(issues.iter().any(|issue| issue.contains("orphan module reference MISSING-MODULE")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("orphan module reference MISSING-MODULE"))
+        );
     }
 
     #[test]
@@ -2081,10 +2250,17 @@ mod tests {
         let mut pid = modular_fixture("pid");
         pid["tags"][0]["interlocks"] = json!([]);
         let issues = audit_modular_design(
-            &modular_fixture("modules"), &pid, &modular_fixture("bom"),
-            &modular_fixture("fmea"), &modular_fixture("profiles"),
+            &modular_fixture("modules"),
+            &pid,
+            &modular_fixture("bom"),
+            &modular_fixture("fmea"),
+            &modular_fixture("profiles"),
         );
-        assert!(issues.iter().any(|issue| issue.contains("tags[0].interlocks")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("tags[0].interlocks"))
+        );
     }
 
     #[test]
@@ -2092,10 +2268,17 @@ mod tests {
         let mut bom = modular_fixture("bom");
         bom["items"][0]["quantity"] = json!(1);
         let issues = audit_modular_design(
-            &modular_fixture("modules"), &modular_fixture("pid"), &bom,
-            &modular_fixture("fmea"), &modular_fixture("profiles"),
+            &modular_fixture("modules"),
+            &modular_fixture("pid"),
+            &bom,
+            &modular_fixture("fmea"),
+            &modular_fixture("profiles"),
         );
-        assert!(issues.iter().any(|issue| issue.contains("items[0].quantity")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("items[0].quantity"))
+        );
     }
 
     #[test]
@@ -2103,21 +2286,36 @@ mod tests {
         let mut fmea = modular_fixture("fmea");
         fmea["hazards"][0]["verification"] = json!("");
         let issues = audit_modular_design(
-            &modular_fixture("modules"), &modular_fixture("pid"),
-            &modular_fixture("bom"), &fmea, &modular_fixture("profiles"),
+            &modular_fixture("modules"),
+            &modular_fixture("pid"),
+            &modular_fixture("bom"),
+            &fmea,
+            &modular_fixture("profiles"),
         );
-        assert!(issues.iter().any(|issue| issue.contains("hazards[0].verification")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("hazards[0].verification"))
+        );
     }
 
     #[test]
     fn modular_design_audit_rejects_excluded_source_as_bench_eligible() {
         let mut profiles = modular_fixture("profiles");
-        profiles["scenarios"][3]["expected_disposition"] = json!("ELIGIBLE_FOR_BENCH_SCREENING_ONLY");
+        profiles["scenarios"][3]["expected_disposition"] =
+            json!("ELIGIBLE_FOR_BENCH_SCREENING_ONLY");
         let issues = audit_modular_design(
-            &modular_fixture("modules"), &modular_fixture("pid"),
-            &modular_fixture("bom"), &modular_fixture("fmea"), &profiles,
+            &modular_fixture("modules"),
+            &modular_fixture("pid"),
+            &modular_fixture("bom"),
+            &modular_fixture("fmea"),
+            &profiles,
         );
-        assert!(issues.iter().any(|issue| issue.contains("excluded kitchen source cannot be accepted")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("excluded kitchen source cannot be accepted"))
+        );
     }
 
     #[test]
@@ -2125,10 +2323,17 @@ mod tests {
         let mut modules = modular_fixture("modules");
         modules["prohibited_connections"] = json!(["no overflow to stormwater"]);
         let issues = audit_modular_design(
-            &modules, &modular_fixture("pid"), &modular_fixture("bom"),
-            &modular_fixture("fmea"), &modular_fixture("profiles"),
+            &modules,
+            &modular_fixture("pid"),
+            &modular_fixture("bom"),
+            &modular_fixture("fmea"),
+            &modular_fixture("profiles"),
         );
-        assert!(issues.iter().any(|issue| issue.contains("potable/reclaimed cross-tie prohibition missing")));
+        assert!(
+            issues
+                .iter()
+                .any(|issue| issue.contains("potable/reclaimed cross-tie prohibition missing"))
+        );
     }
 
     #[test]
@@ -2160,7 +2365,10 @@ mod tests {
     fn sizing_pump_energy_uses_declared_flow_head_and_efficiency() {
         let out = compute(&fixture("inputs")["cases"][37]).expect("pump sizing");
         assert!((out["hydraulic_power_w"].as_f64().unwrap() - 35.66054545454545).abs() < 1.0e-10);
-        assert!((out["hydraulic_specific_energy_kwh_m3"].as_f64().unwrap() - 0.05943424242424241).abs() < 1.0e-12);
+        assert!(
+            (out["hydraulic_specific_energy_kwh_m3"].as_f64().unwrap() - 0.05943424242424241).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
