@@ -31,6 +31,8 @@ The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcom
 - Encoder-contract fingerprint, full encoder-spec compatibility check, exact canonical source-snapshot check and separate non-security source-graph digest.
 - An f32 materialization of the same bipolar code to compare storage and similarity cost, not a second encoder family.
 - Positive and reversed-edge retrieval metrics at four dimensions.
+- Four partial-context CLI queries per dimension: subject+relation, relation+object, subject+object and a no-answer control.
+- Separate role-aligned and holistic partial-vector ranking metrics, with exact-oracle verified results and abstention.
 - Partial-context query module with role-aligned slot similarity and holistic partial-bundle ranking.
 - Exact-oracle verification, false-suggestion accounting and abstention when no exact facts match.
 - Precision@k, recall@k, reciprocal rank and separate timing measures for both partial-retrieval treatments.
@@ -48,4 +50,4 @@ The reported memory values are vector-payload estimates, not allocator-inclusive
 
 The source-graph digest and encoder fingerprint are non-cryptographic regression identifiers. They are not security hashes, signatures, or provenance attestations.
 
-HDC provides candidate retrieval only. Exact typed-graph lookup remains authoritative. Partial-query abstention in this prototype is determined by the exact source-graph filter; no learned confidence threshold is used. Issue #5867 tracks held-out project/topology splits, threshold calibration and risk-coverage curves, update costs, and interference/capacity sweeps: https://github.com/Luminous-Dynamics/symtropy/issues/5867.
+HDC provides candidate retrieval only. Exact typed-graph lookup remains authoritative. On fully specified exact queries, exact graph/metadata lookup is the correctness and efficiency baseline; HDC is being investigated for partial-context, noisy-cue, associative and cross-scale retrieval, not as a presumed replacement for indexed graph databases. Partial-query abstention in this prototype is determined by the exact source-graph filter; no learned confidence threshold is used. Issue #5867 tracks held-out project/topology splits, threshold calibration and risk-coverage curves, update costs, and interference/capacity sweeps: https://github.com/Luminous-Dynamics/symtropy/issues/5867.
