@@ -585,18 +585,16 @@ mod tests {
         let operator = build_wrench_operator(&geometry).unwrap();
         let native_field = vec![100.0, 100.0, 0.0, 100.0, -100.0, 0.0];
         let predicted = integrate_tactile_field(&operator, &native_field).unwrap();
+        let standard_deviations = [0.001_f64; 6];
+        let mut covariance = vec![0.0; 36];
+        for index in 0..6 {
+            covariance[index * 6 + index] = standard_deviations[index].powi(2);
+        }
         let observed = WrenchObservation {
             force_n: predicted.force_n,
             moment_nm: predicted.moment_nm,
-            force_standard_uncertainty_n: Vec3 {
-                x: 0.001,
-                y: 0.001,
-                z: 0.001,
-            },
-            moment_standard_uncertainty_nm: Vec3 {
-                x: 0.001,
-                y: 0.001,
-                z: 0.001,
+            covariance: WrenchCovariance6 {
+                matrix_row_major: covariance,
             },
         };
         let wrench_evidence = WrenchReferenceEvidence {
@@ -613,13 +611,17 @@ mod tests {
             timestamp_alignment_uncertainty_ns: 0,
             maximum_permitted_alignment_uncertainty_ns: 10,
         };
+        let binding = WrenchObservationBinding {
+            sample_identity: "sample:1".to_owned(),
+            native_observation_set_digest: "sha256:native".to_owned(),
+            wrench_observation_digest: "sha256:wrench".to_owned(),
+        };
         let closure = assess_wrench_consistency(
             &operator,
             &native_field,
             &observed,
             &wrench_evidence,
-            "sha256:native",
-            "sha256:wrench",
+            &binding,
             3.0,
         );
         assert_eq!(closure.disposition, crate::active_benchmark::wrench_consistency::WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty);
