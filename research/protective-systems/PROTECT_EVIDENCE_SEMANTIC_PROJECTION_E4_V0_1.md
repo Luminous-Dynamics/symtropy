@@ -46,7 +46,7 @@ The projection envelope is serialized to JSON, deserialized into the tagged Rust
 - the serialized typed projection fingerprint;
 - field mapping decisions and classification counts.
 
-The test suite explicitly demonstrates that whitespace-only changes to a source JSON document change its byte digest while leaving the typed semantic projection and its mapping decisions equal. It does **not** claim that raw-byte identity and semantic equality are the same thing.
+The test suite explicitly demonstrates that whitespace-only changes to a source JSON document change its byte digest while leaving the typed semantic projection and its mapping decisions equal. Complete provider-native source objects are also retained inside each typed view, so unmapped top-level and nested fields remain reconstructable; unknown fields are recorded as `UNKNOWN_OR_UNSUPPORTED` rather than receiving an invented interpretation. It does **not** claim that raw-byte identity and semantic equality are the same thing.
 
 A projection round-trip pass means the E4 typed envelope survives its own serialization boundary. It does not mean that every field has been normalized into a common schema or that every provider API implementation is fully conformant.
 
@@ -62,7 +62,7 @@ Binary: `protect-evidence-semantic-projection-e4`
 
 It constructs three tagged provider views, classifies the explicit mappings, retains unprojected provider-native values, creates source receipts, and verifies the typed projection serialization/deserialization round-trip.
 
-**22 unit tests are written**, covering:
+**32 unit tests are written**, covering:
 - positive provider tagged-union and report round-trip;
 - DataCite DOI/rights/schema/related-identifier distinctions;
 - DataCite raw metadata and unrecognized native attribute preservation;
