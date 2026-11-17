@@ -1,6 +1,6 @@
 # External comparison and SOTA protocol — Evidence-Gated Industrial Intelligence
 
-**Scope:** research positioning and benchmark protocol as of 2026-11-16.  
+**Scope:** research positioning and benchmark protocol as of 2026-11-17.  
 **Status:** literature/vendor/standards review; not a claim of comparative performance.
 
 ## 1. The field is converging on context, stability, and closed-loop operation
@@ -33,6 +33,58 @@ These are paper-specific claims; they are not directly comparable to #5520's pum
 **Required Luminous comparison:** implement precedence, capability/compliance and availability masks as a transparent comparator; implement schedule-stability cost explicitly; use the same benchmark instances and disturbance/event traces; report the same objective, seed, hardware, and compute budgets. Then add separate evidence and qualification outputs. A schedule with 99% one-shot feasibility is not proof of material conformity, valid inspection, correct genealogy, or accepted product.
 
 Source: https://www.sciencedirect.com/science/article/pii/S0045790626004416
+
+## 2.5 Process-model reconfiguration is a separate correctness problem
+
+An additional high-value comparator has emerged: **FJSP-E2E: A process-verified framework for automatic scheduling-model reconfiguration in smart manufacturing**, DOI https://doi.org/10.1016/j.jmsy.2026.08.009.
+
+The publisher's indexed record currently assigns it to *Journal of Manufacturing Systems*, Volume 89, December 2026, which is later than this review date (2026-11-17). The article page is discoverable, but its final online-publication date should be verified before treating it as an already-published November baseline. The current record describes:
+- 72 expert-audited FJSP reconfiguration tasks across three levels;
+- translation of shop-floor updates into executable model edits and CP-SAT structural extensions;
+- process diagnostics for omissions involving routes, tools, workers, AGVs, and calendars;
+- diagnostic fields explicitly described by the authors as structural proxies, not complete formal verification of the CP-SAT constraint graph;
+- a reported 93.1% few-shot pass rate for Claude Sonnet 4.5 and only 4.2% for a Qwen3-8B model fine-tuned on 4,500 synthetic samples.
+
+Treat these as author-reported experimental results, and do not interpret the pass rate as physical production readiness or formal model proof.
+
+**Why it matters:** an AI-generated scheduling model can return a plausible objective and a feasible schedule while silently omitting a required worker, tool, transport, maintenance, material, process-envelope or quality constraint. Objective-value agreement alone does not establish that the model expresses the intended manufacturing problem.
+
+**New Luminous opportunity — process-model compiler assurance:**
+1. Compile a typed change request into an explicit change set over the canonical process/resource/qualification model; keep natural-language generation outside the authoritative validator.
+2. Require a trace from each source requirement and process artifact to the executable constraint or an explicit unsupported/unknown disposition.
+3. Mutate one obligation at a time (remove a worker constraint, change a machine eligibility, drop a setup transition, omit a transport edge, stale a calibration, erase a quality hold, or change a product revision) and check that the independent verifier detects the semantic violation.
+4. Include **objective-preserving mutants**: deliberately omit a constraint that happens not to change the fixture's optimum. These are the strongest controls against a system that only checks makespan.
+5. Compare generated models against canonical small-instance semantics and independent finite oracles; do not let the model generator write its own expected answers.
+6. Report semantic obligation coverage, mutation detection, false acceptance, unsupported handling, exact schedule correctness, and recovery cost separately.
+
+This is a natural composition with FJSPLib import and exact scheduling (#5459/#5446), the canonical process owner (#5686), and Symthaea's engineering knowledge/inspectability work (#10702). It must not create a second process ontology or solver.
+
+Source record: https://www.sciencedirect.com/science/article/pii/S0278612526002219
+
+## 2.6 Factory resilience must be measured across the disruption lifecycle
+
+Bushagour et al., *An analysis of indicators for assessing manufacturing resilience at the factory level*, *Production & Manufacturing Research* 14(1), article 2738298, published online 29 September 2026, DOI https://doi.org/10.1080/21693277.2026.2738298, reviews 93 factory-level resilience indicators.
+
+Its important conclusion for this programme is methodological: resilience is time-dependent. Before a disruption, topological and attributional indicators characterize properties such as flexibility, modularity, redundancy, connectivity and reconfigurability. During and after a disruption, performance indicators become necessary to quantify degradation, robustness and recovery. The review also highlights gaps in validation of topology/attributional indicators against performance, human performance and safety measures, and multi-scale facility/factory/supply-chain assessment.
+
+This supports a three-stage scoreboard rather than a static redundancy score:
+- **Before disruption:** qualified path topology, independence evidence, capacity/options, capability coverage, human/authority coverage, and inventory completeness.
+- **During disruption:** detection/diagnosis delay, service degradation, impacted claims, valid alternatives, quarantine and decision latency.
+- **Recovery/after:** time to first independently accepted output, lost/late output, requalification effort, human workload, safety/quality disposition, and retained capability.
+
+Do not claim the number of independent synthetic paths predicts real factory resilience until it has been validated against dynamic recovery performance. A topology metric is a hypothesis about future performance, not a substitute for it.
+
+Source: https://doi.org/10.1080/21693277.2026.2738298
+
+## 2.7 Industrial policy-governed AI is already moving beyond anomaly prediction
+
+Lin and Chen, *An integrated framework featuring policy-governed agentic AI for closed-loop manufacturing control with multi-source sensor–MES–ERP*, *The International Journal of Advanced Manufacturing Technology*, published 17 March 2026, DOI https://doi.org/10.1007/s00170-026-17806-2, report evaluation on 25,275 manufacturing records and author-reported improvements in anomaly accuracy, false alarms, monitoring robustness and operational efficiency. Their architecture combines sensor/MES/ERP context, temporal alignment, edge anomaly models, capability-aware limits, policy-governed action constraints, digital-twin checks and human review.
+
+This is a relevant industrial comparator, not a directly matched result. The abstract's aggregate percentages do not expose a common benchmark protocol with our synthetic scenarios, and the publisher page exposes the abstract while the full article is subscription-gated.
+
+Our distinction must therefore be measurable, not rhetorical: compare the systems on matched events and decision budgets, then report whether each policy correctly preserves human authority, evidence independence, claim-specific qualification and accepted-output criteria. Use their reported improvements as context only; do not compare percentages from different datasets.
+
+Source: https://doi.org/10.1007/s00170-026-17806-2
 
 ## 2. FJSPLib: the solver tournament must be an honest engine comparison
 
@@ -151,4 +203,4 @@ A genuine win is not “better than the paper” because a different objective w
 
 ## Claim boundary
 
-This document captures published paper abstracts, vendor product descriptions, standards summaries, and NIST programme descriptions as of 2026-11-16. It does not independently validate the papers' experiments, vendor claims, industrial standards conformity, or project performance. Any missing implementation, code, data, license, hardware or baseline configuration must be reported rather than imputed.
+This document captures published paper abstracts, vendor product descriptions, standards summaries, and NIST programme descriptions as of 2026-11-17. The FJSP-E2E issue assignment is currently future-dated relative to this review and is marked as an emerging watch item, not an established published comparator. It does not independently validate the papers' experiments, vendor claims, industrial standards conformity, or project performance. Any missing implementation, code, data, license, hardware or baseline configuration must be reported rather than imputed.
