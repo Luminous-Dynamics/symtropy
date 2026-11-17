@@ -656,6 +656,244 @@ pub fn run_synthetic_geometry_uncertainty_example()
     propagate_geometry_wrench_uncertainty(&geometry, &field, &model)
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct GeometryUqMonteCarloReport {
+    pub replicate_count: usize,
+    pub first_seed: u64,
+    pub linearized_covariance_row_major: Vec<f64>,
+    pub empirical_covariance_row_major: Vec<f64>,
+    pub empirical_mean_bias_from_nominal: [f64; 6],
+    pub relative_covariance_frobenius_error: f64,
+    pub claim_class: &'static str,
+}
+
+fn next_random_u64(state: &mut u64) -> u64 {
+    let mut value = *state;
+    value ^= value << 13;
+    value ^= value >> 7;
+    value ^= value << 17;
+    *state = value.max(1);
+    *state
+}
+
+fn uniform_open01(state: &mut u64) -> f64 {
+    ((next_random_u64(state) >> 11) as f64 + 0.5) / ((1_u64 << 53) as f64)
+}
+
+fn standard_normal(state: &mut u64) -> f64 {
+    let u1 = uniform_open01(state);
+    let u2 = uniform_open01(state);
+    (-2.0 * u1.ln()).sqrt() * (std::f64::consts::TAU * u2).cos()
+}
+
+fn cholesky_lower_6(covariance: &[[f64; 6]; 6]) -> Result<[[f64; 6]; 6], String> {
+    let mut lower = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for column in 0..=row {
+            let correction = (0..column)
+                .map(|index| lower[row][index] * lower[column][index])
+                .sum::<f64>();
+            if row == column {
+                let diagonal = covariance[row][row] - correction;
+                if !diagonal.is_finite() || diagonal <= 0.0 {
+                    return Err("Monte Carlo rigid-pose covariance is not positive definite".to_owned());
+                }
+                lower[row][column] = diagonal.sqrt();
+            } else {
+                lower[row][column] =
+                    (covariance[row][column] - correction) / lower[column][column];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+fn rotate_small_angle(vector: Vec3, rotation_vector: Vec3) -> Vec3 {
+    let angle = (rotation_vector.x * rotation_vector.x
+        + rotation_vector.y * rotation_vector.y
+        + rotation_vector.z * rotation_vector.z)
+        .sqrt();
+    if angle <= 1.0e-15 {
+        return vector;
+    }
+    let axis = vec_scale(rotation_vector, 1.0 / angle);
+    let cosine = angle.cos();
+    let sine = angle.sin();
+    vec_add(
+        vec_add(
+            vec_scale(vector, cosine),
+            vec_scale(vec_cross(axis, vector), sine),
+        ),
+        vec_scale(axis, axis.x.mul_add(vector.x, axis.y.mul_add(vector.y, axis.z * vector.z)) * (1.0 - cosine)),
+    )
+}
+
+fn perturb_geometry_once(
+    geometry: &TaxelGeometrySet,
+    model: &GeometryUncertaintyModel,
+    pose_lower: &[[f64; 6]; 6],
+    state: &mut u64,
+) -> Result<TaxelGeometrySet, String> {
+    let mut sampled = geometry.clone();
+    for (taxel, uncertainty) in sampled.taxels.iter_mut().zip(&model.local_taxels) {
+        let area = taxel.area_m2 + uncertainty.area_m2 * standard_normal(state);
+        if !area.is_finite() || area <= 0.0 {
+            return Err("sampled taxel area became nonpositive; uncertainty exceeds the valid small-error domain".to_owned());
+        }
+        taxel.area_m2 = area;
+        taxel.application_point_m = vec_add(
+            taxel.application_point_m,
+            Vec3 {
+                x: uncertainty.application_point_m.x * standard_normal(state),
+                y: uncertainty.application_point_m.y * standard_normal(state),
+                z: uncertainty.application_point_m.z * standard_normal(state),
+            },
+        );
+        let local_rotation = Vec3 {
+            x: uncertainty.orientation_rad.x * standard_normal(state),
+            y: uncertainty.orientation_rad.y * standard_normal(state),
+            z: uncertainty.orientation_rad.z * standard_normal(state),
+        };
+        taxel.normal = rotate_small_angle(taxel.normal, local_rotation);
+        taxel.tangent_u = rotate_small_angle(taxel.tangent_u, local_rotation);
+        taxel.tangent_v = rotate_small_angle(taxel.tangent_v, local_rotation);
+    }
+
+    let independent = std::array::from_fn::<_, 6, _>(|_| standard_normal(state));
+    let mut pose = [0.0; 6];
+    for row in 0..6 {
+        pose[row] = (0..=row)
+            .map(|column| pose_lower[row][column] * independent[column])
+            .sum();
+    }
+    let translation = Vec3 {
+        x: pose[0],
+        y: pose[1],
+        z: pose[2],
+    };
+    let rotation = Vec3 {
+        x: pose[3],
+        y: pose[4],
+        z: pose[5],
+    };
+    for taxel in &mut sampled.taxels {
+        taxel.application_point_m = vec_add(
+            rotate_small_angle(taxel.application_point_m, rotation),
+            translation,
+        );
+        taxel.normal = rotate_small_angle(taxel.normal, rotation);
+        taxel.tangent_u = rotate_small_angle(taxel.tangent_u, rotation);
+        taxel.tangent_v = rotate_small_angle(taxel.tangent_v, rotation);
+    }
+    if model.wrench_origin_attachment == WrenchOriginAttachment::SensorBodyAttached {
+        sampled.wrench_origin_m = vec_add(
+            rotate_small_angle(sampled.wrench_origin_m, rotation),
+            translation,
+        );
+    }
+    Ok(sampled)
+}
+
+/// Compare the first-order geometry covariance with an empirical covariance
+/// from seeded Monte Carlo perturbations of independent local geometry and a
+/// common correlated rigid pose. This is an evaluator oracle for the stated
+/// small-uncertainty model, not a physical calibration result.
+pub fn validate_geometry_uq_against_monte_carlo(
+    geometry: &TaxelGeometrySet,
+    field: &TractionFieldEstimate,
+    model: &GeometryUncertaintyModel,
+    first_seed: u64,
+    replicate_count: usize,
+) -> Result<GeometryUqMonteCarloReport, String> {
+    if first_seed == 0 {
+        return Err("geometry Monte Carlo seed must be nonzero".to_owned());
+    }
+    if replicate_count < 2_000 {
+        return Err("geometry Monte Carlo validation requires at least 2,000 replicates".to_owned());
+    }
+    let analytic = propagate_geometry_wrench_uncertainty(geometry, field, model)?;
+    if !analytic.admissible_for_combined_wrench_uncertainty {
+        return Err("geometry Monte Carlo comparison requires independently admissible covariance sources".to_owned());
+    }
+    let linearized_row_major = analytic
+        .total_geometry_covariance_row_major
+        .ok_or_else(|| "linearized total geometry covariance is unavailable".to_owned())?;
+    let linearized: [[f64; 6]; 6] = std::array::from_fn(|row| {
+        std::array::from_fn(|column| linearized_row_major[row * 6 + column])
+    });
+    let pose_covariance = validate_spd_6(&model.common_rigid_pose_covariance_row_major)?;
+    let pose_lower = cholesky_lower_6(&pose_covariance)?;
+    let nominal = analytic
+        .nominal_wrench
+        .ok_or_else(|| "nominal wrench missing from geometry uncertainty report".to_owned())?;
+    let nominal_values = [
+        nominal.force_n.x,
+        nominal.force_n.y,
+        nominal.force_n.z,
+        nominal.moment_nm.x,
+        nominal.moment_nm.y,
+        nominal.moment_nm.z,
+    ];
+
+    let mut state = first_seed;
+    let mut mean = [0.0; 6];
+    let mut sum_outer = [[0.0; 6]; 6];
+    for sample_index in 0..replicate_count {
+        let perturbed = perturb_geometry_once(geometry, model, &pose_lower, &mut state)?;
+        let operator = build_wrench_operator(&perturbed)?;
+        let wrench = integrate_tactile_field(&operator, &field.local_traction_pa)?;
+        let values = [
+            wrench.force_n.x,
+            wrench.force_n.y,
+            wrench.force_n.z,
+            wrench.moment_nm.x,
+            wrench.moment_nm.y,
+            wrench.moment_nm.z,
+        ];
+        let count = (sample_index + 1) as f64;
+        let mut delta = [0.0; 6];
+        let mut delta_after = [0.0; 6];
+        for component in 0..6 {
+            delta[component] = values[component] - mean[component];
+            mean[component] += delta[component] / count;
+            delta_after[component] = values[component] - mean[component];
+        }
+        for row in 0..6 {
+            for column in 0..6 {
+                sum_outer[row][column] += delta[row] * delta_after[column];
+            }
+        }
+    }
+    let empirical: [[f64; 6]; 6] = std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            sum_outer[row][column] / (replicate_count - 1) as f64
+        })
+    });
+    let mut squared_difference = 0.0;
+    let mut squared_linearized = 0.0;
+    for row in 0..6 {
+        for column in 0..6 {
+            squared_difference += (empirical[row][column] - linearized[row][column]).powi(2);
+            squared_linearized += linearized[row][column].powi(2);
+        }
+    }
+    let denominator = squared_linearized.sqrt();
+    if !denominator.is_finite() || denominator <= f64::MIN_POSITIVE {
+        return Err("linearized geometry covariance has zero or non-finite Frobenius norm".to_owned());
+    }
+    let mean_bias_from_nominal =
+        std::array::from_fn(|index| mean[index] - nominal_values[index]);
+    Ok(GeometryUqMonteCarloReport {
+        replicate_count,
+        first_seed,
+        linearized_covariance_row_major: matrix_to_row_major(&linearized),
+        empirical_covariance_row_major: matrix_to_row_major(&empirical),
+        empirical_mean_bias_from_nominal: mean_bias_from_nominal,
+        relative_covariance_frobenius_error: squared_difference.sqrt() / denominator,
+        claim_class: "synthetic_geometry_uq_monte_carlo_validation_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
