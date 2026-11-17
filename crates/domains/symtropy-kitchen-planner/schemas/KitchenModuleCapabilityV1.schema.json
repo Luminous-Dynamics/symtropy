@@ -175,7 +175,7 @@
               "integer",
               "null"
             ],
-            "minimum": 0
+            "minimum": 1
           },
           "maximum_batch_mass_g": {
             "type": [
@@ -686,6 +686,127 @@
             "properties": {
               "peak_real_power_limit_w": {
                 "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "module_kind": {
+            "const": "pressure_cooker"
+          }
+        },
+        "required": [
+          "module_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capabilities": {
+            "contains": {
+              "properties": {
+                "action_group": {
+                  "const": "pressure_cook"
+                }
+              },
+              "required": [
+                "action_group"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "module_kind": {
+            "not": {
+              "const": "pressure_cooker"
+            }
+          }
+        },
+        "required": [
+          "module_kind"
+        ]
+      },
+      "then": {
+        "properties": {
+          "capabilities": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "action_group": {
+                    "const": "pressure_cook"
+                  }
+                },
+                "required": [
+                  "action_group"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "nominal_voltage_min_mv": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "mains_frequency_min_millihz": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "continuous_real_power_limit_w": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "properties": {
+              "electrical": {
+                "properties": {
+                  "power_profile_ref": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "electrical": {
+            "properties": {
+              "electrical_evidence": {
+                "$ref": "#/$defs/evidence"
               }
             }
           }
