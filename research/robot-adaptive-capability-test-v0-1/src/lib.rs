@@ -37,6 +37,9 @@ pub struct ChallengeItem {
     pub mandatory: bool,
     pub common_anchor: bool,
     pub safety_critical: bool,
+    /// Whether this item is calibrated on the profile's one capability axis.
+    /// Mandatory gate-only controls should set this to false.
+    pub contributes_to_capability_estimate: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -49,12 +52,24 @@ pub struct ItemBank {
     pub items: Vec<ChallengeItem>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponseOutcome {
+    Success,
+    Failure,
+    /// An observation was attempted but did not support a binary judgment.
+    Unknown,
+    /// The independent evaluator detected an unsafe outcome.
+    UnsafeViolation,
+    /// Evidence was malformed, stale, or otherwise inadmissible.
+    InvalidEvidence,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Response {
     pub sequence: u32,
     pub item_id: String,
     /// Supplied by the independent task evaluator, not the robot itself.
-    pub success: bool,
+    pub outcome: ResponseOutcome,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,6 +86,8 @@ pub enum StopReason {
     PrecisionReached,
     BudgetExhausted,
     BankExhausted,
+    EvidenceRequired,
+    SafetyGateFailed,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -117,6 +134,8 @@ pub struct RunReceipt {
     pub calibration_id: String,
     pub calibration_digest: String,
     pub selection_trace: Vec<SelectionRecord>,
+    /// Ordered evaluator outcomes, including Unknown and safety violations.
+    pub responses: Vec<Response>,
     pub decision: Decision,
 }
 
@@ -184,6 +203,12 @@ fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String>
         if item.common_anchor && !item.mandatory {
             return Err(format!("common anchor {} must be mandatory", item.item_id));
         }
+        if item.common_anchor && !item.contributes_to_capability_estimate {
+            return Err(format!(
+                "common anchor {} must measure the declared capability axis",
+                item.item_id
+            ));
+        }
         if item.safety_critical && !item.mandatory {
             return Err(format!(
                 "safety-critical item {} must be mandatory",
@@ -238,10 +263,10 @@ fn posterior(
     profile: &CalibrationProfile,
     responses: &[Response],
 ) -> Result<(f64, f64), String> {
-    let difficulty_by_id: BTreeMap<&str, f64> = bank
+    let item_by_id: BTreeMap<&str, &ChallengeItem> = bank
         .items
         .iter()
-        .map(|item| (item.item_id.as_str(), item.difficulty))
+        .map(|item| (item.item_id.as_str(), item))
         .collect();
     let mut ordered: Vec<&Response> = responses.iter().collect();
     ordered.sort_by(|left, right| left.item_id.cmp(&right.item_id));
@@ -257,12 +282,22 @@ fn posterior(
         let mut gradient = -(theta - profile.prior_mean) * prior_precision;
         let mut information = prior_precision;
         for response in &ordered {
-            let difficulty = difficulty_by_id
+            let item = item_by_id
                 .get(response.item_id.as_str())
                 .copied()
                 .ok_or_else(|| format!("response references unknown item {}", response.item_id))?;
-            let probability = sigmoid(theta - difficulty);
-            gradient += if response.success {
+            if !item.contributes_to_capability_estimate {
+                continue;
+            }
+            let success = match response.outcome {
+                ResponseOutcome::Success => true,
+                ResponseOutcome::Failure => false,
+                ResponseOutcome::Unknown
+                | ResponseOutcome::UnsafeViolation
+                | ResponseOutcome::InvalidEvidence => continue,
+            };
+            let probability = sigmoid(theta - item.difficulty);
+            gradient += if success {
                 1.0 - probability
             } else {
                 -probability
@@ -285,8 +320,17 @@ fn posterior(
 
     let mut information = prior_precision;
     for response in ordered {
-        let difficulty = difficulty_by_id[response.item_id.as_str()];
-        let probability = sigmoid(theta - difficulty);
+        let item = item_by_id[response.item_id.as_str()];
+        if !item.contributes_to_capability_estimate {
+            continue;
+        }
+        if !matches!(
+            response.outcome,
+            ResponseOutcome::Success | ResponseOutcome::Failure
+        ) {
+            continue;
+        }
+        let probability = sigmoid(theta - item.difficulty);
         information += probability * (1.0 - probability);
     }
     let sem = 1.0 / information.sqrt();
@@ -318,6 +362,12 @@ fn validate_responses(bank: &ItemBank, responses: &[Response]) -> Result<(), Str
         }
         if !seen.insert(response.item_id.as_str()) {
             return Err(format!("duplicate response for item {}", response.item_id));
+        }
+        if response.outcome == ResponseOutcome::InvalidEvidence {
+            return Err(format!(
+                "response for item {} contains inadmissible evidence",
+                response.item_id
+            ));
         }
     }
     Ok(())
@@ -365,7 +415,14 @@ fn choose_most_informative(
 ) -> Option<SelectedItem> {
     let mut scored: Vec<(&ChallengeItem, f64)> = candidates
         .into_iter()
-        .map(|item| (item, item_information(theta, item.difficulty)))
+        .map(|item| {
+            let information = if item.contributes_to_capability_estimate {
+                item_information(theta, item.difficulty)
+            } else {
+                0.0
+            };
+            (item, information)
+        })
         .collect();
     scored.sort_by(|(left_item, left_info), (right_item, right_info)| {
         right_info
@@ -402,6 +459,42 @@ fn decide_validated(
         .count();
     let stratum_coverage = coverage(profile, &counts);
 
+    // Unknown observation evidence is not a binary failure. A safety-critical
+    // failure or explicit unsafe outcome terminates the test before adaptation.
+    for response in responses {
+        let item = bank
+            .items
+            .iter()
+            .find(|item| item.item_id == response.item_id)
+            .ok_or_else(|| format!("response references unknown item {}", response.item_id))?;
+        let terminal_reason = match response.outcome {
+            ResponseOutcome::Unknown => Some(StopReason::EvidenceRequired),
+            ResponseOutcome::UnsafeViolation => Some(StopReason::SafetyGateFailed),
+            ResponseOutcome::Failure if item.safety_critical => {
+                Some(StopReason::SafetyGateFailed)
+            }
+            ResponseOutcome::Success | ResponseOutcome::Failure => None,
+            ResponseOutcome::InvalidEvidence => {
+                return Err(format!(
+                    "response for item {} contains inadmissible evidence",
+                    response.item_id
+                ));
+            }
+        };
+        if let Some(stop_reason) = terminal_reason {
+            return Ok(Decision {
+                selected: None,
+                stop_reason: Some(stop_reason),
+                theta_map: theta,
+                posterior_sem: sem,
+                mandatory_total,
+                mandatory_administered,
+                adaptive_administered,
+                stratum_coverage,
+            });
+        }
+    }
+
     let mut mandatory_candidates: Vec<&ChallengeItem> = bank
         .items
         .iter()
@@ -433,7 +526,11 @@ fn decide_validated(
             selected: Some(SelectedItem {
                 item_id: item.item_id.clone(),
                 reason,
-                expected_information: item_information(theta, item.difficulty),
+                expected_information: if item.contributes_to_capability_estimate {
+                    item_information(theta, item.difficulty)
+                } else {
+                    0.0
+                },
             }),
             stop_reason: None,
             theta_map: theta,
@@ -527,7 +624,11 @@ fn decide_validated(
     let candidates: Vec<&ChallengeItem> = bank
         .items
         .iter()
-        .filter(|item| !item.mandatory && !administered.contains(&item.item_id))
+        .filter(|item| {
+            !item.mandatory
+                && item.contributes_to_capability_estimate
+                && !administered.contains(&item.item_id)
+        })
         .collect();
     let selected = choose_most_informative(candidates, theta, SelectionReason::MaximumInformation);
     if selected.is_none() {
@@ -604,6 +705,7 @@ pub fn evaluate_run(
         calibration_id: bank.calibration_id.clone(),
         calibration_digest: bank.calibration_digest.clone(),
         selection_trace,
+        responses: accepted_responses,
         decision,
     })
 }
@@ -630,6 +732,7 @@ mod tests {
             mandatory,
             common_anchor,
             safety_critical,
+            contributes_to_capability_estimate: !safety_critical,
         }
     }
 
@@ -673,7 +776,11 @@ mod tests {
         Response {
             sequence,
             item_id: item_id.to_owned(),
-            success,
+            outcome: if success {
+                ResponseOutcome::Success
+            } else {
+                ResponseOutcome::Failure
+            },
         }
     }
 
@@ -690,7 +797,7 @@ mod tests {
         let result = evaluate_run(
             &bank(),
             &profile(),
-            &[response(0, "safety-negative", false)],
+            &[response(0, "safety-negative", true)],
         )
         .unwrap();
         let selected = result.decision.selected.unwrap();
@@ -718,7 +825,7 @@ mod tests {
             &bank(),
             &profile(),
             &[
-                response(0, "safety-negative", false),
+                response(0, "safety-negative", true),
                 response(1, "anchor-common", false),
             ],
         )
@@ -919,7 +1026,7 @@ mod tests {
             response(1, "anchor-common", true),
         ];
         let failure = vec![
-            response(0, "safety-negative", false),
+            response(0, "safety-negative", true),
             response(1, "anchor-common", false),
         ];
         let success_next = evaluate_run(&bank(), &profile(), &success)
