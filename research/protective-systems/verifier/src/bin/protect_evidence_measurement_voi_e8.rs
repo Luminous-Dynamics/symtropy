@@ -135,6 +135,7 @@ struct PlannerReport {
     claim_ceiling: &'static str,
     status: &'static str,
     objective_rule: &'static str,
+    independence_validation_scope: &'static str,
     probabilities_emitted: bool,
     priors_assumed: bool,
     hypothesis_set_id: String,
@@ -209,6 +210,9 @@ fn validate_fixture(fixture: &Fixture) -> Result<BTreeSet<String>, String> {
     let hypothesis_set = unique_strings(&hypothesis_ids, "hypothesis set")?;
     if hypothesis_set.len() > 64 {
         return Err("E8 finite hypothesis set exceeds the 64-hypothesis safety bound".to_owned());
+    }
+    if fixture.candidates.len() > 16 {
+        return Err("E8 candidate catalog exceeds the 16-candidate exhaustive-search bound".to_owned());
     }
     let candidate_ids = fixture
         .candidates
@@ -472,8 +476,8 @@ fn pareto_frontier(plans: &[MeasurementPlan]) -> Vec<MeasurementPlan> {
     frontier.sort_by(|left, right| {
         (
             left.worst_case_remaining_hypothesis_count,
-            left.cost,
             left.duration_minutes,
+            left.cost,
             &left.candidate_ids,
         )
             .cmp(&(
@@ -546,8 +550,8 @@ fn build_report(fixture: &Fixture) -> Result<PlannerReport, String> {
             )
                 .cmp(&(
                     right.worst_case_remaining_hypothesis_count,
-                    right.cost,
                     right.duration_minutes,
+                    right.cost,
                     &right.candidate_ids,
                 ))
         })
@@ -567,6 +571,7 @@ fn build_report(fixture: &Fixture) -> Result<PlannerReport, String> {
         claim_ceiling: CLAIM_CEILING,
         status,
         objective_rule: "MINIMAX_RESIDUAL_THEN_DURATION_THEN_COST",
+        independence_validation_scope: "SYNTHETIC_ATTESTATION_MARKER_ONLY; signer identity and physical measurement independence are not authenticated",
         probabilities_emitted: false,
         priors_assumed: false,
         hypothesis_set_id: fixture.hypothesis_set.set_id.clone(),
@@ -627,6 +632,8 @@ mod tests {
     }
 
     fn frontier_oracle(fixture: &Fixture) -> Vec<MeasurementPlan> {
+        // Independent test oracle: enumerate bit masks instead of using the
+        // production recursive subset enumerator.
         let hypothesis_ids = known_hypotheses();
         let mut candidates = fixture
             .candidates
@@ -643,17 +650,127 @@ mod tests {
             .cloned()
             .collect::<Vec<_>>();
         candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
         let mut plans = Vec::new();
-        enumerate_subsets(
-            &candidates,
-            &hypothesis_ids,
-            fixture.constraints.maximum_tests_per_plan,
-            0,
-            &mut Vec::new(),
-            &mut plans,
-        )
-        .expect("oracle enumeration");
-        pareto_frontier(&plans)
+        for mask in 1_u64..(1_u64 << candidates.len()) {
+            let count = mask.count_ones() as usize;
+            if count > fixture.constraints.maximum_tests_per_plan {
+                continue;
+            }
+            let selected = candidates
+                .iter()
+                .enumerate()
+                .filter(|(index, _)| (mask & (1_u64 << index)) != 0)
+                .map(|(_, candidate)| candidate)
+                .collect::<Vec<_>>();
+            let mut groups = BTreeSet::new();
+            let mut dependencies = BTreeSet::new();
+            let mut compatible = true;
+            for candidate in &selected {
+                if !groups.insert(candidate.independence_group_id.clone()) {
+                    compatible = false;
+                    break;
+                }
+                for dependency in &candidate.dependency_evidence_ids {
+                    if !dependencies.insert(dependency.clone()) {
+                        compatible = false;
+                        break;
+                    }
+                }
+                if !compatible {
+                    break;
+                }
+            }
+            if !compatible {
+                continue;
+            }
+
+            let mut classes: BTreeMap<Vec<String>, Vec<String>> = BTreeMap::new();
+            for hypothesis in &hypothesis_ids {
+                let signature = selected
+                    .iter()
+                    .map(|candidate| {
+                        candidate
+                            .outcomes
+                            .iter()
+                            .find(|outcome| outcome.hypothesis_ids.contains(hypothesis))
+                            .expect("complete partition")
+                            .outcome_id
+                            .clone()
+                    })
+                    .collect::<Vec<_>>();
+                classes.entry(signature).or_default().push(hypothesis.clone());
+            }
+            let mut residual = classes
+                .into_iter()
+                .map(|(signature, mut hypotheses)| {
+                    hypotheses.sort();
+                    OutcomeClass {
+                        outcome_signature: signature,
+                        remaining_hypothesis_ids: hypotheses,
+                    }
+                })
+                .collect::<Vec<_>>();
+            residual.sort_by(|left, right| left.outcome_signature.cmp(&right.outcome_signature));
+            let worst = residual
+                .iter()
+                .map(|class| class.remaining_hypothesis_ids.len())
+                .max()
+                .unwrap_or(hypothesis_ids.len());
+            let cost = selected.iter().map(|candidate| candidate.cost).sum::<u64>();
+            let duration = selected
+                .iter()
+                .map(|candidate| candidate.duration_minutes)
+                .sum::<u64>();
+            let mut ids = selected
+                .iter()
+                .map(|candidate| candidate.candidate_id.clone())
+                .collect::<Vec<_>>();
+            ids.sort();
+            let bytes = serde_json::to_vec(&ids).expect("plan IDs serialize");
+            plans.push(MeasurementPlan {
+                plan_id: format!("{:x}", Sha256::digest(bytes)),
+                candidate_ids: ids,
+                cost,
+                duration_minutes: duration,
+                worst_case_remaining_hypothesis_count: worst,
+                residual_outcome_classes: residual,
+                fully_identifies_declared_hypothesis_set: worst == 1,
+            });
+        }
+
+        let mut frontier = plans
+            .iter()
+            .filter(|candidate| {
+                !plans.iter().any(|other| {
+                    let no_worse = other.worst_case_remaining_hypothesis_count
+                        <= candidate.worst_case_remaining_hypothesis_count
+                        && other.cost <= candidate.cost
+                        && other.duration_minutes <= candidate.duration_minutes;
+                    let strictly = other.worst_case_remaining_hypothesis_count
+                        < candidate.worst_case_remaining_hypothesis_count
+                        || other.cost < candidate.cost
+                        || other.duration_minutes < candidate.duration_minutes;
+                    other.plan_id != candidate.plan_id && no_worse && strictly
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        frontier.sort_by(|left, right| {
+            (
+                left.worst_case_remaining_hypothesis_count,
+                left.duration_minutes,
+                left.cost,
+                &left.candidate_ids,
+            )
+                .cmp(&(
+                    right.worst_case_remaining_hypothesis_count,
+                    right.duration_minutes,
+                    right.cost,
+                    &right.candidate_ids,
+                ))
+        });
+        frontier
     }
 
     #[test]
@@ -746,6 +863,9 @@ mod tests {
     fn recommended_plan_uses_declared_lexicographic_objective_not_a_weighted_score() {
         let report = run().expect("report");
         assert_eq!(report.objective_rule, "MINIMAX_RESIDUAL_THEN_DURATION_THEN_COST");
+        assert!(report
+            .independence_validation_scope
+            .contains("not authenticated"));
         let recommended = report.recommended_plan.expect("recommended");
         assert_eq!(
             recommended.candidate_ids,
