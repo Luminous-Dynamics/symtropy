@@ -624,7 +624,7 @@ pub fn run_benchmark(
     }
 
     let spec = EncoderSpec {
-        schema_version: 1,
+        schema_version: 2,
         dimension,
         seed,
         scalar_levels: 257,
@@ -753,7 +753,7 @@ mod tests {
 
     fn spec(dimension: usize, seed: u64) -> EncoderSpec {
         EncoderSpec {
-            schema_version: 1,
+            schema_version: 2,
             dimension,
             seed,
             scalar_levels: 257,
@@ -907,6 +907,9 @@ mod tests {
         let b = HoloFracEncoder::new(spec(4_096, 9)).unwrap();
         let changed_seed = HoloFracEncoder::new(spec(4_096, 10)).unwrap();
         let changed_dimension = HoloFracEncoder::new(spec(8_192, 9)).unwrap();
+        let mut changed_schema_spec = spec(4_096, 9);
+        changed_schema_spec.schema_version += 1;
+        let changed_schema = HoloFracEncoder::new(changed_schema_spec).unwrap();
 
         assert_eq!(
             a.encode_fact(&graph, &fact).unwrap().bipolar,
@@ -914,6 +917,7 @@ mod tests {
         );
         assert_ne!(a.fingerprint(), changed_seed.fingerprint());
         assert_ne!(a.fingerprint(), changed_dimension.fingerprint());
+        assert_ne!(a.fingerprint(), changed_schema.fingerprint());
     }
 
     #[test]
@@ -970,6 +974,9 @@ mod tests {
             reordered.digest_non_security().unwrap()
         );
         assert_eq!(original.canonical_snapshot(), reordered.canonical_snapshot());
+        let encoder = HoloFracEncoder::new(spec(2_048, 17)).unwrap();
+        let (index, _) = SpatialIndex::build(&original, &encoder).unwrap();
+        assert!(index.validate_source(&reordered).is_ok());
     }
 
     #[test]
