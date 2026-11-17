@@ -404,7 +404,9 @@ mod tests {
         let report = render_report_json().expect("valid local-ring report");
         assert!(report.contains("\"comparison_matrix_count\":12"));
         assert!(report.contains("\"circumference_km\":100.000000"));
-        assert!(report.contains("\"field_evidence_label\":\"hts_stretch_case_not_production_ready\""));
+        assert!(report.contains(
+            "\"field_evidence_label\":\"hts_stretch_case_not_production_ready\""
+        ));
         assert!(report.contains("unadjusted_screening_residual_retained_not_calibrated_away"));
         assert!(report.contains("no achievable collider"));
     }
