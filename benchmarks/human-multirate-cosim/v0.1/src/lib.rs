@@ -9,6 +9,8 @@
 
 use std::fmt;
 
+pub mod network;
+
 /// Arbitrary two-compartment exchange system:
 ///
 ///   C_a * dx_a/dt = -G * (x_a - x_b)
