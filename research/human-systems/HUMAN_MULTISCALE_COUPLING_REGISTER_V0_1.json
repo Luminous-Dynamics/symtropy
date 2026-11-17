@@ -783,5 +783,46 @@
       "SYS-COGNITION",
       "SYS-OBS"
     ]
-  }
+  },
+  "reusable_substrates": [
+    {
+      "id": "SUBSTRATE-SYMTROPY-LIFESIM",
+      "package": "symtropy-lifesim-core",
+      "source_path": "crates/domains/symtropy-lifesim-core",
+      "license": "Apache-2.0 OR MIT",
+      "status": "implemented_bounded_general_purpose",
+      "capabilities": [
+        "CPU-first deterministic 2D multi-channel field grids",
+        "diffusion/decay/source update with explicit stability guard",
+        "obstacle-aware field boundaries",
+        "Arrow field snapshots",
+        "optional WGPU backend",
+        "generic organism-needs Metabolism struct"
+      ],
+      "candidate_human_reuse": [
+        "spatial environmental field substrate",
+        "future tissue microenvironment field substrate after units and geometry are qualified"
+      ],
+      "semantic_limits": [
+        "field values are generic f32 concentrations, not calibrated physical units",
+        "oxygen field is not partial pressure, blood oxygen content, saturation or perfusion",
+        "moisture/hydration are not plasma volume or total body water",
+        "heat channel is not a validated human thermoregulation model",
+        "generic stress_from_fields is not organ-specific energy balance",
+        "2D field grid does not represent anatomical tissue or vascular geometry"
+      ],
+      "required_adaptation_before_human_use": [
+        "versioned physical quantity/unit mapping for each field layer",
+        "explicit 2D/3D geometry and tissue/vascular boundary conditions",
+        "mass/species/energy balance and source/sink accounting",
+        "dimensionless and grid-convergence analysis",
+        "model-specific diffusion/transport calibration and held-out validation"
+      ],
+      "stability_semantics": {
+        "method": "explicit_2D_finite_difference_diffusion_decay",
+        "condition": "diffusion * dt <= 0.25",
+        "note": "The stability limit is specific to this grid update and is not a universal tissue-diffusion solver condition."
+      }
+    }
+  ]
 }
