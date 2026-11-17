@@ -132,6 +132,114 @@
     {
       "if": {
         "properties": {
+          "oracle_truth": {
+            "properties": { "truth_disposition": { "const": "CONTACT" } },
+            "required": ["truth_disposition"]
+          },
+          "adapter_observation": {
+            "properties": { "collision_found": { "const": true } },
+            "required": ["collision_found"]
+          },
+          "classification": {
+            "properties": { "disposition": { "const": "MATCHED" } },
+            "required": ["disposition"]
+          }
+        },
+        "required": ["oracle_truth", "adapter_observation", "classification"]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": { "confusion_cell": { "const": "TP" } },
+            "required": ["confusion_cell"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": { "truth_disposition": { "const": "CONTACT" } },
+            "required": ["truth_disposition"]
+          },
+          "adapter_observation": {
+            "properties": { "collision_found": { "const": false } },
+            "required": ["collision_found"]
+          },
+          "classification": {
+            "properties": { "disposition": { "const": "MATCHED" } },
+            "required": ["disposition"]
+          }
+        },
+        "required": ["oracle_truth", "adapter_observation", "classification"]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": { "confusion_cell": { "const": "FN" } },
+            "required": ["confusion_cell"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": { "truth_disposition": { "const": "NO_CONTACT" } },
+            "required": ["truth_disposition"]
+          },
+          "adapter_observation": {
+            "properties": { "collision_found": { "const": true } },
+            "required": ["collision_found"]
+          },
+          "classification": {
+            "properties": { "disposition": { "const": "MATCHED" } },
+            "required": ["disposition"]
+          }
+        },
+        "required": ["oracle_truth", "adapter_observation", "classification"]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": { "confusion_cell": { "const": "FP" } },
+            "required": ["confusion_cell"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle_truth": {
+            "properties": { "truth_disposition": { "const": "NO_CONTACT" } },
+            "required": ["truth_disposition"]
+          },
+          "adapter_observation": {
+            "properties": { "collision_found": { "const": false } },
+            "required": ["collision_found"]
+          },
+          "classification": {
+            "properties": { "disposition": { "const": "MATCHED" } },
+            "required": ["disposition"]
+          }
+        },
+        "required": ["oracle_truth", "adapter_observation", "classification"]
+      },
+      "then": {
+        "properties": {
+          "classification": {
+            "properties": { "confusion_cell": { "const": "TN" } },
+            "required": ["confusion_cell"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "classification": {
             "properties": {
               "disposition": { "enum": ["UNRESOLVED", "NOT_RUN", "NOT_COMPARABLE"] }
