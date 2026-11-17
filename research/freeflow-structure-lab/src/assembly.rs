@@ -47,6 +47,7 @@ pub enum AssemblyPlanError {
     RootCount { actual: usize },
     InvalidRootCell { cell_id: u32 },
     InvalidParentOrder { cell_id: u32, parent_cell_id: u32 },
+    InvalidGeneration { cell_id: u32, parent_cell_id: u32 },
     UnknownParent { cell_id: u32, parent_cell_id: u32 },
     InvalidAttachmentFace { cell_id: u32 },
     NonUniqueIntroducedNode { cell_id: u32 },
@@ -73,6 +74,13 @@ impl fmt::Display for AssemblyPlanError {
             } => write!(
                 f,
                 "cell {cell_id} must be ordered after parent cell {parent_cell_id}"
+            ),
+            Self::InvalidGeneration {
+                cell_id,
+                parent_cell_id,
+            } => write!(
+                f,
+                "cell {cell_id} generation does not follow parent cell {parent_cell_id}"
             ),
             Self::UnknownParent {
                 cell_id,
@@ -109,7 +117,7 @@ pub fn plan_tetrahedral_assembly(
     }
 
     let mut roots = Vec::new();
-    let mut introduced_nodes = HashSet::new();
+    let mut known_nodes = HashSet::new();
     let mut steps = Vec::with_capacity(assembly.cells.len());
     let mut maximum_generation = 0u8;
 
@@ -130,6 +138,7 @@ pub fn plan_tetrahedral_assembly(
                 if cell.generation != 0 {
                     return Err(AssemblyPlanError::InvalidRootCell { cell_id: cell.id });
                 }
+                known_nodes.extend(cell.vertices);
                 steps.push(AssemblyStep {
                     order_index: steps.len(),
                     cell_id: cell.id,
@@ -160,9 +169,17 @@ pub fn plan_tetrahedral_assembly(
                         parent_cell_id: parent_id,
                     })?;
 
+                if parent.generation.checked_add(1) != Some(cell.generation) {
+                    return Err(AssemblyPlanError::InvalidGeneration {
+                        cell_id: cell.id,
+                        parent_cell_id: parent_id,
+                    });
+                }
+
                 let face_is_valid = face.iter().copied().collect::<HashSet<_>>().len() == 3
                     && face.iter().all(|vertex| parent.vertices.contains(vertex))
-                    && face.iter().all(|vertex| cell.vertices.contains(vertex));
+                    && face.iter().all(|vertex| cell.vertices.contains(vertex))
+                    && face.iter().all(|vertex| known_nodes.contains(vertex));
                 let shared_vertices = cell
                     .vertices
                     .iter()
@@ -186,12 +203,13 @@ pub fn plan_tetrahedral_assembly(
                     });
                 }
                 let introduced_node_id = introduced[0];
-                if !introduced_nodes.insert(introduced_node_id) {
+                if known_nodes.contains(&introduced_node_id) {
                     return Err(AssemblyPlanError::ReusedIntroducedNode {
                         cell_id: cell.id,
                         node_id: introduced_node_id,
                     });
                 }
+                known_nodes.insert(introduced_node_id);
 
                 steps.push(AssemblyStep {
                     order_index: steps.len(),
@@ -307,6 +325,24 @@ mod tests {
         let right = plan_tetrahedral_assembly(&geometry).unwrap();
         assert_eq!(left, right);
         assert_eq!(left.digest_non_security, right.digest_non_security);
+    }
+
+    #[test]
+    fn child_generation_must_follow_parent_generation() {
+        let mut geometry =
+            TetrahedralAssembly::generate(TetrahedralConfig::default()).unwrap();
+        let child = geometry
+            .cells
+            .iter_mut()
+            .find(|cell| cell.parent_cell.is_some())
+            .unwrap();
+        child.generation += 1;
+
+        assert!(matches!(
+            plan_tetrahedral_assembly(&geometry),
+            Err(AssemblyPlanError::InvalidGeometry(_))
+                | Err(AssemblyPlanError::InvalidGeneration { .. })
+        ));
     }
 
     #[test]
