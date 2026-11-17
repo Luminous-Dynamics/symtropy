@@ -417,7 +417,6 @@ pub fn time_swept_capsule_broadphase(
     })
 }
 
-
 /// Result of refining a conservative coarse candidate set without rebuilding
 /// the full-body SAP for every temporal slab.
 #[derive(Clone, Debug, PartialEq)]
@@ -1085,17 +1084,14 @@ mod tests {
             for subdivisions in [1, 2, 4, 8, 16] {
                 let hierarchical =
                     time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
-                let direct =
-                    time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+                let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
                 assert_eq!(
-                    hierarchical.refinement.pairs,
-                    direct.pairs,
+                    hierarchical.refinement.pairs, direct.pairs,
                     "hierarchical refinement diverged at {subdivisions} slabs"
                 );
             }
         }
     }
-
 
     #[test]
     fn generated_hierarchical_refinement_matches_direct_sap_for_all_slab_counts() {
@@ -1107,10 +1103,7 @@ mod tests {
             let start_ms = (index % 4) as u64 * 25;
             let end_ms = 1_000 + (index % 4) as u64 * 25;
             let id = format!("body-{index:03}");
-            bodies.push(body(
-                &id,
-                span(x, y, delta_x, start_ms, end_ms),
-            ));
+            bodies.push(body(&id, span(x, y, delta_x, start_ms, end_ms)));
         }
 
         for subdivisions in [1, 2, 4, 8, 16] {
@@ -1118,8 +1111,7 @@ mod tests {
                 time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
             let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
             assert_eq!(
-                hierarchical.refinement.pairs,
-                direct.pairs,
+                hierarchical.refinement.pairs, direct.pairs,
                 "generated pair/slab records diverged at {subdivisions} subdivisions"
             );
             assert_eq!(
@@ -1132,5 +1124,4 @@ mod tests {
             );
         }
     }
-
 }
