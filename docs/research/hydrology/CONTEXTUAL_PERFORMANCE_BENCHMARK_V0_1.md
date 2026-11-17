@@ -320,12 +320,12 @@ The separate input/manifest/oracle identity is enforced in Rust. The CLI produce
 
 **Claim ceiling:** synthetic metric recomputation and split-integrity semantics only. No catchment calibration, South African data acquisition, physical hydrology qualification, predictive skill or field claim follows. Hosted formatting/tests/Clippy/exact-head results will be recorded only after the workflow completes for the exact PR head.
 
-The 32-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
+The 35-case corpus explicitly includes HCB-NC-06: final test data cannot select the winner of a model tournament and then be reported as an unbiased final test score. It also includes the remaining 11 named controls and two timestamp/event-window boundary attacks.
 
 
 ### Executable process-specific metrics — 15 November 2026
 
-The contextual T0 suite has been extended from 21 to 32 cases to cover the metric gaps identified in the protocol:
+The contextual T0 suite has been extended from 21 to 35 cases to cover the metric gaps identified in the protocol:
 - **Event peaks:** peak magnitude error (relative to observed peak), signed and absolute peak timing error, event NSE and event volume bias on a named, frozen event window with a declared fixed step. Earliest maximum wins ties.
 - **Low-flow skill:** mean absolute and signed log10-flow error for observations at or below a predeclared threshold. Observed and predicted values must both be strictly positive; zero is not silently replaced with a pseudocount. A zero in the selected low-flow population returns Indeterminate.
 - **Probabilistic intervals:** empirical coverage against a declared nominal coverage, coverage error, and mean interval width. Lower>upper is rejected.
@@ -396,3 +396,22 @@ Use event-block bootstrap or another predeclared dependence-aware uncertainty me
 Sources:
 - WMO, *Guidelines on the Verification of Hydrological Forecasts*, WMO-No. 1364 (2025): https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
 - Ruparell et al., *A Hydrologist's Guide to the CRPS*, ECMWF Technical Memorandum 935 (December 2025), DOI 10.21957/16101872b5: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
+
+
+## 16. Skill relative to a declared reference — cases 033–035
+
+Proper scores alone do not establish that a new forecast improves on an established baseline. The evaluator adds:
+- **CRPSS** = `1 − CRPS(forecast ensemble)/CRPS(reference ensemble)` for the same observed value and same verification case;
+- **Brier Skill Score** = `1 − mean BS(forecast probabilities)/mean BS(reference probabilities)` for the same binary event and cases.
+
+Every score binds an explicit `reference_forecast_id`. Positive values indicate improvement; zero indicates equal score; negative values indicate the forecast is worse. Negative values are intentionally retained. If the reference score is zero or within predeclared tolerance, the skill score is Undefined, but raw forecast and reference scores remain reportable.
+
+The new three cases take the synthetic suite to 35. They test a 0.5 CRPSS, a positive Brier Skill Score versus constant 0.5 event climatology, and an exact-zero CRPS reference that must produce Undefined rather than division by zero or infinite skill.
+
+### Real-world tournament protocol
+
+At each forecast lead, catchment and event definition, freeze the reference forecast (persistence, seasonal climatology or operational forecast) before test evaluation. Evaluate forecast and reference on identical valid times and observations. Report CRPS/CRPSS, Brier/BSS, reliability, sharpness, event detection and decision value together; no single score replaces process/conservation validity. The WMO hydrological verification guidance stresses skill relative to a relevant reference and evaluates accuracy, bias, reliability, resolution and sharpness; ECMWF's CRPS memo explains ensemble distribution scoring and its relation to Brier and deterministic metrics.
+
+Sources:
+- WMO-No. 1364 (2025), *Guidelines on the Verification of Hydrological Forecasts*: https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
+- Ruparell et al. (2025), ECMWF TM 935, *A Hydrologist's Guide to the CRPS*: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
