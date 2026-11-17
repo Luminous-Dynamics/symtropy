@@ -116,13 +116,13 @@ fn validate_problem(
         return Err("at least one output channel must be admitted".to_owned());
     }
     if problem.training_stimuli.is_empty()
-        || problem.training_stimuli.len() % n != 0
+        || !problem.training_stimuli.len().is_multiple_of(n)
         || problem.training_responses.is_empty()
-        || problem.training_responses.len() % n != 0
+        || !problem.training_responses.len().is_multiple_of(n)
         || problem.heldout_stimuli.is_empty()
-        || problem.heldout_stimuli.len() % n != 0
+        || !problem.heldout_stimuli.len().is_multiple_of(n)
         || problem.heldout_responses.is_empty()
-        || problem.heldout_responses.len() % n != 0
+        || !problem.heldout_responses.len().is_multiple_of(n)
     {
         return Err("stimuli and responses must be nonempty pattern by taxel arrays".to_owned());
     }
