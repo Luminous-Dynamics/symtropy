@@ -314,6 +314,45 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::wrench_scaling_campaign::run_113_taxel_wrench_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("wrench_113_taxel_campaign=paired_synthetic_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("wrench_113_taxel_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("wrench_113_taxel_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    for result in campaign.results {
+                        println!(
+                            "wrench_113_scenario={:?} missing_normal_taxels_mean={:.2} native_rank_mean={:.2} wrench_rank_mean={:.2} combined_rank_mean={:.2} incremental_rank_mean={:.2} native_null_mean={:.2} combined_null_mean={:.2} native_identifiable_mean={:.2} combined_identifiable_mean={:.2} newly_identifiable_pressure_mean={:.2} identifiable_tangent_components_mean={:.2} fully_identifiable_taxels_mean={:.2} max_combined_null={}",
+                            result.scenario,
+                            result.mean_missing_normal_taxels,
+                            result.mean_native_observation_rank,
+                            result.mean_wrench_constraint_rank,
+                            result.mean_combined_rank,
+                            result.mean_incremental_rank_from_wrench,
+                            result.mean_native_null_space_dimension,
+                            result.mean_combined_null_space_dimension,
+                            result.mean_native_identifiable_scalars,
+                            result.mean_combined_identifiable_scalars,
+                            result.mean_newly_identifiable_normal_pressure_taxels,
+                            result.mean_combined_identifiable_tangent_components,
+                            result.mean_fully_identifiable_taxels,
+                            result.maximum_combined_null_space_dimension,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("wrench_113_taxel_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
