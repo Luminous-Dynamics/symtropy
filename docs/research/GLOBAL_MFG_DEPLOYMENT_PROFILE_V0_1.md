@@ -204,3 +204,64 @@ Production market/site claims require current authoritative sources and competen
 - European Commission battery passport resources: https://single-market-economy.ec.europa.eu/single-market/digital-product-passport/batteries_en
 
 These references inform interoperability and research. They are not blanket certification or legal advice.
+
+## Worked global market-route source panel (17 November 2026)
+
+The first source-discovery panel should include markets with materially different product-conformity mechanisms and manufacturing/trade conditions. The examples below are **source pointers and modelling distinctions**, not completed legal applicability determinations.
+
+### European Union — whole-vehicle type approval
+
+The European Commission describes the EU system as Whole Vehicle Type-Approval (WVTA): a vehicle type can be approved in one EU country and marketed across the EU without further tests, subject to Regulation (EU) 2018/858 and applicable regulatory acts. Approval authorities and designated technical services perform distinct roles. The Regulation also supports multi-stage approval for incomplete or completed vehicles, relevant to final-stage assembly and bodybuilders.
+
+- Official Commission overview: https://single-market-economy.ec.europa.eu/sectors/automotive-industry/technical-harmonisation/technical-harmonisation-eu_en
+- Regulation (EU) 2018/858, consolidated 2 August 2026: https://eur-lex.europa.eu/eli/reg/2018/858/20260802/eng
+
+GMDP fields to bind: vehicle category, stage of completion, approval authority, technical-service evidence, applicable regulatory acts, conformity-of-production arrangements, manufacturer/importer role, approval number/extension and effective dates. A component certificate, UN approval or factory audit is not automatically a whole-vehicle approval.
+
+### United States — manufacturer self-certification
+
+NHTSA's manufacturer handbook explains that NHTSA does not issue type-approval certificates. Manufacturers of vehicles and regulated equipment sold in the United States certify compliance with applicable Federal Motor Vehicle Safety Standards (FMVSS); NHTSA enforces compliance. Do not represent a US manufacturer self-certification as a NHTSA-issued approval or assume an EU WVTA is the US market-release route.
+
+- NHTSA, *Outline for New Manufacturer Information*: https://vpic.nhtsa.dot.gov/documents/ManufacturerHandbook.pdf
+
+GMDP fields to bind: responsible manufacturer, applicable FMVSS set and revisions, certification label/statement, VIN/manufacturer identifiers, defect/recall obligations, imported-vehicle role and enforcement/recall records. Exact applicability remains vehicle-class, equipment and date specific.
+
+### India — CMVR and notified test agencies
+
+India's vehicle type-approval route is based on the Central Motor Vehicles Rules (CMVR) and notified test agencies under Rule 126. A Ministry of Heavy Industries PM E-DRIVE operational-guidelines document identifies CMVR compliance and applicable AIS/IS standards, including AIS 049 and AIS 156 for BEVs **within that scheme's eligibility context**. Do not generalize this scheme-specific reference into an exhaustive regulatory checklist for every vehicle category or purpose.
+
+- ARAI vehicle certification: https://www.araiindia.com/certification/certification/vehicle
+- MHI PM E-DRIVE operational guidelines (30 September 2024): https://heavyindustries.gov.in/sites/default/files/2025-07/operatioal-guidelines-dt._30.09.2024_for_p_e-drive.pdf
+
+GMDP fields to bind: CMVR rule/vehicle category, notified test agency, AIS/IS edition and applicability, test reports, type approval, extensions, domestic manufacturer/importer responsibility and scheme-specific eligibility as a separate obligation.
+
+### South Africa — NRCS conformity and Letter of Authority
+
+The NRCS states that a Letter of Authority (LOA) is required for relevant imported vehicles and for certain vehicles built/manufactured or modified in South Africa; it also describes conformity requirements for locally manufactured and imported vehicles intended for public roads. A foreign certificate may be supporting evidence, but NRCS retains the jurisdiction-specific conformity decision.
+
+- NRCS vehicle imports and conformity: https://www.nrcs.org.za/automotive/importing-vehicles/
+- South African Government LOA service: https://www.gov.za/services/register-motor-vehicle/letter-authority-respect-motor-vehicle
+
+GMDP fields to bind: local manufacturer/importer/builder status, vehicle category, applicable compulsory specification, NRCS evidence request, LOA and model/design approval status, local roadworthiness/registration interface, and site permits separately from vehicle approval.
+
+### Brazil — EV CKD/SKD tariff route and time-limited quota
+
+Brazil is a useful example of why customs routes need their own time and eligibility model. MDIC's 26 October 2026 update says the 35% import duty for electrified CKD vehicles is to apply from January 2027, with additional zero-duty import quotas for CKD and SKD for six months, totalling US$463 million. The official Siscomex import page specifically lists the relevant electric/hybrid CKD/SKD NCM lines, links Resolution Gecex 927/2026 and Portaria Secex 513/2026, and lists companies allocated shares of the quota. Eligibility and quota use are therefore not an automatic country-wide entitlement.
+
+- MDIC announcement, updated 26 October 2026: https://www.gov.br/mdic/pt-br/assuntos/noticias/2025/julho/gecex-delibera-sobre-cronograma-de-elevacao-tarifaria-para-carros-eletricos-e-hibridos-importados/
+- Siscomex import quotas and linked legal instruments/company allocation: https://www.gov.br/siscomex/pt-br/informacoes/importacao
+
+GMDP fields to bind: NCM/EX tariff line, product form (CBU/CKD/SKD), origin, importer/company allocation, quota instrument, allocated amount, balance, application and utilisation window, customs value, rate outside the quota, and source snapshot date. The tariff schedule and quota are not vehicle type approval and must not be blended into a single compliance score.
+
+### Cross-market implications
+
+These examples establish a useful initial market-route benchmark:
+
+- EU: type approval with multi-stage route and conformity-of-production.
+- US: manufacturer self-certification against FMVSS and NHTSA enforcement.
+- India: CMVR/notified test-agency route; scheme-specific AIS references remain scoped.
+- South Africa: NRCS conformity and LOA requirements.
+- Brazil: time-bound customs tariff/quota route, distinct from product approval.
+
+The market profile should therefore be a graph of actor-specific obligations and evidence, not a checklist that says a country is either supported or unsupported. Keep approval, factory/site permission, customs treatment, incentive eligibility, import licensing, registration, production quality and after-sales/service obligations separate.
+
