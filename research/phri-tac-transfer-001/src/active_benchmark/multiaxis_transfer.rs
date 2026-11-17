@@ -205,10 +205,10 @@ fn dimensions_required_by_regime(regime: TransferRegime) -> Vec<IdentityDimensio
     }
 }
 
-fn partition<'a>(
-    manifest: &'a TransferBenchmarkManifest,
+fn partition(
+    manifest: &TransferBenchmarkManifest,
     role: PartitionRole,
-) -> Option<&'a BenchmarkPartition> {
+) -> Option<&BenchmarkPartition> {
     manifest.partitions.iter().find(|item| item.role == role)
 }
 
@@ -427,13 +427,13 @@ pub fn audit_transfer_manifest(manifest: &TransferBenchmarkManifest) -> Transfer
         (PartitionRole::TargetValidation, LabelAccess::EvaluatorOnly),
         (PartitionRole::FinalTest, LabelAccess::EvaluatorOnly),
     ] {
-        if let Some(part) = partition(manifest, role) {
-            if part.label_access != expected_access {
-                reasons.push(format!(
-                    "partition {:?} has {:?} label access; expected {:?}",
-                    role, part.label_access, expected_access
-                ));
-            }
+        if let Some(part) = partition(manifest, role)
+            && part.label_access != expected_access
+        {
+            reasons.push(format!(
+                "partition {:?} has {:?} label access; expected {:?}",
+                role, part.label_access, expected_access
+            ));
         }
     }
 
@@ -506,17 +506,16 @@ pub fn audit_transfer_manifest(manifest: &TransferBenchmarkManifest) -> Transfer
 
     for dimension in &holdout_dimensions {
         for role in REQUIRED_PARTITION_ROLES {
-            if let Some(part) = partition(manifest, role) {
-                if part.sample_count > 0
-                    && part
-                        .identities_for(*dimension)
-                        .is_none_or(|identities| identities.is_empty())
-                {
-                    reasons.push(format!(
-                        "nonempty partition {:?} is missing required holdout identities for {:?}",
-                        role, dimension
-                    ));
-                }
+            if let Some(part) = partition(manifest, role)
+                && part.sample_count > 0
+                && part
+                    .identities_for(*dimension)
+                    .is_none_or(|identities| identities.is_empty())
+            {
+                reasons.push(format!(
+                    "nonempty partition {:?} is missing required holdout identities for {:?}",
+                    role, dimension
+                ));
             }
         }
     }
@@ -636,13 +635,6 @@ mod tests {
             identities(IdentityDimension::ContactEpisode, &["episode-source-val"]),
             identities(IdentityDimension::Session, &["session-source-val"]),
             identities(IdentityDimension::ProbeGeometry, &["probe-source-val"]),
-        ];
-        let target = vec![
-            identities(IdentityDimension::SensorFamily, &["family-target"]),
-            identities(IdentityDimension::SensorArticle, &["article-target"]),
-            identities(IdentityDimension::ContactEpisode, &["episode-target-adapt"]),
-            identities(IdentityDimension::Session, &["session-target-adapt"]),
-            identities(IdentityDimension::ProbeGeometry, &["probe-target"]),
         ];
         let target_validation = vec![
             identities(IdentityDimension::SensorFamily, &["family-target"]),
