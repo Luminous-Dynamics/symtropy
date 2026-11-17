@@ -64,20 +64,47 @@ pub enum ReceiverErrorV1 {
     ClaimAlreadyPromoted,
     InvalidIdentifier,
     NonFiniteInput,
-    SingularCoordinateChange { pivot: usize },
-    CoordinateConditionOutOfEnvelope { estimate_bits: u64 },
-    NonSymmetricMetric { defect_bits: u64 },
-    NonPositiveDefiniteMetric { pivot: usize },
+    SingularCoordinateChange {
+        pivot: usize,
+    },
+    CoordinateConditionOutOfEnvelope {
+        estimate_bits: u64,
+    },
+    NonSymmetricMetric {
+        defect_bits: u64,
+    },
+    NonPositiveDefiniteMetric {
+        pivot: usize,
+    },
     NonFiniteDerivedValue,
-    WrongMetricCongruence { defect_bits: u64 },
-    WrongForceCovectorLaw { defect_bits: u64 },
-    WrongMomentumCovectorLaw { defect_bits: u64 },
-    WrongConstraintJacobianLaw { defect_bits: u64 },
-    WrongGeneratorConjugation { defect_bits: u64 },
-    NonIsometricGenerator { generator_index: usize, defect_bits: u64 },
-    PairingNotPreserved { defect_bits: u64 },
-    TangentNormNotPreserved { defect_bits: u64 },
-    CotangentNormNotPreserved { defect_bits: u64 },
+    WrongMetricCongruence {
+        defect_bits: u64,
+    },
+    WrongForceCovectorLaw {
+        defect_bits: u64,
+    },
+    WrongMomentumCovectorLaw {
+        defect_bits: u64,
+    },
+    WrongConstraintJacobianLaw {
+        defect_bits: u64,
+    },
+    WrongGeneratorConjugation {
+        defect_bits: u64,
+    },
+    NonIsometricGenerator {
+        generator_index: usize,
+        defect_bits: u64,
+    },
+    PairingNotPreserved {
+        defect_bits: u64,
+    },
+    TangentNormNotPreserved {
+        defect_bits: u64,
+    },
+    CotangentNormNotPreserved {
+        defect_bits: u64,
+    },
     ReceiptSerializationFailure,
 }
 
@@ -284,9 +311,11 @@ struct CanonicalWriterV1 {
 
 impl CanonicalWriterV1 {
     fn field(&mut self, label: &str, payload: &[u8]) {
-        self.bytes.extend_from_slice(&(label.len() as u64).to_le_bytes());
+        self.bytes
+            .extend_from_slice(&(label.len() as u64).to_le_bytes());
         self.bytes.extend_from_slice(label.as_bytes());
-        self.bytes.extend_from_slice(&(payload.len() as u64).to_le_bytes());
+        self.bytes
+            .extend_from_slice(&(payload.len() as u64).to_le_bytes());
         self.bytes.extend_from_slice(payload);
     }
 
@@ -328,11 +357,7 @@ impl CanonicalWriterV1 {
         Ok(())
     }
 
-    fn jacobian2x3(
-        &mut self,
-        label: &str,
-        jacobian: &Jacobian2x3,
-    ) -> Result<(), ReceiverErrorV1> {
+    fn jacobian2x3(&mut self, label: &str, jacobian: &Jacobian2x3) -> Result<(), ReceiverErrorV1> {
         let mut bytes = Vec::with_capacity(6 * 8);
         for row in jacobian {
             for value in row {
@@ -406,20 +431,18 @@ fn valid_git_sha(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(byte))
 }
 
-fn canonical_matrix3_hash(
-    domain: &str,
-    matrix: &Matrix3,
-) -> Result<String, ReceiverErrorV1> {
+fn canonical_matrix3_hash(domain: &str, matrix: &Matrix3) -> Result<String, ReceiverErrorV1> {
     let mut writer = CanonicalWriterV1::default();
     writer.matrix3("matrix-3x3-f64-le-v1", matrix)?;
     Ok(hash_domain(domain, &writer.bytes))
 }
 
-fn canonical_generators_hash(
-    generators: &[Matrix3],
-) -> Result<String, ReceiverErrorV1> {
+fn canonical_generators_hash(generators: &[Matrix3]) -> Result<String, ReceiverErrorV1> {
     let mut writer = CanonicalWriterV1::default();
-    writer.field("generator-count-u64-le-v1", &(generators.len() as u64).to_le_bytes());
+    writer.field(
+        "generator-count-u64-le-v1",
+        &(generators.len() as u64).to_le_bytes(),
+    );
     for (index, generator) in generators.iter().enumerate() {
         writer.matrix3(&format!("generator-{index}-3x3-f64-le-v1"), generator)?;
     }
@@ -448,8 +471,14 @@ fn canonical_fixture_hash(
     writer.vector3("initial-position-q-v1", &fixture.initial_position_q)?;
     writer.vector3("initial-velocity-q-v1", &fixture.initial_velocity_q)?;
     writer.matrix3("declared-mass-metric-y-v1", &fixture.declared_mass_metric_y)?;
-    writer.vector3("declared-force-covector-y-v1", &fixture.declared_force_covector_y)?;
-    writer.vector3("declared-momentum-covector-y-v1", &fixture.declared_momentum_covector_y)?;
+    writer.vector3(
+        "declared-force-covector-y-v1",
+        &fixture.declared_force_covector_y,
+    )?;
+    writer.vector3(
+        "declared-momentum-covector-y-v1",
+        &fixture.declared_momentum_covector_y,
+    )?;
     writer.jacobian2x3(
         "declared-constraint-jacobian-y-v1",
         &fixture.declared_constraint_jacobian_y,
@@ -491,7 +520,10 @@ fn canonical_task_hashes(
         ("candidate-domain", &task.candidate_domain),
         ("objective", &task.objective),
         ("feasibility-constraints", &task.feasibility_constraints),
-        ("initial-and-boundary-conditions", &task.initial_and_boundary_conditions),
+        (
+            "initial-and-boundary-conditions",
+            &task.initial_and_boundary_conditions,
+        ),
         ("observable-mapping", &task.observable_mapping),
         ("answer-interpretation", &task.answer_interpretation),
     ];
@@ -544,8 +576,8 @@ fn source_receipt_binding(
         return Err(ReceiverErrorV1::GeneratorDigestMismatch);
     }
 
-    let value: Value = serde_json::from_slice(exact_bytes)
-        .map_err(|_| ReceiverErrorV1::SourceReceiptMalformed)?;
+    let value: Value =
+        serde_json::from_slice(exact_bytes).map_err(|_| ReceiverErrorV1::SourceReceiptMalformed)?;
     let string_field = |key: &str| {
         value
             .get(key)
@@ -615,7 +647,10 @@ fn relative_jacobian_defect(left: &Jacobian2x3, right: &Jacobian2x3) -> f64 {
             defect = defect.max((left[row][column] - right[row][column]).abs());
         }
     }
-    defect / 1.0_f64.max(max_abs_jacobian(left)).max(max_abs_jacobian(right))
+    defect
+        / 1.0_f64
+            .max(max_abs_jacobian(left))
+            .max(max_abs_jacobian(right))
 }
 
 fn transpose(matrix: &Matrix3) -> Matrix3 {
@@ -801,10 +836,7 @@ fn cholesky(
     Ok((lower, relative_symmetry))
 }
 
-fn solve_spd(
-    lower: &Matrix3,
-    rhs: &Vector3,
-) -> Result<Vector3, ReceiverErrorV1> {
+fn solve_spd(lower: &Matrix3, rhs: &Vector3) -> Result<Vector3, ReceiverErrorV1> {
     let mut intermediate = [0.0; 3];
     for row in 0..3 {
         let mut value = rhs[row];
@@ -827,10 +859,7 @@ fn solve_spd(
     Ok(solution)
 }
 
-fn tangent_norm(
-    metric: &Matrix3,
-    vector: &Vector3,
-) -> Result<f64, ReceiverErrorV1> {
+fn tangent_norm(metric: &Matrix3, vector: &Vector3) -> Result<f64, ReceiverErrorV1> {
     let raised = apply(metric, vector);
     let square = dot(vector, &raised);
     if !square.is_finite() || square < -1.0e-12 {
@@ -839,10 +868,7 @@ fn tangent_norm(
     Ok(square.max(0.0).sqrt())
 }
 
-fn cotangent_norm(
-    lower: &Matrix3,
-    covector: &Vector3,
-) -> Result<f64, ReceiverErrorV1> {
+fn cotangent_norm(lower: &Matrix3, covector: &Vector3) -> Result<f64, ReceiverErrorV1> {
     let raised = solve_spd(lower, covector)?;
     let square = dot(covector, &raised);
     if !square.is_finite() || square < -1.0e-12 {
@@ -863,7 +889,9 @@ fn isometry_relative_defect(generator: &Matrix3, metric: &Matrix3) -> f64 {
     for row in 0..3 {
         for column in 0..3 {
             defect = defect.max((gt_m[row][column] + mg[row][column]).abs());
-            scale = scale.max(gt_m[row][column].abs()).max(mg[row][column].abs());
+            scale = scale
+                .max(gt_m[row][column].abs())
+                .max(mg[row][column].abs());
         }
     }
     defect / scale
@@ -947,10 +975,7 @@ pub fn verify_package(
     let physical = &envelope.physical_problem;
     let source = &envelope.source_math_receipt;
 
-    let transform_hash = canonical_matrix3_hash(
-        "luminous.transform-s.v1",
-        &fixture.transform_s,
-    )?;
+    let transform_hash = canonical_matrix3_hash("luminous.transform-s.v1", &fixture.transform_s)?;
     if transform_hash != physical.coordinate_change.transform_sha256 {
         return Err(ReceiverErrorV1::PhysicalFixtureDigestMismatch);
     }
@@ -963,10 +988,8 @@ pub fn verify_package(
     {
         return Err(ReceiverErrorV1::MassMetricDigestMismatch);
     }
-    if canonical_force_covectors_hash(
-        &fixture.force_covector_q,
-        &fixture.momentum_covector_q,
-    )? != physical.force_covectors_sha256
+    if canonical_force_covectors_hash(&fixture.force_covector_q, &fixture.momentum_covector_q)?
+        != physical.force_covectors_sha256
     {
         return Err(ReceiverErrorV1::ForceCovectorDigestMismatch);
     }
@@ -979,10 +1002,8 @@ pub fn verify_package(
             return Err(ReceiverErrorV1::ConstraintMapDigestMismatch);
         }
     }
-    if canonical_initial_state_hash(
-        &fixture.initial_position_q,
-        &fixture.initial_velocity_q,
-    )? != physical.initial_state_sha256
+    if canonical_initial_state_hash(&fixture.initial_position_q, &fixture.initial_velocity_q)?
+        != physical.initial_state_sha256
     {
         return Err(ReceiverErrorV1::InitialStateDigestMismatch);
     }
@@ -1021,7 +1042,10 @@ pub fn verify_package(
     let jacobian_y = multiply_jacobian(&fixture.constraint_jacobian_q, &fixture.transform_s);
     let mut generators_y = Vec::with_capacity(package.generator_set.len());
     for generator in &package.generator_set {
-        generators_y.push(multiply(&multiply(&inverse_s, generator), &fixture.transform_s));
+        generators_y.push(multiply(
+            &multiply(&inverse_s, generator),
+            &fixture.transform_s,
+        ));
     }
 
     let mass_defect = relative_matrix_defect(&mass_y, &fixture.declared_mass_metric_y);
@@ -1073,7 +1097,8 @@ pub fn verify_package(
             |bits| ReceiverErrorV1::WrongGeneratorConjugation { defect_bits: bits },
         )?;
 
-        let isometry_q = isometry_relative_defect(&package.generator_set[index], &fixture.mass_metric_q);
+        let isometry_q =
+            isometry_relative_defect(&package.generator_set[index], &fixture.mass_metric_q);
         let isometry_y = isometry_relative_defect(expected, &mass_y);
         max_isometry_q = max_isometry_q.max(isometry_q);
         max_isometry_y = max_isometry_y.max(isometry_y);
@@ -1133,7 +1158,11 @@ pub fn verify_package(
 
     if source.metric_id.trim().is_empty()
         || source.coordinate_basis_id != physical.coordinate_change.from_basis_id
-        || envelope.physical_problem.solver_profile_id.trim().is_empty()
+        || envelope
+            .physical_problem
+            .solver_profile_id
+            .trim()
+            .is_empty()
         || envelope.physical_problem.units_profile_id.trim().is_empty()
         || envelope.physical_problem.time_step_seconds <= 0.0
         || !envelope.physical_problem.time_step_seconds.is_finite()
@@ -1186,8 +1215,8 @@ pub fn verify_package(
         diagnostics,
         claim_boundary: "Bounded 3D coordinate re-description only; no discrete-step, physical-observable, nonlinear solver, or scientific pruning authority.".to_owned(),
     };
-    let receipt_bytes = serde_json::to_vec(&payload)
-        .map_err(|_| ReceiverErrorV1::ReceiptSerializationFailure)?;
+    let receipt_bytes =
+        serde_json::to_vec(&payload).map_err(|_| ReceiverErrorV1::ReceiptSerializationFailure)?;
     let receipt_hash = hash_domain("luminous.receiver-owned-receipt.v1", &receipt_bytes);
     Ok(ReceiverReceiptV1 {
         payload,
@@ -1213,27 +1242,17 @@ mod tests {
     }
 
     fn build_package() -> ReceiverPackageV1 {
-        let generators = vec![[
-            [0.0, -1.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0],
-        ]];
-        let transform_s = [
-            [1.0, 2.0, -1.0],
-            [0.0, 1.0, 3.0],
-            [0.0, 0.0, 1.0],
-        ];
-        let mass_q = [
-            [2.0, 0.0, 0.0],
-            [0.0, 2.0, 0.0],
-            [0.0, 0.0, 5.0],
-        ];
+        let generators = vec![[[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]]];
+        let transform_s = [[1.0, 2.0, -1.0], [0.0, 1.0, 3.0], [0.0, 0.0, 1.0]];
+        let mass_q = [[2.0, 0.0, 0.0], [0.0, 2.0, 0.0], [0.0, 0.0, 5.0]];
         let force_q = [1.0, 2.0, 3.0];
         let momentum_q = [0.5, -1.0, 1.5];
         let jacobian_q = [[1.0, 0.0, 1.0], [0.0, 1.0, -1.0]];
         let position_q = [0.1, 0.2, 0.3];
         let velocity_q = [0.5, -0.25, 0.75];
-        let inverse_s = inverse_and_condition(&transform_s, test_profile()).unwrap().0;
+        let inverse_s = inverse_and_condition(&transform_s, test_profile())
+            .unwrap()
+            .0;
         let mass_y = multiply(&multiply(&transpose(&transform_s), &mass_q), &transform_s);
         let force_y = transpose_apply(&transform_s, &force_q);
         let momentum_y = transpose_apply(&transform_s, &momentum_q);
@@ -1332,21 +1351,17 @@ mod tests {
                         &mass_q,
                     )
                     .unwrap(),
-                    force_covectors_sha256: canonical_force_covectors_hash(
-                        &force_q,
-                        &momentum_q,
-                    )
-                    .unwrap(),
+                    force_covectors_sha256: canonical_force_covectors_hash(&force_q, &momentum_q)
+                        .unwrap(),
                     constraint_map_sha256: {
                         let mut writer = CanonicalWriterV1::default();
-                        writer.jacobian2x3("constraint-jacobian-q-v1", &jacobian_q).unwrap();
+                        writer
+                            .jacobian2x3("constraint-jacobian-q-v1", &jacobian_q)
+                            .unwrap();
                         hash_domain("luminous.constraint-map.v1", &writer.bytes)
                     },
-                    initial_state_sha256: canonical_initial_state_hash(
-                        &position_q,
-                        &velocity_q,
-                    )
-                    .unwrap(),
+                    initial_state_sha256: canonical_initial_state_hash(&position_q, &velocity_q)
+                        .unwrap(),
                     solver_profile_id: "constrained-midpoint-profile-v0.1".to_owned(),
                     integration_method: "implicit-midpoint".to_owned(),
                     time_step_seconds: 0.01,
@@ -1405,15 +1420,42 @@ mod tests {
         let package = build_package();
         let receipt = verify_package(&package, test_profile()).unwrap();
         assert_eq!(receipt.payload.status, ObligationStatusV1::Inconclusive);
-        assert_eq!(receipt.payload.obligations.mass_metric_congruence, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.force_covector_duality, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.momentum_one_form, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.constraint_jacobian, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.generator_metric_isometry, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.full_task_semantics, ObligationStatusV1::Pass);
-        assert_eq!(receipt.payload.obligations.discrete_step_equivariance, ObligationStatusV1::Inconclusive);
-        assert_eq!(receipt.payload.obligations.physical_observables, ObligationStatusV1::Inconclusive);
-        assert_eq!(receipt.payload.obligations.numerical_error_envelope, ObligationStatusV1::Inconclusive);
+        assert_eq!(
+            receipt.payload.obligations.mass_metric_congruence,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.force_covector_duality,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.momentum_one_form,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.constraint_jacobian,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.generator_metric_isometry,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.full_task_semantics,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(
+            receipt.payload.obligations.discrete_step_equivariance,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(
+            receipt.payload.obligations.physical_observables,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(
+            receipt.payload.obligations.numerical_error_envelope,
+            ObligationStatusV1::Inconclusive
+        );
         assert_eq!(receipt.payload.physical_equivalence_authority, "NONE");
         assert!(!receipt.payload.scientific_search_pruning_authorized);
         assert!(valid_sha256(&receipt.receiver_receipt_sha256));
@@ -1449,9 +1491,13 @@ mod tests {
             verify_package(&package, test_profile()),
             Err(ReceiverErrorV1::WrongForceCovectorLaw {
                 defect_bits: relative_vector_defect(
-                    &transpose_apply(&package.physical_fixture.transform_s, &package.physical_fixture.force_covector_q),
+                    &transpose_apply(
+                        &package.physical_fixture.transform_s,
+                        &package.physical_fixture.force_covector_q
+                    ),
                     &package.physical_fixture.declared_force_covector_y
-                ).to_bits()
+                )
+                .to_bits()
             })
         );
     }
@@ -1473,15 +1519,26 @@ mod tests {
         let mut package = build_package();
         package.generator_set[0][0][1] = -2.0;
         let generator_hash = canonical_generators_hash(&package.generator_set).unwrap();
-        let inverse_s = inverse_and_condition(&package.physical_fixture.transform_s, test_profile()).unwrap().0;
-        package.physical_fixture.declared_generators_y = package.generator_set.iter()
-            .map(|generator| multiply(&multiply(&inverse_s, generator), &package.physical_fixture.transform_s))
+        let inverse_s =
+            inverse_and_condition(&package.physical_fixture.transform_s, test_profile())
+                .unwrap()
+                .0;
+        package.physical_fixture.declared_generators_y = package
+            .generator_set
+            .iter()
+            .map(|generator| {
+                multiply(
+                    &multiply(&inverse_s, generator),
+                    &package.physical_fixture.transform_s,
+                )
+            })
             .collect();
         package.envelope.physical_problem.fixture_sha256 =
             canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
         package.envelope.source_math_receipt.generator_set_sha256 = generator_hash.clone();
         let mut receipt: Value =
-            serde_json::from_slice(&decode_hex(&package.source_receipt_bytes_hex).unwrap()).unwrap();
+            serde_json::from_slice(&decode_hex(&package.source_receipt_bytes_hex).unwrap())
+                .unwrap();
         receipt["generator_set_sha256"] = Value::String(generator_hash);
         let receipt_bytes = serde_json::to_vec(&receipt).unwrap();
         package.source_receipt_bytes_hex = encode_hex(&receipt_bytes);
@@ -1506,16 +1563,16 @@ mod tests {
     #[test]
     fn singular_transform_fails_closed() {
         let mut package = build_package();
-        package.physical_fixture.transform_s = [
-            [1.0, 2.0, 3.0],
-            [2.0, 4.0, 6.0],
-            [0.0, 0.0, 1.0],
-        ];
-        package.envelope.physical_problem.coordinate_change.transform_sha256 =
-            canonical_matrix3_hash(
-                "luminous.transform-s.v1",
-                &package.physical_fixture.transform_s,
-            ).unwrap();
+        package.physical_fixture.transform_s = [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [0.0, 0.0, 1.0]];
+        package
+            .envelope
+            .physical_problem
+            .coordinate_change
+            .transform_sha256 = canonical_matrix3_hash(
+            "luminous.transform-s.v1",
+            &package.physical_fixture.transform_s,
+        )
+        .unwrap();
         package.envelope.physical_problem.fixture_sha256 =
             canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
         assert_eq!(
