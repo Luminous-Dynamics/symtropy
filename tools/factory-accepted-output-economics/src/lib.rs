@@ -546,7 +546,6 @@ pub fn evaluate(
     }
 
     let mut output_ids: BTreeSet<(&str, &str)> = BTreeSet::new();
-    let mut release_refs: BTreeSet<(&str, &str)> = BTreeSet::new();
     for output in outputs {
         if !cases_by_id.contains_key(output.case_id.as_str()) {
             return Err(format!("orphan output for unknown case: {}", output.case_id));
@@ -567,9 +566,6 @@ pub fn evaluate(
         if output.final_disposition.is_released() {
             if !valid_ref(&output.release_ref) {
                 return Err(format!("released output {} lacks a valid release reference", output.output_id));
-            }
-            if !release_refs.insert((output.case_id.as_str(), output.release_ref.as_str())) {
-                return Err(format!("release reference reused within case: {}", output.release_ref));
             }
         } else if output.release_ref != "-" {
             return Err(format!("non-released output {} carries a release reference", output.output_id));
@@ -1055,12 +1051,10 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_release_reference_is_rejected_across_outputs() {
+    fn batch_release_evidence_reference_may_cover_multiple_distinct_units() {
         let (cases, costs, mut outputs) = parsed();
         outputs[1].release_ref = outputs[0].release_ref.clone();
-        assert!(evaluate(&cases, &costs, &outputs)
-            .unwrap_err()
-            .contains("release reference reused within case"));
+        assert!(evaluate(&cases, &costs, &outputs).is_ok());
     }
 
     #[test]
