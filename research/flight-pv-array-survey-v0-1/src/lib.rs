@@ -1583,6 +1583,8 @@ mod tests {
     #[test]
     fn raster_plan_covers_all_modules_in_two_boustrophedon_lanes() {
         let mut survey_profile = profile();
+        let mut spec = raster_spec();
+        spec.footprint_half_height_m = 0.6;
         survey_profile.modules.extend([
             ModuleBounds {
                 module_id: "module-03".to_owned(),
@@ -1603,7 +1605,7 @@ mod tests {
                 v_max_m: 2.0,
             },
         ]);
-        let plan = generate_raster_plan(&survey_profile, &raster_spec()).unwrap();
+        let plan = generate_raster_plan(&survey_profile, &spec).unwrap();
         assert_eq!(plan.waypoints.len(), 4);
         let covered: BTreeSet<&str> = plan
             .waypoints
