@@ -48,7 +48,7 @@ This yields an analytic known-answer oracle for every sampled time.
 | Implicit midpoint reference | Monolithic reference integrator for this linear problem | Second-order accuracy and A-stability; not L-stable |
 | Backward Euler reference | Monolithic reference integrator for this linear problem | First-order accuracy, L-stability and robust damping |
 
-The two implicit entries are **not** generic FMI master algorithms. They are monolithic numerical reference methods for this known linear system. A future FMI lane must probe each FMU's actual capabilities, including state save/restore, early return, clocks and intermediate updates.
+The two implicit entries are **not** generic FMI master algorithms. They are monolithic numerical reference methods for this known linear system. The adaptive shared-flux entry estimates local error by comparing one full Euler step with two half steps, accepts the two-half result, and rejects/reduces steps when the error estimate or positivity guard fails. Its absolute/relative tolerances apply to the local error estimate; global trajectory error is measured independently against the analytic oracle. A future FMI lane must probe each FMU's actual capabilities, including state save/restore, early return, clocks and intermediate updates.
 
 ## Scenarios
 
