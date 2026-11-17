@@ -1,3 +1,5 @@
+pub mod damage;
+
 //! Small reference solver for linear-elastic 3D pin-jointed trusses.
 //!
 //! The solver is intentionally narrow. It is a reference for axial bar
