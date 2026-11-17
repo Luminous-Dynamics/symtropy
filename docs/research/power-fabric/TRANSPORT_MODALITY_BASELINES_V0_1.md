@@ -1,87 +1,54 @@
 # Power Fabric transport-modality baseline register v0.1
 
-**Owner issue:** [#5921 — POWER-FABRIC-MODALITY-BASELINES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5921)  
-**Parent programme:** [#5832 — POWER-FABRIC-TRANSPORT-PRIMITIVES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5832)  
-**Schema:** `docs/research/power-fabric/data/transport-modality-baselines.schema.json`  
-**Data manifest:** `docs/research/power-fabric/data/transport-modality-baselines.v0.1.json`  
-**JSONL corpus:** `docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl`  
-**Record schema:** `docs/research/power-fabric/data/transport-modality-baseline-record.schema.json`
+**Owner issue:** [#5921 — POWER-FABRIC-MODALITY-BASELINES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5921)
+**Parent:** [#5832 — POWER-FABRIC-TRANSPORT-PRIMITIVES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5832)
+**Manifest:** docs/research/power-fabric/data/transport-modality-baselines.v0.1.json
+**JSONL corpus:** docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl
+**Schemas:** transport-modality-baselines.schema.json and transport-modality-baseline-record.schema.json
+**Validator:** tools/power-fabric-baseline-validator
 
-## What the register is for
+## Purpose and claim ceiling
 
-The register captures public, source-reported reference points without converting them into a universal wireless-power leaderboard.
+The register freezes nine public 2025–2026 source records and 42 observations without creating a universal wireless-power leaderboard. It keeps source boundaries, operating conditions, known unknowns and Luminous reproduction status visible. No record has been independently reproduced by Luminous.
 
-The seven initial records cover high-power inductive charging, long-range optical beaming, a medium-distance optical LPT prototype, UAV optical pointing/control, underwater ultrasonic transfer and a dynamic roadway pilot. Each record retains:
-- the source and its publication date;
-- modality, application and comparison group;
-- numeric observations with units, relations and exact stated boundaries;
-- measurement planes and operating conditions;
-- known unknowns and Luminous reproduction status.
+Each observation is classified as a source-reported measurement, source-reported derived value, source-declared parameter, source-reported model fit, source-reported simulation or public announcement claim. Unknown information remains unknown; no missing source or receiver boundary is set to zero.
 
-Every observation carries an explicit evidence kind: source-reported measurement, derived value, declared parameter, fitted model or announcement claim. In particular, a source-declared efficiency parameter is never promoted to an experimental end-to-end result. Luminous has not independently reproduced these experiments.
+## Source-bound reference table
 
-## Boundary-specific industry reference points
-
-| Reference | Source-reported result | Boundary that must be preserved |
+| Record | Source-reported observations | Boundary / caveat |
 |---|---|---|
-| 50 kW Riekerk bus IPT, 2026 | 96.824–97.165% efficiency; 13.86 µT stray field | DC-to-DC efficiency; not whole grid-to-battery efficiency. [Paper DOI](https://doi.org/10.1109/JESTPE.2025.3631233) |
-| NTT/MHI laser, 1 km, 2025 | 1 kW optical power, 152 W receiver electrical power, 15%, 30 minutes | Optical-output-to-receiver-electrical, not wall-plug-to-load. [NTT release](https://group.ntt/en/newsrelease/2025/09/17/250917a.html) |
-| DARPA POWER, 8.6 km, 2025 | More than 800 W for 30 seconds; more than 1 MJ across campaign | Receiver power/distance demonstration; public release does not provide whole-system efficiency. [DARPA release](https://www.darpa.mil/news/2025/darpa-program-distance-record-power-beaming) |
-| Yigit et al. laser, 20 m, 2026 | About 99 W, 12.4% overall LPT, 95.96% driver stage | Overall LPT and laser-driver efficiencies are different boundaries. [Paper DOI](https://doi.org/10.1016/j.optlastec.2026.115445) |
-| Liao et al. underwater ultrasonic, 35 cm, 2025 | 2.5 W transmitter, 433 mW receiver load, 17% reported | Transmitter-to-load definition requires primary-paper meter-plane review. [Paper DOI](https://doi.org/10.24425/aoa.2025.154821) |
-| VINCI/Electreon A10, 2025 | >300 kW instantaneous, >200 kW average in optimal steady state, 1.5 km pilot segment | Power claim in an industry pilot; exact meter plane, whole-route efficiency and long-term availability not given. [VINCI release](https://www.vinci.com/en/newsroom/news/world-first-dynamic-wireless-charging-motorway) |\n| Sfasciamuro et al. UAV LPT, July 2026 | 10–80 cm outdoor coarse pointing error at ~15 m; 2–9% fine-steering step residual at ~80 m; 6 mm cross-axis drift; separate 30% laser / 20% PV source parameters | Pointing/sensing/control prototype, not a battery-side energy-transfer demonstration. The paper explicitly neglects downstream battery power-conditioning efficiency. [Paper DOI](https://doi.org/10.3390/aerospace13080664) |
+| Riekerk 50 kW IPT (2026) — https://doi.org/10.1109/JESTPE.2025.3631233 | 96.824–97.165% DC-to-DC, 13.86 µT stray field, 50 kW prototype class | DC-to-DC is not grid-to-battery or lifecycle efficiency; field result is not universal exposure compliance. |
+| NTT/MHI optical 1 km (2025) — https://group.ntt/en/newsrelease/2025/09/17/250917a.html | 1 kW optical output, 152 W receiver electrical output, 15% optical-to-electrical, 30 minutes | Not wall-plug-to-load efficiency; high-power link tested within controlled safety booths. |
+| DARPA POWER 8.6 km (2025) — https://www.darpa.mil/news/2025/darpa-program-distance-record-power-beaming | More than 800 W for 30 seconds; more than 1 MJ across campaign | Public announcement does not provide whole-system efficiency; campaign energy is not a single continuous interval. |
+| Yigit 20 m LPT (2026) — https://doi.org/10.1016/j.optlastec.2026.115445 | ~99 W, 12.4% reported end-to-end LPT, 95.96% laser-driver stage | Driver-stage efficiency is not end-to-end efficiency; detailed meter planes need full-text reconstruction. |
+| Sfasciamuro UAV optical control (2026) — https://doi.org/10.3390/aerospace13080664 | <2% spot calibration error, 10–80 cm coarse pointing at ~15 m, 2–9% fine-steering residual at ~80 m, ~6 mm cross-axis drift; 30% laser / 20% PV source parameters | Pointing/control prototype, not battery-side energy demonstration; PV-to-battery conditioning is explicitly omitted. |
+| VINCI/Electreon A10 roadway pilot (2025) — https://www.vinci.com/en/newsroom/news/world-first-dynamic-wireless-charging-motorway | 1.5 km segment, >300 kW instantaneous and >200 kW average under optimal steady-state conditions | Power claim, not end-to-end efficiency; exact meter plane, averaging window and long-term availability are not provided in the announcement. |
+| Santhakumar fault-tolerant roadway IPT (2026) — https://www.nature.com/articles/s41598-026-71194-x | 1 kW design, 800 W nominal lab output, ~50 ms reported experimental recovery, 650–750 W restored output, 90–92% normal / 88–90% degraded efficiency | Laboratory resilience prototype; paper excludes misalignment effects, mixes simulation/hardware results and has topology/rating ambiguities. |
+| Liao underwater ultrasonic (2025) — https://doi.org/10.24425/aoa.2025.154821 | 35 cm, 2.5 W transmitter, 433 mW into 1.2 kΩ, 17% reported efficiency | Wall-supply versus transducer-input boundary needs primary-paper verification. |
+| Li underwater acoustic cavitation model (2026) — https://doi.org/10.1016/j.apor.2026.105249 | 6.76 W modeled acoustic transmit-power ceiling at 40 kHz | Model-derived source-side constraint, not measured receiver power or a universal ocean limit. |
 
-The 2026 review literature identifies near-field transfer as the present leader in practical output power and efficiency, while direct wireless conversion and standardized energy/information interfaces are key research directions. It also notes that far-field approaches have not yet matched near-field efficiency and output power. [Nature Reviews Electrical Engineering, 2 April 2026](https://www.nature.com/articles/s44287-026-00279-6). A 2026 empirical survey screens 133 IPT/CPT experimental papers from 2020–2025, useful as a source register but not a single matched leaderboard. [Electronics 2026 survey](https://doi.org/10.3390/electronics15081575).
+## Interpretation notes
 
-### Optical UAV control baseline: do not mistake pointing validation for an energy result\n\nSfasciamuro et al. (24 July 2026) experimentally validate the pointing/sensing/control chain of a UAV laser power-transfer architecture. The paper reports camera/checkerboard spot calibration error below 2%; outdoor coarse pointing error of 10–80 cm at an average target distance of about 15 m; and an ~80 m fine-steering test in which 50 mm Y-axis commands produced 2–9% step residuals and ~6 mm cross-axis drift. It fits the IR spot diameter as approximately 1.236 mm/m × distance + 9.93 mm, with R²=0.996.\n\nThe paper states a 30% laser electrical-to-optical efficiency and 20% PV optical-to-electrical efficiency for its current system chain, but these are source-declared parameters—not a reported battery-side end-to-end measured result. The article explicitly neglects the electronics between PV cell output and battery input. It also says that full bandwidth, settling-time and disturbance-rejection characterization was not part of the campaign. We therefore place it in an optical UAV pointing/control comparison group, not in the efficiency leaderboard. [Aerospace 2026, DOI 10.3390/aerospace13080664](https://doi.org/10.3390/aerospace13080664).\n\n### Fault-tolerant dynamic roadway IPT and acoustic model constraints
+Near-field IPT remains the practical efficiency and power leader in current implementations. The April 2026 Nature Reviews Electrical Engineering review identifies direct wireless conversion, primary-side control, simultaneous power/data and standardized energy-information interfaces as important research directions. It does not establish a global cross-modal leaderboard. https://www.nature.com/articles/s44287-026-00279-6
 
-Santhakumar et al. (13 November 2026), *Fault-tolerant multi-leg inverter-fed roadway-powered dynamic wireless power transfer charging system*, Scientific Reports 16, 37971, report a 1 kW design and an 800 W nominal laboratory output. The article reports a ~50 ms experimental fault-recovery sequence, 650–750 W restored power after standby-leg reassignment, a temporary ~200 W fault-isolation output for 100–150 ms, and 90–92% normal / 88–90% degraded efficiencies. It separately describes simulated fault-detection latency of 30–45 ms. We preserve simulation and hardware results as separate evidence kinds. The paper explicitly excludes misalignment effects, and its description varies between design rating, operating output and inverter leg configurations; those ambiguities must be resolved before matched replication. This is a laboratory fault-tolerance reference, not the VINCI motorway pilot. [Scientific Reports, 13 November 2026](https://www.nature.com/articles/s41598-026-71194-x).
+The UAV optical paper declares a 30% laser and 20% PV efficiency chain but does not report a measured battery-side end-to-end result; the article explicitly neglects downstream PV-to-battery power conditioning. It also reports pointing and tracking errors that make receiver interception an independent qualification problem.
 
-Li et al. (October 2026) model a 6.76 W acoustic transmit-power ceiling at 40 kHz when cavitation governs their seawater model. This is a modeled source-side acoustic constraint, not measured receiver power, useful service or a universal ocean limit. Its uncertainty and validity envelope require primary-paper review before application. [Applied Ocean Research, DOI 10.1016/j.apor.2026.105249](https://doi.org/10.1016/j.apor.2026.105249).
+The Santhakumar roadway paper should be treated as a fault-tolerance baseline, not a high-power roadway pilot. The ~50 ms experiment-based recovery time is separate from its 30–45 ms simulated fault detection. Misalignment effects are excluded, and the paper describes different prototype configurations and ratings in different sections.
 
-### Optical UAV pointing/control evidence
+The Li acoustic result is a 40 kHz cavitation-constrained model bound under its assumptions. It must not be interpreted as received load power or a universal underwater transmit limit.
 
-Sfasciamuro et al. (24 July 2026) experimentally validate the pointing and sensing architecture for UAV laser power transfer. Reported results include spot-centre/diameter calibration error below 2%; outdoor coarse pointing error of 10–80 cm at an average UAV distance of about 15 m; and an approximately 80 m fine-steering test with 50 mm Y-axis commands, 2–9% residual error and ~6 mm cross-axis drift. The measured infrared spot-diameter fit is approximately 1.236 mm/m × distance + 9.93 mm, with R²=0.996.
+## Comparison rules
 
-The paper states 30% laser and 20% photovoltaic efficiencies for its current system chain. These are source-declared parameters, not a measured battery-side end-to-end efficiency. It explicitly neglects downstream power-conditioning electronics between PV cell output and battery input. Full bandwidth, settling-time and disturbance-rejection characterization was also outside the experimental campaign. This is therefore a distinct optical UAV pointing/control comparison group, not an efficiency result. [Aerospace 2026, DOI 10.3390/aerospace13080664](https://doi.org/10.3390/aerospace13080664).
+Compare candidates only when the useful service and quality, duty cycle, distance/route, environment, source meter plane, useful-output meter plane, conversion stages and uncertainty method match. Do not compare DC-to-DC IPT with optical-output-to-receiver-electrical efficiency; do not infer wall-plug efficiency from source optical power; do not compare simulation-only acoustic limits with measured receiver energy; and do not treat roadway peak/average power as efficiency.
 
-## Rules for a valid comparison
-
-A future comparison must match at least the service and quality profile, duty cycle, distance or route, environment, source meter plane, useful-output meter plane, conversion stages and uncertainty method.
-
-Examples:
-- Do not compare 97% DC-to-DC IPT with 15% optical-output-to-receiver-electrical LPT as though they share a boundary.
-- Do not compare the 12.4% Yigit end-to-end LPT claim with NTT's 15% optical-to-electrical result until the laser-driver and upstream electrical input boundaries are normalized.
-- Do not infer DARPA whole-system efficiency from delivered power and range.
-- Do not infer an underwater system's wall-plug-to-load efficiency from transmitter power and load power when the meter plane is not fully specified.
-- Do not treat a roadway's instantaneous/average power as an efficiency measurement.
-
-Only measured or independently qualified data with matched boundaries may enter a comparative Pareto analysis. Use the existing [#3453 interval-aware Pareto evaluator](https://github.com/Luminous-Dynamics/symtropy/issues/3453), [#3472 energy ledger](https://github.com/Luminous-Dynamics/symtropy/issues/3472) and [#3421 Well-to-Service accounting](https://github.com/Luminous-Dynamics/symtropy/issues/3421) rather than inventing a new optimizer or accounting engine.
+Numeric observations and uncertainty-aware feasibility belong to the existing #3469 metrology, #3472 energy-accounting and #3453 interval-aware Pareto owners. Primary-energy and lifecycle comparisons belong to #3421 Well-to-Service. This register is not a second ledger or optimizer.
 
 ## Validation
 
-The JSON manifest and JSONL corpus contain the same nine records; the validator rejects any byte-parsed semantic drift between the two. The standalone Rust validator at `tools/power-fabric-baseline-validator` checks:
-- unique record IDs and explicit comparison groups (multiple future reproductions may share a group);
-- modality and study-type enums;
-- source identity, HTTPS URLs and publication-date shape;
-- non-empty service/medium/application definitions;
-- numeric observations, units, measurement planes, boundaries and evidence kinds;
-- valid exact/approximate/greater-than/less-than/range semantics and evidence provenance;
-- explicit known unknowns;
-- source-claim-only evidence status;
-- no global efficiency ranking.
+The JSON manifest and nine-line JSONL corpus must match exactly. The Rust validator has 22 authored unit tests for IDs, HTTPS source references, study/evidence kinds, units, relations, measurement planes, boundaries, unknowns, status ceilings and no global efficiency ranking. Structural fetch-back checks confirm 9 records, 42 observations and JSON/JSONL parity. Rust CI is a separate gate; queued is not pass.
 
-Reproduce:
-
-```bash
-cargo fmt --manifest-path tools/power-fabric-baseline-validator/Cargo.toml -- --check
-cargo clippy --manifest-path tools/power-fabric-baseline-validator/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path tools/power-fabric-baseline-validator/Cargo.toml
-cargo run --manifest-path tools/power-fabric-baseline-validator/Cargo.toml
-```
-
-The validator is a structural and boundary-integrity tool. It does not validate the physics, audit the original meters or certify the demonstrations.
+Reproduce with cargo fmt, cargo clippy, cargo test and cargo run against tools/power-fabric-baseline-validator/Cargo.toml.
 
 ## Claim ceiling
 
-The register and validator establish data structure and attribution only. They do not establish independent reproduction, physical safety, compliance, SOTA superiority or a global ranking.
+The register is an attributed evidence corpus and metadata validator only. It does not independently reproduce the demonstrations, certify safety, establish regulatory conformity, validate every original meter plane or prove SOTA superiority.
