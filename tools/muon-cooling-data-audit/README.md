@@ -50,3 +50,23 @@ cargo clippy --manifest-path tools/muon-cooling-data-audit/Cargo.toml --all-targ
 Tests cover the seven-column parser, native covariance, byte identity, header/order/units, malformed data, and attempts to promote non-cooling or decay-disabled evidence.
 
 A pass means only that the pinned public input file and its declared native format passed this audit. It is not a BDSIM/G4Beamline run, ionization-cooling result, transmission result or muon-survival qualification.
+
+
+## Published BDSIM cooling references — distinct from the pinned WG4 skeleton
+
+The pinned WG4 102-coil BDSIM file is a solenoid-sheet model with no instantiated absorbers or RF cavities. It is not the complete BDSIM cooling model and is not admissible for ionization-cooling or RF-acceleration claims.
+
+A separate public BDSIM implementation exists:
+
+- Repository: bdsim-collaboration/bdsim.
+- Exact source commit: d18134084b3960ba07bea81a7e2772114062f8b3 (14 February 2025).
+- Example: examples/muoncooling/muoncooler.gmad; Git blob SHA-1 a71dbf70605d3dbed9b27fab43436a77a8171d6d; 2,489 bytes.
+- The example instantiates a 5 m muoncooler component with six coils, one dipole, two cylindrical lithium-hydride absorbers and twelve RF cavities, for a 200 MeV/c mu-plus beam. It is a component-level example, not the full published channel. BDSIM is GPL-3.0; the source is referenced, not copied into this repository.
+
+Two published studies provide stronger reproduction targets:
+
+**MuCol D4.1 (25 February 2025):** the BDSIM report describes an 80 m rectilinear 6D cooling lattice. Its plotted transverse emittance decreases from approximately 2.5 mm to 1.45 mm; longitudinal emittance decreases from approximately 1.8 eV·s to 1.15 eV·s. The report identifies longitudinal mismatch, momentum oscillations and tail losses as unresolved issues, and describes component-level comparison with analytical and other code calculations. [Deliverable D4.1](https://indico.cern.ch/event/1517584/attachments/3020990/5329912/MuCol_D4_1.pdf).
+
+**IPAC'26 MOP1048 (20 July 2026):** a separate 100 m BDSIM cooling study reports approximately 2.3× reduction in 6D emittance and approximately 93% transmission for a 200 MeV/c beam. Muon decays were disabled. The paper reports an amplitude–momentum correlation in the input distribution and identifies input matching and tolerance studies as follow-up work. [IPAC'26 paper](https://www.ipac26.org/prepress/pdf/MOP1048.pdf).
+
+These are distinct evidence identities: the pinned WG4 102-coil skeleton, the 5 m BDSIM component example, the D4.1 80 m simulation, the IPAC'26 100 m simulation, and the separate G4Beamline 60-cell run. The exact identity of the IPAC'26 input distribution with the currently pinned 10,001-row WG4 file has not been verified. Do not claim reproduction or cross-code agreement from the source audit.
