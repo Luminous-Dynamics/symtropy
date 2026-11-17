@@ -452,7 +452,9 @@ pub fn reconstruct_contact_field(
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
-            let updated = (extrapolated[index] - step_size * extrapolated_gradient[index]).max(0.0);
+            let updated = (extrapolated[index]
+                - step_size * (extrapolated_gradient[index] + problem.sparsity_penalty))
+                .max(0.0);
             next_field[index] = updated;
             maximum_field = maximum_field.max(updated.abs());
         }
