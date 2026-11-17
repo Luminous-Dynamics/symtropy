@@ -88,8 +88,7 @@ fn vector_max_abs(left: &Vec9, right: &Vec9) -> f64 {
         .fold(0.0, f64::max)
 }
 
-fn mass_metric() -> Mat9 {
-    let masses = [1.3, 2.1, 0.8];
+fn mass_metric_with_masses(masses: [f64; 3]) -> Mat9 {
     let mut metric = [[0.0; N]; N];
     for body in 0..3 {
         for axis in 0..3 {
@@ -98,6 +97,10 @@ fn mass_metric() -> Mat9 {
         }
     }
     metric
+}
+
+fn mass_metric() -> Mat9 {
+    mass_metric_with_masses([1.3, 2.1, 0.8])
 }
 
 fn initial_position() -> Vec9 {
@@ -334,7 +337,7 @@ fn dense_coordinate_rattle_step(
     vq0: &Vec9,
     dt: f64,
 ) -> (Vec9, Vec9, [f64; 2], [f64; 2], [f64; 2]) {
-    let metric_q = mass_metric();
+    let metric_q = mass_metric_with_masses(masses);
     let metric_y = multiply(&transpose(basis), &multiply(&metric_q, basis));
     let maps = relative_maps(basis);
     let y0 = mat_vec(inverse, q0);
@@ -467,18 +470,10 @@ fn dense_coordinate_rattle_step(
     }
     let vy_plus = solve_dense_metric(&metric_y, &momentum_plus);
 
-    let q_plus = mat_vec(basis, &mat_vec(&identity_matrix(), &y_plus));
-    let vq_plus = mat_vec(basis, &mat_vec(&identity_matrix(), &vy_plus));
+    let q_plus = mat_vec(basis, &y_plus);
+    let vq_plus = mat_vec(basis, &vy_plus);
     let lifted_residuals = dense_position_residuals(&maps, &y_plus, lengths);
     (q_plus, vq_plus, multipliers, velocity_multipliers, lifted_residuals)
-}
-
-fn identity_matrix() -> Mat9 {
-    let mut identity = [[0.0; N]; N];
-    for index in 0..N {
-        identity[index][index] = 1.0;
-    }
-    identity
 }
 
 #[cfg(test)]
