@@ -1,0 +1,518 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/KitchenRobotEpisodeReceiptV1.schema.json",
+  "title": "KitchenRobotEpisodeReceiptV1",
+  "description": "Evidence receipt for one Kitchen-R style simulated kitchen episode. Simulation only; it does not establish physical robot, appliance, food-safety or culinary-quality qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "episode_id",
+    "mode",
+    "instruction_id",
+    "source_ref",
+    "rights_status",
+    "episode_seed",
+    "simulator",
+    "robot",
+    "initial_state_sha256",
+    "perturbations",
+    "planning",
+    "control",
+    "integration",
+    "evidence_class",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "benchmark_id": {
+      "const": "kitchen-r-adapter-v1"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "planning_only",
+        "low_level_control_only",
+        "integrated"
+      ]
+    },
+    "instruction_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rights_status": {
+      "enum": [
+        "public_domain",
+        "licensed",
+        "user_supplied",
+        "permission_granted",
+        "unknown",
+        "restricted"
+      ]
+    },
+    "episode_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "simulator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "scene_id",
+        "asset_manifest_sha256",
+        "physics_config_ref"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scene_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "physics_config_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "robot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "revision"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "initial_state_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "perturbations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "time_ms",
+          "severity",
+          "source_ref"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "severity": {
+            "type": "number",
+            "minimum": 0
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "planning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executed",
+        "status",
+        "success",
+        "plan_ref",
+        "verifier_ref",
+        "temporal_violation_count",
+        "resource_conflict_count",
+        "repair_count"
+      ],
+      "properties": {
+        "executed": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "not_run",
+            "valid",
+            "invalid",
+            "timeout",
+            "error"
+          ]
+        },
+        "success": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "plan_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "verifier_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "temporal_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resource_conflict_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executed",
+        "status",
+        "success",
+        "policy_revision",
+        "subtask_attempt_count",
+        "subtask_success_count",
+        "timeout_count",
+        "collision_count",
+        "constraint_violation_count",
+        "execution_time_s"
+      ],
+      "properties": {
+        "executed": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "not_run",
+            "success",
+            "partial",
+            "failed",
+            "timeout",
+            "error"
+          ]
+        },
+        "success": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "policy_revision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "subtask_attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "subtask_success_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collision_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "constraint_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_time_s": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "goal_reached",
+        "human_takeover",
+        "human_takeover_count",
+        "recovery_attempts",
+        "environment_restored",
+        "final_state_sha256"
+      ],
+      "properties": {
+        "goal_reached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "human_takeover": {
+          "type": "boolean"
+        },
+        "human_takeover_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_attempts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "trigger",
+              "success",
+              "duration_s"
+            ],
+            "properties": {
+              "trigger": {
+                "type": "string",
+                "minLength": 1
+              },
+              "success": {
+                "type": "boolean"
+              },
+              "duration_s": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "environment_restored": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "final_state_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        }
+      }
+    },
+    "evidence_class": {
+      "const": "simulated"
+    },
+    "claim_ceiling": {
+      "const": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "planning_only"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "planning": {
+            "properties": {
+              "executed": {
+                "const": true
+              }
+            }
+          },
+          "control": {
+            "properties": {
+              "executed": {
+                "const": false
+              },
+              "status": {
+                "const": "not_run"
+              },
+              "success": {
+                "type": "null"
+              }
+            }
+          },
+          "integration": {
+            "properties": {
+              "goal_reached": {
+                "type": "null"
+              },
+              "environment_restored": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "low_level_control_only"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "planning": {
+            "properties": {
+              "executed": {
+                "const": false
+              },
+              "status": {
+                "const": "not_run"
+              },
+              "success": {
+                "type": "null"
+              }
+            }
+          },
+          "control": {
+            "properties": {
+              "executed": {
+                "const": true
+              }
+            }
+          },
+          "integration": {
+            "properties": {
+              "goal_reached": {
+                "type": "null"
+              },
+              "environment_restored": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "integrated"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "planning": {
+            "properties": {
+              "executed": {
+                "const": true
+              }
+            }
+          },
+          "control": {
+            "properties": {
+              "executed": {
+                "const": true
+              }
+            }
+          },
+          "integration": {
+            "properties": {
+              "goal_reached": {
+                "type": "boolean"
+              },
+              "environment_restored": {
+                "type": "boolean"
+              },
+              "final_state_sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "integration": {
+            "properties": {
+              "human_takeover": {
+                "const": false
+              }
+            }
+          }
+        },
+        "required": [
+          "integration"
+        ]
+      },
+      "then": {
+        "properties": {
+          "integration": {
+            "properties": {
+              "human_takeover_count": {
+                "const": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

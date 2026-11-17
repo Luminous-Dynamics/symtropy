@@ -1,0 +1,248 @@
+{
+  "fixture_bundle_id": "kitchen-r-episode-receipts-v1",
+  "status": "synthetic_only",
+  "fixtures": [
+    {
+      "fixture_id": "valid-planning-only-episode",
+      "expected_schema_valid": true,
+      "receipt": {
+        "schema_version": 1,
+        "benchmark_id": "kitchen-r-adapter-v1",
+        "instruction_id": "instruction:fixture-001",
+        "source_ref": "fixture:authorized-instruction",
+        "rights_status": "user_supplied",
+        "episode_seed": 101,
+        "simulator": {
+          "name": "Isaac Sim / Kitchen-R adapter fixture",
+          "version": "fixture-version-1",
+          "scene_id": "fixture-scene-001",
+          "asset_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "physics_config_ref": "fixture:physics-config"
+        },
+        "robot": {
+          "model": "mobile-manipulator-fixture",
+          "revision": "sim-rev-1"
+        },
+        "initial_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "perturbations": [],
+        "evidence_class": "simulated",
+        "claim_ceiling": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification.",
+        "episode_id": "fixture-planning-only-001",
+        "mode": "planning_only",
+        "planning": {
+          "executed": true,
+          "status": "valid",
+          "success": true,
+          "plan_ref": "fixture:plan-001",
+          "verifier_ref": "fixture:verifier-001",
+          "temporal_violation_count": 0,
+          "resource_conflict_count": 0,
+          "repair_count": 0
+        },
+        "control": {
+          "executed": false,
+          "status": "not_run",
+          "success": null,
+          "policy_revision": null,
+          "subtask_attempt_count": 0,
+          "subtask_success_count": 0,
+          "timeout_count": 0,
+          "collision_count": 0,
+          "constraint_violation_count": 0,
+          "execution_time_s": 0
+        },
+        "integration": {
+          "goal_reached": null,
+          "human_takeover": false,
+          "human_takeover_count": 0,
+          "recovery_attempts": [],
+          "environment_restored": null,
+          "final_state_sha256": null
+        }
+      }
+    },
+    {
+      "fixture_id": "valid-control-only-episode",
+      "expected_schema_valid": true,
+      "receipt": {
+        "schema_version": 1,
+        "benchmark_id": "kitchen-r-adapter-v1",
+        "instruction_id": "instruction:fixture-001",
+        "source_ref": "fixture:authorized-instruction",
+        "rights_status": "user_supplied",
+        "episode_seed": 101,
+        "simulator": {
+          "name": "Isaac Sim / Kitchen-R adapter fixture",
+          "version": "fixture-version-1",
+          "scene_id": "fixture-scene-001",
+          "asset_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "physics_config_ref": "fixture:physics-config"
+        },
+        "robot": {
+          "model": "mobile-manipulator-fixture",
+          "revision": "sim-rev-1"
+        },
+        "initial_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "perturbations": [],
+        "evidence_class": "simulated",
+        "claim_ceiling": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification.",
+        "episode_id": "fixture-control-only-001",
+        "mode": "low_level_control_only",
+        "planning": {
+          "executed": false,
+          "status": "not_run",
+          "success": null,
+          "plan_ref": null,
+          "verifier_ref": null,
+          "temporal_violation_count": 0,
+          "resource_conflict_count": 0,
+          "repair_count": 0
+        },
+        "control": {
+          "executed": true,
+          "status": "success",
+          "success": true,
+          "policy_revision": "fixture-diffusion-policy-v1",
+          "subtask_attempt_count": 3,
+          "subtask_success_count": 3,
+          "timeout_count": 0,
+          "collision_count": 0,
+          "constraint_violation_count": 0,
+          "execution_time_s": 22.5
+        },
+        "integration": {
+          "goal_reached": null,
+          "human_takeover": false,
+          "human_takeover_count": 0,
+          "recovery_attempts": [],
+          "environment_restored": null,
+          "final_state_sha256": null
+        }
+      }
+    },
+    {
+      "fixture_id": "valid-integrated-failed-episode-retains-human-takeover",
+      "expected_schema_valid": true,
+      "receipt": {
+        "schema_version": 1,
+        "benchmark_id": "kitchen-r-adapter-v1",
+        "instruction_id": "instruction:fixture-001",
+        "source_ref": "fixture:authorized-instruction",
+        "rights_status": "user_supplied",
+        "episode_seed": 101,
+        "simulator": {
+          "name": "Isaac Sim / Kitchen-R adapter fixture",
+          "version": "fixture-version-1",
+          "scene_id": "fixture-scene-001",
+          "asset_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "physics_config_ref": "fixture:physics-config"
+        },
+        "robot": {
+          "model": "mobile-manipulator-fixture",
+          "revision": "sim-rev-1"
+        },
+        "initial_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "perturbations": [],
+        "evidence_class": "simulated",
+        "claim_ceiling": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification.",
+        "episode_id": "fixture-integrated-failed-takeover-001",
+        "mode": "integrated",
+        "planning": {
+          "executed": true,
+          "status": "valid",
+          "success": true,
+          "plan_ref": "fixture:plan-002",
+          "verifier_ref": "fixture:verifier-002",
+          "temporal_violation_count": 0,
+          "resource_conflict_count": 0,
+          "repair_count": 1
+        },
+        "control": {
+          "executed": true,
+          "status": "partial",
+          "success": false,
+          "policy_revision": "fixture-policy-rev-2",
+          "subtask_attempt_count": 5,
+          "subtask_success_count": 3,
+          "timeout_count": 1,
+          "collision_count": 0,
+          "constraint_violation_count": 1,
+          "execution_time_s": 61.2
+        },
+        "integration": {
+          "goal_reached": false,
+          "human_takeover": true,
+          "human_takeover_count": 1,
+          "recovery_attempts": [
+            {
+              "trigger": "fixture:object-displaced",
+              "success": false,
+              "duration_s": 12.4
+            }
+          ],
+          "environment_restored": false,
+          "final_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    },
+    {
+      "fixture_id": "reject-planning-only-episode-that-runs-low-level-control",
+      "expected_schema_valid": false,
+      "receipt": {
+        "schema_version": 1,
+        "benchmark_id": "kitchen-r-adapter-v1",
+        "instruction_id": "instruction:fixture-001",
+        "source_ref": "fixture:authorized-instruction",
+        "rights_status": "user_supplied",
+        "episode_seed": 101,
+        "simulator": {
+          "name": "Isaac Sim / Kitchen-R adapter fixture",
+          "version": "fixture-version-1",
+          "scene_id": "fixture-scene-001",
+          "asset_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "physics_config_ref": "fixture:physics-config"
+        },
+        "robot": {
+          "model": "mobile-manipulator-fixture",
+          "revision": "sim-rev-1"
+        },
+        "initial_state_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "perturbations": [],
+        "evidence_class": "simulated",
+        "claim_ceiling": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification.",
+        "episode_id": "fixture-invalid-planning-mode-ran-controller",
+        "mode": "planning_only",
+        "planning": {
+          "executed": true,
+          "status": "valid",
+          "success": true,
+          "plan_ref": "fixture:plan-001",
+          "verifier_ref": "fixture:verifier-001",
+          "temporal_violation_count": 0,
+          "resource_conflict_count": 0,
+          "repair_count": 0
+        },
+        "control": {
+          "executed": true,
+          "status": "success",
+          "success": true,
+          "policy_revision": "fixture-policy",
+          "subtask_attempt_count": 0,
+          "subtask_success_count": 0,
+          "timeout_count": 0,
+          "collision_count": 0,
+          "constraint_violation_count": 0,
+          "execution_time_s": 0
+        },
+        "integration": {
+          "goal_reached": null,
+          "human_takeover": false,
+          "human_takeover_count": 0,
+          "recovery_attempts": [],
+          "environment_restored": null,
+          "final_state_sha256": null
+        }
+      }
+    }
+  ]
+}
