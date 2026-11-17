@@ -172,7 +172,6 @@ fn generate_episode(
         _ => 1.08, // elongated, staggered rows
     };
     let target_columns = 4;
-    let target_rows = 3;
     let row_spacing = if layout_family == 3 { 5.0 } else { 6.0 };
     let column_spacing = if layout_family == 3 { 6.5 } else { 6.0 };
 
