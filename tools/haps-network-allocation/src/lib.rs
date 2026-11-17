@@ -291,6 +291,18 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
             "unsupported traffic claim_ceiling".to_owned(),
         ));
     }
+    if trace.revision == 0 {
+        return Err(AllocationError::InvalidTrace(
+            "trace revision must be positive".to_owned(),
+        ));
+    }
+    if trace.evidence_class != "synthetic"
+        && trace.claim_ceiling != "offline_traffic_replay"
+    {
+        return Err(AllocationError::InvalidTrace(
+            "non-synthetic traces must use offline_traffic_replay claim ceiling".to_owned(),
+        ));
+    }
     if trace.evidence_class == "synthetic"
         && trace.claim_ceiling != "synthetic_demand_input"
     {
@@ -888,6 +900,27 @@ mod tests {
             parse_trace_json(&bytes),
             Err(AllocationError::MissingField(_))
         ));
+    }
+
+    #[test]
+    fn parser_rejects_unknown_source_kind() {
+        let mut trace = fixture_trace();
+        trace.source.source_kind = "unregistered_source".to_owned();
+        assert!(validate_trace(&trace).is_err());
+    }
+
+    #[test]
+    fn parser_rejects_non_synthetic_input_with_synthetic_claim_ceiling() {
+        let mut trace = fixture_trace();
+        trace.evidence_class = "replayed_telemetry".to_owned();
+        assert!(validate_trace(&trace).is_err());
+    }
+
+    #[test]
+    fn parser_rejects_zero_revision() {
+        let mut trace = fixture_trace();
+        trace.revision = 0;
+        assert!(validate_trace(&trace).is_err());
     }
 
     #[test]
