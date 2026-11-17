@@ -811,7 +811,56 @@
               ],
               "minLength": 3
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "translation_status": {
+                    "enum": [
+                      "official_translation",
+                      "working_translation"
+                    ]
+                  }
+                },
+                "required": [
+                  "translation_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "translation_language": {
+                    "not": {
+                      "const": "undetermined"
+                    }
+                  },
+                  "translation_artifact_ref": {
+                    "type": "string",
+                    "minLength": 3
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "translation_status": {
+                    "const": "not_translated"
+                  }
+                },
+                "required": [
+                  "translation_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "translation_artifact_ref": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
         },
         "applicability": {
           "type": "object",
