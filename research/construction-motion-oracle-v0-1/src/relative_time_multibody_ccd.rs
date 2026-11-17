@@ -338,10 +338,16 @@ fn map_body_clock(
     let width = (offset_max - offset_min) as u128;
     let offset_half_width = width / 2 + width % 2;
 
-    let start_delta =
-        u128::from(body.motion.start_ms.abs_diff(mapping.reference_source_time_ms));
-    let end_delta =
-        u128::from(body.motion.end_ms.abs_diff(mapping.reference_source_time_ms));
+    let start_delta = u128::from(
+        body.motion
+            .start_ms
+            .abs_diff(mapping.reference_source_time_ms),
+    );
+    let end_delta = u128::from(
+        body.motion
+            .end_ms
+            .abs_diff(mapping.reference_source_time_ms),
+    );
     let drift_delta = start_delta.max(end_delta);
     let Some(drift_product) = drift_delta.checked_mul(u128::from(drift_bound_ppm)) else {
         return fail(ClockMappingFailure::DriftBoundOverflow);
@@ -439,19 +445,28 @@ fn evaluate_pair(first: &MappedBody, second: &MappedBody) -> RelativeTimePairRec
 
     if let Some(reason) = first.failure.as_ref() {
         return unresolved_pair(
-            first, second, mapping_ids, uncertainty,
+            first,
+            second,
+            mapping_ids,
+            uncertainty,
             RelativeTimePairUnresolvedReason::FirstBodyMapping(reason.clone()),
         );
     }
     if let Some(reason) = second.failure.as_ref() {
         return unresolved_pair(
-            first, second, mapping_ids, uncertainty,
+            first,
+            second,
+            mapping_ids,
+            uncertainty,
             RelativeTimePairUnresolvedReason::SecondBodyMapping(reason.clone()),
         );
     }
     let (Some(first_span), Some(second_span)) = (first.span.as_ref(), second.span.as_ref()) else {
         return unresolved_pair(
-            first, second, mapping_ids, uncertainty,
+            first,
+            second,
+            mapping_ids,
+            uncertainty,
             RelativeTimePairUnresolvedReason::ClockQueryRejected(
                 ClockUncertaintyError::InvalidTimeInterval,
             ),
@@ -461,15 +476,21 @@ fn evaluate_pair(first: &MappedBody, second: &MappedBody) -> RelativeTimePairRec
     match clock_uncertainty_aware_capsule_query(first_span, second_span) {
         Ok(query_result) => {
             let disposition = match query_result.disposition {
-                ClockUncertaintyDisposition::ExactContact => RelativeTimePairDisposition::ExactContact,
-                ClockUncertaintyDisposition::ExactNoContact => RelativeTimePairDisposition::ExactNoContact,
+                ClockUncertaintyDisposition::ExactContact => {
+                    RelativeTimePairDisposition::ExactContact
+                }
+                ClockUncertaintyDisposition::ExactNoContact => {
+                    RelativeTimePairDisposition::ExactNoContact
+                }
                 ClockUncertaintyDisposition::BoundaryCandidateUnresolved => {
                     RelativeTimePairDisposition::BoundaryCandidateUnresolved
                 }
                 ClockUncertaintyDisposition::NoPossibleTemporalOverlap => {
                     RelativeTimePairDisposition::NoPossibleTemporalOverlap
                 }
-                ClockUncertaintyDisposition::NoPossibleContact => RelativeTimePairDisposition::NoPossibleContact,
+                ClockUncertaintyDisposition::NoPossibleContact => {
+                    RelativeTimePairDisposition::NoPossibleContact
+                }
                 ClockUncertaintyDisposition::PotentialContactUnresolved => {
                     RelativeTimePairDisposition::PotentialContactUnresolved
                 }
@@ -487,7 +508,10 @@ fn evaluate_pair(first: &MappedBody, second: &MappedBody) -> RelativeTimePairRec
             }
         }
         Err(error) => unresolved_pair(
-            first, second, mapping_ids, uncertainty,
+            first,
+            second,
+            mapping_ids,
+            uncertainty,
             RelativeTimePairUnresolvedReason::ClockQueryRejected(error),
         ),
     }
@@ -535,7 +559,12 @@ mod tests {
         }
     }
 
-    fn mapping(source: &str, offset_min: i64, offset_max: i64, drift_ppm: u64) -> QualifiedClockMapping {
+    fn mapping(
+        source: &str,
+        offset_min: i64,
+        offset_max: i64,
+        drift_ppm: u64,
+    ) -> QualifiedClockMapping {
         QualifiedClockMapping {
             source_clock_domain_id: source.into(),
             site_clock_domain_id: "site-clock".into(),
@@ -556,7 +585,11 @@ mod tests {
         motion: CapsuleMotionSpan,
         clock_mapping: Option<QualifiedClockMapping>,
     ) -> ClockDomainCapsuleBody {
-        ClockDomainCapsuleBody { body_id: id.into(), motion, clock_mapping }
+        ClockDomainCapsuleBody {
+            body_id: id.into(),
+            motion,
+            clock_mapping,
+        }
     }
 
     fn config() -> RelativeTimeMultiBodyConfig {
@@ -571,15 +604,24 @@ mod tests {
     #[test]
     fn different_source_clocks_map_to_one_site_clock_and_detect_contact() {
         let bodies = [
-            body("robot-a", span(-10.0, 20.0, 0, 1_000, "robot-a-clock"),
-                Some(mapping("robot-a-clock", 100, 100, 0))),
-            body("robot-b", span(10.0, -20.0, 100, 1_100, "robot-b-clock"),
-                Some(mapping("robot-b-clock", 0, 0, 0))),
+            body(
+                "robot-a",
+                span(-10.0, 20.0, 0, 1_000, "robot-a-clock"),
+                Some(mapping("robot-a-clock", 100, 100, 0)),
+            ),
+            body(
+                "robot-b",
+                span(10.0, -20.0, 100, 1_100, "robot-b-clock"),
+                Some(mapping("robot-b-clock", 0, 0, 0)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(report.pair_checks, 1);
         assert_eq!(report.exact_contact_pairs, 1);
-        assert_eq!(report.pairs[0].disposition, RelativeTimePairDisposition::ExactContact);
+        assert_eq!(
+            report.pairs[0].disposition,
+            RelativeTimePairDisposition::ExactContact
+        );
         assert_eq!(report.pairs[0].first_body_id, "robot-a");
         assert_eq!(report.pairs[0].second_body_id, "robot-b");
     }
@@ -587,10 +629,16 @@ mod tests {
     #[test]
     fn offset_interval_and_drift_never_claim_exact_contact() {
         let bodies = [
-            body("robot-a", span(-10.0, 20.0, 0, 1_000, "robot-a-clock"),
-                Some(mapping("robot-a-clock", 90, 110, 100))),
-            body("robot-b", span(10.0, -20.0, 100, 1_100, "robot-b-clock"),
-                Some(mapping("robot-b-clock", -10, 10, 100))),
+            body(
+                "robot-a",
+                span(-10.0, 20.0, 0, 1_000, "robot-a-clock"),
+                Some(mapping("robot-a-clock", 90, 110, 100)),
+            ),
+            body(
+                "robot-b",
+                span(10.0, -20.0, 100, 1_100, "robot-b-clock"),
+                Some(mapping("robot-b-clock", -10, 10, 100)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(report.potential_contact_unresolved_pairs, 1);
@@ -606,8 +654,11 @@ mod tests {
     fn missing_or_expired_mapping_produces_pairwise_unresolved_receipt() {
         let bodies = [
             body("robot-a", span(0.0, 0.0, 0, 1_000, "robot-a-clock"), None),
-            body("robot-b", span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
-                Some(mapping("robot-b-clock", 0, 0, 0))),
+            body(
+                "robot-b",
+                span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
+                Some(mapping("robot-b-clock", 0, 0, 0)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(report.unresolved_pairs, 1);
@@ -621,9 +672,16 @@ mod tests {
         let mut expired = mapping("robot-a-clock", 0, 0, 0);
         expired.valid_until_source_ms = 900;
         let bodies = [
-            body("robot-a", span(0.0, 0.0, 0, 1_000, "robot-a-clock"), Some(expired)),
-            body("robot-b", span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
-                Some(mapping("robot-b-clock", 0, 0, 0))),
+            body(
+                "robot-a",
+                span(0.0, 0.0, 0, 1_000, "robot-a-clock"),
+                Some(expired),
+            ),
+            body(
+                "robot-b",
+                span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
+                Some(mapping("robot-b-clock", 0, 0, 0)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(
@@ -639,9 +697,16 @@ mod tests {
         let mut missing_drift = mapping("robot-a-clock", 0, 0, 0);
         missing_drift.drift_bound_ppm = None;
         let bodies = [
-            body("robot-a", span(0.0, 0.0, 0, 1_000, "robot-a-clock"), Some(missing_drift)),
-            body("robot-b", span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
-                Some(mapping("robot-b-clock", 0, 0, 0))),
+            body(
+                "robot-a",
+                span(0.0, 0.0, 0, 1_000, "robot-a-clock"),
+                Some(missing_drift),
+            ),
+            body(
+                "robot-b",
+                span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
+                Some(mapping("robot-b-clock", 0, 0, 0)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(
@@ -652,10 +717,16 @@ mod tests {
         );
 
         let bodies = [
-            body("robot-a", span(0.0, 0.0, 0, 1_000, "wrong-clock"),
-                Some(mapping("robot-a-clock", 0, 0, 0))),
-            body("robot-b", span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
-                Some(mapping("robot-b-clock", 0, 0, 0))),
+            body(
+                "robot-a",
+                span(0.0, 0.0, 0, 1_000, "wrong-clock"),
+                Some(mapping("robot-a-clock", 0, 0, 0)),
+            ),
+            body(
+                "robot-b",
+                span(20.0, 0.0, 0, 1_000, "robot-b-clock"),
+                Some(mapping("robot-b-clock", 0, 0, 0)),
+            ),
         ];
         let report = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
         assert_eq!(
@@ -677,8 +748,11 @@ mod tests {
                 ..mapping("robot-a-clock", -2, 3, 1_001)
             }),
         );
-        let b = body("robot-b", span(50.0, 0.0, 0, 2_000_000, "robot-b-clock"),
-            Some(mapping("robot-b-clock", 0, 0, 0)));
+        let b = body(
+            "robot-b",
+            span(50.0, 0.0, 0, 2_000_000, "robot-b-clock"),
+            Some(mapping("robot-b-clock", 0, 0, 0)),
+        );
         let report = evaluate_relative_time_multibody_ccd(&[a, b], &config()).unwrap();
         assert_eq!(report.body_mappings[0].drift_margin_ms, Some(2_001));
         assert_eq!(report.body_mappings[0].total_uncertainty_ms, Some(2_004));
@@ -686,13 +760,24 @@ mod tests {
 
     #[test]
     fn input_order_does_not_change_pair_order_or_dispositions() {
-        let a = body("a", span(-10.0, 20.0, 0, 1_000, "clock-a"),
-            Some(mapping("clock-a", 0, 0, 0)));
-        let b = body("b", span(10.0, -20.0, 0, 1_000, "clock-b"),
-            Some(mapping("clock-b", 0, 0, 0)));
-        let c = body("c", span(500.0, 0.0, 0, 1_000, "clock-c"),
-            Some(mapping("clock-c", 0, 0, 0)));
-        let forward = evaluate_relative_time_multibody_ccd(&[a.clone(), b.clone(), c.clone()], &config()).unwrap();
+        let a = body(
+            "a",
+            span(-10.0, 20.0, 0, 1_000, "clock-a"),
+            Some(mapping("clock-a", 0, 0, 0)),
+        );
+        let b = body(
+            "b",
+            span(10.0, -20.0, 0, 1_000, "clock-b"),
+            Some(mapping("clock-b", 0, 0, 0)),
+        );
+        let c = body(
+            "c",
+            span(500.0, 0.0, 0, 1_000, "clock-c"),
+            Some(mapping("clock-c", 0, 0, 0)),
+        );
+        let forward =
+            evaluate_relative_time_multibody_ccd(&[a.clone(), b.clone(), c.clone()], &config())
+                .unwrap();
         let reversed = evaluate_relative_time_multibody_ccd(&[c, b, a], &config()).unwrap();
         assert_eq!(forward, reversed);
     }
@@ -700,9 +785,21 @@ mod tests {
     #[test]
     fn pair_budget_is_checked_before_quadratic_work() {
         let bodies = [
-            body("a", span(0.0, 0.0, 0, 1_000, "clock-a"), Some(mapping("clock-a", 0, 0, 0))),
-            body("b", span(10.0, 0.0, 0, 1_000, "clock-b"), Some(mapping("clock-b", 0, 0, 0))),
-            body("c", span(20.0, 0.0, 0, 1_000, "clock-c"), Some(mapping("clock-c", 0, 0, 0))),
+            body(
+                "a",
+                span(0.0, 0.0, 0, 1_000, "clock-a"),
+                Some(mapping("clock-a", 0, 0, 0)),
+            ),
+            body(
+                "b",
+                span(10.0, 0.0, 0, 1_000, "clock-b"),
+                Some(mapping("clock-b", 0, 0, 0)),
+            ),
+            body(
+                "c",
+                span(20.0, 0.0, 0, 1_000, "clock-c"),
+                Some(mapping("clock-c", 0, 0, 0)),
+            ),
         ];
         let mut constrained = config();
         constrained.max_pair_checks = 2;
