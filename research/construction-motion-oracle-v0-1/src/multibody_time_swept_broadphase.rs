@@ -428,6 +428,24 @@ pub struct CandidateRefinementReport {
     pub pairs: Vec<TimedCapsulePairCandidate>,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct HierarchicalMultiBodyBroadphaseReport {
+    pub coarse: MultiBodyBroadphaseReport,
+    pub refinement: CandidateRefinementReport,
+}
+
+/// Build a one-slab conservative coarse SAP, then refine only its candidate
+/// pairs into the requested dyadic temporal subdivision.
+pub fn time_swept_capsule_broadphase_hierarchical(
+    bodies: &[TimedCapsuleBody],
+    refinement_subdivisions: u32,
+) -> Result<HierarchicalMultiBodyBroadphaseReport, MultiBodyBroadphaseError> {
+    let coarse = time_swept_capsule_broadphase(bodies, 1)?;
+    let refinement =
+        refine_time_swept_capsule_candidates(bodies, &coarse, refinement_subdivisions)?;
+    Ok(HierarchicalMultiBodyBroadphaseReport { coarse, refinement })
+}
+
 /// Refine a one-slab conservative candidate report into smaller common-time
 /// intervals. Every pair omitted by the coarse report remains safely omitted
 /// only under the same numeric swept-AABB assumptions as the coarse SAP.
@@ -439,7 +457,7 @@ pub struct CandidateRefinementReport {
 ///
 /// The caller must retain the coarse report and its claim ceiling. This method
 /// is a candidate optimization, not a collision verdict or formal certificate.
-pub fn refine_time_swept_capsule_candidates(
+fn refine_time_swept_capsule_candidates(
     bodies: &[TimedCapsuleBody],
     coarse: &MultiBodyBroadphaseReport,
     subdivision_count: u32,
@@ -453,7 +471,8 @@ pub fn refine_time_swept_capsule_candidates(
     if bodies.is_empty() {
         return Err(MultiBodyBroadphaseError::NoBodies);
     }
-    if coarse.body_count as usize != bodies.len()
+    if coarse.subdivision_count != 1
+        || coarse.body_count as usize != bodies.len()
         || coarse.horizon_start_ms >= coarse.horizon_end_ms
     {
         return Err(MultiBodyBroadphaseError::BodyIdLookupFailure);
@@ -1047,4 +1066,34 @@ mod tests {
             assert!(pair_ids(&report).contains(&("moving".into(), "obstacle".into())));
         }
     }
+
+    #[test]
+    fn hierarchical_refinement_matches_full_multislab_sap_candidates() {
+        for bodies in [
+            vec![
+                body("a", span(-10.0, 0.0, 20.0, 0, 100)),
+                body("b", span(10.0, 0.0, -20.0, 0, 100)),
+                body("c", span(500.0, 0.0, 0.0, 0, 100)),
+            ],
+            vec![
+                body("a", span(0.0, 0.0, 10.0, 0, 100)),
+                body("b", span(2.0, 0.0, -10.0, 0, 100)),
+                body("c", span(4.0, 0.0, 10.0, 0, 100)),
+                body("d", span(6.0, 0.0, -10.0, 0, 100)),
+            ],
+        ] {
+            for subdivisions in [1, 2, 4, 8, 16] {
+                let hierarchical =
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+                let direct =
+                    time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+                assert_eq!(
+                    hierarchical.refinement.pairs,
+                    direct.pairs,
+                    "hierarchical refinement diverged at {subdivisions} slabs"
+                );
+            }
+        }
+    }
+
 }
