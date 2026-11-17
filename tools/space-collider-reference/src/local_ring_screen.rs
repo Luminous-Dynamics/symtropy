@@ -271,6 +271,10 @@ fn render_case_json(case: LocalRingCase) -> String {
         case.muon_quantum_chi,
         if case.muon_sr_loss_fraction_per_turn >= 1.0 {
             "no_fixed_energy_circular_equilibrium_under_declared_classical_screen"
+        } else if case.muon_sr_to_injection_power_ratio >= 1.0 {
+            "synchrotron_replacement_power_exceeds_injection_power"
+        } else if case.muon_sr_to_injection_power_ratio >= 0.1 {
+            "high_synchrotron_replacement_burden_requires_system_review"
         } else if case.muon_quantum_chi >= 1.0e-3 {
             "quantum_synchrotron_review_required"
         } else {
@@ -408,6 +412,7 @@ mod tests {
             "\"field_evidence_label\":\"hts_stretch_case_not_production_ready\""
         ));
         assert!(report.contains("unadjusted_screening_residual_retained_not_calibrated_away"));
+        assert!(report.contains("synchrotron_replacement_power_exceeds_injection_power"));
         assert!(report.contains("no achievable collider"));
     }
 }
