@@ -784,6 +784,99 @@ mod tests {
         }
     }
 
+    fn outcome_response(
+        sequence: u32,
+        item_id: &str,
+        outcome: ResponseOutcome,
+    ) -> Response {
+        Response {
+            sequence,
+            item_id: item_id.to_owned(),
+            outcome,
+        }
+    }
+
+    #[test]
+    fn gate_only_safety_control_does_not_shift_capability_estimate() {
+        let baseline = posterior(&bank(), &profile(), &[]).unwrap();
+        let safety_only = posterior(
+            &bank(),
+            &profile(),
+            &[response(0, "safety-negative", true)],
+        )
+        .unwrap();
+        assert!((baseline.0 - safety_only.0).abs() < 1e-14);
+        assert!((baseline.1 - safety_only.1).abs() < 1e-14);
+    }
+
+    #[test]
+    fn failed_safety_gate_stops_before_adaptive_selection() {
+        let receipt = evaluate_run(
+            &bank(),
+            &profile(),
+            &[response(0, "safety-negative", false)],
+        )
+        .unwrap();
+        assert_eq!(receipt.decision.stop_reason, Some(StopReason::SafetyGateFailed));
+        assert!(receipt.decision.selected.is_none());
+        assert_eq!(receipt.responses.len(), 1);
+    }
+
+    #[test]
+    fn unknown_outcome_requires_evidence_and_is_not_binary_scored() {
+        let responses = vec![
+            response(0, "safety-negative", true),
+            outcome_response(1, "anchor-common", ResponseOutcome::Unknown),
+        ];
+        let receipt = evaluate_run(&bank(), &profile(), &responses).unwrap();
+        assert_eq!(receipt.decision.stop_reason, Some(StopReason::EvidenceRequired));
+        assert!(receipt.decision.selected.is_none());
+        assert_eq!(receipt.responses[1].outcome, ResponseOutcome::Unknown);
+
+        let baseline = posterior(&bank(), &profile(), &[]).unwrap();
+        let after_unknown = posterior(&bank(), &profile(), &responses).unwrap();
+        assert!((baseline.0 - after_unknown.0).abs() < 1e-14);
+        assert!((baseline.1 - after_unknown.1).abs() < 1e-14);
+    }
+
+    #[test]
+    fn explicit_unsafe_violation_triggers_safety_gate_stop() {
+        let receipt = evaluate_run(
+            &bank(),
+            &profile(),
+            &[outcome_response(
+                0,
+                "safety-negative",
+                ResponseOutcome::UnsafeViolation,
+            )],
+        )
+        .unwrap();
+        assert_eq!(receipt.decision.stop_reason, Some(StopReason::SafetyGateFailed));
+        assert!(receipt.decision.selected.is_none());
+    }
+
+    #[test]
+    fn inadmissible_evidence_cannot_be_recorded_as_a_binary_response() {
+        let responses = vec![outcome_response(
+            0,
+            "safety-negative",
+            ResponseOutcome::InvalidEvidence,
+        )];
+        assert!(evaluate_run(&bank(), &profile(), &responses).is_err());
+    }
+
+    #[test]
+    fn common_anchor_must_belong_to_the_measured_capability_axis() {
+        let mut test_bank = bank();
+        let anchor = test_bank
+            .items
+            .iter_mut()
+            .find(|item| item.common_anchor)
+            .unwrap();
+        anchor.contributes_to_capability_estimate = false;
+        assert!(evaluate_run(&test_bank, &profile(), &[]).is_err());
+    }
+
     #[test]
     fn safety_control_precedes_common_anchor_and_adaptive_items() {
         let decision = evaluate_run(&bank(), &profile(), &[]).unwrap().decision;
