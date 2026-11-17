@@ -656,3 +656,9 @@ The FFMFE research hypothesis should instead test an open, typed, evidence-beari
 6. occupant-controlled expressive and sensory layers, isolated from qualified primary structure.
 
 Any advantage must be shown under the frozen FFMFE protocol against strong baselines, including vendor tools where comparable access is available.
+
+### Global 3D beam/frame static solver increment
+
+A small 3D Euler-Bernoulli beam/frame assembly solver is now authored in research/truss-fem-lab/src/frame_analysis.rs. It assembles member 12-DOF stiffness matrices into a global six-DOF-per-node system; supports translational/rotational restraints and nodal force/couple loads; recovers local end actions; and audits global force/moment/energy closure.
+
+The solver assumes rigid six-DOF joints wherever members share a node and small-displacement Euler-Bernoulli behavior. It is not yet a Timoshenko model, flexible connector solver, global eigenvalue-buckling model or nonlinear/contact solver. New fixtures cover both cantilever bending planes, a two-member elbow frame with a shared joint, equilibrium/energy closure and a free-frame mechanism. They are authored but unexecuted pending exact-head CI and independent OpenSees comparison.
