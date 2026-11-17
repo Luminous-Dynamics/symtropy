@@ -157,7 +157,8 @@ Compose with:
 - Symtropy #5159 / #5180 / #5183 / #5607 for Power Fabric contracts, compatibility, source paths and physical-model qualification.
 - Symtropy #5241 for industry-matched benchmark methods.
 - Symtropy #3396 for EM model selection.
-- Symtropy #3448 / #3466 / #3469 / #3472 / #3473 / #3452 / #3458 / #3493 / #3530 / #3546 / #3559 for existing WPT, metrology, optical transfer and dispatch owners.
+- Symtropy #3448 / #3466 / #3469 / #3472 / #3473 / #3452 / #3458 / #3493 / #3530 / #3546 / #3559 / #3680 for existing WPT, metrology, optical transfer, direct wireless conversion and dispatch owners.
+- Symtropy #5836 for the focused subsea ultrasonic power qualification child.
 - Symtropy #1863 / #1877 for thermal reference reproduction, exergy and matched dispatch.
 - Symtropy #2083 / #2085 for duty-cycle-led industrial delivery decisions.
 - Mycelix #6297 for electrical-equipment identity and lifecycle provenance.
