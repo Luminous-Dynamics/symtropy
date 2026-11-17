@@ -52,7 +52,7 @@ The default executable evaluates the frozen case/receipt corpus under `fixtures/
 - Negative controls for mass imbalance, impossible interval status, double allocation, unqualified recovered feedstock, impossible utility, inspection rejection, incomplete provenance, physical-claim escalation, mismatched subject/scope/manifest, duplicate receipt identity and malformed digest.
 - Indeterminate controls for uncertain mass/utility, missing receipts, unresolved grade, unknown route, unknown allocation and missing source digest.
 
-The fixture digest token identifies the frozen synthetic fixture dataset; it is not a digest of external owner evidence. The tool reports `FORMAT_ONLY_NOT_AUTHENTICATED` where all receipt digest fields are syntactically well-formed.
+The repeated SHA-256-shaped fixture value is a fixed test token; it is not the digest of the fixture file or external owner evidence. The tool reports `FORMAT_ONLY_NOT_AUTHENTICATED` where all receipt digest fields are syntactically well-formed.
 
 ## Current upstream audit snapshot
 
@@ -60,7 +60,7 @@ Audited against public GitHub metadata and exact file/PR heads on 17 November 20
 
 | Owner surface | Exact observed PR head | Observed state | Integration consequence |
 |---|---|---|---|
-| Symtropy matched routes #5434 | `c35e9e2e56ce2e05b4528b625` | Open draft; branch `research/factory-matched-routes-v0-1` | Route library exists in a separate tool crate; no shared receipt API yet |
+| Symtropy matched routes #5434 | `c35e9e2e56c43b947dea17e52ce2e05b4528b625` | Open draft; branch `research/factory-matched-routes-v0-1` | Route library exists in a separate tool crate; no shared receipt API yet |
 | Symthaea PIE-001A #1609 | `672de96181c7e352763e62983334e9deb8f14cc9` | Open draft; independent Python oracle | Use its status semantics only as a reference until adapter is agreed |
 | Symthaea PIE-002A #1617 | `31f6e7d32e65843f0cdfc9043607751565a5b769` | Open draft; independent Python oracle | Use its conservative utility/thermal statuses only as reference |
 | Mycelix accounted loop #3107 | `97d04cd8180ada98591ad6bb27a764253bc984ff` | Open draft; stacked base `circ-mfg-001c-material-flow-accounting` | No claim that the Mycelix API is on `main` |
