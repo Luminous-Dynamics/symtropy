@@ -27,7 +27,7 @@ A shared name or similar-looking metric is not an equivalence proof.
 ## First executable scientific slice
 
 1. Transcribe the Mannheim–Kazanas static spherical solution from a pinned primary source, recording exact conventions and parameter dimensions.
-2. Independently evaluate the Bach-tensor vacuum residual. Merely reproducing the metric coefficients is not a field-equation verification.
+2. Independently evaluate the Bach-tensor vacuum residual. A first symmetry-reduced residual oracle is now documented in [BACH_REDUCTION.md](reference/BACH_REDUCTION.md) and implemented for the four-term static ansatz in [mk_static.rs](reference/mk_static.rs). This is not yet an independent general tensor implementation or a complete field-equation qualification.
 3. Verify the correct Schwarzschild limit, metric signature, determinant/inverse, curvature invariants, horizon roots, and chart-domain behavior.
 4. Classify asymptotics honestly: nonzero linear/quadratic terms mean the solution is not asymptotically flat in the usual sense.
 5. Compare null observables with the existing Symtropy ray-bundle provider only after its model/observer contract is explicit. For scalar-coupled matter, derive timelike motion from the complete matter action.
@@ -49,6 +49,7 @@ Do not create parallel curvature, geodesic, ray-tracing, perturbation, inference
 - Near-horizon geodesic instabilities and scalar QNM behavior: Kouniatalis et al., PRD 112 (2025), [DOI 10.1103/ftvr-pclv](https://doi.org/10.1103/ftvr-pclv). Scalar perturbations are not the fourth-order gravitational spin-2 spectrum.
 - Rotating Weyl black-hole thermodynamics and energy extraction: [EPJC 2026, DOI 10.1140/epjc/s10052-026-16333-4](https://doi.org/10.1140/epjc/s10052-026-16333-4).
 - General stationary-metric shadow inference: [PRD 114 (2026), DOI 10.1103/66x9-zj16](https://doi.org/10.1103/66x9-zj16).
+- Calibration-robust M87* closure-invariant reconstruction: [Nature 659 (2026), DOI 10.1038/s41586-026-11241-9](https://doi.org/10.1038/s41586-026-11241-9).
 - Kerr ray-tracing comparator: [AART](https://github.com/iAART/aart).
 - Black-hole perturbation reference ecosystem: [BHPT Toolkit](https://bhptoolkit.org/).
 
