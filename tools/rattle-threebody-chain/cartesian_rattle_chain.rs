@@ -168,6 +168,7 @@ pub fn norm(a: Vec3) -> f64 {
     dot(a, a).sqrt()
 }
 
+#[cfg(test)]
 fn rotate(value: Vec3, rotation_vector: Vec3) -> Vec3 {
     let angle = norm(rotation_vector);
     if angle < 1.0e-8 {
