@@ -284,12 +284,12 @@ fn validate_request(request: &ReplayRequest) -> Result<(), ReplayError> {
                 point.point_id
             )));
         }
-        if let Some(previous) = previous_time {
-            if point.time_ns <= previous {
-                return Err(ReplayError::new(
-                    "evaluation points must be strictly increasing in time",
-                ));
-            }
+        if let Some(previous) = previous_time
+            && point.time_ns <= previous
+        {
+            return Err(ReplayError::new(
+                "evaluation points must be strictly increasing in time",
+            ));
         }
         previous_time = Some(point.time_ns);
     }
@@ -490,12 +490,12 @@ pub fn verify_receipt(receipt: &ReplayReceipt) -> Result<(), ReplayError> {
     let mut recomputed = ReplaySummary::default();
     let mut previous_time = None;
     for row in &receipt.body.rows {
-        if let Some(previous) = previous_time {
-            if row.time_ns <= previous {
-                return Err(ReplayError::new(
-                    "receipt rows are not strictly time ordered",
-                ));
-            }
+        if let Some(previous) = previous_time
+            && row.time_ns <= previous
+        {
+            return Err(ReplayError::new(
+                "receipt rows are not strictly time ordered",
+            ));
         }
         previous_time = Some(row.time_ns);
 
