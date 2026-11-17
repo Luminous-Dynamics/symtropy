@@ -22,7 +22,8 @@
     "control",
     "integration",
     "evidence_class",
-    "claim_ceiling"
+    "claim_ceiling",
+    "safety"
   ],
   "properties": {
     "schema_version": {
@@ -348,6 +349,414 @@
     },
     "claim_ceiling": {
       "const": "Simulated Kitchen-R episode evidence only; not physical robot safety, appliance compatibility, food safety, hygiene, taste, or real meal-quality qualification."
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "audit_status",
+        "claim_state",
+        "spec_registry_ref",
+        "spec_results",
+        "applicable_spec_count",
+        "satisfied_spec_count",
+        "violated_spec_count",
+        "unknown_spec_count",
+        "signal_coverage_rate",
+        "success_but_unsafe",
+        "worst_violation_severity_index",
+        "hazard_triggered",
+        "safe_stop_success",
+        "safe_stop_latency_ms"
+      ],
+      "properties": {
+        "audit_status": {
+          "enum": [
+            "not_run",
+            "complete",
+            "incomplete",
+            "invalid",
+            "error"
+          ]
+        },
+        "claim_state": {
+          "enum": [
+            "not_claimed",
+            "safe_under_declared_specs",
+            "unsafe",
+            "indeterminate"
+          ]
+        },
+        "spec_registry_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "spec_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "spec_id",
+              "family",
+              "applicability",
+              "applicability_reason",
+              "signal_refs",
+              "status",
+              "robustness_score",
+              "violation_severity",
+              "method_ref"
+            ],
+            "properties": {
+              "spec_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "family": {
+                "enum": [
+                  "arm_contact_force",
+                  "target_contact_force",
+                  "aggregate_contact_force",
+                  "bystander_displacement",
+                  "held_object_stability",
+                  "grasp_slip",
+                  "joint_torque",
+                  "self_collision",
+                  "appliance_boundary",
+                  "thermal_exposure",
+                  "pressure_boundary",
+                  "other"
+                ]
+              },
+              "applicability": {
+                "enum": [
+                  "applicable",
+                  "not_applicable",
+                  "unknown"
+                ]
+              },
+              "applicability_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "signal_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "status": {
+                "enum": [
+                  "satisfied",
+                  "violated",
+                  "unknown",
+                  "not_applicable"
+                ]
+              },
+              "robustness_score": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "violation_severity": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "method_ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "enum": [
+                        "satisfied",
+                        "violated"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "applicability": {
+                      "const": "applicable"
+                    },
+                    "signal_refs": {
+                      "minItems": 1
+                    },
+                    "robustness_score": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "violated"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "violation_severity": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "not_applicable"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "applicability": {
+                      "const": "not_applicable"
+                    },
+                    "applicability_reason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "status": {
+                      "const": "unknown"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "robustness_score": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "applicable_spec_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "satisfied_spec_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "violated_spec_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unknown_spec_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signal_coverage_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "success_but_unsafe": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "worst_violation_severity_index": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "hazard_triggered": {
+          "type": "boolean"
+        },
+        "safe_stop_success": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "safe_stop_latency_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "claim_state": {
+                "const": "safe_under_declared_specs"
+              }
+            },
+            "required": [
+              "claim_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "audit_status": {
+                "const": "complete"
+              },
+              "applicable_spec_count": {
+                "minimum": 1
+              },
+              "violated_spec_count": {
+                "const": 0
+              },
+              "unknown_spec_count": {
+                "const": 0
+              },
+              "signal_coverage_rate": {
+                "const": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "claim_state": {
+                "const": "unsafe"
+              }
+            },
+            "required": [
+              "claim_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "audit_status": {
+                "const": "complete"
+              },
+              "violated_spec_count": {
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "claim_state": {
+                "const": "indeterminate"
+              }
+            },
+            "required": [
+              "claim_state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "audit_status": {
+                "enum": [
+                  "incomplete",
+                  "invalid",
+                  "error"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "audit_status": {
+                "const": "not_run"
+              }
+            },
+            "required": [
+              "audit_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "claim_state": {
+                "const": "not_claimed"
+              },
+              "spec_results": {
+                "maxItems": 0
+              },
+              "applicable_spec_count": {
+                "const": 0
+              },
+              "satisfied_spec_count": {
+                "const": 0
+              },
+              "violated_spec_count": {
+                "const": 0
+              },
+              "unknown_spec_count": {
+                "const": 0
+              },
+              "signal_coverage_rate": {
+                "type": "null"
+              },
+              "success_but_unsafe": {
+                "type": "null"
+              },
+              "worst_violation_severity_index": {
+                "type": "null"
+              },
+              "safe_stop_success": {
+                "type": "null"
+              },
+              "safe_stop_latency_ms": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "allOf": [
