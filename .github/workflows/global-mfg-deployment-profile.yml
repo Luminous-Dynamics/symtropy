@@ -50,7 +50,7 @@ jobs:
             and .schema_version == "0.1.0"
             and .evidence_class == "synthetic_fixture"
             and (.profiles | length) == 4
-            and (.negative_controls | length) == 10
+            and (.negative_controls | length) == 15
             and ([.profiles[].profile_id] | unique | length) == 4
             and ([.negative_controls[].case_id] | unique | length) == 10
             and all(.profiles[];
@@ -78,7 +78,7 @@ jobs:
           jq -e '
             .corpus_id == "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
             and .profile_count == 4
-            and .negative_control_count == 10
+            and .negative_control_count == 15
             and .json_schema_valid == true
             and .json_schema_draft == "2020-12"
             and .all_profile_claims_not_established == true
