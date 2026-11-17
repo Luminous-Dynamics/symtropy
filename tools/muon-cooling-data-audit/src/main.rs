@@ -24,13 +24,15 @@ fn run() -> Result<(), (u8, String)> {
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--manifest" => {
-                manifest = Some(PathBuf::from(
-                    args.next().ok_or_else(|| (64, "--manifest requires a path".to_owned()))?,
-                ));
+                manifest =
+                    Some(PathBuf::from(args.next().ok_or_else(|| {
+                        (64, "--manifest requires a path".to_owned())
+                    })?));
             }
             "--input" => {
                 input = Some(PathBuf::from(
-                    args.next().ok_or_else(|| (64, "--input requires a path".to_owned()))?,
+                    args.next()
+                        .ok_or_else(|| (64, "--input requires a path".to_owned()))?,
                 ));
             }
             "--help" | "-h" => {
