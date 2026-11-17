@@ -4,7 +4,7 @@
 **Parent programme:** evidence-gated industrial intelligence  
 **Fixture generation:** `pump-valve-topology-v0.1`  
 **Observation epoch:** `2026-11-15T12:00:00Z`  
-**Implementation status:** frozen synthetic specification and hand-checkable scenario corpus; no Rust evaluator or CI qualification is claimed yet.
+**Implementation status:** frozen synthetic specification and hand-checkable scenario corpus; a dependency-free Rust evaluator is being added in this PR; exact-head CI qualification is pending.
 
 ## Research question
 
@@ -27,7 +27,8 @@ Consequently, five nominal paths provide only three simultaneously pairwise faul
 ## Files
 
 - `topology-v0.1.tsv`: the 43 mandatory dependency rows for the five candidate paths.
-- `scenarios-v0.1.tsv`: 13 deterministic scenario rows, including shared-root failures, a single qualification revocation, an unknown dependency remainder, a compound failure, a no-route case, and paired hidden-future controls.
+- `routes-v0.1.tsv`: expected mandatory dependency count and route class for each candidate path.
+- `scenarios-v0.1.tsv`: 14 deterministic scenario rows, including shared-root failures, a single qualification revocation, an unknown dependency remainder, a compound failure, a no-route case, a failed first-article gate, and paired hidden-future controls.
 - `policy-arms-v0.1.tsv`: baseline and oracle definitions.
 
 All IDs and values are synthetic. `fault_domain_id` is an owner-declared common-cause identity, not something inferred from a different or matching label. Distinct IDs alone do not establish physical independence. The future evaluator must consume dependency/fault-domain projections owned by Mycelix (#5762/#5696 and #1243); it must not create a competing generic graph.
@@ -40,18 +41,20 @@ For each candidate path:
 2. A path is `AVAILABLE` only when its dependency inventory is complete, every referenced qualification is current and applicable at the decision epoch, and none of its fault domains is failed in the scenario.
 3. A path with any declared unknown dependency remainder is `UNKNOWN`, not available and not silently dropped from the inventory.
 4. A path with a failed fault domain or revoked qualification is `BLOCKED`.
-5. A synthetic accepted output is possible iff at least one complete, current path remains available and the scenario's separate product acceptance/independent inspection gate is pass. The v0.1 manifest treats that global gate as pass; later multi-operation fixtures must represent it explicitly.
-6. The **maximum independent path count** is the largest subset of available paths whose declared fault-domain sets are pairwise disjoint. It is computed by exhaustive subset enumeration on this tiny fixture. It is not a failure probability, reliability estimate, or generalized max-flow result.
+5. A synthetic accepted output is possible iff at least one complete, current path remains available and the scenario's separate first-article/independent-inspection gate is `PASS`. A feasible route is not an accepted product.
+6. Report an **independent-path interval**, not an unjustified point estimate, when route inventory is incomplete. The lower bound is the largest pairwise-disjoint subset of fully known `AVAILABLE` paths. The optimistic upper bound also includes `UNKNOWN` paths, assuming they are available and their unknown remainder introduces no additional conflicts. The upper bound is therefore optimistic; the lower bound is conservative. If both bounds are equal, the unknown path does not change this particular count, but it remains `UNKNOWN` and must not be admitted.
+7. With a complete inventory, lower and upper bounds coincide and equal the maximum subset of available routes whose declared fault-domain sets are pairwise disjoint. It is computed by exhaustive subset enumeration on this tiny fixture. It is not a failure probability, reliability estimate, or generalized max-flow result.
 
 For an available path `p` under scenario `s`:
 
 `available(p,s) = complete(p) AND current_qualifications(p) AND (fault_domains(p) ∩ failed_domains(s) = ∅)`
 
-The pairwise independence count is:
+The pairwise independence interval is:
 
-`max |S| such that S ⊆ available_paths and fault_domains(p) ∩ fault_domains(q) = ∅ for every distinct p,q ∈ S`
+- `lower = max_disjoint(AVAILABLE paths)`
+- `upper = max_disjoint(AVAILABLE paths ∪ UNKNOWN paths with only their known dependency identities)`
 
-This conservative finite model intentionally avoids probability assumptions. A later implementation may support richer AND/OR hypergraph and fault semantics only when the upstream owner provides a complete, versioned projection and an independently checked interpretation.
+The interval expresses uncertainty in capability inventory; it does not represent a probability interval. This conservative finite model intentionally avoids probability assumptions. A later implementation may support richer AND/OR hypergraph and fault semantics only when the upstream owner provides a complete, versioned projection and an independently checked interpretation.
 
 ## Expected hand-checkable results
 
@@ -65,22 +68,24 @@ This conservative finite model intentionally avoids probability assumptions. A l
 | S05 partner authority revoked | local_a, local_b, independent_e | 2 | both partner routes blocked |
 | S06 partner C transport failure | local_a, local_b, partner_d, independent_e | 3 | one partner alternative remains |
 | S07 local A qualification revoked | local_b, partner_c, partner_d, independent_e | 3 | do not over-invalidate local B |
-| S08 partner D dependency inventory incomplete | local_a, local_b, partner_c, independent_e; partner_d unknown | 3 | unknown path is not admitted |
+| S08 partner D dependency inventory incomplete | local_a, local_b, partner_c, independent_e; partner_d unknown | [3, 3] | unknown path is not admitted; upper bound uses optimistic known-domain-only remainder |
 | S09 local + partner common cause | independent_e | 1 | independent positive control survives |
 | S10 local + partner + independent power failures | none | 0 | no admissible route |
-| S11/S12 paired hidden futures | different post-event path sets | 2 each | decision before event must be identical |
+| S11/S12 paired hidden futures | different post-event path sets | [2, 2] each | decision before event must be identical |
+| S13 first-article inspection rejected | all five paths available | [3, 3] | route exists but no product is accepted |
 
-The machine-readable TSV is authoritative for scenario IDs, injected events, and expected results. The table is explanatory.
+The machine-readable TSV is authoritative for scenario IDs, injected events, acceptance-gate state, expected route dispositions, lower/upper independence bounds and expected output disposition. The table is explanatory.
 
 ## Required evaluator behavior
 
 - Reject unknown, stale, revoked, incomplete, or mismatched qualifications.
 - Treat an absent dependency record as unknown/incomplete, not as evidence of independence.
 - Preserve multi-valued dependency identities and explicit common-root overlap.
-- Reject a claimed independent-path count when any participating path has an unresolved dependency remainder.
+- When inventory is incomplete, emit lower/upper independent-path bounds; never promote the optimistic upper bound to a verified count.
+- An unknown path must remain excluded from the admissible set, even when the lower and upper independence bounds happen to coincide.
 - Distinguish `AVAILABLE`, `BLOCKED`, and `UNKNOWN`; do not collapse them into a boolean.
 - For paired hidden-future scenarios S11/S12, require the same pre-event action/decision digest because the observable prefix is identical and the future event is not visible.
-- Keep product inspection/acceptance and genealogy as separate hard gates in the next increment. A schedule or available route is not an accepted product.
+- Keep product inspection/acceptance and genealogy as separate hard gates. S13 proves that a set of valid routes can still produce no accepted output when first-article inspection fails.
 - Never infer a probability from the 13 scenario rows.
 
 ## Baselines
@@ -101,7 +106,7 @@ All deployable arms must receive identical observable evidence, decision epochs,
 
 Report separately:
 
-- nominal path count, available qualified path count, and maximum pairwise independent path count;
+- nominal path count, available qualified path count, and lower/upper pairwise-independent path bounds;
 - route survival by scenario and common-cause detection;
 - false qualified-path admission and false independence count;
 - unknown/incomplete inventory count;
@@ -111,13 +116,13 @@ Report separately:
 - WIP/genealogy, inspection, and blocked-output disposition;
 - runtime, memory, solver calls, and explicit `INCONCLUSIVE` outcomes.
 
-Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
+Hard gates: zero invalid route admissions; zero false independence claims for declared shared roots; no incomplete inventory treated as complete; a failed or unknown first-article gate cannot yield `ACCEPTED`; exact agreement with the exhaustive oracle on all supported tiny fixtures; 100% non-anticipativity on the paired hidden-future controls; explicit disposition for every blocked or unknown path.
 
 Performance targets are hypotheses only. Establish a baseline before preregistering percentage improvements. Do not combine correctness gates and performance metrics into one weighted score.
 
 ## Scope and claim boundary
 
-This is a synthetic single-operation capability-route fixture, not a full production scheduler, multi-order capacity model, physical factory twin, safety case, or commissioning record. It does not prove actual fault independence, failure rates, supplier reliability, throughput, production savings, product quality, or physical acceptance. The `independent_e` path is independent only under the declared synthetic fault-domain inventory. An identifier, hash, signature, or digital twin does not prove that a physical measurement occurred or that a conclusion is true.
+This is a synthetic single-operation capability-route fixture, not a full production scheduler, multi-order capacity model, physical factory twin, safety case, or commissioning record. The bounded `ACCEPTED` label in this fixture is synthetic only and depends on the scenario's explicit first-article gate. It does not prove actual fault independence, failure rates, supplier reliability, throughput, production savings, product quality, or physical acceptance. The `independent_e` path is independent only under the declared synthetic fault-domain inventory. An identifier, hash, signature, or digital twin does not prove that a physical measurement occurred or that a conclusion is true.
 
 ## Reuse and ownership
 
