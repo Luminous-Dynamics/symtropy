@@ -540,11 +540,7 @@ mod tests {
     #[test]
     fn near_parallel_free_face_is_explicitly_unresolved() {
         let moving = capsule(p(0.0, 0.0, 0.0), p(1_000.0, 0.0, 0.0), 0.01);
-        let obstacle = capsule(
-            p(-500.0, 0.000_2, 0.0),
-            p(1_500.0, -0.000_2, 0.0),
-            0.01,
-        );
+        let obstacle = capsule(p(-500.0, 0.000_2, 0.0), p(1_500.0, -0.000_2, 0.0), 0.01);
         assert_eq!(
             translating_capsule_vs_capsule(moving, p(0.0, 0.0, 0.0), obstacle),
             Err(TranslationCcdError::NumericallyUnresolved)
@@ -562,16 +558,8 @@ mod tests {
         };
 
         for _ in 0..16 {
-            let moving = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.25,
-            );
-            let obstacle = capsule(
-                p(next(), next(), next()),
-                p(next(), next(), next()),
-                0.25,
-            );
+            let moving = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.25);
+            let obstacle = capsule(p(next(), next(), next()), p(next(), next(), next()), 0.25);
             let translation = p(next(), next(), next());
             let exact = translating_capsule_vs_capsule(moving, translation, obstacle).unwrap();
 
