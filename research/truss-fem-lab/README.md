@@ -137,3 +137,5 @@ The reference treats members meeting at the same node as rigidly connected in al
 Authored fixtures cover closed-form cantilever response in both principal bending planes, global force/moment/energy closure, a two-member elbow frame with a shared six-DOF joint, and singular detection for a completely unsupported frame. These tests remain unexecuted pending current-head Rust CI.
 
 The frame solver's shared-node model imposes rigid continuity of all six DOFs at a common node. It does not imply that a real modular connector has that stiffness. Use the separate connector-compliance prototype or a future six-DOF connector matrix for explicit joint flexibility; calibrate those properties from coupons before treating them as physical.
+
+The beam-element analytical test set now covers all four basic linear response modes: axial extension, torsional rotation, and bending about each principal section axis. The assembled frame tests also cover a two-member elbow with shared rigid six-DOF node and global equilibrium/energy closure. These are authored fixtures; current-head execution and independent solver agreement remain pending.
