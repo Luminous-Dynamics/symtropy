@@ -421,12 +421,20 @@ pub fn time_swept_capsule_broadphase(
 /// the full-body SAP for every temporal slab.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CandidateRefinementReport {
+    /// Number of candidate pairs emitted by the one-slab coarse SAP.
     pub coarse_candidate_pairs: u64,
+    /// Number of dyadic slabs used for candidate refinement.
     pub refinement_subdivision_count: u32,
+    /// Total active body/slab outer AABBs built over the streamed slab loop.
     pub body_slab_bounds_built: u64,
+    /// Candidate-pair/slab intersections with a non-empty common active interval.
     pub tested_pair_slabs: u64,
+    /// Pair/slab tests rejected by disjoint cached whole-active-slab bounds.
     pub cached_bounds_fast_rejects: u64,
+    /// Pair/slab tests requiring exact common-interval AABB reconstruction.
+    /// Each rebuild reconstructs both bodies' bounds.
     pub common_interval_rebuilds: u64,
+    /// Refined candidate records, preserving the direct multi-slab SAP schema.
     pub pairs: Vec<TimedCapsulePairCandidate>,
 }
 
