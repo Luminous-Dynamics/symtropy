@@ -389,19 +389,24 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
         }
         previous_time = Some(sample.time_ns);
         match sample.state {
-            WaveformSampleState::SyntheticNominal
-            | WaveformSampleState::Degraded
-            | WaveformSampleState::Delayed => {
-                if sample.value.is_none() {
+            WaveformSampleState::SyntheticNominal | WaveformSampleState::Degraded => {
+                if sample.value.is_none() || sample.source_sample_index != Some(index) {
                     return Err(waveform_error(
-                        "waveform receipt has a value-bearing state without a value",
+                        "nominal/degraded sample must retain its own finite source value",
+                    ));
+                }
+            }
+            WaveformSampleState::Delayed => {
+                if sample.value.is_some() != sample.source_sample_index.is_some() {
+                    return Err(waveform_error(
+                        "delayed sample value and source index must appear together",
                     ));
                 }
             }
             WaveformSampleState::Unavailable | WaveformSampleState::Invalid => {
-                if sample.value.is_some() {
+                if sample.value.is_some() || sample.source_sample_index.is_some() {
                     return Err(waveform_error(
-                        "waveform receipt exposes a value for an unavailable/invalid sample",
+                        "unavailable/invalid sample must not expose a numeric source value",
                     ));
                 }
             }
@@ -545,14 +550,14 @@ mod tests {
 
     #[test]
     fn invalid_parameters_and_non_finite_inputs_are_refused() {
-        let mut request = request();
-        request.faults.push(WaveformFault {
+        let mut invalid_parameters = request();
+        invalid_parameters.faults.push(WaveformFault {
             fault_id: "zero-delay".to_owned(),
             start_sample: 0,
             end_sample: 1,
             mode: WaveformFaultMode::Delay { lag_samples: 0 },
         });
-        assert!(run_waveform_replay(&request).is_err());
+        assert!(run_waveform_replay(&invalid_parameters).is_err());
 
         let mut non_finite = request();
         non_finite.faults.clear();
