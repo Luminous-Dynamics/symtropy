@@ -119,7 +119,7 @@ fn parse_date(value: &str) -> Result<(i64, u32, u32), String> {
 
 /// Proleptic Gregorian civil date to days from 1970-01-01.
 fn days_from_civil(year: i64, month: u32, day: u32) -> i64 {
-    let y = year - i64::from(month <= 2);
+    let y = year - if month <= 2 { 1 } else { 0 };
     let era = if y >= 0 { y } else { y - 399 } / 400;
     let year_of_era = y - era * 400;
     let month_prime = i64::from(month) + if month > 2 { -3 } else { 9 };
