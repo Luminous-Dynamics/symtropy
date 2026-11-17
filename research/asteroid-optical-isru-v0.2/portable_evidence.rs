@@ -392,7 +392,9 @@ impl PortableEvidenceProfile {
                 associated.kind == ProvRelationKind::WasAssociatedWith
                     && associated.subject_id == activity_id
                     && matches!(
-                        nodes.get(associated.object_id.as_str()).map(|node| &node.class),
+                        nodes
+                            .get(associated.object_id.as_str())
+                            .map(|node| &node.class),
                         Some(NodeClass::Agent(AgentKind::Authority))
                     )
             })
@@ -1520,7 +1522,9 @@ mod tests {
             observed_at_utc_s: 100,
             recorded_at_utc_s: 101,
             calibration_disposition: CalibrationDisposition::EligibleAtMeasurementTime,
-            calibration_verification_receipt_id: Some("urn:receipt:calibration:witness".to_string()),
+            calibration_verification_receipt_id: Some(
+                "urn:receipt:calibration:witness".to_string(),
+            ),
             qualification_receipt_id: Some("urn:receipt:qualification:witness".to_string()),
             method_id: Some("urn:method:one".to_string()),
             reference_material_id: Some("urn:reference:one".to_string()),
@@ -1560,7 +1564,9 @@ mod tests {
             observed_at_utc_s: 150,
             recorded_at_utc_s: 151,
             calibration_disposition: CalibrationDisposition::EligibleAtMeasurementTime,
-            calibration_verification_receipt_id: Some("urn:receipt:calibration:capture".to_string()),
+            calibration_verification_receipt_id: Some(
+                "urn:receipt:calibration:capture".to_string(),
+            ),
             qualification_receipt_id: Some("urn:receipt:qualification:capture".to_string()),
             method_id: Some("urn:method:one".to_string()),
             reference_material_id: Some("urn:reference:one".to_string()),
@@ -1591,7 +1597,10 @@ mod tests {
             let suffix = claim.id.rsplit(':').next().unwrap_or("claim");
             for (receipt_id, activity_suffix, activity_name) in [
                 (
-                    claim.calibration_verification_receipt_id.as_deref().unwrap(),
+                    claim
+                        .calibration_verification_receipt_id
+                        .as_deref()
+                        .unwrap(),
                     "calibration-verification",
                     "Calibration receipt verification",
                 ),
@@ -1682,17 +1691,22 @@ mod tests {
             .iter_mut()
             .find(|claim| claim.id == "urn:observation:witness")
             .unwrap();
-        witness.calibration_verification_receipt_id =
-            Some("urn:receipt:missing".to_string());
+        witness.calibration_verification_receipt_id = Some("urn:receipt:missing".to_string());
         witness.qualification_receipt_id = Some("urn:receipt:also-missing".to_string());
 
-        let findings = value.validate(ConformanceLevel::P2MetrologyQualified).findings;
-        assert!(findings.contains(&ProfileFinding::InvalidCalibrationVerificationReceipt(
-            "urn:observation:witness".to_string()
-        )));
-        assert!(findings.contains(&ProfileFinding::InvalidQualificationReceipt(
-            "urn:observation:witness".to_string()
-        )));
+        let findings = value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings;
+        assert!(
+            findings.contains(&ProfileFinding::InvalidCalibrationVerificationReceipt(
+                "urn:observation:witness".to_string()
+            ))
+        );
+        assert!(
+            findings.contains(&ProfileFinding::InvalidQualificationReceipt(
+                "urn:observation:witness".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -1702,11 +1716,12 @@ mod tests {
             !(relation.kind == ProvRelationKind::WasAssociatedWith
                 && relation.subject_id == "urn:activity:calibration-verification:witness")
         });
-        assert!(value.validate(ConformanceLevel::P2MetrologyQualified).findings.contains(
-            &ProfileFinding::InvalidCalibrationVerificationReceipt(
+        assert!(value
+            .validate(ConformanceLevel::P2MetrologyQualified)
+            .findings
+            .contains(&ProfileFinding::InvalidCalibrationVerificationReceipt(
                 "urn:observation:witness".to_string()
-            )
-        ));
+            )));
     }
 
     #[test]
