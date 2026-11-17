@@ -54,7 +54,7 @@ WATERLOOP_T0_REVISION="$(git rev-parse HEAD)" \
   artifacts/water-service-t0/waterloop-physical-receipt.json
 ```
 
-The WaterLoop oracle is separate from the input vectors. Its receipt binds input, manifest, oracle and Cargo.lock digests plus the exact implementation revision. Qualification remains `NotRun`; all 34 cases are synthetic arithmetic/contract checks, not a physical test, water-quality assessment or savings claim. The declared additive uncertainty bound is deliberately conservative; it is not an independence-based root-sum-square estimate.
+The WaterLoop oracle is separate from the input vectors. Its receipt binds input, manifest, oracle and Cargo.lock digests plus the exact implementation revision. Qualification remains `NotRun`; all 42 cases are synthetic arithmetic/contract checks, not a physical test, water-quality assessment or savings claim. The declared additive uncertainty bound is deliberately conservative; it is not an independence-based root-sum-square estimate.
 
 
 ### Time-resolved service continuity
@@ -71,10 +71,19 @@ The full time-resolved service semantics, scenario families, South African regul
 
 ### Household economics — cost per verified service
 
-The 34-case WaterLoop evaluator now includes nine synthetic household-economics cases (026–034). It consumes admitted cost components and versioned baseline/actual utility bills; it does not calculate municipal tariffs. It keeps fixed charges explicit, computes gross system cost and incremental household spend separately, calculates ZAR per verified useful m³ / critical person-day, and computes a water-spend burden only when resident-authorised disposable-income evidence is admitted.
+The 42-case WaterLoop evaluator now includes nine synthetic household-economics cases (026–034). It consumes admitted cost components and versioned baseline/actual utility bills; it does not calculate municipal tariffs. It keeps fixed charges explicit, computes gross system cost and incremental household spend separately, calculates ZAR per verified useful m³ / critical person-day, and computes a water-spend burden only when resident-authorised disposable-income evidence is admitted.
 
 The cases cover a rising-block bill delta, unadmitted tariff, zero useful volume, unadmitted cost ledger, missing income, intended-use mismatch and a lower-cost design that fails its essential service floor. A cheaper design cannot win the comparison when it fails the required service floor.
 
 Protocol: [WATER_ECONOMICS_BENCHMARK_V0_1.md](../../research/water-service-engineering/WATER_ECONOMICS_BENCHMARK_V0_1.md). All values are synthetic; no household affordability, actual tariff, savings or product performance is qualified.
 
 Cost comparison and affordability are intentionally separate: missing income leaves the resident affordability burden Indeterminate but does not suppress an otherwise admitted cost-per-service comparison. The evaluator also rejects a tariff bill whose billing-period duration differs from the declared system-cost period.
+
+
+### Parametric skid sizing and design-assurance audit
+
+The shared evaluator now has eight additional synthetic design-sizing cases (035–042). They cover periodic raw equalisation, treatment capacity feasibility, treated-service autonomy/reserve storage, pump hydraulic power/specific energy, invalid efficiency, zero process availability, unadmitted design inputs and synthetic-to-process-qualification claim promotion.
+
+The Rust test suite also audits the existing modular-skid interface, P&ID tags, BOM categories, FMEA hazards and source-profile scenarios as cross-linked design artefacts. Negative controls reject orphan module references, missing P&ID interlocks, premature BOM quantities, missing FMEA verification, excluded-source acceptance and removal of the potable/reclaimed cross-connection prohibition.
+
+Protocol: [WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md](../../research/water-service-engineering/WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md). All outputs are preliminary arithmetic only. No tank, pump, treatment train, process dose, material grade or procurement SKU is selected.
