@@ -471,6 +471,97 @@
       ],
       "safety_boundary": "Simulation benchmark only. Success in Kitchen-R does not validate physical robot safety, food hygiene, pressure equipment, culinary quality or appliance compatibility. Planner, controller and integrated results must be reported separately.",
       "control_condition": "Reproduce the published VLM planning baseline and diffusion-policy low-level baseline where assets and licenses permit. Run planning-only, control-only and integrated evaluations on matched episodes and splits; report simulator-to-real transfer as untested unless separately measured."
+    },
+    {
+      "task_id": "workflow-offline-manual-resilience",
+      "domain": "workflow",
+      "operation": "complete eligible preparation and meal workflows with WAN/cloud unavailable and verify immediate user takeover",
+      "input_manifest_required": [
+        "frozen workflow and eligible manual-control states",
+        "WAN-disconnected test record",
+        "cloud-service dependency inventory",
+        "camera/microphone disabled state",
+        "appliance local-control instructions",
+        "override input and state-indication log",
+        "operator and accessibility cohort"
+      ],
+      "primary_metrics": [
+        "offline_manual_completion_rate",
+        "manual_override_success_rate",
+        "manual_override_latency_ms",
+        "user_present_time_s",
+        "total_time_to_plate_s"
+      ],
+      "safety_boundary": "Use certified appliances and manufacturer-supported manual modes only. Never bypass appliance-local safety interlocks or attempt takeover of a hazardous live pressure/blade/thermal state.",
+      "control_condition": "Run matched workflows with the normal network available and with WAN/cloud unavailable; preserve local manual operation and log every failure, exclusion and user takeover."
+    },
+    {
+      "task_id": "lifecycle-module-serviceability",
+      "domain": "lifecycle",
+      "operation": "replace a designated user-serviceable non-safety module and verify normal operation",
+      "input_manifest_required": [
+        "exact appliance/module revision",
+        "service manual and declared user-serviceability boundary",
+        "safe isolation procedure",
+        "replacement part identity and availability",
+        "required tools and consumables",
+        "operator training class",
+        "manufacturer post-service functional test"
+      ],
+      "primary_metrics": [
+        "service_module_replacement_time_s",
+        "post_service_functional_verification_rate",
+        "parts_count",
+        "damage_incidence"
+      ],
+      "safety_boundary": "No consumer repair of pressure vessels, high-voltage assemblies, blade guards, safety interlocks or other safety-critical components. Exact manufacturer service instructions govern.",
+      "control_condition": "Compare modular workcell against the best matched incumbent repair procedure; include failed, inconclusive and repeat interventions and record parts availability."
+    },
+    {
+      "task_id": "accounting-whole-process-water-mass",
+      "domain": "lifecycle",
+      "operation": "reconcile whole-process food and water flows per accepted edible serving",
+      "input_manifest_required": [
+        "exact ingredient lots and input masses",
+        "all added water masses and source-meter readings",
+        "preparation/cooking/cleaning boundary definitions",
+        "accepted edible output mass",
+        "trim/reject/residue mass",
+        "drainage/condensate/evaporation capture or bounded uncertainty",
+        "accepted serving count",
+        "meter and scale identity/calibration"
+      ],
+      "primary_metrics": [
+        "water_l_per_accepted_serving",
+        "mass_balance_unaccounted_fraction",
+        "energy_wh_per_accepted_serving",
+        "accepted_edible_yield_g",
+        "avoidable_prep_loss_fraction"
+      ],
+      "safety_boundary": "Accounting does not establish food safety, sanitation or suitability. Missing flow measurements remain unknown and cannot support a complete superiority claim.",
+      "control_condition": "Compare matched ingredient lots, output endpoint and accepted serving size; report preparation, cooking and cleaning water separately before summing the declared boundary."
+    },
+    {
+      "task_id": "workflow-replan-under-disturbance",
+      "domain": "workflow",
+      "operation": "replan a multi-dish workflow after bounded task/resource/power/observation disturbances in deterministic simulation",
+      "input_manifest_required": [
+        "frozen initial task graph and module revisions",
+        "simulator and scheduler revision",
+        "seeded disturbance catalogue",
+        "task delay/resource outage/power-cap change/stale-observation event",
+        "user deadline and hard constraints",
+        "raw episode and schedule receipts"
+      ],
+      "primary_metrics": [
+        "replan_success_rate_under_disturbance",
+        "replan_latency_ms",
+        "temporal_constraint_violation_count",
+        "power_cap_violation_count",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Synthetic/simulated evaluation only. Do not inject disturbances into active pressure, heating, cutting or other physical appliance operation.",
+      "control_condition": "Compare no-replan baseline, fixed-rule repair, resource-greedy repair and Symtropy event-boundary replanning on identical seeds; retain every failed or abstained episode."
     }
   ],
   "metrics": [
@@ -923,6 +1014,76 @@
       "method": "Count adjudicator edits/rejections divided by verb instances, multiplied by 100.",
       "evidence_class": "assayed",
       "notes": "Blind reviewers to system identity; retain inter-annotator agreement and unresolved disagreements."
+    },
+    {
+      "metric_id": "offline_manual_completion_rate",
+      "unit": "fraction",
+      "denominator": "eligible end-to-end workflow trials with WAN/cloud unavailable and local manual mode available",
+      "method": "disconnect WAN and disable cloud dependencies before the frozen run; count completed accepted workflows without remote service, camera or microphone divided by all eligible attempts; retain failures and exclusions",
+      "evidence_class": "measured",
+      "notes": "Manual mode remains subject to all appliance-local interlocks; this is not permission to bypass a safety function."
+    },
+    {
+      "metric_id": "manual_override_success_rate",
+      "unit": "fraction",
+      "denominator": "eligible user takeover or override attempts in supported non-hazardous workflows",
+      "method": "count overrides that transfer control to the user, expose current state and stop autonomous recommendations/actions without hidden restart, divided by all eligible attempts",
+      "evidence_class": "measured",
+      "notes": "Never test override by defeating pressure, thermal, blade, motor or electrical protection."
+    },
+    {
+      "metric_id": "manual_override_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "eligible user takeover or override attempt",
+      "method": "time from deliberate user override input to clearly indicated stable manual-control state; report median, p95 and failures",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "service_module_replacement_time_s",
+      "unit": "seconds",
+      "denominator": "one declared user-serviceable non-safety module replacement",
+      "method": "time from safe electrical isolation to completion of manufacturer-defined post-replacement functional check; report tools, operator class, steps and consumables",
+      "evidence_class": "measured",
+      "notes": "Exclude pressure vessels, high-voltage assemblies and safety-critical parts unless separately qualified for the exact service procedure."
+    },
+    {
+      "metric_id": "post_service_functional_verification_rate",
+      "unit": "fraction",
+      "denominator": "all completed declared module-service interventions",
+      "method": "count interventions passing the exact manufacturer-defined post-service functional verification divided by all completed interventions; failed and inconclusive checks remain in denominator",
+      "evidence_class": "measured",
+      "notes": "Functional verification is not independent safety certification."
+    },
+    {
+      "metric_id": "water_l_per_accepted_serving",
+      "unit": "litres per accepted serving",
+      "denominator": "accepted edible servings",
+      "method": "meter preparation, cooking and cleaning water separately; sum only complete, boundary-matched terms and divide by accepted servings; preserve unknown terms and meter uncertainty",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "mass_balance_unaccounted_fraction",
+      "unit": "fraction of measured input mass",
+      "denominator": "total weighed ingredient and process-liquid input mass",
+      "method": "weigh accepted edible output, trim, rejects, residues, collected drainage/condensate and other declared outputs; include evaporation only when measured or bounded with disclosed uncertainty; compute absolute unaccounted mass divided by total input mass",
+      "evidence_class": "measured",
+      "notes": "Unknown mass flows are not zero. Do not claim closure by omitting evaporation, drainage or cleaning residues."
+    },
+    {
+      "metric_id": "model_energy_absolute_percentage_error",
+      "unit": "fraction",
+      "denominator": "calibrated measured wall-plug energy per frozen trial",
+      "method": "freeze the model prediction before each run and calculate absolute(predicted minus measured) divided by measured energy; report distribution by workload, power/load class and held-out trial",
+      "evidence_class": "measured",
+      "notes": "A model prediction is not measurement; do not train or tune on held-out evaluation trials."
+    },
+    {
+      "metric_id": "replan_success_rate_under_disturbance",
+      "unit": "fraction",
+      "denominator": "all preregistered simulated disturbance episodes",
+      "method": "count episodes where deterministic replanning reaches a valid schedule without temporal, resource, module-capability or power-envelope violations divided by all injected episodes; report abstentions, failures and latency separately",
+      "evidence_class": "simulated",
+      "notes": "Disturbances are injected in simulation only unless a separate physical safety case permits a specific test."
     }
   ],
   "target_hypotheses": [
@@ -1109,6 +1270,83 @@
         "unmapped verbs are force-mapped",
         "human review provenance is absent",
         "a taxonomy binding is interpreted as low-level control authorization"
+      ]
+    },
+    {
+      "hypothesis_id": "H-OFFLINE-MANUAL-99",
+      "metric_id": "offline_manual_completion_rate",
+      "target": ">=0.99 of preregistered eligible workflows completed with WAN/cloud unavailable",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any workflow requires a cloud account or remote service to reach local manual mode",
+        "any appliance-local interlock is bypassed",
+        "failed or excluded offline trials are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-OVERRIDE-99",
+      "metric_id": "manual_override_success_rate",
+      "target": ">=0.99 successful, clearly indicated user takeovers on eligible non-hazardous workflows",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "hidden restart after takeover",
+        "ambiguous physical state presented as known",
+        "any safety interlock bypass"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPAIR-25",
+      "metric_id": "service_module_replacement_time_s",
+      "target": "<=0.75 x matched incumbent median time for the same user-serviceable non-safety intervention",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "damage or functional verification failure increases",
+        "replacement requires unsafe disassembly",
+        "replacement parts or instructions are unavailable"
+      ]
+    },
+    {
+      "hypothesis_id": "H-WATER-15-ACCEPTED",
+      "metric_id": "water_l_per_accepted_serving",
+      "target": "<=0.85 x best matched comparator water use per accepted serving, with equivalent food and cleaning outcomes",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "water boundary is incomplete",
+        "cleaning or food-quality result deteriorates",
+        "missing water is treated as zero"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MASS-CLOSURE-98",
+      "metric_id": "mass_balance_unaccounted_fraction",
+      "target": "<=0.02 on a preregistered closed measurement protocol with uncertainty reported",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "evaporation, drainage or cleaning residues are omitted",
+        "mass-balance tolerance is changed after observing results",
+        "input and output boundaries differ"
+      ]
+    },
+    {
+      "hypothesis_id": "H-MODEL-ENERGY-10",
+      "metric_id": "model_energy_absolute_percentage_error",
+      "target": "<=0.10 median absolute percentage error on held-out, calibrated trials across declared load classes",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "predictions are tuned on held-out trials",
+        "meter calibration is invalid or absent",
+        "load classes or appliance revisions are silently pooled"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPLAN-95",
+      "metric_id": "replan_success_rate_under_disturbance",
+      "target": ">=0.95 of preregistered feasible simulated disturbances repaired with zero hard-constraint violations",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any accepted schedule violates resource, timing, module or power constraints",
+        "failed or aborted episodes are dropped",
+        "unknown state is converted to a safe/available assumption"
       ]
     }
   ],
