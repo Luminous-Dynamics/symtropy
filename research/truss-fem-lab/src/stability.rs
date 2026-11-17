@@ -25,6 +25,8 @@ pub struct MemberStabilityProperties {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EulerRegime {
+    /// The member is not carrying a compressive axial force.
+    NotInCompression,
     /// The elastic Euler critical stress does not exceed the supplied yield
     /// strength. The ideal elastic-column comparison is in its nominal range.
     ElasticEulerApplicable,
@@ -180,7 +182,9 @@ pub fn screen_member_stability(
             return Err(StabilityError::NonFiniteResult { member_index });
         }
 
-        let euler_regime = if slenderness_ratio >= transition_slenderness {
+        let euler_regime = if member.axial_force_n >= 0.0 {
+            EulerRegime::NotInCompression
+        } else if slenderness_ratio >= transition_slenderness {
             EulerRegime::ElasticEulerApplicable
         } else {
             EulerRegime::YieldOrInelasticRegime
@@ -301,6 +305,7 @@ mod tests {
         let analysis = axial_bar(1_000.0, 2.0);
         let screen = screen_member_stability(&analysis, &[properties()]).unwrap();
         assert_eq!(screen.members[0].elastic_euler_utilization, None);
+        assert_eq!(screen.members[0].euler_regime, EulerRegime::NotInCompression);
         assert_eq!(screen.maximum_elastic_euler_utilization, None);
     }
 
