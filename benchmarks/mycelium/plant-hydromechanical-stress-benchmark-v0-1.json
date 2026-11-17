@@ -1,0 +1,881 @@
+{
+  "schema_version": "plant_hydromechanical_stress_benchmark.v0.1",
+  "suite_id": "PLANT-HYDROMECH-QUAL-001",
+  "title": "Plant hydraulic, hydromechanical and fungal stress-propagation qualification",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5780",
+  "programme_parent": "https://github.com/Luminous-Dynamics/symtropy/issues/5379",
+  "status": "protocol_defined_not_run",
+  "claim_ceiling": "This protocol does not validate plant drought predictions, prove a drought-signalling mechanism, establish fungal water transfer, reproduce a cited paper, or claim SOTA superiority.",
+  "composition_invariants": [
+    "canonical root geometry and development remain owned by the existing plant structural authority",
+    "soil moisture, retention, hydraulic conductivity and soil-water flow remain owned by existing soil and hydrology authorities",
+    "plant hydraulic/stomatal models are adapters or independently qualified references, not duplicate root or soil solvers",
+    "fungal water transport is disabled unless a selected taxon-specific experiment supports the pathway and its matched controls",
+    "wound-induced poroelastic signalling is a separate validation profile and is not assumed to explain drought responses",
+    "pressure, mass flow, chemical elicitors, calcium signals, electrical potentials and tracer delivery are distinct observables",
+    "missing parameters and observations remain unknown; they are never silently replaced with zero or generic defaults",
+    "all coupling edges carry explicit units, spatial and temporal support, source identity, uncertainty and model revision"
+  ],
+  "scientific_references": [
+    {
+      "id": "bacheva-pnas-2025",
+      "citation": "Bacheva et al. (2025), A unified framework for hydromechanical signaling can explain transmission of local and long-distance signals in plants",
+      "doi": "10.1073/pnas.2422692122",
+      "published": "2025-04-22",
+      "role": "poroelastic pressure propagation, tissue deformation and pressure-driven mass flow reference",
+      "scope": "wound-induced signalling scenarios across xylem and nonvascular tissue",
+      "admission_status": "equations_and_parameter_crosswalk_required",
+      "prohibited_inference": "does_not_establish_the_same_mechanism_for_drought_signalling"
+    },
+    {
+      "id": "rockwell-new-phytologist-2026",
+      "citation": "Rockwell (2026), Emergent feedforward and isohydric responses to soil and atmospheric aridity: insights from a time-dependent hydraulic model",
+      "doi": "10.1111/nph.71178",
+      "published": "2026-04-12",
+      "role": "time-dependent hydraulic null model separating soil supply and atmospheric demand",
+      "scope": "soil hydraulic conductivity loss, deep-water supply, root uptake, leaf water potential and stomatal response",
+      "admission_status": "equations_code_and_supplement_rights_audit_required",
+      "supporting_artifacts": [
+        "Notes S1 PDF: governing equations and boundary-condition derivations",
+        "Notes S2 PDF: runnable code for the model simulations and figures"
+      ],
+      "supporting_artifact_rights_status": "Publisher-hosted supplements are publicly linked, but separate reuse/adaptation permissions have not been admitted."
+    },
+    {
+      "id": "buckley-global-change-biology-2026",
+      "citation": "Buckley et al. (2026), A Simple Stomatal Model That Unifies the Metabolic and Hydraulic Control of Carbon and Water Flux",
+      "doi": "10.1111/gcb.70999",
+      "published": "2026-07-11",
+      "role": "process-based stomatal model comparator",
+      "scope": "biophysical stomatal conductance with metabolic and hydraulic regulation",
+      "admission_status": "equations_code_data_and_supplement_rights_audit_required",
+      "reported_parameterization": "two parameters require empirical fitting",
+      "code_data_release_doi": "10.5281/zenodo.21105704",
+      "code_data_release": "TomBuckleyLab/stomatal-model-GCB v1.0",
+      "release_license_status": "Zenodo record does not populate a license field; paper is CC BY-NC-ND. Inspect code/data files and resolve rights before modification, ingestion or redistribution."
+    },
+    {
+      "id": "openalea-hydroroot-2026",
+      "citation": "OpenAlea.HydroRoot: a modelling framework to dissect, predict and phenotype branched root hydraulic architecture",
+      "doi": "10.1093/insilicoplants/diag025",
+      "published": "2026-09-07",
+      "role": "root hydraulic and solute-transport comparator and interface reference",
+      "scope": "static hydraulic solver, coupled water-solute transport, statistical root architecture generator and dynamic hydraulic model with root growth",
+      "admission_status": "exact_source_revision_and_license_audit_required",
+      "ownership_boundary": "compose_with_existing_root_authority; do_not_create_a_second_root_graph",
+      "known_limitations": [
+        "The 2026 paper states that HydroRoot is soilless: soil is treated as a one-dimensional boundary condition and there is no explicit soil-root interaction.",
+        "Root segments are homogeneous single compartments; axial and radial conductances are parameterized by distance from the root tip as an age proxy.",
+        "The paper reports validation only on annual plants."
+      ],
+      "software_license_reported": "CeCILL-C, as stated by the 2026 paper; check compatibility before copying or linking code into Apache-2.0/MIT components.",
+      "integration_opportunity": "Use HydroRoot for measured root-architecture hydraulic characterization and compose its outputs with Symtropy SOIL-HYDRAULIC-001 #2861 and the plant stress model; do not duplicate either solver."
+    },
+    {
+      "id": "collaborative-root-water-uptake-benchmark",
+      "citation": "Collaborative benchmarking of functional-structural root architecture models: Quantitative comparison of simulated root water uptake",
+      "doi": "10.1093/insilicoplants/diad005",
+      "role": "matched root-water-uptake benchmark design",
+      "scope": "DuMux, CPlantBox, R-SWMS, OpenSimRoot and SRI",
+      "admission_status": "reference_cases_and_observation_operators_to_be_pinned"
+    },
+    {
+      "id": "amf-travelling-wave-nature-2025",
+      "citation": "Oyarte Gálvez et al. (2025), A travelling-wave strategy for plant-fungal trade",
+      "doi": "10.1038/s41586-025-08614-x",
+      "data_doi": "10.6084/m9.figshare.27889143",
+      "role": "time-resolved AMF graph, hyphal growth and cytoplasmic-flow comparator",
+      "scope": "three AMF profiles in a 2D-constrained in-vitro root-organ-culture system",
+      "admission_status": "code_data_and_derivative_rights_audit_required",
+      "prohibited_inference": "in_vitro_2d_flow_observations_do_not_establish_field_scale_plant_water_transfer"
+    },
+    {
+      "id": "buckley-process-stomatal-2026",
+      "citation": "Buckley et al. (2026), A Simple Stomatal Model That Unifies the Metabolic and Hydraulic Control of Carbon and Water Flux",
+      "doi": "10.1111/gcb.70999",
+      "published": "2026-07-11",
+      "role": "process-based stomatal comparator coupling hydraulic water status and photosynthetic bioenergetics",
+      "equations": [
+        "b = A_m - A + b_o",
+        "g_sw = s*b*(psi_s - psi_c)/(1 + s*b*delta_w/K)"
+      ],
+      "parameterization": {
+        "empirically_fitted": [
+          "s",
+          "b_o"
+        ],
+        "separately_measured_or_estimated": [
+          "K",
+          "psi_c"
+        ],
+        "c3_co2_saturated_assimilation": "A_m = J/4 - R_d"
+      },
+      "code_data_release_doi": "10.5281/zenodo.21105704",
+      "code_data_release": "TomBuckleyLab/stomatal-model-GCB v1.0",
+      "release_license_status": "Zenodo record does not populate a license field; paper is CC BY-NC-ND. The equation-level clean-room implementation does not copy source code or data. Inspect artifacts and resolve reuse rights before any ingestion or redistribution.",
+      "admission_status": "equation_level_clean_room_reference_implemented; source_code_and_dataset_reproduction_tracked_separately",
+      "implementation": {
+        "module": "crates/domains/symtropy-mycelium/src/plant_stomatal_buckley_2026.rs",
+        "scope": "Eq 3a/3b, C3 A_m relation and VPD-to-delta_w boundary conversion",
+        "c4_scope": "not_implemented",
+        "authored_tests": 12,
+        "result_status": "pending_exact_head_ci",
+        "no_claims": [
+          "paper_dataset_reproduction",
+          "parameter_fit",
+          "cross_species_validation",
+          "SOTA_superiority"
+        ]
+      },
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5815",
+      "source_admission": {
+        "zenodo_doi": "10.5281/zenodo.21105704",
+        "zenodo_release": "v1.0",
+        "zenodo_file": "TomBuckleyLab/stomatal-model-GCB-v1.0.zip",
+        "zenodo_file_md5": "d1994a22e8e689e837c29dd0da6b93d9",
+        "zenodo_license_field": "unpopulated",
+        "related_git_tag": "https://github.com/TomBuckleyLab/stomatal-model-GCB/tree/v1.0",
+        "data_availability": {
+          "dataset_1_and_4": "Zenodo release",
+          "dataset_2": "https://figshare.com/articles/dataset/Optimal_stomatal_behaviour_around_the_world/1304289",
+          "dataset_3": "https://doi.org/10.15486/ngt/1781004"
+        },
+        "article_license": "CC BY-NC-ND",
+        "permission_status": "no_external_code_or_data_ingested; individual code/data rights and reuse permission not yet admitted"
+      }
+    },
+    {
+      "id": "kplant-global-hydraulic-conductance-v1-1",
+      "citation": "KPLANT V1.1 global whole-plant hydraulic conductance database",
+      "doi": "10.5281/zenodo.21996370",
+      "published": "2026-08-18",
+      "role": "empirical hydraulic conductance K distribution and normalization benchmark",
+      "coverage": {
+        "observations": 3873,
+        "source_study_datasets": 356,
+        "species": 429,
+        "genera": 245,
+        "families": 100,
+        "continents": 6,
+        "growth_forms": [
+          "tree",
+          "shrub",
+          "liana",
+          "graminoid",
+          "forb",
+          "stem_succulent",
+          "fern"
+        ]
+      },
+      "normalization_bases": [
+        "leaf_area",
+        "sapwood_area",
+        "wood_area",
+        "ground_area",
+        "whole_plant"
+      ],
+      "observables": [
+        "whole_plant_hydraulic_conductance",
+        "water_flux",
+        "water_potential",
+        "site_and_stand_metadata"
+      ],
+      "reported_license": "CC BY 4.0 per NLM Dataset Catalog and KPLANT database repository",
+      "code_license": "MIT for KPLANT database repository code only",
+      "rights_status": "pin V1.1 file manifest and checksums; verify Zenodo file terms before ingestion",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+    },
+    {
+      "id": "anderegg-2018-stomatal-drought-dryad",
+      "citation": "Anderegg et al. (2018), Data from: Plant water potential improves prediction of empirical stomatal models",
+      "doi": "10.5061/dryad.9fp38",
+      "published": "2018-09-15",
+      "role": "stomatal conductance and leaf water-potential drought model comparison",
+      "coverage": {
+        "species": 34,
+        "plant_group": "woody_plants",
+        "scope": "global_forest_biomes",
+        "files": [
+          "AllData_PLoSONE_SI_2017_v1.csv"
+        ]
+      },
+      "source_claim": "compares three major stomatal models and a water-potential-aware model; reports empirical model overprediction under dry conditions",
+      "rights_status": "Dryad site indicates data reuse; verify dataset-specific reuse/license metadata and attribution",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+    },
+    {
+      "id": "liu-2026-deep-soil-water-drought-dryad",
+      "citation": "Liu et al. (2026), Data from: Improved use of deep soil water promotes radial growth during drought",
+      "doi": "10.5061/dryad.h70rxwf13",
+      "published": "2026-09-25",
+      "role": "cross-scale soil water depth, leaf status, gas exchange and subsequent radial-growth stress benchmark",
+      "coverage": {
+        "species": 4,
+        "plots": 3,
+        "gas_exchange_trees_per_species": 15,
+        "leaf_water_potential_trees_per_species_and_period": 9,
+        "half_hourly_records_2024": 17568,
+        "soil_depths_cm": [
+          [
+            0,
+            20
+          ],
+          [
+            20,
+            40
+          ],
+          [
+            40,
+            60
+          ],
+          [
+            60,
+            80
+          ],
+          [
+            80,
+            100
+          ]
+        ]
+      },
+      "observables": [
+        "predawn_leaf_water_potential",
+        "midday_leaf_water_potential",
+        "net_photosynthesis",
+        "stomatal_conductance",
+        "transpiration",
+        "isotope_water_source_by_depth",
+        "soil_water_content",
+        "stem_radial_growth"
+      ],
+      "temporal_structure": {
+        "physiological_and_water_source_measurements_year": 2023,
+        "half_hourly_soil_water_and_radial_growth_year": 2024,
+        "same_individual_join": "not established by the published dataset schema; do not invent per-tree time alignment"
+      },
+      "rights_status": "verify Dryad record and file-specific reuse terms",
+      "admission_status": "not_downloaded_not_ingested",
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+    }
+  ],
+  "process_scales": [
+    {
+      "id": "fast_hydromechanical",
+      "nominal_window": "microseconds_to_minutes",
+      "state_families": [
+        "xylem_pressure",
+        "tissue_pressure",
+        "strain",
+        "swelling",
+        "pressure_driven_mass_flow"
+      ],
+      "qualification": "source_specific_time_constants_and_observation_rate_required"
+    },
+    {
+      "id": "stomatal_and_leaf",
+      "nominal_window": "seconds_to_hours",
+      "state_families": [
+        "stomatal_conductance",
+        "transpiration",
+        "leaf_water_potential",
+        "carbon_assimilation",
+        "leaf_temperature"
+      ],
+      "qualification": "diurnal_forcing_and_sensor_cadence_must_be_preserved"
+    },
+    {
+      "id": "soil_root_hydraulic",
+      "nominal_window": "minutes_to_days",
+      "state_families": [
+        "soil_water_potential",
+        "soil_hydraulic_conductivity",
+        "rhizosphere_resistance",
+        "root_uptake",
+        "root_hydraulic_conductance"
+      ],
+      "qualification": "soil_texture_root_architecture_and_boundary_conditions_are_profile_specific"
+    },
+    {
+      "id": "fungal_network",
+      "nominal_window": "hours_to_days",
+      "state_families": [
+        "hyphal_topology",
+        "growth_front",
+        "cytoplasmic_flow",
+        "fungal_resource_pools"
+      ],
+      "qualification": "taxon_strain_and_observation_modality_are_explicit"
+    },
+    {
+      "id": "developmental_and_recovery",
+      "nominal_window": "days_to_months",
+      "state_families": [
+        "root_architecture_change",
+        "fungal_turnover",
+        "carbon_allocation",
+        "growth",
+        "survival",
+        "recovery_memory"
+      ],
+      "qualification": "historical_state_is_preserved_only_where_the_constitutive_model_requires_it"
+    }
+  ],
+  "causal_process_paths": [
+    {
+      "id": "soil_to_leaf_hydraulics",
+      "sequence": [
+        "soil_water_state",
+        "soil_and_rhizosphere_conductance",
+        "root_uptake_flux",
+        "xylem_water_state",
+        "leaf_water_state"
+      ],
+      "status": "reference_models_required"
+    },
+    {
+      "id": "stomatal_carbon_water",
+      "sequence": [
+        "leaf_water_state",
+        "stomatal_conductance",
+        "transpiration",
+        "carbon_assimilation"
+      ],
+      "status": "compare_process_based_and_empirical_models"
+    },
+    {
+      "id": "poroelastic_signal",
+      "sequence": [
+        "local_pressure_perturbation",
+        "xylem_pressure_propagation",
+        "tissue_pressure_and_strain",
+        "downstream_observable_response"
+      ],
+      "status": "wound_reference_only_until_drought_mechanism_is_independently_supported"
+    },
+    {
+      "id": "chemical_elicitor",
+      "sequence": [
+        "elicitor_release",
+        "pressure_driven_advection_and_diffusion",
+        "target_receptor_or_channel",
+        "cellular_response"
+      ],
+      "status": "competing_hypothesis_requires_direct_chemical_or_reporter_evidence"
+    },
+    {
+      "id": "fungal_interface",
+      "sequence": [
+        "soil_resource_or_water_state",
+        "admitted_fungal_process",
+        "measured_interface_exchange",
+        "plant_pool_or_state_change"
+      ],
+      "status": "disabled_without_taxon_specific_route_evidence_and_matched_controls"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S0",
+      "name": "reference_equilibrium",
+      "forcing": "stable_soil_water_vpd_and_temperature",
+      "purpose": "steady_state_and_boundary_balance",
+      "holdout": false
+    },
+    {
+      "id": "S1",
+      "name": "soil_supply_pulse",
+      "forcing": "reduce_soil_water_availability_or_hydraulic_conductivity_with_atmospheric_demand_fixed",
+      "purpose": "identify_supply_limited_response",
+      "holdout": false
+    },
+    {
+      "id": "S2",
+      "name": "atmospheric_demand_pulse",
+      "forcing": "increase_vpd_and_or_temperature_with_soil_supply_fixed",
+      "purpose": "identify_demand_limited_response",
+      "holdout": false
+    },
+    {
+      "id": "S3",
+      "name": "compound_soil_and_atmospheric_stress",
+      "forcing": "combined_S1_and_S2_with_matched_single_factor_controls",
+      "purpose": "measure_interaction_and_non_additivity",
+      "holdout": true
+    },
+    {
+      "id": "S4",
+      "name": "localized_root_zone_perturbation",
+      "forcing": "spatially_localized_wet_dry_boundary_or_split_root_input",
+      "purpose": "test_spatial_response_and_cross_root_lag",
+      "holdout": true
+    },
+    {
+      "id": "S5",
+      "name": "repeated_drought_rewatering",
+      "forcing": "single_and_repeated_soil_drying_and_rewatering_pulses",
+      "purpose": "test_path_dependence_hysteresis_recovery_and_memory",
+      "holdout": true
+    },
+    {
+      "id": "S6",
+      "name": "wound_induced_poroelastic_reference",
+      "forcing": "source_faithful_local_wound_pressure_perturbation",
+      "purpose": "verify_fast_pressure_strain_and_mass_flow_model_separately_from_drought",
+      "holdout": true
+    },
+    {
+      "id": "S7",
+      "name": "fungal_interface_route_discrimination",
+      "forcing": "selected_plant_fungus_system_with_intact_severed_no_fungus_and_diffusion_or_microbe_controls",
+      "purpose": "test_only_the_resource_or_water_pathway_supported_by_admitted_measurements",
+      "holdout": true
+    },
+    {
+      "id": "S8",
+      "name": "transient_hydraulic_storage",
+      "forcing": "short_soil_supply_and_atmospheric_demand_pulses_with_declared_lumped_capacitance",
+      "purpose": "evaluate_storage_buffering_and_transient_leaf_potential_response",
+      "holdout": true
+    },
+    {
+      "id": "S9",
+      "name": "time_step_and_sampling_refinement",
+      "forcing": "same_initial_state_and_forcing_integrated_at_multiple_time_steps_and_observation_cadences",
+      "purpose": "verify_numerical_convergence_and_observation_sampling_invariance_within_declared_tolerance",
+      "holdout": true
+    },
+    {
+      "id": "S10",
+      "name": "supply_demand_observational_equivalence",
+      "forcing": "paired_synthetic_inputs_with_different_soil_water_potential_and_vpd_but_matching_leaf_water_potential_and_stomatal_conductance",
+      "purpose": "qualify_mechanism_identifiability_and_require_abstention_when_available_observations_do_not_distinguish_supply_from_demand",
+      "holdout": true,
+      "synthetic_truth": {
+        "shared": {
+          "soil_to_root_conductance_kg_m2_s_mpa": 0.0002,
+          "root_to_leaf_conductance_kg_m2_s_mpa": 0.0002,
+          "maximum_stomatal_conductance_mol_m2_s": 0.2,
+          "atmospheric_pressure_pa": 100000,
+          "stomatal_open_leaf_potential_mpa": -0.5,
+          "stomatal_closed_leaf_potential_mpa": -2
+        },
+        "supply_limited": {
+          "soil_water_potential_mpa": -0.3245102969849023,
+          "vapor_pressure_deficit_pa": 1000,
+          "expected_leaf_water_potential_mpa": -0.6490205939698044,
+          "expected_stomatal_conductance_mol_m2_s": 0.18013058747069277,
+          "expected_transpiration_kg_m2_s": 0.00003245102969849021
+        },
+        "demand_limited": {
+          "soil_water_potential_mpa": 0,
+          "vapor_pressure_deficit_pa": 2000,
+          "expected_leaf_water_potential_mpa": -0.6490205939698044,
+          "expected_stomatal_conductance_mol_m2_s": 0.18013058747069277,
+          "expected_transpiration_kg_m2_s": 0.00006490205939698043
+        },
+        "equivalence": {
+          "leaf_water_potential_absolute_tolerance_mpa": 1e-12,
+          "stomatal_conductance_absolute_tolerance_mol_m2_s": 1e-12,
+          "transpiration_ratio_demand_over_supply": 2
+        }
+      },
+      "observation_bundles": {
+        "ambiguous": [
+          "leaf_water_potential",
+          "stomatal_conductance"
+        ],
+        "discriminating": [
+          "soil_water_potential",
+          "vapor_pressure_deficit",
+          "transpiration_or_sap_flow"
+        ]
+      },
+      "required_model_behavior": "report the mechanism as non-identifiable from the ambiguous observation bundle; do not infer soil limitation or atmospheric demand from leaf water potential alone"
+    },
+    {
+      "id": "S11",
+      "name": "process_based_buckley_stomatal_comparator",
+      "forcing": "matched_soil_water_potential_hydraulic_conductance_photosynthetic_capacity_and_leaf_to_air_vapor_mole_fraction_difference",
+      "purpose": "compare_process_based_hydraulic_bioenergetic_stomatal_response_with_linear_closure_empirical_vpd_and_constant_conductance_baselines",
+      "holdout": true,
+      "required_observables": [
+        "soil_water_potential",
+        "soil_leaf_hydraulic_conductance",
+        "leaf_to_air_delta_w",
+        "net_assimilation",
+        "co2_saturated_assimilation",
+        "stomatal_conductance",
+        "transpiration"
+      ],
+      "required_parameter_fit_budget": [
+        "s",
+        "b_o"
+      ],
+      "measured_or_independently_qualified_parameters": [
+        "K",
+        "psi_c"
+      ],
+      "negative_controls": [
+        "zero_vpd",
+        "dark_or_low_assimilation_with_basal_capacity",
+        "closure_threshold",
+        "reduced_hydraulic_conductance"
+      ],
+      "fairness": "same_leaf_area_basis_units_forcing_and_independent_plant_or_leaf_holdouts; never fit s or b_o on held-out leaves"
+    },
+    {
+      "id": "S12",
+      "name": "kplant_conductance_distribution_and_normalization",
+      "forcing": "independent_KPLANT_V1_1_study_rows_grouped_by_study_and_normalization_basis",
+      "purpose": "evaluate hydraulic conductance calibration, normalization sensitivity, study holdout and species/growth-form transfer",
+      "holdout": true,
+      "required_observables": [
+        "kplant_source_value",
+        "kplant_normalized_value",
+        "water_flux",
+        "water_potential",
+        "normalization_basis",
+        "source_study_identity"
+      ],
+      "fairness": "never mix leaf-area, sapwood-area, wood-area, ground-area and whole-plant normalization bases without explicit conversion"
+    },
+    {
+      "id": "S13",
+      "name": "stomatal_drought_model_holdout",
+      "forcing": "admitted_Anderegg_Dryad_34_species_leaf_water_potential_and_stomatal_conductance_observations",
+      "purpose": "compare Buckley_2026_BallBerry_USO_and_internal_null_models_on_drought_response",
+      "holdout": true,
+      "required_observables": [
+        "leaf_water_potential",
+        "stomatal_conductance",
+        "source_species",
+        "study_or_site_group"
+      ],
+      "fairness": "group by species and source study; confirm row-level replicate/aggregation semantics before split; compare only rows with complete supported model inputs"
+    },
+    {
+      "id": "S14",
+      "name": "deep_water_access_and_cross_year_drought_response",
+      "forcing": "admitted_Liu_2026_Dryad_water_source_depth_leaf_status_gas_exchange_and_2024_growth_soil_water_records",
+      "purpose": "test whether root-zone water-source depth and soil moisture history explain leaf status_gas_exchange_and_later_growth_without_false_same_time_or_same_tree_joining",
+      "holdout": true,
+      "required_observables": [
+        "soil_water_content_by_depth",
+        "isotope_water_source_contribution",
+        "predawn_and_midday_leaf_water_potential",
+        "photosynthesis",
+        "stomatal_conductance",
+        "transpiration",
+        "half_hourly_radial_growth"
+      ],
+      "temporal_structure": "2023 physiology and source-water measurements; 2024 half-hourly soil water and radial growth; cross-year relation is not an individual-level synchronized trajectory",
+      "fairness": "retain plot/tree/sampling hierarchy; do not synthesize missing timestamps or individual-tree matches; leave-species-out is impossible with only four species and must not be overclaimed"
+    }
+  ],
+  "observation_channels": [
+    {
+      "id": "soil_and_rhizosphere",
+      "observables": [
+        "soil_water_content",
+        "soil_water_potential",
+        "soil_hydraulic_conductivity",
+        "rhizosphere_resistance"
+      ],
+      "required_metadata": [
+        "soil_profile",
+        "depth",
+        "spatial_support",
+        "calibration",
+        "time_window",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "root_and_xylem",
+      "observables": [
+        "root_uptake_flux",
+        "root_hydraulic_conductance",
+        "xylem_water_potential",
+        "xylem_pressure"
+      ],
+      "required_metadata": [
+        "root_identity",
+        "architecture_revision",
+        "measurement_method",
+        "units",
+        "time_window",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "leaf_and_stomatal",
+      "observables": [
+        "leaf_water_potential",
+        "stomatal_conductance",
+        "transpiration",
+        "carbon_assimilation",
+        "leaf_temperature"
+      ],
+      "required_metadata": [
+        "plant_taxon_or_genotype",
+        "leaf_identity",
+        "sensor_calibration",
+        "environmental_forcing",
+        "time_window",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "mechanical",
+      "observables": [
+        "tissue_pressure",
+        "strain",
+        "swelling",
+        "deformation"
+      ],
+      "required_metadata": [
+        "tissue_identity",
+        "geometry",
+        "spatial_resolution",
+        "imaging_or_sensor_calibration",
+        "time_window",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "calcium",
+      "observables": [
+        "cytosolic_calcium_reporter_signal"
+      ],
+      "required_metadata": [
+        "reporter_identity",
+        "calibration",
+        "imaging_exposure",
+        "time_window",
+        "uncertainty"
+      ],
+      "claim_limit": "reporter_signal_is_not_a_direct_measurement_of_hydraulic_pressure_or_specific_causal_pathway"
+    },
+    {
+      "id": "electrical",
+      "observables": [
+        "measured_electrical_potential_or_current"
+      ],
+      "required_metadata": [
+        "electrode_geometry",
+        "reference_electrode",
+        "instrument_calibration",
+        "filtering",
+        "time_window",
+        "uncertainty"
+      ],
+      "claim_limit": "electrical_dynamics_do_not_establish_mass_flow_or_nutrient_transfer"
+    },
+    {
+      "id": "fungal",
+      "observables": [
+        "hyphal_graph",
+        "hyphal_growth",
+        "cytoplasmic_flow_velocity",
+        "fungal_resource_pool"
+      ],
+      "required_metadata": [
+        "fungal_taxon_and_strain",
+        "culture_or_field_unit",
+        "roi_or_segment",
+        "source_receipt",
+        "clock_alignment",
+        "uncertainty"
+      ]
+    },
+    {
+      "id": "isotope_and_exchange",
+      "observables": [
+        "isotope_atom_fraction",
+        "total_element_pool_mass_if_available",
+        "compartment_specific_recovery"
+      ],
+      "required_metadata": [
+        "isotope_identity",
+        "donor_and_receiver_compartment",
+        "baseline",
+        "matched_control",
+        "time_alignment",
+        "source_receipt",
+        "uncertainty"
+      ],
+      "claim_limit": "isotope_enrichment_alone_does_not_establish_direct_fungal_transport_or_mass_transferred"
+    }
+  ],
+  "model_tournament": [
+    {
+      "id": "soil_root_reference",
+      "families": [
+        "OpenAlea_HydroRoot",
+        "DuMux",
+        "CPlantBox",
+        "R_SWMS",
+        "OpenSimRoot",
+        "SRI"
+      ],
+      "role": "root_and_soil_water_reference_not_a_fungal_baseline"
+    },
+    {
+      "id": "stomatal_process_models",
+      "families": [
+        "Buckley_2026_process_based",
+        "Rockwell_2026_time_dependent_hydraulic_null"
+      ],
+      "role": "matched_process_based_stomatal_and_hydraulic_comparators"
+    },
+    {
+      "id": "stomatal_simple_baselines",
+      "families": [
+        "empirical_vpd_response",
+        "constant_conductance",
+        "uncoupled_carbon_demand",
+        "two_resistance_linear_stomatal_closure_null",
+        "one_compartment_backward_euler_hydraulic_capacitance_null"
+      ],
+      "role": "simple_negative_and_reference_baselines",
+      "note": "The linear stomatal and one-compartment capacitance references are transparent internal null models; no biological calibration or source-paper reproduction is claimed."
+    },
+    {
+      "id": "fast_signal_models",
+      "families": [
+        "Bacheva_2025_poroelastic_reference",
+        "pressure_diffusion_only",
+        "elicitor_advection_diffusion"
+      ],
+      "role": "competing_signal_propagation_hypotheses"
+    },
+    {
+      "id": "fungal_interface_controls",
+      "families": [
+        "no_fungus",
+        "disconnected_or_severed_network",
+        "diffusion_only",
+        "microbial_only",
+        "admitted_AMF_graph_flow"
+      ],
+      "role": "route_discrimination_controls_not_universal_water_transfer_models"
+    },
+    {
+      "id": "coupling_ablations",
+      "families": [
+        "uncoupled_submodels",
+        "no_hydraulic_memory",
+        "no_poroelastic_path",
+        "no_atmospheric_demand_path",
+        "no_soil_supply_path",
+        "no_fungal_interface"
+      ],
+      "role": "isolate_contribution_of_each_modelled_path"
+    },
+    {
+      "id": "existing_soil_hydraulic_owner",
+      "families": [
+        "Symtropy_SOIL_HYDRAULIC_001_van_Genuchten_Mualem",
+        "HYDRUS_1D"
+      ],
+      "role": "soil constitutive and transient-flow comparison; retain SOIL-HYDRAULIC-001 #2861 as the source of soil water retention/conductivity authority"
+    },
+    {
+      "id": "buckley_process_stomatal_model",
+      "families": [
+        "Buckley_2026_Eq_3a_3b_clean_room_reference"
+      ],
+      "role": "process-based hydraulic and photosynthetic stomatal comparator, paired with measured K and psi_c and two fitted coefficients s and b_o",
+      "implementation_status": "equation_level_implementation_present_data_reproduction_not_run"
+    }
+  ],
+  "metrics": [
+    "water_and_carbon_boundary_budget_residual",
+    "root_uptake_flux_error",
+    "xylem_and_leaf_water_potential_error",
+    "stomatal_conductance_and_transpiration_error",
+    "carbon_assimilation_error",
+    "pressure_strain_and_swelling_error",
+    "signal_arrival_time_and_attenuation_error",
+    "hysteresis_loop_area_and_recovery_time_error",
+    "hyphal_topology_and_cytoplasmic_flow_error_where_admitted",
+    "isotope_route_consistency_and_compartment_recovery",
+    "CRPS_and_predictive_interval_coverage_width",
+    "worst_stratum_error_and_calibration",
+    "out_of_domain_detection_and_abstention_quality",
+    "causal_mechanism_discrimination_accuracy",
+    "expected_information_gain_per_measurement_cost",
+    "runtime_peak_memory_and_energy_when_measured",
+    "plant_hydraulic_storage_change_and_cumulative_water_balance_residual",
+    "transient_leaf_water_potential_pulse_response_and_recovery",
+    "time_step_refinement_error_at_matched_observation_times",
+    "history_dependence_from_lumped_water_storage",
+    "mechanism_identifiability_and_correct_abstention_under_observational_equivalence",
+    "stomatal_conductance_error_by_soil_potential_and_assimilation_stratum",
+    "transpiration_error_under_matched_delta_w_and_hydraulic_conductance",
+    "dark_or_low_assimilation_basal_stomatal_response",
+    "parameter_recovery_and_identifiability_for_s_and_b_o",
+    "kplant_prediction_error_by_normalization_basis",
+    "study_heldout_kplant_calibration_and_species_transfer",
+    "stomatal_drought_overprediction_bias_by_leaf_water_potential_stratum",
+    "deep_vs_shallow_water_source_response_consistency",
+    "cross_year_stress_recovery_association_with_radial_growth"
+  ],
+  "fair_comparison_rules": [
+    "freeze source release code commit data checksum model configuration and parameter units",
+    "use the same initial conditions forcing interventions observation operators and held-out blocks",
+    "separate calibration and evaluation at the independent plant soil site or experimental-unit level",
+    "keep frames regions of interest hyphae and time points nested within their biological replicate",
+    "compare models at matched predictive error and uncertainty coverage rather than equal time step count",
+    "report parameter identifiability and confounding between soil supply and atmospheric demand",
+    "include no-path and matched-control cases to measure false causal attribution",
+    "report each process scale and worst stratum separately; do not hide failure in pooled averages",
+    "report capacitance and time-step values with units; distinguish numerical storage memory from biological acclimation or long-term stress memory",
+    "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting",
+    "HydroRoot root-side output must be coupled through an explicit soil boundary adapter; do not interpret its soilless boundary model as a soil-root interaction solver",
+    "respect source-specific software licenses; a public code/data record with missing license metadata is not automatically a grant to modify or redistribute",
+    "include paired cases with observationally equivalent measured states but different causal inputs; score correct abstention until a discriminating measurement is available",
+    "Buckley Eq 3a/3b comparison must use the paper's stated units, compatible leaf-area basis, source-specific A_m derivation and independent-plant/leaf holdouts",
+    "do not claim paper reproduction from the clean-room equation implementation; pin and rights-admit the Zenodo release and other source datasets before reproducing fitted values or reported figures",
+    "C3 A_m helper does not authorize use for C4 species; a separate source-faithful C4 profile is required",
+    "KPLANT calibration must group rows by source study and keep its five area/whole-plant normalization bases distinct",
+    "Dryad 2018 stomatal dataset must preserve source species/study and replicate or aggregate identity; do not use random row splits when repeated/aggregated observations share source groups",
+    "Liu 2026 physiology and 2024 half-hourly soil-water/radial-growth series have different years and sampling structures; never treat them as same-plant synchronized time series without an explicit source linkage",
+    "external data remain unadmitted until exact file version, checksum, rights and units are recorded in the #5816 data-admission workstream"
+  ],
+  "preregistration_receipt": [
+    "model_and_source_revision",
+    "data_and_supplement_checksums",
+    "licence_and_access_review",
+    "organism_taxon_genotype_and_fungal_strain",
+    "soil_profile_and_root_architecture_identity",
+    "initial_conditions_and_boundary_conditions",
+    "forcing_trace_and_randomization_unit",
+    "parameter_manifest_with_units_and_uncertainty",
+    "measurement_operator_and_sensor_calibration",
+    "sampling_cadence_and_clock_alignment",
+    "primary_estimands_and_heldout_split",
+    "negative_controls_and_manipulation_checks",
+    "missingness_and_exclusion_rules",
+    "analysis_code_digest",
+    "model_applicability_envelope_and_abstention_policy"
+  ],
+  "target_policy": {
+    "biological_accuracy_targets": "set_only_after_source_release_reproduction_and_independent_split_admission",
+    "synthetic_verification": "exact_balance_and_known_truth_cases_are_required_before_biological_calibration",
+    "uncertainty": "report_calibration_and_interval_width_on_independent_units_and_worst_strata",
+    "sota_claim": "requires_matched_inputs_observation_support_hardware_calibration_budget_and_heldout_evaluation",
+    "fungal_water_transfer": "disabled_without_direct_taxon_specific_measurement_and_matched_route_controls",
+    "current_result_status": "not_run"
+  },
+  "data_admission": {
+    "external_data_downloaded": false,
+    "external_data_ingested": false,
+    "code_and_supplement_rights_verified": false,
+    "biological_validation_performed": false,
+    "reason": "protocol_definition_only; each code/data/supplement artifact requires separate source, checksum, licence and scientific-scope admission"
+  },
+  "empirical_data_admission_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5816"
+}
