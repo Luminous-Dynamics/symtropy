@@ -925,7 +925,7 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_output_identity_is_rejected_across_cases() {
+    fn duplicate_output_identity_is_rejected_within_case() {
         let (cases, _costs, mut outputs) = parsed();
         outputs[0].output_id = outputs[1].output_id.clone();
         let costs = parse_cost_items(COST_ITEMS).unwrap();
