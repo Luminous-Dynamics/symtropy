@@ -1,5 +1,6 @@
 use human_multirate_cosim::{
     AdaptiveConfig, Method, Scenario, simulate, simulate_adaptive_conservative_flux,
+    network::{Edge, NetworkMethod, NetworkScenario, simulate_network},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -90,6 +91,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             adaptive.min_state,
             adaptive.max_state,
         );
+    }
+
+    let network_scenarios = [
+        NetworkScenario {
+            name: "three_node_chain",
+            capacities: vec![1.0, 2.0, 4.0],
+            initial: vec![1.0, 0.2, 0.0],
+            edges: vec![
+                Edge { left: 0, right: 1, conductance: 0.8 },
+                Edge { left: 1, right: 2, conductance: 0.2 },
+            ],
+            horizon: 4.0,
+        },
+        NetworkScenario {
+            name: "four_node_cycle",
+            capacities: vec![1.0, 0.7, 2.0, 1.5],
+            initial: vec![1.0, 0.4, 0.1, 0.0],
+            edges: vec![
+                Edge { left: 0, right: 1, conductance: 0.8 },
+                Edge { left: 1, right: 2, conductance: 0.2 },
+                Edge { left: 2, right: 3, conductance: 0.5 },
+                Edge { left: 3, right: 0, conductance: 0.1 },
+            ],
+            horizon: 4.0,
+        },
+    ];
+
+    for scenario in &network_scenarios {
+        for step in [0.01, 0.1, 0.5] {
+            for method in NetworkMethod::ALL {
+                let score = simulate_network(scenario, method, step)?;
+                println!(
+                    "{},{},{:.10},{},{:.10},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e}",
+                    scenario.name,
+                    method.as_str(),
+                    step,
+                    score.steps,
+                    score.max_spectral_stability_number,
+                    score.max_abs_state_error,
+                    score.rms_state_error,
+                    score.max_abs_total_residual,
+                    score.min_state,
+                    score.max_state,
+                    score.positive_states,
+                    score.final_state.first().copied().unwrap_or_default(),
+                    score.final_state.last().copied().unwrap_or_default(),
+                );
+            }
+        }
     }
 
     Ok(())
