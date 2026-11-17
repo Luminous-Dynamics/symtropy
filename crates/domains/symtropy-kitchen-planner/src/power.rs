@@ -96,6 +96,7 @@ pub enum PowerConstraintViolationCode {
     SegmentBeyondTaskDuration,
     SegmentDoesNotCoverTask,
     TimeOverflow,
+    PowerArithmeticOverflow,
     SourcePlanInvalid,
     ScheduleInvalid,
     PeakPowerExceedsSurgeLimit,
@@ -383,7 +384,7 @@ pub fn validate_power_envelope(
 
     let mut events = Vec::new();
     let makespan_ms = schedule.makespan_ms;
-    if input.envelope.background_real_power_w > 0 && makespan_ms > 0 {
+    if makespan_ms > 0 {
         events.push(PowerEvent {
             at_ms: 0,
             delta_w: i128::from(input.envelope.background_real_power_w),
@@ -440,7 +441,8 @@ pub fn validate_power_envelope(
     let mut current_power_w = 0_i128;
     let mut previous_time: Option<u64> = None;
     let mut surge_run_ms = 0_u64;
-    let mut surge_exceeded_reported = false;
+    let mut peak_exceeded_reported = false;
+    let mut duration_exceeded_reported = false;
     let mut peak_power_w = 0_u64;
 
     let mut index = 0;
@@ -450,11 +452,19 @@ pub fn validate_power_envelope(
             if event_time > previous {
                 let interval_ms = event_time - previous;
                 let nonnegative_power = current_power_w.max(0);
-                let power_w = u64::try_from(nonnegative_power).unwrap_or(u64::MAX);
+                let Ok(power_w) = u64::try_from(nonnegative_power) else {
+                    violation(
+                        &mut report.violations,
+                        PowerConstraintViolationCode::PowerArithmeticOverflow,
+                        None,
+                        "aggregate real power exceeds the u64 watt representation",
+                    );
+                    break;
+                };
                 peak_power_w = peak_power_w.max(power_w);
 
                 if power_w > input.envelope.surge_real_power_limit_w {
-                    if !surge_exceeded_reported {
+                    if !peak_exceeded_reported {
                         violation(
                             &mut report.violations,
                             PowerConstraintViolationCode::PeakPowerExceedsSurgeLimit,
@@ -464,14 +474,14 @@ pub fn validate_power_envelope(
                                 power_w, input.envelope.surge_real_power_limit_w
                             ),
                         );
-                        surge_exceeded_reported = true;
+                        peak_exceeded_reported = true;
                     }
                 }
 
                 if power_w > input.envelope.continuous_real_power_limit_w {
                     surge_run_ms = surge_run_ms.saturating_add(interval_ms);
                     report.longest_surge_ms = report.longest_surge_ms.max(surge_run_ms);
-                    if surge_run_ms > input.envelope.max_surge_duration_ms && !surge_exceeded_reported {
+                    if surge_run_ms > input.envelope.max_surge_duration_ms && !duration_exceeded_reported {
                         violation(
                             &mut report.violations,
                             PowerConstraintViolationCode::SurgeDurationExceedsLimit,
@@ -481,7 +491,7 @@ pub fn validate_power_envelope(
                                 surge_run_ms, input.envelope.max_surge_duration_ms
                             ),
                         );
-                        surge_exceeded_reported = true;
+                        duration_exceeded_reported = true;
                     }
                 } else {
                     surge_run_ms = 0;
@@ -491,10 +501,30 @@ pub fn validate_power_envelope(
 
         let mut grouped_delta = 0_i128;
         while index < events.len() && events[index].at_ms == event_time {
-            grouped_delta += events[index].delta_w;
+            let Some(next_delta) = grouped_delta.checked_add(events[index].delta_w) else {
+                violation(
+                    &mut report.violations,
+                    PowerConstraintViolationCode::PowerArithmeticOverflow,
+                    None,
+                    "simultaneous power-event arithmetic overflowed",
+                );
+                sort_violations(&mut report.violations);
+                return report;
+            };
+            grouped_delta = next_delta;
             index += 1;
         }
-        current_power_w += grouped_delta;
+        let Some(next_power) = current_power_w.checked_add(grouped_delta) else {
+            violation(
+                &mut report.violations,
+                PowerConstraintViolationCode::PowerArithmeticOverflow,
+                None,
+                "aggregate power arithmetic overflowed",
+            );
+            sort_violations(&mut report.violations);
+            return report;
+        };
+        current_power_w = next_power;
         previous_time = Some(event_time);
     }
 
@@ -517,19 +547,20 @@ pub fn build_power_constrained_schedule(
 
     let mut parallel_schedule_error = None;
     let mut parallel_power_violations = Vec::new();
-    if let Ok(schedule) = build_schedule(&input.plan) {
-        let report = validate_power_envelope(input, &schedule);
-        if report.is_valid() {
-            return Ok(PowerScheduleReceiptV1 {
-                schema_version: 1,
-                schedule,
-                power_validation: report,
-                strategy: PowerScheduleStrategyV1::ParallelEarliestGap,
-            });
+    match build_schedule(&input.plan) {
+        Ok(schedule) => {
+            let report = validate_power_envelope(input, &schedule);
+            if report.is_valid() {
+                return Ok(PowerScheduleReceiptV1 {
+                    schema_version: 1,
+                    schedule,
+                    power_validation: report,
+                    strategy: PowerScheduleStrategyV1::ParallelEarliestGap,
+                });
+            }
+            parallel_power_violations = report.violations;
         }
-        parallel_power_violations = report.violations;
-    } else if let Err(error) = build_schedule(&input.plan) {
-        parallel_schedule_error = Some(format!("{error:?}"));
+        Err(error) => parallel_schedule_error = Some(format!("{error:?}")),
     }
 
     let mut serial_schedule_error = None;
