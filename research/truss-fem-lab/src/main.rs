@@ -1,6 +1,6 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
 use symtropy_truss_fem_lab::benchmark::{
-    evaluate_mass_normalized_candidate, MassNormalizedBenchmarkSpec,
+    evaluate_mass_normalized_candidate, matched_tetrahedron_pair, MassNormalizedBenchmarkSpec,
 };
 use symtropy_truss_fem_lab::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
@@ -169,5 +169,38 @@ fn main() {
     println!("mass_matched_single_removal_solvability={:.6}", mass_matched.single_member_removal_solvability_fraction);
     println!("mass_matched_pair_removal_tested={}", mass_matched.tested_two_member_pairs);
     println!("mass_matched_pair_removal_omitted={}", mass_matched.omitted_two_member_pairs);
+
+    let matched = matched_tetrahedron_pair(1.0, [0.0, 0.0, -100.0])
+        .expect("valid matched-envelope tetrahedron fixture");
+    let matched_spec = MassNormalizedBenchmarkSpec {
+        member_mass_budget_kg: 10.0,
+        material_density_kg_m3: 2_700.0,
+        youngs_modulus_pa: 69.0e9,
+        yield_strength_pa: 250.0e6,
+        effective_length_factor: 1.0,
+        pair_removal_budget: 8,
+    };
+    let matched_baseline = evaluate_mass_normalized_candidate(
+        &matched.baseline.model,
+        &matched.baseline.boundary,
+        matched_spec,
+    )
+    .expect("baseline topology should produce benchmark receipt");
+    let matched_hub = evaluate_mass_normalized_candidate(
+        &matched.interior_hub.model,
+        &matched.interior_hub.boundary,
+        matched_spec,
+    )
+    .expect("interior-hub topology should produce benchmark receipt");
+    println!("matched_baseline_name={}", matched.baseline.name);
+    println!("matched_baseline_member_mass_kg={:.9}", matched_baseline.computed_member_mass_kg);
+    println!("matched_baseline_displacement_m={:.12e}", matched_baseline.maximum_node_displacement_m);
+    println!("matched_hub_name={}", matched.interior_hub.name);
+    println!("matched_hub_member_mass_kg={:.9}", matched_hub.computed_member_mass_kg);
+    println!("matched_hub_displacement_m={:.12e}", matched_hub.maximum_node_displacement_m);
+    println!(
+        "matched_hub_to_baseline_displacement_ratio={:.9}",
+        matched_hub.maximum_node_displacement_m / matched_baseline.maximum_node_displacement_m
+    );
     println!("claim_ceiling=ideal pin-jointed linear-elastic reference only; member mass only");
 }
