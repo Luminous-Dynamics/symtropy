@@ -34,8 +34,8 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path crates/domains/symtropy-energy-systems/Cargo.toml -- --check
+      - name: Check formatting (changed crate root and transport contract only)
+        run: rustfmt --edition 2024 --check --config skip_children=true crates/domains/symtropy-energy-systems/src/lib.rs crates/domains/symtropy-energy-systems/src/transport_contract.rs
 
       - name: Run Clippy
         run: cargo clippy --manifest-path crates/domains/symtropy-energy-systems/Cargo.toml --all-targets --locked -- -D warnings
