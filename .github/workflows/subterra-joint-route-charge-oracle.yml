@@ -1,0 +1,29 @@
+name: Subterra joint route and charge oracle
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/subterra-joint-route-charge-oracle.yml"
+      - "research/subterra-joint-route-charge-oracle/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/subterra-joint-route-charge-oracle/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/subterra-joint-route-charge-oracle/Cargo.toml --all-targets --offline
+      - name: Run synthetic joint route/charge oracle
+        run: cargo run --manifest-path research/subterra-joint-route-charge-oracle/Cargo.toml --example synthetic_joint_route_charge --offline
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/subterra-joint-route-charge-oracle/Cargo.toml --all-targets --offline -- -D warnings

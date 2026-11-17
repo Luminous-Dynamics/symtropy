@@ -1,0 +1,17 @@
+[package]
+name = "subterra-joint-route-charge-oracle"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Exact bounded joint multi-robot task allocation, routing and charging reference"
+
+[lib]
+path = "src/lib.rs"
+
+[[example]]
+name = "synthetic_joint_route_charge"
+path = "examples/synthetic_joint_route_charge.rs"
+
+[workspace]
