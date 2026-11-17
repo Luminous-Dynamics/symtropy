@@ -9,7 +9,7 @@ This directory freezes the first synthetic known-answer corpus for [LIVING-WORLD
 
 ## What the corpus tests
 
-The cases separate physical feasibility, ecological integrity, individual welfare, moral-patient uncertainty, human/community effects, consent/custodianship and intergenerational consequences. Each expected finding is conditional on a named premise, includes evidence references, and explicitly identifies its action-option scope (an empty option list means factset-level). Missing, not-tested, not-recorded, out-of-domain and unqualified evidence remain distinct.
+The cases separate physical feasibility, ecological integrity, individual welfare, moral-patient uncertainty, human/community effects, consent/custodianship and intergenerational consequences. Each expected finding is conditional on a named premise, includes evidence references, and explicitly identifies its action-option scope (an empty option list means factset-level). Missing, not-tested, not-recorded, out-of-domain and unqualified evidence remain distinct. An unrecorded/unknown consent state yields an undetermined consent finding, not an inferred refusal; persistence is not an output-threshold result; input energy is not an output measure; worsening welfare indicators do not establish severe harm unless a severity threshold is declared.
 
 The twelve scenario families are: tumour/parasite countermodel; stable exploitation; higher throughput with lower welfare; predator–prey conflict; invasive-species management; forest restoration; fungal-network evidence; water commons; uncertain possible moral patient; reversible versus irreversible intervention; ecological value without sentience evidence; and identical facts assessed under different premises.
 
