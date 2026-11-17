@@ -204,11 +204,19 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
         ));
     }
     let process_definition_refs = sorted_unique_string_array(
-        field(core, "process_definition_refs", &format!("{path}.global_core"))?,
+        field(
+            core,
+            "process_definition_refs",
+            &format!("{path}.global_core"),
+        )?,
         &format!("{path}.global_core.process_definition_refs"),
     )?;
     let inspection_requirement_refs = sorted_unique_string_array(
-        field(core, "inspection_requirement_refs", &format!("{path}.global_core"))?,
+        field(
+            core,
+            "inspection_requirement_refs",
+            &format!("{path}.global_core"),
+        )?,
         &format!("{path}.global_core.inspection_requirement_refs"),
     )?;
     let core_identity = CoreIdentity {
@@ -378,11 +386,17 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
 
     let data = field(profile, "data_processing", &path)?;
     let data_jurisdictions = array(
-        field(data, "processing_jurisdictions", &format!("{path}.data_processing"))?,
+        field(
+            data,
+            "processing_jurisdictions",
+            &format!("{path}.data_processing"),
+        )?,
         &format!("{path}.data_processing.processing_jurisdictions"),
     )?;
     if data_jurisdictions.is_empty() {
-        return Err(format!("{path}.data_processing.processing_jurisdictions: empty list"));
+        return Err(format!(
+            "{path}.data_processing.processing_jurisdictions: empty list"
+        ));
     }
     for (j, value) in data_jurisdictions.iter().enumerate() {
         let jurisdiction = string(
@@ -411,11 +425,17 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
 
     let service = field(profile, "service_lifecycle", &path)?;
     let service_jurisdictions = array(
-        field(service, "service_jurisdictions", &format!("{path}.service_lifecycle"))?,
+        field(
+            service,
+            "service_jurisdictions",
+            &format!("{path}.service_lifecycle"),
+        )?,
         &format!("{path}.service_lifecycle.service_jurisdictions"),
     )?;
     if service_jurisdictions.is_empty() {
-        return Err(format!("{path}.service_lifecycle.service_jurisdictions: empty list"));
+        return Err(format!(
+            "{path}.service_lifecycle.service_jurisdictions: empty list"
+        ));
     }
     for (j, value) in service_jurisdictions.iter().enumerate() {
         let jurisdiction = string(
