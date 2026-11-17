@@ -125,15 +125,15 @@ The drift model is a hard relative-rate bound over the complete source interval,
 
 ### Cached body-slab bound refinement
 
-The cached-refinement implementation builds each active body's swept AABB once per slab and stores its active interval. During coarse-candidate refinement, a pair first uses the two cached bounds as a conservative reject. If those bounds overlap, exact common-interval bounds are rebuilt only when either cached active interval is wider than the pair's shared active interval. When both cached intervals exactly match the common interval, their bounds are reused.
+The cached-refinement implementation builds each active body's swept AABB once per slab and shares that bound across every coarse candidate pair containing the body. It retains only one slab's body bounds at a time, so live cache memory is O(body_count), while the existing MAX_BODY_SLAB_CELLS cap still bounds total build work. During refinement, a pair first uses the two cached whole-active-slab bounds as a conservative rejection filter. If those bounds overlap, exact common-interval bounds are rebuilt only when either cached active interval is wider than the pair's shared active interval. When both cached intervals exactly match the common interval, their bounds are reused. If the coarse candidate set is empty, no slab cache is allocated or built.
 
 The refinement receipt and benchmark report:
-- body/slab AABBs built;
+- total body/slab AABBs built across all slabs;
 - pair/slab cached-bound tests;
 - fast rejects using disjoint whole-active-slab bounds;
 - common-interval pair rebuilds.
 
-This is an attempt to reduce repeated rebasing and capsule construction on clustered/long-thin cases, where the first coarse-to-fine prototype paid per candidate pair × slab. It must preserve full direct-SAP candidate records exactly. The cache is bounded by the existing MAX_BODY_SLAB_CELLS cap and is not allocated at all when the coarse candidate set is empty.
+This is an attempt to reduce repeated rebasing and capsule construction on clustered/long-thin cases, where the first coarse-to-fine prototype paid per candidate pair × slab. It must preserve full direct-SAP candidate records exactly. A deterministic randomized differential test and focused tests for identical/different active intervals and empty coarse sets enforce the candidate-record and cache-accounting contracts.
 ### Direct algorithm comparison
 
 The SAP-only benchmark runs the original full multi-slab algorithm and the hierarchical coarse-to-fine algorithm on the same normalized site-clock trajectories. It alternates timing order, performs warm-up calls, and reports direct/hierarchical p50/p95/p99 plus speedup, direct candidate count, coarse candidate count, refined candidate count and refinement pair-slab work. Exact complete candidate-record equality is asserted before timing is reported. This isolates the cost saved by avoiding a full body/index sweep per slab; it does not include clock-map construction or outer-envelope inflation. The integrated multi-clock-vs-exhaustive benchmark remains a separate end-to-end software path.
