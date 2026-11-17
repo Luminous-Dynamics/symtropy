@@ -432,7 +432,9 @@
         "terrestrial_gateway_required",
         "demand_management",
         "radio_resource_budget",
-        "backhaul_capacity"
+        "backhaul_capacity",
+        "edge_placement_policy",
+        "edge_workloads"
       ],
       "properties": {
         "access_modes": {
@@ -606,6 +608,127 @@
                 "null"
               ],
               "minimum": 0
+            }
+          }
+        },
+        "edge_placement_policy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "static_platform_edge",
+            "static_terrestrial_edge",
+            "lowest_latency_with_reserve_guard",
+            "minimum_total_system_cost",
+            "robust_multiobjective"
+          ],
+          "description": "Placement policy; latency, compute power, heat, backhaul, reserve and outage constraints must be measured on the same service boundary."
+        },
+        "edge_workloads": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "workload_id",
+              "workload_class",
+              "placement_candidates",
+              "input_data_rate_mbps",
+              "compute_demand_tops",
+              "compute_power_w",
+              "waste_heat_fraction",
+              "max_response_ms",
+              "response_metric_basis",
+              "criticality",
+              "fallback_policy",
+              "stateful"
+            ],
+            "properties": {
+              "workload_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "workload_class": {
+                "enum": [
+                  "emergency_alert_fusion",
+                  "drone_telemetry_control",
+                  "wildfire_video_analytics",
+                  "remote_sensing_preprocessing",
+                  "ran_core_processing",
+                  "environmental_event_detection",
+                  "other"
+                ]
+              },
+              "placement_candidates": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "platform_edge",
+                    "drone_edge",
+                    "terrestrial_gateway_edge",
+                    "satellite_edge",
+                    "remote_cloud"
+                  ]
+                }
+              },
+              "input_data_rate_mbps": {
+                "type": "number",
+                "minimum": 0
+              },
+              "compute_demand_tops": {
+                "type": "number",
+                "minimum": 0
+              },
+              "compute_power_w": {
+                "type": "number",
+                "minimum": 0
+              },
+              "waste_heat_fraction": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "max_response_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "response_metric_basis": {
+                "enum": [
+                  "processing_only",
+                  "application_round_trip",
+                  "one_way_network",
+                  "control_loop_round_trip"
+                ]
+              },
+              "criticality": {
+                "enum": [
+                  "safety_critical",
+                  "emergency_critical",
+                  "mission_critical",
+                  "best_effort"
+                ]
+              },
+              "fallback_policy": {
+                "enum": [
+                  "drone_local_safe_mode",
+                  "route_to_terrestrial_gateway",
+                  "store_and_forward",
+                  "degrade_service",
+                  "drop_noncritical",
+                  "unknown"
+                ]
+              },
+              "stateful": {
+                "type": "boolean"
+              },
+              "workload_profile_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           }
         }
