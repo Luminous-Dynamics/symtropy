@@ -382,5 +382,152 @@
       "worst_case_minimum_information_eigenvalue"
     ],
     "claim_ceiling": "Exact subset and observability mathematics for tiny synthetic graph cases only."
+  },
+  "excitation_design_extension": {
+    "benchmark_id": "HUMAN-NESTED-EXCITATION-DESIGN-001",
+    "evidence_class": "synthetic_mathematical_software_only",
+    "candidate_models": [
+      {
+        "id": 1,
+        "label": "chain",
+        "capacities": [
+          1,
+          1,
+          1
+        ],
+        "initial": [
+          0,
+          0,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ]
+        ]
+      },
+      {
+        "id": 2,
+        "label": "chain_with_bypass",
+        "capacities": [
+          1,
+          1,
+          1
+        ],
+        "initial": [
+          0,
+          0,
+          0
+        ],
+        "edges": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            2,
+            1
+          ],
+          [
+            0,
+            2,
+            0.5
+          ]
+        ]
+      }
+    ],
+    "horizon": 2,
+    "selected_sensor_ids": [
+      30
+    ],
+    "sensors": [
+      {
+        "id": 30,
+        "node": 2,
+        "cost": 1,
+        "common_cause_group": null
+      }
+    ],
+    "observation_times": [
+      0.25,
+      0.5,
+      1,
+      2
+    ],
+    "noise_covariance": [
+      [
+        0.01
+      ]
+    ],
+    "sensor_budget": 1,
+    "max_abs_forcing": 1,
+    "integrated_squared_input_budget": 0.5,
+    "profiles": [
+      {
+        "id": 1,
+        "label": "passive_zero_input",
+        "segments": [
+          {
+            "start": 0,
+            "end": 2,
+            "forcing": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "label": "bounded_node_zero_pulse",
+        "segments": [
+          {
+            "start": 0,
+            "end": 0.5,
+            "forcing": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "start": 0.5,
+            "end": 2,
+            "forcing": [
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    ],
+    "objective": "maximise minimum pairwise covariance-aware Gaussian T-optimal separation over candidate model pairs",
+    "metrics": [
+      "integrated_squared_input",
+      "maximum_abs_forcing",
+      "pairwise_T_optimal_separation",
+      "minimum_pairwise_separation",
+      "mean_pairwise_separation",
+      "worst_case_indistinguishable"
+    ],
+    "assumptions": [
+      "same initial state and capacities across candidate models",
+      "fixed candidate parameters",
+      "known strictly positive definite sensor covariance",
+      "noise blocks independent across observation times",
+      "piecewise-constant forcing and fixed graph within each candidate"
+    ],
+    "claim_ceiling": "Exact forced response and model-separation arithmetic for this frozen synthetic graph family only."
   }
 }
