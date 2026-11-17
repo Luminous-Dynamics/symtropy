@@ -87,8 +87,8 @@ pub fn timed_co_translating_capsule_vs_capsule(
     moving: &CapsuleMotionSpan,
     obstacle: &CapsuleMotionSpan,
 ) -> Result<TimedCoTranslatingClosestApproach, TimedCcdError> {
-    validate_span(moving)?;
-    validate_span(obstacle)?;
+    validate_capsule_motion_span(moving)?;
+    validate_capsule_motion_span(obstacle)?;
 
     if moving.site_epoch != obstacle.site_epoch {
         return Err(TimedCcdError::SiteEpochMismatch);
@@ -147,7 +147,7 @@ pub fn timed_co_translating_capsules_collision(
     ))
 }
 
-fn validate_span(span: &CapsuleMotionSpan) -> Result<(), TimedCcdError> {
+pub(crate) fn validate_capsule_motion_span(span: &CapsuleMotionSpan) -> Result<(), TimedCcdError> {
     if span.start_ms >= span.end_ms {
         return Err(TimedCcdError::InvalidTimeInterval);
     }
@@ -181,7 +181,7 @@ fn validate_span(span: &CapsuleMotionSpan) -> Result<(), TimedCcdError> {
 
 /// Return the capsule pose at overlap_start and its translation over the
 /// complete common interval. The result is still a rigid translation.
-fn rebase_span_to_time(
+pub(crate) fn rebase_span_to_time(
     span: &CapsuleMotionSpan,
     overlap_start_ms: u64,
     overlap_end_ms: u64,
