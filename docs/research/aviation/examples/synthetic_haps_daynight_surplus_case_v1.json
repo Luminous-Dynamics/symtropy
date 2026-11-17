@@ -89,7 +89,8 @@
     "own_service_continuous": true,
     "daily_energy_cycle_closed": true,
     "export_service_admissible": true,
-    "max_abs_pv_bus_ledger_residual_wh": 0
+    "max_abs_pv_bus_ledger_residual_wh": 0,
+    "horizon_energy_cycle_closed": true
   },
   "assumptions": [
     "Every numerical value in this case is synthetic and illustrative; it is not a PHASA-35, Zephyr, Skydweller or Luminous aircraft configuration.",
