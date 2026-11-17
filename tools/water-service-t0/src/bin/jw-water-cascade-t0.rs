@@ -2,7 +2,7 @@
 //! Read-only T0 evaluator for the Johannesburg water service cascade contract.
 //! Synthetic conformance only: this binary has no network, control, or actuation path.
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::env;
@@ -56,8 +56,7 @@ fn status_vector(case: &Value) -> Result<Vec<String>, String> {
         .iter()
         .enumerate()
         .map(|(index, row)| {
-            string(row, "status", &format!("{} report {index}", case_id(case)?))
-                .map(str::to_owned)
+            string(row, "status", &format!("{} report {index}", case_id(case)?)).map(str::to_owned)
         })
         .collect()
 }
@@ -98,9 +97,15 @@ fn parse_date(value: &str) -> Result<(i64, u32, u32), String> {
     if parts.len() != 3 {
         return Err(format!("invalid YYYY-MM-DD date '{value}'"));
     }
-    let year = parts[0].parse::<i64>().map_err(|_| format!("invalid year '{value}'"))?;
-    let month = parts[1].parse::<u32>().map_err(|_| format!("invalid month '{value}'"))?;
-    let day = parts[2].parse::<u32>().map_err(|_| format!("invalid day '{value}'"))?;
+    let year = parts[0]
+        .parse::<i64>()
+        .map_err(|_| format!("invalid year '{value}'"))?;
+    let month = parts[1]
+        .parse::<u32>()
+        .map_err(|_| format!("invalid month '{value}'"))?;
+    let day = parts[2]
+        .parse::<u32>()
+        .map_err(|_| format!("invalid day '{value}'"))?;
     if !(1..=12).contains(&month) {
         return Err(format!("month out of range in '{value}'"));
     }
@@ -149,8 +154,12 @@ fn parse_offset_timestamp(value: &str) -> Result<i64, String> {
         if offset.len() != 6 || &offset[3..4] != ":" {
             return Err(format!("invalid UTC offset in '{value}'"));
         }
-        let hours = offset[1..3].parse::<i64>().map_err(|_| format!("invalid offset hours in '{value}'"))?;
-        let minutes = offset[4..6].parse::<i64>().map_err(|_| format!("invalid offset minutes in '{value}'"))?;
+        let hours = offset[1..3]
+            .parse::<i64>()
+            .map_err(|_| format!("invalid offset hours in '{value}'"))?;
+        let minutes = offset[4..6]
+            .parse::<i64>()
+            .map_err(|_| format!("invalid offset minutes in '{value}'"))?;
         if hours > 23 || minutes > 59 {
             return Err(format!("UTC offset out of range in '{value}'"));
         }
@@ -162,11 +171,19 @@ fn parse_offset_timestamp(value: &str) -> Result<i64, String> {
     if clock_parts.len() != 3 {
         return Err(format!("timestamp must include HH:MM:SS: '{value}'"));
     }
-    let hour = clock_parts[0].parse::<i64>().map_err(|_| format!("invalid hour in '{value}'"))?;
-    let minute = clock_parts[1].parse::<i64>().map_err(|_| format!("invalid minute in '{value}'"))?;
-    let second = clock_parts[2].parse::<i64>().map_err(|_| format!("invalid second in '{value}'"))?;
+    let hour = clock_parts[0]
+        .parse::<i64>()
+        .map_err(|_| format!("invalid hour in '{value}'"))?;
+    let minute = clock_parts[1]
+        .parse::<i64>()
+        .map_err(|_| format!("invalid minute in '{value}'"))?;
+    let second = clock_parts[2]
+        .parse::<i64>()
+        .map_err(|_| format!("invalid second in '{value}'"))?;
     if hour > 23 || minute > 59 || second != 0 {
-        return Err(format!("clock time invalid or fractional precision unsupported in '{value}'"));
+        return Err(format!(
+            "clock time invalid or fractional precision unsupported in '{value}'"
+        ));
     }
     Ok(days_from_civil(year, month, day) * 1_440 + hour * 60 + minute - offset_minutes)
 }
@@ -189,7 +206,10 @@ fn notice_delay_bounds(case: &Value) -> Result<Option<(i64, i64)>, String> {
         return Err(format!("{}: invalid return-day interval", case_id(case)?));
     }
     if lower_minutes % 60 != 0 || upper_minutes % 60 != 0 {
-        return Err(format!("{}: delay bounds are not whole hours", case_id(case)?));
+        return Err(format!(
+            "{}: delay bounds are not whole hours",
+            case_id(case)?
+        ));
     }
     Ok(Some((lower_minutes / 60, upper_minutes / 60)))
 }
@@ -231,13 +251,19 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
             disposition = "PER_SUPPLY_VECTOR_ONLY";
         }
         "bypass" => {
-            if !reports(case)?.iter().any(|row| row.get("bypass").and_then(Value::as_bool) == Some(true)) {
+            if !reports(case)?
+                .iter()
+                .any(|row| row.get("bypass").and_then(Value::as_bool) == Some(true))
+            {
                 return Err(format!("{id}: bypass case lacks bypass=true"));
             }
             disposition = "BYPASS_STATUS_SEPARATE";
         }
         "scheduled_closure" => {
-            if !reports(case)?.iter().any(|row| row.get("scheduled_closure").and_then(Value::as_bool) == Some(true)) {
+            if !reports(case)?
+                .iter()
+                .any(|row| row.get("scheduled_closure").and_then(Value::as_bool) == Some(true))
+            {
                 return Err(format!("{id}: scheduled-closure flag missing"));
             }
             disposition = "SCHEDULED_CLOSURE_SEPARATE";
@@ -249,24 +275,36 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
             }
             let (episodes, gap) = c41_counts(case)?;
             let declared_episodes = field(outage, "episode_count", &context)?
-                .as_u64().ok_or_else(|| format!("{id}: episode_count must be an integer"))? as usize;
+                .as_u64()
+                .ok_or_else(|| format!("{id}: episode_count must be an integer"))?
+                as usize;
             let declared_gap = field(outage, "no_board_days_between_severe_reports", &context)?
-                .as_u64().ok_or_else(|| format!("{id}: no_board gap must be an integer"))? as usize;
+                .as_u64()
+                .ok_or_else(|| format!("{id}: no_board gap must be an integer"))?
+                as usize;
             if episodes != declared_episodes || gap != declared_gap {
-                return Err(format!("{id}: C41 mismatch: derived episodes={episodes}, gap={gap}; declared episodes={declared_episodes}, gap={declared_gap}"));
+                return Err(format!(
+                    "{id}: C41 mismatch: derived episodes={episodes}, gap={gap}; declared episodes={declared_episodes}, gap={declared_gap}"
+                ));
             }
             reported_episode_count = Some(episodes);
             no_board_gap = Some(gap);
             let end_kind = string(outage, "reported_end_kind", &context)?;
-            if !matches!(end_kind, "right_censored" | "fair_off_bypass" | "split_at_bridge_cap") {
+            if !matches!(
+                end_kind,
+                "right_censored" | "fair_off_bypass" | "split_at_bridge_cap"
+            ) {
                 return Err(format!("{id}: unsupported reported_end_kind '{end_kind}'"));
             }
             if end_kind == "right_censored" {
                 censoring = "RIGHT_CENSORED";
                 duration_lower_bound = field(outage, "duration_hours_lower_bound", &context)?
-                    .as_f64().filter(|value| value.is_finite() && *value >= 0.0);
+                    .as_f64()
+                    .filter(|value| value.is_finite() && *value >= 0.0);
                 if duration_lower_bound.is_none() {
-                    return Err(format!("{id}: censored duration lower bound missing/invalid"));
+                    return Err(format!(
+                        "{id}: censored duration lower bound missing/invalid"
+                    ));
                 }
             } else {
                 censoring = "NOT_CENSORED";
@@ -285,9 +323,9 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
                 return Err(format!("{id}: notice record missing"));
             }
             let notice_supply = string(notice, "supply_id", &context)?;
-            let matched = reports(case)?.iter().all(|row| {
-                row.get("supply_id").and_then(Value::as_str) == Some(notice_supply)
-            });
+            let matched = reports(case)?
+                .iter()
+                .all(|row| row.get("supply_id").and_then(Value::as_str) == Some(notice_supply));
             if matched {
                 asset_join = "EXACT_SUPPLY_MATCH";
                 let (lower, upper) = notice_delay_bounds(case)?
@@ -319,7 +357,9 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
                 temporal_join = "NOT_JOINED";
                 disposition = "STAGE_NOT_DISCHARGE";
             } else {
-                return Err(format!("{id}: stage-without-rating negative control failed"));
+                return Err(format!(
+                    "{id}: stage-without-rating negative control failed"
+                ));
             }
         }
         "dependency" => {
@@ -329,13 +369,17 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
                 temporal_join = "COARSE_DAILY_ALIGNMENT";
                 disposition = "UNKNOWN_DEPENDENCY_ASSOCIATION_ONLY";
             } else {
-                return Err(format!("{id}: unknown dependency unexpectedly has evidence"));
+                return Err(format!(
+                    "{id}: unknown dependency unexpectedly has evidence"
+                ));
             }
         }
         "point_of_use" => {
             let local = field(case, "point_of_use", &context)?;
             if local.is_null() || string(local, "evidence_class", &context)? != "synthetic_only" {
-                return Err(format!("{id}: local synthetic point-of-use observation missing"));
+                return Err(format!(
+                    "{id}: local synthetic point-of-use observation missing"
+                ));
             }
             point_of_use_conclusion = "SYNTHETIC_LOCAL_PRESSURE_FLOW_ONLY";
             temporal_join = "LOCAL_MEASUREMENT_ONLY";
@@ -344,7 +388,7 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         "claim_ceiling" => {
             temporal_join = "NOT_JOINED";
             disposition = "SYNTHETIC_TO_FIELD_PROMOTION_REJECTED";
-        },
+        }
         other => return Err(format!("{id}: unknown family '{other}'")),
     }
 
@@ -393,7 +437,8 @@ fn read_json(path: &str) -> Result<(Vec<u8>, Value), String> {
 
 fn validate_source_manifest(manifest: &Value) -> Result<(), String> {
     let sources = field(manifest, "sources", "source manifest")?
-        .as_array().ok_or_else(|| "source manifest: sources must be an array".to_owned())?;
+        .as_array()
+        .ok_or_else(|| "source manifest: sources must be an array".to_owned())?;
     for source in sources {
         if field(source, "raw_bytes_acquired", "source manifest entry")?.as_bool() != Some(false) {
             return Err("T0 source manifest must not claim source bytes are acquired".to_owned());
@@ -411,7 +456,9 @@ fn validate_schema_markers(input_schema: &Value, oracle_schema: &Value) -> Resul
         if !dialect.ends_with("/draft/2020-12/schema") {
             return Err(format!("{name} schema is not Draft 2020-12"));
         }
-        if field(schema, "additionalProperties", &format!("{name} schema"))?.as_bool() != Some(false) {
+        if field(schema, "additionalProperties", &format!("{name} schema"))?.as_bool()
+            != Some(false)
+        {
             return Err(format!("{name} schema root must be closed"));
         }
     }
@@ -438,8 +485,11 @@ fn run(args: &[String]) -> Result<Value, String> {
     {
         return Err("T0 evidence class must remain synthetic_only".to_owned());
     }
-    if string(&field(&input, "source_context", "input")?, "time_zone", "source_context")?
-        != "Africa/Johannesburg"
+    if string(
+        &field(&input, "source_context", "input")?,
+        "time_zone",
+        "source_context",
+    )? != "Africa/Johannesburg"
     {
         return Err("notice valid-day interval requires Africa/Johannesburg time zone".to_owned());
     }
@@ -447,18 +497,28 @@ fn run(args: &[String]) -> Result<Value, String> {
     validate_source_manifest(&source_manifest)?;
 
     let input_cases = field(&input, "cases", "input")?
-        .as_array().ok_or_else(|| "input cases must be an array".to_owned())?;
+        .as_array()
+        .ok_or_else(|| "input cases must be an array".to_owned())?;
     let oracle_cases = field(&oracle, "cases", "oracle")?
-        .as_array().ok_or_else(|| "oracle cases must be an array".to_owned())?;
+        .as_array()
+        .ok_or_else(|| "oracle cases must be an array".to_owned())?;
     if input_cases.len() != 15 || oracle_cases.len() != 15 {
         return Err("JW-WATER-CASCADE-T0 requires exactly 15 frozen cases".to_owned());
     }
-    let input_ids: BTreeSet<String> = input_cases.iter()
-        .map(case_id).collect::<Result<Vec<_>, _>>()?
-        .into_iter().map(str::to_owned).collect();
-    let oracle_ids: BTreeSet<String> = oracle_cases.iter()
-        .map(case_id).collect::<Result<Vec<_>, _>>()?
-        .into_iter().map(str::to_owned).collect();
+    let input_ids: BTreeSet<String> = input_cases
+        .iter()
+        .map(case_id)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
+    let oracle_ids: BTreeSet<String> = oracle_cases
+        .iter()
+        .map(case_id)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(str::to_owned)
+        .collect();
     if input_ids.len() != input_cases.len() || oracle_ids.len() != oracle_cases.len() {
         return Err("duplicate case ID in input or oracle".to_owned());
     }
@@ -466,7 +526,8 @@ fn run(args: &[String]) -> Result<Value, String> {
         return Err("input/oracle case identity mismatch".to_owned());
     }
 
-    let oracle_by_id: BTreeMap<&str, &Value> = oracle_cases.iter()
+    let oracle_by_id: BTreeMap<&str, &Value> = oracle_cases
+        .iter()
         .map(|case| Ok((case_id(case)?, case)))
         .collect::<Result<_, String>>()?;
     let mut results = Vec::with_capacity(input_cases.len());
@@ -474,20 +535,30 @@ fn run(args: &[String]) -> Result<Value, String> {
     for case in input_cases {
         let actual = evaluate_case(case)?;
         let id = case_id(case)?;
-        let expected = oracle_by_id.get(id)
+        let expected = oracle_by_id
+            .get(id)
             .ok_or_else(|| format!("{id}: oracle case missing"))?;
         let expected_object = field(expected, "expected", id)?;
         let actual_object = field(&actual, "expected", id)?;
         if actual_object != expected_object {
-            mismatches.push(json!({"case_id":id,"actual":actual_object,"expected":expected_object}));
+            mismatches
+                .push(json!({"case_id":id,"actual":actual_object,"expected":expected_object}));
         }
         results.push(actual);
     }
     if !mismatches.is_empty() {
-        return Err(format!("{} oracle mismatch(es): {}", mismatches.len(), serde_json::to_string(&mismatches).unwrap_or_default()));
+        return Err(format!(
+            "{} oracle mismatch(es): {}",
+            mismatches.len(),
+            serde_json::to_string(&mismatches).unwrap_or_default()
+        ));
     }
 
-    results.sort_by(|left, right| left.get("case_id").and_then(Value::as_str).cmp(&right.get("case_id").and_then(Value::as_str)));
+    results.sort_by(|left, right| {
+        left.get("case_id")
+            .and_then(Value::as_str)
+            .cmp(&right.get("case_id").and_then(Value::as_str))
+    });
     let revision = env::var("JW_WATER_CASCADE_REVISION")
         .map_err(|_| "JW_WATER_CASCADE_REVISION must be the exact checkout SHA".to_owned())?;
     if revision.len() != 40 || !revision.bytes().all(|byte| byte.is_ascii_hexdigit()) {
@@ -518,11 +589,16 @@ fn run(args: &[String]) -> Result<Value, String> {
     let output = Path::new(&args[5]);
     if let Some(parent) = output.parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent).map_err(|error| format!("cannot create receipt directory: {error}"))?;
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("cannot create receipt directory: {error}"))?;
         }
     }
-    fs::write(output, serde_json::to_vec_pretty(&receipt).map_err(|error| format!("serialize receipt: {error}"))?)
-        .map_err(|error| format!("cannot write receipt '{}': {error}", output.display()))?;
+    fs::write(
+        output,
+        serde_json::to_vec_pretty(&receipt)
+            .map_err(|error| format!("serialize receipt: {error}"))?,
+    )
+    .map_err(|error| format!("cannot write receipt '{}': {error}", output.display()))?;
 
     Ok(json!({
         "benchmark_id": BENCHMARK_ID,
@@ -539,7 +615,10 @@ fn run(args: &[String]) -> Result<Value, String> {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match run(&args) {
-        Ok(summary) => println!("{}", serde_json::to_string_pretty(&summary).unwrap_or_default()),
+        Ok(summary) => println!(
+            "{}",
+            serde_json::to_string_pretty(&summary).unwrap_or_default()
+        ),
         Err(error) => {
             eprintln!("jw-water-cascade-t0: {error}");
             std::process::exit(1);
@@ -554,15 +633,27 @@ mod tests {
     #[test]
     fn date_math_handles_leap_day_and_epoch() {
         assert_eq!(days_from_civil(1970, 1, 1), 0);
-        assert_eq!(days_from_civil(2024, 3, 1) - days_from_civil(2024, 2, 28), 2);
-        assert_eq!(days_from_civil(2025, 3, 1) - days_from_civil(2025, 2, 28), 1);
+        assert_eq!(
+            days_from_civil(2024, 3, 1) - days_from_civil(2024, 2, 28),
+            2
+        );
+        assert_eq!(
+            days_from_civil(2025, 3, 1) - days_from_civil(2025, 2, 28),
+            1
+        );
     }
 
     #[test]
     fn offset_timestamp_converts_to_utc_minutes() {
         let expected = days_from_civil(2026, 2, 4) * 1_440 + 16 * 60;
-        assert_eq!(parse_offset_timestamp("2026-02-04T18:00:00+02:00").unwrap(), expected);
-        assert_eq!(parse_offset_timestamp("2026-02-04T16:00:00Z").unwrap(), expected);
+        assert_eq!(
+            parse_offset_timestamp("2026-02-04T18:00:00+02:00").unwrap(),
+            expected
+        );
+        assert_eq!(
+            parse_offset_timestamp("2026-02-04T16:00:00Z").unwrap(),
+            expected
+        );
     }
 
     #[test]
@@ -575,13 +666,28 @@ mod tests {
 
     #[test]
     fn c41_four_day_gap_stays_one_episode() {
-        let rows = ["no_water", "no_report", "no_report", "no_report", "no_report", "no_water"];
+        let rows = [
+            "no_water",
+            "no_report",
+            "no_report",
+            "no_report",
+            "no_report",
+            "no_water",
+        ];
         assert_eq!(c41_from_statuses(&rows), (1, 4));
     }
 
     #[test]
     fn c41_five_day_gap_splits_episodes() {
-        let rows = ["no_water", "no_report", "no_report", "no_report", "no_report", "no_report", "no_water"];
+        let rows = [
+            "no_water",
+            "no_report",
+            "no_report",
+            "no_report",
+            "no_report",
+            "no_report",
+            "no_water",
+        ];
         assert_eq!(c41_from_statuses(&rows), (2, 5));
     }
 
@@ -589,7 +695,8 @@ mod tests {
     fn source_manifest_does_not_claim_acquired_bytes() {
         let manifest: Value = serde_json::from_str(include_str!(
             "../../../../docs/research/jw-water-cascade/jw_water_cascade_t0_source_manifest.v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         assert!(validate_source_manifest(&manifest).is_ok());
     }
 
@@ -601,7 +708,10 @@ mod tests {
         let oracle: Value = serde_json::from_str(include_str!(
             "../../../../docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.v0.1.json"
         )).unwrap();
-        let expected: BTreeMap<&str, &Value> = oracle["cases"].as_array().unwrap().iter()
+        let expected: BTreeMap<&str, &Value> = oracle["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
             .map(|case| (case["case_id"].as_str().unwrap(), &case["expected"]))
             .collect();
         let mut count = 0usize;
