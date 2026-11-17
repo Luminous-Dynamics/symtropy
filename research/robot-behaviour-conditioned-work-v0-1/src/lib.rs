@@ -281,7 +281,7 @@ fn push_candidate(
         return;
     }
 
-    let disposition = match access.get(&target).copied().unwrap_or(AccessState::Available) {
+    let disposition = match access.get(&target).copied().unwrap_or(AccessState::Unknown) {
         AccessState::Available => PlanDisposition::Ready,
         AccessState::Blocked => PlanDisposition::Blocked(BlockReason::AccessBlocked),
         AccessState::Unknown => PlanDisposition::Blocked(BlockReason::RequiredObservationUnknown),
@@ -357,8 +357,25 @@ mod tests {
         seams.iter().map(|seam| PackageKey::Seam(*seam).id()).collect()
     }
     fn sorted(mut ids: Vec<String>) -> Vec<String> { ids.sort(); ids }
+    fn available_access() -> Vec<AccessObservation> {
+        [
+            "anchor-frame",
+            "panel:NW", "panel:NE", "panel:SW", "panel:SE",
+            "seam:NORTH", "seam:SOUTH", "seam:WEST", "seam:EAST",
+            "panel-wall",
+        ]
+        .into_iter()
+        .map(|target| AccessObservation {
+            target: target.to_owned(),
+            state: AccessState::Available,
+            evidence_ref: format!("fixture-access:{target}"),
+        })
+        .collect()
+    }
+
     fn anchored() -> MissionSnapshot {
         let mut snapshot = MissionSnapshot::default();
+        snapshot.access_observations = available_access();
         accept(&mut snapshot, &[PackageKey::Anchor.id()]);
         snapshot
     }
@@ -374,13 +391,27 @@ mod tests {
     }
 
     #[test]
-    fn empty_mission_requires_anchor() {
-        assert_eq!(ready(&MissionSnapshot::default()), vec![PackageKey::Anchor.id()]);
+    fn missing_access_evidence_holds_the_anchor_package() {
+        let result = evaluate(&MissionSnapshot::default());
+        assert_eq!(result.status, EvaluationStatus::Held);
+        assert!(result.ready_package_ids().is_empty());
+        assert_eq!(
+            result.items[0].disposition,
+            PlanDisposition::Blocked(BlockReason::RequiredObservationUnknown)
+        );
+    }
+
+    #[test]
+    fn explicit_available_access_allows_anchor_package() {
+        let mut snapshot = MissionSnapshot::default();
+        snapshot.access_observations = available_access();
+        assert_eq!(ready(&snapshot), vec![PackageKey::Anchor.id()]);
     }
 
     #[test]
     fn robot_self_report_does_not_satisfy_accepted_output() {
         let mut snapshot = MissionSnapshot::default();
+        snapshot.access_observations = available_access();
         snapshot.robot_reported_completed.push(PackageKey::Anchor.id());
         assert_eq!(ready(&snapshot), vec![PackageKey::Anchor.id()]);
     }
