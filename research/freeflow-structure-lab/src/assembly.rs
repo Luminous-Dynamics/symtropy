@@ -183,7 +183,7 @@ pub fn plan_tetrahedral_assembly(
                 let shared_vertices = cell
                     .vertices
                     .iter()
-                    .filter(|vertex| parent.vertices.contains(vertex))
+                    .filter(|vertex| parent.vertices.contains(*vertex))
                     .count();
                 if !face_is_valid || shared_vertices != 3 {
                     return Err(AssemblyPlanError::InvalidAttachmentFace {
