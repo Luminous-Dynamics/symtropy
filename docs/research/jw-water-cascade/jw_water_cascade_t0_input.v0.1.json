@@ -281,7 +281,7 @@
     {
       "case_id": "C09_NOTICE_TO_REPORTED_RETURN_DELAY",
       "family": "notice_delay",
-      "description": "Compute the elapsed time from announced completion to first later fair/off-bypass board for the same supply; this remains a reported return-to-status measure.",
+      "description": "Compute a day-bounded interval from announced completion to the first later fair/off-bypass supply-day; do not invent an exact board timestamp.",
       "utility_reports": [
         {
           "supply_id": "SYN-SUP-09",
@@ -295,7 +295,7 @@
       "notice": {
         "supply_id": "SYN-SUP-09",
         "announced_completion_at": "2026-02-04T18:00:00+02:00",
-        "first_return_at": "2026-02-06T06:00:00+02:00"
+        "first_return_valid_date": "2026-02-06"
       },
       "hydrometric": null,
       "point_of_use": null,
