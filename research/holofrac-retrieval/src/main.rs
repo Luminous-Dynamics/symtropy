@@ -1,9 +1,8 @@
 use holofrac_spatial_retrieval::partial::PartialSpatialQuery;
-use symtropy_hdc_core::EncoderSpec;
 use holofrac_spatial_retrieval::{
-    HoloFracEncoder, RelationKind, SpatialIndex, reference_architecture_graph,
-    run_benchmark,
+    HoloFracEncoder, RelationKind, SpatialIndex, reference_architecture_graph, run_benchmark,
 };
+use symtropy_hdc_core::EncoderSpec;
 
 fn metric(value: Option<f64>) -> String {
     value
