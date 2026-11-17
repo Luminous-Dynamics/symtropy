@@ -15,8 +15,7 @@ use symtropy_hdc_core::{
 };
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
-pub const ENCODER_RECIPE: &str =
-    "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
+pub const ENCODER_RECIPE: &str = "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpatialScale {
@@ -178,9 +177,15 @@ impl SpatialGraph {
 
     pub fn add_entity(&mut self, entity: SpatialEntity) -> Result<(), GraphError> {
         if entity.id.trim().is_empty() || entity.id.chars().any(char::is_control) {
-            return Err(GraphError("entity ID must be non-empty and contain no control characters"));
+            return Err(GraphError(
+                "entity ID must be non-empty and contain no control characters",
+            ));
         }
-        if self.entities.iter().any(|existing| existing.id == entity.id) {
+        if self
+            .entities
+            .iter()
+            .any(|existing| existing.id == entity.id)
+        {
             return Err(GraphError("duplicate entity ID"));
         }
         self.entities.push(entity);
@@ -208,7 +213,9 @@ impl SpatialGraph {
                 || entity.id.chars().any(char::is_control)
                 || !ids.insert(entity.id.as_str())
             {
-                return Err(GraphError("empty, control-containing or duplicate entity ID"));
+                return Err(GraphError(
+                    "empty, control-containing or duplicate entity ID",
+                ));
             }
         }
 
@@ -250,7 +257,9 @@ impl SpatialGraph {
             .iter()
             .find(|entity| entity.id == id)
             .map(|entity| entity.scale)
-            .ok_or(GraphError("entity scale lookup references an unknown endpoint"))
+            .ok_or(GraphError(
+                "entity scale lookup references an unknown endpoint",
+            ))
     }
 
     /// Exact typed-graph oracle. This is authoritative for benchmark labels.
@@ -365,20 +374,18 @@ impl HoloFracEncoder {
         let subject = self
             .memory
             .bind_role_value("subject", "entity", &fact.subject);
-        let subject_scale = self.memory.bind_role_value(
-            "subject_scale",
-            "spatial_scale",
-            subject_scale.as_str(),
-        );
-        let predicate = self
+        let subject_scale =
+            self.memory
+                .bind_role_value("subject_scale", "spatial_scale", subject_scale.as_str());
+        let predicate =
+            self.memory
+                .bind_role_value("predicate", "relation", fact.relation.as_str());
+        let object = self
             .memory
-            .bind_role_value("predicate", "relation", fact.relation.as_str());
-        let object = self.memory.bind_role_value("object", "entity", &fact.object);
-        let object_scale = self.memory.bind_role_value(
-            "object_scale",
-            "spatial_scale",
-            object_scale.as_str(),
-        );
+            .bind_role_value("object", "entity", &fact.object);
+        let object_scale =
+            self.memory
+                .bind_role_value("object_scale", "spatial_scale", object_scale.as_str());
 
         let mut bundle = BipolarBundle::new(self.spec.dimension);
         bundle.add(&subject)?;
@@ -547,8 +554,7 @@ impl SpatialIndex {
         // Exact-match threshold is intentionally strict. Partial-context
         // retrieval needs its own calibrated acceptance and abstention study.
         let hdc_exact_accept = hdc_top1.is_some() && top1_similarity >= 1.0 - f32::EPSILON;
-        let f32_exact_accept =
-            f32_top1.is_some() && f32_top1_similarity >= 1.0 - f32::EPSILON;
+        let f32_exact_accept = f32_top1.is_some() && f32_top1_similarity >= 1.0 - f32::EPSILON;
 
         Ok(QueryOutcome {
             query: query.clone(),
@@ -668,13 +674,11 @@ pub fn run_benchmark(
         .filter(|row| row.f32_top1.as_ref() == Some(&row.query))
         .count();
     let reversed_false_accepts = reversed.iter().filter(|row| row.hdc_exact_accept).count();
-    let f32_reversed_false_accepts =
-        reversed.iter().filter(|row| row.f32_exact_accept).count();
+    let f32_reversed_false_accepts = reversed.iter().filter(|row| row.f32_exact_accept).count();
 
     let query_count = outcomes.len().max(1) as f64;
-    let mean_of = |select: fn(&QueryOutcome) -> f64| {
-        outcomes.iter().map(select).sum::<f64>() / query_count
-    };
+    let mean_of =
+        |select: fn(&QueryOutcome) -> f64| outcomes.iter().map(select).sum::<f64>() / query_count;
     let mean_query_encode_micros = mean_of(|row| row.query_encode_micros);
     let mean_bipolar_search_micros = mean_of(|row| row.bipolar_search_micros);
     let mean_f32_search_micros = mean_of(|row| row.f32_search_micros);
@@ -771,7 +775,10 @@ mod tests {
     fn reference_graph_is_valid_and_deterministic() {
         let a = reference_architecture_graph().unwrap();
         let b = reference_architecture_graph().unwrap();
-        assert_eq!(a.digest_non_security().unwrap(), b.digest_non_security().unwrap());
+        assert_eq!(
+            a.digest_non_security().unwrap(),
+            b.digest_non_security().unwrap()
+        );
         assert_eq!(a.canonical_facts(), b.canonical_facts());
     }
 
@@ -784,12 +791,14 @@ mod tests {
                 scale: SpatialScale::Room,
             })
             .unwrap();
-        assert!(graph
-            .add_entity(SpatialEntity {
-                id: "room-a".into(),
-                scale: SpatialScale::Room,
-            })
-            .is_err());
+        assert!(
+            graph
+                .add_entity(SpatialEntity {
+                    id: "room-a".into(),
+                    scale: SpatialScale::Room,
+                })
+                .is_err()
+        );
         graph
             .add_fact(SpatialFact {
                 subject: "room-a".into(),
@@ -803,12 +812,14 @@ mod tests {
     #[test]
     fn control_characters_in_entity_ids_are_rejected() {
         let mut graph = SpatialGraph::new();
-        assert!(graph
-            .add_entity(SpatialEntity {
-                id: format!("room{}ambiguous", char::from(31_u8)),
-                scale: SpatialScale::Room,
-            })
-            .is_err());
+        assert!(
+            graph
+                .add_entity(SpatialEntity {
+                    id: format!("room{}ambiguous", char::from(31_u8)),
+                    scale: SpatialScale::Room,
+                })
+                .is_err()
+        );
     }
 
     #[test]
@@ -821,13 +832,15 @@ mod tests {
         };
         graph.add_fact(fact.clone()).unwrap();
         assert!(graph.add_fact(fact).is_err());
-        assert!(graph
-            .add_fact(SpatialFact {
-                subject: "a".into(),
-                relation: RelationKind::Supports,
-                object: "a".into(),
-            })
-            .is_err());
+        assert!(
+            graph
+                .add_fact(SpatialFact {
+                    subject: "a".into(),
+                    relation: RelationKind::Supports,
+                    object: "a".into(),
+                })
+                .is_err()
+        );
     }
 
     #[test]
@@ -868,7 +881,13 @@ mod tests {
         let encoded_forward = encoder.encode_fact(&graph, &forward).unwrap();
         let encoded_reverse = encoder.encode_fact(&graph, &reverse).unwrap();
         assert_ne!(encoded_forward.bipolar, encoded_reverse.bipolar);
-        assert!(encoded_forward.bipolar.similarity(&encoded_reverse.bipolar).unwrap() < 1.0);
+        assert!(
+            encoded_forward
+                .bipolar
+                .similarity(&encoded_reverse.bipolar)
+                .unwrap()
+                < 1.0
+        );
     }
 
     #[test]
@@ -980,7 +999,10 @@ mod tests {
             original.digest_non_security().unwrap(),
             reordered.digest_non_security().unwrap()
         );
-        assert_eq!(original.canonical_snapshot(), reordered.canonical_snapshot());
+        assert_eq!(
+            original.canonical_snapshot(),
+            reordered.canonical_snapshot()
+        );
         let encoder = HoloFracEncoder::new(spec(2_048, 17)).unwrap();
         let (index, _) = SpatialIndex::build(&original, &encoder).unwrap();
         assert!(index.validate_source(&reordered).is_ok());
