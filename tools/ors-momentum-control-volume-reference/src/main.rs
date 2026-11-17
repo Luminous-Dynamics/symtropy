@@ -44,24 +44,14 @@ fn write_vector(
 
 fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
     writeln!(output, "    {{").unwrap();
-    writeln!(
-        output,
-        "      \"case_id\": {},",
-        json_string(&case.case_id)
-    )
-    .unwrap();
+    writeln!(output, "      \"case_id\": {},", json_string(&case.case_id)).unwrap();
     writeln!(
         output,
         "      \"frame_id\": {},",
         json_string(&case.frame_id)
     )
     .unwrap();
-    writeln!(
-        output,
-        "      \"epoch_s\": {:.15e},",
-        case.epoch_s
-    )
-    .unwrap();
+    writeln!(output, "      \"epoch_s\": {:.15e},", case.epoch_s).unwrap();
     writeln!(output, "      \"port_count\": {},", case.port_count).unwrap();
     writeln!(
         output,
@@ -149,7 +139,11 @@ fn receipt(
     let mut output = String::new();
     writeln!(output, "{{").unwrap();
     writeln!(output, "  \"receipt_schema_version\": \"0.1.0\",").unwrap();
-    writeln!(output, "  \"validator\": \"ors-momentum-control-volume-reference\",").unwrap();
+    writeln!(
+        output,
+        "  \"validator\": \"ors-momentum-control-volume-reference\","
+    )
+    .unwrap();
     writeln!(
         output,
         "  \"source_commit\": {},",
@@ -249,10 +243,22 @@ mod tests {
     fn receipt_is_deterministic_and_binds_both_corpora() {
         let cases = include_str!("../cases-v0.1.csv");
         let ports = include_str!("../ports-v0.1.csv");
-        let first = receipt(&"a".repeat(40), &"b".repeat(64), &"c".repeat(64), cases, ports)
-            .expect("reference evaluates");
-        let second = receipt(&"a".repeat(40), &"b".repeat(64), &"c".repeat(64), cases, ports)
-            .expect("reference evaluates");
+        let first = receipt(
+            &"a".repeat(40),
+            &"b".repeat(64),
+            &"c".repeat(64),
+            cases,
+            ports,
+        )
+        .expect("reference evaluates");
+        let second = receipt(
+            &"a".repeat(40),
+            &"b".repeat(64),
+            &"c".repeat(64),
+            cases,
+            ports,
+        )
+        .expect("reference evaluates");
         assert_eq!(first, second);
         assert!(first.contains("\"case_count\": 6"));
         assert!(first.contains("\"port_count\": 14"));
