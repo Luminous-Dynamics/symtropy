@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json",
+  "title": "EV battery thermal propagation evidence manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaign_id",
+    "evidence",
+    "tests",
+    "claims"
+  ],
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_digest",
+          "evidence_class",
+          "admission",
+          "claim_scope",
+          "authority_or_lab_ref",
+          "metrology_ref",
+          "reference_id",
+          "standard_id",
+          "standard_revision"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "evidence_class": {
+            "enum": [
+              "physical_test",
+              "independent_laboratory_test",
+              "risk_analysis",
+              "simulation",
+              "literature",
+              "synthetic"
+            ]
+          },
+          "admission": {
+            "enum": [
+              "candidate",
+              "admitted_for_research",
+              "admitted_for_evaluation",
+              "blocked",
+              "unknown"
+            ]
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "authority_or_lab_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrology_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "standard_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "standard_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "fingerprints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cell_source_terms",
+        "topology",
+        "thermal_pathways",
+        "protection",
+        "enclosure",
+        "exposure"
+      ],
+      "properties": {
+        "cell_source_terms": {
+          "$ref": "#/$defs/digest"
+        },
+        "topology": {
+          "$ref": "#/$defs/digest"
+        },
+        "thermal_pathways": {
+          "$ref": "#/$defs/digest"
+        },
+        "protection": {
+          "$ref": "#/$defs/digest"
+        },
+        "enclosure": {
+          "$ref": "#/$defs/digest"
+        },
+        "exposure": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "article": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "article_id",
+        "product_revision",
+        "application",
+        "level",
+        "chemistry_family",
+        "cell_format",
+        "nominal_cell_capacity_wh",
+        "state_of_charge_permille",
+        "age_cycles",
+        "fingerprints"
+      ],
+      "properties": {
+        "article_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application": {
+          "enum": [
+            "ev_traction",
+            "stationary_storage",
+            "industrial"
+          ]
+        },
+        "level": {
+          "enum": [
+            "cell",
+            "module_or_rpu",
+            "reess_pack",
+            "vehicle",
+            "stationary_installation"
+          ]
+        },
+        "chemistry_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cell_format": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_cell_capacity_wh": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state_of_charge_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "age_cycles": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "fingerprints": {
+          "$ref": "#/$defs/fingerprints"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "test_id",
+        "article",
+        "standard_id",
+        "standard_revision",
+        "protocol_revision",
+        "acceptance_criteria_id",
+        "acceptance_criteria_evidence_id",
+        "trigger_method",
+        "trigger_achieved",
+        "post_trigger_observation_minutes",
+        "propagation_observed",
+        "fire_observed",
+        "explosion_observed",
+        "smoke_into_occupant_boundary",
+        "warning_time_seconds",
+        "result",
+        "evidence_id"
+      ],
+      "properties": {
+        "test_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "article": {
+          "$ref": "#/$defs/article"
+        },
+        "standard_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger_method": {
+          "enum": [
+            "localized_external_heating",
+            "internal_heating",
+            "nail_penetration",
+            "laser",
+            "other"
+          ]
+        },
+        "trigger_achieved": {
+          "type": "boolean"
+        },
+        "post_trigger_observation_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "propagation_observed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "fire_observed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "explosion_observed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "smoke_into_occupant_boundary": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "warning_time_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "result": {
+          "enum": [
+            "pass",
+            "fail",
+            "trigger_not_achieved",
+            "no_propagation_within_window",
+            "risk_analysis_submitted",
+            "invalid",
+            "incomplete",
+            "not_measured",
+            "unknown"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_criteria_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "acceptance_criteria_evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "source_fingerprint",
+        "target_fingerprint",
+        "status",
+        "evidence_id",
+        "rationale"
+      ],
+      "properties": {
+        "domain": {
+          "enum": [
+            "cell_source_terms",
+            "topology",
+            "thermal_pathways",
+            "protection",
+            "enclosure",
+            "exposure"
+          ]
+        },
+        "status": {
+          "enum": [
+            "same_with_evidence",
+            "different",
+            "unknown",
+            "not_applicable_with_rationale"
+          ]
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_fingerprint": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_fingerprint": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "source_test_id",
+        "target_article",
+        "equivalence"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_test_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_article": {
+          "$ref": "#/$defs/article"
+        },
+        "equivalence": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/comparison"
+          }
+        }
+      }
+    }
+  }
+}
