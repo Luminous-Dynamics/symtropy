@@ -72,6 +72,7 @@ pub struct TimedCcdVerificationReceipt {
     pub max_point_residual_mm: f64,
     pub distance_residual_mm: f64,
     pub time_offset_residual_ms: f64,
+    pub kkt_checked: bool,
     pub max_kkt_gradient_residual_mm2: f64,
 }
 
@@ -149,7 +150,8 @@ pub fn verify_timed_co_translating_result(
         max_point_residual_mm: 0.0,
         distance_residual_mm: 0.0,
         time_offset_residual_ms: 0.0,
-        max_kkt_gradient_residual_mm2: f64::INFINITY,
+        kkt_checked: false,
+        max_kkt_gradient_residual_mm2: 0.0,
     };
 
     if moving.site_epoch != obstacle.site_epoch
@@ -297,6 +299,7 @@ pub fn verify_timed_co_translating_result(
     let parameters = [t, u, v];
     let mut max_kkt_residual = 0.0_f64;
 
+    receipt.kkt_checked = true;
     for (parameter, derivative) in parameters.into_iter().zip(derivatives) {
         let gradient = 2.0 * relative.dot(derivative);
         if !gradient.is_finite() {
