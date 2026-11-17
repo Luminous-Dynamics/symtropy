@@ -16,6 +16,7 @@ pub mod coupling_identification;
 pub mod contact_mechanics;
 pub mod field_campaign;
 pub mod field_reconstruction;
+pub mod hysteresis_identifiability;
 pub mod evidence_conflict;
 pub mod model_forms;
 pub mod observability_design;
