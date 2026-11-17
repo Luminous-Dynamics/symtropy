@@ -506,6 +506,37 @@ mod tests {
     use super::*;
     use crate::TaskDependencyV1;
 
+    #[derive(Deserialize)]
+    struct RecipeTaskGraphFixtureBundle {
+        cases: Vec<RecipeTaskGraphFixtureCase>,
+    }
+
+    #[derive(Deserialize)]
+    struct RecipeTaskGraphFixtureCase {
+        fixture_id: String,
+        expected_runtime_valid: bool,
+        payload: RecipeTaskGraphV1,
+    }
+
+    #[test]
+    fn versioned_json_fixtures_match_rust_recipe_graph_contract() {
+        let bundle: RecipeTaskGraphFixtureBundle = serde_json::from_str(include_str!(
+            "../schemas/fixtures/recipe-task-graph-v1.json"
+        ))
+        .expect("recipe task graph fixture bundle must deserialize");
+
+        for fixture in bundle.cases {
+            let report = validate_recipe_task_graph(&fixture.payload);
+            assert_eq!(
+                report.is_valid(),
+                fixture.expected_runtime_valid,
+                "fixture {} runtime validity mismatch: {:?}",
+                fixture.fixture_id,
+                report.violations
+            );
+        }
+    }
+
     fn valid_graph() -> RecipeTaskGraphV1 {
         RecipeTaskGraphV1 {
             schema_version: RECIPE_TASK_GRAPH_SCHEMA_VERSION,
