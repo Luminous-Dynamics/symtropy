@@ -252,7 +252,6 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
 
     for result in &input.spec_results {
         let spec_id = result.spec_id.as_str();
-        let mut spec_valid = true;
 
         if !nonempty(spec_id) {
             add_issue(
@@ -261,7 +260,6 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                 None,
                 "spec_id must be non-empty",
             );
-            spec_valid = false;
         } else if !seen_spec_ids.insert(spec_id) {
             add_issue(
                 &mut issues,
@@ -269,7 +267,6 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                 Some(spec_id),
                 "spec_id must be unique within an episode",
             );
-            spec_valid = false;
         }
 
         if !nonempty(&result.method_ref) {
@@ -279,7 +276,6 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                 Some(spec_id),
                 "each result must identify its evaluation method",
             );
-            spec_valid = false;
         }
 
         match result.applicability {
@@ -300,8 +296,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                         Some(spec_id),
                         "not_applicable requires a reason, not_applicable status and no signal/score data",
                     );
-                    spec_valid = false;
-                }
+                        }
             }
             SafetySpecApplicabilityV1::Unknown => {
                 unknown_spec_count = unknown_spec_count.saturating_add(1);
@@ -319,8 +314,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                         Some(spec_id),
                         "unknown applicability must remain unknown and include a reason",
                     );
-                    spec_valid = false;
-                }
+                        }
             }
             SafetySpecApplicabilityV1::Applicable => {
                 applicable_spec_count = applicable_spec_count.saturating_add(1);
@@ -334,8 +328,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                             Some(spec_id),
                             "required signal refs must be non-empty and unique",
                         );
-                        spec_valid = false;
-                    }
+                                }
                 }
                 if required.is_empty() {
                     add_issue(
@@ -344,8 +337,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                         Some(spec_id),
                         "an applicable safety specification must declare at least one required signal",
                     );
-                    spec_valid = false;
-                }
+                        }
                 total_required_signals =
                     total_required_signals.saturating_add(required.len() as u64);
 
@@ -358,16 +350,14 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                             Some(spec_id),
                             "observed signal refs must be non-empty and unique",
                         );
-                        spec_valid = false;
-                    } else if !required.contains(signal_ref.as_str()) {
+                                } else if !required.contains(signal_ref.as_str()) {
                         add_issue(
                             &mut issues,
                             SafetyAuditIssueCodeV1::UnexpectedObservedSignal,
                             Some(spec_id),
                             "observed signal is not in the frozen required-signal set",
                         );
-                        spec_valid = false;
-                    }
+                                }
                 }
                 observed_required_signals =
                     observed_required_signals.saturating_add(observed.len() as u64);
@@ -387,8 +377,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "satisfied robustness must be finite and non-negative",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                             None => {
                                 add_issue(
                                     &mut issues,
@@ -396,8 +385,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "satisfied result requires a robustness score",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                         }
                         if !all_signals_present {
                             add_issue(
@@ -406,8 +394,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                 Some(spec_id),
                                 "satisfied result cannot be claimed with missing required signals",
                             );
-                            spec_valid = false;
-                        }
+                                        }
                         if result.violation_severity.is_some() {
                             add_issue(
                                 &mut issues,
@@ -415,8 +402,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                 Some(spec_id),
                                 "satisfied result must not carry violation severity",
                             );
-                            spec_valid = false;
-                        }
+                                        }
                     }
                     SafetySpecStatusV1::Violated => {
                         violated_spec_count = violated_spec_count.saturating_add(1);
@@ -429,8 +415,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "violated robustness must be finite and negative",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                             None => {
                                 add_issue(
                                     &mut issues,
@@ -438,8 +423,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "violated result requires a robustness score",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                         }
                         match result.violation_severity {
                             Some(severity) if finite(severity) && (0.0..=1.0).contains(&severity) => {
@@ -454,8 +438,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "violation severity must be finite and within [0, 1]",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                             None => {
                                 add_issue(
                                     &mut issues,
@@ -463,8 +446,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                     Some(spec_id),
                                     "violated result requires normalized severity",
                                 );
-                                spec_valid = false;
-                            }
+                                                }
                         }
                         if !all_signals_present {
                             add_issue(
@@ -473,8 +455,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                 Some(spec_id),
                                 "violation result cannot be fully assessed with missing required signals",
                             );
-                            spec_valid = false;
-                        }
+                                        }
                     }
                     SafetySpecStatusV1::Unknown => {
                         unknown_spec_count = unknown_spec_count.saturating_add(1);
@@ -485,8 +466,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                                 Some(spec_id),
                                 "unknown result must not carry a robustness or severity score",
                             );
-                            spec_valid = false;
-                        }
+                                        }
                     }
                     SafetySpecStatusV1::NotApplicable => {
                         add_issue(
@@ -495,8 +475,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                             Some(spec_id),
                             "applicable specification cannot have not_applicable status",
                         );
-                        spec_valid = false;
-                    }
+                                }
                 }
             }
         }
@@ -597,6 +576,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
                 | SafetyAuditIssueCodeV1::InvalidObservedSignalSet
                 | SafetyAuditIssueCodeV1::UnexpectedObservedSignal
                 | SafetyAuditIssueCodeV1::MissingRobustnessScore
+                | SafetyAuditIssueCodeV1::MissingRequiredSignal
                 | SafetyAuditIssueCodeV1::InvalidRobustnessScore
                 | SafetyAuditIssueCodeV1::UnexpectedViolationSeverity
                 | SafetyAuditIssueCodeV1::MissingViolationSeverity
@@ -645,6 +625,11 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
     };
 
     sort_issues(&mut issues);
+    let worst_violation_severity_index = if claim_state == SafetyClaimStateV1::SafeUnderDeclaredSpecs {
+        Some(worst_violation.unwrap_or(0.0))
+    } else {
+        worst_violation
+    };
     SafetyEpisodeReportV1 {
         schema_version: KITCHEN_SAFETY_AUDIT_SCHEMA_VERSION,
         claim_state,
@@ -654,7 +639,7 @@ pub fn evaluate_safety_episode(input: &SafetyEpisodeInputV1) -> SafetyEpisodeRep
         unknown_spec_count,
         signal_coverage_rate,
         success_but_unsafe,
-        worst_violation_severity_index: worst_violation,
+        worst_violation_severity_index,
         safe_stop_checked,
         issues,
     }
