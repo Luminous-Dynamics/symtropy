@@ -1,0 +1,405 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "BH-CHEUNG-LR-SOURCE-ATTRIBUTION-ZENODO-V2",
+  "status": "planned_reference_bundle",
+  "purpose": "Pin the public code/data inputs for reproducing the light-ring source-region decomposition and independently varying the source mask and QNM filter. This manifest is not a run receipt or physical result.",
+  "upstream": {
+    "paper": "How much of the black hole ringdown is sourced within the light ring?",
+    "doi": "10.1103/l1mc-6hsz",
+    "arxiv": "https://arxiv.org/abs/2608.29466",
+    "publication_status": "PRD accepted 2026-10-06",
+    "zenodo": {
+      "doi": "10.5281/zenodo.23091221",
+      "record_id": "23091221",
+      "version": "2",
+      "published": "2026-10-01",
+      "record_url": "https://doi.org/10.5281/zenodo.23091221",
+      "supersedes": {
+        "record_id": "22071387",
+        "doi": "10.5281/zenodo.22071387",
+        "note": "Version 1; do not silently substitute it for the v2 reproduction inputs."
+      },
+      "checksum_policy": "The record publishes MD5 values. These are retained only as upstream identifiers. Recompute SHA-256 from downloaded bytes and bind the resulting values in an execution receipt before use.",
+      "license": "MIT"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "code.tar.gz",
+      "role": "source_code",
+      "upstream_md5": "da04187f141abad4b7e22f46e1a17fcc",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": "9.3 MB"
+    },
+    {
+      "name": "data.tar",
+      "role": "reduced_production_data",
+      "upstream_md5": "f267a5afe05b033f3695e46edf2a3130",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": "314.8 MB"
+    },
+    {
+      "name": "data_paper.tar",
+      "role": "paper_waveform_and_mask_ablation_data",
+      "upstream_md5": "a65237e4f7e9f69d85abcfcb6d1394f0",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": "251.2 MB"
+    },
+    {
+      "name": "data_raw.tar",
+      "role": "unreduced_production_records",
+      "upstream_md5": "89cdabed4828fbea5a76861f3b1e7b04",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": "2.1 GB"
+    },
+    {
+      "name": "figures.tar.gz",
+      "role": "published_figures",
+      "upstream_md5": "359152af13e8c63ee3e4cd5ed760ef27",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": "8.9 MB"
+    },
+    {
+      "name": "README",
+      "role": "reproduction_and_convention_documentation",
+      "upstream_md5": "2a11417c61c371db4251b99ad5e7456d",
+      "local_sha256": null,
+      "sha256_status": "not_computed",
+      "size_label": null
+    },
+    {
+      "name": "CITATIONS.md",
+      "role": "upstream_publications_and_package_citations",
+      "size_label": "9.4 kB",
+      "upstream_md5": "3a26b25786b6df65ce773453a7ea778c",
+      "local_sha256": null,
+      "sha256_status": "not_computed"
+    },
+    {
+      "name": "LICENSE",
+      "role": "upstream_license_text",
+      "size_label": "1.1 kB",
+      "upstream_md5": "6a9af31a15b622da12b99aa18d41c99f",
+      "local_sha256": null,
+      "sha256_status": "not_computed"
+    }
+  ],
+  "reproduction_tiers": [
+    {
+      "tier": "published_outputs",
+      "required_artifacts": [
+        "code.tar.gz",
+        "data.tar",
+        "data_paper.tar"
+      ],
+      "expected_scope": "Rebuild the paper waveform panel and SNR waveform calculation together with tables, convergence figures and non-waveform-paper outputs.",
+      "status": "not_executed"
+    },
+    {
+      "tier": "production_reduction_replay",
+      "required_artifacts": [
+        "code.tar.gz",
+        "data.tar",
+        "data_raw.tar"
+      ],
+      "expected_scope": "Re-run the complete reduction over the unreduced production-grid records.",
+      "status": "not_executed",
+      "resource_note": "The upstream README reports approximately 1080 core-hours for the original full production grid. Re-running it is not required merely to regenerate outputs already shipped in the reduced/paper-specific bundles."
+    },
+    {
+      "tier": "production_grid_rerun",
+      "required_artifacts": [
+        "code.tar.gz",
+        "data.tar"
+      ],
+      "expected_scope": "Re-run the 63-record production grid, generating the three source segments at three numerical resolutions.",
+      "status": "not_executed",
+      "resource_note": "The upstream README reports about 1080 core-hours for the original 63-record production grid, using nine cores per cell. Reproduce only for a justified independent numerical audit; the released reduced and paper-specific outputs are sufficient for baseline figure reproduction."
+    }
+  ],
+  "mathematical_and_unit_conventions": {
+    "field_spin_weight": -2,
+    "azimuthal_mode_m": 2,
+    "angular_modes_l_max": 11,
+    "observable": "Asymptotic waveform readout at future null infinity, parameterized by retarded time u; the paper projects onto the (2,2,0) spheroidal harmonic.",
+    "mass_units": {
+      "production_solver": "Most production code uses 2M=1 (therefore M=0.5).",
+      "geodesic_and_plotting_scripts": "M=1.",
+      "requirement": "Convert every radius, time, frequency and waveform normalization to one explicitly declared M convention before any cross-script or cross-engine comparison."
+    },
+    "unit_status": "Upstream convention transcribed; local code/data bytes and outputs have not been independently verified."
+  },
+  "production_grid": {
+    "record_count": 63,
+    "remnant_spin_values": [
+      0,
+      0.4,
+      0.7,
+      0.95
+    ],
+    "resolutions": 3,
+    "source_segments": [
+      "full",
+      "inside_mask",
+      "outside_mask"
+    ],
+    "note": "The README describes two plunge-angular-momentum choices per spin except the chi=0.95 subset. Exact record-to-parameter mapping must be read from the shipped metadata; this manifest does not invent missing per-record identifiers.",
+    "plunge_angular_momentum": {
+      "labels": {
+        "l1_0": "L_z at the ISCO",
+        "l0_5": "one half of the ISCO L_z"
+      },
+      "available_per_spin": {
+        "0.0": [
+          "l1.0",
+          "l0.5"
+        ],
+        "0.4": [
+          "l1.0",
+          "l0.5"
+        ],
+        "0.7": [
+          "l1.0",
+          "l0.5"
+        ],
+        "0.95": [
+          "l1.0"
+        ]
+      },
+      "segments_per_worldline": [
+        "full",
+        "inside_mask",
+        "outside_mask"
+      ],
+      "resolutions": 3,
+      "total_records": 63
+    }
+  },
+  "extraction_filters": [
+    {
+      "filter_id": "np7nr7",
+      "qnm_zeros": 16,
+      "prograde_overtone_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "mirrored_retrograde_overtone_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "ell": 2,
+      "padding": 4
+    },
+    {
+      "filter_id": "np2nr2",
+      "qnm_zeros": 6,
+      "prograde_overtone_indices": [
+        0,
+        1,
+        2
+      ],
+      "mirrored_retrograde_overtone_indices": [
+        0,
+        1,
+        2
+      ],
+      "ell": 2,
+      "padding": 4
+    }
+  ],
+  "source_mask": {
+    "definition": "delta_r = f * (r_LR - r_plus)",
+    "nominal_f": 0.1,
+    "paper_ablation_f_values": [
+      0.1,
+      0.5,
+      1
+    ],
+    "additional_data_scope": {
+      "artifact": "data_paper.tar",
+      "description": "The README identifies paper-specific order-8 data for chi=0.7 and plunge angular momentum 1.0, including full/in/out and inside/outside waveforms for mask-width ablations at f=0.5 and f=1.0.",
+      "caveat": "Do not assume the wider-mask variants are populated for every one of the 63 production configurations.",
+      "recreation_cost_note": "The four additional wider-mask records (inside/outside at f=0.5 and f=1.0 for chi=0.7, l1.0, order 8) cost about 81 core-hours to recreate in the upstream production setup. They are already present in data_paper.tar, so baseline reproduction should use the shipped records."
+    },
+    "reported_filter_interaction": "For the wider f=0.5 and f=1.0 masks, the upstream README says the de-spike filter finds no high-frequency band to remove; the filtered inside contribution is shown without that removal."
+  },
+  "required_interventions": {
+    "primary_factor_a": "source_mask_width_f",
+    "levels_a": [
+      0.1,
+      0.5,
+      1
+    ],
+    "primary_factor_b": "qnm_filter_configuration",
+    "levels_b": [
+      "np7nr7",
+      "np2nr2"
+    ],
+    "rule": "Vary the source mask and QNM/de-spike filter independently wherever the pinned data support the factorial comparison. Preserve missing combinations as unavailable; do not fill them by interpolation or assume complete factorial coverage.",
+    "preserve_separate_outputs": [
+      "complex_full_waveform",
+      "complex_inside_mask_waveform",
+      "complex_outside_mask_waveform",
+      "source_partition_transfer",
+      "qnm_filter_operator_output",
+      "de_spike_filter_output",
+      "post_filter_residual",
+      "detector_projection"
+    ],
+    "required_diagnostics": [
+      "complex_amplitude_and_phase_by_time",
+      "source_partition_recombination_residual",
+      "filter_reconstruction_residual",
+      "resolution_dependence",
+      "start_time_dependence",
+      "mask_width_dependence",
+      "filter_set_dependence",
+      "cross_configuration_interaction"
+    ]
+  },
+  "detector_snr": {
+    "upstream_method": "Point-particle plunge waveform rescaled to the GW250114 remnant mass and aligned to the maximum-likelihood (2,2) mode peak.",
+    "claim_type": "model_estimate",
+    "limitation": "The README explicitly cautions that the point-particle plunge is not a comparable-mass merger. Resulting SNRs are estimates, not a direct detector-bound measurement of generic comparable-mass source-region emission.",
+    "arms": [
+      {
+        "arm": "A",
+        "waveform": "full, filtered"
+      },
+      {
+        "arm": "B",
+        "waveform": "inside-mask, filtered"
+      },
+      {
+        "arm": "D",
+        "waveform": "inside-mask, filtered, with segment-cut content moved into outside-mask"
+      },
+      {
+        "arm": "E",
+        "waveform": "full, unfiltered"
+      },
+      {
+        "arm": "F",
+        "waveform": "inside-mask, unfiltered"
+      }
+    ],
+    "time_origin": "Each arm's start time is measured from that arm's own waveform peak in units of remnant mass M. Filtered and unfiltered peaks differ; equal offsets across arms do not represent the same absolute retarded time.",
+    "likelihood_inner_product": "Time-domain inner product a C^-1 b using the noise covariance C of the segment.",
+    "start_time_count": 5,
+    "network_count": 3
+  },
+  "execution_status": {
+    "downloaded_in_current_run": false,
+    "local_sha256_computed": false,
+    "published_pipeline_rebuilt": false,
+    "raw_grid_reduced": false,
+    "rust_independent_implementation": false,
+    "physical_attribution_qualified": false
+  },
+  "claim_ceiling": [
+    "A reproduction can establish that the declared code and shipped data regenerate the specified source-mask/filter outputs.",
+    "It does not establish that the inside-light-ring source component is a universal bound for comparable-mass mergers.",
+    "A filtered residual is not identical to the physical source contribution inside the light ring.",
+    "The detector SNR rescaling remains conditional on the point-particle plunge model.",
+    "No claim about horizon emission, surface gravity or horizon reflectivity follows from this source-region manifest alone."
+  ],
+  "provenance_requirements_for_future_run": [
+    "SHA-256 for every downloaded archive and extracted input file",
+    "Exact archive version and README digest",
+    "Python 3.11.14 and pinned upstream lock/environment identity for compatibility reproduction",
+    "Exact upstream code revision where recoverable",
+    "Exact command/script digest and parameters",
+    "Per-case IDs and mass/spin/plunge parameters from upstream metadata",
+    "Machine-readable outputs for each mask/filter/resolution/source segment",
+    "Independent reproduction receipt and categorized negative-control results"
+  ],
+  "integration": {
+    "symtropy_boundary_response_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4109",
+    "symthaea_gw250114_campaign_issue": "https://github.com/Luminous-Dynamics/symthaea/issues/10841",
+    "response_manifest_successor_pr": "https://github.com/Luminous-Dynamics/symtropy/pull/4621",
+    "use_existing_pinned_data": "Prefer the shipped reduced/paper-specific data for baseline reproduction; reserve full raw-grid reduction for targeted independent checks."
+  },
+  "execution_environment": {
+    "os_architecture": "Linux x86-64",
+    "package_manager": "uv >= 0.10",
+    "python": "3.11.14",
+    "pinned_packages": {
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "numba": "0.66.0",
+      "matplotlib": "3.11.0",
+      "qnm": "0.4.4",
+      "sympy": "1.14.0",
+      "mpmath": "1.3.0",
+      "llvmlite": "0.48.0"
+    },
+    "lockfile": "pyproject.toml + uv.lock inside code.tar.gz",
+    "execution_environment_sha256": null,
+    "status": "upstream README transcribed; not locally reconstructed"
+  },
+  "reproduction_commands": [
+    {
+      "step": "worldlines",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/make_worldline.py"
+    },
+    {
+      "step": "run_settings",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/precheck.py"
+    },
+    {
+      "step": "production_grid",
+      "command": "scripts/submit_grid.py via scripts/slurm/cell.sbatch; per-cell jobs require explicit site-specific account/partition/cores/memory/time settings"
+    },
+    {
+      "step": "reduction",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/reduce.py --filter-set np7nr7 (or np2nr2)"
+    },
+    {
+      "step": "convergence",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/convergence.py"
+    },
+    {
+      "step": "waveform_panel",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/fig_waveform_panel.py --filter-set np7nr7 (or np2nr2)"
+    },
+    {
+      "step": "mask_width_panels",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/fig_waveform_panel.py --mask-f 0.5 (or 1.0)"
+    },
+    {
+      "step": "snr_waveform",
+      "command": "OMP_NUM_THREADS=1 NUMBA_NUM_THREADS=1 PYTHONPATH=src ./.venv/bin/python -u scripts/snr_waveform.py --filter-set np7nr7 (or np2nr2)"
+    },
+    {
+      "step": "snr_grid",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/snr_grid.py --filter-set np7nr7 (or np2nr2)"
+    },
+    {
+      "step": "snr_panel",
+      "command": "PYTHONPATH=src ./.venv/bin/python -u scripts/fig_snr_panel.py --filter-set np7nr7 (or np2nr2)"
+    }
+  ],
+  "runtime_environment": {
+    "common": "OMP_NUM_THREADS=1 PYTHONPATH=src ./.venv/bin/python -u <script>",
+    "multithreaded": "Set NUMBA_NUM_THREADS=<cores> and HD_MULTITHREAD_TAIL=1 whenever NUMBA_NUM_THREADS > 1.",
+    "uv_setup": "uv sync",
+    "notes": "Exact commands and script arguments must be checked against the shipped README before replay. Site-specific SLURM settings are intentionally not guessed."
+  }
+}
