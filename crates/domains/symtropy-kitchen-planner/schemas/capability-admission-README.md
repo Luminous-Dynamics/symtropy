@@ -18,7 +18,7 @@ Each recipe task must have one explicit binding to:
 
 At request level, the evaluator also requires the power-plan task graph to exactly equal the recipe graph's mapped scheduling plan, and independently revalidates the submitted schedule with the existing household power-envelope verifier. This covers aggregate household background load, simultaneous task demand, continuous real-power limits, peak limits and surge duration.
 
-All mass comparisons use checked integer arithmetic at nanogram resolution. Volume and count units are not converted to mass. Missing mass, power traces, module power limits, maximum runtimes, or non-comparable units remain indeterminate. Arithmetic overflow also remains indeterminate because the mass comparison cannot be completed. Known mismatches, invalid evidence structures, and exceeded physical declaration bounds are blocked.
+All mass comparisons use checked integer arithmetic at nanogram resolution. Volume and count units are not converted to mass. Missing mass, power traces, module power limits, maximum runtimes, or non-comparable units remain indeterminate. A large but representable integer quantity is compared exactly against declared bounds; the evaluator does not label a valid arithmetic result as overflow. Only a genuinely unrepresentable checked sum would be indeterminate. Known mismatches, invalid evidence structures, and exceeded physical declaration bounds are blocked.
 
 ## Dispositions
 
