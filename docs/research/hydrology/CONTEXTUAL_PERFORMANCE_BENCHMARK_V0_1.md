@@ -415,3 +415,6 @@ At each forecast lead, catchment and event definition, freeze the reference fore
 Sources:
 - WMO-No. 1364 (2025), *Guidelines on the Verification of Hydrological Forecasts*: https://wmo.int/publication-series/guidelines-verification-hydrological-forecasts
 - Ruparell et al. (2025), ECMWF TM 935, *A Hydrologist's Guide to the CRPS*: https://www.ecmwf.int/en/elibrary/81707-hydrologists-guide-crps
+
+
+The 37-case suite includes explicit negative-skill controls: one ensemble forecast is worse than its persistence-ensemble reference (negative CRPSS), and one event forecast is worse than constant 0.5 climatology (negative BSS). Both negative values are preserved. One exact-zero reference CRPS control returns Undefined skill rather than infinity. These are safeguards against misleading dashboards and selection systems that hide regressions.
