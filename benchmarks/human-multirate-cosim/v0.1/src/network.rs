@@ -563,10 +563,11 @@ pub fn simulate_network_topology_events(
     let mut max_spectral_stability_number: f64 = 0.0;
     let mut event_states = Vec::with_capacity(events.len());
 
-    for event in events.iter().chain(std::iter::once(&TopologyEvent {
+    let terminal_event = TopologyEvent {
         at_time: scenario.horizon,
         edges: Vec::new(),
-    })) {
+    };
+    for event in events.iter().chain(std::iter::once(&terminal_event)) {
         let segment_duration = event.at_time - segment_start;
         let segment = NetworkScenario {
             name: scenario.name,
@@ -1140,8 +1141,20 @@ mod tests {
     #[test]
     fn topology_event_splits_state_continuously_and_preserves_total() {
         let scenario = chain();
-        let initial_oracle = scenario.spectral_oracle().unwrap();
-        let expected_at_event = initial_oracle.state_at(2.0).unwrap();
+        let pre_event_segment = NetworkScenario {
+            name: scenario.name,
+            capacities: scenario.capacities.clone(),
+            initial: scenario.initial.clone(),
+            edges: scenario.edges.clone(),
+            horizon: 2.0,
+        };
+        let expected_at_event = simulate_network(
+            &pre_event_segment,
+            NetworkMethod::BackwardEulerReference,
+            0.1,
+        )
+        .unwrap()
+        .final_state;
         let events = [TopologyEvent {
             at_time: 2.0,
             edges: vec![
@@ -1168,9 +1181,7 @@ mod tests {
 
         assert_eq!(score.topology_event_count, 1);
         assert_eq!(score.total_steps, 40);
-        for (actual, expected) in score.event_states[0].iter().zip(expected_at_event.iter()) {
-            assert!((actual - expected).abs() < 1.0e-10);
-        }
+        assert_eq!(score.event_states[0], expected_at_event);
         assert!(score.max_abs_total_residual < 1.0e-10);
         assert!(score.positive_states);
         assert!(score.max_quadratic_energy_increase < 1.0e-10);
