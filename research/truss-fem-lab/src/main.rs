@@ -184,6 +184,22 @@ fn main() {
     println!("mass_matched_single_removal_solvability={:.6}", mass_matched.single_member_removal_solvability_fraction);
     println!("mass_matched_pair_removal_tested={}", mass_matched.tested_two_member_pairs);
     println!("mass_matched_pair_removal_omitted={}", mass_matched.omitted_two_member_pairs);
+    println!(
+        "mass_matched_input_digest_non_security={:016x}",
+        mass_matched.input_digest_non_security
+    );
+    println!(
+        "mass_matched_global_force_residual_n={:.12e}",
+        mass_matched.global_force_residual_n
+    );
+    println!(
+        "mass_matched_global_moment_residual_nm={:.12e}",
+        mass_matched.global_moment_residual_nm
+    );
+    println!(
+        "mass_matched_energy_relative_error={:.12e}",
+        mass_matched.energy_relative_error
+    );
 
     let matched = matched_tetrahedron_pair(1.0, [0.0, 0.0, -100.0])
         .expect("valid matched-envelope tetrahedron fixture");
@@ -208,11 +224,49 @@ fn main() {
     )
     .expect("interior-hub topology should produce benchmark receipt");
     println!("matched_baseline_name={}", matched.baseline.name);
-    println!("matched_baseline_member_mass_kg={:.9}", matched_baseline.computed_member_mass_kg);
-    println!("matched_baseline_displacement_m={:.12e}", matched_baseline.maximum_node_displacement_m);
+    println!("matched_baseline_member_count={}", matched_baseline.member_count);
+    println!(
+        "matched_baseline_member_mass_kg={:.9}",
+        matched_baseline.computed_member_mass_kg
+    );
+    println!(
+        "matched_baseline_area_m2={:.12e}",
+        matched_baseline.uniform_cross_section_area_m2
+    );
+    println!(
+        "matched_baseline_displacement_m={:.12e}",
+        matched_baseline.maximum_node_displacement_m
+    );
+    println!(
+        "matched_baseline_max_stress_pa={:.12e}",
+        matched_baseline.maximum_absolute_axial_stress_pa
+    );
+    println!(
+        "matched_baseline_yield_utilization={:.12e}",
+        matched_baseline.maximum_yield_utilization
+    );
     println!("matched_hub_name={}", matched.interior_hub.name);
-    println!("matched_hub_member_mass_kg={:.9}", matched_hub.computed_member_mass_kg);
-    println!("matched_hub_displacement_m={:.12e}", matched_hub.maximum_node_displacement_m);
+    println!("matched_hub_member_count={}", matched_hub.member_count);
+    println!(
+        "matched_hub_member_mass_kg={:.9}",
+        matched_hub.computed_member_mass_kg
+    );
+    println!(
+        "matched_hub_area_m2={:.12e}",
+        matched_hub.uniform_cross_section_area_m2
+    );
+    println!(
+        "matched_hub_displacement_m={:.12e}",
+        matched_hub.maximum_node_displacement_m
+    );
+    println!(
+        "matched_hub_max_stress_pa={:.12e}",
+        matched_hub.maximum_absolute_axial_stress_pa
+    );
+    println!(
+        "matched_hub_yield_utilization={:.12e}",
+        matched_hub.maximum_yield_utilization
+    );
     println!(
         "matched_hub_to_baseline_displacement_ratio={:.9}",
         matched_hub.maximum_node_displacement_m / matched_baseline.maximum_node_displacement_m
