@@ -1,6 +1,6 @@
 # Symtropy
 
-State-coupled N-dimensional physics engine. Any metric you define modulates forces, friction, and energy budgets in real-time through a thermodynamically-closed system.
+State-coupled N-dimensional rigid-body physics engine with generic per-body metric hooks for force, friction, and resource policies. Φ is included as an experimental coupling signal; thermodynamic or conservation claims require a separately validated system boundary and complete energy accounting.
 
 Ships with Phi (integrated information) as the default metric and 68 research experiments. But the coupling framework is generic — plug in health, wealth, trust, skill, or any [0,1] value per body.
 
@@ -8,7 +8,7 @@ Ships with Phi (integrated information) as the default metric and 68 research ex
 
 ## The Symtropy Adoption Story
 
-Symtropy is more than a physics engine; it is the physical substrate for a **Type 1 Civilization**.
+Symtropy is part of a longer-term research programme exploring how reliable simulation could support resilient infrastructure and civic systems. Those broader applications remain development goals, not demonstrated capabilities.
 
 Why choose Symtropy over traditional solutions?
 
@@ -27,7 +27,7 @@ For game developers and industrial simulation, Symtropy provides a high-performa
 - **License:** Apache-2.0 OR MIT.
 
 ### 2. The Research Hero (Track A)
-For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy integrates Φ (integrated information) as a first-class physical law. This enables simulations where an agent's internal complexity (consciousness) meaningfully modulates its motor authority and energy efficiency.
+For researchers in AI, A-Life, and Integrated Information Theory (IIT), Symtropy includes an experimental Φ-coupling layer. A declared integrated-information estimator can modulate motor authority and resource policies in simulation; this does not establish Φ as a physical law or imply that simulated agents are conscious.
 - **Crates:** `symtropy-consciousness-physics`, `symtropy-bevy`.
 - **License:** GNU AGPL v3.
 
@@ -172,10 +172,10 @@ Zero heap allocation in the physics hot path. All types use `const D: usize` gen
 68 experiments in `crates/domains/symtropy-consciousness-physics/examples/`:
 
 ```bash
-# Core cooperation emergence (the definitive experiment)
+# Core cooperation-emergence scenario
 cargo run --example cooperation_emergence
 
-# J/Phi convergence (novel thermodynamic metric)
+# J/Phi convergence (descriptive simulation diagnostic)
 cargo run --example jphi_convergence
 
 # All examples
@@ -196,9 +196,9 @@ cargo run --example hdc_cooperation --features consciousness-hdc
 
 ## Key Results
 
-- **81.3% tighter clustering** under thermodynamic enforcement (cooperation emerges as a thermodynamic necessity)
-- **J/Phi converges** to a stable substrate-characteristic value (~10K J/Phi)
-- **Prediction 1 confirmed**: Solo agents collapse within ~4 minutes; cooperative agents sustain indefinitely
+- **81.3% tighter clustering** reported in an internal configured simulation; this is a model-specific result pending independent reproduction, not evidence of thermodynamic necessity
+- **J/Phi convergence** reported as a model-specific statistic (~10K J/Phi); not a measured or substrate-independent physical constant
+- **Current configured-run observation**: solo agents collapse within ~4 minutes while cooperative agents persist in the internal scenario; this is model-specific and pending independent reproduction
 
 ## Documentation
 

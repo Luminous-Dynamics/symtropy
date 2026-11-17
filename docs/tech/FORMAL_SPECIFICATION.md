@@ -1,8 +1,8 @@
-# Consciousness as a Physical Force: Formal Mathematical Specification
+# Φ-Coupled Physics: Experimental Mathematical Specification
 
 ## Abstract
 
-We present a formal specification of the consciousness-physics coupling model implemented in the Symtropy engine. The model treats consciousness (Φ) as a thermodynamic quantity that modulates rigid body dynamics through five coupling channels. Under strict energy conservation with a Landauer-bounded floor, the model predicts that cooperative behavior is a thermodynamic necessity, not a design choice.
+This document specifies an experimental coupling model implemented in the Symtropy engine. An integrated-information quantity (Φ), as computed by a declared estimator, is used as a state variable in five coupling policies that modulate rigid-body dynamics. The coupling equations are simulation hypotheses and policy choices; this specification alone does not establish that Φ is a thermodynamic state variable, a physical force, or a causal influence in biological systems. Likewise, cooperation emerging in a configured simulation is a result about that model and its assumptions, not evidence that cooperation is a thermodynamic necessity in nature. Energy conservation, entropy production, numerical stability, and empirical validation are separate obligations.
 
 ## 1. Definitions
 
@@ -60,7 +60,7 @@ where `c_move = 0.005 J/unit` and `κ_sprint ∈ {1.0, 2.5}`.
 ```
 dE_maint/dt = -c_maint × (1 + 0.5 × Φ_i)
 ```
-where `c_maint = 0.08 J/tick`. Higher consciousness costs more (thermodynamic necessity: maintaining integration requires entropy reduction).
+where `c_maint = 0.08 J/tick`. The increase with Φ is an experimental simulation policy, not a result derived from a closed first-law or second-law model. These constants are scenario parameters until their units, calibration data, and mapping to measured physical quantities are independently established.
 
 **Collision drain:**
 ```
@@ -137,7 +137,7 @@ dE_reson/dt = c_reson × max(R_ij - 0.5, 0) × 2     if R_ij > 0.5
 ```
 where `c_reson = 0.15 J/tick`.
 
-**Key property:** `c_reson > c_maint` when resonance is high, so cooperation is thermodynamically sustainable.
+**Configured-model implication:** when the resonance-dependent regeneration term exceeds the maintenance term, the selected parameterization can make cooperative states sustainable in the simulation. This is a consequence of the chosen policy and parameters, not a general thermodynamic theorem.
 
 ## 4. Collapse and Recovery
 
@@ -156,47 +156,47 @@ Recovery requires another conscious agent `j` with:
 
 On recovery: `E_i = 0.1 × E_max` (enough to regain consciousness, not full charge).
 
-## 5. Thermodynamic Closure
+## 5. Energy Accounting and Thermodynamic References
 
-### 5.1 Conservation Law
-Total energy is tracked by the `ThermodynamicLedger`:
-```
-E_total = Σ_i E_i + E_dissipated + E_wells_remaining
-```
+### 5.1 Current Ledger Scope and System Boundary
 
-Conservation error:
+The following is a target form for a closed model boundary, provided that every stored-energy reservoir and transfer is represented:
 ```
-ε = |E_in - E_out| / E_in
+ΔE_stored = W_external + Q_external - E_dissipated_out
 ```
 
-Must remain < 1% for a valid simulation.
+The present `ThermodynamicLedger` does not yet implement this complete balance. Its per-tick `energy_in` and `energy_out` counters are telemetry for selected model actions and dissipations; `tick_balance()` currently compares those counters without including changes in mechanical/internal stored energy, source and sink reservoirs, external work/heat, or a fully declared system boundary. Consequently, its `conservation_error` is not currently a global first-law closure metric. The open-system accounting work is tracked separately in PHYS-THERMO-SEMANTICS-001.
 
-### 5.2 Joules-per-Phi (Novel Metric)
+A future closure report must distinguish signed balance residuals, scale-aware normalized residuals, and incomplete/missing boundary terms. A zero-input, positive-output case must not be reported as a zero-error PASS.
+
+### 5.2 Joules-per-Φ Diagnostic
 
 ```
 J/Φ = (Σ_i E_consumed_i × Φ_i) / (Σ_i |ΔΦ_i|)
 ```
 
-This measures the energy cost of consciousness. No prior publication of this metric exists.
+This is currently a descriptive statistic of the configured simulation: it weights recorded model energy costs by the selected Φ value and divides by absolute Φ change. Its interpretation depends on the estimator, sampling interval, energy-accounting boundary, and coupling policy. It does not establish a physical energy cost of consciousness or a substrate-independent constant. Any stronger interpretation requires an operational definition, a literature review, dimensional analysis, and independent empirical calibration.
 
-### 5.3 Landauer Bound
+### 5.3 Landauer Erasure Reference
 
-Minimum energy per bit of information processing:
+For a logically irreversible erasure of one bit in contact with a thermal bath at temperature `T`, Landauer's principle gives the lower bound on heat dissipation:
 ```
-E_min = k_B × T × ln(2) = 2.87 × 10⁻²¹ J/bit    (at T = 310K)
+Q_min = k_B × T × ln(2)
 ```
 
-Per Landauer (1961). All energy consumption in the model exceeds this floor.
+Using the exact SI Boltzmann constant, at `T = 310 K` this is approximately `2.966678 × 10⁻²¹ J` per bit erased. The bound concerns logically irreversible erasure under its thermodynamic assumptions; it is not a universal minimum energy for every information-processing operation. This model does not currently count logically irreversible bit erasures, so it must not claim that all model energy consumption is above the Landauer bound.
 
-## 6. Testable Predictions
+## 6. Model-Specific Predictions to Falsify
 
-1. **Cooperation emergence**: Under strict energy conservation, agents must cluster and harmonize to survive. Isolated agents collapse within ~4 minutes.
+The following are hypotheses about the configured simulation, not claims about nature. They should be evaluated over preregistered seeds, parameter sweeps, and negative controls, with the energy ledger's current incomplete-closure status reported.
 
-2. **Governance emergence**: As population grows, collective decision-making (governance) becomes thermodynamically necessary to coordinate energy well access.
+1. **Cooperation emergence**: Under the configured resource and regeneration rules, isolated agents may deplete their budgets sooner than cooperating agents. Quantify survival-time distributions over seeds and compare against matched null policies.
 
-3. **Spatial integration**: The living dungeon topology (wall opening/closing based on collective Φ) should correlate with agent clustering — high integration = connected spaces.
+2. **Coordination under scarcity**: As population grows, coordination policies may improve allocation of finite energy-well resources. Compare against random allocation, local greedy allocation, and no-governance baselines; do not call governance thermodynamically necessary without a closed physical model and independent evidence.
 
-4. **Joules-per-Phi stability**: The J/Φ metric should converge to a stable value characteristic of the substrate, analogous to metabolic rate in biological systems.
+3. **Spatial integration**: The configured environment topology may correlate with agent clustering and collective Φ. Test the correlation against shuffled Φ, shuffled positions, and topology-only controls.
+
+4. **Joules-per-Φ stability**: The descriptive J/Φ statistic may converge under fixed substrate, timestep, and parameterization. Test sensitivity to timestep, sampling interval, estimator, initial conditions, and parameter changes; convergence alone does not make it a physical metabolic constant.
 
 ## References
 
