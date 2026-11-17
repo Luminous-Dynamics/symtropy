@@ -731,7 +731,7 @@ mod tests {
             fs::write(root.join("producers/study_tracks.py"), b"# synthetic study producer").expect("producer");
             fs::write(root.join("producers/study_hits.py"), b"# synthetic hit producer").expect("producer");
 
-            let gen = file_identity_test(&root.join("gen.edm4hep.root"));
+            let generation_identity = file_identity_test(&root.join("gen.edm4hep.root"));
             let reco = file_identity_test(&root.join("reco.edm4hep.root"));
             let aggregator = file_identity_test(&root.join("aggregate_metrics.py"));
             let producer_tracks = file_identity_test(&root.join("producers/study_tracks.py"));
@@ -743,8 +743,8 @@ mod tests {
                 "input": {
                     "path": "gen.edm4hep.root",
                     "source": "https://example.invalid/synthetic/gen.edm4hep.root",
-                    "bytes": gen.bytes,
-                    "sha256": gen.sha256
+                    "bytes": generation_identity.bytes,
+                    "sha256": generation_identity.sha256
                 },
                 "events": 100,
                 "particle": "pion",
