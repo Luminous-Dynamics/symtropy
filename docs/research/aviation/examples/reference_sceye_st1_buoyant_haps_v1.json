@@ -1,0 +1,155 @@
+{
+  "schema_version": "aero-aircraft-candidate/v1",
+  "candidate_id": "reference.sceye-st1.buoyant-haps.2026",
+  "revision": 1,
+  "family": "buoyant_haps",
+  "lift_class": "buoyant",
+  "buoyant_subtype": "free_balloon",
+  "data_origin": "mixed",
+  "claim_ceiling": "synthetic_architecture_screening",
+  "configuration_status": "conceptual",
+  "propulsion": {
+    "architecture": "unknown",
+    "propulsor_count": null,
+    "drive_train_config_ref": null
+  },
+  "energy": {
+    "primary_storage": "battery",
+    "secondary_sources": [
+      "solar"
+    ],
+    "energy_system_model_ref": null,
+    "thermal_model_ref": null
+  },
+  "source_refs": [
+    {
+      "url": "https://www.prnewswire.com/news-releases/sceyes-stratospheric-platform-re-enters-united-states-after-record-breaking-roundtrip-stratospheric-flight-between-us-and-japan-302873007.html",
+      "source_kind": "manufacturer",
+      "claim_scope": "Sceye ST1 mission dates, approximately 30-day trans-Pacific return journey, nearly 30,000 km, more than seven days of Japanese operation; Sceye's release describes the vehicle as an unmanned free balloon.",
+      "independence": "source_attributed"
+    },
+    {
+      "url": "https://www.softbank.jp/en/corp/news/press/sbkk/2026/20260902_01/",
+      "source_kind": "operator",
+      "claim_scope": "SoftBank's report of the LTA-type Sceye HAPS Japan trial, communications tests, HAPS-to-drone communications and approximately 5 km station-keeping radius.",
+      "independence": "source_attributed"
+    },
+    {
+      "url": "https://spectrum.ieee.org/high-altitude-platform-station",
+      "source_kind": "independent_media",
+      "claim_scope": "Independent reporting on the 30-day Japan round trip and the trade between buoyant LTA payload/solar-area potential and fixed-wing endurance/steering capability.",
+      "independence": "source_attributed"
+    },
+    {
+      "url": "https://sceye.com/platform/",
+      "source_kind": "manufacturer",
+      "claim_scope": "Sceye's platform-level design propositions and manufacturer-stated 425 Wh/kg lithium-sulphur battery energy density; not an independently verified installed-pack specification.",
+      "independence": "source_attributed"
+    }
+  ],
+  "owner_work_refs": [
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5885",
+      "responsibility": "HAPS-specific service boundary, buoyant-versus-fixed-wing comparison and energy-service benchmark."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5853",
+      "responsibility": "Whole-aircraft architecture portfolio and matched mission MDO."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3885",
+      "responsibility": "Aircraft/energy co-design and mission-matched energy architecture comparison."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/4157",
+      "responsibility": "Coverage/network scheduling and cross-layer service evidence."
+    },
+    {
+      "system": "symthaea",
+      "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/7343",
+      "responsibility": "Solar generation, storage and persistent-platform energy accounting where the buoyant platform energy boundary applies."
+    },
+    {
+      "system": "mycelix",
+      "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+      "responsibility": "Envelope, solar array, battery, payload, inspection and maintenance configuration provenance."
+    }
+  ],
+  "discipline_model_refs": [],
+  "component_refs": [],
+  "closure_receipts": {
+    "mass_properties": null,
+    "cg_inertia": null,
+    "aerodynamics_loads": null,
+    "propulsion": null,
+    "energy_thermal": null,
+    "mission_reserve": null,
+    "maintainability": null
+  },
+  "unknowns": [
+    {
+      "field_path": "envelope_geometry_and_volume",
+      "disposition": "unknown",
+      "reason": "No as-built envelope geometry, volume, pressure regulation, ballonets, hull mass or material allowables are supplied."
+    },
+    {
+      "field_path": "buoyancy_and_altitude_control",
+      "disposition": "unknown",
+      "reason": "No buoyancy margin, gas management, thermal expansion or altitude-control model is bound."
+    },
+    {
+      "field_path": "station_keeping_and_wind_drift",
+      "disposition": "unknown",
+      "reason": "No propulsion or wind-relative trajectory model, station-keeping energy trace, control authority or wind-regime applicability receipt is supplied."
+    },
+    {
+      "field_path": "solar_array_geometry",
+      "disposition": "unknown",
+      "reason": "No as-built array area, flexible-lamination mass, attitude/incidence, shading or temperature map is bound."
+    },
+    {
+      "field_path": "battery_pack_and_thermal",
+      "disposition": "unknown",
+      "reason": "Manufacturer-level energy-density statements are not an installed pack specification; no pack mass, usable energy, pressure/temperature behavior, ageing or thermal model is supplied."
+    },
+    {
+      "field_path": "payload_and_power_budget",
+      "disposition": "unknown",
+      "reason": "No verified payload mass, continuous/peak power, RF or optical payload duty cycle, cooling or service-quality budget is supplied."
+    },
+    {
+      "field_path": "flight_and_service_envelope",
+      "disposition": "unknown",
+      "reason": "Public mission durations and area-stationing intervals do not define the complete wind, geography, seasonal or service availability envelope."
+    },
+    {
+      "field_path": "launch_recovery_and_maintenance",
+      "disposition": "unknown",
+      "reason": "No handling infrastructure, recovery method, pressure-hull inspection, gas replenishment, repair turnaround or fleet spares plan is bound."
+    },
+    {
+      "field_path": "energy_export",
+      "disposition": "unknown",
+      "reason": "No HAPS-to-aircraft power-transfer source/receiver, net surplus, end-to-end efficiency or in-flight energy service has been demonstrated by these references."
+    },
+    {
+      "field_path": "operations_and_authority",
+      "disposition": "unknown",
+      "reason": "No jurisdiction-specific airspace, spectrum, safety, site or operating authority is implied by public demonstration reports."
+    }
+  ],
+  "assumptions": [
+    "This is a reference architecture record for the buoyant lighter-than-air HAPS class, not a Sceye aircraft digital twin or a Luminous Dynamics design.",
+    "The ST1 record is classified as a buoyant HAPS with free-balloon subtype because Sceye's mission release describes it as an unmanned free balloon; the record does not assume an airship propulsion system.",
+    "Sceye ST1's approximately 30-day trans-Pacific round trip and more than seven days over Japan are distinct from Sceye's earlier SE2 12-day endurance programme and its reported 88+ hours at selected areas. These results are not merged into one platform configuration or station-keeping duration.",
+    "SoftBank's reported HAPS-to-drone result concerns communications and data links, not wireless energy transfer.",
+    "Sceye's platform website states a 425 Wh/kg lithium-sulphur battery energy density and months-to-a-year design ambition. Those remain manufacturer claims and are not independently verified installed-pack data or a demonstrated year-long flight.",
+    "The 2026 Sceye mission reports are source-attributed operational evidence; exact mass, payload, solar area, power, wind/positioning trace, thermal profile, fuel/gas usage, duty cycle and life-cycle data remain unknown.",
+    "No fixed-wing-versus-buoyant performance winner is asserted. Architecture selection must use the same service, weather, coverage, payload, reserve, reliability and cost boundaries.",
+    "All unreported physical properties, model outputs and operational permissions remain unknown."
+  ]
+}
