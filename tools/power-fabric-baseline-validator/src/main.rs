@@ -147,6 +147,7 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
         "source_declared_parameter",
         "source_reported_model_fit",
         "source_reported_announcement_claim",
+        "source_reported_simulation",
     ];
     if !allowed_evidence_kinds.contains(&evidence_kind.as_str()) {
         return Err(format!("{label}: unsupported evidence_kind {evidence_kind}"));
@@ -317,8 +318,8 @@ mod tests {
     fn frozen_jsonl_records_match_the_json_manifest_exactly() {
         let document = corpus();
         let summary = validate_frozen_artifacts(&document, BASELINES_JSONL).unwrap();
-        assert_eq!(summary.records, 7);
-        assert_eq!(summary.measurements, 28);
+        assert_eq!(summary.records, 8);
+        assert_eq!(summary.measurements, 40);
     }
 
     #[test]
@@ -342,8 +343,8 @@ mod tests {
     #[test]
     fn frozen_v01_corpus_validates_with_six_source_records() {
         let summary = validate_document(&corpus()).unwrap();
-        assert_eq!(summary.records, 7);
-        assert_eq!(summary.measurements, 28);
+        assert_eq!(summary.records, 8);
+        assert_eq!(summary.measurements, 40);
     }
 
     #[test]
@@ -413,6 +414,33 @@ mod tests {
             .unwrap();
         assert_eq!(calibration["relation"], "less_than");
         assert!(validate_measurement(calibration, "calibration").is_ok());
+    }
+
+    #[test]
+    fn keeps_fault_tolerant_dynamic_wpt_simulation_separate_from_experimental_recovery() {
+        let document = corpus();
+        let record = document["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["id"] == "santhakumar-2026-fault-tolerant-dwpt")
+            .unwrap();
+        let metrics = record["measurements"].as_array().unwrap();
+        let simulated = metrics
+            .iter()
+            .find(|metric| metric["name"] == "simulated_fault_detection_latency")
+            .unwrap();
+        let measured = metrics
+            .iter()
+            .find(|metric| metric["name"] == "experimental_fault_recovery_time")
+            .unwrap();
+        assert_eq!(simulated["evidence_kind"], "source_reported_simulation");
+        assert_eq!(measured["evidence_kind"], "source_reported_measurement");
+        assert!(record["known_unknowns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|x| x.as_str().unwrap().contains("excludes misalignment")));
     }
 
     #[test]
