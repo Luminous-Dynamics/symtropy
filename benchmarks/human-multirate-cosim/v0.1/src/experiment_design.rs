@@ -199,6 +199,7 @@ pub enum ExcitationDesignError {
     InvalidBudget,
     DuplicateModelId(u32),
     DuplicateSensorId(u32),
+    DuplicateProfileId(u32),
     IncompatibleModelStateBasis,
     UnknownSensorNode { sensor: usize },
     InvalidSensorCost { sensor: usize },
@@ -235,6 +236,7 @@ impl fmt::Display for ExcitationDesignError {
             }
             Self::DuplicateModelId(id) => write!(f, "duplicate model candidate ID {id}"),
             Self::DuplicateSensorId(id) => write!(f, "duplicate sensor candidate ID {id}"),
+            Self::DuplicateProfileId(id) => write!(f, "duplicate input profile ID {id}"),
             Self::IncompatibleModelStateBasis => {
                 write!(f, "candidate models must share capacities, initial state and horizon")
             }
@@ -293,6 +295,10 @@ pub fn evaluate_input_profile(
 ) -> Result<ExperimentDesignScore, ExcitationDesignError> {
     scenario.validate()?;
     let selected_indices = resolve_sensor_indices(scenario, selected_sensor_ids)?;
+    let selected_ids: Vec<u32> = selected_indices
+        .iter()
+        .map(|index| scenario.sensors[*index].id)
+        .collect();
     let (maximum_abs_forcing, integrated_squared_input) =
         validate_input_profile(scenario, profile)?;
 
@@ -366,7 +372,7 @@ pub fn evaluate_input_profile(
     Ok(ExperimentDesignScore {
         profile_id: profile.id,
         profile_label: profile.label,
-        selected_sensor_ids: selected_sensor_ids.to_vec(),
+        selected_sensor_ids: selected_ids,
         sensor_cost,
         maximum_abs_forcing,
         integrated_squared_input,
@@ -390,6 +396,13 @@ pub fn evaluate_input_tournament(
     if profiles.is_empty() {
         return Err(ExcitationDesignError::NoProfiles);
     }
+    let mut profile_ids = HashSet::new();
+    for profile in profiles {
+        if !profile_ids.insert(profile.id) {
+            return Err(ExcitationDesignError::DuplicateProfileId(profile.id));
+        }
+    }
+
     let mut scores = Vec::with_capacity(profiles.len());
     for profile in profiles {
         scores.push(evaluate_input_profile(
