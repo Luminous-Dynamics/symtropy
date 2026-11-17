@@ -3,6 +3,7 @@
 //! This crate deliberately does not claim structural strength. It generates
 //! a deterministic 3D graph and checks geometry/topology invariants only.
 
+pub mod assembly;
 pub mod manufacturing;
 pub mod tetrahedral;
 
