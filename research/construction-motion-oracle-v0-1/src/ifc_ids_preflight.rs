@@ -8,8 +8,8 @@
 use std::collections::BTreeSet;
 
 use crate::field_layout_acceptance::{
-    CrewHours, DesignIntentEntity, DesignIntentManifest, FieldAcceptanceError,
-    FieldAcceptanceProfile, FieldLayoutEntityType, score_field_layout_run,
+    CrewHours, DesignIntentEntity, DesignIntentManifest, FieldAcceptanceProfile,
+    FieldLayoutEntityType, score_field_layout_run,
 };
 use crate::site_state_ledger::SiteWorkPackage;
 
@@ -266,15 +266,7 @@ pub fn preflight_ifc_ids_work_package(
         },
         source_entity_bindings,
         source_entity_count: input.entities.len() as u64,
-        in_scope_entity_count: global_ids
-            .iter()
-            .filter(|global_id| {
-                input
-                    .entities
-                    .iter()
-                    .any(|entity| entity.global_id == **global_id && entity.in_work_scope)
-            })
-            .count() as u64,
+        in_scope_entity_count: source_entity_bindings.len() as u64,
         ifc_schema_release: input.source_schema_release,
         ids_version: input.ids_version,
     })
