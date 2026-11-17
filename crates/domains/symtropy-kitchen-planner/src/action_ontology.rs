@@ -8,7 +8,7 @@
 //! Unknown actions remain explicitly unmapped until a human-reviewed mapping is
 //! supplied. No lexical-similarity score is treated as execution authority.
 
-use crate::recipe_graph::{RECIPE_ACTION_KINDS_V1, RecipeActionKindV1, RecipeEvidenceClassV1};
+use crate::recipe_graph::{RecipeActionKindV1, RecipeEvidenceClassV1};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -709,29 +709,32 @@ pub fn evaluate_action_ontology_benchmark(
             )?;
         }
 
-        if predicted_group.is_some() && predicted_group == case.gold_group {
-            checked_accumulate(
-                &mut summary.correct_mapped_occurrence_weight,
-                case.occurrence_weight,
-                &case.case_id,
-            )?;
-            let group = predicted_group.expect("checked as Some");
-            let counts = summary
-                .groups
-                .iter_mut()
-                .find(|counts| counts.group == group)
-                .expect("every action group has a stable evaluation entry");
-            checked_accumulate(
-                &mut counts.true_positive_occurrences,
-                case.occurrence_weight,
-                &case.case_id,
-            )?;
-        } else if predicted_group.is_none() && case.gold_group.is_none() {
-            checked_accumulate(
-                &mut summary.correctly_abstained_occurrence_weight,
-                case.occurrence_weight,
-                &case.case_id,
-            )?;
+        match (predicted_group, case.gold_group) {
+            (Some(group), Some(gold)) if group == gold => {
+                checked_accumulate(
+                    &mut summary.correct_mapped_occurrence_weight,
+                    case.occurrence_weight,
+                    &case.case_id,
+                )?;
+                let counts = summary
+                    .groups
+                    .iter_mut()
+                    .find(|counts| counts.group == group)
+                    .expect("every action group has a stable evaluation entry");
+                checked_accumulate(
+                    &mut counts.true_positive_occurrences,
+                    case.occurrence_weight,
+                    &case.case_id,
+                )?;
+            }
+            (None, None) => {
+                checked_accumulate(
+                    &mut summary.correctly_abstained_occurrence_weight,
+                    case.occurrence_weight,
+                    &case.case_id,
+                )?;
+            }
+            _ => {}
         }
     }
 
@@ -741,6 +744,7 @@ pub fn evaluate_action_ontology_benchmark(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::recipe_graph::RECIPE_ACTION_KINDS_V1;
     use serde::Deserialize;
 
     #[derive(Deserialize)]
@@ -842,10 +846,10 @@ mod tests {
     struct ActionOntologyEvaluationExpected {
         case_count: u64,
         total_occurrence_weight: u64,
-        weighted_core_coverage: [u64; 2],
-        micro_group_precision: [u64; 2],
-        micro_group_recall: [u64; 2],
-        abstention_precision: [u64; 2],
+        weighted_core_coverage: (u64, u64),
+        micro_group_precision: (u64, u64),
+        micro_group_recall: (u64, u64),
+        abstention_precision: (u64, u64),
     }
 
     #[test]
