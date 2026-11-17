@@ -673,6 +673,31 @@ mod tests {
     }
 
     #[test]
+    fn field_families_are_bounded_and_report_r2() {
+        for family in FieldFamily::ALL {
+            for index in 0..=100 {
+                let x = index as f64 / 100.0;
+                let y = (100 - index) as f64 / 100.0;
+                let value = field_value(family, x, y);
+                assert!((0.0..=1.0).contains(&value), "{family:?}: {value}");
+            }
+
+            let report = run_field_family_benchmark(4, 2_048, 97, family).unwrap();
+            assert_eq!(report.field_family, family);
+            assert_eq!(report.query_count, 9);
+            assert!(report.hdc_r2.is_finite());
+            assert!(report.nearest_r2.is_finite());
+            assert!(report.bilinear_r2.is_finite());
+        }
+    }
+
+    #[test]
+    fn r2_is_one_for_exact_predictions_and_zero_for_mean_baseline() {
+        assert!((r2_from_residuals(&[0.0, 0.0, 0.0], &[0.0, 1.0, 2.0]) - 1.0).abs() < f64::EPSILON);
+        assert!(r2_from_residuals(&[-1.0, 0.0, 1.0], &[0.0, 1.0, 2.0]) < 1.0);
+    }
+
+    #[test]
     fn regular_grid_bilinear_baseline_is_measured_separately() {
         let report = run_regular_grid_field_benchmark(8, 2_048, 91).unwrap();
         assert_eq!(report.sample_count, 64);
