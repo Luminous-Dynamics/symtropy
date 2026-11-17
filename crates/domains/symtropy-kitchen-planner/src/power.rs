@@ -493,9 +493,7 @@ pub fn validate_power_envelope(
             };
             peak_power_w = peak_power_w.max(power_w);
 
-            if power_w > input.envelope.surge_real_power_limit_w
-                && !peak_exceeded_reported
-            {
+            if power_w > input.envelope.surge_real_power_limit_w && !peak_exceeded_reported {
                 violation(
                     &mut report.violations,
                     PowerConstraintViolationCode::PeakPowerExceedsSurgeLimit,
