@@ -486,7 +486,22 @@ pub fn audit_group_conformal_coverage(
             Ok(score) => score,
             Err(error) => {
                 reasons.push(error);
-                return base_report(CoverageAuditDisposition::InvalidManifest, Some(quantile), group_reports, None, covered_count, missed_count, out_of_domain_count, reference_unresolved_count, None, worst_score, Vec::new());
+                return base_report(
+                    CoverageAuditDisposition::InvalidManifest,
+                    Some(quantile),
+                    group_reports,
+                    None,
+                    None,
+                    None,
+                    covered_count,
+                    missed_count,
+                    covered_count + missed_count,
+                    out_of_domain_count,
+                    reference_unresolved_count,
+                    None,
+                    worst_score,
+                    Vec::new(),
+                );
             }
         };
         worst_score = Some(worst_score.map_or(score, |current| current.max(score)));
@@ -637,7 +652,7 @@ mod tests {
         let mut groups: Vec<_> = (0..20)
             .map(|index| group(&format!("cal-{index:02}"), CoveragePartition::Calibration, 0.1 + index as f64 * 0.001))
             .collect();
-        groups.push(group("test-a", CoveragePartition::FinalTest, 0.12));
+        groups.push(group("test-a", CoveragePartition::FinalTest, 0.11));
         groups.push(group("test-b", CoveragePartition::FinalTest, 0.4));
         let report = audit_group_conformal_coverage(&groups, &config());
         assert_eq!(report.disposition, CoverageAuditDisposition::CoverageAudited);
