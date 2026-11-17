@@ -25,8 +25,7 @@
     "per_beam_capacity_mbps": 10,
     "allocation_policy": "critical_excess_weighted_greedy",
     "tie_break_policy": "cell_id_ascending",
-    "beam_reallocation_interval_s": 86400,
-    "optimization_objective": "priority_weighted_critical_excess_served_mbps"
+    "beam_reallocation_interval_s": 86400
   },
   "cells": [
     {
@@ -609,11 +608,7 @@
     "total_critical_excess_unserved_mbps_intervals": 229,
     "critical_excess_offload_fraction": 0.5447316103379721,
     "beam_utilization_fraction": 0.9133333333333333,
-    "deterministic_allocation": true,
-    "total_priority_weighted_critical_excess_offered_mbps_intervals": 568.5,
-    "total_priority_weighted_critical_excess_served_mbps_intervals": 308.59999999999997,
-    "total_priority_weighted_critical_excess_unserved_mbps_intervals": 259.90000000000003,
-    "priority_weighted_offload_fraction": 0.5428320140721196
+    "deterministic_allocation": true
   },
   "source_evidence_refs": [
     "https://doi.org/10.1016/j.comnet.2026.112795"
