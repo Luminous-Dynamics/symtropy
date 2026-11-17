@@ -603,6 +603,25 @@ mod tests {
         }
     }
 
+    fn contact_episode_identities(prefix: &str, count: usize) -> PartitionIdentitySet {
+        PartitionIdentitySet {
+            dimension: IdentityDimension::ContactEpisode,
+            identities: (0..count)
+                .map(|index| format!("{prefix}-{index}"))
+                .collect(),
+        }
+    }
+
+    fn target_adaptation_identities(contact_count: usize, probe_id: &str) -> Vec<PartitionIdentitySet> {
+        vec![
+            identities(IdentityDimension::SensorFamily, &["family-target"]),
+            identities(IdentityDimension::SensorArticle, &["article-target"]),
+            contact_episode_identities("episode-target-adapt", contact_count),
+            identities(IdentityDimension::Session, &["session-target-adapt"]),
+            identities(IdentityDimension::ProbeGeometry, &[probe_id]),
+        ]
+    }
+
     fn zero_shot_manifest() -> TransferBenchmarkManifest {
         let source = vec![
             identities(IdentityDimension::SensorFamily, &["family-source"]),
@@ -719,10 +738,8 @@ mod tests {
         manifest.target_evidence_budget.target_unlabeled_contact_episode_count = 2;
         manifest.partitions[2].sample_count = 2;
         manifest.partitions[2].label_access = LabelAccess::UnlabeledOnly;
-        manifest.partitions[2].identities = vec![
-            identities(IdentityDimension::ContactEpisode, &["episode-target-adapt"]),
-            identities(IdentityDimension::Session, &["session-target-adapt"]),
-        ];
+        manifest.partitions[2].identities =
+            target_adaptation_identities(2, "probe-target-adapt");
         assert_eq!(
             audit_transfer_manifest(&manifest).disposition,
             TransferAuditDisposition::QualifiedManifest
@@ -736,10 +753,8 @@ mod tests {
         few_shot.target_evidence_budget.target_force_labeled_contact_count = 4;
         few_shot.partitions[2].sample_count = 4;
         few_shot.partitions[2].label_access = LabelAccess::ForceLabelsVisible;
-        few_shot.partitions[2].identities = vec![
-            identities(IdentityDimension::ContactEpisode, &["episode-target-adapt"]),
-            identities(IdentityDimension::Session, &["session-target-adapt"]),
-        ];
+        few_shot.partitions[2].identities =
+            target_adaptation_identities(4, "probe-target-adapt");
         assert_eq!(
             audit_transfer_manifest(&few_shot).disposition,
             TransferAuditDisposition::QualifiedManifest
@@ -758,10 +773,8 @@ mod tests {
         full.target_evidence_budget.target_force_labeled_contact_count = 32;
         full.partitions[2].sample_count = 32;
         full.partitions[2].label_access = LabelAccess::ForceLabelsVisible;
-        full.partitions[2].identities = vec![
-            identities(IdentityDimension::ContactEpisode, &["episode-target-adapt"]),
-            identities(IdentityDimension::Session, &["session-target-adapt"]),
-        ];
+        full.partitions[2].identities =
+            target_adaptation_identities(32, "probe-target-adapt");
         assert_eq!(
             audit_transfer_manifest(&full).disposition,
             TransferAuditDisposition::QualifiedManifest
