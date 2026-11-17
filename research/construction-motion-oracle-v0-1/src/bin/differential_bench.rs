@@ -862,11 +862,12 @@ fn run_relative_time_multibody_broadphase_benchmarks() {
                 },
                 subdivision_count: 8,
             };
-            let samples = if matches!(distribution, ClockBroadphaseDistribution::Dense) && *count >= 128 {
-                7
-            } else {
-                15
-            };
+            let samples =
+                if matches!(distribution, ClockBroadphaseDistribution::Dense) && *count >= 128 {
+                    7
+                } else {
+                    15
+                };
             let mut durations = Vec::with_capacity(samples);
             for _ in 0..samples {
                 let start = Instant::now();
