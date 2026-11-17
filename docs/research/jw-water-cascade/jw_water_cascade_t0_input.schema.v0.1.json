@@ -140,7 +140,7 @@
       "required": [
         "supply_id",
         "announced_completion_at",
-        "first_return_at"
+        "first_return_valid_date"
       ],
       "properties": {
         "supply_id": {
@@ -151,9 +151,9 @@
           "type": "string",
           "pattern": "(Z|[+-][0-9]{2}:[0-9]{2})$"
         },
-        "first_return_at": {
+        "first_return_valid_date": {
           "type": "string",
-          "pattern": "(Z|[+-][0-9]{2}:[0-9]{2})$"
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}$"
         }
       }
     },
