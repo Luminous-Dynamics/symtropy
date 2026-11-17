@@ -1,6 +1,5 @@
 use manipulator_placement_geometry_oracle::{
-    evaluate_placements, PartSpecification, PlacementObservation, WorkcellIdentity,
-    WorkcellProfile,
+    PartSpecification, PlacementObservation, WorkcellIdentity, WorkcellProfile, evaluate_placements,
 };
 
 fn main() {
@@ -31,7 +30,10 @@ fn main() {
             seat_depth_tolerance_m: 0.002,
         })
         .collect();
-    let profile = WorkcellProfile { identity: identity.clone(), parts };
+    let profile = WorkcellProfile {
+        identity: identity.clone(),
+        parts,
+    };
     let observations: Vec<PlacementObservation> = ["A", "B", "C", "D"]
         .into_iter()
         .enumerate()
