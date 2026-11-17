@@ -1,6 +1,7 @@
 use human_multirate_cosim::{
-    AdaptiveConfig, Method, Scenario, simulate, simulate_adaptive_conservative_flux,
+    AdaptiveConfig, Method, Scenario,
     network::{Edge, NetworkMethod, NetworkScenario, simulate_network},
+    simulate, simulate_adaptive_conservative_flux,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -99,8 +100,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             capacities: vec![1.0, 2.0, 4.0],
             initial: vec![1.0, 0.2, 0.0],
             edges: vec![
-                Edge { left: 0, right: 1, conductance: 0.8 },
-                Edge { left: 1, right: 2, conductance: 0.2 },
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 0.8,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 0.2,
+                },
             ],
             horizon: 4.0,
         },
@@ -109,10 +118,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             capacities: vec![1.0, 0.7, 2.0, 1.5],
             initial: vec![1.0, 0.4, 0.1, 0.0],
             edges: vec![
-                Edge { left: 0, right: 1, conductance: 0.8 },
-                Edge { left: 1, right: 2, conductance: 0.2 },
-                Edge { left: 2, right: 3, conductance: 0.5 },
-                Edge { left: 3, right: 0, conductance: 0.1 },
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 0.8,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 0.2,
+                },
+                Edge {
+                    left: 2,
+                    right: 3,
+                    conductance: 0.5,
+                },
+                Edge {
+                    left: 3,
+                    right: 0,
+                    conductance: 0.1,
+                },
             ],
             horizon: 4.0,
         },
