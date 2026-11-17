@@ -17,7 +17,7 @@ A treatment module can produce water without delivering a useful litre to a fixt
 - mains volume measured at the same fixture in a matched control;
 - reject, purge/backwash, overflow and energy.
 
-The control and treatment arms must refer to one frozen demand trace, same use profile, comparable demand and the same service envelope. Gross product, stored-but-unused water and residual streams never become service credit.
+The control and treatment arms must refer to one frozen demand trace, same use profile, comparable demand, equal run duration, and pressure/flow envelopes that are both inside the declared service envelope and sufficiently matched to each other under explicit per-case tolerances. Gross product, stored-but-unused water and residual streams never become service credit.
 
 ## 2. Per-block credit
 
@@ -35,7 +35,7 @@ An expanded-uncertainty screen is reported separately. The normalized control-me
 
 `lower_credit_l = min(max(0, qualified_l - k*u_qualified), max(0, fixture_use_l - k*u_use), displacement_lower_l)`
 
-v0.1 uses `k=2` only as a declared uncertainty expansion factor. It is not a 95% confidence interval, probability, significance test or population inference. Statistical inference remains `NotRun`. Demand-measurement uncertainty is not modeled in v0.1 and must be added before field evidence qualification.
+v0.1 uses `k=2` only as a declared uncertainty expansion factor. It is not a 95% confidence interval, probability, significance test or population inference. Calibration validity is a separate hard gate; an uncertainty value does not rescue an expired calibration. Statistical inference remains `NotRun`. Demand-measurement uncertainty is not modeled in v0.1 and must be added before field evidence qualification.
 
 ## 3. Evidence/validity gates
 
@@ -48,8 +48,12 @@ A block receives zero credit or an explicit indeterminate disposition when it co
 - measurement windows that do not match the parent run's frozen time window;
 - quality releases outside their validity period or missing the independent reviewer, sample-set digest or method revision;
 - service pressure/flow outside the frozen envelope;
+- control/treatment pressure or flow envelopes that differ beyond the declared paired-service tolerances, even when both arms individually remain inside broad operating limits;
+- different control/treatment run durations;
+- a calibration validity window that does not cover the complete measurement/run window;
 - missing, stale, mismatched or non-independent quality release;
 - invalid units, meter calibration/method identity, raw-record digest or measurement validity;
+- a calibration certificate whose validity does not cover the run;
 - duplicate instrument, channel or raw-record identity;
 - measurement at the wrong physical boundary;
 - reuse of a recovered allocation ID across multiple paired blocks;
@@ -59,7 +63,7 @@ All paired blocks sharing a duplicate recovered-allocation ID or replayed raw-re
 
 ## 4. Frozen synthetic challenge pack
 
-Fifteen six-block cases cover:
+Nineteen six-block cases cover:
 
 1. valid paired credit;
 2. high gross output but zero fixture use;
@@ -75,7 +79,11 @@ Fifteen six-block cases cover:
 12. non-comparable matched demand;
 13. uncertainty expansion consumes the apparent credit margin;
 14. raw meter record replayed across two paired blocks;
-15. expired quality release.
+15. expired quality release;
+16. expired instrument calibration on a critical volume measurement;
+17. pressure envelopes not matched between control and treatment, despite both being inside the broad service envelope;
+18. flow envelopes not matched between control and treatment, despite both being inside the broad service envelope;
+19. different control/treatment run durations.
 
 Each case has six paired blocks. A negative-control event is isolated to one block except the duplicate-allocation case, which rejects every block reusing the same allocation ID.
 
