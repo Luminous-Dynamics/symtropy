@@ -40,7 +40,7 @@ jobs:
       - name: Validate schema and corpus JSON syntax
         run: |
           python3 -c "import json; json.load(open('docs/research/power-fabric/data/transport-modality-baselines.schema.json')); json.load(open('docs/research/power-fabric/data/transport-modality-baseline-record.schema.json')); json.load(open('docs/research/power-fabric/data/transport-modality-baselines.v0.1.json'))"
-          python3 -c "[(json.loads(line)) for line in open('docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl')]" 
+          python3 -c "import json; [json.loads(line) for line in open('docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl')]"
 
       - name: Check formatting
         run: cargo fmt --manifest-path tools/power-fabric-baseline-validator/Cargo.toml -- --check
