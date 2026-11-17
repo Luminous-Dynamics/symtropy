@@ -44,4 +44,4 @@ The transform, metric, generator and all derived arrays are checked for finite v
 
 The unit-test package is synthetic and exists to exercise exact byte binding, independent transformation checks, wrong-law mutations, digest mutation and fail-closed outcomes. It is not a real source receipt. The checker currently supports one bounded 3D dense coordinate-re-description, one SPD metric, a small generator set and a two-row full-rank constraint map.
 
-It does not qualify arbitrary manifolds, nonlinear physical steps, contact/friction, sparse articulated dynamics or scientific search pruning. The next evidence required for a physical step PASS is a source-bound, independently replayable one-step trace with declared inputs, outputs, solver profile and numerical error envelope.
+It does not qualify arbitrary manifolds, arbitrary nonlinear integrators, contact/friction, sparse articulated dynamics, or scientific search pruning. The new one-step witness supports a bounded discrete-step check; numerical forward-error certification remains INCONCLUSIVE and prevents promotion to physical-equivalence authority.
