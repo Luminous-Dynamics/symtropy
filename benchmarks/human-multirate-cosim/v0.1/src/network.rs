@@ -602,6 +602,13 @@ pub fn simulate_network_topology_events(
             edges: active_edges.clone(),
             horizon: segment_duration,
         };
+        let segment_start_total: f64 = scenario
+            .capacities
+            .iter()
+            .zip(state.iter())
+            .map(|(capacity, value)| capacity * value)
+            .sum();
+        let accumulated_total_offset = (segment_start_total - scenario.conserved_total()).abs();
         let score = simulate_network(&segment, method, communication_step)?;
         total_steps += score.steps;
         max_abs_state_error = max_abs_state_error.max(score.max_abs_state_error);
@@ -610,7 +617,10 @@ pub fn simulate_network_topology_events(
             * score.steps as f64
             * scenario.capacities.len() as f64;
         error_samples += score.steps * scenario.capacities.len();
-        max_abs_total_residual = max_abs_total_residual.max(score.max_abs_total_residual);
+        // Bound global drift by the accumulated segment-start offset plus the
+        // maximum within-segment drift measured by the fixed-topology runner.
+        max_abs_total_residual = max_abs_total_residual
+            .max(accumulated_total_offset + score.max_abs_total_residual);
         max_quadratic_energy_increase =
             max_quadratic_energy_increase.max(score.max_quadratic_energy_increase);
         min_state = min_state.min(score.min_state);
