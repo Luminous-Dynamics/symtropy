@@ -1467,7 +1467,6 @@ fn model_family_pair_sampling_unit_must_match_distinct_qualified_group_pairs() {
     );
 }
 
-
 #[test]
 fn utility_estimate_receipt_requires_policy_pinned_issuer_namespace() {
     let mut item = candidate("wrong-utility-estimator-issuer");
@@ -1475,8 +1474,10 @@ fn utility_estimate_receipt_requires_policy_pinned_issuer_namespace() {
         "unapproved-estimator-namespace".into();
     let result = select_experiments(&[item], &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
-    assert!(reason(&result, "wrong-utility-estimator-issuer")
-        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+    assert!(
+        reason(&result, "wrong-utility-estimator-issuer")
+            .contains(&RejectionReason::InvalidUtilityEstimateReceipt)
+    );
 }
 
 #[test]
