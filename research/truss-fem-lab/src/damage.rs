@@ -138,6 +138,26 @@ pub fn single_member_removal_campaign(
 /// Hard cap prevents a caller from turning a research campaign into
 /// an unbounded quadratic solve workload.
 pub const MAX_PAIR_REMOVAL_SCENARIOS: usize = 1_024;
+/// Approximate dense-solve work budget: scenario count is additionally
+/// limited by free_dofs^3 so the cap scales with model size.
+pub const MAX_PAIR_REMOVAL_CUBIC_WORK_UNITS: u128 = 100_000_000;
+
+fn work_bounded_pair_budget(
+    requested_budget: usize,
+    total_possible_pairs: usize,
+    free_dof_count: usize,
+) -> usize {
+    let dimension = free_dof_count.max(1) as u128;
+    let estimated_cubic_work = dimension
+        .saturating_mul(dimension)
+        .saturating_mul(dimension);
+    let work_limited_budget =
+        (MAX_PAIR_REMOVAL_CUBIC_WORK_UNITS / estimated_cubic_work) as usize;
+    requested_budget
+        .min(total_possible_pairs)
+        .min(MAX_PAIR_REMOVAL_SCENARIOS)
+        .min(work_limited_budget)
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PairRemovalScenario {
@@ -196,9 +216,14 @@ pub fn bounded_pair_member_removal_campaign(
         .checked_mul(member_count.saturating_sub(1))
         .map(|value| value / 2)
         .ok_or(AnalysisError::ModelTooLarge)?;
-    let applied_budget = requested_budget
-        .min(total_possible_pairs)
-        .min(MAX_PAIR_REMOVAL_SCENARIOS);
+    let free_dof_count = boundary
+        .fixed_dofs
+        .iter()
+        .flatten()
+        .filter(|is_fixed| !**is_fixed)
+        .count();
+    let applied_budget =
+        work_bounded_pair_budget(requested_budget, total_possible_pairs, free_dof_count);
 
     let mut scenarios = Vec::with_capacity(applied_budget);
     let mut stable_removals = 0usize;
@@ -330,6 +355,14 @@ mod tests {
             .map(|scenario| scenario.pair_rank)
             .collect::<std::collections::HashSet<_>>();
         assert_eq!(ranks.len(), 8);
+    }
+
+    #[test]
+    fn pair_campaign_budget_scales_with_dense_solver_dimension() {
+        assert_eq!(work_bounded_pair_budget(1_024, 10_000, 256), 5);
+        assert_eq!(work_bounded_pair_budget(1_024, 10_000, 100), 100);
+        assert_eq!(work_bounded_pair_budget(1_024, 10_000, 10), 1_024);
+        assert_eq!(work_bounded_pair_budget(8, 3, 10), 3);
     }
 
     #[test]
