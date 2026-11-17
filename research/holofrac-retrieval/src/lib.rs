@@ -762,7 +762,7 @@ mod tests {
         let mut graph = SpatialGraph::new();
         assert!(graph
             .add_entity(SpatialEntity {
-                id: "room\\u{1f}ambiguous".into(),
+                id: format!("room{}ambiguous", char::from(31_u8)),
                 scale: SpatialScale::Room,
             })
             .is_err());
