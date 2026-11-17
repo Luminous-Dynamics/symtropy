@@ -46,7 +46,7 @@ A candidate requires exactly one receipt per domain:
 2. **SensorQuality** — binds the same context and observation bundle.
 3. **Calibration** — binds the sensor calibration bundle and must be valid across the full acquisition interval.
 
-Each receipt has distinct identity, issuer/profile revision, status, binding digest, result digest, source-bundle digest and issue time. Geometry/sensor receipts must be issued after acquisition completion; calibration is checked by validity interval.
+Each receipt has distinct identity, issuer/profile revision, status, binding digest, result digest, source-bundle digest, timebase identity and issue time. All receipt times must use the candidate's declared timebase revision. Geometry/sensor receipts must be issued after acquisition completion; calibration is checked by validity interval.
 
 Eligibility is derived conservatively:
 - any InvalidEvidence receipt → InvalidEvidence;
@@ -54,13 +54,17 @@ Eligibility is derived conservatively:
 - otherwise any Unknown receipt → Unknown;
 - only all Qualified receipts → Qualified.
 
-Malformed/missing/mismatched identities, digests, receipt domains, time windows, costs or coverage return structural errors rather than an eligible candidate.
+Malformed/missing/mismatched identities, digests, receipt domains, timebases, time windows, costs or coverage return structural errors rather than an eligible candidate. Successful validation returns a non-forgeable-by-field-construction ValidatedCandidateEnvelope token; its planner projection exists only when all three domains are Qualified.
 
 ## Canonical binding
 
 CandidateBinding::canonical_binding_bytes() produces deterministic, length-prefixed preimage bytes. Target IDs are sorted before encoding; floating-point negative zero is normalized. The caller must compute SHA-256 over these exact bytes and bind that digest into each receipt.
 
 **Cryptographic boundary:** this crate does not implement SHA-256, authenticate issuer identity, validate signatures, fetch source records or verify custody. A syntactically valid digest string is not proof that the digest is correct. Those responsibilities remain with the independent digest/provenance/authentication infrastructure (including Mycelix). This package checks only exact string consistency and structural shape.
+
+## Implementation status
+
+The reference crate includes 24 deterministic tests for eligibility precedence, exact binding/source digests, revision/clock binding, target coverage, calibration validity, replay/duplicate receipts, numeric bounds and canonical target-order invariance. The validation token exposes a QualifiedCandidateProjection only for fully Qualified candidates.
 
 ## Claim boundary
 
@@ -73,6 +77,8 @@ This crate is not a geometry/sensor evaluator, an independent referee, a general
 3. Retain reason codes for NotQualified / Unknown / InvalidEvidence in planning diagnostics.
 4. Route execution through existing #2836 dispatch gate and #5657 mission-stage evidence contract.
 5. Benchmark stale-revision rejection, exact replay, target-coverage equality, calibration validity and adapter latency across frozen cross-platform fixtures.
+
+The machine-readable Draft 2020-12 schema is in schema/candidate-evidence-envelope-v0.1.schema.json. fixtures/qualified-candidate-v0.1.json is a structurally valid synthetic example; its digest strings are placeholders, not cryptographic proof.
 
 ## Standards / evaluation context
 
