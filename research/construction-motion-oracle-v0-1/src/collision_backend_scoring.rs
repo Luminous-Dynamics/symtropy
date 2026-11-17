@@ -777,4 +777,109 @@ mod tests {
             Err(CollisionScoreInputError::CapabilityNotExecuted)
         );
     }
+    #[test]
+    fn oracle_abstentions_and_unsupported_truth_never_form_confusion_cells() {
+        let observed = adapter(false);
+        let unknown = score_backend_observation(
+            &observed,
+            &truth(OracleTruthDisposition::Unknown),
+            &scorer(),
+        )
+        .unwrap();
+        assert_eq!(unknown.disposition, ScoreDisposition::Unresolved);
+        assert_eq!(unknown.confusion_cell, None);
+        assert_eq!(unknown.reason_code, Some(ScoreReasonCode::OracleUnknown));
+
+        let unsupported = score_backend_observation(
+            &observed,
+            &truth(OracleTruthDisposition::Unsupported),
+            &scorer(),
+        )
+        .unwrap();
+        assert_eq!(unsupported.disposition, ScoreDisposition::NotComparable);
+        assert_eq!(unsupported.confusion_cell, None);
+        assert_eq!(unsupported.reason_code, Some(ScoreReasonCode::OracleUnsupported));
+    }
+
+    #[test]
+    fn mismatched_case_identity_and_collision_scope_are_not_comparable() {
+        let mut mismatched_case = truth(OracleTruthDisposition::Contact);
+        mismatched_case.case.case_sha256 = digest('0');
+        let verdict =
+            score_backend_observation(&adapter(true), &mismatched_case, &scorer()).unwrap();
+        assert_eq!(verdict.disposition, ScoreDisposition::NotComparable);
+        assert_eq!(
+            verdict.reason_code,
+            Some(ScoreReasonCode::CaseDigestMismatch)
+        );
+
+        let mut self_collision_truth = truth(OracleTruthDisposition::Contact);
+        self_collision_truth.query.scope = QueryScope::SelfCollision;
+        let verdict = score_backend_observation(
+            &adapter(true),
+            &self_collision_truth,
+            &scorer(),
+        )
+        .unwrap();
+        assert_eq!(verdict.disposition, ScoreDisposition::NotComparable);
+        assert_eq!(
+            verdict.reason_code,
+            Some(ScoreReasonCode::QuerySemanticsMismatch)
+        );
+    }
+
+    #[test]
+    fn malformed_receipts_and_inconsistent_not_run_status_are_rejected() {
+        let mut malformed = adapter(true);
+        malformed.raw_receipt_sha256 = "not-a-digest".into();
+        assert_eq!(
+            score_backend_observation(
+                &malformed,
+                &truth(OracleTruthDisposition::Contact),
+                &scorer()
+            ),
+            Err(CollisionScoreInputError::InvalidDigest("raw receipt"))
+        );
+
+        let mut inconsistent_not_run = adapter(false);
+        inconsistent_not_run.disposition = AdapterDisposition::NotRun;
+        inconsistent_not_run.observation = None;
+        inconsistent_not_run.reason_code = Some(AdapterReasonCode::BackendUnsupported);
+        inconsistent_not_run.reason = Some("not supported".into());
+        // An executed capability probe contradicts NOT_RUN.
+        assert_eq!(
+            score_backend_observation(
+                &inconsistent_not_run,
+                &truth(OracleTruthDisposition::NoContact),
+                &scorer()
+            ),
+            Err(CollisionScoreInputError::ContradictoryNotRunProbe)
+        );
+    }
+
+    #[test]
+    fn observed_receipt_requires_probe_log_and_runtime_api() {
+        let mut missing_probe_log = adapter(true);
+        missing_probe_log.capability_probe.probe_log_sha256 = None;
+        assert_eq!(
+            score_backend_observation(
+                &missing_probe_log,
+                &truth(OracleTruthDisposition::Contact),
+                &scorer()
+            ),
+            Err(CollisionScoreInputError::InvalidProbeIdentity)
+        );
+
+        let mut missing_api = adapter(true);
+        missing_api.capability_probe.runtime_api = None;
+        assert_eq!(
+            score_backend_observation(
+                &missing_api,
+                &truth(OracleTruthDisposition::Contact),
+                &scorer()
+            ),
+            Err(CollisionScoreInputError::InvalidProbeIdentity)
+        );
+    }
+
 }
