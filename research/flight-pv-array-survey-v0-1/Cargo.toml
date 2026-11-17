@@ -1,0 +1,12 @@
+[package]
+name = "flight-pv-array-survey"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Quality-qualified RGB/IR module survey reference for a quadrotor PV-array mission"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
