@@ -1,6 +1,4 @@
-use robot_adaptive_capability_test::{
-    CalibrationProfile, ChallengeItem, ItemBank, evaluate_run,
-};
+use robot_adaptive_capability_test::{CalibrationProfile, ChallengeItem, ItemBank, evaluate_run};
 
 fn main() {
     let profile = CalibrationProfile {
@@ -16,8 +14,7 @@ fn main() {
     };
     let bank = ItemBank {
         bank_id: "synthetic-assembly-v1".to_owned(),
-        bank_digest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-            .to_owned(),
+        bank_digest: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
         axis_id: profile.axis_id.clone(),
         calibration_id: profile.calibration_id.clone(),
         calibration_digest: profile.calibration_digest.clone(),
