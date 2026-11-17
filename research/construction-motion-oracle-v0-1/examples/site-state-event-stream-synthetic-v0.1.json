@@ -30,7 +30,11 @@
           "max_abs_xy_residual_mm": 1,
           "max_reference_u95_xy_mm": 0.25,
           "max_abs_endpoint_residual_mm": 1
-        }
+        },
+        "source_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "source_schema_release": "IFC4X3_ADD2",
+        "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "ids_version": "1.0"
       }
     }
   },
@@ -138,7 +142,11 @@
           "max_abs_xy_residual_mm": 1,
           "max_reference_u95_xy_mm": 0.25,
           "max_abs_endpoint_residual_mm": 1
-        }
+        },
+        "source_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "source_schema_release": "IFC4X3_ADD2",
+        "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "ids_version": "1.0"
       }
     }
   }
