@@ -245,8 +245,8 @@ fn fit_row_least_squares(
         if pivot != pivot_step {
             residual_columns.swap(pivot_step, pivot);
             permutation.swap(pivot_step, pivot);
-            for previous in 0..pivot_step {
-                upper[previous].swap(pivot_step, pivot);
+            for previous_row in upper.iter_mut().take(pivot_step) {
+                previous_row.swap(pivot_step, pivot);
             }
         }
 
