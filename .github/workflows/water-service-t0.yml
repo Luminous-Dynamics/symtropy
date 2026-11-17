@@ -105,14 +105,67 @@ jobs:
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json
             docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
+            research/water-service-engineering/WATERLOOP_MATCHED_SERVICE_T1_PROTOCOL_V0_1.md
+            research/water-service-engineering/waterloop-matched-service-plan.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-plan.schema.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-run.schema.v0.1.json
           if-no-files-found: warn
+      - name: Set up Python for matched-service protocol validation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate WaterLoop matched-service plan and run schemas
+        id: validate_matched_service
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --no-input jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/water-service-engineering")
+          plan_schema = json.loads((root / "waterloop-matched-service-plan.schema.v0.1.json").read_text())
+          plan = json.loads((root / "waterloop-matched-service-plan.v0.1.json").read_text())
+          run_schema = json.loads((root / "waterloop-matched-service-run.schema.v0.1.json").read_text())
+          for name, schema in [("plan", plan_schema), ("run", run_schema)]:
+              Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(plan_schema).iter_errors(plan),
+              key=lambda error: (list(map(str, error.absolute_path)), error.message),
+          )
+          if errors:
+              for error in errors:
+                  pointer = "/" + "/".join(map(str, error.absolute_path))
+                  print(f"WATERLOOP_MATCHED_SERVICE_PLAN_SCHEMA_FAIL: {pointer}: {error.message}")
+              raise SystemExit(1)
+          if plan["status"] != "design_only" or plan["evidence_class"] != "synthetic_plan_only":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_PLAN_EVIDENCE_CLASS_FAIL")
+          for key in ["physical_trial_authorized", "procurement_authorized", "occupied_use_authorized", "network_interconnection_authorized"]:
+              if plan[key] is not False:
+                  raise SystemExit(f"WATERLOOP_MATCHED_SERVICE_AUTHORIZATION_GUARD_FAIL: {key}")
+          if any(channel["data_status"] != "not_acquired" for channel in plan["measurement_channels"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_MEASUREMENTS_MUST_REMAIN_NOT_ACQUIRED")
+          if plan["declared_use_profile"]["quality_release_ref"] is not None:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_QUALITY_RELEASE_MUST_REMAIN_PENDING")
+          if any(value is not False for value in plan["claim_guards"].values()):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_CLAIM_GUARD_BREACH")
+          channel_ids = [channel["channel_id"] for channel in plan["measurement_channels"]]
+          if len(channel_ids) != len(set(channel_ids)):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_CHANNEL_IDS_NOT_UNIQUE")
+          if len(plan["arms"]) != 2 or {arm["role"] for arm in plan["arms"]} != {"control", "treatment"}:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_CONTROL_TREATMENT_ARMS_INCOMPLETE")
+          print("WATERLOOP_MATCHED_SERVICE_SCHEMA_PASS: design-only; 12 channels; no physical or savings claims")
+          PY
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
+          MATCHED_SERVICE_PLAN_OUTCOME: ${{ steps.validate_matched_service.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
+          test "$MATCHED_SERVICE_PLAN_OUTCOME" = "success"
