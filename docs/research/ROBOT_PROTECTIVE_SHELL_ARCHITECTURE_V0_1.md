@@ -4,6 +4,7 @@
 **Date:** 2026-11-17  
 **Tracking:** [Symtropy #5868 — ROBOT-PROTECTIVE-SHELL-001](https://github.com/Luminous-Dynamics/symtropy/issues/5868)  
 **Pilot interface:** [HUMANOID-JOINT-CARTRIDGE-001 #4337](https://github.com/Luminous-Dynamics/symtropy/issues/4337)  
+**Composed engineering owners:** Symthaea [ROB-DESIGN-000 #4795](https://github.com/Luminous-Dynamics/symthaea/issues/4795), [ROB-REALIZE-001 #4859](https://github.com/Luminous-Dynamics/symthaea/issues/4859), [MFG-PROC-000 #5686](https://github.com/Luminous-Dynamics/symthaea/issues/5686), [ROB-JOINTLAB-001 #4814](https://github.com/Luminous-Dynamics/symthaea/issues/4814); Mycelix [ROBOT-LIFECYCLE-EVID-001 #5985](https://github.com/Luminous-Dynamics/mycelix/issues/5985); Sol-Atlas [CYBERNETIC-INTERFACE-GEOMETRY-001 #708](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/708) and [MATERIAL-ATLAS-001 #159](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/159).  
 **Scope:** non-weaponized humanoid, industrial, service, construction, inspection and rescue robotics
 
 ## 1. Design objective
