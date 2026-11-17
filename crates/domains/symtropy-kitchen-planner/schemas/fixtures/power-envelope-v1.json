@@ -4,11 +4,11 @@
   "status": "synthetic_only_not_household_measurements",
   "fixtures": [
     {
-      "fixture_id": "parallel-load-requires-serial-fallback",
+      "fixture_id": "parallel-overload-requires-minimal-stagger",
       "expected_input_valid": true,
-      "expected_strategy": "serial_fallback",
+      "expected_strategy": "power_aware_earliest_gap",
       "expected_schedule_valid": true,
-      "rationale": "Two independent 10 ms tasks draw 700 W and 600 W. Their parallel overlap exceeds the 5 ms permitted excursion above the 1,000 W continuous limit, while each is individually within the continuous limit.",
+      "rationale": "Two independent 10 ms tasks draw 700 W and 600 W. Starting both at zero exceeds the 1,000 W continuous limit for 10 ms, above the 5 ms surge-duration allowance. A 5 ms stagger creates exactly 5 ms of 1,300 W overlap and meets the declared 1,500 W peak / 5 ms surge envelope.",
       "input": {
         "schema_version": 1,
         "plan": {
@@ -69,6 +69,11 @@
             ]
           }
         ]
+      },
+      "expected_makespan_ms": 15,
+      "expected_task_start_ms": {
+        "processor": 0,
+        "cooker": 5
       }
     },
     {
