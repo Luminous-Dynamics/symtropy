@@ -811,9 +811,9 @@ mod tests {
         assert!(!report.estimates[1].native_data_identifiable);
         assert_eq!(
             report.estimates[1].support,
-            FieldCellSupport::UnderidentifiedByNativeData
+            FieldCellSupport::NoObservableSupport
         );
-        assert!(report.estimates[1].latent_contact_intensity.is_some());
+        assert_eq!(report.estimates[1].latent_contact_intensity, None);
         assert!(report.regularization_enabled);
     }
 
