@@ -442,6 +442,19 @@ mod tests {
     }
 
     #[test]
+    fn contact_uncertainty_reduces_conservative_support_margin() {
+        let mut snapshot = square_snapshot([0.0, 0.0]);
+        for contact in &mut snapshot.contacts {
+            contact.uncertainty_radius_m = 0.05;
+        }
+        let result = evaluate(&snapshot);
+        assert_eq!(result.disposition, SupportDisposition::Stable);
+        assert_eq!(result.nominal_signed_margin_m, Some(0.3));
+        assert!((result.conservative_margin_m.unwrap() - 0.25).abs() < 1e-12);
+        assert_eq!(result.uncertainty_deduction_m, Some(0.05));
+    }
+
+    #[test]
     fn outside_com_has_negative_signed_margin() {
         let result = evaluate(&square_snapshot([0.0, 0.7]));
         assert_eq!(result.disposition, SupportDisposition::Outside);
