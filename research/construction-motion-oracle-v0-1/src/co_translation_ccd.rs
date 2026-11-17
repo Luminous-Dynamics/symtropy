@@ -254,6 +254,9 @@ mod tests {
 
         assert!((closest.time_parameter - (2.0 / 3.0)).abs() < 1.0e-9);
         assert!(closest.distance_mm <= CONTACT_EPSILON_MM);
+        let expected_world_x = 40.0 / 3.0;
+        assert!((closest.moving_point.x - expected_world_x).abs() < 1.0e-9);
+        assert!((closest.obstacle_point.x - expected_world_x).abs() < 1.0e-9);
     }
 
     #[test]
