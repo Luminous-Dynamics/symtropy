@@ -1,0 +1,13 @@
+[package]
+name = "quadruped-static-support-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dependency-free analytic static-support reference evaluator"
+
+# Keep the reference oracle independent from the Bevy/Symtropy workspace.
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
