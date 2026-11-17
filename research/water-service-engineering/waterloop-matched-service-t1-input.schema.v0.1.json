@@ -36,8 +36,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 19,
+      "maxItems": 19,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -48,7 +48,9 @@
           "max_demand_relative_difference_percent",
           "service_envelope",
           "uncertainty_expansion_factor",
-          "blocks"
+          "blocks",
+          "max_service_pressure_difference_kpa",
+          "max_service_flow_difference_lpm"
         ],
         "properties": {
           "case_id": {
@@ -354,6 +356,14 @@
                 }
               }
             }
+          },
+          "max_service_pressure_difference_kpa": {
+            "type": "number",
+            "minimum": 0
+          },
+          "max_service_flow_difference_lpm": {
+            "type": "number",
+            "minimum": 0
           }
         }
       }
@@ -379,7 +389,9 @@
         "raw_record_digest",
         "validity",
         "time_window_start_utc",
-        "time_window_end_utc"
+        "time_window_end_utc",
+        "calibration_valid_from_utc",
+        "calibration_valid_until_utc"
       ],
       "properties": {
         "channel_id": {
@@ -428,6 +440,14 @@
         "time_window_end_utc": {
           "type": "string",
           "format": "date-time"
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -446,7 +466,9 @@
         "raw_record_digest",
         "validity",
         "time_window_start_utc",
-        "time_window_end_utc"
+        "time_window_end_utc",
+        "calibration_valid_from_utc",
+        "calibration_valid_until_utc"
       ],
       "properties": {
         "channel_id": {
@@ -493,6 +515,14 @@
           "format": "date-time"
         },
         "time_window_end_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_from_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "calibration_valid_until_utc": {
           "type": "string",
           "format": "date-time"
         }
