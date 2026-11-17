@@ -89,9 +89,11 @@ impl FrameBoundaryConditions {
             .nodal_loads
             .get_mut(node)
             .ok_or(FrameAnalysisError::InvalidBoundaryConditions)?;
-        for (target, value) in nodal_load.iter_mut().zip(load) {
-            *target += value;
+        let updated = std::array::from_fn(|axis| nodal_load[axis] + load[axis]);
+        if !updated.iter().all(|value| value.is_finite()) {
+            return Err(FrameAnalysisError::NonFiniteInput);
         }
+        *nodal_load = updated;
         Ok(())
     }
 }
@@ -376,8 +378,31 @@ pub fn audit_frame_equilibrium(
         || result.nodal_displacements.len() != node_count
         || result.nodal_reactions.len() != node_count
         || result.members.len() != model.members.len()
+        || result.members.len() != model.members.len()
     {
         return Err(FrameAnalysisError::InvalidBoundaryConditions);
+    }
+
+    if !model.nodes.iter().all(|node| node.is_finite())
+        || !boundary
+            .nodal_loads
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+        || !result
+            .nodal_displacements
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+        || !result
+            .nodal_reactions
+            .iter()
+            .flatten()
+            .all(|value| value.is_finite())
+        || !result.total_strain_energy_j.is_finite()
+        || !result.maximum_free_dof_residual.is_finite()
+    {
+        return Err(FrameAnalysisError::NonFiniteInput);
     }
 
     let mut applied_force = Vec3::new(0.0, 0.0, 0.0);
