@@ -155,6 +155,40 @@ Before a challenge enters qualification, an evaluator independent of the solver 
 
 Report challenge acceptance rate, construct-validity review, shortcut exploit rate, identifiability coverage, cost of the cheapest discriminating/falsifying probe, difficulty calibration, and mechanism-transfer success. A larger or harder generated corpus is not automatically a better benchmark.
 
+### 7B. Transfer is a relation to discover, not a score to assume
+
+A target world should not be labeled simply "in-domain" or "out-of-domain" in the policy-visible packet. The evaluator owns the relation between source and target mechanisms. The agent must infer whether to reuse, adapt, partially transfer, or reject its previous model.
+
+Use a source/target transfer ladder:
+
+| Relation hidden from the policy | What changes | Correct research behavior |
+|---|---|---|
+| Parameter shift | Same mechanism, parameters outside the source range | Reuse structure; re-estimate parameters and uncertainty |
+| Topology/composition shift | Same local mechanism in a different graph, component count or composition | Preserve only the invariant mechanism; adapt structure where required |
+| Measurement-map shift | Same latent mechanism, different sensor transform, calibration, missingness or sampling | Re-identify the observation model; do not confuse sensor change with mechanism change |
+| Shared submechanism | Target contains part of the source mechanism plus additional or altered dynamics | Transfer only the supported substructure and test the extension |
+| Mechanism mutation | A causal edge, delay, feedback path, or state dependence changes | Propose a revision and seek a discriminating intervention |
+| Unrelated control | No defensible mechanism relation | Reject or ignore the source model; cold-start rather than forcing analogy |
+
+Compare at least four treatment modes under the same total resource budget:
+1. cold start with no source model;
+2. blind source-model reuse;
+3. conditional reuse with an explicit validation/falsification probe;
+4. selective transfer that may retain only a submechanism or abstain.
+
+Include a misleading near-neighbour source as a negative control. A model that transfers aggressively may score well on positive pairs while silently importing false assumptions into unrelated targets.
+
+Report separately:
+- transfer-relation classification precision/recall and calibration;
+- structural recovery after transfer;
+- adaptation experiments and total cost to target adequacy;
+- held-out intervention and long-horizon prediction;
+- negative-transfer incidence and harm/regret;
+- correct reuse, partial reuse, adaptation, rejection and abstention;
+- worst-family and leave-one-domain-out performance.
+
+The evaluator's relation labels, hidden-generating mechanism and target outcome remain sealed. The public task may state that a source model is available, but it must not reveal whether the source is related. Positive transfer requires better target outcomes than the matched cold-start arm at equal total budget; copying a source model without validating it is not transfer success.
+
 ## 8. Required comparison arms
 
 Under the same policy-visible starting evidence and inclusive budget, compare:
