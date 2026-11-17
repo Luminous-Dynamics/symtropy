@@ -464,7 +464,10 @@
         "kitchen_r_integrated_success_rate",
         "kitchen_r_task_recovery_rate",
         "kitchen_r_human_takeover_rate",
-        "kitchen_r_execution_time_s"
+        "kitchen_r_execution_time_s",
+        "kitchen_r_environment_restoration_rate",
+        "kitchen_r_collision_incidence",
+        "kitchen_r_recovery_latency_s"
       ],
       "safety_boundary": "Simulation benchmark only. Success in Kitchen-R does not validate physical robot safety, food hygiene, pressure equipment, culinary quality or appliance compatibility. Planner, controller and integrated results must be reported separately.",
       "control_condition": "Reproduce the published VLM planning baseline and diffusion-policy low-level baseline where assets and licenses permit. Run planning-only, control-only and integrated evaluations on matched episodes and splits; report simulator-to-real transfer as untested unless separately measured."
@@ -873,6 +876,29 @@
       "denominator": "total starting ingredient mass",
       "method": "(starting mass - recovered usable output mass) / starting mass; account for intentional peel/seed/bone removals separately.",
       "evidence_class": "assayed"
+    },
+    {
+      "metric_id": "kitchen_r_environment_restoration_rate",
+      "unit": "fraction",
+      "denominator": "all integrated episodes whose protocol requires environment restoration",
+      "method": "episodes whose final scene digest and object placements satisfy the preregistered restoration predicate divided by all restoration-required episodes.",
+      "evidence_class": "measured",
+      "notes": "Do not infer restoration from task success alone; compare final state to the declared target scene."
+    },
+    {
+      "metric_id": "kitchen_r_collision_incidence",
+      "unit": "fraction of episodes",
+      "denominator": "all low-level-control and integrated episodes",
+      "method": "episodes with one or more simulator collision/contact events divided by all applicable episodes; also report counts and severity.",
+      "evidence_class": "measured",
+      "notes": "Simulated collision incidence is not physical risk qualification."
+    },
+    {
+      "metric_id": "kitchen_r_recovery_latency_s",
+      "unit": "seconds",
+      "denominator": "all recovery attempts, with failed attempts retained and right-censored separately",
+      "method": "time from perturbation/failure trigger to independently verified restoration of the affected subgoal; report successful recovery median and failed/censored count.",
+      "evidence_class": "measured"
     }
   ],
   "target_hypotheses": [
@@ -1013,6 +1039,18 @@
         "perturbation severity is not fixed",
         "human takeover is omitted",
         "recovery is counted without reaching a verified goal state"
+      ]
+    },
+    {
+      "hypothesis_id": "H-KITCHEN-R-ENVIRONMENT-RECOVERY",
+      "metric_id": "kitchen_r_environment_restoration_rate",
+      "target": "Measure environment restoration and recovery under frozen perturbations; improve them without increasing collisions or human takeover.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "scene restoration predicate is not frozen",
+        "failed episodes are omitted",
+        "recovery is counted without independent subgoal verification",
+        "simulation results are reported as physical robot qualification"
       ]
     }
   ],
