@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "symtropy-autopoiesis-lab"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Resource-bounded catalytic-network experiments for artificial-life research"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "autopoiesis-lab"
+path = "src/main.rs"
