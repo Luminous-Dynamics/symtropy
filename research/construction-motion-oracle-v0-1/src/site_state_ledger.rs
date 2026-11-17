@@ -2065,7 +2065,7 @@ mod tests {
         for sequence in 2..=130_u64 {
             let event_id = format!("station-event-{sequence:04}");
             let event_digest = format!("{sequence:064x}");
-            let station = event(
+            let mut station = event(
                 &event_id,
                 sequence,
                 ledger.last_event_sha256().map(str::to_owned),
@@ -2080,7 +2080,6 @@ mod tests {
                     calibration_sha256: digest('9'),
                 },
             );
-            let mut station = station;
             station.event_sha256 = event_digest;
             ledger.apply(station).unwrap();
         }
