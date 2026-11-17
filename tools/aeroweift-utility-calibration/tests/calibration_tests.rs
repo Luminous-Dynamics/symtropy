@@ -55,8 +55,8 @@ fn policy() -> CalibrationPolicy {
         minimum_units_per_stratum: 90,
         minimum_effective_sample_size: 90.0,
         minimum_selection_propensity: 0.50,
-        minimum_mean_lower_bound_sharpness: 0.10,
-        maximum_mean_uninformative_upper_bound: 0.20,
+        minimum_per_metric_lower_bound: 0.10,
+        maximum_uninformative_probability_upper_bound: 0.20,
         maximum_primary_mean_regret: 0.15,
         minimum_regret_improvement_vs_random: 0.10,
         primary_selector_id: "track-v".into(),
@@ -138,6 +138,8 @@ fn outcomes() -> Vec<UtilityOutcome> {
                     candidate_id: candidate_id.into(),
                     independent_unit_id: unit.clone(),
                     stratum_id: stratum.clone(),
+                    utility_receipt_payload_sha256: if candidate_id == "candidate-a" { digest('4') } else { digest('5') },
+                    measurement_evidence_receipt_sha256: digest('6'),
                     dataset_manifest_sha256: digest('3'),
                     dataset_role: DatasetRole::Challenge,
                     sample_unit: EstimateSampleUnit::Encounter,
@@ -407,4 +409,39 @@ fn decision_coverage_requires_every_selector_for_every_unit() {
     let result = assess(&forecasts(), &outcomes(), &selections, &policy()).unwrap();
     assert_eq!(result.disposition, CalibrationDisposition::NotCalibratable);
     assert!(result.not_calibratable_reasons.contains(&NotCalibratableReason::MissingSelectorDecision));
+}
+
+
+#[test]
+fn realized_outcome_must_bind_exact_forecast_receipt_payload() {
+    let mut records = outcomes();
+    records[0].utility_receipt_payload_sha256 = digest('7');
+    assert_eq!(
+        assess(&forecasts(), &records, &decisions("candidate-a", "candidate-b"), &policy()),
+        Err(CalibrationError::ObservationClaimMismatch)
+    );
+}
+
+#[test]
+fn independent_measurement_receipt_digest_is_mandatory() {
+    let mut records = outcomes();
+    records[0].measurement_evidence_receipt_sha256 = "not-a-digest".into();
+    assert_eq!(
+        assess(&forecasts(), &records, &decisions("candidate-a", "candidate-b"), &policy()),
+        Err(CalibrationError::InvalidOutcome)
+    );
+}
+
+#[test]
+fn one_vacuous_dimension_is_not_compensated_by_other_strong_dimensions() {
+    let mut fs = forecasts();
+    fs[0].1.expected_uncertainty_reduction = 0.01;
+    fs[0].1.expected_model_discrimination = 0.90;
+    fs[0].1.worst_case_robust_reduction = 0.90;
+    fs[0].1.decision_relevance = 0.90;
+    let result = assess(&fs, &outcomes(), &decisions("candidate-a", "candidate-b"), &policy()).unwrap();
+    assert_eq!(result.disposition, CalibrationDisposition::AcceptanceCriteriaFailed);
+    let candidate = result.candidate_strata.iter().find(|row| row.candidate_id == "candidate-a").unwrap();
+    assert_eq!(candidate.minimum_metric_lower_bound, 0.01);
+    assert!(result.failures.contains(&CalibrationFailure::BoundsTooVacuous));
 }
