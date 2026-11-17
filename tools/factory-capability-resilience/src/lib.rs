@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 const TOPOLOGY: &str = include_str!("../topology-v0.1.tsv");
 const ROUTES: &str = include_str!("../routes-v0.1.tsv");
@@ -67,7 +67,11 @@ pub struct Evaluation {
     pub decision_input_fingerprint: String,
 }
 
-fn parse_rows(input: &str, expected_columns: usize, source: &str) -> Result<Vec<Vec<String>>, String> {
+fn parse_rows(
+    input: &str,
+    expected_columns: usize,
+    source: &str,
+) -> Result<Vec<Vec<String>>, String> {
     let mut rows = Vec::new();
     for (index, line) in input.lines().enumerate().skip(1) {
         if line.trim().is_empty() {
@@ -82,7 +86,10 @@ fn parse_rows(input: &str, expected_columns: usize, source: &str) -> Result<Vec<
             ));
         }
         if fields.iter().any(|field| field.trim().is_empty()) {
-            return Err(format!("{source}: line {} contains a blank field", index + 1));
+            return Err(format!(
+                "{source}: line {} contains a blank field",
+                index + 1
+            ));
         }
         rows.push(fields);
     }
@@ -100,7 +107,9 @@ fn parse_bool(value: &str, source: &str, line: usize, field: &str) -> Result<boo
     match value {
         "true" => Ok(true),
         "false" => Ok(false),
-        _ => Err(format!("{source}: line {line}: {field} must be true or false")),
+        _ => Err(format!(
+            "{source}: line {line}: {field} must be true or false"
+        )),
     }
 }
 
@@ -108,11 +117,17 @@ fn parse_routes(input: &str) -> Result<BTreeMap<String, Route>, String> {
     let rows = parse_rows(input, 4, "routes-v0.1.tsv")?;
     let mut routes = BTreeMap::new();
     for (index, row) in rows.into_iter().enumerate() {
-        let expected = row[3]
-            .parse::<usize>()
-            .map_err(|_| format!("routes-v0.1.tsv: line {} has invalid dependency count", index + 2))?;
+        let expected = row[3].parse::<usize>().map_err(|_| {
+            format!(
+                "routes-v0.1.tsv: line {} has invalid dependency count",
+                index + 2
+            )
+        })?;
         if expected == 0 {
-            return Err(format!("routes-v0.1.tsv: line {} has zero dependency count", index + 2));
+            return Err(format!(
+                "routes-v0.1.tsv: line {} has zero dependency count",
+                index + 2
+            ));
         }
         let route = Route {
             id: row[0].clone(),
@@ -130,10 +145,7 @@ fn parse_routes(input: &str) -> Result<BTreeMap<String, Route>, String> {
     Ok(routes)
 }
 
-fn parse_topology(
-    input: &str,
-    route_manifest: &str,
-) -> Result<BTreeMap<String, Route>, String> {
+fn parse_topology(input: &str, route_manifest: &str) -> Result<BTreeMap<String, Route>, String> {
     let mut routes = parse_routes(route_manifest)?;
     let rows = parse_rows(input, 10, "topology-v0.1.tsv")?;
 
@@ -150,10 +162,14 @@ fn parse_topology(
             ));
         }
         if row[3] == "-" || row[4] == "-" || row[5] == "-" || row[6] == "-" {
-            return Err(format!("topology-v0.1.tsv: line {line}: dependency identity fields may not be '-'"));
+            return Err(format!(
+                "topology-v0.1.tsv: line {line}: dependency identity fields may not be '-'"
+            ));
         }
         if row[7] >= row[8] {
-            return Err(format!("topology-v0.1.tsv: line {line}: invalid qualification validity interval"));
+            return Err(format!(
+                "topology-v0.1.tsv: line {line}: invalid qualification validity interval"
+            ));
         }
         route.dependencies.push(Dependency {
             fault_domain_id: row[4].clone(),
@@ -184,20 +200,36 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
     for (index, row) in rows.into_iter().enumerate() {
         let line = index + 2;
         if !ids.insert(row[0].clone()) {
-            return Err(format!("scenarios-v0.1.tsv: duplicate scenario id {}", row[0]));
+            return Err(format!(
+                "scenarios-v0.1.tsv: duplicate scenario id {}",
+                row[0]
+            ));
         }
         if row[3].len() != 20 || !row[3].ends_with('Z') {
-            return Err(format!("scenarios-v0.1.tsv: line {line}: decision time must be UTC RFC3339 seconds"));
+            return Err(format!(
+                "scenarios-v0.1.tsv: line {line}: decision time must be UTC RFC3339 seconds"
+            ));
         }
-        let event_visible = parse_bool(&row[9], "scenarios-v0.1.tsv", line, "event_visible_at_decision")?;
+        let event_visible = parse_bool(
+            &row[9],
+            "scenarios-v0.1.tsv",
+            line,
+            "event_visible_at_decision",
+        )?;
         if row[5] == "AFTER_DECISION" && event_visible {
-            return Err(format!("scenarios-v0.1.tsv: line {line}: post-decision event cannot be visible at decision time"));
+            return Err(format!(
+                "scenarios-v0.1.tsv: line {line}: post-decision event cannot be visible at decision time"
+            ));
         }
         if row[5] == "BEFORE_DECISION" && !event_visible {
-            return Err(format!("scenarios-v0.1.tsv: line {line}: pre-decision event must be visible"));
+            return Err(format!(
+                "scenarios-v0.1.tsv: line {line}: pre-decision event must be visible"
+            ));
         }
         if !matches!(row[10].as_str(), "PASS" | "FAIL" | "UNKNOWN") {
-            return Err(format!("scenarios-v0.1.tsv: line {line}: invalid acceptance gate state"));
+            return Err(format!(
+                "scenarios-v0.1.tsv: line {line}: invalid acceptance gate state"
+            ));
         }
         let lower = row[13]
             .parse::<usize>()
@@ -206,9 +238,15 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
             .parse::<usize>()
             .map_err(|_| format!("scenarios-v0.1.tsv: line {line}: invalid upper bound"))?;
         if lower > upper {
-            return Err(format!("scenarios-v0.1.tsv: line {line}: lower bound exceeds upper bound"));
+            return Err(format!(
+                "scenarios-v0.1.tsv: line {line}: lower bound exceeds upper bound"
+            ));
         }
-        let pair = if row[16] == "-" { None } else { Some(row[16].clone()) };
+        let pair = if row[16] == "-" {
+            None
+        } else {
+            Some(row[16].clone())
+        };
         scenarios.push(Scenario {
             id: row[0].clone(),
             topology_id: row[2].clone(),
@@ -224,7 +262,12 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
             expected_unknown_routes: parse_set(&row[12]),
             expected_independent_lower_bound: lower,
             expected_independent_upper_bound: upper,
-            expected_accepted_output: parse_bool(&row[15], "scenarios-v0.1.tsv", line, "expected_accepted_output")?,
+            expected_accepted_output: parse_bool(
+                &row[15],
+                "scenarios-v0.1.tsv",
+                line,
+                "expected_accepted_output",
+            )?,
             non_anticipativity_pair: pair,
         });
     }
@@ -236,8 +279,12 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
 
 fn route_state(route: &Route, scenario: &Scenario) -> RouteState {
     let known_blocker = route.dependencies.iter().any(|dependency| {
-        scenario.failed_fault_domains.contains(&dependency.fault_domain_id)
-            || scenario.revoked_qualification_ids.contains(&dependency.qualification_id)
+        scenario
+            .failed_fault_domains
+            .contains(&dependency.fault_domain_id)
+            || scenario
+                .revoked_qualification_ids
+                .contains(&dependency.qualification_id)
             || dependency.declared_state != "CURRENT"
             || scenario.decision_time_utc < dependency.valid_from_utc
             || scenario.decision_time_utc >= dependency.valid_until_utc
@@ -289,11 +336,32 @@ fn decision_fingerprint(scenario: &Scenario) -> String {
     );
     if scenario.event_visible_at_decision {
         input.push('|');
-        input.push_str(&scenario.failed_fault_domains.iter().cloned().collect::<Vec<_>>().join(";"));
+        input.push_str(
+            &scenario
+                .failed_fault_domains
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(";"),
+        );
         input.push('|');
-        input.push_str(&scenario.revoked_qualification_ids.iter().cloned().collect::<Vec<_>>().join(";"));
+        input.push_str(
+            &scenario
+                .revoked_qualification_ids
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(";"),
+        );
         input.push('|');
-        input.push_str(&scenario.unknown_dependency_route_ids.iter().cloned().collect::<Vec<_>>().join(";"));
+        input.push_str(
+            &scenario
+                .unknown_dependency_route_ids
+                .iter()
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(";"),
+        );
     }
 
     // FNV-1a is used only as a deterministic test fingerprint, never as a signature or integrity authority.
@@ -326,7 +394,10 @@ fn evaluate_scenario(
 
     for unknown_route in &scenario.unknown_dependency_route_ids {
         if !routes.contains_key(unknown_route) {
-            return Err(format!("scenario {} refers to unknown route {unknown_route}", scenario.id));
+            return Err(format!(
+                "scenario {} refers to unknown route {unknown_route}",
+                scenario.id
+            ));
         }
     }
 
@@ -343,9 +414,18 @@ fn evaluate_scenario(
         .filter(|route| route.state == RouteState::Blocked)
         .collect::<Vec<_>>();
 
-    let mut available_ids = available.iter().map(|route| route.id.clone()).collect::<Vec<_>>();
-    let mut unknown_ids = unknown.iter().map(|route| route.id.clone()).collect::<Vec<_>>();
-    let mut blocked_ids = blocked.iter().map(|route| route.id.clone()).collect::<Vec<_>>();
+    let mut available_ids = available
+        .iter()
+        .map(|route| route.id.clone())
+        .collect::<Vec<_>>();
+    let mut unknown_ids = unknown
+        .iter()
+        .map(|route| route.id.clone())
+        .collect::<Vec<_>>();
+    let mut blocked_ids = blocked
+        .iter()
+        .map(|route| route.id.clone())
+        .collect::<Vec<_>>();
     available_ids.sort();
     unknown_ids.sort();
     blocked_ids.sort();
@@ -356,14 +436,25 @@ fn evaluate_scenario(
     let upper = independent_bound(&optimistic);
 
     if lower > upper {
-        return Err(format!("scenario {} produced inverted independent-path bounds", scenario.id));
+        return Err(format!(
+            "scenario {} produced inverted independent-path bounds",
+            scenario.id
+        ));
     }
 
-    let synthetic_output_accepted = !available.is_empty()
-        && scenario.acceptance_gate_state == "PASS";
+    let synthetic_output_accepted =
+        !available.is_empty() && scenario.acceptance_gate_state == "PASS";
 
-    let mut expected_available = scenario.expected_available_routes.iter().cloned().collect::<Vec<_>>();
-    let mut expected_unknown = scenario.expected_unknown_routes.iter().cloned().collect::<Vec<_>>();
+    let mut expected_available = scenario
+        .expected_available_routes
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut expected_unknown = scenario
+        .expected_unknown_routes
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
     expected_available.sort();
     expected_unknown.sort();
 
@@ -409,20 +500,24 @@ fn evaluate_scenario(
 }
 
 fn verify_non_anticipativity(scenarios: &[Scenario]) -> Result<(), String> {
-    let mut pairs: HashMap<&str, Vec<&Scenario>> = HashMap::new();
+    let mut pairs: BTreeMap<String, Vec<&Scenario>> = BTreeMap::new();
     for scenario in scenarios {
         if let Some(pair) = scenario.non_anticipativity_pair.as_deref() {
-            pairs.entry(pair).or_default().push(scenario);
+            pairs.entry(pair.to_owned()).or_default().push(scenario);
         }
     }
 
     for (pair_id, members) in pairs {
         if members.len() < 2 {
-            return Err(format!("non-anticipativity pair {pair_id} has fewer than two scenarios"));
+            return Err(format!(
+                "non-anticipativity pair {pair_id} has fewer than two scenarios"
+            ));
         }
         let first = members[0];
         if first.event_visible_at_decision {
-            return Err(format!("non-anticipativity pair {pair_id} exposes its future event"));
+            return Err(format!(
+                "non-anticipativity pair {pair_id} exposes its future event"
+            ));
         }
         let first_fingerprint = decision_fingerprint(first);
         for member in members.iter().skip(1) {
@@ -448,7 +543,10 @@ pub fn evaluate_frozen_corpus() -> Result<Vec<Evaluation>, String> {
     let mut evaluations = Vec::new();
     for scenario in &scenarios {
         if scenario.topology_id != "pump-valve-topology-v0.1" {
-            return Err(format!("scenario {} references unsupported topology {}", scenario.id, scenario.topology_id));
+            return Err(format!(
+                "scenario {} references unsupported topology {}",
+                scenario.id, scenario.topology_id
+            ));
         }
         evaluations.push(evaluate_scenario(&routes, scenario)?);
     }
@@ -488,7 +586,10 @@ mod tests {
     #[test]
     fn nominal_path_count_is_not_independent_path_count() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let baseline = evaluations.iter().find(|entry| entry.scenario_id == "S00").unwrap();
+        let baseline = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S00")
+            .unwrap();
         assert_eq!(baseline.available_routes.len(), 5);
         assert_eq!(baseline.independent_lower_bound, 3);
         assert_eq!(baseline.independent_upper_bound, 3);
@@ -497,8 +598,16 @@ mod tests {
     #[test]
     fn unknown_route_is_not_admitted_and_bounds_remain_explicit() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let unknown = evaluations.iter().find(|entry| entry.scenario_id == "S08").unwrap();
-        assert!(!unknown.available_routes.iter().any(|route| route == "partner_d"));
+        let unknown = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S08")
+            .unwrap();
+        assert!(
+            !unknown
+                .available_routes
+                .iter()
+                .any(|route| route == "partner_d")
+        );
         assert_eq!(unknown.unknown_routes, vec!["partner_d".to_owned()]);
         assert_eq!(unknown.independent_lower_bound, 3);
         assert_eq!(unknown.independent_upper_bound, 3);
@@ -507,7 +616,10 @@ mod tests {
     #[test]
     fn route_availability_does_not_override_failed_first_article_gate() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let rejected = evaluations.iter().find(|entry| entry.scenario_id == "S13").unwrap();
+        let rejected = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S13")
+            .unwrap();
         assert_eq!(rejected.available_routes.len(), 5);
         assert!(!rejected.synthetic_output_accepted);
     }
@@ -515,35 +627,61 @@ mod tests {
     #[test]
     fn common_cause_disables_both_local_routes() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let power_failure = evaluations.iter().find(|entry| entry.scenario_id == "S01").unwrap();
-        assert!(!power_failure.available_routes.iter().any(|route| route == "local_a"));
-        assert!(!power_failure.available_routes.iter().any(|route| route == "local_b"));
+        let power_failure = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S01")
+            .unwrap();
+        assert!(
+            !power_failure
+                .available_routes
+                .iter()
+                .any(|route| route == "local_a")
+        );
+        assert!(
+            !power_failure
+                .available_routes
+                .iter()
+                .any(|route| route == "local_b")
+        );
         assert_eq!(power_failure.independent_lower_bound, 2);
     }
 
     #[test]
     fn hidden_future_pairs_have_identical_pre_event_inputs() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let left = evaluations.iter().find(|entry| entry.scenario_id == "S11").unwrap();
-        let right = evaluations.iter().find(|entry| entry.scenario_id == "S12").unwrap();
-        assert_eq!(left.decision_input_fingerprint, right.decision_input_fingerprint);
+        let left = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S11")
+            .unwrap();
+        let right = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S12")
+            .unwrap();
+        assert_eq!(
+            left.decision_input_fingerprint,
+            right.decision_input_fingerprint
+        );
         assert_ne!(left.available_routes, right.available_routes);
     }
 
     #[test]
     fn incomplete_topology_is_rejected_by_manifest_counts() {
-        let routes = "route_id\tarchitecture\tpath_class\texpected_dependency_rows\nonly\tlocal\tcell\t1\n";
+        let routes =
+            "route_id\tarchitecture\tpath_class\texpected_dependency_rows\nonly\tlocal\tcell\t1\n";
         let topology = "route_id\toperation_id\trequirement_kind\tdependency_id\tfault_domain_id\tqualification_id\tevidence_ref\tvalid_from_utc\tvalid_until_utc\tdeclared_state\n";
         assert!(parse_topology(topology, routes).is_err());
     }
 
     #[test]
     fn duplicate_requirement_kind_is_rejected() {
-        let routes = "route_id\tarchitecture\tpath_class\texpected_dependency_rows\nr\tlocal\tcell\t2\n";
+        let routes =
+            "route_id\tarchitecture\tpath_class\texpected_dependency_rows\nr\tlocal\tcell\t2\n";
         let row = "r\top\ttool\tdep1\tfd1\tq1\tev1\t2026-01-01T00:00:00Z\t2027-01-01T00:00:00Z\tCURRENT\n";
         let topology = format!(
             "route_id\toperation_id\trequirement_kind\tdependency_id\tfault_domain_id\tqualification_id\tevidence_ref\tvalid_from_utc\tvalid_until_utc\tdeclared_state\n{row}{}",
-            row.replace("dep1", "dep2").replace("q1", "q2").replace("ev1", "ev2")
+            row.replace("dep1", "dep2")
+                .replace("q1", "q2")
+                .replace("ev1", "ev2")
         );
         assert!(parse_topology(&topology, routes).is_err());
     }
