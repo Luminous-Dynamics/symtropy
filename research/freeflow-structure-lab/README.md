@@ -12,11 +12,13 @@ The face-attached assembly includes:
 - a declared three-point triangular attachment interface;
 - indexed pin-end member interface;
 - bounded recursion and node/port budgets;
+- adaptive attachment pruning: a candidate face is not expanded if any shared hub would exceed its connector-port budget; blocked faces are counted;
 - finite geometry, cell volume and attachment face area checks;
 - member length, graph connectivity, duplicate-edge and cycle-rank audits;
 - minimum angular separation between ports at a shared node;
 - pin/bore worst-case clearance analysis;
 - worst-case and root-sum-square tolerance stack estimates;
+- a separate member-removal campaign in the companion truss solver to expose kinematic mechanisms and residual capacity;
 - assembly parent/child ordering;
 - deterministic same-build, non-cryptographic regression digest.
 
@@ -35,6 +37,8 @@ The separate `research/truss-fem-lab` crate consumes this geometry and provides 
 ## Claim boundary
 
 This crate checks geometry and graph topology only. It does not calculate stress, strain, stiffness, joint compliance, buckling, fatigue, vibration, fracture, manufacturing tolerances, material defects, thermal behavior, human factors or flight qualification.
+
+The tetrahedral grammar is port-budget-aware: it prunes an attachment before committing geometry if one of the three shared hubs would exceed its configured port count. The generated assembly can therefore contain fewer cells than the full binary recursion upper bound; blocked attachment faces are counted. This makes the connector limit a design constraint rather than a post-hoc warning.
 
 The ideal kinematic observation is narrow: a regular tetrahedron has six pin-jointed bars, and each child cell shares three non-collinear vertices with an already assembled rigid complex. This removes the single-point attachment hinge in the ideal geometric construction. Real connectors, clearance, compliance, member bending, buckling, loads, imperfections and fatigue remain unmodeled.
 
