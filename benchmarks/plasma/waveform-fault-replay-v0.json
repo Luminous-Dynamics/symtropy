@@ -36,6 +36,11 @@
         0,
         1,
         2
+      ],
+      "expected_active_fault_ids": [
+        null,
+        null,
+        null
       ]
     },
     {
@@ -80,6 +85,12 @@
         null,
         null,
         3
+      ],
+      "expected_active_fault_ids": [
+        null,
+        "drop",
+        "drop",
+        null
       ]
     },
     {
@@ -120,6 +131,11 @@
         0,
         null,
         2
+      ],
+      "expected_active_fault_ids": [
+        null,
+        "integrity",
+        null
       ]
     },
     {
@@ -163,6 +179,11 @@
         null,
         0,
         1
+      ],
+      "expected_active_fault_ids": [
+        "delay",
+        "delay",
+        "delay"
       ]
     },
     {
@@ -207,6 +228,11 @@
         0,
         1,
         2
+      ],
+      "expected_active_fault_ids": [
+        "clamp",
+        "clamp",
+        "clamp"
       ]
     },
     {
@@ -246,6 +272,10 @@
       "expected_source_sample_indices": [
         0,
         1
+      ],
+      "expected_active_fault_ids": [
+        "offset",
+        "offset"
       ]
     },
     {
@@ -290,6 +320,11 @@
         0,
         1,
         2
+      ],
+      "expected_active_fault_ids": [
+        "gain",
+        "gain",
+        "gain"
       ]
     },
     {
@@ -326,6 +361,10 @@
       "expected_source_sample_indices": [
         null,
         null
+      ],
+      "expected_active_fault_ids": [
+        "stale",
+        "stale"
       ]
     }
   ]
