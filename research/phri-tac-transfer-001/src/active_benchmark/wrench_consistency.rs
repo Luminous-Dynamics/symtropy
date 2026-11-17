@@ -1792,6 +1792,7 @@ mod tests {
     fn geometry_operator_rejects_finite_inputs_that_overflow_force_or_moment_coefficients() {
         let mut huge_area = geometry();
         huge_area.taxels[0].area_m2 = f64::MAX;
+        huge_area.taxels[0].application_point_m.x = 2.0;
         assert!(build_wrench_operator(&huge_area).is_err());
 
         let mut huge_moment_arm = geometry();
