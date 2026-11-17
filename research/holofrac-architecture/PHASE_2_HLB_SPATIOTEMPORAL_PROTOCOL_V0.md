@@ -365,3 +365,37 @@ Mandatory metrics include per-channel/per-horizon MAE/RMSE, NLL/CRPS, interval c
 Split by complete temporal episode/year, spatial region and sensor deployment. Report in-year interpolation separately from held-out-year and held-out-deployment generalization. Never randomly split neighboring samples from one episode.
 
 **Authority boundary:** a virtual-sensor estimate remains typed as inferred and carries model/source lineage and uncertainty. It cannot be relabelled as an observation, counted as an independent physical source, or used to preserve engineering evidence as if an actual sensor measurement existed. HLB may propose placements and requests; Symtropy applies exact validation, budget policy and solver/measurement execution.
+
+
+## 13. Adaptive circular lifecycle and component reuse
+
+Extend HoloFrac from single-state design/operation to a sequence of versioned lifecycle states: design, assembly, operation, maintenance, adaptation, repair, replacement, selective deconstruction, recovery and second-life assembly.
+
+A relevant June 2026 reference is Al-Obaidy et al., *BCEF: Early design framework for circular and low-impact buildings*, DOI 10.1016/j.rineng.2026.110824. Its six separate indicators are global-warming potential, land-use footprint, reused content, disassembly potential, functional adaptation and product-service systems. A further 2026 operational-digital-twin review reports that only a minority of reviewed deployments reached prescriptive, control-driving maturity and that quantitative outcomes were sparsely reported. These references motivate a testable lifecycle and outcome loop; they do not prove a HoloFrac advantage.
+
+Symtropy issue #5985 owns the executable lifecycle fixture and transition/mass-balance qualification:
+https://github.com/Luminous-Dynamics/symtropy/issues/5985
+
+### T9 hypotheses
+
+- T9.1 — Functional adaptability: versioned spatial grammars can produce future-use configurations that satisfy declared hard constraints with less demolition/replacement than matched static designs.
+- T9.2 — Component recoverability: explicit reversible interfaces, access envelopes and disassembly sequences improve verified recovery/reuse outcomes over geometry-only modularity.
+- T9.3 — Lifecycle evidence: exact component/condition/source lineage allows evidence to be selectively retained, invalidated or made unknown across repair, replacement and second-life assembly.
+- T9.4 — Reuse matching: HLB retrieval can improve candidate recall for recovered components while exact dimensional, condition, material and applicability checks prevent unsupported matches.
+- T9.5 — Whole-life decision quality: multi-stage design alternatives can improve declared functional retention and/or whole-life impact versus matched static and conventional design-for-disassembly baselines.
+
+### T9 benchmark requirements
+
+Use separate indicators, never one hidden circularity score: whole-life GWP, land-use footprint, reused content, disassembly potential, functional adaptation and product/service model. Preserve declared lifecycle boundaries, functional unit, EPD source/geography/version, service period, replacements and scenario assumptions.
+
+Required adversarial controls include missing/invalid passports, changed component IDs, non-reversible or inaccessible connections, tool/lifting/sequence constraints, damaged recovery, incompatible dimensions/material/condition, partial dependency inventory, stale solver receipt, adaptation outside the qualified use envelope, and second-life components with lost or uncertain provenance.
+
+Targets on the finite fixture:
+- 100% component identity/lineage preservation;
+- 100% mass-balance closure within declared tolerance;
+- zero unsupported recovery/reuse credits;
+- zero invalid transitions admitted;
+- zero false-current evidence classifications;
+- independent-oracle agreement for transition validity and impact closure.
+
+Do not claim real whole-life carbon, circularity, building safety or reuse permission from synthetic data. Real case studies require product-specific passport/EPD/condition evidence, qualified disassembly records and a frozen lifecycle boundary.
