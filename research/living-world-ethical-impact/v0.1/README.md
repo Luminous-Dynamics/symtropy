@@ -27,12 +27,24 @@ Every v0.1 fixture marks thermodynamic observables as `not_qualified`. Resource 
 
 The authoring pass checked JSON syntax, unique fixture IDs, profile/premise references, action-option references, anti-derivation-control references, evidence-reference integrity, and the v0.1 enum/required-field constraints. This is not yet a formal external JSON-Schema validator run or an exact-head CI result. The fixture corpus does not establish empirical ecology, field calibration, sentience, universal moral truth, intervention efficacy or action authorization.
 
-## Next gate
+## Executable conformance gate
 
-Add a dependency-light Rust fixture loader/conformance test that:
-1. validates the bundle against the checked-in schema;
-2. checks all IDs and references for uniqueness and referential integrity;
-3. confirms profile switches preserve the exact same factset and evidence digests;
-4. proves all twelve anti-derivation controls on adversarial mutations;
-5. consumes existing CIVDYN findings only where resource premises are in-domain;
-6. never emits action permission or a global morality/welfare/life score.
+The standalone dependency-light Rust reader/validator now lives in
+`research/living-world-ethical-impact-validator/`. Its typed structs reject
+unknown fields and its tests check fixture cardinality, IDs, premise/evidence/
+action/control references, explicit `not_recorded` semantics, action authority,
+and the thermodynamic claim ceiling.
+
+The dedicated GitHub Actions workflow
+`.github/workflows/living-world-ethical-impact.yml` runs formatting, strict
+Clippy, the conformance tests and a deterministic report on Ubuntu, Windows and
+macOS. The first workflow result must be recorded against the exact PR head
+before claiming Rust qualification.
+
+The next research gates are:
+1. Add adversarial mutation coverage for each anti-derivation control.
+2. Add digest-bound, held-out empirical evidence adapters only after data rights,
+   source identity, unit semantics and access constraints are established.
+3. Compose existing CIVDYN premise findings only for resource premises in-domain.
+4. Keep action authorization external and human-governed; never emit a global
+   morality, welfare or life score.
