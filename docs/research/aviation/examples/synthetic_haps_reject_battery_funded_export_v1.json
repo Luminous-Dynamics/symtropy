@@ -89,7 +89,8 @@
     "own_service_continuous": true,
     "daily_energy_cycle_closed": false,
     "export_service_admissible": false,
-    "max_abs_pv_bus_ledger_residual_wh": 0
+    "max_abs_pv_bus_ledger_residual_wh": 0,
+    "horizon_energy_cycle_closed": false
   },
   "assumptions": [
     "Every numerical value in this case is synthetic and illustrative, not a real aircraft profile.",
