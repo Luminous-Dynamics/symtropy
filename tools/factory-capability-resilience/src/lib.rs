@@ -38,6 +38,7 @@ struct Scenario {
     expected_independent_lower_bound: usize,
     expected_independent_upper_bound: usize,
     expected_accepted_output: bool,
+    expected_output_disposition: String,
     non_anticipativity_pair: Option<String>,
 }
 
@@ -64,6 +65,7 @@ pub struct Evaluation {
     pub independent_lower_bound: usize,
     pub independent_upper_bound: usize,
     pub synthetic_output_accepted: bool,
+    pub output_disposition: String,
     pub decision_input_fingerprint: String,
 }
 
@@ -193,7 +195,7 @@ fn parse_topology(input: &str, route_manifest: &str) -> Result<BTreeMap<String, 
 }
 
 fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
-    let rows = parse_rows(input, 18, "scenarios-v0.1.tsv")?;
+    let rows = parse_rows(input, 19, "scenarios-v0.1.tsv")?;
     let mut scenarios = Vec::new();
     let mut ids = BTreeSet::new();
 
@@ -242,10 +244,10 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
                 "scenarios-v0.1.tsv: line {line}: lower bound exceeds upper bound"
             ));
         }
-        let pair = if row[16] == "-" {
+        let pair = if row[17] == "-" {
             None
         } else {
-            Some(row[16].clone())
+            Some(row[17].clone())
         };
         scenarios.push(Scenario {
             id: row[0].clone(),
@@ -268,6 +270,7 @@ fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
                 line,
                 "expected_accepted_output",
             )?,
+            expected_output_disposition: row[16].clone(),
             non_anticipativity_pair: pair,
         });
     }
@@ -328,11 +331,9 @@ fn independent_bound(routes: &[&EvaluatedRoute]) -> usize {
 
 fn decision_fingerprint(scenario: &Scenario) -> String {
     let mut input = format!(
-        "{}|{}|{}|{}",
+        "{}|{}",
         scenario.observable_prefix_id,
-        scenario.decision_time_utc,
-        scenario.event_phase,
-        scenario.acceptance_gate_state
+        scenario.decision_time_utc
     );
     if scenario.event_visible_at_decision {
         input.push('|');
@@ -442,8 +443,21 @@ fn evaluate_scenario(
         ));
     }
 
-    let synthetic_output_accepted =
-        !available.is_empty() && scenario.acceptance_gate_state == "PASS";
+    let output_disposition = if available.is_empty() {
+        if unknown.is_empty() {
+            "BLOCKED"
+        } else {
+            "UNKNOWN"
+        }
+    } else {
+        match scenario.acceptance_gate_state.as_str() {
+            "PASS" => "ACCEPTED",
+            "FAIL" => "REJECTED",
+            "UNKNOWN" => "UNKNOWN",
+            _ => "UNKNOWN",
+        }
+    };
+    let synthetic_output_accepted = output_disposition == "ACCEPTED";
 
     let mut expected_available = scenario
         .expected_available_routes
@@ -486,6 +500,12 @@ fn evaluate_scenario(
             scenario.id, scenario.expected_accepted_output
         ));
     }
+    if output_disposition != scenario.expected_output_disposition {
+        return Err(format!(
+            "scenario {} output disposition mismatch: actual {output_disposition}, expected {}",
+            scenario.id, scenario.expected_output_disposition
+        ));
+    }
 
     Ok(Evaluation {
         scenario_id: scenario.id.clone(),
@@ -495,6 +515,7 @@ fn evaluate_scenario(
         independent_lower_bound: lower,
         independent_upper_bound: upper,
         synthetic_output_accepted,
+        output_disposition: output_disposition.to_owned(),
         decision_input_fingerprint: decision_fingerprint(scenario),
     })
 }
@@ -555,11 +576,11 @@ pub fn evaluate_frozen_corpus() -> Result<Vec<Evaluation>, String> {
 
 pub fn render_tsv(evaluations: &[Evaluation]) -> String {
     let mut output = String::from(
-        "scenario_id\tavailable_routes\tunknown_routes\tblocked_routes\tindependent_lower_bound\tindependent_upper_bound\tsynthetic_output_accepted\tdecision_input_fingerprint\n",
+        "scenario_id\tavailable_routes\tunknown_routes\tblocked_routes\tindependent_lower_bound\tindependent_upper_bound\tsynthetic_output_accepted\toutput_disposition\tdecision_input_fingerprint\n",
     );
     for evaluation in evaluations {
         output.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             evaluation.scenario_id,
             evaluation.available_routes.join(";"),
             evaluation.unknown_routes.join(";"),
@@ -567,6 +588,7 @@ pub fn render_tsv(evaluations: &[Evaluation]) -> String {
             evaluation.independent_lower_bound,
             evaluation.independent_upper_bound,
             evaluation.synthetic_output_accepted,
+            evaluation.output_disposition,
             evaluation.decision_input_fingerprint
         ));
     }
@@ -580,7 +602,7 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_all_expected_dispositions() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        assert_eq!(evaluations.len(), 14);
+        assert_eq!(evaluations.len(), 16);
     }
 
     #[test]
@@ -622,6 +644,36 @@ mod tests {
             .unwrap();
         assert_eq!(rejected.available_routes.len(), 5);
         assert!(!rejected.synthetic_output_accepted);
+        assert_eq!(rejected.output_disposition, "REJECTED");
+    }
+
+    #[test]
+    fn unknown_only_route_is_not_promoted_to_available_or_blocked() {
+        let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
+        let unknown = evaluations.iter().find(|entry| entry.scenario_id == "S14").unwrap();
+        assert!(unknown.available_routes.is_empty());
+        assert_eq!(unknown.unknown_routes, vec!["independent_e".to_owned()]);
+        assert_eq!(unknown.independent_lower_bound, 0);
+        assert_eq!(unknown.independent_upper_bound, 1);
+        assert_eq!(unknown.output_disposition, "UNKNOWN");
+        assert!(!unknown.synthetic_output_accepted);
+    }
+
+    #[test]
+    fn unknown_first_article_gate_is_not_reported_as_rejection() {
+        let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
+        let unknown = evaluations.iter().find(|entry| entry.scenario_id == "S15").unwrap();
+        assert_eq!(unknown.available_routes.len(), 5);
+        assert_eq!(unknown.output_disposition, "UNKNOWN");
+        assert!(!unknown.synthetic_output_accepted);
+    }
+
+    #[test]
+    fn no_route_is_blocked_not_an_inspection_rejection() {
+        let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
+        let blocked = evaluations.iter().find(|entry| entry.scenario_id == "S10").unwrap();
+        assert_eq!(blocked.output_disposition, "BLOCKED");
+        assert!(!blocked.synthetic_output_accepted);
     }
 
     #[test]
