@@ -493,6 +493,8 @@ fn refine_time_swept_capsule_candidates(
         return Err(MultiBodyBroadphaseError::BodyIdLookupFailure);
     }
 
+    // Retain the direct SAP's computational work cap even though this version
+    // holds only one slab of bounds in memory at a time.
     let requested_cells = (bodies.len() as u128) * u128::from(subdivision_count);
     if requested_cells > u128::from(MAX_BODY_SLAB_CELLS) {
         return Err(MultiBodyBroadphaseError::TooManyBodySlabCells);
@@ -521,13 +523,6 @@ fn refine_time_swept_capsule_candidates(
         span_by_id.insert(body.body_id.as_str(), body_index);
     }
 
-    let horizon_duration = coarse
-        .horizon_end_ms
-        .checked_sub(coarse.horizon_start_ms)
-        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
-
-    // The one-slab coarse SAP returns no candidate pairs for a sparse scene.
-    // Avoid even allocating the body × slab cache when there is nothing to refine.
     if coarse.pairs.is_empty() {
         return Ok(CandidateRefinementReport {
             coarse_candidate_pairs: 0,
@@ -539,29 +534,48 @@ fn refine_time_swept_capsule_candidates(
             pairs: Vec::new(),
         });
     }
-    let mut cached_by_body = vec![vec![None; subdivision_count as usize]; bodies.len()];
+
+    let horizon_duration = coarse
+        .horizon_end_ms
+        .checked_sub(coarse.horizon_start_ms)
+        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+    let mut candidate_slabs_by_pair: Vec<Vec<CandidateSlab>> =
+        (0..coarse.pairs.len()).map(|_| Vec::new()).collect();
     let mut body_slab_bounds_built = 0_u64;
-    for (body_index, body) in bodies.iter().enumerate() {
-        for slab_index in 0..subdivision_count {
-            let slab_start_ms = slab_boundary(
-                coarse.horizon_start_ms,
-                horizon_duration,
-                slab_index,
-                subdivision_count,
-            )?;
-            let slab_end_ms = slab_boundary(
-                coarse.horizon_start_ms,
-                horizon_duration,
-                slab_index + 1,
-                subdivision_count,
-            )?;
+    let mut tested_pair_slabs = 0_u64;
+    let mut cached_bounds_fast_rejects = 0_u64;
+    let mut common_interval_rebuilds = 0_u64;
+
+    // Build each body's swept AABB once for this slab, then share it across
+    // every coarse pair containing that body. The slab cache is dropped before
+    // the next slab, keeping live cache memory O(body_count), not O(body_count
+    // × subdivision_count).
+    for slab_index in 0..subdivision_count {
+        let slab_start_ms = slab_boundary(
+            coarse.horizon_start_ms,
+            horizon_duration,
+            slab_index,
+            subdivision_count,
+        )?;
+        let slab_end_ms = slab_boundary(
+            coarse.horizon_start_ms,
+            horizon_duration,
+            slab_index + 1,
+            subdivision_count,
+        )?;
+        if slab_start_ms >= slab_end_ms {
+            continue;
+        }
+
+        let mut cached_by_body = vec![None; bodies.len()];
+        for (body_index, body) in bodies.iter().enumerate() {
             let active_start_ms = slab_start_ms.max(body.motion.start_ms);
             let active_end_ms = slab_end_ms.min(body.motion.end_ms);
             if active_start_ms >= active_end_ms {
                 continue;
             }
             let bounds = swept_bounds(&body.motion, active_start_ms, active_end_ms)?;
-            cached_by_body[body_index][slab_index as usize] = Some(CachedBodySlab {
+            cached_by_body[body_index] = Some(CachedBodySlab {
                 active_start_ms,
                 active_end_ms,
                 bounds,
@@ -570,37 +584,21 @@ fn refine_time_swept_capsule_candidates(
                 .checked_add(1)
                 .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
         }
-    }
 
-    let mut output_pairs = Vec::with_capacity(coarse.pairs.len());
-    let mut tested_pair_slabs = 0_u64;
-    let mut cached_bounds_fast_rejects = 0_u64;
-    let mut common_interval_rebuilds = 0_u64;
-
-    for pair in &coarse.pairs {
-        let first_index = *span_by_id
-            .get(pair.first_body_id.as_str())
-            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-        let second_index = *span_by_id
-            .get(pair.second_body_id.as_str())
-            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
-        let first_span = &bodies[first_index].motion;
-        let second_span = &bodies[second_index].motion;
-        let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
-        let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
-        if active_overlap_start_ms >= active_overlap_end_ms {
-            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
-        }
-        let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
-        let mut candidate_slabs = Vec::new();
-
-        for slab_index in 0..subdivision_count {
-            let Some(first_cached) = cached_by_body[first_index][slab_index as usize] else {
+        for (pair_index, pair) in coarse.pairs.iter().enumerate() {
+            let first_index = *span_by_id
+                .get(pair.first_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            let second_index = *span_by_id
+                .get(pair.second_body_id.as_str())
+                .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+            let Some(first_cached) = cached_by_body[first_index] else {
                 continue;
             };
-            let Some(second_cached) = cached_by_body[second_index][slab_index as usize] else {
+            let Some(second_cached) = cached_by_body[second_index] else {
                 continue;
             };
+
             let overlap_start_ms = first_cached
                 .active_start_ms
                 .max(second_cached.active_start_ms);
@@ -614,9 +612,9 @@ fn refine_time_swept_capsule_candidates(
                 .checked_add(1)
                 .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
 
-            // Each cached bound encloses the body's complete active portion of
-            // this slab. Disjoint outer boxes prove disjointness on the pair's
-            // smaller shared interval, so the expensive rebase is unnecessary.
+            // Whole-active-slab bounds conservatively contain the pair's
+            // common-time subinterval. Disjoint cached boxes are a safe fast
+            // rejection without any per-pair trajectory rebase.
             if !first_cached.bounds.overlaps(second_cached.bounds) {
                 cached_bounds_fast_rejects = cached_bounds_fast_rejects
                     .checked_add(1)
@@ -635,25 +633,51 @@ fn refine_time_swept_capsule_candidates(
                 common_interval_rebuilds = common_interval_rebuilds
                     .checked_add(1)
                     .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
-                let first_common =
-                    swept_bounds(first_span, overlap_start_ms, overlap_end_ms)?;
-                let second_common =
-                    swept_bounds(second_span, overlap_start_ms, overlap_end_ms)?;
+                let first_common = swept_bounds(
+                    &bodies[first_index].motion,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                )?;
+                let second_common = swept_bounds(
+                    &bodies[second_index].motion,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                )?;
                 first_common.overlaps(second_common)
             };
 
             if common_bounds_overlap {
-                candidate_slabs.push(CandidateSlab {
+                candidate_slabs_by_pair[pair_index].push(CandidateSlab {
                     slab_index,
                     overlap_start_ms,
                     overlap_end_ms,
                 });
             }
         }
+    }
 
+    let mut output_pairs = Vec::with_capacity(coarse.pairs.len());
+    for (pair, mut candidate_slabs) in
+        coarse.pairs.iter().zip(candidate_slabs_by_pair.into_iter())
+    {
         if candidate_slabs.is_empty() {
             continue;
         }
+        candidate_slabs.sort_by_key(|candidate| candidate.slab_index);
+        let first_index = *span_by_id
+            .get(pair.first_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let second_index = *span_by_id
+            .get(pair.second_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let first_span = &bodies[first_index].motion;
+        let second_span = &bodies[second_index].motion;
+        let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
+        let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
+        if active_overlap_start_ms >= active_overlap_end_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
         let candidate_duration_u128 = candidate_slabs
             .iter()
             .try_fold(0_u128, |total, candidate| {
