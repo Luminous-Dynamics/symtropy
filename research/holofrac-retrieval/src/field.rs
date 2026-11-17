@@ -48,7 +48,7 @@ impl std::fmt::Display for FieldError {
         match self {
             Self::EmptySamples => f.write_str("continuous field requires at least one sample"),
             Self::InvalidRange => f.write_str("field coordinate/value range must be finite with max > min"),
-            Self::SampleOutsideRange => f.write_str("field sample lies outside declared coordinate/value ranges"),
+            Self::SampleOutsideRange => f.write_str("field sample or query lies outside declared coordinate/value ranges"),
             Self::InvalidGrid => f.write_str("regular field grid requires at least two samples per axis"),
             Self::Hdc(error) => write!(f, "continuous spatial VSA error: {error}"),
         }
@@ -76,10 +76,8 @@ pub struct FieldQueryResult {
 #[derive(Clone, Debug)]
 pub struct SpatialFieldMemory {
     spec: EncoderSpec,
-    item_memory: ItemMemory,
     x_encoder: LevelEncoder,
     y_encoder: LevelEncoder,
-    value_encoder: LevelEncoder,
     x_role: BipolarHV,
     y_role: BipolarHV,
     memory: BipolarHV,
@@ -148,10 +146,8 @@ impl SpatialFieldMemory {
 
         Ok(Self {
             spec,
-            item_memory,
             x_encoder,
             y_encoder,
-            value_encoder,
             x_role,
             y_role,
             memory,
@@ -219,11 +215,6 @@ impl SpatialFieldMemory {
             + best_level as f64 / (self.spec.scalar_levels - 1) as f64
                 * (self.value_range.max - self.value_range.min);
 
-        // Touch the item memory in a deterministic invariant so it remains
-        // an explicit part of the field encoder contract, not a hidden global.
-        let _encoder_dimension = self.item_memory.spec().dimension;
-        let _value_level_count = self.value_encoder.encode_level(best_level).len();
-
         Ok(FieldQueryResult {
             value,
             codebook_level: best_level,
@@ -241,7 +232,7 @@ impl SpatialFieldMemory {
         let dimension_bytes = self.spec.dimension * std::mem::size_of::<i8>();
         dimension_bytes
             + self.value_codebook.len() * dimension_bytes
-            + 3 * dimension_bytes
+            + 2 * dimension_bytes
             + 2 * dimension_bytes
     }
 
