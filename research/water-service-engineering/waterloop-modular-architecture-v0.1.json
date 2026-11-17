@@ -1,0 +1,301 @@
+{
+  "schema_version": "waterloop-modular-architecture-v0.1",
+  "status": "pre_prototype_design_basis",
+  "qualification_status": "NotRun",
+  "evidence_class": "design_research_only",
+  "issue": 5822,
+  "baseline_profile": {
+    "id": "bathroom_greywater_nonpotable_v0",
+    "sources": [
+      "bath_shower"
+    ],
+    "conditional_sources": [
+      "hand_basin"
+    ],
+    "separately_gated_sources": [
+      "laundry",
+      "roof_rainwater"
+    ],
+    "excluded_sources": [
+      "kitchen_sink",
+      "dishwasher",
+      "toilet_blackwater",
+      "pool_spa",
+      "unknown_industrial"
+    ],
+    "intended_uses": [
+      "toilet_flushing",
+      "restricted_subsurface_nonfood_irrigation_if_approved"
+    ],
+    "prohibited_uses": [
+      "potable",
+      "food_crop_irrigation",
+      "aerosol_generating",
+      "public_access_without_specific_risk_assessment"
+    ],
+    "untreated_storage_reference_hours": 24,
+    "untreated_storage_rule": "CONSERVATIVE_LOCAL_REFERENCE_ONLY; do not exceed without separately qualified preservation/treatment strategy"
+  },
+  "streams": [
+    {
+      "id": "bathroom_greywater",
+      "type": "nonpotable_source",
+      "default_admission": "candidate_after_source_survey"
+    },
+    {
+      "id": "hand_basin",
+      "type": "nonpotable_source",
+      "default_admission": "conditional_after_characterization"
+    },
+    {
+      "id": "laundry",
+      "type": "nonpotable_source",
+      "default_admission": "separate_branch_after_feed_characterization"
+    },
+    {
+      "id": "roof_rainwater",
+      "type": "alternative_source",
+      "default_admission": "separate_first_flush_and_storage_module"
+    },
+    {
+      "id": "potable_makeup",
+      "type": "potable_source",
+      "default_admission": "physically_separated_backup_only"
+    },
+    {
+      "id": "treated_nonpotable",
+      "type": "treated_service_water",
+      "default_admission": "hold_until_release_permissives"
+    },
+    {
+      "id": "reject_backwash_sludge",
+      "type": "residual_stream",
+      "default_admission": "contained_approved_disposal_route"
+    }
+  ],
+  "treatment_modules": [
+    {
+      "id": "screen_settle_media",
+      "family": "physical",
+      "feed_requirements": [
+        "low_solids_envelope_characterized"
+      ],
+      "verification": [
+        "tss",
+        "turbidity",
+        "headloss",
+        "microbial_profile",
+        "breakthrough"
+      ]
+    },
+    {
+      "id": "biofilter_polishing",
+      "family": "biological",
+      "feed_requirements": [
+        "biodegradable_load_characterized",
+        "operator_support"
+      ],
+      "verification": [
+        "cod_bod",
+        "microbial_indicators",
+        "shock_load_recovery",
+        "odour"
+      ]
+    },
+    {
+      "id": "uf_validated_disinfection",
+      "family": "membrane_disinfection",
+      "feed_requirements": [
+        "pretreatment_compatible",
+        "energy_spares_supportable"
+      ],
+      "verification": [
+        "membrane_integrity",
+        "tmp_flux",
+        "uv_dose_validation",
+        "independent_microbiology"
+      ]
+    },
+    {
+      "id": "ozone_gac_disinfection",
+      "family": "oxidation_adsorption_disinfection",
+      "feed_requirements": [
+        "target_contaminant_justifies_oxidation",
+        "offgas_safety_review"
+      ],
+      "verification": [
+        "ozone_dose_contact",
+        "offgas",
+        "byproducts",
+        "gac_breakthrough",
+        "independent_microbiology"
+      ]
+    },
+    {
+      "id": "constructed_wetland_hybrid",
+      "family": "nature_based",
+      "feed_requirements": [
+        "land_available",
+        "hydraulic_loading_defined",
+        "operator_maintenance"
+      ],
+      "verification": [
+        "hydraulic_short_circuiting",
+        "clogging",
+        "seasonal_quality",
+        "microbial_risk"
+      ]
+    },
+    {
+      "id": "electrocoagulation_hybrid",
+      "family": "electrochemical",
+      "feed_requirements": [
+        "specific_treatable_contaminant",
+        "sludge_route",
+        "scaleup_case"
+      ],
+      "verification": [
+        "electrode_consumption",
+        "energy",
+        "sludge_characterization",
+        "water_quality"
+      ]
+    }
+  ],
+  "control_states": [
+    "ISOLATED",
+    "CAPTURE",
+    "PRETREAT",
+    "TREAT",
+    "VERIFY",
+    "RELEASE",
+    "BYPASS",
+    "QUARANTINE",
+    "MAINTENANCE",
+    "RECOVERY"
+  ],
+  "transitions": [
+    {
+      "from": "ISOLATED",
+      "to": "CAPTURE",
+      "condition": "source_identity_and_configuration_verified"
+    },
+    {
+      "from": "CAPTURE",
+      "to": "PRETREAT",
+      "condition": "feed_source_admitted_and_level_valid"
+    },
+    {
+      "from": "PRETREAT",
+      "to": "TREAT",
+      "condition": "pretreatment_permissives_valid"
+    },
+    {
+      "from": "TREAT",
+      "to": "VERIFY",
+      "condition": "treatment_cycle_complete_and_no_barrier_fault"
+    },
+    {
+      "from": "VERIFY",
+      "to": "RELEASE",
+      "condition": "all_required_quality_and_process_evidence_current_and_admitted"
+    },
+    {
+      "from": "CAPTURE",
+      "to": "BYPASS",
+      "condition": "invalid_source_high_level_timeout_or_power_fault"
+    },
+    {
+      "from": "PRETREAT",
+      "to": "BYPASS",
+      "condition": "screen_or_pressure_fault"
+    },
+    {
+      "from": "TREAT",
+      "to": "QUARANTINE",
+      "condition": "barrier_fault_or_invalid_process_evidence"
+    },
+    {
+      "from": "VERIFY",
+      "to": "QUARANTINE",
+      "condition": "failed_or_expired_release_evidence"
+    },
+    {
+      "from": "RELEASE",
+      "to": "ISOLATED",
+      "condition": "quality_age_sensor_power_or_process_fault"
+    },
+    {
+      "from": "QUARANTINE",
+      "to": "MAINTENANCE",
+      "condition": "authorized_service_lockout"
+    },
+    {
+      "from": "MAINTENANCE",
+      "to": "RECOVERY",
+      "condition": "repair_complete_leak_electrical_and_flush_checks_pass"
+    },
+    {
+      "from": "RECOVERY",
+      "to": "VERIFY",
+      "condition": "fresh_permissives_and_required_reverification"
+    }
+  ],
+  "hard_interlocks": [
+    "NO_POTABLE_NONPOTABLE_CROSS_CONNECTION",
+    "APPROVED_AIR_GAP_AND_BACKFLOW_PROTECTION_BY_COMPETENT_DESIGNER",
+    "REUSE_VALVE_FAILS_CLOSED_ON_POWER_OR_SENSOR_OR_PROCESS_FAULT",
+    "NO_AUTOMATIC_QUARANTINE_TO_RELEASE",
+    "NO_CLOUD_OR_AI_OVERRIDE_OF_LOCAL_INTERLOCK",
+    "NO_UNTREATED_FEED_TO_REUSE_OUTLET",
+    "NO_UNAPPROVED_STORMWATER_OR_ENVIRONMENTAL_DISCHARGE"
+  ],
+  "sizing_variables": {
+    "capture_volume": "sum(source_flow_i * interval_i * measured_capture_fraction)",
+    "qualified_volume": "feed - reject - backwash - overflow - offspec",
+    "storage_balance": "previous_storage + inflow - use - reject, bounded by physical storage",
+    "essential_demand": "sum(use_count_j * volume_per_use_j)",
+    "hydraulic_power": "rho * g * flow * total_dynamic_head",
+    "energy_intensity": "integrated_true_electrical_energy / independently_verified_useful_volume"
+  },
+  "t1_verification": {
+    "stages": [
+      "source_characterization",
+      "matched_treatment_train_screening",
+      "endurance_and_seeded_faults",
+      "independent_verification"
+    ],
+    "initial_endurance_days": 30,
+    "sampling": "at least three temporally separated source samples before train selection; independent lab cadence frozen by hazard plan",
+    "seeded_faults": [
+      "screen_blockage",
+      "media_breakthrough",
+      "pump_failure",
+      "uv_fault_if_present",
+      "membrane_integrity_fault_if_present",
+      "stuck_high_low_level_sensor",
+      "flowmeter_drift",
+      "power_loss",
+      "wrong_source_selection",
+      "offspec_quality",
+      "overflow"
+    ],
+    "acceptance_targets": [
+      "zero_observed_potable_nonpotable_cross_connections",
+      "all_seeded_faults_isolate_reuse_before_offspec_delivery",
+      "water_balance_residual_within_combined_measurement_uncertainty",
+      "every_released_volume_traceable_to_source_treatment_storage_and_use_class"
+    ],
+    "claim_ceiling": "T1 bench performance within tested source/use/operating envelope only"
+  },
+  "unresolved_design_inputs": [
+    "exact_use_profile",
+    "measured_source_flow",
+    "source_lab_characterization",
+    "site_hydraulic_head",
+    "available_service_area",
+    "residual_route",
+    "maintenance_operator_model",
+    "current_standard_and_municipal_approval_path"
+  ]
+}
