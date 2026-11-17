@@ -158,6 +158,11 @@ pub struct CandidateEvidenceAssessment {
 pub struct QualifiedCandidateProjection {
     pub candidate_id: String,
     pub pass_id: String,
+    /// Provenance linkage that must be carried alongside the planner decision.
+    pub binding_sha256: String,
+    pub request_set_id: String,
+    pub request_set_revision: String,
+    pub request_set_sha256: String,
     pub covered_target_ids: Vec<String>,
     pub u_m: f64,
     pub v_m: f64,
@@ -177,6 +182,20 @@ pub struct ValidatedCandidateEnvelope<'a> {
 }
 
 impl ValidatedCandidateEnvelope<'_> {
+    /// Borrow the exact revision-bound context which produced this token.
+    pub fn binding(&self) -> &CandidateBinding {
+        &self.envelope.binding
+    }
+
+    /// Borrow the three original receipts. Authenticity/custody remains external.
+    pub fn receipts(&self) -> &[EvidenceReceipt] {
+        &self.envelope.receipts
+    }
+
+    pub fn binding_sha256(&self) -> &str {
+        &self.envelope.binding_sha256
+    }
+
     pub fn assessment(&self) -> &CandidateEvidenceAssessment {
         &self.assessment
     }
@@ -195,6 +214,10 @@ impl ValidatedCandidateEnvelope<'_> {
         Some(QualifiedCandidateProjection {
             candidate_id: binding.candidate_id.clone(),
             pass_id: binding.pass_id.clone(),
+            binding_sha256: self.envelope.binding_sha256.clone(),
+            request_set_id: binding.request_set_id.clone(),
+            request_set_revision: binding.request_set_revision.clone(),
+            request_set_sha256: binding.request_set_sha256.clone(),
             covered_target_ids: binding.target_ids.clone(),
             u_m: binding.position_u_m,
             v_m: binding.position_v_m,
@@ -785,6 +808,20 @@ mod tests {
         unknown.receipts[1].status = EvidenceStatus::Unknown;
         let validated_unknown = validate_candidate_envelope(&unknown, A).unwrap();
         assert!(validated_unknown.qualified_projection().is_none());
+    }
+
+    #[test]
+    fn qualified_projection_preserves_upstream_requirement_and_binding_identity() {
+        let value = envelope();
+        let validated = validate_candidate_envelope(&value, A).unwrap();
+        let projection = validated.qualified_projection().unwrap();
+        assert_eq!(projection.binding_sha256, A);
+        assert_eq!(projection.request_set_id, "evidence-request-set-01");
+        assert_eq!(projection.request_set_revision, "request-set-r3");
+        assert_eq!(projection.request_set_sha256, C);
+        assert_eq!(validated.binding().request_set_revision, "request-set-r3");
+        assert_eq!(validated.receipts().len(), 3);
+        assert_eq!(validated.binding_sha256(), A);
     }
 
     #[test]
