@@ -291,8 +291,7 @@ fn build_quadratic(
         hessian[right * n + left] -= lambda;
     }
 
-    if hessian.iter().any(|value| !value.is_finite())
-        || rhs.iter().any(|value| !value.is_finite())
+    if hessian.iter().any(|value| !value.is_finite()) || rhs.iter().any(|value| !value.is_finite())
     {
         return Err("normal-equation construction produced non-finite values".to_owned());
     }
@@ -309,16 +308,16 @@ fn build_quadratic(
                 (value != 0.0).then_some((column, value))
             })
             .collect();
-        let row_sum = entries
-            .iter()
-            .map(|(_, value)| value.abs())
-            .sum::<f64>();
+        let row_sum = entries.iter().map(|(_, value)| value.abs()).sum::<f64>();
         lipschitz_upper_bound = lipschitz_upper_bound.max(row_sum);
         hessian_rows.push(entries);
     }
 
     if !lipschitz_upper_bound.is_finite() || lipschitz_upper_bound <= f64::EPSILON {
-        return Err("admitted channels and forward model provide no invertible field information".to_owned());
+        return Err(
+            "admitted channels and forward model provide no invertible field information"
+                .to_owned(),
+        );
     }
 
     Ok(QuadraticProblem {
