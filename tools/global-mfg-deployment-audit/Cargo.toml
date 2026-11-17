@@ -8,3 +8,5 @@ description = "Read-only structural audit for synthetic global manufacturing dep
 
 [dependencies]
 serde_json = "1"
+
+[workspace]
