@@ -580,14 +580,14 @@ fn is_better_robust(
     candidate.nominal.selected_sensor_ids < current.nominal.selected_sensor_ids
 }
 
-fn principal_submatrix(matrix: &[Vec<f64>], indices: &[usize]) -> Vec<Vec<f64>> {
+pub(crate) fn principal_submatrix(matrix: &[Vec<f64>], indices: &[usize]) -> Vec<Vec<f64>> {
     indices
         .iter()
         .map(|row| indices.iter().map(|column| matrix[*row][*column]).collect())
         .collect()
 }
 
-fn validate_spd(matrix: &[Vec<f64>]) -> Result<(), SensorDesignError> {
+pub(crate) fn validate_spd(matrix: &[Vec<f64>]) -> Result<(), SensorDesignError> {
     if matrix.iter().flatten().any(|value| !value.is_finite()) {
         return Err(SensorDesignError::NonFiniteCovariance);
     }
@@ -624,7 +624,7 @@ fn cholesky(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, SensorDesignError> {
     Ok(lower)
 }
 
-fn invert_spd(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, SensorDesignError> {
+pub(crate) fn invert_spd(matrix: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, SensorDesignError> {
     let lower = cholesky(matrix)?;
     let n = matrix.len();
     let mut inverse = vec![vec![0.0; n]; n];
