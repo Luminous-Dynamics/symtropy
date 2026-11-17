@@ -258,7 +258,8 @@
             "paper_reported_prototype",
             "government_demonstration",
             "industry_pilot",
-            "industry_demonstration"
+            "industry_demonstration",
+            "paper_reported_model"
           ]
         },
         "comparison_group": {
