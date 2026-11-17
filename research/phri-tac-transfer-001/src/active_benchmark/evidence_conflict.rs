@@ -165,11 +165,11 @@ fn dempster_combine(
     }
 
     let mut singleton = [0.0; CONTACT_STATE_COUNT];
-    for state in 0..CONTACT_STATE_COUNT {
-        singleton[state] = left.singleton[state] * right.singleton[state]
+    for (state, value) in singleton.iter_mut().enumerate() {
+        *value = left.singleton[state] * right.singleton[state]
             + left.singleton[state] * right.ignorance
             + left.ignorance * right.singleton[state];
-        singleton[state] /= denominator;
+        *value /= denominator;
     }
     let ignorance = left.ignorance * right.ignorance / denominator;
     (
