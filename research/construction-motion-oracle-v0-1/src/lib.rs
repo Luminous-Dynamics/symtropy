@@ -1,5 +1,13 @@
 #![forbid(unsafe_code)]
 
+pub mod field_layout_acceptance;
+pub use field_layout_acceptance::{
+    CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult,
+    EntityScoreReason, FieldAcceptanceError, FieldAcceptanceProfile, FieldAcceptanceScore,
+    FieldEntityObservation, FieldLayoutEntityType, HumanWaiver, MeasurementDisposition,
+    RefereeEntityState, RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
+};
+
 //! Independent analytic references for the supported straight-segment and
 //! upper-semicircle geometry families. This module does not call the envelope
 //! producer's geometric expansion helpers.
