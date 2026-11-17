@@ -282,7 +282,6 @@ fn fract(value: f64) -> f64 {
 
 fn sensor_location(sensor_id: u32, sensor_count: usize) -> SensorLocation {
     let index = sensor_id as f64;
-    let count = sensor_count as f64;
     SensorLocation {
         sensor_id,
         x: fract(0.5 + (index + 1.0) * 0.618_033_988_749_894_8),
