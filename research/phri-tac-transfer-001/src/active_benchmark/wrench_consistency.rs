@@ -1838,6 +1838,4 @@ mod tests {
             WrenchConsistencyDisposition::InvalidObservation
         );
     }
-
-
 }
