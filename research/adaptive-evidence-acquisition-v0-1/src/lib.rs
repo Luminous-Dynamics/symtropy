@@ -322,7 +322,8 @@ pub fn plan_acquisition(
         });
     }
 
-    let disposition = if completed_targets == progress.len() {
+    let total_targets = progress.len();
+    let disposition = if completed_targets == total_targets {
         PlanDisposition::Complete
     } else if steps.is_empty() {
         PlanDisposition::Blocked
@@ -335,16 +336,11 @@ pub fn plan_acquisition(
         steps,
         targets: progress,
         completed_targets,
-        total_targets: target_map_len_from_progress_placeholder(),
+        total_targets,
         cumulative_elapsed_time_s: elapsed,
         cumulative_energy_wh: energy,
         blockers,
     })
-}
-
-// Keep the report total derived from its stable target vector.
-fn target_map_len_from_progress_placeholder() -> usize {
-    0
 }
 
 fn validate_budget(budget: &AcquisitionBudget) -> Result<(), String> {
