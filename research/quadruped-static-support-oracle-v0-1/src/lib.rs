@@ -355,7 +355,7 @@ pub fn evaluate(snapshot: &SupportSnapshot) -> SupportEvaluation {
         return invalid(snapshot, "conservative support margin overflowed");
     }
 
-    let disposition = if conservative >= snapshot.required_margin_m {
+    let disposition = if conservative > 0.0 && conservative >= snapshot.required_margin_m {
         SupportDisposition::Stable
     } else if conservative >= 0.0 {
         SupportDisposition::Marginal
@@ -452,6 +452,16 @@ mod tests {
         assert_eq!(result.nominal_signed_margin_m, Some(0.3));
         assert!((result.conservative_margin_m.unwrap() - 0.25).abs() < 1e-12);
         assert_eq!(result.uncertainty_deduction_m, Some(0.05));
+    }
+
+    #[test]
+    fn zero_margin_at_support_boundary_is_never_stable() {
+        let mut snapshot = square_snapshot([0.5, 0.0]);
+        snapshot.required_margin_m = 0.0;
+        let result = evaluate(&snapshot);
+        assert_eq!(result.nominal_signed_margin_m, Some(0.0));
+        assert_eq!(result.conservative_margin_m, Some(0.0));
+        assert_eq!(result.disposition, SupportDisposition::Marginal);
     }
 
     #[test]
