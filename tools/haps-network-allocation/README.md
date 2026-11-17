@@ -17,14 +17,14 @@ From the repository root:
 
 ```sh
 cargo fmt --manifest-path tools/haps-network-allocation/Cargo.toml --all -- --check
-cargo clippy --manifest-path tools/haps-network-allocation/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path tools/haps-network-allocation/Cargo.toml
+cargo clippy --locked --manifest-path tools/haps-network-allocation/Cargo.toml --all-targets -- -D warnings
+cargo test --locked --manifest-path tools/haps-network-allocation/Cargo.toml
 ```
 
 Run the full 30-day dynamic allocation:
 
 ```sh
-cargo run --manifest-path tools/haps-network-allocation/Cargo.toml -- \
+cargo run --locked --manifest-path tools/haps-network-allocation/Cargo.toml -- \
   docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json \
   --policy greedy --beam-budget 2 --beam-capacity-mbps 10 \
   --start-day 0 --days 30
