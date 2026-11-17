@@ -47,6 +47,9 @@
         "pass_id",
         "mission_id",
         "mission_revision",
+        "request_set_id",
+        "request_set_revision",
+        "request_set_sha256",
         "scenario_id",
         "scenario_revision",
         "robot_id",
@@ -91,6 +94,15 @@
         },
         "mission_revision": {
           "$ref": "#/$defs/Identifier"
+        },
+        "request_set_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "request_set_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "request_set_sha256": {
+          "$ref": "#/$defs/Sha256"
         },
         "scenario_id": {
           "$ref": "#/$defs/Identifier"
