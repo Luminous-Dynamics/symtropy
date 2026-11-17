@@ -16,7 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
     println!("# dimension={dimension}");
-    println!("fact_count,reuse_regime,entity_count,unique_role_values,reuse_ratio,index_build_us,duplicated_role_slot_bytes,factorized_role_slot_bytes,slot_reference_bytes,role_slot_bytes_saved,holistic_vector_bytes,retained_payload_bytes_ex_map_keys");
+    println!(
+        "fact_count,reuse_regime,entity_count,unique_role_values,reuse_ratio,index_build_us,duplicated_role_slot_bytes,factorized_role_slot_bytes,slot_reference_bytes,role_slot_bytes_saved,holistic_vector_bytes,retained_payload_bytes_ex_map_keys"
+    );
 
     for fact_count in [100_usize, 1_000, 5_000] {
         let high_reuse_entities = minimum_entity_count(fact_count);
