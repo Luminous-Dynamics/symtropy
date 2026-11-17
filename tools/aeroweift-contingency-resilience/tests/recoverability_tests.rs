@@ -440,7 +440,10 @@ fn same_scope_and_bounds_with_three_required_options_abstains_if_witness_is_too_
         &policy(),
     )
     .unwrap();
-    assert_eq!(result.status, RecoverabilityStatus::Indeterminate);
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::InsufficientIndependentOptions
+    );
     assert_eq!(result.independent_option_witness.len(), 2);
 }
 
@@ -551,7 +554,10 @@ fn one_option_is_not_misreported_as_meeting_two_option_requirement() {
         &policy(),
     )
     .unwrap();
-    assert_eq!(result.status, RecoverabilityStatus::CoveredSingleOption);
+    assert_eq!(
+        result.status,
+        RecoverabilityStatus::InsufficientIndependentOptions
+    );
     assert_eq!(result.required_independent_options, 2);
     assert!(!result.required_diversity_met);
     assert_eq!(
@@ -716,9 +722,9 @@ fn exact_independent_set_ties_use_canonical_lexicographic_witness() {
     let result = evaluate(
         &case(),
         &[
-            option("z-route", &["Z"]),
-            option("a-route", &["A"]),
-            option("m-route", &["M"]),
+            option("z-route", &["SHARED"]),
+            option("a-route", &["SHARED"]),
+            option("m-route", &["UNIQUE"]),
         ],
         &inventory(),
         &policy(),
