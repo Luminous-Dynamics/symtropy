@@ -718,11 +718,11 @@ mod tests {
     fn duplicate_blocks_and_mixed_study_designs_are_rejected() {
         let duplicate = vec![
             block("lab-a", "same"),
-            block("lab-b", "same"),
+            block("lab-a", "same"),
         ];
         assert_eq!(
             score_field_workflow_study(&duplicate, Default::default()),
-            Err(FieldWorkflowScoreError::DuplicateBlock("same".into()))
+            Err(FieldWorkflowScoreError::DuplicateBlock("lab-a/same".into()))
         );
 
         let mut matched = block("lab-b", "block-2");
