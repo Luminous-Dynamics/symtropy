@@ -3,7 +3,7 @@
   "evidence_class": "synthetic_only",
   "claim_ceiling": "synthetic_metric_and_split_integrity_only_no_hydrology_model_or_field_qualification",
   "benchmark_id": "HYDRO-CONTEXTUAL-T0",
-  "case_count": 32,
+  "case_count": 37,
   "required_case_ids": [
     "HC-T0-001-b0-persistence-metrics",
     "HC-T0-002-b0-seasonal-climatology-metrics",
@@ -36,7 +36,12 @@
     "HC-T0-029-threshold-event-brier",
     "HC-T0-030-brier-reliability-diagnostic",
     "HC-T0-031-invalid-event-probability-reject",
-    "HC-T0-032-ensemble-crps-negative-flow-reject"
+    "HC-T0-032-ensemble-crps-negative-flow-reject",
+    "HC-T0-033-ensemble-crps-skill",
+    "HC-T0-034-threshold-event-brier-skill",
+    "HC-T0-035-crps-skill-zero-reference-undefined",
+    "HC-T0-036-crps-skill-negative-retained",
+    "HC-T0-037-brier-skill-negative-retained"
   ],
   "baseline_families": [
     "B0_data_only",
@@ -55,7 +60,9 @@
     "interval_metrics": "Empirical coverage is count(observed within [lower,upper])/N; width is the arithmetic mean of upper-lower; report nominal and empirical coverage, error and width.",
     "empirical_ensemble_crps": "CRPS(F,y) = mean_m |x_m-y| - (1/(2M^2)) sum_m sum_n |x_m-x_n| for the finite empirical ensemble; lower is better. Report raw ensemble size and do not clip negative CRPS caused by an implementation bug.",
     "binary_event_brier": "Brier score = mean_i (p_i-o_i)^2 for explicitly defined binary events, where p is a forecast probability in [0,1] and o is an observed 0/1 outcome.",
-    "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null."
+    "reliability_bins": "Descriptive five fixed probability bins [0,.2), [.2,.4), [.4,.6), [.6,.8), [.8,1]; report count, mean forecast probability and observed event frequency; empty bins remain null.",
+    "crps_skill": "CRPSS = 1 - CRPS(forecast ensemble, observation)/CRPS(reference ensemble, same observation), with identical verification case and declared reference forecast identity; undefined if reference CRPS is zero/within tolerance.",
+    "brier_skill": "BSS = 1 - mean BS(forecast probabilities, binary outcomes)/mean BS(reference probabilities, same outcomes), with same event and verification population; undefined if reference Brier score is zero/within tolerance."
   },
   "rules": [
     "All data and values are synthetic; this evaluator does not generate or calibrate a hydrology model.",
@@ -79,6 +86,11 @@
     "Probabilistic forecasts must be scored with proper scores such as empirical ensemble CRPS for continuous flow and Brier score for declared threshold events; do not substitute interval coverage alone.",
     "Event definitions, units, threshold, forecast lead and valid-time semantics must be frozen before evaluation; observed event labels are independently derived.",
     "Forecast probabilities outside [0,1], non-binary outcomes, or negative streamflow ensemble values are rejected, never clipped.",
-    "Reliability bins are descriptive diagnostics; sparse bins do not establish calibration. Report sample counts and uncertainty and evaluate across multiple events, catchments and lead times."
+    "Reliability bins are descriptive diagnostics; sparse bins do not establish calibration. Report sample counts and uncertainty and evaluate across multiple events, catchments and lead times.",
+    "Every skill score must identify its reference forecast and use exactly the same verifying observation/event population, units, lead time and valid-time semantics as the evaluated forecast.",
+    "Positive skill means improvement over the named reference; zero is equal skill; negative is worse. Do not clip negative skill values.",
+    "If the reference score is zero or within the predeclared denominator tolerance, the skill score is Undefined while the raw forecast and reference scores remain reported.",
+    "Reference forecasts must be frozen and may not be tuned on the held-out test cases.",
+    "Skill scores below zero are retained as worse than the declared reference; no clipping to zero or omission of negative results is allowed."
   ]
 }

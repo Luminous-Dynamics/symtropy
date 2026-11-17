@@ -515,6 +515,109 @@
           3
         ]
       }
+    },
+    {
+      "case_id": "HC-T0-033-ensemble-crps-skill",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "observed": 4,
+        "forecast_ensemble_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_ensemble_members": [
+          2,
+          6,
+          8
+        ],
+        "reference_forecast_id": "seasonal_climatology-v1",
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-034-threshold-event-brier-skill",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0.7,
+          0.2,
+          0.6
+        ],
+        "reference_probabilities": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "observed_events": [
+          1,
+          0,
+          1
+        ],
+        "reference_forecast_id": "constant_climatology_0_5",
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-035-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "observed": 4,
+        "forecast_ensemble_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_ensemble_members": [
+          4
+        ],
+        "reference_forecast_id": "perfect_reference-control",
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-036-crps-skill-negative-retained",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "observed": 4,
+        "forecast_ensemble_members": [
+          1,
+          2,
+          3
+        ],
+        "reference_ensemble_members": [
+          3,
+          5,
+          6
+        ],
+        "reference_forecast_id": "persistence-ensemble-v1",
+        "denominator_tolerance": 1e-12
+      }
+    },
+    {
+      "case_id": "HC-T0-037-brier-skill-negative-retained",
+      "family": "probabilistic_skill",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0.1,
+          0.9,
+          0.2
+        ],
+        "reference_probabilities": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "observed_events": [
+          1,
+          0,
+          1
+        ],
+        "reference_forecast_id": "constant_climatology_0_5",
+        "denominator_tolerance": 1e-12
+      }
     }
   ]
 }
