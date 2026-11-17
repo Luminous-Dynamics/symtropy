@@ -1,4 +1,4 @@
-use human_multirate_cosim::{simulate, Method, Scenario};
+use human_multirate_cosim::{Method, Scenario, simulate};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scenarios = [
