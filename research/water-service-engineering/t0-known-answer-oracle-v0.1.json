@@ -268,9 +268,6 @@
         "duplicate_meter_identity": true,
         "credited_net_mains_displacement_l": 0,
         "service_credit_disposition": "DOUBLE_COUNT_OR_SOURCE_OVERCLAIM_REJECTED",
-        "declared_use_profile_id": "nonpotable_toilet_flushing",
-        "quality_evidence_profile_id": "nonpotable_toilet_flushing",
-        "quality_profile_match": true,
         "quality_profile_mismatch_count": 0
       }
     },
