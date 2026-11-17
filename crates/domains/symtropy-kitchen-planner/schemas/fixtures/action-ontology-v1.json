@@ -52,9 +52,21 @@
       "expected_method": "rule_based"
     },
     {
+      "action_kind": "halve",
+      "expected_core": "cutting",
+      "expected_group": "halve",
+      "expected_method": "rule_based"
+    },
+    {
       "action_kind": "pour",
       "expected_core": "pouring",
       "expected_group": "pour",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "drain",
+      "expected_core": "pouring",
+      "expected_group": "drain",
       "expected_method": "rule_based"
     },
     {
@@ -70,15 +82,27 @@
       "expected_method": "rule_based"
     },
     {
-      "action_kind": "mix",
+      "action_kind": "add",
       "expected_core": "mixing",
-      "expected_group": "mix",
+      "expected_group": "add",
       "expected_method": "rule_based"
     },
     {
-      "action_kind": "knead",
+      "action_kind": "combine",
       "expected_core": "mixing",
-      "expected_group": "knead",
+      "expected_group": "combine",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "whisk",
+      "expected_core": "mixing",
+      "expected_group": "whisk",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "mix",
+      "expected_core": "mixing",
+      "expected_group": "mix",
       "expected_method": "rule_based"
     },
     {
@@ -91,6 +115,12 @@
       "action_kind": "emulsify",
       "expected_core": "mixing",
       "expected_group": "emulsify",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "knead",
+      "expected_core": "preparing",
+      "expected_group": "knead",
       "expected_method": "rule_based"
     },
     {
@@ -112,6 +142,12 @@
       "expected_method": "rule_based"
     },
     {
+      "action_kind": "cover",
+      "expected_core": "pick_and_place",
+      "expected_group": "cover",
+      "expected_method": "rule_based"
+    },
+    {
       "action_kind": "serve",
       "expected_core": "pick_and_place",
       "expected_group": "serve",
@@ -121,6 +157,24 @@
       "action_kind": "saute",
       "expected_core": "cook_and_cool",
       "expected_group": "saute",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "cook",
+      "expected_core": "cook_and_cool",
+      "expected_group": "cook",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "heat",
+      "expected_core": "cook_and_cool",
+      "expected_group": "heat",
+      "expected_method": "rule_based"
+    },
+    {
+      "action_kind": "freeze",
+      "expected_core": "cook_and_cool",
+      "expected_group": "freeze",
       "expected_method": "rule_based"
     },
     {
