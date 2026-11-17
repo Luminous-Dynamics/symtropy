@@ -846,6 +846,15 @@ fn build_clock_uncertainty_outer_span(
         return Err(OuterEnvelopeFailure::InvalidTimeInterval);
     }
     if span.clock_uncertainty_ms == 0 {
+        if !finite_vec3(span.translation) {
+            return Err(OuterEnvelopeFailure::NonFiniteExpansion);
+        }
+        Capsule::new(
+            span.capsule_at_start.start,
+            span.capsule_at_start.end,
+            span.capsule_at_start.radius_mm,
+        )
+        .map_err(|_| OuterEnvelopeFailure::InvalidExpandedCapsule)?;
         return Ok(span.clone());
     }
 
@@ -1488,4 +1497,31 @@ mod tests {
         );
         assert_eq!(accelerated.unresolved_pairs, 0);
     }
+
+    #[test]
+    fn invalid_zero_uncertainty_geometry_is_unresolved_not_a_global_broadphase_abort() {
+        let mut invalid_motion = span(0.0, 0.0, 1_000, 2_000, "clock-a");
+        invalid_motion.translation.x = f64::NAN;
+        let bodies = [
+            body(
+                "a",
+                invalid_motion,
+                Some(mapping("clock-a", 0, 0, 0)),
+            ),
+            body(
+                "b",
+                span(10.0, 0.0, 1_000, 2_000, "clock-b"),
+                Some(mapping("clock-b", 0, 0, 0)),
+            ),
+        ];
+        let report =
+            evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config())
+                .unwrap();
+        assert_eq!(report.unresolved_pairs, 1);
+        assert_eq!(
+            report.body_envelope_failures,
+            vec![("a".into(), OuterEnvelopeFailure::NonFiniteExpansion)]
+        );
+    }
+
 }
