@@ -62,7 +62,7 @@ impl ContactMorphology {
             Self::SharpPiecewise => 0x8EBC_6AF0_9C88_C6E3,
             Self::MultipleContacts => 0x5899_65CC_7537_4CC3,
             Self::DenseUniform => 0x1D8E_4E27_C47D_124F,
-            Self::MixedSparseSmooth => 0xEB44_ACCAB455_D165,
+            Self::MixedSparseSmooth => 0xEB44_ACCA_B455_D165,
         }
     }
 }
@@ -204,7 +204,7 @@ fn patch(
     let amplitude = amplitude_min + random_unit(state) * (amplitude_max - amplitude_min);
     let lower = center.saturating_sub(width).max(range.start);
     let upper = (center + width + 1).min(range.end);
-    for (index, value) in truth.iter_mut().enumerate().take(upper).skip(lower) {
+    for value in truth.iter_mut().take(upper).skip(lower) {
         *value = (*value).max(amplitude);
     }
 }
