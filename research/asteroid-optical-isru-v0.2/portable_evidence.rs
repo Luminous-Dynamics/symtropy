@@ -731,16 +731,45 @@ impl PortableEvidenceProfile {
                 acceptance.product_lot_id.as_str(),
                 acceptance.acceptance_activity_id.as_str(),
                 acceptance.acceptance_authority_agent_id.as_str(),
+                acceptance.acceptance_receipt_id.as_str(),
             ] {
                 if !nodes.contains_key(id) {
-                    findings.push(ProfileFinding::InvalidProductAcceptance(
-                        id.to_string(),
-                    ));
+                    findings.push(ProfileFinding::InvalidProductAcceptance(id.to_string()));
                 }
             }
-            if !nonempty(&acceptance.acceptance_receipt_id) {
+            if !matches!(
+                nodes.get(acceptance.acceptance_receipt_id.as_str()).map(|node| &node.class),
+                Some(NodeClass::Entity(EntityKind::AuthorityReceipt))
+            ) || !matches!(
+                nodes.get(acceptance.acceptance_activity_id.as_str()).map(|node| &node.class),
+                Some(NodeClass::Activity(_))
+            ) || !matches!(
+                nodes.get(acceptance.acceptance_authority_agent_id.as_str()).map(|node| &node.class),
+                Some(NodeClass::Agent(_))
+            ) {
                 findings.push(ProfileFinding::InvalidProductAcceptance(
-                    "missing-acceptance-receipt".to_string(),
+                    "acceptance-node-types".to_string(),
+                ));
+            }
+            if !self.has_relation(
+                ProvRelationKind::WasGeneratedBy,
+                &acceptance.acceptance_receipt_id,
+                &acceptance.acceptance_activity_id,
+            ) || !self.has_relation(
+                ProvRelationKind::Used,
+                &acceptance.acceptance_activity_id,
+                &acceptance.product_lot_id,
+            ) || !self.has_relation(
+                ProvRelationKind::Used,
+                &acceptance.acceptance_activity_id,
+                &acceptance.independent_assay_claim_id,
+            ) || !self.has_relation(
+                ProvRelationKind::WasAssociatedWith,
+                &acceptance.acceptance_activity_id,
+                &acceptance.acceptance_authority_agent_id,
+            ) {
+                findings.push(ProfileFinding::InvalidProductAcceptance(
+                    "acceptance-provenance".to_string(),
                 ));
             }
         } else {
