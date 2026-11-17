@@ -67,7 +67,8 @@ Keep measured, sourced, declared, modelled and synthetic inputs distinct. Utilit
 
 Each obligation must bind:
 
-- jurisdiction and jurisdiction level;
+- jurisdiction identifier and explicit hierarchy level: supranational, national, subnational, local authority, customs territory, trade-agreement scope, data-residency zone or synthetic fixture;
+- authoritative source language, any display/translation language, translation status and exact translation artifact reference; a working translation must not be mistaken for the authentic legal text or an official translation;
 - affected actor, object, product class and operation;
 - source issuer, instrument, edition/version and official source;
 - source publication, entry-into-force, application, transition and expiry dates separately;
@@ -77,6 +78,12 @@ Each obligation must bind:
 - current disposition: satisfied, unsatisfied, not applicable with reason, pending evidence, disputed or unknown.
 
 A proposal cannot satisfy an in-force legal obligation. A voluntary standard is not automatically law. A source is not applicable merely because it mentions the same technology. Standards alignment is not a certificate, approval or market permission.
+
+### Source language and translation provenance
+
+For every legal, regulatory or standards source, preserve the language of the authoritative source separately from the language used in operator-facing summaries. A translated extract must bind its own artifact/revision and translation status (official, working, pending, not translated or unknown). Never let a translation overwrite the original, and never assume a working translation has the same legal authority as an authentic text.
+
+This is especially important for federated operations: a local facility may need a translated work instruction while the approval authority or legal reviewer must retain access to the authoritative source. Translation provenance is not legal applicability review.
 
 ### Supply-chain origin and transformation
 
