@@ -140,6 +140,7 @@ pub enum HoloFracError {
     EmptyPartialQuery,
     InvalidTopK,
     MissingCodebookEntry,
+    IndexOracleMismatch,
 }
 
 impl std::fmt::Display for HoloFracError {
@@ -157,6 +158,9 @@ impl std::fmt::Display for HoloFracError {
             Self::InvalidTopK => f.write_str("partial retrieval top_k must be greater than zero"),
             Self::MissingCodebookEntry => {
                 f.write_str("factorized role codebook is missing an exact typed key")
+            }
+            Self::IndexOracleMismatch => {
+                f.write_str("exact role-postings index disagrees with source graph oracle")
             }
         }
     }
@@ -519,6 +523,8 @@ pub struct SpatialIndex {
     /// Shared role/value vectors. Per-fact records store compact indices into this table.
     role_codebook: Vec<BipolarHV>,
     role_codebook_index: HashMap<(FactSlot, String), usize>,
+    /// Exact postings for each unique typed role/value codebook entry.
+    role_postings: Vec<Vec<usize>>,
     facts: Vec<IndexedFact>,
 }
 
@@ -537,8 +543,10 @@ impl SpatialIndex {
         let mut facts = Vec::with_capacity(graph.facts.len());
         let mut role_codebook = Vec::new();
         let mut role_codebook_index = HashMap::new();
+        let mut role_postings: Vec<Vec<usize>> = Vec::new();
         for fact in &graph.facts {
             let encoded = encoder.encode_fact(graph, fact)?;
+            let fact_index = facts.len();
             let mut role_codebook_indices = [0_usize; 5];
 
             for slot in FactSlot::ALL {
@@ -547,9 +555,11 @@ impl SpatialIndex {
                 let next_index = role_codebook.len();
                 let code_index = *role_codebook_index.entry(key).or_insert_with(|| {
                     role_codebook.push(encoded.slots.get(slot).clone());
+                    role_postings.push(Vec::new());
                     next_index
                 });
                 role_codebook_indices[slot.index()] = code_index;
+                role_postings[code_index].push(fact_index);
             }
 
             facts.push(IndexedFact {
@@ -570,6 +580,7 @@ impl SpatialIndex {
             canonical_keys,
             role_codebook,
             role_codebook_index,
+            role_postings,
             facts,
         };
         Ok((index, started.elapsed().as_secs_f64() * 1_000_000.0))
