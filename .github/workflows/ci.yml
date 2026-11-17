@@ -86,3 +86,101 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  factory-fjsplib-adapter:
+    name: FJSPLib Import + Exact Oracle + CP-SAT Cross-Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Verify pinned FJSPLib corpus inventory
+        shell: bash
+        run: |
+          index="tools/factory-fjsplib-adapter/corpus/fjsplib-index-2026-10-22.tsv"
+          test "$(git hash-object "$index")" = "ffca6cdf55103205bcca73746324f94691ceeb87"
+          awk -F '\\t' '
+            NR == 1 { next }
+            {
+              rows++
+              logical[$1] = 1
+              formats[$6]++
+              classes[$6 "/" $2]++
+            }
+            END {
+              for (id in logical) unique++
+              if (rows != 854 || unique != 452 ||
+                  formats["fjsp"] != 402 || formats["fajsp"] != 452 ||
+                  classes["fjsp/classic_fjsp"] != 138 ||
+                  classes["fjsp/machine_independent_fjsp"] != 264 ||
+                  classes["fajsp/classic_fjsp"] != 138 ||
+                  classes["fajsp/machine_independent_fjsp"] != 264 ||
+                  classes["fajsp/flexible_assembly_fjsp"] != 50) {
+                print "FJSPLib inventory count mismatch" > "/dev/stderr"
+                exit 1
+              }
+            }
+          ' "$index"
+      - name: Verify frozen fixture blob identities
+        shell: bash
+        run: |
+          tab="$(printf '\t')"
+          while IFS="$tab" read -r format path blob_sha1 byte_count provenance; do
+            [[ "$format" == "format" ]] && continue
+            test -n "$path"
+            test "$(wc -c < "$path")" -eq "$byte_count"
+            test "$(git hash-object "$path")" = "$blob_sha1"
+          done < tools/factory-fjsplib-adapter/fixtures/manifest.tsv
+      - name: Format
+        run: cargo fmt --manifest-path tools/factory-fjsplib-adapter/Cargo.toml -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets -- -D warnings
+      - name: Rust tests
+        run: cargo test --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --all-targets
+      - name: Import both FJSPLib formats
+        shell: bash
+        run: |
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fjsp | tee /tmp/fjsplib-fjsp.tsv
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- --reference-fajsp | tee /tmp/fjsplib-fajsp.tsv
+          test "$(wc -l < /tmp/fjsplib-fjsp.tsv)" -eq 16
+          test "$(wc -l < /tmp/fjsplib-fajsp.tsv)" -eq 16
+          awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fjsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp.tsv
+          awk -F '\t' '$1 == "SUMMARY" && $2 == "fattahi1" && $3 == "fajsp" && $4 == "2" && $5 == "2" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp.tsv
+      - name: Import stratified Fattahi sample
+        shell: bash
+        run: |
+          for format in fjsp fajsp; do
+            for instance in fattahi1 fattahi5 fattahi10 fattahi20; do
+              path="tools/factory-fjsplib-adapter/fixtures/${instance}.${format}"
+              cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-inspect -- "$format" "$instance" "$path" \
+                | awk -F '\\t' -v id="$instance" -v fmt="$format" '$1 == "SUMMARY" && $2 == id && $3 == fmt { found=1 } END { exit !found }'
+            done
+          done
+      - name: Verify exact schedule certificates
+        shell: bash
+        run: |
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fjsp | tee /tmp/fjsplib-fjsp-solved.tsv
+          cargo run --quiet --manifest-path tools/factory-fjsplib-adapter/Cargo.toml --bin fjsp-solve -- --reference-fajsp | tee /tmp/fjsplib-fajsp-solved.tsv
+          test "$(wc -l < /tmp/fjsplib-fjsp-solved.tsv)" -eq 8
+          test "$(wc -l < /tmp/fjsplib-fajsp-solved.tsv)" -eq 8
+          awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fjsp-solved.tsv
+          awk -F '\t' '$1 == "SUMMARY" && $4 == "EXACT" && $5 == "true" && $6 == "66" && $7 == "16" && $8 == "120" && $9 == "68" && $10 == "52" { found=1 } END { exit !found }' /tmp/fjsplib-fajsp-solved.tsv
+      - name: Set up benchmark-only Python reference
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pinned OR-Tools CP-SAT
+        run: python -m pip install --disable-pip-version-check --only-binary=:all: ortools==9.15.6755
+      - name: Independent CP-SAT cross-check
+        shell: bash
+        run: |
+          python tools/factory-fjsplib-adapter/reference/ortools_fattahi1_check.py --format fjsp tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp | tee /tmp/fjsplib-cpsat-fjsp-reference.json
+          python tools/factory-fjsplib-adapter/reference/ortools_fattahi1_check.py --format fajsp tools/factory-fjsplib-adapter/fixtures/fattahi1.fajsp | tee /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"status": "OPTIMAL"' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"objective": 66' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"best_bound": 66' /tmp/fjsplib-cpsat-fjsp-reference.json
+          grep -F '"status": "OPTIMAL"' /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"objective": 66' /tmp/fjsplib-cpsat-fajsp-reference.json
+          grep -F '"best_bound": 66' /tmp/fjsplib-cpsat-fajsp-reference.json

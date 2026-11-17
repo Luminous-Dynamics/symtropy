@@ -1,0 +1,9 @@
+format	path	git_blob_sha1	bytes	provenance
+fjsp	tools/factory-fjsplib-adapter/fixtures/fattahi1.fjsp	84e868f74b099f68d05352d645cdbcaf444ddd6b	58	FJSPLib documented fattahi1 text example; frozen local fixture
+fajsp	tools/factory-fjsplib-adapter/fixtures/fattahi1.fajsp	e9eeea2fb0b9382e4857b44cff2cd5d5d2fd0483	65	FJSPLib documented fattahi1 text example; frozen local fixture
+fjsp	tools/factory-fjsplib-adapter/fixtures/fattahi5.fjsp	520dca84217dae8c1c0562d7e424b70a8bd240d1	84	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
+fjsp	tools/factory-fjsplib-adapter/fixtures/fattahi10.fjsp	186843485d656d8991fea756af0fa3cbb1a7b351	154	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
+fjsp	tools/factory-fjsplib-adapter/fixtures/fattahi20.fjsp	5b9016fb09e102a210750e41c265108ff908bdd2	786	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
+fajsp	tools/factory-fjsplib-adapter/fixtures/fattahi5.fajsp	0bd13bc0431b2e95f0b85caff42d4cb2b2795522	95	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
+fajsp	tools/factory-fjsplib-adapter/fixtures/fattahi10.fajsp	191d0f123b395dbd6e426e1e5eb491c03dfaf59d	195	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
+fajsp	tools/factory-fjsplib-adapter/fixtures/fattahi20.fajsp	bc63050faf903bf5606535176160589af0efdaf8	1038	FJSPLib upstream main at 8a6e36ef31263d36975e56fb481e0ba04e188d6f
