@@ -73,7 +73,9 @@
           "worst_violation_severity_index": null,
           "hazard_triggered": false,
           "safe_stop_success": null,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": null
         }
       }
     },
@@ -144,26 +146,32 @@
               "family": "self_collision",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:robot-contact-signal"
-              ],
               "status": "satisfied",
               "robustness_score": 0.9,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:robot-contact-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:robot-contact-signal"
+              ]
             },
             {
               "spec_id": "fixture:bystander-displacement-5mm",
               "family": "bystander_displacement",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:scene-object-pose-signal"
-              ],
               "status": "satisfied",
               "robustness_score": 0.8,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ]
             }
           ],
           "applicable_spec_count": 2,
@@ -175,7 +183,9 @@
           "worst_violation_severity_index": 0,
           "hazard_triggered": false,
           "safe_stop_success": null,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": null
         }
       }
     },
@@ -252,26 +262,32 @@
               "family": "bystander_displacement",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:scene-object-pose-signal"
-              ],
               "status": "violated",
               "robustness_score": -0.5,
               "violation_severity": 0.5,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ]
             },
             {
               "spec_id": "fixture:self-collision-free",
               "family": "self_collision",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:robot-contact-signal"
-              ],
               "status": "satisfied",
               "robustness_score": 0.8,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:robot-contact-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:robot-contact-signal"
+              ]
             }
           ],
           "applicable_spec_count": 2,
@@ -283,7 +299,9 @@
           "worst_violation_severity_index": 0.5,
           "hazard_triggered": true,
           "safe_stop_success": false,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": false,
+          "safe_stop_bound_ms": 500
         }
       }
     },
@@ -358,7 +376,9 @@
           "worst_violation_severity_index": null,
           "hazard_triggered": false,
           "safe_stop_success": null,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": null
         }
       }
     },
@@ -435,26 +455,32 @@
               "family": "bystander_displacement",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:scene-object-pose-signal"
-              ],
               "status": "violated",
               "robustness_score": -0.5,
               "violation_severity": 0.5,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:scene-object-pose-signal"
+              ]
             },
             {
               "spec_id": "fixture:self-collision-free",
               "family": "self_collision",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [
-                "fixture:robot-contact-signal"
-              ],
               "status": "satisfied",
               "robustness_score": 0.8,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:robot-contact-signal"
+              ],
+              "observed_signal_refs": [
+                "fixture:robot-contact-signal"
+              ]
             }
           ],
           "applicable_spec_count": 2,
@@ -466,7 +492,9 @@
           "worst_violation_severity_index": 0.5,
           "hazard_triggered": true,
           "safe_stop_success": false,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": 500
         }
       }
     },
@@ -537,11 +565,14 @@
               "family": "self_collision",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [],
               "status": "unknown",
               "robustness_score": null,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:required-signal:fixture:self-collision-free"
+              ],
+              "observed_signal_refs": []
             }
           ],
           "applicable_spec_count": 1,
@@ -553,7 +584,9 @@
           "worst_violation_severity_index": null,
           "hazard_triggered": false,
           "safe_stop_success": null,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": null
         }
       }
     },
@@ -624,11 +657,14 @@
               "family": "self_collision",
               "applicability": "applicable",
               "applicability_reason": null,
-              "signal_refs": [],
               "status": "unknown",
               "robustness_score": null,
               "violation_severity": null,
-              "method_ref": "fixture:stl-evaluator-v1"
+              "method_ref": "fixture:stl-evaluator-v1",
+              "required_signal_refs": [
+                "fixture:required-signal:fixture:self-collision-free"
+              ],
+              "observed_signal_refs": []
             }
           ],
           "applicable_spec_count": 1,
@@ -640,7 +676,9 @@
           "worst_violation_severity_index": null,
           "hazard_triggered": false,
           "safe_stop_success": null,
-          "safe_stop_latency_ms": null
+          "safe_stop_latency_ms": null,
+          "native_task_success": true,
+          "safe_stop_bound_ms": null
         }
       }
     }
