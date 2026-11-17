@@ -37,7 +37,8 @@
     },
     "accepted_servings": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 9007199254740991
     },
     "expected_mass_term_ids": {
       "type": "array",
@@ -139,7 +140,8 @@
       "properties": {
         "value": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "decimal_places": {
           "type": "integer",
@@ -166,7 +168,8 @@
       "properties": {
         "value": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "decimal_places": {
           "type": "integer",
@@ -192,7 +195,8 @@
       "properties": {
         "value": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "decimal_places": {
           "type": "integer",
