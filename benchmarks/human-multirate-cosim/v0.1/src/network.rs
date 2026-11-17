@@ -213,6 +213,79 @@ impl SpectralOracle {
         }
     }
 
+    /// Exact state after a constant forcing is applied for `duration`.
+    ///
+    /// The forcing is the right-hand-side vector in
+    /// `C * dx/dt = -L*x + forcing`, not a state derivative. The spectral
+    /// formula handles zero modes without division by zero.
+    pub fn state_after_constant_forcing(
+        &self,
+        initial_state: &[f64],
+        forcing: &[f64],
+        duration: f64,
+    ) -> Result<Vec<f64>, NetworkError> {
+        let n = self.capacities.len();
+        if initial_state.len() != n || forcing.len() != n {
+            return Err(NetworkError::InvalidForcingDimension);
+        }
+        if !duration.is_finite() || duration < 0.0 {
+            return Err(NetworkError::InvalidOracleTime);
+        }
+        if initial_state.iter().any(|value| !value.is_finite()) {
+            return Err(NetworkError::InvalidReferenceState);
+        }
+        if forcing.iter().any(|value| !value.is_finite()) {
+            return Err(NetworkError::NonFiniteForcing);
+        }
+
+        let transformed_initial: Vec<f64> = initial_state
+            .iter()
+            .zip(self.sqrt_capacity.iter())
+            .map(|(value, scale)| value * scale)
+            .collect();
+        let transformed_forcing: Vec<f64> = forcing
+            .iter()
+            .zip(self.sqrt_capacity.iter())
+            .map(|(value, scale)| value / scale)
+            .collect();
+
+        let mut transformed_state = vec![0.0; n];
+        for mode in 0..n {
+            let mut initial_coefficient = 0.0;
+            let mut forcing_coefficient = 0.0;
+            for node in 0..n {
+                initial_coefficient +=
+                    self.eigenvectors[node][mode] * transformed_initial[node];
+                forcing_coefficient +=
+                    self.eigenvectors[node][mode] * transformed_forcing[node];
+            }
+
+            let eigenvalue = self.eigenvalues[mode];
+            let decay = (-eigenvalue * duration).exp();
+            let forcing_integral = if eigenvalue.abs() <= 1.0e-14 {
+                duration
+            } else {
+                -(-eigenvalue * duration).exp_m1() / eigenvalue
+            };
+            let modal_state =
+                decay * initial_coefficient + forcing_integral * forcing_coefficient;
+            for (node, value) in transformed_state.iter_mut().enumerate() {
+                *value += self.eigenvectors[node][mode] * modal_state;
+            }
+        }
+
+        let state: Vec<f64> = transformed_state
+            .iter()
+            .zip(self.sqrt_capacity.iter())
+            .map(|(value, scale)| value / scale)
+            .collect();
+        if state.iter().all(|value| value.is_finite()) {
+            Ok(state)
+        } else {
+            Err(NetworkError::NonFiniteOracleState)
+        }
+    }
+
     pub fn state_at(&self, time: f64) -> Result<Vec<f64>, NetworkError> {
         if !time.is_finite() || time < 0.0 {
             return Err(NetworkError::InvalidOracleTime);
@@ -294,6 +367,8 @@ pub struct NetworkScore {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkError {
+    InvalidForcingDimension,
+    NonFiniteForcing,
     InvalidReferenceState,
     InvalidTopologyEventTime,
     TopologyEventNotGridAligned,
@@ -322,6 +397,10 @@ pub enum NetworkError {
 impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidForcingDimension => {
+                write!(f, "forcing and initial state must match the graph dimension")
+            }
+            Self::NonFiniteForcing => write!(f, "forcing vector must contain only finite values"),
             Self::InvalidReferenceState => {
                 write!(f, "reference initial state must match the network dimension and be finite")
             }
@@ -1101,6 +1180,40 @@ mod tests {
                 },
             ],
             horizon: 4.0,
+        }
+    }
+
+    #[test]
+    fn constant_forcing_handles_zero_modes_and_capacity_scaling() {
+        let scenario = NetworkScenario {
+            name: "isolated_two_node_forced_system",
+            capacities: vec![1.0, 2.0],
+            initial: vec![0.0, 0.0],
+            edges: Vec::new(),
+            horizon: 2.0,
+        };
+        let oracle = scenario.spectral_oracle().unwrap();
+        let state = oracle
+            .state_after_constant_forcing(&scenario.initial, &[1.0, 2.0], 2.0)
+            .unwrap();
+        assert!((state[0] - 2.0).abs() < 1.0e-12);
+        assert!((state[1] - 2.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn zero_forcing_matches_the_unforced_spectral_solution() {
+        let scenario = chain();
+        let oracle = scenario.spectral_oracle().unwrap();
+        let forced = oracle
+            .state_after_constant_forcing(
+                &scenario.initial,
+                &[0.0, 0.0, 0.0],
+                0.75,
+            )
+            .unwrap();
+        let unforced = oracle.state_at(0.75).unwrap();
+        for (actual, expected) in forced.iter().zip(unforced.iter()) {
+            assert!((actual - expected).abs() < 1.0e-12);
         }
     }
 
