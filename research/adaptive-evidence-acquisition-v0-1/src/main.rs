@@ -77,11 +77,20 @@ fn main() {
     };
 
     let policies = [
-        ("evidence_gain_per_cost", SelectionPolicy::EvidenceGainPerCost),
+        (
+            "evidence_gain_per_cost",
+            SelectionPolicy::EvidenceGainPerCost,
+        ),
         ("nearest_feasible", SelectionPolicy::NearestFeasible),
-        ("maximum_marginal_evidence", SelectionPolicy::MaximumMarginalEvidence),
+        (
+            "maximum_marginal_evidence",
+            SelectionPolicy::MaximumMarginalEvidence,
+        ),
         ("input_order_fixed_route", SelectionPolicy::InputOrder),
-        ("seeded_hash_order", SelectionPolicy::SeededHashOrder { seed: 7 }),
+        (
+            "seeded_hash_order",
+            SelectionPolicy::SeededHashOrder { seed: 7 },
+        ),
     ];
 
     println!("suite=ADAPTIVE-EVIDENCE-ACQUISITION-001");
@@ -114,5 +123,7 @@ fn main() {
             }
         }
     }
-    println!("note=matched synthetic candidates and budgets; selection policies do not alter qualification gates");
+    println!(
+        "note=matched synthetic candidates and budgets; selection policies do not alter qualification gates"
+    );
 }
