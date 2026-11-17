@@ -64,7 +64,9 @@
             "fault_id": "drop",
             "start_sample": 1,
             "end_sample": 3,
-            "mode": "dropout"
+            "mode": {
+              "mode": "dropout"
+            }
           }
         ]
       },
@@ -113,7 +115,9 @@
             "fault_id": "integrity",
             "start_sample": 1,
             "end_sample": 2,
-            "mode": "integrity_failure"
+            "mode": {
+              "mode": "integrity_failure"
+            }
           }
         ]
       },
@@ -346,7 +350,9 @@
             "fault_id": "stale",
             "start_sample": 0,
             "end_sample": 2,
-            "mode": "stale_calibration"
+            "mode": {
+              "mode": "stale_calibration"
+            }
           }
         ]
       },
