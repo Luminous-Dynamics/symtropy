@@ -107,6 +107,15 @@ impl OperatingDomainCell {
                 errors.push(error);
             }
         }
+        if self.normal_force_n.minimum < 0.0 || self.tangential_force_n.minimum < 0.0 {
+            errors.push("normal/tangential force magnitude ranges must be nonnegative".to_owned());
+        }
+        if self.humidity_percent.minimum < 0.0 || self.humidity_percent.maximum > 100.0 {
+            errors.push("relative humidity range must lie within 0–100 percent RH".to_owned());
+        }
+        if self.contact_velocity_mm_per_s.minimum < 0.0 || self.contact_radius_mm.minimum < 0.0 {
+            errors.push("contact velocity and contact radius ranges must be nonnegative".to_owned());
+        }
         for (name, value) in [
             ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
             ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
@@ -211,6 +220,12 @@ impl QualifiedOperatingEnvelope {
                     .into_iter()
                     .map(|reason| format!("cell {}: {reason}", cell.cell_id)),
             );
+            if cell.sensor_identity_digest != self.sensor_identity_digest {
+                errors.push(format!(
+                    "cell {} sensor identity differs from envelope sensor identity",
+                    cell.cell_id
+                ));
+            }
         }
 
         for left in 0..self.cells.len() {
