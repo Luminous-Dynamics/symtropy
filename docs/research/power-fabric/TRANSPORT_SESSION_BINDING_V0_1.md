@@ -35,9 +35,13 @@ Service type is the output service, not the transport carrier. A free-space opti
 
 A sidecar never changes DISCOVERED/OFFERED/AUTHENTICATED/RESERVED/POSITION_CONFIRMED/ENERGIZED/RAMPING_DOWN/DEENERGIZED/VERIFIED state. Existing local protection and the #3636 session validator remain authoritative.
 
-## Synthetic example
+## Synthetic example and frozen negative controls
 
-`transport-session-binding.example.json` demonstrates a laser-to-photovoltaic-to-battery path. All IDs and hashes are synthetic placeholders; the example is not a valid cryptographic or hardware attestation.
+`transport-session-binding.example.json` demonstrates a laser-to-photovoltaic-to-battery path using three explicit primitives: electrical feed and electro-optic conversion, free-space radiative propagation and optical-to-electric conversion, and receiver-side electrical conduction to the battery terminals. All IDs and hashes are synthetic placeholders; the example is not a valid cryptographic or hardware attestation.
+
+The ten frozen controls in `transport-session-binding-negative-controls.v0.1.jsonl` and their schema cover event-digest mismatch, source/receiver mismatch, source and useful-output boundary mismatch, stale path revision, primitive-chain discontinuity, missing conversion, inadmissible evidence and attempted authority escalation. Expected outcomes distinguish NOT_COMPARABLE, UNRESOLVED and schema rejection. Every case requires the non-authority invariant to remain true.
+
+The scenario corpus is acceptance input for the future validator integration. It is not itself an executed validator result.
 
 ## Next integration
 
