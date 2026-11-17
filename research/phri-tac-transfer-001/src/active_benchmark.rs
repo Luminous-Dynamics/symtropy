@@ -13,6 +13,7 @@
 pub mod adversarial;
 pub mod field_reconstruction;
 pub mod model_forms;
+pub mod prior_study;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
