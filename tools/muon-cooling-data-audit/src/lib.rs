@@ -194,8 +194,7 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
     {
         errors.push("unexpected upstream repository".to_owned());
     }
-    if manifest.pointer("/upstream/ref").and_then(Value::as_str) != Some("2026-11-09-prerelease")
-    {
+    if manifest.pointer("/upstream/ref").and_then(Value::as_str) != Some("2026-11-09-prerelease") {
         errors.push("unexpected upstream ref; pin the 2026-11-09 prerelease snapshot".to_owned());
     }
     if manifest.pointer("/upstream/commit").and_then(Value::as_str)
@@ -268,7 +267,10 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
             .and_then(Value::as_str)
             != Some("f5ff777ee61ec8985a03f5439b272903917c8e8e")
     {
-        errors.push("BDSIM userfile declaration identity does not match the pinned upstream object".to_owned());
+        errors.push(
+            "BDSIM userfile declaration identity does not match the pinned upstream object"
+                .to_owned(),
+        );
     }
 
     let columns = manifest.pointer("/input/columns").and_then(Value::as_array);
@@ -408,7 +410,9 @@ fn parse_records<'a>(
     let expected_count = manifest
         .pointer("/input/expected_record_count")
         .and_then(Value::as_u64)
-        .ok_or_else(|| vec!["input.expected_record_count must be an unsigned integer".to_owned()])?;
+        .ok_or_else(|| {
+            vec!["input.expected_record_count must be an unsigned integer".to_owned()]
+        })?;
 
     let mut count = 0_usize;
     let mut minimum = [f64::INFINITY; COLUMN_COUNT];
