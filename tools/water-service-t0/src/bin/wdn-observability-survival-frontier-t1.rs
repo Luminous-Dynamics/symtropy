@@ -798,8 +798,7 @@ mod tests {
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
         assert_eq!(result["layout_count"], 12);
         assert_eq!(
-            result["matched_layout_count"],
-            12,
+            result["matched_layout_count"], 12,
             "frozen-oracle mismatches: {}",
             result["mismatches"]
         );
@@ -1097,8 +1096,7 @@ mod tests {
         oracle["layouts"][0]["monotonicity_violation_count"] = json!(1);
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
         assert_eq!(
-            result["matched_layout_count"],
-            11,
+            result["matched_layout_count"], 11,
             "altered-oracle mismatch details: {}",
             result["mismatches"]
         );
