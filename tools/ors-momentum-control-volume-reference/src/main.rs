@@ -62,6 +62,13 @@ fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
         case.epoch_s
     )
     .unwrap();
+    writeln!(output, "      \"port_count\": {},", case.port_count).unwrap();
+    writeln!(
+        output,
+        "      \"mass_accumulation_kg_s\": {:.15e},",
+        case.mass_accumulation_kg_s
+    )
+    .unwrap();
     writeln!(
         output,
         "      \"mass_flow_in_kg_s\": {:.15e},",
@@ -80,7 +87,27 @@ fn write_case(output: &mut String, case: &CaseEvaluation, is_last: bool) {
         case.mass_balance_residual_kg_s
     )
     .unwrap();
-    write_vector(output, "advective_momentum_flux_n", case.advective_momentum_flux_n);
+    writeln!(
+        output,
+        "      \"mass_balance_tolerance_kg_s\": {:.15e},",
+        case.mass_balance_tolerance_kg_s
+    )
+    .unwrap();
+    write_vector(
+        output,
+        "momentum_accumulation_n",
+        case.momentum_accumulation_n,
+    );
+    write_vector(
+        output,
+        "other_external_force_n",
+        case.other_external_force_n,
+    );
+    write_vector(
+        output,
+        "advective_momentum_flux_n",
+        case.advective_momentum_flux_n,
+    );
     write_vector(
         output,
         "required_external_resultant_n",
