@@ -1,0 +1,570 @@
+{
+  "schema_version": "highveld-hydrology-source-register-v0.1",
+  "created_date": "2026-11-15",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5350",
+  "evidence_class": "metadata_only_source_discovery",
+  "claim_ceiling": "candidate_sources_discovered_no_data_bytes_acquired_no_usage_rights_admitted_no_catchment_selected",
+  "invariants": [
+    "A source locator is not an acquired dataset.",
+    "Do not record a SHA-256 digest until the exact source bytes are lawfully acquired.",
+    "Audited observations, unaudited operational observations, forecasts, satellite/blended products, reanalysis, laboratory samples and notice assertions are separate populations.",
+    "Unknown rights, calibration, quality flags, station identity, temporal support and uncertainty remain explicit unknowns.",
+    "A dashboard or image is not a substitute for raw, revision-pinned observations."
+  ],
+  "rights_status_vocabulary": [
+    "request_or_registration_required",
+    "public_access_terms_not_yet_reviewed",
+    "published_notice_rights_not_yet_cleared",
+    "unknown"
+  ],
+  "sources": [
+    {
+      "source_id": "DWS-HYDRO-AUDITED-SURFACE-FLOW",
+      "provider": "South African Department of Water and Sanitation",
+      "product": "Hydrological Information System audited data and peak flows",
+      "url": "https://www.dws.gov.za/hydrology/",
+      "data_kind": "audited_hydrometric_observation",
+      "variables": [
+        "surface-water flow",
+        "peak flows",
+        "station metadata (to be confirmed per station)"
+      ],
+      "declared_temporal_support": "monthly and hydrological-year summaries are listed; native station cadence must be confirmed per series",
+      "spatial_support": "station / hydrological catchment; exact station and gauge IDs not yet selected",
+      "access_status": "audited data entry point discoverable; exact data extraction and terms not yet confirmed",
+      "rights_status": "request_or_registration_required",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "candidate source for retrospective observed-flow qualification after exact station, period, revision and quality metadata are admitted",
+      "known_limitations": [
+        "Do not infer every gauge has the same native cadence or completeness.",
+        "Audited status must be bound to the actual export/vintage, not inferred from a web page.",
+        "Rating-curve revisions, datum, gaps, flags and uncertainty need station-specific acquisition."
+      ],
+      "next_action": "Request exact station inventory and audited series for candidate catchments; obtain licence/retention/publication terms."
+    },
+    {
+      "source_id": "DWS-HYDRO-UNAUDITED-OPERATIONAL",
+      "provider": "South African Department of Water and Sanitation",
+      "product": "Near-real-time hydrometric displays, forecasts and routed hydrographs",
+      "url": "https://www.dws.gov.za/hydrology/",
+      "data_kind": "operational_observation_and_forecast_mixed",
+      "variables": [
+        "stage",
+        "flow",
+        "rainfall",
+        "routed hydrograph",
+        "forecast (product-specific)"
+      ],
+      "declared_temporal_support": "near-real-time; exact cadence and timestamp semantics must be confirmed per product",
+      "spatial_support": "selected stations and major river systems; exact coverage to be confirmed",
+      "access_status": "web display discoverable",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "operational context only until each observation and forecast field is distinguished and its status/revision captured",
+      "known_limitations": [
+        "Unaudited observations and forecasts cannot be labelled as audited historical truth.",
+        "Do not use routed forecast outputs as validation targets for observed flow.",
+        "Display availability does not guarantee raw data export or long-term retention."
+      ],
+      "next_action": "Capture product-specific metadata; separate actual observation, forecast issue time, valid time and revision."
+    },
+    {
+      "source_id": "DWS-NGA-GROUNDWATER",
+      "provider": "South African Department of Water and Sanitation",
+      "product": "National Groundwater Archive",
+      "url": "https://www.dws.gov.za/NGANet/",
+      "data_kind": "groundwater_site_and_borehole_point_records",
+      "variables": [
+        "geosite / borehole attributes",
+        "groundwater-related point records; available fields need per-record audit"
+      ],
+      "declared_temporal_support": "time series not assumed; point/site records are the stated archive scope",
+      "spatial_support": "national point/geosite records",
+      "access_status": "registration for clients with a direct interest; user extraction after registration",
+      "rights_status": "request_or_registration_required",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "provider_reported_inventory": "DWS page states more than 294,500 geosites; this is not a count of active, calibrated or time-series monitoring wells",
+      "evidence_ceiling": "site inventory / borehole metadata until temporal measurements, construction, screened interval and measurement method are separately admitted",
+      "known_limitations": [
+        "Do not equate geosite count with monitored well count or groundwater time-series density.",
+        "Point coordinates and borehole logs require CRS/datum and location-quality metadata.",
+        "Pumping status, well construction and screened interval may affect interpretation."
+      ],
+      "next_action": "Complete registration/permission review; request candidate-catchment geosite exports and identify time-series-capable stations."
+    },
+    {
+      "source_id": "DWS-HYDSTRA-GROUNDWATER",
+      "provider": "South African Department of Water and Sanitation",
+      "product": "HYDSTRA surface, groundwater and rainfall data / groundwater-level monitoring network",
+      "url": "https://www.dws.gov.za/Groundwater/data.aspx",
+      "data_kind": "hydrometeorological_and_groundwater_observation",
+      "variables": [
+        "surface water",
+        "groundwater levels",
+        "rainfall; exact fields by export"
+      ],
+      "declared_temporal_support": "series-specific; not stated globally",
+      "spatial_support": "monitoring stations; exact station inventory not yet acquired",
+      "access_status": "DWS page indicates data requests via Georequest Service",
+      "rights_status": "request_or_registration_required",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "candidate observation source; field units, timestamps, quality flags and station continuity remain unverified",
+      "known_limitations": [
+        "Must not infer same sampling rate across variables/stations.",
+        "Groundwater head datum, measuring-point elevation, pumping influences and sensor changes need admission."
+      ],
+      "next_action": "Submit a purpose-specific request for station inventory, variables, periods, quality flags and terms."
+    },
+    {
+      "source_id": "DWS-RQIS-WMS-SURFACE-WATER-QUALITY",
+      "provider": "South African Department of Water and Sanitation",
+      "product": "Resource Quality Information Services / Water Management System",
+      "url": "https://www.dws.gov.za/iwqs/Report.aspx",
+      "data_kind": "laboratory_sample_and_quality_monitoring",
+      "variables": [
+        "raw river/dam chemistry",
+        "eutrophication",
+        "microbiology",
+        "ecosystem information"
+      ],
+      "declared_temporal_support": "sampling-event based; specific methods and frequency must be acquired per monitoring programme",
+      "spatial_support": "named river/dam sampling locations; exact site and location identifiers not yet acquired",
+      "access_status": "some snapshots online; archived raw data for specific rivers/dams can be requested",
+      "rights_status": "request_or_registration_required",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "provider_reported_inventory": null,
+      "evidence_ceiling": "raw surface-water sample evidence only; not household potability or treatment performance",
+      "known_limitations": [
+        "Dashboard snapshots are not a replacement for raw analytical records.",
+        "Need method, laboratory, analyte, units, detection/reporting limits, qualifiers, collection date and sample site.",
+        "Historical compilations must retain their original period and method lineage."
+      ],
+      "next_action": "Request raw records and schema for a named basin; obtain terms and analyte/method metadata."
+    },
+    {
+      "source_id": "SAWS-CLIMATE-STATION-ARCHIVE",
+      "provider": "South African Weather Service",
+      "product": "Climate Services station archive",
+      "url": "https://testing.weathersa.co.za/home/aboutclimateatsaws",
+      "data_kind": "meteorological_station_observation",
+      "variables": [
+        "daily rainfall",
+        "daily surface observations",
+        "hourly wind, temperature, humidity, pressure, sunshine and other station variables"
+      ],
+      "declared_temporal_support": "SAWS page describes daily rainfall values since 1836, selected daily station observations since 1884 and hourly observations from 1950; exact station coverage varies",
+      "spatial_support": "meteorological stations; exact catalogue and station history not acquired",
+      "access_status": "data requested from SAWS climate services",
+      "rights_status": "request_or_registration_required",
+      "commercial_use_note": "SAWS states commercial-use data may carry additional fees and are subject to its data policy; exact permitted purpose and redistribution rights must be confirmed",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "station meteorological observations after station-level QC, metadata and rights admission",
+      "known_limitations": [
+        "Archive start dates are not a guarantee each station has continuous coverage from that date.",
+        "Station relocation, instrument changes, exposure, missingness and QC must be checked.",
+        "No assumption of unrestricted redistribution or resale."
+      ],
+      "next_action": "Request station catalogue and quotes/terms for chosen catchment, variables and evaluation period."
+    },
+    {
+      "source_id": "CHC-CHIRPS-V3",
+      "provider": "Climate Hazards Center, University of California Santa Barbara",
+      "product": "CHIRPS v3 precipitation",
+      "url": "https://www.chc.ucsb.edu/data",
+      "data_kind": "satellite_and_station_blended_precipitation",
+      "variables": [
+        "gridded precipitation"
+      ],
+      "declared_temporal_support": "1981 to near present; product cadence to be chosen and pinned",
+      "spatial_support": "0.05 degree grid, quasi-global coverage 60S–60N",
+      "access_status": "public product catalogue and download instructions",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "gridded blended precipitation forcing; not a local rain gauge or streamflow observation",
+      "known_limitations": [
+        "CHIRPS blends satellite imagery with in-situ station information; station overlap and gauge dependence must be documented where possible.",
+        "Grid-cell representativeness and orographic effects need uncertainty treatment.",
+        "Product version and any reprocessing/revision must be pinned."
+      ],
+      "next_action": "Confirm v3 file formats, licence/attribution/redistribution terms, exact product revision and acquisition path."
+    },
+    {
+      "source_id": "COPERNICUS-ERA5-LAND",
+      "provider": "Copernicus Climate Change Service / ECMWF",
+      "product": "ERA5-Land",
+      "url": "https://climate.copernicus.eu/climate-reanalysis",
+      "data_kind": "land_surface_reanalysis",
+      "variables": [
+        "land-surface meteorological forcing; select explicit variables and units"
+      ],
+      "declared_temporal_support": "1950 onward; hourly and monthly products",
+      "spatial_support": "approximately 9 km global land grid",
+      "access_status": "public Climate Data Store catalogue; product-specific account/terms to be checked",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "reanalysis forcing/context; not direct local station observation",
+      "known_limitations": [
+        "Reanalysis values depend on model/data-assimilation system and are not independent ground truth.",
+        "Do not use a reanalysis-derived target to claim independent observational validation.",
+        "Pin ERA5-Land vs ERA5, product time, version and variable accumulation semantics."
+      ],
+      "next_action": "Select variables, request/download exact grid/time subset and record CDS licence and processing revision."
+    },
+    {
+      "source_id": "NASA-GPM-IMERG-V07",
+      "provider": "NASA Global Precipitation Measurement Mission",
+      "product": "IMERG V07 / V07B precipitation",
+      "url": "https://gpm.nasa.gov/data/directory",
+      "data_kind": "satellite_precipitation_estimate",
+      "variables": [
+        "precipitation rate/accumulation",
+        "product-specific quality/source fields"
+      ],
+      "declared_temporal_support": "January 1998 onward; 30-minute, daily and other product intervals",
+      "spatial_support": "0.1 degree global grid",
+      "access_status": "NASA data access; some services require Earthdata/PPS registration",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "satellite precipitation estimate, distinct from ground gauge observation and from CHIRPS/ERA5",
+      "known_limitations": [
+        "Early, Late and Final products have different latency/processing and must remain distinct.",
+        "Use Final for retrospective research only where appropriate; pin exact V07/V07B release.",
+        "Do not treat half-hourly grid estimates as point gauge measurements."
+      ],
+      "next_action": "Confirm selected V07B product, quality/source fields and user/redistribution terms; pin exact acquisition."
+    },
+    {
+      "source_id": "JOHANNESBURG-WATER-DAILY-NOTICES",
+      "provider": "Johannesburg Water SOC Ltd",
+      "product": "Daily water notice pages and 2026 notice archive",
+      "url": "https://www.johannesburgwater.co.za/media/daily-water-notices-archives/",
+      "data_kind": "publisher_notice_assertion",
+      "variables": [
+        "reported interruption/maintenance",
+        "reported affected place text",
+        "reported start/end times where present",
+        "reported reason/impact/alternative supply where present"
+      ],
+      "declared_temporal_support": "publication and reported event times vary per notice; do not infer missing times",
+      "spatial_support": "reported suburb/street/region labels; no automatic verified geometry",
+      "access_status": "public archive discoverable; notices may be PDF/image files",
+      "rights_status": "published_notice_rights_not_yet_cleared",
+      "acquisition_status": "not_acquired",
+      "byte_count": null,
+      "sha256": null,
+      "evidence_ceiling": "evidence that the publisher issued a notice and made specific claims; not customer-level outage telemetry or independently verified restoration",
+      "known_limitations": [
+        "Publication time is not necessarily outage start/end time.",
+        "Planned work is not proof work occurred; repair notice is not independent restoration proof.",
+        "Spatial labels must not become polygons/customer counts without supported geocoding and denominator evidence."
+      ],
+      "next_action": "Use Mycelix #5431/#6112 event-graph admission; acquire exact notice bytes only under permitted use and preserve original source assertion."
+    }
+  ],
+  "candidate_station_records": [
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H023",
+      "name": "Jukskei River @ Nietgedacht",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 686,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.70 Level (m) SOMMER - Flow"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1965-10-23 to 2025-09-15",
+        "108.00 Downst Level (Metres)": "1971-04-15 to 2025-09-15",
+        "230.70 Level (m) SOMMER - Flow": "2008-09-18 to 2009-02-12"
+      },
+      "missingness": "1% is shown adjacent to the downstream-level series; do not assign to every variable without raw export.",
+      "role": "long-period Jukskei historical candidate",
+      "cautions": [
+        "Principal channels are stage/level; discharge requires a date-valid rating curve.",
+        "The catalogue-listed SOMMER flow period is short.",
+        "Do not assume rating-curve stability across the full historical record."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H040",
+      "name": "Jukskei River @ Waterval",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 199,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-02 to 1993-03-15",
+        "108.00 Downst Level (Metres)": "1979-10-31 to 1992-10-12"
+      },
+      "missingness": "2% missing reported for main level series.",
+      "role": "historical intermediate Jukskei reach",
+      "cautions": [
+        "Main level record ends 1993 in this catalogue; not contemporary validation.",
+        "Both listed variables are level, not discharge."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H042",
+      "name": "Jukskei River @ Lone Hill",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 409,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-01 to 1995-11-20",
+        "108.00 Downst Level (Metres)": "1971-07-13 to 1996-05-20"
+      },
+      "missingness": "11% missing reported for main level series.",
+      "role": "historical mid-catchment Jukskei comparison",
+      "cautions": [
+        "Main level record ends 1995 in this catalogue.",
+        "Listed channels are levels; a rating table and its validity period are needed for discharge."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H044",
+      "name": "Jukskei River @ Vlakfontein",
+      "drainage_region": "A21H",
+      "catchment_area_km2": 798,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.09 Level (m) Cello primary hg"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-18 to 2025-09-16",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-09-16",
+        "230.09 Level (m) Cello primary hg": "2014-01-01 to 2016-03-31"
+      },
+      "missingness": "8% missing on primary level; 14% on Cello primary high-resolution series.",
+      "role": "long-duration larger Jukskei outlet candidate",
+      "cautions": [
+        "Stage-to-discharge conversion must bind the exact rating-table revision and uncertainty.",
+        "Cello high-resolution series is short and has 14% listed missingness.",
+        "Urban return flows, abstractions and transfers may confound natural runoff interpretation."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H045",
+      "name": "Krokodil River @ Vlakfontein",
+      "drainage_region": "A21H",
+      "catchment_area_km2": 653,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)",
+        "230.09 Level (m) Cello primary hg"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1972-05-25 to 2025-09-16",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-09-16",
+        "230.09 Level (m) Cello primary hg": "2014-01-01 to 2016-04-20"
+      },
+      "missingness": "5% missing on primary level; 42% on Cello primary high-resolution series.",
+      "role": "separate Crocodile comparator, not Jukskei",
+      "cautions": [
+        "Different river/catchment; do not splice with Jukskei series.",
+        "Cello series has 42% missingness.",
+        "Stage-to-discharge conversion requires a pinned rating table."
+      ]
+    },
+    {
+      "provider": "DWS",
+      "catalogue": "WMA1 Limpopo–Olifants River station catalogue",
+      "catalogue_generated": "2025-11-16",
+      "catalogue_url": "https://www.dws.gov.za/Hydrology/Verified/dwafapp2_wma/WMA1_Limpopo-Olifants_River.pdf",
+      "record_kind": "station metadata only; raw series not acquired",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "status": "candidate_only_not_admitted",
+      "station_id": "A2H047",
+      "name": "Little Jukskei River @ Klipfontein",
+      "drainage_region": "A21C",
+      "catchment_area_km2": 65,
+      "variables": [
+        "100.00 Level (Metres)",
+        "108.00 Downst Level (Metres)"
+      ],
+      "periods": {
+        "100.00 Level (Metres)": "1971-07-21 to 2025-09-15",
+        "108.00 Downst Level (Metres)": "1980-09-24 to 2025-07-15"
+      },
+      "missingness": "Not shown in the catalogue excerpt for these channels; unknown pending series-level export.",
+      "live_station_url": "https://www.dws.gov.za/hydrology/Verified/HyDataSets.aspx?Station=A2H047",
+      "role": "small urban catchment challenge candidate",
+      "live_page_features": [
+        "DWS page exposes gaps-report and rating-table entry points.",
+        "DWS page says primary data queries are limited to 7,000 records or one year; daily data queries to 20 years; multiple queries may be needed."
+      ],
+      "cautions": [
+        "Listed channels are levels, not discharge.",
+        "No raw series, gaps report or rating table has been acquired.",
+        "Small urban catchment is not automatically representative of all Highveld urban basins."
+      ]
+    }
+  ],
+  "station_catalogue_method_notes": [
+    "Catalogue vintage is 16 November 2025; it is a metadata snapshot, not proof that every series is currently available.",
+    "A2H023, A2H040, A2H042, A2H044 and A2H047 are Jukskei/Little Jukskei stations; A2H045 is Crocodile River and must remain a separate comparator.",
+    "Catalogue channels 100.00 and 108.00 are level series. A flow estimate must bind the correct rating-table revision, effective dates, datum, extrapolation limits and uncertainty. Never label water level as discharge.",
+    "All candidate station records remain not acquired; no usage rights, quality flag, calibration, rating curve, gap report or raw data is admitted by this register.",
+    "Missingness values are catalogue summaries and should be associated only with the named series when the catalogue identifies the relation; verify from the raw gap report before benchmark inclusion.",
+    "A2H040 and A2H042 have older end dates in the current catalogue; they are historical-only candidates unless supplementary contemporary data are found.",
+    "No preferred catchment or station is selected by this matrix.",
+    "DWS RQIS/WMS index metadata lists A2H044 chemistry site A21-90189 with 1,649 indexed observations from 1971-12-06 to 2018-05-21; A2H047 site A21-90191 with 639 from 1971-12-06 to 2018-06-05; A2H042 site A21-90187 with 952 from 1971-12-06 to 1997-10-13. These are index metadata, not acquired raw sample records.",
+    "A 2016 DWS national monitoring-network review says A2H023 may be redundant if A2H044 can be upgraded and return flow measured at N21; it describes A2H047 as a small urban catchment. Treat this as historical design context, not verified present-day station status or an installed return-flow measurement.",
+    "Any urban Jukskei runoff benchmark should separately admit wastewater return flows and other transfers/abstractions; absent anthropogenic flux records must trigger abstention/downgrade under hydro-contextual evaluator control HC-T0-013."
+  ],
+  "candidate_quality_records": [
+    {
+      "sample_site_id": "A21-90189",
+      "station_link": "A2H044",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Vlakfontein 494 JQ on Jukskeirivier (NCWQ)",
+      "sample_count_as_listed": 1649,
+      "listed_period": "1971-12-06 to 2018-05-21",
+      "coordinates_as_listed": {
+        "latitude": -25.8955,
+        "longitude": 27.93481
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Index row count is not a validated sample/analyte count until raw export is inspected.",
+        "Do not combine this chemistry series with hydraulic flow observations without time-window/site identity and sampling-method crosswalk.",
+        "Do not infer drinking-water suitability from raw river chemistry."
+      ]
+    },
+    {
+      "sample_site_id": "A21-90191",
+      "station_link": "A2H047",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Klipfontein/Randburg on Klein-Jukskeirivier (NCWQ)",
+      "sample_count_as_listed": 639,
+      "listed_period": "1971-12-06 to 2018-06-05",
+      "coordinates_as_listed": {
+        "latitude": -26.06818,
+        "longitude": 27.97202
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Index row count is not a validated sample/analyte count until raw export is inspected.",
+        "Small urban catchment sampling may be useful for urban-water quality challenge cases but is not a representative all-Highveld population.",
+        "Do not infer potable or reuse quality."
+      ]
+    },
+    {
+      "sample_site_id": "A21-90187",
+      "station_link": "A2H042",
+      "provider": "DWS Resource Quality Information Services / Water Management System",
+      "source_url": "https://www.dws.gov.za/iwqs/wms/data/A_reg_WMS_nobor.htm",
+      "source_label": "Jukskei River at Lone Hill",
+      "sample_count_as_listed": 952,
+      "listed_period": "1971-12-06 to 1997-10-13",
+      "coordinates_as_listed": {
+        "latitude": -26.00528,
+        "longitude": 28.03333
+      },
+      "data_kind": "surface_water_quality_sampling_index",
+      "acquisition_status": "not_acquired",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null,
+      "evidence_ceiling": "candidate metadata for historical chemistry sampling; raw analytes, methods, units, sample identities, detection limits and laboratory QC not acquired",
+      "cautions": [
+        "Listed period is historical and does not imply ongoing monitoring.",
+        "Sample count must be validated against raw records and parameter availability."
+      ]
+    }
+  ],
+  "network_design_evidence": [
+    {
+      "source_id": "DWS-NWRM-NETWORK-REVIEW-2016",
+      "publisher": "South African Department of Water and Sanitation",
+      "title": "Review, Evaluation and Optimisation of the South African Water Resources Monitoring Network — Final, August 2016",
+      "source_url": "https://www.dws.gov.za/Projects/NWRM/doc/Main%20Scientific%20Review%20Report%20Annexure%20%20-%20Final%20August%202016.pdf",
+      "evidence_kind": "historical_monitoring_network_review",
+      "relevant_finding_as_published": "A2H023 (Jukskei @ Nietgedacht) was described as possibly redundant if A2H044 could be upgraded and return flow measured at N21; A2H047 was described as a small urban catchment.",
+      "interpretation": "Historical planning context only. It does not prove a present-day A2H023/A2H044 station status, A2H044 upgrade, N21 flow meter installation, or current redundancy.",
+      "engineering_implication": "For urban Jukskei benchmark selection, explicitly audit wastewater treatment-plant return flows, N21 or equivalent transfers, abstractions and channel diversions before interpreting catchment outlet hydrographs as rainfall-runoff.",
+      "acquisition_status": "public_report_locator_only",
+      "rights_status": "public_access_terms_not_yet_reviewed",
+      "sha256": null
+    }
+  ]
+}
