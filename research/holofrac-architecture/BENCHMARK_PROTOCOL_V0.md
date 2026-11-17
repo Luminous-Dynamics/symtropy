@@ -105,7 +105,7 @@ Required controls:
 - non-fractal branching graphs;
 - recursive structures with deliberately broken scale similarity.
 
-The first executable point-set lab uses Sierpiński (known D=log(3)/log(2)), regular-grid, uniform-random and line-segment controls. It reports the complete box-count curve at resolutions 4 through 256, four systematic half-box grid translations at every scale, a predeclared 4-to-128 regression window, R², log-count residual RMSE, scale-window slope spread and grid-translation count spread.
+The first executable point-set lab uses Sierpiński (known D=log(3)/log(2)), regular-grid, uniform-random and line-segment controls. It reports the complete box-count curve at resolutions 4 through 256, four systematic half-box grid translations at every scale, a predeclared 16-to-128 regression window (retaining coarser 4 and 8 counts as diagnostics but excluding them from the fit), R², log-count residual RMSE, scale-window slope spread and grid-translation count spread.
 
 Do not use the coarsest and finest scales automatically: finite sample counts bias large-scale counts, while finite digital resolution and point discreteness distort small scales. Do not tune the fit window by selecting the highest R² or closest expected dimension. Compare predefined fit windows, report the sensitivity and retain every failed/unstable case. Box counting is only one estimator; for empirical time series consider correlation-sum/generalized-entropy and other estimator-specific methods with their own null tests. A recursively generated hierarchy is classified as recursive/hierarchical unless statistical scaling evidence supports a fractal descriptor.
 
