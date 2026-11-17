@@ -3,6 +3,7 @@
 //! The solver is intentionally narrow. It is a reference for axial bar
 //! mechanics and kinematic-mechanism detection, not a production FEM code.
 
+pub mod beam_element;
 pub mod benchmark;
 pub mod damage;
 pub mod interfaces;
