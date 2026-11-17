@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-traffic-demand-trace:v1",
+  "title": "HAPS traffic demand trace v1",
+  "description": "A time-indexed, provenance-bound per-cell demand input for HAPS service and network-orchestration benchmarks. The trace describes offered and terrestrial-available load; it does not model radio propagation or beam capacity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "trace_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "region_ref",
+    "source",
+    "time_basis",
+    "horizon_s",
+    "interval_duration_s",
+    "cells",
+    "intervals",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-traffic-demand-trace/v1"
+    },
+    "trace_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "operator_measurement",
+        "replayed_telemetry",
+        "traffic_forecast"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_demand_input",
+        "offline_traffic_replay"
+      ]
+    },
+    "region_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_uri",
+        "source_digest",
+        "rights_or_license_ref",
+        "initialization_time_utc",
+        "available_at_decision_time",
+        "reanalysis_not_used_as_live_forecast"
+      ],
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "synthetic_generator",
+            "operator_traffic_trace",
+            "network_telemetry",
+            "traffic_forecast",
+            "reanalysis"
+          ]
+        },
+        "source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "source_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_or_license_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "initialization_time_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "available_at_decision_time": {
+          "type": "boolean"
+        },
+        "reanalysis_not_used_as_live_forecast": {
+          "const": true
+        }
+      }
+    },
+    "time_basis": {
+      "enum": [
+        "valid_time",
+        "observation_time",
+        "issue_time"
+      ]
+    },
+    "horizon_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "interval_duration_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cell_id",
+          "latitude_deg",
+          "longitude_deg",
+          "priority_weight",
+          "service_class"
+        ],
+        "properties": {
+          "cell_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "latitude_deg": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "priority_weight": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "service_class": {
+            "enum": [
+              "public_broadband",
+              "emergency",
+              "health",
+              "critical_infrastructure",
+              "iot",
+              "other"
+            ]
+          }
+        }
+      }
+    },
+    "intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "offset_s",
+          "cell_loads"
+        ],
+        "properties": {
+          "offset_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cell_loads": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "cell_id",
+                "offered_load_mbps",
+                "terrestrial_available_mbps"
+              ],
+              "properties": {
+                "cell_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "offered_load_mbps": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "terrestrial_available_mbps": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$comment": "Semantic checks: intervals are strictly increasing, contiguous and fit the horizon; each interval has exactly one load row per declared cell; all cell IDs are declared; offsets align to interval_duration_s; horizon_s equals interval_count × interval_duration_s; critical excess is derived as max(offered minus terrestrial capacity, 0); synthetic traces must not be described as operator measurements."
+}
