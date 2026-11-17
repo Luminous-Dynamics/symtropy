@@ -2,7 +2,7 @@ use std::env;
 use std::fmt::Write as _;
 use std::process::ExitCode;
 
-use ors_momentum_control_volume_reference::{evaluate_corpus, CaseEvaluation};
+use ors_momentum_control_volume_reference::{CaseEvaluation, evaluate_corpus};
 
 fn valid_hex(value: &str, length: usize) -> bool {
     value.len() == length
@@ -29,7 +29,11 @@ fn json_string(value: &str) -> String {
     output
 }
 
-fn write_vector(output: &mut String, key: &str, value: ors_momentum_control_volume_reference::Vector3) {
+fn write_vector(
+    output: &mut String,
+    key: &str,
+    value: ors_momentum_control_volume_reference::Vector3,
+) {
     writeln!(
         output,
         "      \"{}\": {{\"x\": {:.15e}, \"y\": {:.15e}, \"z\": {:.15e}}},",
@@ -152,9 +156,14 @@ fn receipt(
     )
     .unwrap();
     writeln!(output, "  \"result\": \"pass\",").unwrap();
+    let claim_ceiling = concat!(
+        "Exact-vector advective mass-momentum bookkeeping only; ",
+        "no physical qualification."
+    );
     writeln!(
         output,
-        "  \"claim_ceiling\": \"Exact-vector advective mass-momentum bookkeeping only; no physical qualification.\","
+        "  \"claim_ceiling\": {},",
+        json_string(claim_ceiling)
     )
     .unwrap();
     writeln!(output, "  \"cases\": [").unwrap();
@@ -183,7 +192,9 @@ fn run() -> Result<(), String> {
         return Err("source commit must be a 40-character lowercase hexadecimal SHA".to_owned());
     }
     if !valid_hex(&args[3], 64) || !valid_hex(&args[5], 64) {
-        return Err("corpus digests must be 64-character lowercase hexadecimal SHA-256 values".to_owned());
+        return Err(
+            "corpus digests must be 64-character lowercase hexadecimal SHA-256 values".to_owned(),
+        );
     }
 
     let cases_csv = include_str!("../cases-v0.1.csv");
