@@ -350,6 +350,16 @@ impl FactSlot {
         Self::Object,
         Self::ObjectScale,
     ];
+
+    pub(crate) const fn index(self) -> usize {
+        match self {
+            Self::Subject => 0,
+            Self::SubjectScale => 1,
+            Self::Predicate => 2,
+            Self::Object => 3,
+            Self::ObjectScale => 4,
+        }
+    }
 }
 
 /// Exact, typed role value used as a factorized codebook key.
@@ -483,6 +493,7 @@ struct IndexedFact {
     fact: SpatialFact,
     bipolar: BipolarHV,
     continuous_f32_view: ContinuousHV,
+    role_codebook_indices: [usize; 5],
 }
 
 /// A prebuilt index. Candidate vectors and canonical keys are computed once;
@@ -494,8 +505,9 @@ pub struct SpatialIndex {
     encoder_spec: EncoderSpec,
     encoder_fingerprint_non_security: u64,
     canonical_keys: Vec<String>,
-    /// One deterministic bipolar vector per exact typed role/value key.
-    role_codebook: HashMap<(FactSlot, String), BipolarHV>,
+    /// Shared role/value vectors. Per-fact records store compact indices into this table.
+    role_codebook: Vec<BipolarHV>,
+    role_codebook_index: HashMap<(FactSlot, String), usize>,
     facts: Vec<IndexedFact>,
 }
 
@@ -512,19 +524,28 @@ impl SpatialIndex {
         let encoder_fingerprint_non_security = encoder.fingerprint();
 
         let mut facts = Vec::with_capacity(graph.facts.len());
-        let mut role_codebook = HashMap::new();
+        let mut role_codebook = Vec::new();
+        let mut role_codebook_index = HashMap::new();
         for fact in &graph.facts {
             let encoded = encoder.encode_fact(graph, fact)?;
+            let mut role_codebook_indices = [0_usize; 5];
+
             for slot in FactSlot::ALL {
                 let value = fact_slot_value(graph, fact, slot)?;
-                role_codebook
-                    .entry((slot, value))
-                    .or_insert_with(|| encoded.slots.get(slot).clone());
+                let key = (slot, value);
+                let next_index = role_codebook.len();
+                let code_index = *role_codebook_index.entry(key).or_insert_with(|| {
+                    role_codebook.push(encoded.slots.get(slot).clone());
+                    next_index
+                });
+                role_codebook_indices[slot.index()] = code_index;
             }
+
             facts.push(IndexedFact {
                 fact: fact.clone(),
                 bipolar: encoded.bipolar,
                 continuous_f32_view: encoded.continuous_f32_view,
+                role_codebook_indices,
             });
         }
 
@@ -537,6 +558,7 @@ impl SpatialIndex {
             encoder_fingerprint_non_security,
             canonical_keys,
             role_codebook,
+            role_codebook_index,
             facts,
         };
         Ok((index, started.elapsed().as_secs_f64() * 1_000_000.0))
@@ -1151,7 +1173,20 @@ mod tests {
             report.role_slot_index_bytes_estimate,
             report.unique_role_codebook_entries * dimension * std::mem::size_of::<i8>()
         );
-        assert!(report.unique_role_codebook_entries <= facts * 5);
+        assert!(report.unique_role_codebook_entries < facts * 5);
+        let encoder = HoloFracEncoder::new(spec(dimension, 43)).unwrap();
+        let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
+        for indexed in &index.facts {
+            let encoded = encoder.encode_fact(&graph, &indexed.fact).unwrap();
+            for slot in FactSlot::ALL {
+                let code_index = indexed.role_codebook_indices[slot.index()];
+                assert_eq!(
+                    index.role_codebook[code_index],
+                    *encoded.slots.get(slot)
+                );
+            }
+        }
+        assert_eq!(index.role_codebook.len(), index.role_codebook_index.len());
         assert_eq!(
             report.retained_vector_payload_bytes_estimate,
             report.dual_view_index_bytes_estimate + report.role_slot_index_bytes_estimate
