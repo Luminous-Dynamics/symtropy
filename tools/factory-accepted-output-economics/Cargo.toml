@@ -1,0 +1,13 @@
+[package]
+name = "factory-accepted-output-economics"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+
+[lib]
+name = "factory_accepted_output_economics"
+path = "src/lib.rs"
+
+[[bin]]
+name = "factory-accepted-output-economics"
+path = "src/main.rs"
