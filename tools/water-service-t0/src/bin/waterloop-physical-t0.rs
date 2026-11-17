@@ -1423,6 +1423,26 @@ fn run() -> Result<i32, String> {
     let lock_bytes =
         fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
 
+    const DESIGN_ARTIFACTS: [(&str, &str); 11] = [
+        ("module_interface", "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json"),
+        ("pid_tag_schedule", "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json"),
+        ("preliminary_bom", "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json"),
+        ("fmea_starter", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json"),
+        ("challenge_profiles", "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json"),
+        ("architecture_document", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md"),
+        ("module_interface_schema", "research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.schema.json"),
+        ("pid_schema", "research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.schema.json"),
+        ("bom_schema", "research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.schema.json"),
+        ("fmea_schema", "research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.schema.json"),
+        ("challenge_profile_schema", "research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.schema.json"),
+    ];
+    let mut design_artifact_digests = serde_json::Map::new();
+    for (name, relative_path) in DESIGN_ARTIFACTS {
+        let bytes = fs::read(relative_path)
+            .map_err(|error| format!("read design artifact {relative_path}: {error}"))?;
+        design_artifact_digests.insert(name.to_owned(), json!(sha256(&bytes)));
+    }
+
     let receipt = json!({
         "schema_version": "waterloop-physical-t0-run-v0.1",
         "verification_state": if !success {
@@ -1438,6 +1458,7 @@ fn run() -> Result<i32, String> {
         "manifest_sha256": sha256(&manifest_bytes),
         "oracle_sha256": sha256(&oracle_bytes),
         "cargo_lock_sha256": sha256(&lock_bytes),
+        "design_artifact_sha256": design_artifact_digests,
         "result_count": total,
         "matched_case_count": matched,
         "mismatches": evaluation["mismatches"].clone(),
