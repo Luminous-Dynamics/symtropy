@@ -196,8 +196,8 @@ mod tests {
         let corpus = include_str!("../cases-v0.1.csv");
         let output = receipt(&"a".repeat(40), &"b".repeat(64), corpus)
             .expect("reference passes");
-        assert!(output.contains("\\"predicted_force_n\\": null"));
-        assert!(output.contains("\\"table_force_n\\": null"));
+        assert!(output.contains("\"predicted_force_n\": null"));
+        assert!(output.contains("\"table_force_n\": null"));
     }
 
     #[test]
