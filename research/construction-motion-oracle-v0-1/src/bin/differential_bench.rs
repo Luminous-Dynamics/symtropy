@@ -590,7 +590,7 @@ fn run_multibody_broadphase_benchmarks() {
             let (p50, p95, p99, candidates) =
                 measure_whole_horizon_all_pairs(&bodies, 21);
             println!(
-                "sparse,{count},1,whole-horizon-all-pairs,{},{},{candidates},0,0,{all_pairs}",
+                "sparse,{count},1,whole-horizon-all-pairs,{},{},{},{candidates},0,0,{all_pairs}",
                 p50.as_micros(),
                 p95.as_micros(),
                 p99.as_micros()
