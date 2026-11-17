@@ -1,0 +1,60 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "JW-WATER-CASCADE-T0",
+  "manifest_status": "metadata_only_candidate_sources",
+  "created_on": "2026-11-17",
+  "sources": [
+    {
+      "source_id": "WATERSEARCH_JW_REPORTED_STATUS",
+      "publisher": "Watersearch (independent compilation; not Johannesburg Water or the City)",
+      "locator": "https://watersearch.co.za/api",
+      "source_kind": "publisher_compilation_of_utility_reports",
+      "current_candidate_release": "2026-11-17-ee99662f",
+      "licence_statement": "Publisher documentation states CC BY 4.0 for its compilation and credit to Johannesburg Water for underlying facts; the licence is marked provisional until the site is public.",
+      "acquisition_state": "api_documentation_and_live_examples_observed;_bulk_release_not_acquired",
+      "licence_state": "provisional_revalidate_per_release_and_response_header",
+      "raw_bytes_acquired": false,
+      "sha256": null,
+      "evidence_ceiling": "reported utility asset status and publisher-derived episodes only; not household tap service, physical restoration, hydrometric flow, water quality or verified cause"
+    },
+    {
+      "source_id": "DWS_HYDROLOGICAL_SERVICES",
+      "publisher": "South African Department of Water and Sanitation",
+      "locator": "https://www.dws.gov.za/hydrology/",
+      "source_kind": "candidate_station_and_hydrometric_products",
+      "current_candidate_release": null,
+      "licence_statement": "Access, reuse and publication terms must be checked for the exact product and acquisition route.",
+      "acquisition_state": "candidate_source_not_acquired",
+      "licence_state": "not_assessed_for_a_specific_station_or_file",
+      "raw_bytes_acquired": false,
+      "sha256": null,
+      "evidence_ceiling": "station-specific audited/provisional observation only; stage is not discharge without a valid rating relation and uncertainty"
+    },
+    {
+      "source_id": "SAWS_CLIMATE_SERVICES",
+      "publisher": "South African Weather Service",
+      "locator": "https://testing.weathersa.co.za/home/aboutclimateatsaws",
+      "source_kind": "candidate_station_meteorological_observations",
+      "current_candidate_release": null,
+      "licence_statement": "Data policy, fee and permitted-use terms must be confirmed before acquisition or redistribution.",
+      "acquisition_state": "candidate_source_not_acquired",
+      "licence_state": "not_assessed_for_a_specific_station_or_file",
+      "raw_bytes_acquired": false,
+      "sha256": null,
+      "evidence_ceiling": "station/parameter/time-specific meteorological observations only; not utility supply state or point-of-use service"
+    },
+    {
+      "source_id": "POINT_OF_USE_TEST_CELL",
+      "publisher": "Luminous Dynamics (future independently metered test-cell evidence)",
+      "locator": null,
+      "source_kind": "future_local_pressure_flow_measurement",
+      "current_candidate_release": null,
+      "licence_statement": "Not applicable to synthetic fixture; physical site and instrumentation permissions are not established.",
+      "acquisition_state": "not_installed_not_measured",
+      "licence_state": "not_applicable",
+      "raw_bytes_acquired": false,
+      "sha256": null,
+      "evidence_ceiling": "future site/fixture-specific pressure, flow and volume only after calibration, timebase, intended-use and metrology admission"
+    }
+  ]
+}
