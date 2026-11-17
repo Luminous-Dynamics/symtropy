@@ -1,13 +1,6 @@
 name: HoloFrac spatial retrieval
 
 on:
-  push:
-    branches:
-      - research/holofrac-architecture-v0
-    paths:
-      - "research/holofrac-retrieval/**"
-      - "crates/core/symtropy-hdc-core/**"
-      - ".github/workflows/holofrac-spatial-retrieval.yml"
   pull_request:
     branches:
       - research/freeflow-modular-fractal-v0
@@ -58,6 +51,9 @@ jobs:
           echo "factorization capacity sweep:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin factorization_sweep > artifacts/factorization-sweep.csv
           cat artifacts/factorization-sweep.csv
+          echo "continuous spatial field:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin field_sweep > artifacts/continuous-field.csv
+          cat artifacts/continuous-field.csv
 
       - name: Upload raw benchmark outputs
         if: always()
