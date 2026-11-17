@@ -154,6 +154,9 @@ pub fn audit_bytes(manifest: &Value, input_bytes: &[u8]) -> Result<Value, Vec<St
         "native_distribution_summary": stats_value,
         "model_context": {
             "bdsim_lattice": manifest["bdsim_lattice"],
+            "bdsim_muoncooler_implementation": manifest["bdsim_muoncooler_implementation"],
+            "published_bdsim_references": manifest["published_bdsim_references"],
+            "benchmark_alignment": manifest["benchmark_alignment"],
             "g4bl_baseline": manifest["g4bl_baseline"],
             "g4bl_run_log": manifest["g4bl_run_log"],
             "cross_code_equivalence": "not_established"
@@ -395,6 +398,76 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
             "the G4BL source log must preserve decay-disabled and survival-not-evaluated semantics"
                 .to_owned(),
         );
+    }
+
+    let implementation = manifest.get("bdsim_muoncooler_implementation");
+    let implementation_valid = implementation.is_some_and(|model| {
+        model.get("repository").and_then(Value::as_str) == Some("bdsim-collaboration/bdsim")
+            && model.get("commit").and_then(Value::as_str)
+                == Some("d18134084b3960ba07bea81a7e2772114062f8b3")
+            && model.get("source_path").and_then(Value::as_str)
+                == Some("examples/muoncooling/muoncooler.gmad")
+            && model.get("git_blob_sha1").and_then(Value::as_str)
+                == Some("a71dbf70605d3dbed9b27fab43436a77a8171d6d")
+            && model.get("byte_length").and_then(Value::as_u64) == Some(2489)
+            && model.get("license").and_then(Value::as_str) == Some("GPL-3.0")
+            && model.get("example_scope").and_then(Value::as_str)
+                == Some("5 m executable component example; not the published 80 m or 100 m full-channel study")
+            && model.pointer("/declared_configuration/total_component_length_m").and_then(Value::as_f64) == Some(5.0)
+            && model.pointer("/declared_configuration/coils").and_then(Value::as_u64) == Some(6)
+            && model.pointer("/declared_configuration/dipoles").and_then(Value::as_u64) == Some(1)
+            && model.pointer("/declared_configuration/absorbers").and_then(Value::as_u64) == Some(2)
+            && model.pointer("/declared_configuration/rf_cavities").and_then(Value::as_u64) == Some(12)
+            && model.pointer("/declared_configuration/absorber_material").and_then(Value::as_str) == Some("G4_LITHIUM_HYDRIDE")
+            && model.pointer("/declared_configuration/beam_particle").and_then(Value::as_str) == Some("mu+")
+            && model.pointer("/declared_configuration/beam_momentum_mev_c").and_then(Value::as_f64) == Some(200.0)
+            && model.get("equivalence_to_wg4_102_coil_model").and_then(Value::as_bool) == Some(false)
+    });
+    if !implementation_valid {
+        errors.push(
+            "the separate BDSIM muoncooler example identity/configuration must remain pinned and non-equivalent to the WG4 102-coil skeleton".to_owned()
+        );
+    }
+
+    let d4 = manifest.pointer("/published_bdsim_references/mu_col_d4_1");
+    let d4_valid = d4.is_some_and(|reference| {
+        reference.get("deliverable").and_then(Value::as_str) == Some("MuCol D4.1")
+            && reference.get("url").and_then(Value::as_str)
+                == Some("https://indico.cern.ch/event/1517584/attachments/3020990/5329912/MuCol_D4_1.pdf")
+            && reference.get("channel_length_m").and_then(Value::as_f64) == Some(80.0)
+            && reference.get("evidence_class").and_then(Value::as_str) == Some("published_simulation_report")
+            && reference.get("muon_decay_status").and_then(Value::as_str)
+                == Some("not established by the cited 80 m emittance plots")
+    });
+    if !d4_valid {
+        errors.push("MuCol D4.1 must remain an 80 m published simulation reference, not a locally reproduced output".to_owned());
+    }
+
+    let ipac = manifest.pointer("/published_bdsim_references/ipac26_mop1048");
+    let ipac_valid = ipac.is_some_and(|reference| {
+        reference.get("doi").and_then(Value::as_str)
+            == Some("10.18429/JACoW-IPAC2026-MOP1048")
+            && reference.get("url").and_then(Value::as_str)
+                == Some("https://www.ipac26.org/prepress/pdf/MOP1048.pdf")
+            && reference.get("channel_length_m").and_then(Value::as_f64) == Some(100.0)
+            && reference.get("reference_momentum_mev_c").and_then(Value::as_f64) == Some(200.0)
+            && reference.get("six_d_emittance_reduction_factor_approx").and_then(Value::as_f64) == Some(2.3)
+            && reference.get("transmission_fraction_approx").and_then(Value::as_f64) == Some(0.93)
+            && reference.get("muon_decay_enabled").and_then(Value::as_bool) == Some(false)
+            && reference.get("input_asset_identity_to_pinned_lowemittancebeam_dat").and_then(Value::as_str) == Some("not_verified")
+    });
+    if !ipac_valid {
+        errors.push("IPAC'26 MOP1048 must preserve the published 100 m, 200 MeV/c, approximately 2.3x, approximately 93%, decay-disabled and input-identity-not-verified status".to_owned());
+    }
+
+    if manifest.pointer("/benchmark_alignment/wg4_102_coil_model_vs_published_muoncooler").and_then(Value::as_str)
+        != Some("not_equivalent")
+        || manifest.pointer("/benchmark_alignment/pinned_lowemittancebeam_dat_vs_ipac26_initial_distribution").and_then(Value::as_str)
+            != Some("not_verified")
+        || manifest.pointer("/benchmark_alignment/cross_code_equivalence").and_then(Value::as_str)
+            != Some("not_established")
+    {
+        errors.push("published BDSIM studies, pinned WG4 input and G4Beamline source must retain separate evidence identities".to_owned());
     }
 
     if !errors.is_empty() {
@@ -677,6 +750,50 @@ mod tests {
                 "decay_process_disabled":true,
                 "muon_survival_status":"not_evaluated"
             },
+            "bdsim_muoncooler_implementation": {
+                "repository":"bdsim-collaboration/bdsim",
+                "commit":"d18134084b3960ba07bea81a7e2772114062f8b3",
+                "source_path":"examples/muoncooling/muoncooler.gmad",
+                "git_blob_sha1":"a71dbf70605d3dbed9b27fab43436a77a8171d6d",
+                "byte_length":2489,
+                "license":"GPL-3.0",
+                "example_scope":"5 m executable component example; not the published 80 m or 100 m full-channel study",
+                "declared_configuration":{
+                    "total_component_length_m":5.0,
+                    "coils":6,
+                    "dipoles":1,
+                    "absorbers":2,
+                    "rf_cavities":12,
+                    "absorber_material":"G4_LITHIUM_HYDRIDE",
+                    "beam_particle":"mu+",
+                    "beam_momentum_mev_c":200.0
+                },
+                "equivalence_to_wg4_102_coil_model":false
+            },
+            "published_bdsim_references":{
+                "mu_col_d4_1":{
+                    "deliverable":"MuCol D4.1",
+                    "url":"https://indico.cern.ch/event/1517584/attachments/3020990/5329912/MuCol_D4_1.pdf",
+                    "channel_length_m":80.0,
+                    "evidence_class":"published_simulation_report",
+                    "muon_decay_status":"not established by the cited 80 m emittance plots"
+                },
+                "ipac26_mop1048":{
+                    "doi":"10.18429/JACoW-IPAC2026-MOP1048",
+                    "url":"https://www.ipac26.org/prepress/pdf/MOP1048.pdf",
+                    "channel_length_m":100.0,
+                    "reference_momentum_mev_c":200.0,
+                    "six_d_emittance_reduction_factor_approx":2.3,
+                    "transmission_fraction_approx":0.93,
+                    "muon_decay_enabled":false,
+                    "input_asset_identity_to_pinned_lowemittancebeam_dat":"not_verified"
+                }
+            },
+            "benchmark_alignment":{
+                "wg4_102_coil_model_vs_published_muoncooler":"not_equivalent",
+                "pinned_lowemittancebeam_dat_vs_ipac26_initial_distribution":"not_verified",
+                "cross_code_equivalence":"not_established"
+            },
             "claim_ceiling":"native input audit only"
         })
     }
@@ -779,6 +896,55 @@ mod tests {
         assert!(audit_bytes(&manifest, &bytes).is_err());
         manifest = manifest_for(&bytes);
         manifest["input"]["columns"][1]["name"] = json!("py");
+        assert!(audit_bytes(&manifest, &bytes).is_err());
+    }
+
+    #[test]
+    fn published_bdsim_reference_identities_are_reported_separately() {
+        let bytes = fixture();
+        let report = audit_bytes(&manifest_for(&bytes), &bytes).expect("valid fixture");
+        assert_eq!(
+            report["model_context"]["bdsim_muoncooler_implementation"]["commit"],
+            "d18134084b3960ba07bea81a7e2772114062f8b3"
+        );
+        assert_eq!(
+            report["model_context"]["published_bdsim_references"]["mu_col_d4_1"]["channel_length_m"],
+            80.0
+        );
+        assert_eq!(
+            report["model_context"]["published_bdsim_references"]["ipac26_mop1048"]["channel_length_m"],
+            100.0
+        );
+        assert_eq!(
+            report["model_context"]["benchmark_alignment"]["cross_code_equivalence"],
+            "not_established"
+        );
+    }
+
+    #[test]
+    fn negative_control_bdsim_component_cannot_be_relabelled_as_full_channel() {
+        let bytes = fixture();
+        let mut manifest = manifest_for(&bytes);
+        manifest["bdsim_muoncooler_implementation"]["example_scope"] =
+            json!("100 m full channel");
+        assert!(audit_bytes(&manifest, &bytes).is_err());
+    }
+
+    #[test]
+    fn negative_control_ipac26_decay_disabled_cannot_qualify_muon_survival() {
+        let bytes = fixture();
+        let mut manifest = manifest_for(&bytes);
+        manifest["published_bdsim_references"]["ipac26_mop1048"]["muon_decay_enabled"] =
+            json!(true);
+        assert!(audit_bytes(&manifest, &bytes).is_err());
+    }
+
+    #[test]
+    fn negative_control_unverified_ipac_input_identity_cannot_be_promoted() {
+        let bytes = fixture();
+        let mut manifest = manifest_for(&bytes);
+        manifest["published_bdsim_references"]["ipac26_mop1048"]
+            ["input_asset_identity_to_pinned_lowemittancebeam_dat"] = json!("verified");
         assert!(audit_bytes(&manifest, &bytes).is_err());
     }
 
