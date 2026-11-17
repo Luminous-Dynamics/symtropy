@@ -435,13 +435,11 @@ pub fn reconstruct_contact_field(
     // upper bound. Sparse Hessian rows keep local tactile kernels efficient.
     for iteration in 0..config.maximum_iterations {
         let gradient = gradient(&quadratic, &extrapolated);
-        let mut maximum_delta = 0.0_f64;
         let mut maximum_field = 0.0_f64;
 
         for index in 0..n {
             let updated = (extrapolated[index] - step_size * gradient[index]).max(0.0);
             next_field[index] = updated;
-            maximum_delta = maximum_delta.max((updated - field[index]).abs());
             maximum_field = maximum_field.max(updated.abs());
         }
 
@@ -455,10 +453,24 @@ pub fn reconstruct_contact_field(
         momentum = next_momentum;
 
         iterations = iteration + 1;
-        if maximum_delta <= config.convergence_tolerance * (1.0 + maximum_field) {
+
+        // FISTA iterates can oscillate even after their objective is nearly
+        // stationary. Test the projected-gradient fixed-point residual at
+        // the actual iterate, not the extrapolated step delta.
+        let current_gradient = gradient(&quadratic, &field);
+        let projected_residual = current_gradient
+            .iter()
+            .zip(&field)
+            .map(|(value, estimate)| {
+                ((estimate - step_size * value).max(0.0) - estimate).abs()
+            })
+            .fold(0.0_f64, f64::max);
+
+        if projected_residual <= config.convergence_tolerance * (1.0 + maximum_field) {
             converged = true;
             break;
         }
+
     }
 
     if field.iter().any(|value| !value.is_finite() || *value < 0.0) {
