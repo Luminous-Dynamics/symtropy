@@ -36,13 +36,14 @@ enum CandidateReply {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let result = if args.len() == 2 && args[1] == CANDIDATE_ARGUMENT {
-        candidate_main()
-    } else if args.len() == 1 {
-        run_benchmark()
-    } else {
-        Err(invalid_data("unsupported command-line arguments"))
-    };
+    let result: Result<(), Box<dyn Error>> =
+        if args.len() == 2 && args[1] == CANDIDATE_ARGUMENT {
+            candidate_main().map_err(|error| Box::new(error) as Box<dyn Error>)
+        } else if args.len() == 1 {
+            run_benchmark()
+        } else {
+            Err(Box::new(invalid_data("unsupported command-line arguments")))
+        };
 
     if let Err(error) = result {
         eprintln!("human-systems-benchmark: {error}");
