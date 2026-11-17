@@ -1,5 +1,5 @@
 use factory_accepted_output_economics::{
-    evaluate_corpus, render_report, CASES, COST_ITEMS, EXPECTED, OUTPUTS,
+    evaluate_corpus, render_cost_breakdown, render_report, CASES, COST_ITEMS, EXPECTED, OUTPUTS,
 };
 use std::process::ExitCode;
 
@@ -33,7 +33,16 @@ fn main() -> ExitCode {
         .filter(|row| row.disposition.as_str() == "ROUTE_UNKNOWN")
         .count();
 
-    print!("{}", render_report(&results));
+    let mode = std::env::args().nth(1);
+    match mode.as_deref() {
+        Some("--breakdown") => print!("{}", render_cost_breakdown(&results)),
+        None | Some("--summary") => print!("{}", render_report(&results)),
+        Some(other) => {
+            eprintln!("unsupported argument: {other}");
+            return ExitCode::FAILURE;
+        }
+    }
+
     eprintln!(
         "cases={} computed={} cost_incomplete={} zero_released={} route_ineligible={} route_unknown={}",
         results.len(),
