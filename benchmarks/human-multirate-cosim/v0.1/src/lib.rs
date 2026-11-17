@@ -199,26 +199,19 @@ pub fn simulate(
     for index in 0..steps {
         let (next_a, next_b) = match method {
             Method::ParallelZeroOrderHold => {
-                let decay_a = (-scenario.conductance * communication_step
-                    / scenario.capacity_a)
-                    .exp();
-                let decay_b = (-scenario.conductance * communication_step
-                    / scenario.capacity_b)
-                    .exp();
+                let decay_a =
+                    (-scenario.conductance * communication_step / scenario.capacity_a).exp();
+                let decay_b =
+                    (-scenario.conductance * communication_step / scenario.capacity_b).exp();
 
                 // Deliberately both use the same old a,b snapshot.
-                (
-                    b + (a - b) * decay_a,
-                    a + (b - a) * decay_b,
-                )
+                (b + (a - b) * decay_a, a + (b - a) * decay_b)
             }
             Method::SerialAThenB => {
-                let decay_a = (-scenario.conductance * communication_step
-                    / scenario.capacity_a)
-                    .exp();
-                let decay_b = (-scenario.conductance * communication_step
-                    / scenario.capacity_b)
-                    .exp();
+                let decay_a =
+                    (-scenario.conductance * communication_step / scenario.capacity_a).exp();
+                let decay_b =
+                    (-scenario.conductance * communication_step / scenario.capacity_b).exp();
                 let updated_a = b + (a - b) * decay_a;
                 let updated_b = updated_a + (b - updated_a) * decay_b;
                 (updated_a, updated_b)
@@ -236,8 +229,7 @@ pub fn simulate(
             }
             Method::ConservativeSharedFluxEuler => {
                 // One integrated interface transfer, paired debit and credit.
-                let shared_flux =
-                    scenario.conductance * (a - b) * communication_step;
+                let shared_flux = scenario.conductance * (a - b) * communication_step;
                 (
                     a - shared_flux / scenario.capacity_a,
                     b + shared_flux / scenario.capacity_b,
@@ -246,9 +238,8 @@ pub fn simulate(
             Method::ImplicitMidpointReference => {
                 let difference = a - b;
                 let rate = scenario.coupling_rate();
-                let amplification =
-                    (1.0 - 0.5 * rate * communication_step)
-                        / (1.0 + 0.5 * rate * communication_step);
+                let amplification = (1.0 - 0.5 * rate * communication_step)
+                    / (1.0 + 0.5 * rate * communication_step);
                 let next_difference = difference * amplification;
                 let capacity_sum = scenario.capacity_a + scenario.capacity_b;
                 let weighted_mean = initial_total / capacity_sum;
@@ -286,8 +277,7 @@ pub fn simulate(
             error_samples += 1;
         }
 
-        let residual =
-            (scenario.capacity_a * a + scenario.capacity_b * b - initial_total).abs();
+        let residual = (scenario.capacity_a * a + scenario.capacity_b * b - initial_total).abs();
         max_abs_balance_residual = max_abs_balance_residual.max(residual);
         min_state = min_state.min(a).min(b);
         max_state = max_state.max(a).max(b);
@@ -326,7 +316,10 @@ mod tests {
     }
 
     fn assert_small(value: f64, tolerance: f64) {
-        assert!(value.abs() <= tolerance, "value {value} exceeds {tolerance}");
+        assert!(
+            value.abs() <= tolerance,
+            "value {value} exceeds {tolerance}"
+        );
     }
 
     #[test]
@@ -344,14 +337,12 @@ mod tests {
 
     #[test]
     fn shared_flux_euler_preserves_total_even_when_step_is_inaccurate() {
-        let score = simulate(
-            asymmetric(),
-            Method::ConservativeSharedFluxEuler,
-            4.0,
-        )
-        .unwrap();
+        let score = simulate(asymmetric(), Method::ConservativeSharedFluxEuler, 4.0).unwrap();
         assert_small(score.max_abs_balance_residual, 1.0e-12);
-        assert!(!score.positive_states, "large explicit step should expose positivity loss");
+        assert!(
+            !score.positive_states,
+            "large explicit step should expose positivity loss"
+        );
     }
 
     #[test]
@@ -404,18 +395,8 @@ mod tests {
     #[test]
     fn explicit_euler_stability_number_identifies_the_linear_limit() {
         let scenario = asymmetric();
-        let below = simulate(
-            scenario,
-            Method::ConservativeSharedFluxEuler,
-            2.0,
-        )
-        .unwrap();
-        let above = simulate(
-            scenario,
-            Method::ConservativeSharedFluxEuler,
-            4.0,
-        )
-        .unwrap();
+        let below = simulate(scenario, Method::ConservativeSharedFluxEuler, 2.0).unwrap();
+        let above = simulate(scenario, Method::ConservativeSharedFluxEuler, 4.0).unwrap();
         assert!(below.explicit_euler_stability_number < 2.0);
         assert!(above.explicit_euler_stability_number > 2.0);
     }
