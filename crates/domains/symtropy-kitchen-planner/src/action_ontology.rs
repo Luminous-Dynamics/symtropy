@@ -716,7 +716,10 @@ pub fn evaluate_action_ontology_benchmark(
                 &case.case_id,
             )?;
             let group = predicted_group.expect("checked as Some");
-            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+            let counts = summary
+                .groups
+                .iter_mut()
+                .find(|counts| counts.group == group)
                 .expect("every action group has a stable evaluation entry");
             checked_accumulate(
                 &mut counts.true_positive_occurrences,
@@ -965,9 +968,7 @@ mod tests {
     fn other_action_stays_unmapped_without_human_review() {
         let binding =
             rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled);
-        assert!(
-            validate_action_ontology_binding(RecipeActionKindV1::Other, &binding).is_valid()
-        );
+        assert!(validate_action_ontology_binding(RecipeActionKindV1::Other, &binding).is_valid());
         assert_eq!(binding.mapping.core, None);
         assert_eq!(binding.mapping.group, None);
     }
