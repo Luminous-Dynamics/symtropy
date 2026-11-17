@@ -1469,6 +1469,15 @@
       "implementation_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
       "dataset_ref": "https://link.springer.com/article/10.1134/S1064562425700450",
       "evaluation_role": "Integrated execution baseline on identical simulator episodes; no physical transfer claim."
+    },
+    {
+      "baseline_id": "behavior-1k-2026",
+      "class": "behavior_1k_external",
+      "status": "external_public_benchmark",
+      "description": "BEHAVIOR-1K / 2026 BEHAVIOR Challenge: broad, long-horizon household mobile-manipulation tasks in realistic home scenes. Use only a declared kitchen-adjacent task subset for matched comparisons; this is not a kitchen-appliance benchmark.",
+      "implementation_ref": "https://behavior.stanford.edu/",
+      "dataset_ref": "https://proceedings.mlr.press/v205/li23a.html",
+      "evaluation_role": "Complement RoboCasa365 with long-horizon household service tasks such as pantry/household organization and kitchen-adjacent manipulation. Report task subset, split, environment, embodiment, sensing, partial-credit rubric, recovery and human takeover separately; never compare the overall BEHAVIOR-1K score directly with RoboCasa365."
     }
   ]
 }
