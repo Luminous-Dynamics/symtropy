@@ -15,42 +15,49 @@
     "byte_length": 1257234,
     "ignored_header_lines": 1,
     "expected_record_count": 10001,
-    "expected_header": "\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+    "expected_header": "\"x [mm]\" \"px [rad]\" \"y [mm]\" \"py [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
     "columns": [
       {
         "name": "x",
         "unit": "mm",
-        "meaning": "horizontal position"
+        "meaning": "horizontal position",
+        "header_label": "x"
       },
       {
         "name": "xp",
         "unit": "rad",
-        "meaning": "horizontal angle"
+        "meaning": "horizontal angle",
+        "header_label": "px"
       },
       {
         "name": "y",
         "unit": "mm",
-        "meaning": "vertical position"
+        "meaning": "vertical position",
+        "header_label": "y"
       },
       {
         "name": "yp",
         "unit": "rad",
-        "meaning": "vertical angle"
+        "meaning": "vertical angle",
+        "header_label": "py"
       },
       {
         "name": "z",
         "unit": "mm",
-        "meaning": "longitudinal position"
+        "meaning": "longitudinal position",
+        "header_label": "z"
       },
       {
         "name": "Ek",
         "unit": "MeV",
-        "meaning": "kinetic energy"
+        "meaning": "kinetic energy",
+        "header_label": "Ek"
       },
       {
         "name": "t",
         "unit": "ns",
-        "meaning": "time"
+        "meaning": "time",
+        "header_label": "t"
       }
     ],
     "explicit_particle_ids": false,
