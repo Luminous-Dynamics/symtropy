@@ -13,7 +13,7 @@ pub const OUTPUTS: &str = include_str!("../fixtures/outputs-v0.1.tsv");
 pub const EXPECTED: &str = include_str!("../fixtures/expected-v0.1.tsv");
 
 const CASE_HEADER: &str = "case_id\troute_ref\troute_status\tproduct_profile_ref\tacceptance_profile_ref\tbatch_ref\tcurrency\tprice_date\tamount_unit";
-const COST_HEADER: &str = "case_id\tcost_item_id\tcategory\tamount_minor_low\tamount_minor_high\tcurrency\tprice_date\tamount_unit\tevidence_class\tscope\tsource_ref";
+const COST_HEADER: &str = "case_id\tbatch_ref\tcost_item_id\tcategory\tamount_minor_low\tamount_minor_high\tcurrency\tprice_date\tamount_unit\tevidence_class\tscope\tsource_ref";
 const OUTPUT_HEADER: &str = "case_id\toutput_id\tfinal_disposition\trelease_ref";
 const EXPECTED_HEADER: &str = "case_id\tdisposition\ttotal_low_minor\ttotal_high_minor\tstarted\tfirst_pass_released\tfinal_released";
 
@@ -51,6 +51,7 @@ pub struct CaseManifest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CostItem {
     pub case_id: String,
+    pub batch_ref: String,
     pub cost_item_id: String,
     pub category: String,
     pub amount_minor_low: Option<u64>,
@@ -292,33 +293,34 @@ pub fn parse_cost_items(input: &str) -> Result<Vec<CostItem>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 11, "cost items", index + 2)?;
+        let row = split_row(line, 12, "cost items", index + 2)?;
         for (label, value) in [
             ("case_id", row[0]),
-            ("cost_item_id", row[1]),
-            ("category", row[2]),
-            ("currency", row[5]),
-            ("price_date", row[6]),
-            ("amount_unit", row[7]),
-            ("evidence_class", row[8]),
-            ("scope", row[9]),
-            ("source_ref", row[10]),
+            ("batch_ref", row[1]),
+            ("cost_item_id", row[2]),
+            ("category", row[3]),
+            ("currency", row[6]),
+            ("price_date", row[7]),
+            ("amount_unit", row[8]),
+            ("evidence_class", row[9]),
+            ("scope", row[10]),
+            ("source_ref", row[11]),
         ] {
             if !valid_ref(value) {
                 return Err(format!("cost items:{}: invalid {label}: {value}", index + 2));
             }
         }
-        if !valid_currency(row[5]) || !valid_date(row[6]) {
+        if !valid_currency(row[6]) || !valid_date(row[7]) {
             return Err(format!("cost items:{}: invalid currency or price date", index + 2));
         }
-        if !matches!(row[8], "SYNTHETIC" | "ESTIMATE" | "QUOTE" | "PAID" | "PUBLIC" | "MEASURED") {
-            return Err(format!("cost items:{}: unsupported evidence class {}", index + 2, row[8]));
+        if !matches!(row[9], "SYNTHETIC" | "ESTIMATE" | "QUOTE" | "PAID" | "PUBLIC" | "MEASURED") {
+            return Err(format!("cost items:{}: unsupported evidence class {}", index + 2, row[9]));
         }
-        if !matches!(row[9], "IN_SCOPE" | "OUT_OF_SCOPE") {
-            return Err(format!("cost items:{}: unsupported scope {}", index + 2, row[9]));
+        if !matches!(row[10], "IN_SCOPE" | "OUT_OF_SCOPE") {
+            return Err(format!("cost items:{}: unsupported scope {}", index + 2, row[10]));
         }
-        let low = parse_amount(row[3], "cost items", index + 2)?;
-        let high = parse_amount(row[4], "cost items", index + 2)?;
+        let low = parse_amount(row[4], "cost items", index + 2)?;
+        let high = parse_amount(row[5], "cost items", index + 2)?;
         match (low, high) {
             (Some(low), Some(high)) if low > high => {
                 return Err(format!("cost items:{}: lower amount exceeds upper amount", index + 2));
@@ -330,16 +332,17 @@ pub fn parse_cost_items(input: &str) -> Result<Vec<CostItem>, String> {
         }
         rows.push(CostItem {
             case_id: row[0].to_owned(),
-            cost_item_id: row[1].to_owned(),
-            category: row[2].to_owned(),
+            batch_ref: row[1].to_owned(),
+            cost_item_id: row[2].to_owned(),
+            category: row[3].to_owned(),
             amount_minor_low: low,
             amount_minor_high: high,
-            currency: row[5].to_owned(),
-            price_date: row[6].to_owned(),
-            amount_unit: row[7].to_owned(),
-            evidence_class: row[8].to_owned(),
-            scope: row[9].to_owned(),
-            source_ref: row[10].to_owned(),
+            currency: row[6].to_owned(),
+            price_date: row[7].to_owned(),
+            amount_unit: row[8].to_owned(),
+            evidence_class: row[9].to_owned(),
+            scope: row[10].to_owned(),
+            source_ref: row[11].to_owned(),
         });
     }
     Ok(rows)
@@ -447,6 +450,7 @@ pub fn evaluate(
             return Err(format!("orphan cost item for unknown case: {}", item.case_id));
         }
         for (label, value) in [
+            ("batch_ref", item.batch_ref.as_str()),
             ("cost_item_id", item.cost_item_id.as_str()),
             ("category", item.category.as_str()),
             ("source_ref", item.source_ref.as_str()),
@@ -477,6 +481,12 @@ pub fn evaluate(
             _ => {}
         }
         let case = cases_by_id[item.case_id.as_str()];
+        if item.batch_ref != case.batch_ref {
+            return Err(format!(
+                "cost item {}: batch reference does not match case {}",
+                item.cost_item_id, case.case_id
+            ));
+        }
         if item.currency != case.currency
             || item.price_date != case.price_date
             || item.amount_unit != case.amount_unit
@@ -900,6 +910,15 @@ mod tests {
     }
 
     #[test]
+    fn cost_item_must_bind_to_the_exact_case_batch() {
+        let (cases, mut costs, outputs) = parsed();
+        costs[0].batch_ref = "batch:other-run".into();
+        assert!(evaluate(&cases, &costs, &outputs)
+            .unwrap_err()
+            .contains("batch reference does not match"));
+    }
+
+    #[test]
     fn mixed_currency_is_rejected_not_converted_implicitly() {
         let (cases, mut costs, outputs) = parsed();
         costs[0].currency = "USD".into();
@@ -979,6 +998,7 @@ mod tests {
         costs.retain(|item| item.case_id != "baseline_three_first_pass");
         costs.push(CostItem {
             case_id: "baseline_three_first_pass".into(),
+            batch_ref: "batch:run-001".into(),
             cost_item_id: "cost:overflow:a".into(),
             category: "MATERIAL".into(),
             amount_minor_low: Some(u64::MAX),
@@ -992,6 +1012,7 @@ mod tests {
         });
         costs.push(CostItem {
             case_id: "baseline_three_first_pass".into(),
+            batch_ref: "batch:run-001".into(),
             cost_item_id: "cost:overflow:b".into(),
             category: "LABOUR".into(),
             amount_minor_low: Some(1),
