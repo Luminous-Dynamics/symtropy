@@ -1,0 +1,10 @@
+[package]
+name = "wpt-trajectory-coupling"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synchronized trajectory, alignment, wheel-path and pass-energy contract for dynamic WPT"
+
+[dependencies]
+serde_json = "1.0"

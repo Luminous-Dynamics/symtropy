@@ -1,0 +1,90 @@
+{
+  "schema_version": "wpt-trajectory-coupling-v0",
+  "episode_id": "synthetic-pass-east-001",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "coordinate_frame": {
+    "frame_id": "corridor-east-local-v1",
+    "longitudinal_positive": "FORWARD",
+    "lateral_positive": "LEFT"
+  },
+  "vehicle": {
+    "vehicle_id": "synthetic-class8-receiver",
+    "receiver_offset_longitudinal_mm": 0,
+    "receiver_offset_lateral_mm": 20
+  },
+  "coil": {
+    "asset_id": "coil-asset-001",
+    "segment_id": "segment-east-01",
+    "coil_id": "coil-east-01",
+    "center_s_mm": 5000,
+    "center_y_mm": 0,
+    "active_zone_start_s_mm": 4000,
+    "active_zone_end_s_mm": 6000
+  },
+  "wheels": [
+    { "wheel_id": "front-left", "lateral_offset_from_vehicle_center_mm": -800 },
+    { "wheel_id": "front-right", "lateral_offset_from_vehicle_center_mm": 800 },
+    { "wheel_id": "rear-left", "lateral_offset_from_vehicle_center_mm": -800 },
+    { "wheel_id": "rear-right", "lateral_offset_from_vehicle_center_mm": 800 }
+  ],
+  "declared_lateral_alignment_limit_mm": 150,
+  "max_sample_gap_ms": 1500,
+  "max_kinematic_mismatch_ppm": 10000,
+  "samples": [
+    {
+      "sample_index": 0,
+      "time_ms": 0,
+      "vehicle_s_mm": 0,
+      "vehicle_center_y_mm": 0,
+      "speed_mm_per_s": 5000,
+      "roadway_dc_input_power_w": 0,
+      "vehicle_receiver_dc_output_power_w": 0,
+      "coil_temperature_c": 30.0,
+      "pavement_interface_temperature_c": 25.0,
+      "ambient_temperature_c": 20.0,
+      "wheel_loads": [
+        { "wheel_id": "front-left", "vertical_load_kn": 10.0 },
+        { "wheel_id": "front-right", "vertical_load_kn": 10.0 },
+        { "wheel_id": "rear-left", "vertical_load_kn": 10.0 },
+        { "wheel_id": "rear-right", "vertical_load_kn": 10.0 }
+      ]
+    },
+    {
+      "sample_index": 1,
+      "time_ms": 1000,
+      "vehicle_s_mm": 5000,
+      "vehicle_center_y_mm": 100,
+      "speed_mm_per_s": 5000,
+      "roadway_dc_input_power_w": 100000,
+      "vehicle_receiver_dc_output_power_w": 85000,
+      "coil_temperature_c": 45.0,
+      "pavement_interface_temperature_c": 35.0,
+      "ambient_temperature_c": 20.0,
+      "wheel_loads": [
+        { "wheel_id": "front-left", "vertical_load_kn": 11.0 },
+        { "wheel_id": "front-right", "vertical_load_kn": 11.0 },
+        { "wheel_id": "rear-left", "vertical_load_kn": 11.0 },
+        { "wheel_id": "rear-right", "vertical_load_kn": 11.0 }
+      ]
+    },
+    {
+      "sample_index": 2,
+      "time_ms": 2000,
+      "vehicle_s_mm": 10000,
+      "vehicle_center_y_mm": 200,
+      "speed_mm_per_s": 5000,
+      "roadway_dc_input_power_w": 0,
+      "vehicle_receiver_dc_output_power_w": 0,
+      "coil_temperature_c": 30.0,
+      "pavement_interface_temperature_c": 26.0,
+      "ambient_temperature_c": 20.0,
+      "wheel_loads": [
+        { "wheel_id": "front-left", "vertical_load_kn": 10.0 },
+        { "wheel_id": "front-right", "vertical_load_kn": 10.0 },
+        { "wheel_id": "rear-left", "vertical_load_kn": 10.0 },
+        { "wheel_id": "rear-right", "vertical_load_kn": 10.0 }
+      ]
+    }
+  ],
+  "quality_flags": ["SYNTHETIC_ONLY"]
+}
