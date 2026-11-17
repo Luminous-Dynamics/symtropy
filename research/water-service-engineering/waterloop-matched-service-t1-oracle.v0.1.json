@@ -704,7 +704,7 @@
         }
       ],
       "disposition_counts": {
-        "indeterminate_invalid_measurement_evidence": 1,
+        "zero_credit_service_boundary_mismatch": 1,
         "credited": 5
       },
       "physical_qualification_status": "NotRun",
