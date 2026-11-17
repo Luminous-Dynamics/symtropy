@@ -64,11 +64,13 @@ jobs:
         run: cargo fmt --manifest-path tools/global-mfg-deployment-audit/Cargo.toml -- --check
       - name: Run structural and adversarial audit tests
         run: cargo test --manifest-path tools/global-mfg-deployment-audit/Cargo.toml
-      - name: Run deployment profile audit
+      - name: Run schema and deployment profile audit
         run: |
           cargo run --quiet --manifest-path tools/global-mfg-deployment-audit/Cargo.toml -- \
+            schemas/global/global_mfg_deployment_profile_v0_1.schema.json \
             fixtures/global/global_mfg_deployment_profiles_v0_1.json \
             > global-mfg-deployment-audit-report.json
+
           jq -e '
             .corpus_id == "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
             and .profile_count == 4
@@ -79,6 +81,8 @@ jobs:
             and .physical_site_qualification == false
             and .disposition == "STRUCTURALLY_VALID_SYNTHETIC_ONLY"
           ' global-mfg-deployment-audit-report.json
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/global-mfg-deployment-audit/Cargo.toml --all-targets -- -D warnings
       - name: Hash corpus, schema, source and report
         run: |
           sha256sum \
