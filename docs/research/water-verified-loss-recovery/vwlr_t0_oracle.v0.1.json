@@ -141,12 +141,12 @@
       "events": [
         {
           "event_id": "EV-7-1",
-          "disposition": "no_recovery_measured",
+          "disposition": "repair_target_mismatch_no_credit",
           "localization_correct": false,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 4500,
-          "point_recovered_l_per_day": 10,
+          "point_recovered_l_per_day": 0,
           "lower_bound_recovered_l_per_day": 0,
           "sustained_recovery_eligible": false
         }
@@ -154,7 +154,7 @@
       "verified_recovery_event_count": 0,
       "partial_recovery_event_count": 0,
       "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 10,
+      "point_recovered_l_per_day": 0,
       "claim_eligibility": "NotEligible"
     },
     {
