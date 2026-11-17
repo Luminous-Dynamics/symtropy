@@ -1,0 +1,303 @@
+//! Read-only structural audit for the Global Manufacturing Deployment Profile v0.1 corpus.
+//!
+//! This tool checks fixture identity, cross-profile core consistency, separation of
+//! jurisdiction dimensions, synthetic evidence boundaries, and required adversarial
+//! controls. It does not interpret law, calculate origin, certify a site, or authorize
+//! production.
+use serde_json::{json, Value};
+use std::collections::BTreeSet;
+
+const REQUIRED_DIMENSIONS: [&str; 5] = [
+    "manufacturing_site_jurisdictions",
+    "destination_market_jurisdictions",
+    "component_origin_jurisdictions",
+    "data_processing_jurisdictions",
+    "service_jurisdictions",
+];
+
+const REQUIRED_CONTROLS: [&str; 10] = [
+    "proposal_as_law",
+    "wrong_destination_market",
+    "wrong_product_category",
+    "expired_source_as_current",
+    "false_mutual_recognition",
+    "supplier_location_as_origin",
+    "unknown_origin_as_eligible",
+    "unknown_as_satisfied",
+    "data_processing_jurisdiction_omitted",
+    "silent_global_core_change",
+];
+
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
+    value
+        .as_object()
+        .ok_or_else(|| format!("{path}: expected object"))
+}
+
+fn field<'a>(value: &'a Value, key: &str, path: &str) -> Result<&'a Value, String> {
+    object(value, path)?
+        .get(key)
+        .ok_or_else(|| format!("{path}.{key}: missing field"))
+}
+
+fn string<'a>(value: &'a Value, path: &str) -> Result<&'a str, String> {
+    value
+        .as_str()
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| format!("{path}: expected non-empty string"))
+}
+
+fn array<'a>(value: &'a Value, path: &str) -> Result<&'a Vec<Value>, String> {
+    value.as_array().ok_or_else(|| format!("{path}: expected array"))
+}
+
+fn require_string(value: &Value, key: &str, path: &str, expected: &str) -> Result<(), String> {
+    let actual = string(field(value, key, path)?, &format!("{path}.{key}"))?;
+    if actual != expected {
+        return Err(format!("{path}.{key}: expected {expected}, got {actual}"));
+    }
+    Ok(())
+}
+
+fn require_not(value: &Value, key: &str, path: &str, forbidden: &str) -> Result<(), String> {
+    let actual = string(field(value, key, path)?, &format!("{path}.{key}"))?;
+    if actual == forbidden {
+        return Err(format!("{path}.{key}: forbidden synthetic promotion {forbidden}"));
+    }
+    Ok(())
+}
+
+fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, String), String> {
+    let path = format!("profiles[{index}]");
+    let profile_id = string(field(profile, "profile_id", &path)?, &format!("{path}.profile_id"))?.to_owned();
+    require_string(profile, "profile_class", &path, "synthetic_archetype")?;
+
+    let context = field(profile, "deployment_context", &path)?;
+    for dimension in REQUIRED_DIMENSIONS {
+        let values = array(
+            field(context, dimension, &format!("{path}.deployment_context"))?,
+            &format!("{path}.deployment_context.{dimension}"),
+        )?;
+        if values.is_empty() {
+            return Err(format!("{path}.deployment_context.{dimension}: empty jurisdiction dimension"));
+        }
+        for (j, value) in values.iter().enumerate() {
+            let id = string(value, &format!("{path}.deployment_context.{dimension}[{j}]"))?;
+            if !id.starts_with("urn:luminous:synthetic:jurisdiction:") {
+                return Err(format!("{path}.deployment_context.{dimension}[{j}]: real jurisdiction not permitted in synthetic corpus"));
+            }
+        }
+    }
+
+    let core = field(profile, "global_core", &path)?;
+    let product_family = string(field(core, "product_family_id", &format!("{path}.global_core"))?, &format!("{path}.global_core.product_family_id"))?.to_owned();
+    let revision = string(field(core, "product_revision", &format!("{path}.global_core"))?, &format!("{path}.global_core.product_revision"))?.to_owned();
+    let digest = string(field(core, "engineering_core_digest", &format!("{path}.global_core"))?, &format!("{path}.global_core.engineering_core_digest"))?;
+    if !digest.starts_with("sha256:") || !digest.ends_with(&"0".repeat(64)) {
+        return Err(format!("{path}.global_core.engineering_core_digest: synthetic sentinel required"));
+    }
+
+    let site = field(profile, "manufacturing_site", &path)?;
+    require_string(site, "site_evidence_class", &format!("{path}.manufacturing_site"), "synthetic_fixture")?;
+
+    let market_access = array(field(profile, "market_access", &path)?, &format!("{path}.market_access"))?;
+    if market_access.is_empty() {
+        return Err(format!("{path}.market_access: at least one destination market required"));
+    }
+    for (j, market) in market_access.iter().enumerate() {
+        let mpath = format!("{path}.market_access[{j}]");
+        require_not(market, "approval_status", &mpath, "independently_established")?;
+        require_not(market, "responsible_operator_status", &mpath, "authorized")?;
+    }
+
+    let supply = field(profile, "supply_chain", &path)?;
+    require_string(supply, "origin_claims", &format!("{path}.supply_chain"), "not_established")?;
+    let components = array(field(supply, "components", &format!("{path}.supply_chain"))?, &format!("{path}.supply_chain.components"))?;
+    if components.is_empty() {
+        return Err(format!("{path}.supply_chain.components: empty component set"));
+    }
+    for (j, component) in components.iter().enumerate() {
+        let cpath = format!("{path}.supply_chain.components[{j}]");
+        require_not(component, "origin_evidence_status", &cpath, "independently_verified")?;
+    }
+
+    let data = field(profile, "data_processing", &path)?;
+    require_not(data, "data_classification_status", &format!("{path}.data_processing"), "reviewed")?;
+    require_not(data, "transfer_review_status", &format!("{path}.data_processing"), "reviewed")?;
+
+    let service = field(profile, "service_lifecycle", &path)?;
+    for (key, forbidden) in [
+        ("critical_parts_status", "available_and_verified"),
+        ("repair_capability_status", "verified_for_scope"),
+        ("end_of_life_status", "approved_route_verified"),
+    ] {
+        require_not(service, key, &format!("{path}.service_lifecycle"), forbidden)?;
+    }
+
+    let obligations = array(field(profile, "obligations", &path)?, &format!("{path}.obligations"))?;
+    for (j, obligation) in obligations.iter().enumerate() {
+        let opath = format!("{path}.obligations[{j}]");
+        require_string(obligation, "source_status", &opath, "synthetic_fixture")?;
+        require_string(obligation, "disposition", &opath, "unknown")?;
+        require_string(obligation, "reviewer_status", &opath, "not_reviewed")?;
+        let source = field(obligation, "source", &opath)?;
+        if string(field(source, "source_digest", &format!("{opath}.source"))?, &format!("{opath}.source.source_digest"))? != "synthetic" {
+            return Err(format!("{opath}.source.source_digest: synthetic sentinel required"));
+        }
+        for date_key in ["publication_date", "entry_into_force_date", "application_date"] {
+            if !field(source, date_key, &format!("{opath}.source"))?.is_null() {
+                return Err(format!("{opath}.source.{date_key}: dates must remain null in synthetic corpus"));
+            }
+        }
+        let applicability = field(obligation, "applicability", &opath)?;
+        require_string(applicability, "applicability_status", &format!("{opath}.applicability"), "unknown")?;
+    }
+
+    let claims = field(profile, "claims", &path)?;
+    require_string(claims, "global_compliance_claim", &format!("{path}.claims"), "not_established")?;
+    require_string(claims, "site_readiness_claim", &format!("{path}.claims"), "not_established")?;
+    require_string(claims, "market_approval_claim", &format!("{path}.claims"), "not_established")?;
+    if field(claims, "production_authorization", &format!("{path}.claims"))?.as_bool() != Some(false) {
+        return Err(format!("{path}.claims.production_authorization: must remain false"));
+    }
+
+    Ok((profile_id, product_family, revision))
+}
+
+/// Audits a corpus and returns a deterministic, synthetic-only structural report.
+pub fn audit_corpus(input: &str) -> Result<Value, String> {
+    let corpus: Value = serde_json::from_str(input).map_err(|e| format!("invalid JSON: {e}"))?;
+    require_string(&corpus, "corpus_id", "$", "GLOBAL-MFG-DEPLOY-CORPUS-V0.1")?;
+    require_string(&corpus, "schema_version", "$", "0.1.0")?;
+    require_string(&corpus, "evidence_class", "$", "synthetic_fixture")?;
+
+    let profiles = array(field(&corpus, "profiles", "$")?, "$.profiles")?;
+    if profiles.len() < 4 {
+        return Err("$.profiles: at least four synthetic archetypes required".to_owned());
+    }
+
+    let mut profile_ids = BTreeSet::new();
+    let mut first_core: Option<(String, String)> = None;
+    for (index, profile) in profiles.iter().enumerate() {
+        let (id, family, revision) = validate_profile(profile, index)?;
+        if !profile_ids.insert(id.clone()) {
+            return Err(format!("duplicate profile_id: {id}"));
+        }
+        match &first_core {
+            None => first_core = Some((family, revision)),
+            Some((expected_family, expected_revision)) => {
+                if &family != expected_family || &revision != expected_revision {
+                    return Err(format!("profiles[{index}]: global engineering core identity changed across regional realization"));
+                }
+            }
+        }
+    }
+
+    let controls = array(field(&corpus, "negative_controls", "$")?, "$.negative_controls")?;
+    let mut mutations = BTreeSet::new();
+    let mut case_ids = BTreeSet::new();
+    for (index, control) in controls.iter().enumerate() {
+        let path = format!("negative_controls[{index}]");
+        let case_id = string(field(control, "case_id", &path)?, &format!("{path}.case_id"))?;
+        if !case_ids.insert(case_id.to_owned()) {
+            return Err(format!("duplicate negative-control case_id: {case_id}"));
+        }
+        require_string(control, "expected_disposition", &path, "REJECT_OR_ABSTAIN")?;
+        let mutation = string(field(control, "mutation", &path)?, &format!("{path}.mutation"))?;
+        mutations.insert(mutation.to_owned());
+    }
+    for required in REQUIRED_CONTROLS {
+        if !mutations.contains(required) {
+            return Err(format!("missing required negative control: {required}"));
+        }
+    }
+
+    let (product_family, product_revision) = first_core.ok_or_else(|| "no profiles".to_owned())?;
+    Ok(json!({
+        "corpus_id": "GLOBAL-MFG-DEPLOY-CORPUS-V0.1",
+        "schema_version": "0.1.0",
+        "profile_count": profiles.len(),
+        "negative_control_count": controls.len(),
+        "shared_product_family_id": product_family,
+        "shared_product_revision": product_revision,
+        "jurisdiction_dimensions": REQUIRED_DIMENSIONS,
+        "all_profile_claims_not_established": true,
+        "production_authorization": false,
+        "disposition": "STRUCTURALLY_VALID_SYNTHETIC_ONLY",
+        "legal_or_market_approval": false,
+        "physical_site_qualification": false
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::audit_corpus;
+    use serde_json::Value;
+
+    const FIXTURE: &str = include_str!("../../../fixtures/global/global_mfg_deployment_profiles_v0_1.json");
+
+    fn fixture_value() -> Value {
+        serde_json::from_str(FIXTURE).expect("fixture JSON parses")
+    }
+
+    #[test]
+    fn accepts_frozen_synthetic_corpus() {
+        let report = audit_corpus(FIXTURE).expect("synthetic corpus is structurally valid");
+        assert_eq!(report["profile_count"], 4);
+        assert_eq!(report["negative_control_count"], 10);
+        assert_eq!(report["production_authorization"], false);
+        assert_eq!(report["legal_or_market_approval"], false);
+    }
+
+    #[test]
+    fn rejects_unknown_evidence_promoted_to_satisfied() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["disposition"] = Value::String("satisfied".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_synthetic_market_approval_claim() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["market_access"][0]["approval_status"] =
+            Value::String("independently_established".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_global_core_drift_between_regions() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][1]["global_core"]["product_revision"] =
+            Value::String("0.2.0-synthetic".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_duplicate_profile_identity() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][1]["profile_id"] = fixture["profiles"][0]["profile_id"].clone();
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_a_missing_adversarial_control() {
+        let mut fixture = fixture_value();
+        fixture["negative_controls"].as_array_mut().expect("controls")
+            .retain(|item| item["mutation"] != "false_mutual_recognition");
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_a_real_jurisdiction_inside_synthetic_corpus() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["deployment_context"]["destination_market_jurisdictions"][0] =
+            Value::String("DE".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+}
