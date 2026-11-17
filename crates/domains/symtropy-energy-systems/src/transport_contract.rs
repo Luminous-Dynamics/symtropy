@@ -545,7 +545,7 @@ pub fn assess_matched_service(
 
     macro_rules! compare_optional_field {
         ($field:expr, $getter:expr) => {{
-            let mut known_values: Vec<&str> = Vec::new();
+            let mut known_values: Vec<String> = Vec::new();
             for candidate in &ordered {
                 match ($getter)(&candidate.service) {
                     Some(value) => known_values.push(value),
@@ -566,27 +566,27 @@ pub fn assess_matched_service(
 
     compare_optional_field!(
         ComparisonField::QualityProfile,
-        |service: &UsefulServiceContract| service.quality_profile_digest.as_deref()
+        |service: &UsefulServiceContract| service.quality_profile_digest.clone()
     );
     compare_optional_field!(
         ComparisonField::DutyCycle,
-        |service: &UsefulServiceContract| service.duty_cycle_digest.as_deref()
+        |service: &UsefulServiceContract| service.duty_cycle_digest.clone()
     );
     compare_optional_field!(
         ComparisonField::Scenario,
-        |service: &UsefulServiceContract| service.scenario_digest.as_deref()
+        |service: &UsefulServiceContract| service.scenario_digest.clone()
     );
     compare_optional_field!(
         ComparisonField::LocationEnvironment,
-        |service: &UsefulServiceContract| service.location_environment_digest.as_deref()
+        |service: &UsefulServiceContract| service.location_environment_digest.clone()
     );
     compare_optional_field!(
         ComparisonField::SourceBoundary,
-        |service: &UsefulServiceContract| service.source_boundary_profile_digest.as_deref()
+        |service: &UsefulServiceContract| service.source_boundary_profile_digest.clone()
     );
     compare_optional_field!(
         ComparisonField::UsefulServiceBoundary,
-        |service: &UsefulServiceContract| service.useful_service_boundary_profile_digest.as_deref()
+        |service: &UsefulServiceContract| service.useful_service_boundary_profile_digest.clone()
     );
 
     for candidate in &ordered {
