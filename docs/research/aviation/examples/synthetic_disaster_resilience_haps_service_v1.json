@@ -129,7 +129,10 @@
     "demand_management": {
       "traffic_demand_profile_ref": "examples/synthetic_haps_disaster_traffic_trace_v1.json",
       "network_allocation_case_refs": [
-        "examples/synthetic_haps_cell_demand_beam_allocation_v1.json"
+        "examples/synthetic_haps_cell_demand_beam_allocation_v1.json",
+        "examples/synthetic_haps_disaster_30day_allocation_v1.json",
+        "examples/synthetic_haps_15day_holdout_dynamic_allocation_v1.json",
+        "examples/synthetic_haps_15day_holdout_static_allocation_v1.json"
       ],
       "traffic_data_available_at_decision_time": false,
       "reanalysis_not_used_as_live_forecast": true,
