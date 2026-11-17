@@ -227,7 +227,14 @@ mod tests {
                     assert_eq!(right, expected);
                 }
             }
-            assert!(basis_i.iter().flatten().filter(|value| **value != 0).count() >= 70);
+            assert!(
+                basis_i
+                    .iter()
+                    .flatten()
+                    .filter(|value| **value != 0)
+                    .count()
+                    >= 70
+            );
         }
     }
 
@@ -264,8 +271,7 @@ mod tests {
             let (basis_i, inverse_i) = basis_pair(scale);
             let basis = to_float(&basis_i);
             let inverse = to_float(&inverse_i);
-            let transformed_metric =
-                multiply(&transpose(&basis), &multiply(&metric, &basis));
+            let transformed_metric = multiply(&transpose(&basis), &multiply(&metric, &basis));
             let transformed_q = mat_vec(&inverse, &q);
             let transformed_v = mat_vec(&inverse, &v);
             let transformed_force = mat_vec(&transpose(&basis), &force);
@@ -283,14 +289,20 @@ mod tests {
             assert!(cholesky_positive_definite(&transformed_metric));
 
             let canonical_energy = dot(&v, &mat_vec(&metric, &v));
-            let transformed_energy =
-                dot(&transformed_v, &mat_vec(&transformed_metric, &transformed_v));
+            let transformed_energy = dot(
+                &transformed_v,
+                &mat_vec(&transformed_metric, &transformed_v),
+            );
             assert!((canonical_energy - transformed_energy).abs() <= 1.0e-8);
 
             let canonical_tangency = jacobian_vec(&jacobian, &v);
             let transformed_tangency = jacobian_vec(&transformed_jacobian, &transformed_v);
-            assert!(canonical_tangency.iter().all(|value| value.abs() <= 1.0e-12));
-            assert!(transformed_tangency.iter().all(|value| value.abs() <= 1.0e-11));
+            assert!(canonical_tangency
+                .iter()
+                .all(|value| value.abs() <= 1.0e-12));
+            assert!(transformed_tangency
+                .iter()
+                .all(|value| value.abs() <= 1.0e-11));
 
             let canonical_momentum = mat_vec(&metric, &v);
             let transformed_momentum = mat_vec(&transpose(&basis), &canonical_momentum);
@@ -337,7 +349,8 @@ mod tests {
         let mut metric_defect = [[0.0; N]; N];
         for row in 0..N {
             for column in 0..N {
-                metric_defect[row][column] = transformed_metric[row][column] - wrong_metric[row][column];
+                metric_defect[row][column] =
+                    transformed_metric[row][column] - wrong_metric[row][column];
             }
         }
         assert!(max_abs(&metric_defect) > 1.0);
