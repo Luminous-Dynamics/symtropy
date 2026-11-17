@@ -168,8 +168,8 @@ pub fn time_swept_capsule_broadphase(
         }
     }
 
-    let body_count = u32::try_from(bodies.len())
-        .map_err(|_| MultiBodyBroadphaseError::TooManyBodySlabCells)?;
+    let body_count =
+        u32::try_from(bodies.len()).map_err(|_| MultiBodyBroadphaseError::TooManyBodySlabCells)?;
     let requested_cells = (bodies.len() as u128) * (subdivision_count as u128);
     if requested_cells > u128::from(MAX_BODY_SLAB_CELLS) {
         return Err(MultiBodyBroadphaseError::TooManyBodySlabCells);
@@ -190,11 +190,7 @@ pub fn time_swept_capsule_broadphase(
         .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
 
     let mut body_order: Vec<usize> = (0..bodies.len()).collect();
-    body_order.sort_by(|left, right| {
-        bodies[*left]
-            .body_id
-            .cmp(&bodies[*right].body_id)
-    });
+    body_order.sort_by(|left, right| bodies[*left].body_id.cmp(&bodies[*right].body_id));
 
     let mut pair_slabs: BTreeMap<(String, String), Vec<CandidateSlab>> = BTreeMap::new();
     let mut slab_metrics = Vec::with_capacity(subdivision_count as usize);
