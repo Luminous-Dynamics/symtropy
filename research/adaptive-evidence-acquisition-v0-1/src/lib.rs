@@ -71,6 +71,23 @@ pub enum PlanDisposition {
     Blocked,
 }
 
+/// Selection objectives used for matched-policy comparisons. Every policy
+/// shares the same candidate qualification, evidence independence and budget
+/// constraints; only the ordering objective changes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SelectionPolicy {
+    /// Weighted marginal evidence gain per time-equivalent cost.
+    EvidenceGainPerCost,
+    /// Greedy shortest travel distance among feasible candidates.
+    NearestFeasible,
+    /// Highest weighted marginal evidence gain, without cost normalization.
+    MaximumMarginalEvidence,
+    /// Stable input order (use the fixed raster/waypoint order as input).
+    InputOrder,
+    /// Reproducible pseudo-random order keyed by seed and candidate ID.
+    SeededHashOrder { seed: u64 },
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlannedStep {
     pub ordinal: usize,
@@ -123,6 +140,25 @@ pub fn plan_acquisition(
     existing_passes: &[QualifiedExistingPass],
     candidates: &[AcquisitionCandidate],
     budget: &AcquisitionBudget,
+) -> Result<AcquisitionPlan, String> {
+    plan_acquisition_with_policy(
+        targets,
+        existing_passes,
+        candidates,
+        budget,
+        SelectionPolicy::EvidenceGainPerCost,
+    )
+}
+
+/// Execute the same fail-closed greedy planner with an alternate selection
+/// policy. This enables matched-candidate, matched-budget benchmark comparisons
+/// without relaxing evidence qualification or budget constraints.
+pub fn plan_acquisition_with_policy(
+    targets: &[EvidenceTarget],
+    existing_passes: &[QualifiedExistingPass],
+    candidates: &[AcquisitionCandidate],
+    budget: &AcquisitionBudget,
+    policy: SelectionPolicy,
 ) -> Result<AcquisitionPlan, String> {
     validate_budget(budget)?;
 
@@ -214,7 +250,7 @@ pub fn plan_acquisition(
             break;
         }
 
-        let mut best: Option<(usize, f64, f64, f64, Vec<String>)> = None;
+        let mut best: Option<(usize, f64, f64, f64, f64, Vec<String>)> = None;
         for (index, candidate) in remaining.iter().enumerate() {
             let covered: BTreeSet<&str> = candidate
                 .covered_target_ids
@@ -264,21 +300,37 @@ pub fn plan_acquisition(
                 continue;
             }
 
+            let policy_score = match policy {
+                SelectionPolicy::EvidenceGainPerCost => score,
+                SelectionPolicy::NearestFeasible => -travel_distance,
+                SelectionPolicy::MaximumMarginalEvidence => gain,
+                SelectionPolicy::InputOrder => -(index as f64),
+                SelectionPolicy::SeededHashOrder { seed } => {
+                    deterministic_candidate_rank(seed, &candidate.candidate_id)
+                }
+            };
             let replace = match &best {
                 None => true,
-                Some((best_index, best_score, _, _, _)) => {
-                    score.total_cmp(best_score).is_gt()
-                        || (score.total_cmp(best_score).is_eq()
+                Some((best_index, best_policy_score, _, _, _, _)) => {
+                    policy_score.total_cmp(best_policy_score).is_gt()
+                        || (policy_score.total_cmp(best_policy_score).is_eq()
                             && candidate.candidate_id
                                 < remaining[*best_index].candidate_id)
                 }
             };
             if replace {
-                best = Some((index, score, travel_distance, travel_time, marginal));
+                best = Some((
+                    index,
+                    policy_score,
+                    score,
+                    travel_distance,
+                    travel_time,
+                    marginal,
+                ));
             }
         }
 
-        let Some((index, score, travel_distance, travel_time, marginal)) = best else {
+        let Some((index, _policy_score, score, travel_distance, travel_time, marginal)) = best else {
             break;
         };
         let candidate = remaining.remove(index);
@@ -410,6 +462,15 @@ fn validate_candidate(
         }
     }
     Ok(())
+}
+
+fn deterministic_candidate_rank(seed: u64, candidate_id: &str) -> f64 {
+    let mut hash = 0xcbf29ce484222325_u64 ^ seed;
+    for byte in candidate_id.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    (hash as f64) / (u64::MAX as f64)
 }
 
 fn angular_separation(first: f64, second: f64) -> f64 {
