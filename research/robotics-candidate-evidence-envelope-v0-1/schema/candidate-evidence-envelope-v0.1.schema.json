@@ -189,16 +189,6 @@
         "cost_model_sha256": {
           "$ref": "#/$defs/Sha256"
         },
-        "estimated_travel_distance_m": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1000000000000
-        },
-        "estimated_travel_time_s": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1000000000000
-        },
         "estimated_acquisition_time_s": {
           "type": "number",
           "minimum": 0,
