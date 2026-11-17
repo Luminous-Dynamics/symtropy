@@ -43,3 +43,5 @@ JSON Schema checks the safety field shapes and several fail-closed state combina
 9. A malformed or incomplete safety receipt remains invalid/indeterminate and cannot be promoted to a safe episode or aggregate score.
 
 These are evaluator/runtime requirements, not proof of safety in the physical world.
+ 
+The per-spec record distinguishes the frozen required-signal set from the signals actually observed. The Rust evaluator consumes the same field names and derives its signal coverage from their intersection. The native task outcome is repeated in the safety section solely to derive success-but-unsafe; it must match the mode-specific planning/control/integration result. The safe-stop outcome is assessed against a declared time bound.
