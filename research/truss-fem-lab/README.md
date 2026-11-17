@@ -119,3 +119,5 @@ This is only an element kernel. It does not assemble a frame, solve global displ
 ## Frozen comparison protocol
 
 The benchmark campaign rules are versioned at research/ffmfe-benchmark/PROTOCOL_V1.md. The protocol freezes geometry, supports, loads, materials, solver fidelity, mass accounting, search budget, hold-out families and reporting metrics before candidate selection. B0 matched-topology reproduction is tracked in issue #5808.
+
+The beam-element fixtures additionally check both principal bending planes and all six rigid-body modes (zero element strain energy). These fixtures are authored but remain unexecuted until exact-head Rust CI is available.
