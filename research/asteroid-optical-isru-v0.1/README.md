@@ -73,7 +73,7 @@ This is an **admissibility and accounting slice**, not a signed-attestation veri
 
 ## Source-faithful experimental observations v0.1
 
-The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 78 observation entries from:
+The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records five sources and 94 observation entries from:
 
 - NASA historical 8 kW / 10 m optical-mining demonstration;
 - 2025 Nectar A/B optical-mining experiments, including Table 5 and Table 6 TGA and author-derived efficiency rows;
@@ -84,11 +84,31 @@ The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separa
 The source register preserves exact units, values/ranges, condition records, source locators and caveats. In particular:
 - Nectar's RGA-derived water-loss values are explicitly **author-derived estimates**, because the paper describes an uncalibrated RGA plus pressure-gauge calculation and an inefficient cold-trap measurement;
 - laser Fe–Ni enrichment applies to **ejected fines**, not captured or refined metal;
-- the MRE 0.3 mol O2/kWh, 0.07 kg/h, 2.3 wt%, 45 V and 210 A remain separate source-reported metrics. The time-varying electrical traces are not integrated into a synthetic campaign energy;
+- the MRE 0.3 mol O2/kWh, 0.07 kg/h, 2.3 wt%, 45 V, 210 A, ~9 kW chamber peak draw, gas-stream O2 concentration and >1700 °C thermal stage remain separate source-reported metrics. The separate NASA KPP release supplies thresholds/goals (0.6/1.0 mol O2/kW·h; 0.04/0.08 kg/h; 1.54/3.15 wt%) and melt-phase energy (11,877 kJ/kg at 1200 °C, 24,692 kJ/kg at 1300 °C versus a 3,100 kJ/kg goal). These remain separate from electrolysis and do not establish whole-campaign energy. The time-varying electrical traces are not integrated into synthetic campaign kWh;
 - CaRD CO detection is recorded as a process signal, not purified accepted oxygen;
 - source-unreported product quantities remain explicit null-valued `not_reported` records, never zero.
 
 The new `src/observations.rs` module validates source/observation identity, cross-references, status/value/unit/evidence-class combinations, condition records and a positive-conservative-bound accepted-product gate requiring assay, issuer and contract identities. It does not authenticate those identities or establish physical truth. The register currently contains 14 authored structural tests; they are not reported as executed.
+
+## Source-faithful experimental observations v0.1
+
+The versioned fixture `fixtures/experimental-observations-v0.1.json` is a separate observation layer; it does not mutate the original 17-case v0.1 reference corpus. It currently records six sources and 94 observation entries from:
+
+- NASA historical 8 kW / 10 m optical-mining demonstration;
+- 2025 Nectar A/B optical-mining experiments, including Table 5 and Table 6 TGA and author-derived efficiency rows;
+- 2026 C-/S-type cryogenic-vacuum laser experiment;
+- NASA/Lunar Resources 25 kg molten-regolith electrolysis presentation;
+- NASA CaRD integrated solar-carbothermal prototype.
+
+The source register preserves exact units, values/ranges, condition records, source locators and caveats. In particular:
+- Nectar's RGA-derived water-loss values and headline water-rate estimates (about 16 g/h for Nectar A and 4.75 g/h for Nectar B) are explicitly **author-derived estimates**, because the paper describes an uncalibrated RGA plus pressure-gauge calculation and an inefficient cold-trap measurement. Early CO2 purge contamination is separately recorded, as are the source's Table 3 beam-irradiance uncertainties;
+- laser Fe–Ni enrichment applies to **ejected fines**, not captured or refined metal; the material-dependent CARS-1/SARS-LL ejection difference is preserved as qualitative evidence;
+- the MRE 0.3 mol O2/kWh, 0.07 kg/h, 2.3 wt%, 45 V and 210 A remain separate source-reported metrics. The time-varying electrical traces are not integrated into a synthetic campaign energy;
+- CaRD CO detection is recorded as a process signal, not purified accepted oxygen; MRE's reported peak gas-stream oxygen concentration and approximate 9 kW maximum chamber-operation draw are also recorded without promoting either to accepted product or integrated campaign energy;
+- source-unreported product quantities remain explicit null-valued `not_reported` records, never zero.
+
+The new `src/observations.rs` module validates source/observation identity, cross-references, status/value/unit combinations, condition records and a positive-conservative-bound accepted-product gate requiring assay, issuer and contract identities. It does not authenticate those identities or establish physical truth. The register currently contains 12 authored structural tests; they are not reported as executed.
+
 
 ## Run
 
