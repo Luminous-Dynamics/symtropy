@@ -225,9 +225,7 @@ fn non_empty(value: &str, field: &str) -> Result<(), ReplayError> {
 fn target_matches(target: &FaultTarget, channel: &ChannelSpec) -> bool {
     match target {
         FaultTarget::Channel { channel_id } => channel.channel_id == *channel_id,
-        FaultTarget::DiagnosticSystem { system_id } => {
-            channel.diagnostic_system_id == *system_id
-        }
+        FaultTarget::DiagnosticSystem { system_id } => channel.diagnostic_system_id == *system_id
     }
 }
 
@@ -501,8 +499,11 @@ pub fn verify_receipt(receipt: &ReplayReceipt) -> Result<(), ReplayError> {
         }
         previous_time = Some(row.time_ns);
 
-        let row_channel_ids: Vec<String> =
-            row.channels.iter().map(|channel| channel.channel_id.clone()).collect();
+        let row_channel_ids: Vec<String> = row
+            .channels
+            .iter()
+            .map(|channel| channel.channel_id.clone())
+            .collect();
         if row_channel_ids != receipt.body.channel_ids {
             return Err(ReplayError::new(
                 "receipt channel inventory differs from its declared channel set",
@@ -552,9 +553,7 @@ pub fn audit_manifest_json(json: &str) -> Result<AuditReport, ReplayError> {
                 case.case_id
             )));
         }
-        if case.expected_disposition != "COMPLETED"
-            && case.expected_disposition != "REFUSED"
-        {
+        if case.expected_disposition != "COMPLETED" && case.expected_disposition != "REFUSED" {
             return Err(ReplayError::new(format!(
                 "case {} has an unknown expected disposition",
                 case.case_id
@@ -622,23 +621,24 @@ mod tests {
                 schedule_id: "schedule-001".to_owned(),
                 faults: vec![
                     FaultEvent {
-                    fault_id: "drop-density".to_owned(),
-                    target: FaultTarget::Channel {
-                        channel_id: "density".to_owned(),
+                        fault_id: "drop-density".to_owned(),
+                        target: FaultTarget::Channel {
+                            channel_id: "density".to_owned(),
+                        },
+                        mode: FaultMode::Dropout,
+                        start_time_ns: 20,
+                        end_time_ns: 40,
                     },
-                    mode: FaultMode::Dropout,
-                    start_time_ns: 20,
-                    end_time_ns: 40,
-                },
                     FaultEvent {
-                    fault_id: "delay-temperature".to_owned(),
-                    target: FaultTarget::Channel {
-                        channel_id: "temperature".to_owned(),
+                        fault_id: "delay-temperature".to_owned(),
+                        target: FaultTarget::Channel {
+                            channel_id: "temperature".to_owned(),
+                        },
+                        mode: FaultMode::Delay,
+                        start_time_ns: 60,
+                        end_time_ns: 80,
                     },
-                    mode: FaultMode::Delay,
-                    start_time_ns: 60,
-                    end_time_ns: 80,
-                }],
+                ],
             },
             points: vec![
                 EvaluationPoint {
