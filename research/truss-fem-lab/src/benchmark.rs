@@ -513,7 +513,10 @@ mod tests {
             spec,
         )
         .unwrap();
-        assert!((baseline.computed_member_mass_kg - interior_hub.computed_member_mass_kg).abs() < 1e-10);
+        assert!(
+            (baseline.computed_member_mass_kg - interior_hub.computed_member_mass_kg).abs()
+                < 1e-10
+        );
         assert!(baseline.maximum_node_displacement_m.is_finite());
         assert!(interior_hub.maximum_node_displacement_m.is_finite());
     }
