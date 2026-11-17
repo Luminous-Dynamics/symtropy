@@ -1,0 +1,1610 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-observability-t0-v0.1",
+  "benchmark_id": "WATER-OBSERVABILITY-T0-EXECUTOR-001",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_observability_contract_only",
+  "required_state_ids": [
+    "pressure:JHB-N1",
+    "pressure:JHB-N2",
+    "pressure:JHB-N3",
+    "pressure:JHB-N4"
+  ],
+  "domain_types": [
+    "physical_interface",
+    "calibration_lineage",
+    "power_supply",
+    "communications_path",
+    "clock_domain",
+    "measurement_principle"
+  ],
+  "scenarios": [
+    {
+      "case_id": "OBS-T0-001-nominal-independent-direct",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S1",
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-001-nominal-independent-direct"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-002-single-channel-dropout-with-independent-backup",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1-PRIMARY",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-PRIMARY",
+            "calibration_lineage": "CAL-S1-PRIMARY",
+            "power_supply": "PWR-S1-PRIMARY",
+            "communications_path": "GW-S1-PRIMARY",
+            "clock_domain": "CLK-S1-PRIMARY",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S1-ALT",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-ALT",
+            "calibration_lineage": "CAL-S1-ALT",
+            "power_supply": "PWR-S1-ALT",
+            "communications_path": "GW-S1-ALT",
+            "clock_domain": "CLK-S1-ALT",
+            "measurement_principle": "PRINC-acoustic"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "physical_interface",
+          "domain_id": "PIF-S1-PRIMARY"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S1-ALT",
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-002-single-channel-dropout-with-independent-backup"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-003-common-calibration-dependency",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1-A",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-A",
+            "calibration_lineage": "CAL-SHARED-S1",
+            "power_supply": "PWR-S1-A",
+            "communications_path": "GW-S1-A",
+            "clock_domain": "CLK-S1-A",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S1-B",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-B",
+            "calibration_lineage": "CAL-SHARED-S1",
+            "power_supply": "PWR-S1-B",
+            "communications_path": "GW-S1-B",
+            "clock_domain": "CLK-S1-B",
+            "measurement_principle": "PRINC-acoustic"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "calibration_lineage",
+          "domain_id": "CAL-SHARED-S1"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-003-common-calibration-dependency"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-004-common-power-dependency",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1-A",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-A",
+            "calibration_lineage": "CAL-S1-A",
+            "power_supply": "PWR-SHARED-S1",
+            "communications_path": "GW-S1-A",
+            "clock_domain": "CLK-S1-A",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S1-B",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-B",
+            "calibration_lineage": "CAL-S1-B",
+            "power_supply": "PWR-SHARED-S1",
+            "communications_path": "GW-S1-B",
+            "clock_domain": "CLK-S1-B",
+            "measurement_principle": "PRINC-acoustic"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "power_supply",
+          "domain_id": "PWR-SHARED-S1"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-004-common-power-dependency"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-005-common-communications-dependency",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1-A",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-A",
+            "calibration_lineage": "CAL-S1-A",
+            "power_supply": "PWR-S1-A",
+            "communications_path": "GW-SHARED-S1",
+            "clock_domain": "CLK-S1-A",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S1-B",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-B",
+            "calibration_lineage": "CAL-S1-B",
+            "power_supply": "PWR-S1-B",
+            "communications_path": "GW-SHARED-S1",
+            "clock_domain": "CLK-S1-B",
+            "measurement_principle": "PRINC-acoustic"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "communications_path",
+          "domain_id": "GW-SHARED-S1"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-005-common-communications-dependency"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-006-common-clock-failure",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-COMMON",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-COMMON",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-COMMON",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-COMMON",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "clock_domain",
+          "domain_id": "CLK-COMMON"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [],
+        "sensor_ids": [],
+        "proof_ref": "synthetic-proof-OBS-T0-006-common-clock-failure"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-007-stale-topology-certificate-direct-readings-preserved",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-old",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S1",
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-007-stale-topology-certificate-direct-readings-preserved"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-008-ill-conditioned-estimator-not-qualified",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "failed",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-008-ill-conditioned-estimator-not-qualified"
+      },
+      "estimator": {
+        "status": "synthetic_qualified_contract",
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "state_ids": [
+          "pressure:JHB-N1"
+        ],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": "synthetic-model-scope",
+        "parameter_scope_ref": "synthetic-parameter-scope",
+        "calibration_ref": "synthetic-calibration",
+        "heldout_ref": "synthetic-heldout",
+        "ood_ref": "synthetic-ood",
+        "validity_ref": "synthetic-validity",
+        "qualification_claimed": false,
+        "sample_count": 400,
+        "empirical_coverage_percent": 90,
+        "interval_width_percent": 10,
+        "condition_number": 100000000
+      }
+    },
+    {
+      "case_id": "OBS-T0-009-incomplete-critical-state-mapping",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "stale",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S1",
+          "S2",
+          "S3"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-009-incomplete-critical-state-mapping"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-010-alternate-measurement-principle-survives",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1-PRESSURE",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-PRESSURE",
+            "calibration_lineage": "CAL-S1-PRESSURE",
+            "power_supply": "PWR-S1-PRESSURE",
+            "communications_path": "GW-S1-PRESSURE",
+            "clock_domain": "CLK-S1-PRESSURE",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S1-ACOUSTIC",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1-ACOUSTIC",
+            "calibration_lineage": "CAL-S1-ACOUSTIC",
+            "power_supply": "PWR-S1-ACOUSTIC",
+            "communications_path": "GW-S1-ACOUSTIC",
+            "clock_domain": "CLK-S1-ACOUSTIC",
+            "measurement_principle": "PRINC-acoustic"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [
+        {
+          "domain_type": "measurement_principle",
+          "domain_id": "PRINC-pressure"
+        }
+      ],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S1-ACOUSTIC"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-010-alternate-measurement-principle-survives"
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-011-missing-structural-proof",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "stale",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "missing",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [],
+        "sensor_ids": [],
+        "proof_ref": null
+      },
+      "estimator": {
+        "status": "not_available",
+        "sensor_ids": [],
+        "state_ids": [],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": null,
+        "parameter_scope_ref": null,
+        "calibration_ref": null,
+        "heldout_ref": null,
+        "ood_ref": null,
+        "validity_ref": null,
+        "qualification_claimed": false,
+        "sample_count": 0,
+        "empirical_coverage_percent": 0,
+        "interval_width_percent": 0,
+        "condition_number": 0
+      }
+    },
+    {
+      "case_id": "OBS-T0-012-evidence-qualified-estimator-with-claim-disabled",
+      "topology": {
+        "revision": "jhb-synthetic-topology-v0.1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sensors": [
+        {
+          "sensor_id": "S1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "failed",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S1",
+            "calibration_lineage": "CAL-S1",
+            "power_supply": "PWR-S1",
+            "communications_path": "GW-S1",
+            "clock_domain": "CLK-S1",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S2",
+            "calibration_lineage": "CAL-S2",
+            "power_supply": "PWR-S2",
+            "communications_path": "GW-S2",
+            "clock_domain": "CLK-S2",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S3",
+            "calibration_lineage": "CAL-S3",
+            "power_supply": "PWR-S3",
+            "communications_path": "GW-S3",
+            "clock_domain": "CLK-S3",
+            "measurement_principle": "PRINC-pressure"
+          }
+        },
+        {
+          "sensor_id": "S4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "reading_value": 50,
+          "failure_domains": {
+            "physical_interface": "PIF-S4",
+            "calibration_lineage": "CAL-S4",
+            "power_supply": "PWR-S4",
+            "communications_path": "GW-S4",
+            "clock_domain": "CLK-S4",
+            "measurement_principle": "PRINC-pressure"
+          }
+        }
+      ],
+      "active_failed_domains": [],
+      "structural_certificate": {
+        "status": "present",
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state_mapping_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "inferable_state_ids": [
+          "pressure:JHB-N1",
+          "pressure:JHB-N2",
+          "pressure:JHB-N3",
+          "pressure:JHB-N4"
+        ],
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "proof_ref": "synthetic-proof-OBS-T0-012-evidence-qualified-estimator-with-claim-disabled"
+      },
+      "estimator": {
+        "status": "synthetic_qualified_contract",
+        "sensor_ids": [
+          "S2",
+          "S3",
+          "S4"
+        ],
+        "state_ids": [
+          "pressure:JHB-N1"
+        ],
+        "topology_revision": "jhb-synthetic-topology-v0.1",
+        "topology_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "model_scope_ref": "synthetic-model-scope-v1",
+        "parameter_scope_ref": "synthetic-parameter-envelope-v1",
+        "calibration_ref": "synthetic-independent-calibration-v1",
+        "heldout_ref": "synthetic-heldout-v1",
+        "ood_ref": "synthetic-ood-v1",
+        "validity_ref": "synthetic-validity-v1",
+        "qualification_claimed": false,
+        "sample_count": 400,
+        "empirical_coverage_percent": 90,
+        "interval_width_percent": 10,
+        "condition_number": 1000
+      }
+    }
+  ]
+}
