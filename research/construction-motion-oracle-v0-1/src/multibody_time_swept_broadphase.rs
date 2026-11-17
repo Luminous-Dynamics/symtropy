@@ -1324,4 +1324,39 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn cached_slab_bounds_fast_reject_and_reuse_exact_common_intervals() {
+        let bodies = [
+            body("a", span(-10.0, 0.0, 20.0, 0, 1_000)),
+            body("b", span(10.0, 0.0, -20.0, 0, 1_000)),
+        ];
+        let hierarchical =
+            time_swept_capsule_broadphase_hierarchical(&bodies, 8).unwrap();
+        let direct = time_swept_capsule_broadphase(&bodies, 8).unwrap();
+        assert_eq!(hierarchical.refinement.pairs, direct.pairs);
+        assert_eq!(hierarchical.refinement.body_slab_bounds_built, 16);
+        assert_eq!(hierarchical.refinement.tested_pair_slabs, 8);
+        assert!(hierarchical.refinement.cached_bounds_fast_rejects > 0);
+        assert_eq!(hierarchical.refinement.common_interval_rebuilds, 0);
+    }
+
+    #[test]
+    fn cached_refinement_rebuilds_only_when_active_intervals_differ() {
+        let bodies = [
+            body("a", span(0.0, 0.0, 0.0, 0, 1_000)),
+            body("b", span(0.0, 0.0, 0.0, 250, 750)),
+        ];
+        let hierarchical =
+            time_swept_capsule_broadphase_hierarchical(&bodies, 4).unwrap();
+        let direct = time_swept_capsule_broadphase(&bodies, 4).unwrap();
+        assert_eq!(hierarchical.refinement.pairs, direct.pairs);
+        assert_eq!(hierarchical.refinement.coarse_candidate_pairs, 1);
+        assert!(hierarchical.refinement.common_interval_rebuilds > 0);
+        assert_eq!(
+            hierarchical.refinement.body_slab_bounds_built,
+            2 + 4
+        );
+    }
+
 }
