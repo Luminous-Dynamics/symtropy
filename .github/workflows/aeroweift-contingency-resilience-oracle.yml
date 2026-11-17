@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - "research/aeroweFt-contingency-option-resilience-001"
+      - "research/aeroweFt-contingency-option-resilience-stacked-002"
     paths:
       - "tools/aeroweift-contingency-resilience/**"
       - "docs/research/aviation/AEROWEFT_CONTINGENCY_OPTION_RESILIENCE_001.md"
