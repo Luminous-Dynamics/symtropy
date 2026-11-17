@@ -811,6 +811,22 @@ mod tests {
         let mut skin = zero_shot_manifest();
         skin.transfer_regime = TransferRegime::NewSkinOrMaterialLot;
         skin.required_holdout_dimensions = vec![IdentityDimension::SkinMaterialLot];
+        skin.partitions[0].identities.push(identities(
+            IdentityDimension::SkinMaterialLot,
+            &["source-skin-lot"],
+        ));
+        skin.partitions[1].identities.push(identities(
+            IdentityDimension::SkinMaterialLot,
+            &["source-skin-lot"],
+        ));
+        skin.partitions[3].identities.push(identities(
+            IdentityDimension::SkinMaterialLot,
+            &["target-skin-lot"],
+        ));
+        skin.partitions[4].identities.push(identities(
+            IdentityDimension::SkinMaterialLot,
+            &["target-skin-lot"],
+        ));
         assert_eq!(
             audit_transfer_manifest(&skin).disposition,
             TransferAuditDisposition::QualifiedManifest
