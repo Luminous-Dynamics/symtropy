@@ -1,0 +1,13 @@
+[package]
+name = "robot-behaviour-conditioned-work"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Synthetic-first reference evaluator for state-derived construction work packages"
+
+# Isolated from the main workspace: no Bevy, GPU or sibling-crate dependency.
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
