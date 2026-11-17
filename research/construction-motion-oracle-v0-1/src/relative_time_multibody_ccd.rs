@@ -1503,11 +1503,7 @@ mod tests {
         let mut invalid_motion = span(0.0, 0.0, 1_000, 2_000, "clock-a");
         invalid_motion.translation.x = f64::NAN;
         let bodies = [
-            body(
-                "a",
-                invalid_motion,
-                Some(mapping("clock-a", 0, 0, 0)),
-            ),
+            body("a", invalid_motion, Some(mapping("clock-a", 0, 0, 0))),
             body(
                 "b",
                 span(10.0, 0.0, 1_000, 2_000, "clock-b"),
@@ -1523,5 +1519,4 @@ mod tests {
             vec![("a".into(), OuterEnvelopeFailure::NonFiniteExpansion)]
         );
     }
-
 }
