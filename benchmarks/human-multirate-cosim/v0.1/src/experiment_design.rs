@@ -648,6 +648,11 @@ mod tests {
     fn bounded_pulse_discriminates_chain_from_bypass_model() {
         let score = evaluate_input_profile(&scenario(), &pulse_profile(), &[30]).unwrap();
         assert!(score.minimum_pairwise_separation > 1.0e-6);
+        assert!(
+            (score.minimum_pairwise_separation - 0.3344981676303682).abs() < 1.0e-9,
+            "T-optimal known-answer separation was {}",
+            score.minimum_pairwise_separation
+        );
         assert!(!score.worst_case_indistinguishable);
         assert!((score.integrated_squared_input - 0.5).abs() < 1.0e-12);
         assert_eq!(score.maximum_abs_forcing, 1.0);
