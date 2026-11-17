@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/symmetry-physical-receiver-001/receiver-package-v0.1.schema.json",
+  "title": "Symtropy physical receiver package v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "envelope",
+    "source_receipt_bytes_hex",
+    "generator_set",
+    "physical_fixture",
+    "task_semantics"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.symmetry_physical_receiver.v0.1"
+    },
+    "envelope": {
+      "$ref": "symmetry-physical-handoff-v0.1.schema.json"
+    },
+    "source_receipt_bytes_hex": {
+      "type": "string",
+      "pattern": "^(?:[a-fA-F0-9]{2})+$"
+    },
+    "generator_set": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/matrix3"
+      }
+    },
+    "physical_fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_s",
+        "mass_metric_q",
+        "force_covector_q",
+        "momentum_covector_q",
+        "constraint_jacobian_q",
+        "initial_position_q",
+        "initial_velocity_q",
+        "declared_mass_metric_y",
+        "declared_force_covector_y",
+        "declared_momentum_covector_y",
+        "declared_constraint_jacobian_y",
+        "declared_generators_y"
+      ],
+      "properties": {
+        "transform_s": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "mass_metric_q": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "force_covector_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "momentum_covector_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "constraint_jacobian_q": {
+          "$ref": "#/$defs/jacobian2x3"
+        },
+        "initial_position_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "initial_velocity_q": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_mass_metric_y": {
+          "$ref": "#/$defs/matrix3"
+        },
+        "declared_force_covector_y": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_momentum_covector_y": {
+          "$ref": "#/$defs/vector3"
+        },
+        "declared_constraint_jacobian_y": {
+          "$ref": "#/$defs/jacobian2x3"
+        },
+        "declared_generators_y": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/matrix3"
+          }
+        }
+      }
+    },
+    "task_semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_domain",
+        "objective",
+        "feasibility_constraints",
+        "initial_and_boundary_conditions",
+        "observable_mapping",
+        "answer_interpretation"
+      ],
+      "properties": {
+        "candidate_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feasibility_constraints": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_and_boundary_conditions": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observable_mapping": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer_interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "finiteNumber": {
+      "type": "number"
+    },
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      }
+    },
+    "matrix3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/vector3"
+      }
+    },
+    "jacobian2x3": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/vector3"
+      }
+    }
+  }
+}
