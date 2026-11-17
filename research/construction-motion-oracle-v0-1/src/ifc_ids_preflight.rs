@@ -634,6 +634,14 @@ mod tests {
                     "not-an-ifc-global-id".into()
                 ))
         );
+
+        let mut invalid_prefix = valid_input();
+        invalid_prefix.entities[0].global_id = global_id('A');
+        assert!(
+            preflight_ifc_ids_work_package(invalid_prefix)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidGlobalId(global_id('A')))
+        );
     }
 
     #[test]
