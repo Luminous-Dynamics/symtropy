@@ -37,4 +37,4 @@ jobs:
         shell: bash
         run: |
           test "$(wc -l < /tmp/factory-process-model-assurance.tsv)" -eq 19
-          awk -F '\\t' 'NR > 1 && $5 == "true" { accepted++ } END { exit !(accepted == 18) }' /tmp/factory-process-model-assurance.tsv
+          test "$(grep -c $'\ttrue$' /tmp/factory-process-model-assurance.tsv)" -eq 18
