@@ -91,7 +91,7 @@ jobs:
         cargo clippy --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets
         cargo run --manifest-path tools/material-accounted-routes/Cargo.toml --bin material-accounted-routes > /tmp/material-accounted-routes-report.tsv
-        test "$(wc -l < /tmp/material-accounted-routes-report.tsv)" -eq 31
+        test "$(wc -l < /tmp/material-accounted-routes-report.tsv)" -eq 32
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
