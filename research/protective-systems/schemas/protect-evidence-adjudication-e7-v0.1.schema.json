@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/protect-evidence-adjudication-e7-v0.1.schema.json",
+  "title": "Protective Evidence Adjudication E7 Corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "decision_time_default",
+    "valid_at_default",
+    "claim",
+    "evidence_artifacts",
+    "assertions",
+    "dependencies",
+    "independence_attestations",
+    "lifecycle_events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "protect-evidence-adjudication-e7/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "EVIDENCE_CONFLICT_AND_REPLAY_ONLY"
+    },
+    "decision_time_default": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_at_default": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "subject_id",
+        "configuration_digest",
+        "quantity",
+        "unit",
+        "method_id",
+        "absolute_tolerance",
+        "valid_from",
+        "valid_to"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "configuration_digest": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "method_id": {
+          "type": "string"
+        },
+        "absolute_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "valid_from": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_to": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "evidence_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_identity",
+          "source_digest",
+          "state",
+          "recorded_at",
+          "rights_status",
+          "permitted_use"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "source_identity": {
+            "type": "string"
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "enum": [
+              "VALID",
+              "EXPIRED",
+              "SUPERSEDED",
+              "CONFLICTED",
+              "NOT_APPLICABLE",
+              "UNKNOWN",
+              "REVOKED",
+              "NOT_EXECUTED"
+            ]
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rights_status": {
+            "const": "SYNTHETIC_OPEN_FIXTURE"
+          },
+          "permitted_use": {
+            "const": "SYNTHETIC_TEST_ONLY"
+          }
+        }
+      }
+    },
+    "assertions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assertion_id",
+          "claim_id",
+          "evidence_id",
+          "subject_id",
+          "configuration_digest",
+          "quantity",
+          "value",
+          "unit",
+          "method_id",
+          "valid_from",
+          "valid_to",
+          "observed_at",
+          "recorded_at"
+        ],
+        "properties": {
+          "assertion_id": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "evidence_id": {
+            "type": "string"
+          },
+          "subject_id": {
+            "type": "string"
+          },
+          "configuration_digest": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "method_id": {
+            "type": "string"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "dependent_evidence_id",
+          "upstream_evidence_id",
+          "relation"
+        ],
+        "properties": {
+          "dependent_evidence_id": {
+            "type": "string"
+          },
+          "upstream_evidence_id": {
+            "type": "string"
+          },
+          "relation": {
+            "enum": [
+              "DERIVED_FROM",
+              "COPIED_FROM",
+              "SAME_UPSTREAM_OBSERVATION",
+              "SHARED_SENSOR",
+              "SHARED_CALIBRATION",
+              "COMMON_OPERATOR",
+              "COMMON_MODEL",
+              "UNKNOWN_DEPENDENCE"
+            ]
+          }
+        }
+      }
+    },
+    "independence_attestations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "attestation_id",
+          "claim_id",
+          "configuration_digest",
+          "quantity",
+          "unit",
+          "method_id",
+          "evidence_ids",
+          "status",
+          "basis",
+          "attested_by",
+          "recorded_at",
+          "valid_from",
+          "valid_to"
+        ],
+        "properties": {
+          "attestation_id": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "configuration_digest": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "method_id": {
+            "type": "string"
+          },
+          "evidence_ids": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "enum": [
+              "VERIFIED_INDEPENDENT",
+              "UNVERIFIED",
+              "REVOKED"
+            ]
+          },
+          "basis": {
+            "type": "string"
+          },
+          "attested_by": {
+            "type": "string"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_to": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "lifecycle_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "event_type",
+          "evidence_id",
+          "effective_at",
+          "recorded_at",
+          "reason_code"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "enum": [
+              "REVOKE",
+              "EXPIRE",
+              "SUPERSEDE"
+            ]
+          },
+          "evidence_id": {
+            "type": "string"
+          },
+          "effective_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason_code": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
