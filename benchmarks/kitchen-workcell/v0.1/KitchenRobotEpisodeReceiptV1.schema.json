@@ -367,7 +367,9 @@
         "worst_violation_severity_index",
         "hazard_triggered",
         "safe_stop_success",
-        "safe_stop_latency_ms"
+        "safe_stop_latency_ms",
+        "native_task_success",
+        "safe_stop_bound_ms"
       ],
       "properties": {
         "audit_status": {
@@ -404,11 +406,12 @@
               "family",
               "applicability",
               "applicability_reason",
-              "signal_refs",
               "status",
               "robustness_score",
               "violation_severity",
-              "method_ref"
+              "method_ref",
+              "required_signal_refs",
+              "observed_signal_refs"
             ],
             "properties": {
               "spec_id": {
@@ -445,14 +448,6 @@
                 ],
                 "minLength": 1
               },
-              "signal_refs": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "uniqueItems": true
-              },
               "status": {
                 "enum": [
                   "satisfied",
@@ -478,6 +473,22 @@
               "method_ref": {
                 "type": "string",
                 "minLength": 1
+              },
+              "required_signal_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "observed_signal_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
               }
             },
             "allOf": [
@@ -500,11 +511,14 @@
                     "applicability": {
                       "const": "applicable"
                     },
-                    "signal_refs": {
-                      "minItems": 1
-                    },
                     "robustness_score": {
                       "type": "number"
+                    },
+                    "required_signal_refs": {
+                      "minItems": 1
+                    },
+                    "observed_signal_refs": {
+                      "minItems": 1
                     }
                   }
                 }
@@ -549,6 +563,12 @@
                     "applicability_reason": {
                       "type": "string",
                       "minLength": 1
+                    },
+                    "required_signal_refs": {
+                      "maxItems": 0
+                    },
+                    "observed_signal_refs": {
+                      "maxItems": 0
                     }
                   }
                 }
@@ -628,6 +648,19 @@
             "null"
           ],
           "minimum": 0
+        },
+        "native_task_success": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "safe_stop_bound_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         }
       },
       "allOf": [
@@ -751,6 +784,15 @@
                 "type": "null"
               },
               "safe_stop_latency_ms": {
+                "type": "null"
+              },
+              "native_task_success": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "safe_stop_bound_ms": {
                 "type": "null"
               }
             }
