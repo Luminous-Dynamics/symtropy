@@ -665,6 +665,17 @@ mod tests {
             .any(|reason| reason.contains("reused across cases")));
     }
 
+
+    #[test]
+    fn receipt_row_order_does_not_change_evaluation() {
+        let cases = parse_cases(CASES).unwrap();
+        let mut receipts = parse_receipts(RECEIPTS).unwrap();
+        let forward = evaluate(&cases, &receipts).unwrap();
+        receipts.reverse();
+        let reverse = evaluate(&cases, &receipts).unwrap();
+        assert_eq!(forward, reverse);
+    }
+
     #[test]
     fn unknown_gate_status_cannot_pass() {
         let cases = parse_cases(CASES).unwrap();
