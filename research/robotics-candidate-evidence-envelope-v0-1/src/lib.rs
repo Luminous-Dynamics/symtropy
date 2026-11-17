@@ -123,6 +123,7 @@ pub enum EnvelopeError {
     MissingIdentifier(&'static str),
     MissingReceiptMetadata(&'static str),
     MalformedSha256(&'static str),
+    ComputedBindingDigestMismatch,
     InvalidAcquisitionInterval,
     InvalidNumericValue(&'static str),
     DuplicateTarget(String),
@@ -265,6 +266,7 @@ impl CandidateBinding {
 
 pub fn validate_candidate_envelope<'a>(
     envelope: &'a CandidateEvidenceEnvelope,
+    computed_binding_sha256: &str,
 ) -> Result<ValidatedCandidateEnvelope<'a>, Vec<EnvelopeError>> {
     let mut errors = Vec::new();
     if envelope.schema_version != SCHEMA_VERSION {
@@ -273,6 +275,10 @@ pub fn validate_candidate_envelope<'a>(
 
     validate_binding(&envelope.binding, &mut errors);
     validate_sha256(&envelope.binding_sha256, "binding_sha256", &mut errors);
+    validate_sha256(computed_binding_sha256, "computed_binding_sha256", &mut errors);
+    if computed_binding_sha256 != envelope.binding_sha256 {
+        errors.push(EnvelopeError::ComputedBindingDigestMismatch);
+    }
 
     if envelope.receipts.len() != 3 {
         errors.push(EnvelopeError::UnexpectedReceiptCount);
@@ -759,7 +765,7 @@ mod tests {
     fn not_qualified_receipt_is_not_promoted() {
         let mut value = envelope();
         value.receipts[1].status = EvidenceStatus::NotQualified;
-        let result = validate_candidate_envelope(&value).unwrap();
+        let result = validate_candidate_envelope(&value, A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::NotQualified);
         assert_eq!(result.assessment().non_qualified_domains, vec![EvidenceDomain::SensorQuality]);
     }
@@ -768,7 +774,7 @@ mod tests {
     fn unknown_receipt_remains_unknown() {
         let mut value = envelope();
         value.receipts[0].status = EvidenceStatus::Unknown;
-        let result = validate_candidate_envelope(&value).unwrap();
+        let result = validate_candidate_envelope(&value, A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::Unknown);
     }
 
@@ -777,7 +783,7 @@ mod tests {
         let mut value = envelope();
         value.receipts[0].status = EvidenceStatus::Unknown;
         value.receipts[2].status = EvidenceStatus::InvalidEvidence;
-        let result = validate_candidate_envelope(&value).unwrap();
+        let result = validate_candidate_envelope(&value, A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::InvalidEvidence);
         assert_eq!(result.assessment().invalid_domains, vec![EvidenceDomain::Calibration]);
     }
@@ -791,7 +797,7 @@ mod tests {
 
         let mut unknown = envelope();
         unknown.receipts[1].status = EvidenceStatus::Unknown;
-        let validated_unknown = validate_candidate_envelope(&unknown).unwrap();
+        let validated_unknown = validate_candidate_envelope(&unknown, A).unwrap();
         assert!(validated_unknown.qualified_projection().is_none());
     }
 
@@ -799,7 +805,7 @@ mod tests {
     fn receipt_timebase_must_match_candidate_binding() {
         let mut value = envelope();
         value.receipts[0].timebase_revision = "other-clock-revision".to_owned();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::ReceiptTimebaseMismatch(
                 EvidenceDomain::GeometryCoverage
@@ -810,16 +816,24 @@ mod tests {
     fn unsupported_schema_is_rejected() {
         let mut value = envelope();
         value.schema_version = "robotics-candidate-evidence-envelope/v9".to_owned();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::UnsupportedSchemaVersion));
+    }
+
+    #[test]
+    fn externally_computed_binding_digest_must_match_envelope_commitment() {
+        let value = envelope();
+        assert!(validate_candidate_envelope(&value, B)
+            .unwrap_err()
+            .contains(&EnvelopeError::ComputedBindingDigestMismatch));
     }
 
     #[test]
     fn receipt_binding_digest_must_match_exact_candidate_context() {
         let mut value = envelope();
         value.receipts[0].binding_sha256 = B.to_owned();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::BindingDigestMismatch(
                 EvidenceDomain::GeometryCoverage
@@ -830,7 +844,7 @@ mod tests {
     fn geometry_receipt_must_cover_exact_declared_targets() {
         let mut value = envelope();
         value.receipts[0].covered_target_ids.pop();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::GeometryCoverageMismatch));
     }
@@ -841,7 +855,7 @@ mod tests {
         value.receipts[0]
             .covered_target_ids
             .push("module-unknown".to_owned());
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::GeometryCoverageMismatch));
     }
@@ -852,7 +866,7 @@ mod tests {
         value.receipts[1]
             .covered_target_ids
             .push("module-01".to_owned());
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::UnexpectedReceiptTargetScope(
                 EvidenceDomain::SensorQuality
@@ -863,7 +877,7 @@ mod tests {
     fn calibration_validity_must_cover_the_whole_acquisition_interval() {
         let mut value = envelope();
         value.receipts[2].valid_from_ns = Some(1_500);
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::CalibrationNotValidForAcquisition));
     }
@@ -872,7 +886,7 @@ mod tests {
     fn geometry_result_must_be_issued_after_acquisition() {
         let mut value = envelope();
         value.receipts[0].issued_at_ns = 1_999;
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::ReceiptIssuedBeforeAcquisition(
                 EvidenceDomain::GeometryCoverage
@@ -883,7 +897,7 @@ mod tests {
     fn all_required_evidence_domains_must_be_present() {
         let mut value = envelope();
         value.receipts.pop();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::UnexpectedReceiptCount));
     }
@@ -892,7 +906,7 @@ mod tests {
     fn duplicate_receipt_domains_are_rejected() {
         let mut value = envelope();
         value.receipts[1].domain = EvidenceDomain::GeometryCoverage;
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::DuplicateReceiptDomain(
                 EvidenceDomain::GeometryCoverage
@@ -903,7 +917,7 @@ mod tests {
     fn duplicate_receipt_ids_are_rejected() {
         let mut value = envelope();
         value.receipts[1].record_id = value.receipts[0].record_id.clone();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::DuplicateReceiptId(
                 "geometry-record-01".to_owned()
@@ -914,7 +928,7 @@ mod tests {
     fn duplicate_result_digests_are_rejected() {
         let mut value = envelope();
         value.receipts[1].result_sha256 = value.receipts[0].result_sha256.clone();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .iter()
             .any(|error| matches!(error, EnvelopeError::DuplicateResultDigest(_))));
@@ -924,7 +938,7 @@ mod tests {
     fn source_bundle_must_match_bound_observation_or_calibration() {
         let mut value = envelope();
         value.receipts[1].source_bundle_sha256 = A.to_owned();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::SourceBundleMismatch(
                 EvidenceDomain::SensorQuality
@@ -935,7 +949,7 @@ mod tests {
     fn non_finite_coordinates_are_rejected() {
         let mut value = envelope();
         value.binding.position_u_m = f64::NAN;
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::InvalidNumericValue("position_u_m")));
     }
@@ -944,7 +958,7 @@ mod tests {
     fn invalid_acquisition_interval_is_rejected() {
         let mut value = envelope();
         value.binding.acquisition_end_ns = value.binding.acquisition_start_ns;
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::InvalidAcquisitionInterval));
     }
@@ -953,7 +967,7 @@ mod tests {
     fn malformed_digest_is_rejected() {
         let mut value = envelope();
         value.binding.calibration_bundle_sha256 = "not-a-digest".to_owned();
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::MalformedSha256("calibration_bundle_sha256")));
     }
@@ -962,7 +976,7 @@ mod tests {
     fn duplicate_target_ids_are_rejected() {
         let mut value = envelope();
         value.binding.target_ids.push("module-01".to_owned());
-        assert!(validate_candidate_envelope(&value)
+        assert!(validate_candidate_envelope(&value, A)
             .unwrap_err()
             .contains(&EnvelopeError::DuplicateTarget("module-01".to_owned())));
     }
