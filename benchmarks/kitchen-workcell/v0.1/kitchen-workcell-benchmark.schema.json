@@ -455,7 +455,8 @@
               "recipe_grounding_external",
               "exact_solver_lower_bound",
               "action_ontology_external",
-              "kitchen_r_external"
+              "kitchen_r_external",
+              "behavior_1k_external"
             ]
           },
           "status": {
