@@ -136,7 +136,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -250,7 +251,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -381,7 +383,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -512,7 +515,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -643,7 +647,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -774,7 +779,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -905,7 +911,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1008,7 +1015,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1141,7 +1149,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1272,7 +1281,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1403,7 +1413,8 @@
             "window_hours": 168,
             "recurrence_detected": true,
             "reopen_count": 1
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1534,7 +1545,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         },
         {
           "event_id": "EV-12-2",
@@ -1660,7 +1672,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     },
@@ -1791,7 +1804,8 @@
             "window_hours": 168,
             "recurrence_detected": false,
             "reopen_count": 0
-          }
+          },
+          "control_boundary_id": "DMA-CONTROL-outlet-boundary-v1"
         }
       ]
     }
