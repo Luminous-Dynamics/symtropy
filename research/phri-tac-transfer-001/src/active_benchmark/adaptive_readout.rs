@@ -529,10 +529,20 @@ pub struct AdaptiveReadoutExample {
     pub claim_class: &'static str,
 }
 
+fn synthetic_readout_center(seed: u64) -> [f64; 2] {
+    let x = 7 + (seed % 18) as usize;
+    let y = 7 + ((seed / 19) % 18) as usize;
+    [x as f64, y as f64]
+}
+
 fn synthetic_readout_problem(seed: u64, maximum_taxel_reads: usize) -> AdaptiveAcquisitionProblem {
     let grid_width = 32;
     let grid_height = 32;
-    let center = [15.0, 15.0];
+    let center = synthetic_readout_center(seed.max(1));
+    let event_center = [
+        (center[0] as usize + 1).min(grid_width - 2),
+        (center[1] as usize + 1).min(grid_height - 2),
+    ];
     let candidates = (0..(grid_width * grid_height))
         .map(|taxel_index| {
             let grid_x = taxel_index % grid_width;
@@ -542,8 +552,9 @@ fn synthetic_readout_problem(seed: u64, maximum_taxel_reads: usize) -> AdaptiveA
             let distance = (dx * dx + dy * dy).sqrt();
             let contact_probability = (1.0 - distance / 12.0).clamp(0.0, 1.0);
             let uncertainty = (1.0 - contact_probability) * 0.75;
-            let event_hazard = if (grid_x == 16 || grid_x == 17)
-                && (grid_y == 15 || grid_y == 16)
+            let event_hazard = if grid_x.abs_diff(event_center[0]) <= 1
+                && grid_y.abs_diff(event_center[1]) <= 1
+                && (grid_x == event_center[0] || grid_y == event_center[1])
             {
                 0.99
             } else {
@@ -580,14 +591,17 @@ fn synthetic_readout_problem(seed: u64, maximum_taxel_reads: usize) -> AdaptiveA
     }
 }
 
-fn synthetic_readout_truth(event_center: [usize; 2]) -> EvaluatorOnlyContactTruth {
+fn synthetic_readout_truth(
+    active_center: [usize; 2],
+    event_center: [usize; 2],
+) -> EvaluatorOnlyContactTruth {
     let width = 32;
     let height = 32;
     let mut active = vec![false; width * height];
     let mut urgent = vec![false; width * height];
     for y in 0..height {
         for x in 0..width {
-            if x.abs_diff(15) <= 2 && y.abs_diff(15) <= 2 {
+            if x.abs_diff(active_center[0]) <= 2 && y.abs_diff(active_center[1]) <= 2 {
                 active[y * width + x] = true;
             }
             if x.abs_diff(event_center[0]) <= 1 && y.abs_diff(event_center[1]) <= 1 {
@@ -617,13 +631,25 @@ pub fn run_synthetic_readout_example(seed: u64) -> Result<AdaptiveReadoutExample
         (AcquisitionPolicy::RiskAdaptive, DEFAULT_READOUT_BUDGET),
         (AcquisitionPolicy::RiskAdaptive, 64),
     ];
-    let observable_truth = synthetic_readout_truth([16, 16]);
-    let off_prediction_truth = synthetic_readout_truth([30, 30]);
+    let problem_seed = seed.max(1);
+    let predicted_center = synthetic_readout_center(problem_seed);
+    let active_center = [predicted_center[0] as usize, predicted_center[1] as usize];
+    let predicted_event_center = [
+        (active_center[0] + 1).min(30),
+        (active_center[1] + 1).min(30),
+    ];
+    let off_event_center = if active_center[0] < 16 {
+        [30, if active_center[1] < 16 { 30 } else { 1 }]
+    } else {
+        [1, if active_center[1] < 16 { 30 } else { 1 }]
+    };
+    let observable_truth = synthetic_readout_truth(active_center, predicted_event_center);
+    let off_prediction_truth = synthetic_readout_truth(active_center, off_event_center);
     let mut observable_event_scores = Vec::with_capacity(policies.len());
     let mut off_prediction_region_event_scores = Vec::with_capacity(policies.len());
 
     for (policy, budget) in policies {
-        let problem = synthetic_readout_problem(seed, budget);
+        let problem = synthetic_readout_problem(problem_seed, budget);
         let plan = plan_adaptive_readout(&problem, policy)?;
         observable_event_scores.push(score_acquisition_plan(&problem, &plan, &observable_truth)?);
 
