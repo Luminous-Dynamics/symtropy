@@ -468,9 +468,7 @@ pub fn reconstruct_contact_field(
             .map(|(value, estimate)| ((estimate - step_size * value).max(0.0) - estimate).abs())
             .fold(0.0_f64, f64::max);
 
-        if projected_gradient_residual
-            <= config.convergence_tolerance * (1.0 + maximum_field)
-        {
+        if projected_gradient_residual <= config.convergence_tolerance * (1.0 + maximum_field) {
             converged = true;
             break;
         }
