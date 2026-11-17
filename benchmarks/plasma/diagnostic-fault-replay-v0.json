@@ -1089,19 +1089,15 @@
         },
         "points": [
           {
-            "point_id": "before-fault",
-            "time_ns": 0
-          },
-          {
             "point_id": "at-fault-start",
             "time_ns": 0
           },
           {
             "point_id": "inside-fault",
-            "time_ns": 1
+            "time_ns": 75000000
           },
           {
-            "point_id": "at-fault-end",
+            "point_id": "before-window-end",
             "time_ns": 149999999
           }
         ]
