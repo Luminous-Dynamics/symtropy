@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/KitchenOutcomeAccountingReportV1.schema.json",
+  "title": "KitchenOutcomeAccountingReportV1",
+  "description": "Deterministic arithmetic receipt for the submitted kitchen outcome boundary; no measurement truth or product superiority is implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "recipe_id",
+    "boundary_ref",
+    "accepted_servings",
+    "disposition",
+    "complete",
+    "claim_eligible",
+    "input_mass_nanograms",
+    "output_mass_nanograms",
+    "accepted_edible_mass_nanograms",
+    "unaccounted_mass_nanograms",
+    "unaccounted_mass_fraction_ppm",
+    "water_nanolitres",
+    "water_nanolitres_per_accepted_serving",
+    "electricity_microwatt_hours",
+    "electricity_microwatt_hours_per_accepted_serving",
+    "not_applicable_refs",
+    "unknown_refs",
+    "issues",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recipe_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "boundary_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "accepted_servings": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disposition": {
+      "enum": [
+        "complete_claim_eligible",
+        "complete_exploratory",
+        "indeterminate",
+        "blocked"
+      ]
+    },
+    "complete": {
+      "type": "boolean"
+    },
+    "claim_eligible": {
+      "type": "boolean"
+    },
+    "input_mass_nanograms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "output_mass_nanograms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "accepted_edible_mass_nanograms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "unaccounted_mass_nanograms": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "unaccounted_mass_fraction_ppm": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "water_nanolitres": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "water_nanolitres_per_accepted_serving": {
+      "$ref": "#/$defs/perServing"
+    },
+    "electricity_microwatt_hours": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "electricity_microwatt_hours_per_accepted_serving": {
+      "$ref": "#/$defs/perServing"
+    },
+    "not_applicable_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknown_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/issue"
+      }
+    },
+    "claim_ceiling": {
+      "const": "Deterministic arithmetic and evidence completeness for submitted kitchen flow records only; not proof of measurement truth, food safety, sanitation, sensory quality, energy savings, or product superiority."
+    }
+  },
+  "$defs": {
+    "perServing": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator_servings"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "denominator_servings": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "reference",
+        "detail"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "unsupported_schema_version",
+            "missing_required_value",
+            "invalid_claim_ceiling",
+            "duplicate_expected_mass_term",
+            "duplicate_mass_term",
+            "missing_mass_term",
+            "unexpected_mass_term",
+            "mass_category_direction_mismatch",
+            "invalid_mass_scale",
+            "invalid_water_scale",
+            "invalid_energy_scale",
+            "invalid_evidence",
+            "invalid_not_applicable",
+            "unknown_measurement",
+            "duplicate_water_stage",
+            "missing_water_stage",
+            "unexpected_water_stage",
+            "duplicate_electricity_stage",
+            "missing_electricity_stage",
+            "unexpected_electricity_stage",
+            "missing_input_mass",
+            "missing_output_mass",
+            "missing_accepted_edible_output",
+            "accepted_servings_mass_mismatch",
+            "output_mass_exceeds_input",
+            "arithmetic_overflow"
+          ]
+        },
+        "reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
