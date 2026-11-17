@@ -602,6 +602,7 @@ pub enum RelativeTimeBroadphaseError {
     EmptyTargetIdentity,
     PairCountOverflow,
     PairBudgetExceeded,
+    CandidateIdentityMismatch,
     Broadphase(MultiBodyBroadphaseError),
 }
 
