@@ -1,0 +1,11 @@
+coverage_id	scenario_id	sensor_id	source_origin_group	covered_zone	start_utc	end_utc	coverage_state	calibration_id	map_generation	declared_position_uncertainty_m	sampling_interval_ms	notes
+COV-MES-00	S00	MES-A	origin:MES-A	ALL	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	-	MAP-01	-	-	MES registration stream available for the baseline.
+COV-PLC-00	S00	PLC-CNC-A/B	origin:PLC	CELL-CNC-A;CELL-CNC-B	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	CAL-PLC-01;CAL-PLC-02	MAP-01	-	100	Machine-cycle telemetry declared available in baseline.
+COV-RTLS-00	S00	RTLS-01	origin:RTLS-01	CELL-CNC-A;CELL-CNC-B	2026-11-01T07:00:00Z	2026-11-01T08:00:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Zone uncertainty declared for development data.
+COV-PLC-02	S02	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Machine telemetry coverage is declared adequate; no cycle observation is present for the claimed event.
+COV-RTLS-02	S02	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Spatial coverage is adequate for the target zone and time window.
+COV-PLC-03	S03	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:25:00Z	2026-11-01T08:35:00Z	GAP	-	MAP-01	-	100	No cycle observation during gap means UNKNOWN, not NOT_OBSERVED_WITH_COVERAGE.
+COV-RTLS-03	S03	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:25:00Z	2026-11-01T08:35:00Z	GAP	CAL-RTLS-01	MAP-01	-	1000	Declared telemetry gap.
+COV-RTLS-06	S06	RTLS-01	origin:RTLS-01	CELL-CNC-B;QA-LAB	2026-11-01T08:59:00Z	2026-11-01T09:01:00Z	AMBIGUOUS	CAL-RTLS-01	MAP-01	0.75	1000	Samples oscillate across two zones within the uncertainty envelope.
+COV-PLC-07	S07	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Rework cycle observed after inspection operation; route deviation must be evaluated.
+COV-RTLS-07	S07	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T09:05:00Z	2026-11-01T09:12:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Spatial path observation supports the unrecorded loop.
