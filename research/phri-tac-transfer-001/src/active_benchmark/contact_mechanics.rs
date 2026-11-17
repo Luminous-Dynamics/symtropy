@@ -139,13 +139,31 @@ fn validate_evidence(
         ("friction_model_digest", &evidence.friction_model_digest),
         ("surface_pair_digest", &evidence.surface_pair_digest),
         ("skin_material_digest", &evidence.skin_material_digest),
-        ("sensorized_body_context_digest", &evidence.sensorized_body_context_digest),
+        (
+            "sensorized_body_context_digest",
+            &evidence.sensorized_body_context_digest,
+        ),
         ("contact_geometry_digest", &evidence.contact_geometry_digest),
-        ("operating_envelope_cell_id", &evidence.operating_envelope_cell_id),
-        ("reference_instrument_receipt_id", &evidence.reference_instrument_receipt_id),
-        ("reference_ancestry_receipt_id", &evidence.reference_ancestry_receipt_id),
-        ("common_cause_analysis_receipt_id", &evidence.common_cause_analysis_receipt_id),
-        ("heldout_validation_receipt_id", &evidence.heldout_validation_receipt_id),
+        (
+            "operating_envelope_cell_id",
+            &evidence.operating_envelope_cell_id,
+        ),
+        (
+            "reference_instrument_receipt_id",
+            &evidence.reference_instrument_receipt_id,
+        ),
+        (
+            "reference_ancestry_receipt_id",
+            &evidence.reference_ancestry_receipt_id,
+        ),
+        (
+            "common_cause_analysis_receipt_id",
+            &evidence.common_cause_analysis_receipt_id,
+        ),
+        (
+            "heldout_validation_receipt_id",
+            &evidence.heldout_validation_receipt_id,
+        ),
         ("verifier_receipt_id", &evidence.verifier_receipt_id),
     ]);
     if !missing.is_empty()
@@ -154,7 +172,8 @@ fn validate_evidence(
         || evidence.coefficient_lower < 0.0
         || evidence.coefficient_lower > evidence.coefficient_upper
         || !evidence.qualification_valid
-        || evidence.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized
+        || evidence.reference_independence
+            != ReferenceIndependenceDisposition::IndependentlyCharacterized
     {
         let mut reasons = missing;
         if !evidence.coefficient_lower.is_finite()
@@ -167,8 +186,12 @@ fn validate_evidence(
         if !evidence.qualification_valid {
             reasons.push("friction coefficient evidence is not qualified".to_owned());
         }
-        if evidence.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized {
-            reasons.push("friction reference ancestry/common-cause disposition is unresolved".to_owned());
+        if evidence.reference_independence
+            != ReferenceIndependenceDisposition::IndependentlyCharacterized
+        {
+            reasons.push(
+                "friction reference ancestry/common-cause disposition is unresolved".to_owned(),
+            );
         }
         return Err((ContactFieldDisposition::FrictionEvidenceUnresolved, reasons));
     }
@@ -201,7 +224,8 @@ fn classify_taxel(
     let normal_upper = estimate.normal_pressure_pa
         + confidence_multiplier * estimate.normal_standard_uncertainty_pa;
     let shear_mean = estimate.tangent_u_pa.hypot(estimate.tangent_v_pa);
-    let shear_uncertainty = estimate.tangent_u_standard_uncertainty_pa
+    let shear_uncertainty = estimate
+        .tangent_u_standard_uncertainty_pa
         .hypot(estimate.tangent_v_standard_uncertainty_pa);
     let shear_lower = (shear_mean - confidence_multiplier * shear_uncertainty).max(0.0);
     let shear_upper = shear_mean + confidence_multiplier * shear_uncertainty;
@@ -362,9 +386,9 @@ pub fn assess_contact_field(
 mod tests {
     use super::*;
     use crate::active_benchmark::wrench_consistency::{
+        ReferenceIndependenceDisposition as WrenchReferenceIndependence, TaxelGeometry,
+        TaxelGeometrySet, Vec3, WrenchObservation, WrenchReferenceEvidence,
         assess_wrench_consistency, build_wrench_operator, integrate_tactile_field,
-        ReferenceIndependenceDisposition as WrenchReferenceIndependence,
-        TaxelGeometry, TaxelGeometrySet, Vec3, WrenchObservation, WrenchReferenceEvidence,
     };
 
     fn evidence() -> FrictionQualificationEvidence {
@@ -431,7 +455,10 @@ mod tests {
             &evidence(),
             2.0,
         );
-        assert_eq!(assessment.disposition, ContactFieldDisposition::AllTaxelsRobustlyAdmissible);
+        assert_eq!(
+            assessment.disposition,
+            ContactFieldDisposition::AllTaxelsRobustlyAdmissible
+        );
         assert_eq!(assessment.robustly_inside_count, 2);
     }
 
@@ -442,7 +469,10 @@ mod tests {
             &evidence(),
             2.0,
         );
-        assert_eq!(assessment.disposition, ContactFieldDisposition::ContainsDefiniteViolations);
+        assert_eq!(
+            assessment.disposition,
+            ContactFieldDisposition::ContainsDefiniteViolations
+        );
         assert_eq!(
             assessment.per_taxel[0].disposition,
             TaxelContactDisposition::DefinitelyOutsideFrictionCone
@@ -456,7 +486,10 @@ mod tests {
             &evidence(),
             2.0,
         );
-        assert_eq!(assessment.disposition, ContactFieldDisposition::ContainsIndeterminateTaxels);
+        assert_eq!(
+            assessment.disposition,
+            ContactFieldDisposition::ContainsIndeterminateTaxels
+        );
         assert_eq!(
             assessment.per_taxel[0].disposition,
             TaxelContactDisposition::IndeterminateGivenUncertainty
@@ -473,7 +506,10 @@ mod tests {
             &evidence(),
             2.0,
         );
-        assert_eq!(assessment.disposition, ContactFieldDisposition::ContainsDefiniteViolations);
+        assert_eq!(
+            assessment.disposition,
+            ContactFieldDisposition::ContainsDefiniteViolations
+        );
         assert_eq!(assessment.noncompressive_count, 2);
     }
 
@@ -482,14 +518,24 @@ mod tests {
         let mut wrong_material = evidence();
         wrong_material.surface_pair_digest = "sha256:other-surface-pair".to_owned();
         assert_eq!(
-            assess_contact_field(&request(vec![taxel("t0", 100.0, 10.0, 0.0, 0.0, 0.0, 0.0)]), &wrong_material, 2.0).disposition,
+            assess_contact_field(
+                &request(vec![taxel("t0", 100.0, 10.0, 0.0, 0.0, 0.0, 0.0)]),
+                &wrong_material,
+                2.0
+            )
+            .disposition,
             ContactFieldDisposition::MaterialOrContextMismatch
         );
 
         let mut shared = evidence();
         shared.reference_independence = ReferenceIndependenceDisposition::SharedCommonCause;
         assert_eq!(
-            assess_contact_field(&request(vec![taxel("t0", 100.0, 10.0, 0.0, 0.0, 0.0, 0.0)]), &shared, 2.0).disposition,
+            assess_contact_field(
+                &request(vec![taxel("t0", 100.0, 10.0, 0.0, 0.0, 0.0, 0.0)]),
+                &shared,
+                2.0
+            )
+            .disposition,
             ContactFieldDisposition::FrictionEvidenceUnresolved
         );
 
@@ -503,9 +549,21 @@ mod tests {
 
     #[test]
     fn global_wrench_closure_does_not_hide_a_locally_impossible_taxel() {
-        let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
-        let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
-        let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+        let tangent_u = Vec3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let tangent_v = Vec3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        };
+        let normal = Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        };
         let geometry = TaxelGeometrySet {
             geometry_digest: "sha256:geometry-01".to_owned(),
             reference_frame_digest: "sha256:frame".to_owned(),
@@ -530,8 +588,16 @@ mod tests {
         let observed = WrenchObservation {
             force_n: predicted.force_n,
             moment_nm: predicted.moment_nm,
-            force_standard_uncertainty_n: Vec3 { x: 0.001, y: 0.001, z: 0.001 },
-            moment_standard_uncertainty_nm: Vec3 { x: 0.001, y: 0.001, z: 0.001 },
+            force_standard_uncertainty_n: Vec3 {
+                x: 0.001,
+                y: 0.001,
+                z: 0.001,
+            },
+            moment_standard_uncertainty_nm: Vec3 {
+                x: 0.001,
+                y: 0.001,
+                z: 0.001,
+            },
         };
         let wrench_evidence = WrenchReferenceEvidence {
             native_observation_set_digest: "sha256:native".to_owned(),
@@ -563,7 +629,10 @@ mod tests {
             taxel("t1", 100.0, -100.0, 0.0, 0.0, 0.0, 0.0),
         ]);
         let local_check = assess_contact_field(&field, &evidence(), 2.0);
-        assert_eq!(local_check.disposition, ContactFieldDisposition::ContainsDefiniteViolations);
+        assert_eq!(
+            local_check.disposition,
+            ContactFieldDisposition::ContainsDefiniteViolations
+        );
         assert_eq!(local_check.definitely_outside_count, 2);
     }
 }

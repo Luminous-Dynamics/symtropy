@@ -11,9 +11,9 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
+pub mod contact_mechanics;
 pub mod coupling_campaign;
 pub mod coupling_identification;
-pub mod contact_mechanics;
 pub mod field_campaign;
 pub mod field_reconstruction;
 pub mod model_forms;
