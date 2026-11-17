@@ -150,7 +150,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
         }
 
-        run_partial_queries(&graph, dimension, 0x5041_5254_4941_4c)?;
+        run_partial_queries(&graph, dimension, 0x0050_4152_5449_414c)?;
     }
     Ok(())
 }
