@@ -211,8 +211,16 @@ fn minimize_box_quadratic(
                     residual = residual.add(columns[variable]);
                 }
                 2 => {
-                    free[free_count] = variable;
-                    free_count += 1;
+                    let column_norm_squared = columns[variable].norm_squared();
+                    if !column_norm_squared.is_finite() {
+                        return Err(TranslationCcdError::NumericalOverflow);
+                    }
+                    // A zero column does not affect the objective. Fix it at
+                    // zero to remove the redundant degree of freedom.
+                    if column_norm_squared > 0.0 {
+                        free[free_count] = variable;
+                        free_count += 1;
+                    }
                 }
                 _ => unreachable!(),
             }
@@ -220,6 +228,12 @@ fn minimize_box_quadratic(
         }
 
         if free_count > 0 {
+            if !free_face_is_numerically_resolvable(columns, free, free_count)? {
+                // An exactly rank-deficient face has a minimizing point on a
+                // lower-dimensional boundary face, enumerated separately.
+                continue;
+            }
+
             let mut normal = [[0.0; 3]; 3];
             let mut right = [0.0; 3];
 
@@ -232,16 +246,13 @@ fn minimize_box_quadratic(
             }
 
             let Some(solution) = solve_small_system(normal, right, free_count)? else {
-                // A singular face has a minimizing point on a lower-dimensional
-                // boundary face, which is enumerated separately.
-                continue;
+                return Err(TranslationCcdError::NumericallyUnresolved);
             };
 
             for index in 0..free_count {
                 let parameter = solution[index];
                 if !parameter.is_finite()
-                    || parameter < -PARAMETER_EPSILON
-                    || parameter > 1.0 + PARAMETER_EPSILON
+                    || !(-PARAMETER_EPSILON..=1.0 + PARAMETER_EPSILON).contains(&parameter)
                 {
                     continue;
                 }
@@ -251,7 +262,7 @@ fn minimize_box_quadratic(
             // Reject the entire face if any free parameter was infeasible.
             let feasible = (0..free_count).all(|index| {
                 let value = solution[index];
-                value.is_finite() && value >= -PARAMETER_EPSILON && value <= 1.0 + PARAMETER_EPSILON
+                value.is_finite() && (-PARAMETER_EPSILON..=1.0 + PARAMETER_EPSILON).contains(&value)
             });
             if !feasible {
                 continue;
@@ -281,6 +292,71 @@ fn minimize_box_quadratic(
 
     best.map(|(_, parameters)| parameters)
         .ok_or(TranslationCcdError::NumericallyUnresolved)
+}
+
+/// Classify the geometric rank of the free columns before forming normal
+/// equations. Pairwise normalized cross products detect near-parallel axes;
+/// the normalized scalar triple product detects a near-coplanar 3-column
+/// system. Exact rank deficiency is safe to delegate to lower-dimensional
+/// boundary faces. A small but nonzero rank measure is not: it must abstain.
+fn free_face_is_numerically_resolvable(
+    columns: [Vec3; 3],
+    free: [usize; 3],
+    free_count: usize,
+) -> Result<bool, TranslationCcdError> {
+    if free_count <= 1 {
+        return Ok(true);
+    }
+
+    let mut unit = [Vec3::new(0.0, 0.0, 0.0); 3];
+    for index in 0..free_count {
+        let column = columns[free[index]];
+        let norm_squared = column.norm_squared();
+        if !norm_squared.is_finite() || norm_squared == 0.0 {
+            return Err(TranslationCcdError::NumericalOverflow);
+        }
+        unit[index] = column.scale(norm_squared.sqrt().recip());
+    }
+
+    for left in 0..free_count {
+        for right in (left + 1)..free_count {
+            let cross = cross_product(unit[left], unit[right]);
+            let rank_measure = cross.norm_squared();
+            if !rank_measure.is_finite() {
+                return Err(TranslationCcdError::NumericalOverflow);
+            }
+            if rank_measure == 0.0 {
+                return Ok(false);
+            }
+            if rank_measure <= PIVOT_RELATIVE_EPSILON {
+                return Err(TranslationCcdError::NumericallyUnresolved);
+            }
+        }
+    }
+
+    if free_count == 3 {
+        let triple = unit[0].dot(cross_product(unit[1], unit[2]));
+        let rank_measure = triple * triple;
+        if !rank_measure.is_finite() {
+            return Err(TranslationCcdError::NumericalOverflow);
+        }
+        if rank_measure == 0.0 {
+            return Ok(false);
+        }
+        if rank_measure <= PIVOT_RELATIVE_EPSILON {
+            return Err(TranslationCcdError::NumericallyUnresolved);
+        }
+    }
+
+    Ok(true)
+}
+
+fn cross_product(left: Vec3, right: Vec3) -> Vec3 {
+    Vec3::new(
+        left.y * right.z - left.z * right.y,
+        left.z * right.x - left.x * right.z,
+        left.x * right.y - left.y * right.x,
+    )
 }
 
 /// Gaussian elimination with partial pivoting for at most a 3x3 system.
@@ -315,9 +391,9 @@ fn solve_small_system(
             return Err(TranslationCcdError::NumericalOverflow);
         }
         if pivot_magnitude == 0.0 {
-            // Exactly singular free faces have a minimizer on a lower-dimensional
-            // boundary face, which is enumerated separately.
-            return Ok(None);
+            // Geometric rank checks were already performed before this solve;
+            // a zero pivot here therefore indicates numerical rank loss.
+            return Err(TranslationCcdError::NumericallyUnresolved);
         }
         if pivot_magnitude <= pivot_threshold {
             return Err(TranslationCcdError::NumericallyUnresolved);
@@ -328,11 +404,12 @@ fn solve_small_system(
         }
 
         let pivot = matrix[pivot_col][pivot_col];
-        let pivot_row_values = matrix[pivot_col];
         for value in matrix[pivot_col].iter_mut().skip(pivot_col) {
             *value /= pivot;
         }
         right[pivot_col] /= pivot;
+        // Eliminate with the normalized pivot row, not the original row.
+        let normalized_pivot_row = matrix[pivot_col];
 
         for row in 0..size {
             if row == pivot_col {
@@ -342,7 +419,7 @@ fn solve_small_system(
             for (value, pivot_value) in matrix[row]
                 .iter_mut()
                 .skip(pivot_col)
-                .zip(pivot_row_values.iter().skip(pivot_col))
+                .zip(normalized_pivot_row.iter().skip(pivot_col))
             {
                 *value -= factor * pivot_value;
             }
@@ -536,6 +613,22 @@ mod tests {
             translating_capsule_vs_capsule(invalid_point, p(0.0, 0.0, 0.0), valid),
             Err(TranslationCcdError::NonFiniteCoordinate)
         );
+    }
+
+    #[test]
+    fn gaussian_elimination_solves_a_known_two_by_two_system() {
+        // 4x + 2y = 6; 2x + 3y = 5 has solution (1, 1).
+        let mut matrix = [[4.0, 2.0, 0.0], [2.0, 3.0, 0.0], [0.0; 3]];
+        let mut right = [6.0, 5.0, 0.0];
+        let solution = solve_small_system(matrix, right, 2).unwrap().unwrap();
+        assert!((solution[0] - 1.0).abs() < 1.0e-12);
+        assert!((solution[1] - 1.0).abs() < 1.0e-12);
+        // Inputs are passed by value; retaining mut bindings catches accidental
+        // refactors that mutate a shared test fixture.
+        matrix[0][0] = 4.0;
+        right[0] = 6.0;
+        assert_eq!(matrix[0][0], 4.0);
+        assert_eq!(right[0], 6.0);
     }
 
     #[test]

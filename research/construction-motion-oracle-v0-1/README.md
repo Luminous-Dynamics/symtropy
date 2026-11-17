@@ -78,3 +78,13 @@ This is not arbitrary continuous-to-continuous collision checking: both bodies m
 For two translating capsules, the full swept-AABB union ignores whether the bodies occupy overlapping coordinates at the same time. The new dyadic time-sliced candidate query partitions the shared normalized interval and computes a conservative swept AABB for each body within each slab. It returns the number of candidate slabs, not a collision verdict. Narrow phase remains mandatory for positive candidates.
 
 The construction invariant is one-sided: if the exact synchronized continuous narrow phase reports contact, at least one slab must remain a candidate for any positive subdivision count. For nested 1, 2, 4, 8, ... refinements, candidate time fraction is non-increasing; raw candidate slab count may increase when parent slabs split. More subdivisions tighten broad-phase selectivity but cost more tests; benchmark both cost and candidate reduction. This is still an AABB broad phase, not a safety guarantee or exact dynamic collision result.
+
+## Absolute-time capsule motion spans
+
+The timed adapter accepts two capsule motion spans whose start and end timestamps may differ. It requires matching site epoch, target frame and monotonic clock-domain identity, intersects the half-open execution intervals, and rebases each capsule's linear translation onto the common interval before calling the relative-motion CCD oracle.
+
+- Non-overlapping or boundary-touching half-open intervals return `NoTemporalOverlap`, not a "clear" collision verdict.
+- A positive overlap is checked continuously, and its terminal geometric limit is included conservatively. If closest approach is exactly at that excluded end limit, `closest_at_terminal_limit` is set.
+- The current version rejects non-zero declared clock uncertainty as `ClockUncertaintyUnmodeled`. It does not invent clock synchronization or widen the geometry/time model.
+
+This remains a fixed-orientation linear-translation geometry primitive. It is not an asynchronous multi-clock solver, articulated robot collision system or safety function. See [#5478](https://github.com/Luminous-Dynamics/symtropy/issues/5478).
