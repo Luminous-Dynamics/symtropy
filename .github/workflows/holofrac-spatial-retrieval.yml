@@ -1,0 +1,43 @@
+name: HoloFrac spatial retrieval
+
+on:
+  push:
+    branches:
+      - research/holofrac-architecture-v0
+    paths:
+      - "research/holofrac-retrieval/**"
+      - "crates/core/symtropy-hdc-core/**"
+      - ".github/workflows/holofrac-spatial-retrieval.yml"
+  pull_request:
+    branches:
+      - research/freeflow-modular-fractal-v0
+    paths:
+      - "research/holofrac-retrieval/**"
+      - "crates/core/symtropy-hdc-core/**"
+      - ".github/workflows/holofrac-spatial-retrieval.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spatial-retrieval:
+    name: format, test and clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/holofrac-retrieval/Cargo.toml --all -- --check
+
+      - name: Run tests
+        run: cargo test --manifest-path research/holofrac-retrieval/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path research/holofrac-retrieval/Cargo.toml --all-targets -- -D warnings
