@@ -108,7 +108,11 @@ fn validate_snapshot(snapshot: &SupportSnapshot) -> Result<(), String> {
     {
         return Err("support frame or plane identity is missing".to_owned());
     }
-    if !snapshot.com_projection_m.iter().all(|value| value.is_finite()) {
+    if !snapshot
+        .com_projection_m
+        .iter()
+        .all(|value| value.is_finite())
+    {
         return Err("centre-of-mass projection is non-finite".to_owned());
     }
     if !snapshot.com_uncertainty_m.is_finite() || snapshot.com_uncertainty_m < 0.0 {
@@ -130,13 +134,22 @@ fn validate_snapshot(snapshot: &SupportSnapshot) -> Result<(), String> {
             || contact.plane_id != snapshot.support_frame.plane_id
             || contact.frame_revision != snapshot.support_frame.revision
         {
-            return Err(format!("contact {} uses a stale or incompatible support frame", contact.foot_id));
+            return Err(format!(
+                "contact {} uses a stale or incompatible support frame",
+                contact.foot_id
+            ));
         }
         if !contact.position_m.iter().all(|value| value.is_finite()) {
-            return Err(format!("contact {} has a non-finite position", contact.foot_id));
+            return Err(format!(
+                "contact {} has a non-finite position",
+                contact.foot_id
+            ));
         }
         if !contact.uncertainty_radius_m.is_finite() || contact.uncertainty_radius_m < 0.0 {
-            return Err(format!("contact {} uncertainty must be finite and nonnegative", contact.foot_id));
+            return Err(format!(
+                "contact {} uncertainty must be finite and nonnegative",
+                contact.foot_id
+            ));
         }
     }
     Ok(())
@@ -262,7 +275,11 @@ fn signed_margin(point: Point2, hull: &[Point2]) -> Result<f64, String> {
     if !minimum_distance.is_finite() {
         return Err("support margin could not be computed".to_owned());
     }
-    Ok(if inside { minimum_distance } else { -minimum_distance })
+    Ok(if inside {
+        minimum_distance
+    } else {
+        -minimum_distance
+    })
 }
 
 /// Evaluate a static gravity projection against declared support contacts.
@@ -448,7 +465,10 @@ mod tests {
     fn fewer_than_three_contacts_are_insufficient() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts.truncate(2);
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InsufficientContacts);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InsufficientContacts
+        );
     }
 
     #[test]
@@ -459,35 +479,50 @@ mod tests {
             contact("b", [0.0, 0.0]),
             contact("c", [1.0, 0.0]),
         ];
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::DegenerateSupport);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::DegenerateSupport
+        );
     }
 
     #[test]
     fn duplicate_foot_identity_is_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts[1].foot_id = snapshot.contacts[0].foot_id.clone();
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 
     #[test]
     fn stale_frame_revision_is_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts[0].frame_revision += 1;
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 
     #[test]
     fn non_finite_position_is_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts[0].position_m[0] = f64::NAN;
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 
     #[test]
     fn negative_uncertainty_is_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts[0].uncertainty_radius_m = -0.01;
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -508,23 +543,35 @@ mod tests {
             contact("b", [0.0, 0.0]),
             contact("c", [0.0, 0.0]),
         ];
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::DegenerateSupport);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::DegenerateSupport
+        );
     }
 
     #[test]
     fn mixed_plane_identity_is_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.contacts[0].plane_id = "floor:other".to_owned();
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 
     #[test]
     fn non_finite_uncertainty_and_negative_threshold_are_invalid() {
         let mut snapshot = square_snapshot([0.0, 0.0]);
         snapshot.com_uncertainty_m = f64::INFINITY;
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
         snapshot.com_uncertainty_m = 0.0;
         snapshot.required_margin_m = -0.1;
-        assert_eq!(evaluate(&snapshot).disposition, SupportDisposition::InvalidEvidence);
+        assert_eq!(
+            evaluate(&snapshot).disposition,
+            SupportDisposition::InvalidEvidence
+        );
     }
 }
