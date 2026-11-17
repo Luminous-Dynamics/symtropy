@@ -289,7 +289,7 @@ pub fn verify_timed_co_translating_result(
 
     let contact_threshold = radius_sum + CONTACT_EPSILON_MM;
     if distance <= contact_threshold {
-        receipt.disposition = if expected_terminal && distance == contact_threshold {
+        receipt.disposition = if expected_terminal && distance >= radius_sum {
             TimedCcdVerificationDisposition::TerminalBoundaryCandidate
         } else {
             TimedCcdVerificationDisposition::ContactWitness
