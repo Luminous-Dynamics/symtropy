@@ -122,6 +122,43 @@ Measures:
 
 Initial hard target: every variant preserves the shared engineering-core identity or emits an explicit, reviewed product-variant/requalification path. No invisible local override.
 
+### B1. Qualification transfer between sites and manufacturing realizations
+
+**Question:** When a process is proven at source site A, what exact evidence permits any part of that capability to transfer to target site B?
+
+This is a separate benchmark from twin composition and factory reconfiguration. It composes Symthaea MFG-FOUNDATION #5763/#5765 and MFG-PROC-006 #5697; it must not create another transfer/currentness engine.
+
+Freeze a source-site evidence package and a target-site profile. Mutate one factor at a time and in controlled combinations:
+
+- equipment model versus exact equipment build, controller/firmware and configuration;
+- tooling/fixture geometry, wear state, installation and calibration;
+- process recipe, software, parameter and material-state revision;
+- supplier site, material origin, lot and legally relevant transformation sequence;
+- utility quality/continuity, ambient environment, contamination and site conditions;
+- workforce skills, training, shift patterns and process handover;
+- measurement-system, instrument, calibration, MSA and inspection method;
+- product variant/revision, specification and acceptance plan;
+- destination-market and responsible-operator obligations.
+
+The transfer assessor must produce a dimension vector rather than a universal transferable=true:
+
+- direct applicability under exact matching profile;
+- bounded transfer supported by named bridge evidence;
+- challenged/contradicted under target profile;
+- requalification required;
+- not applicable;
+- unknown/insufficient evidence.
+
+A target-site process history must remain separate from the source-site history. A common machine model, nominal recipe, common country, same product drawing or one successful target-site article does not prove production capability transfer.
+
+**Matched baselines:** (1) manual engineering/quality review; (2) copy source process settings without structured transfer audit; (3) conventional capability-history and change-control process; (4) Luminous transfer/applicability assessment composed with exact MFG-PROC and Mycelix lineage.
+
+**Measures:** false-transfer rate; missed requalification triggers; correct abstention; time and cost to establish a target-site qualification; first-accepted-output time; first-pass yield and drift after transfer; calibration/measurement comparability; supplier/lot sensitivity; completeness of target-site evidence.
+
+**Hard controls:** changed tool/controller/recipe/material/lot/environment/measurement system without bridge evidence; expired calibration; changed product variant; source-site data pooled into target-site capability; a failed scale-up hidden by successful coupons; supplier site mistaken for component origin; a foreign legal approval presumed recognized by the target market.
+
+Use held-out target sites, lines and lots for confirmation. Do not claim portable qualification from synthetic profile permutations or simulation. For continuous characteristics, justify process stability, distribution assumptions, sampling/subgrouping and measurement-system suitability before reporting Cp/Cpk/Pp/Ppk. Time-dependent processes should be compared with the applicable method in ISO 22514-2:2026 rather than forcing a stable-process assumption.
+
 ### C. Process capability and product quality
 
 **Question:** Does a named process, machine, material and environment repeatedly produce the required features?
@@ -281,7 +318,19 @@ First measure matched baselines and uncertainty. Then preregister effect size, s
 ### Commercial/global deployment targets
 Measure actual time, cost, rework, uptime, energy, water, lead time, repair and market deployment against a frozen route and comparable incumbents. Keep quoted, catalog, modeled, source-backed and observed prices separate.
 
-## 7. Release and claim ceiling
+## 8. External benchmark and standards watch-list (checked 17 November 2026)
+
+- **NIST SI for Manufacturing** is an active measurement-science programme for trustworthy manufacturing intelligence. Its published work plan includes integration test benches, data/contextualization architectures (including UNS/MQTT, knowledge graphs/type models, I3X and OPC UA), fault detection/diagnosis, VVUQ and agentic decision tasks. Its proposed metrics include accuracy, latency, cost and grounding, with ablations for contextualization. Use it as a benchmark-programme alignment and future interop target, not as a published leaderboard that Luminous has beaten. https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
+- **NIST Smart Manufacturing Systems Test Bed** includes CAD/CAM/CAI/PDM/V&V workflows, CNC machine tools, CMM/dimensional inspection equipment and MTConnect data publication. It is a useful reference for designing matched interoperability and digital-thread tasks. https://www.nist.gov/laboratories/tools-instruments/smart-manufacturing-systems-sms-test-bed
+- **ISO 23247-5:2026** defines a manufacturing digital thread across design, planning, production and testing. **ISO 23247-6:2026** defines integrated, unified and federated digital-twin composition, reflecting that a single monolithic factory twin is often impractical. https://www.iso.org/standard/87425.html and https://www.iso.org/standard/87426.html
+- **ISO 22514-2:2026** provides capability/performance methods for time-dependent process models, including processes that are not continuously in statistical control. Use it where its continuous-characteristic scope and assumptions fit; do not report capability indices without suitable stability, sampling and measurement-system evidence. https://www.iso.org/standard/88883.html
+- **ISO 9001:2026** was published 16 September 2026; **ISO 14001:2026** was published 15 April 2026. Quality and environmental management-system transitions should be represented by exact edition and date in the jurisdictional obligation layer, not assumed from an old generic "ISO certified" field. https://www.iso.org/standard/9001 and https://www.iso.org/standard/14001
+- **ISA/IEC 62443** remains a relevant industrial automation and control-system cybersecurity family. Security zones/conduits, system ownership, patching and supplier responsibilities should be part of plant deployment qualification, not an afterthought. https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards
+- **FJSP-E2E** reports 72 expert-audited scheduling-model reconfiguration tasks and structural process diagnostics beyond makespan checking. The publisher currently assigns the paper to *Journal of Manufacturing Systems*, Volume 89, December 2026, which is later than this review date. Track as an emerging benchmark watch item; confirm formal online publication date and public code/data before treating it as a released head-to-head baseline. https://doi.org/10.1016/j.jmsy.2026.08.009
+
+These references are standards/research comparators, not blanket conformity or proof of Luminous superiority.
+
+## 9. Release and claim ceiling
 
 A schema pass is not a legal review. A capability offer is not process qualification. A digital-twin pass is not physical acceptance. A first-article pass is not production yield. A locally assembled product is not necessarily locally originated. A passport projection is not a registry submission. A benchmark pass is not homologation or authority to sell.
 
