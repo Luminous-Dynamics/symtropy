@@ -51,10 +51,12 @@ RGB uses exposure time; IR uses detector integration time. The estimate is meani
 - Module polygons and frame footprints are axis-aligned rectangles in a frozen array-plane frame.
 - The admitted footprint is conservatively shrunk by declared pose and footprint uncertainty.
 - A module is covered only when its **entire** bounds lie inside the conservative footprint.
-- Frames are grouped into ordered survey passes. Consecutive along-track overlap is computed from adjacent projected footprints, not copied from a robot-reported percentage.
+- Frames are grouped into ordered survey passes. Consecutive along-track overlap is computed from adjacent uncertainty-shrunk footprints, not copied from a robot-reported percentage.
+- RGB image time must agree with the pose/event time within the profile's pairing tolerance; RGB/IR pairing has the same explicit skew gate.
 - Multiple frames in one pass are not multiple independent survey passes.
 - Distinct pass IDs and minimum view-angle separation are required per module.
 - Duplicate frame/trigger IDs and stale array/frame/camera/calibration revisions are rejected.
+- Invalid radiometric calibration/NUC evidence remains InvalidEvidence at frame, module and (when IR is required) survey level; it is not silently downgraded to Unknown or NotEligible.
 - Results are sorted deterministically; no module omissions are hidden inside an aggregate percentage.
 
 ## Environmental and radiometric gates
