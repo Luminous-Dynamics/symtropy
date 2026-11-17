@@ -86,3 +86,5 @@ The benchmark module also builds a reproducible pair:
 Both candidates share the same external envelope, outer support coordinates and applied load. The evaluator can assign the same total straight-member mass budget and derive a different uniform circular-member area for each candidate. This is a small benchmark harness fixture, not evidence that the interior-hub design is better. Its purpose is to ensure that added connectivity is compared under equal member mass rather than equal section area.
 
 The comparison still excludes hub/connector/fastener mass and does not represent a full modular structure lifecycle.
+
+The two-member removal campaign has two limits: a hard 1,024-scenario ceiling and an approximate dense-solve work budget proportional to free_dofs^3. The applied scenario count is the minimum of the request, available pairs, the hard ceiling and the work budget. The receipt reports requested/applied counts and omitted combinations. This keeps the search bounded as model dimension grows; the work budget is an execution guard, not a physical metric.
