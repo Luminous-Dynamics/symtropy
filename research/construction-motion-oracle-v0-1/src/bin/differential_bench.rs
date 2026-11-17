@@ -2,8 +2,12 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use construction_motion_oracle::{
-    AnalyticPath, Capsule, Vec3, chord_collision, endpoints_only_collision,
-    moving_sphere_capsule_collision, swept_sphere_capsule_aabb_candidate,
+    AnalyticPath, Capsule, Vec3, chord_collision, co_translating_capsule_capsule_collision,
+    co_translating_capsule_swept_aabb_candidate, co_translating_capsule_vs_capsule,
+    endpoints_only_co_translating_capsule_collision, endpoints_only_collision,
+    endpoints_only_translating_capsule_collision, moving_sphere_capsule_collision,
+    swept_sphere_capsule_aabb_candidate, translating_capsule_aabb_candidate,
+    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -151,5 +155,135 @@ fn main() {
             black_box(arc_obstacle),
             black_box(20.0),
         );
+    });
+    let translating = Capsule::new(Vec3::new(-10.0, -2.0, 0.0), Vec3::new(-10.0, 2.0, 0.0), 0.5)
+        .expect("valid translating capsule fixture");
+    let stationary = Capsule::new(Vec3::new(0.0, -2.0, 0.0), Vec3::new(0.0, 2.0, 0.0), 0.5)
+        .expect("valid stationary capsule fixture");
+    let translation = Vec3::new(20.0, 0.0, 0.0);
+    let closest = translating_capsule_vs_capsule(
+        black_box(translating),
+        black_box(translation),
+        black_box(stationary),
+    )
+    .expect("valid translating capsule narrow-phase query");
+    println!(
+        "translating-capsule,analytic_collision,{}",
+        translating_capsule_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule query")
+    );
+    println!(
+        "translating-capsule,endpoint_collision,{}",
+        endpoints_only_translating_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule endpoint baseline")
+    );
+    println!(
+        "translating-capsule,closest_time,{}",
+        closest.time_parameter
+    );
+    println!(
+        "translating-capsule,minimum_distance_mm,{}",
+        closest.distance_mm
+    );
+    measure("translating-capsule-capsule-narrow-phase", || {
+        translating_capsule_vs_capsule(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule narrow-phase query");
+    });
+    measure("translating-capsule-capsule-endpoint-only", || {
+        endpoints_only_translating_capsule_collision(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule endpoint baseline");
+    });
+    measure("translating-capsule-capsule-aabb-broad-phase", || {
+        translating_capsule_aabb_candidate(
+            black_box(translating),
+            black_box(translation),
+            black_box(stationary),
+        )
+        .expect("valid translating capsule broad-phase query");
+    });
+
+    let moving_pair_a = Capsule::new(Vec3::new(-10.0, -2.0, 0.0), Vec3::new(-10.0, 2.0, 0.0), 0.5)
+        .expect("valid co-translating capsule A");
+    let moving_pair_b = Capsule::new(Vec3::new(10.0, -2.0, 0.0), Vec3::new(10.0, 2.0, 0.0), 0.5)
+        .expect("valid co-translating capsule B");
+    let moving_pair_a_delta = Vec3::new(20.0, 0.0, 0.0);
+    let moving_pair_b_delta = Vec3::new(-20.0, 0.0, 0.0);
+    let pair_closest = co_translating_capsule_vs_capsule(
+        black_box(moving_pair_a),
+        black_box(moving_pair_a_delta),
+        black_box(moving_pair_b),
+        black_box(moving_pair_b_delta),
+    )
+    .expect("valid co-translating pair query");
+    println!(
+        "co-translating-capsules,analytic_collision,{}",
+        co_translating_capsule_capsule_collision(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+        )
+        .expect("valid co-translating pair collision")
+    );
+    println!(
+        "co-translating-capsules,endpoint_collision,{}",
+        endpoints_only_co_translating_capsule_collision(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+        )
+        .expect("valid co-translating pair endpoint baseline")
+    );
+    println!(
+        "co-translating-capsules,closest_time,{}",
+        pair_closest.time_parameter
+    );
+    println!(
+        "co-translating-capsules,minimum_distance_mm,{}",
+        pair_closest.distance_mm
+    );
+    measure("co-translating-capsule-pair-narrow-phase", || {
+        co_translating_capsule_vs_capsule(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+        )
+        .expect("valid co-translating pair narrow phase");
+    });
+    measure("co-translating-capsule-pair-endpoint-only", || {
+        endpoints_only_co_translating_capsule_collision(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+        )
+        .expect("valid co-translating pair endpoint baseline");
+    });
+    measure("co-translating-capsule-pair-swept-aabb", || {
+        co_translating_capsule_swept_aabb_candidate(
+            black_box(moving_pair_a),
+            black_box(moving_pair_a_delta),
+            black_box(moving_pair_b),
+            black_box(moving_pair_b_delta),
+        )
+        .expect("valid co-translating pair AABB query");
     });
 }
