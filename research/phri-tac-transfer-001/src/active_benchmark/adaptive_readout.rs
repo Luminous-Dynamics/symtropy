@@ -668,6 +668,205 @@ pub fn run_synthetic_readout_example(seed: u64) -> Result<AdaptiveReadoutExample
     })
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct AdaptiveReadoutPolicyCampaignSummary {
+    pub policy: AcquisitionPolicy,
+    pub read_budget: usize,
+    pub replicate_count: usize,
+    pub mean_active_contact_recall: f64,
+    pub minimum_active_contact_recall: f64,
+    pub mean_predicted_region_event_recall: f64,
+    pub minimum_predicted_region_event_recall: f64,
+    pub mean_off_prediction_event_recall: f64,
+    pub minimum_off_prediction_event_recall: f64,
+    pub off_prediction_event_miss_replicates: usize,
+    pub mean_observed_taxel_fraction: f64,
+    pub mean_unknown_taxel_count: f64,
+    pub mean_unavailable_taxel_count: f64,
+    pub mean_latency_ns: f64,
+    pub p95_latency_ns: u64,
+    pub mean_energy_nj: f64,
+    pub mean_speedup_vs_full_raster: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct AdaptiveReadoutCampaignReport {
+    pub taxel_count: usize,
+    pub grid_width: usize,
+    pub grid_height: usize,
+    pub first_seed: u64,
+    pub replicate_count: usize,
+    pub results: Vec<AdaptiveReadoutPolicyCampaignSummary>,
+    pub claim_class: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct PairedReadoutReplicate {
+    active_contact_recall: f64,
+    predicted_region_event_recall: f64,
+    off_prediction_event_recall: f64,
+    observed_taxel_fraction: f64,
+    unknown_taxel_count: usize,
+    unavailable_taxel_count: usize,
+    latency_ns: u64,
+    energy_nj: u64,
+    speedup_vs_full_raster: f64,
+}
+
+fn score_value(value: Option<f64>, metric: &str) -> Result<f64, String> {
+    value.ok_or_else(|| format!("{metric} is undefined for an empty evaluator class"))
+}
+
+fn percentile_u64(values: &mut [u64], percentile: f64) -> Result<u64, String> {
+    if values.is_empty() || !percentile.is_finite() || !(0.0..=1.0).contains(&percentile) {
+        return Err("latency percentile requires nonempty values and percentile in [0, 1]".to_owned());
+    }
+    values.sort_unstable();
+    let index = ((values.len() - 1) as f64 * percentile).ceil() as usize;
+    Ok(values[index.min(values.len() - 1)])
+}
+
+fn summarize_readout_policy(
+    policy: AcquisitionPolicy,
+    read_budget: usize,
+    replicates: &[PairedReadoutReplicate],
+) -> Result<AdaptiveReadoutPolicyCampaignSummary, String> {
+    if replicates.is_empty() {
+        return Err("readout campaign policy requires at least one replicate".to_owned());
+    }
+    let mean = |extract: fn(&PairedReadoutReplicate) -> f64| {
+        replicates.iter().map(extract).sum::<f64>() / replicates.len() as f64
+    };
+    let minimum = |extract: fn(&PairedReadoutReplicate) -> f64| {
+        replicates
+            .iter()
+            .map(extract)
+            .fold(f64::INFINITY, f64::min)
+    };
+    let mut latencies: Vec<_> = replicates.iter().map(|replicate| replicate.latency_ns).collect();
+
+    Ok(AdaptiveReadoutPolicyCampaignSummary {
+        policy,
+        read_budget,
+        replicate_count: replicates.len(),
+        mean_active_contact_recall: mean(|item| item.active_contact_recall),
+        minimum_active_contact_recall: minimum(|item| item.active_contact_recall),
+        mean_predicted_region_event_recall: mean(|item| item.predicted_region_event_recall),
+        minimum_predicted_region_event_recall: minimum(|item| item.predicted_region_event_recall),
+        mean_off_prediction_event_recall: mean(|item| item.off_prediction_event_recall),
+        minimum_off_prediction_event_recall: minimum(|item| item.off_prediction_event_recall),
+        off_prediction_event_miss_replicates: replicates
+            .iter()
+            .filter(|item| item.off_prediction_event_recall < 1.0)
+            .count(),
+        mean_observed_taxel_fraction: mean(|item| item.observed_taxel_fraction),
+        mean_unknown_taxel_count: mean(|item| item.unknown_taxel_count as f64),
+        mean_unavailable_taxel_count: mean(|item| item.unavailable_taxel_count as f64),
+        mean_latency_ns: mean(|item| item.latency_ns as f64),
+        p95_latency_ns: percentile_u64(&mut latencies, 0.95)?,
+        mean_energy_nj: mean(|item| item.energy_nj as f64),
+        mean_speedup_vs_full_raster: mean(|item| item.speedup_vs_full_raster),
+    })
+}
+
+/// Paired multi-seed 1,024-taxel campaign. All policies see the same predicted
+/// contact/event features and are scored against identical evaluator-only
+/// contact truth per seed. Contact placement moves across the grid to avoid
+/// benchmarking a fixed spatial shortcut.
+pub fn run_adaptive_readout_campaign(
+    first_seed: u64,
+    replicate_count: usize,
+) -> Result<AdaptiveReadoutCampaignReport, String> {
+    const MINIMUM_REPLICATES: usize = 50;
+    if first_seed == 0 {
+        return Err("adaptive readout campaign first seed must be nonzero".to_owned());
+    }
+    if replicate_count < MINIMUM_REPLICATES {
+        return Err("adaptive readout campaign requires at least fifty paired replicates".to_owned());
+    }
+    let last_offset = u64::try_from(replicate_count - 1)
+        .map_err(|_| "adaptive readout replicate count exceeds u64".to_owned())?;
+    first_seed
+        .checked_add(last_offset)
+        .ok_or_else(|| "adaptive readout seed range overflows u64".to_owned())?;
+
+    let policy_specs = [
+        (AcquisitionPolicy::FullRaster, DEFAULT_TAXEL_COUNT),
+        (AcquisitionPolicy::FixedRasterPrefix, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::UniformRandom, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::ContactLocality, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::RiskAdaptive, DEFAULT_READOUT_BUDGET),
+        (AcquisitionPolicy::RiskAdaptive, 64),
+    ];
+    let mut policy_replicates: Vec<Vec<PairedReadoutReplicate>> = policy_specs
+        .iter()
+        .map(|_| Vec::with_capacity(replicate_count))
+        .collect();
+
+    for replicate_index in 0..replicate_count {
+        let seed = first_seed + replicate_index as u64;
+        let problem_seed = seed.max(1);
+        let center = synthetic_readout_center(problem_seed);
+        let active_center = [center[0] as usize, center[1] as usize];
+        let predicted_event_center = [
+            (active_center[0] + 1).min(30),
+            (active_center[1] + 1).min(30),
+        ];
+        let off_event_center = if active_center[0] < 16 {
+            [30, if active_center[1] < 16 { 30 } else { 1 }]
+        } else {
+            [1, if active_center[1] < 16 { 30 } else { 1 }]
+        };
+        let contact_truth = synthetic_readout_truth(active_center, predicted_event_center);
+        let off_event_truth = synthetic_readout_truth(active_center, off_event_center);
+
+        for (policy_index, (policy, read_budget)) in policy_specs.iter().copied().enumerate() {
+            let problem = synthetic_readout_problem(problem_seed, read_budget);
+            let plan = plan_adaptive_readout(&problem, policy)?;
+            let contact_score = score_acquisition_plan(&problem, &plan, &contact_truth)?;
+            let off_event_score = score_acquisition_plan(&problem, &plan, &off_event_truth)?;
+            let active_contact_recall =
+                score_value(contact_score.active_contact_recall, "active contact recall")?;
+            let predicted_region_event_recall =
+                score_value(contact_score.urgent_event_recall, "predicted-region event recall")?;
+            let off_prediction_event_recall =
+                score_value(off_event_score.urgent_event_recall, "off-prediction event recall")?;
+            let speedup = score_value(contact_score.speedup_vs_full_raster, "speedup")?;
+
+            policy_replicates[policy_index].push(PairedReadoutReplicate {
+                active_contact_recall,
+                predicted_region_event_recall,
+                off_prediction_event_recall,
+                observed_taxel_fraction: contact_score.observed_taxel_fraction,
+                unknown_taxel_count: contact_score.unknown_taxel_count,
+                unavailable_taxel_count: contact_score.unavailable_taxel_count,
+                latency_ns: contact_score.estimated_total_latency_ns,
+                energy_nj: contact_score.estimated_total_energy_nj,
+                speedup_vs_full_raster: speedup,
+            });
+        }
+    }
+
+    let results = policy_specs
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(index, (policy, read_budget))| {
+            summarize_readout_policy(policy, read_budget, &policy_replicates[index])
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(AdaptiveReadoutCampaignReport {
+        taxel_count: DEFAULT_TAXEL_COUNT,
+        grid_width: 32,
+        grid_height: 32,
+        first_seed,
+        replicate_count,
+        results,
+        claim_class: "paired_synthetic_adaptive_partial_readout_campaign_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -916,6 +1115,46 @@ mod tests {
             example.off_prediction_region_event_scores[0].urgent_event_recall,
             Some(1.0)
         );
+    }
+
+    #[test]
+    fn paired_campaign_moves_contact_location_and_reports_all_policy_tradeoffs() {
+        assert!(run_adaptive_readout_campaign(1, 49).is_err());
+        assert!(run_adaptive_readout_campaign(0, 50).is_err());
+        assert!(run_adaptive_readout_campaign(u64::MAX, 50).is_err());
+
+        let first = run_adaptive_readout_campaign(20261117, 50).expect("paired campaign");
+        let second = run_adaptive_readout_campaign(20261117, 50).expect("deterministic repeat");
+        assert_eq!(first, second);
+        assert_eq!(first.taxel_count, DEFAULT_TAXEL_COUNT);
+        assert_eq!(first.replicate_count, 50);
+        assert_eq!(first.results.len(), 6);
+
+        let full = &first.results[0];
+        assert_eq!(full.mean_active_contact_recall, 1.0);
+        assert_eq!(full.minimum_active_contact_recall, 1.0);
+        assert_eq!(full.mean_predicted_region_event_recall, 1.0);
+        assert_eq!(full.mean_off_prediction_event_recall, 1.0);
+        assert_eq!(full.mean_unknown_taxel_count, 0.0);
+        assert_eq!(full.mean_speedup_vs_full_raster, 1.0);
+
+        let sparse_local = &first.results[3];
+        assert!(sparse_local.mean_observed_taxel_fraction < 0.02);
+        assert!(sparse_local.mean_unknown_taxel_count > 1_000.0);
+
+        let risk_sparse = &first.results[4];
+        assert!(risk_sparse.mean_predicted_region_event_recall > 0.0);
+        assert!(risk_sparse.mean_off_prediction_event_recall < 0.1);
+        assert_eq!(risk_sparse.read_budget, DEFAULT_READOUT_BUDGET);
+
+        for result in &first.results {
+            assert_eq!(result.replicate_count, 50);
+            assert!(result.mean_active_contact_recall.is_finite());
+            assert!((0.0..=1.0).contains(&result.mean_active_contact_recall));
+            assert!(result.mean_latency_ns > 0.0);
+            assert!(result.mean_energy_nj > 0.0);
+            assert!(result.p95_latency_ns >= result.mean_latency_ns as u64 || result.read_budget == DEFAULT_TAXEL_COUNT);
+        }
     }
 
     #[test]
