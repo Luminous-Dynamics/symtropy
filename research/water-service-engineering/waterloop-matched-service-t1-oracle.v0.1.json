@@ -636,7 +636,7 @@
       "block_dispositions": [
         {
           "block_id": "B1",
-          "disposition": "indeterminate_invalid_measurement_evidence",
+          "disposition": "zero_credit_service_boundary_mismatch",
           "point_credit_l": 0,
           "uncertainty_screened_lower_credit_l": 0,
           "matched_control_displacement_l": null,
