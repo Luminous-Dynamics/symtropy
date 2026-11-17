@@ -620,7 +620,7 @@ pub fn audit_phantom_campaign(manifest: &PhantomCampaignManifest) -> PhantomCamp
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::wrench_consistency::WrenchCovariance6;
+    use super::super::wrench_consistency::{Vec3, WrenchCovariance6};
 
     fn geometry() -> TaxelGeometrySet {
         TaxelGeometrySet {
