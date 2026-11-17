@@ -11,8 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 pub const KITCHEN_OUTCOME_ACCOUNTING_SCHEMA_VERSION: u32 = 1;
-pub const KITCHEN_OUTCOME_ACCOUNTING_CLAIM_CEILING: &str =
-    "Deterministic arithmetic and evidence completeness for submitted kitchen flow records only; not proof of measurement truth, food safety, sanitation, sensory quality, energy savings, or product superiority.";
+pub const KITCHEN_OUTCOME_ACCOUNTING_CLAIM_CEILING: &str = "Deterministic arithmetic and evidence completeness for submitted kitchen flow records only; not proof of measurement truth, food safety, sanitation, sensory quality, energy savings, or product superiority.";
 
 const NANO_PER_MILLIGRAM: u128 = 1_000_000;
 const NANO_PER_GRAM: u128 = 1_000_000_000;
@@ -332,9 +331,13 @@ fn decimal_divisor(decimal_places: u8) -> Option<u128> {
     10_u128.checked_pow(u32::from(decimal_places))
 }
 
-fn exact_units(value: u64, decimal_places: u8, base: u128) -> Result<u128, KitchenOutcomeIssueCodeV1> {
-    let divisor = decimal_divisor(decimal_places)
-        .ok_or(KitchenOutcomeIssueCodeV1::InvalidMassScale)?;
+fn exact_units(
+    value: u64,
+    decimal_places: u8,
+    base: u128,
+) -> Result<u128, KitchenOutcomeIssueCodeV1> {
+    let divisor =
+        decimal_divisor(decimal_places).ok_or(KitchenOutcomeIssueCodeV1::InvalidMassScale)?;
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidMassScale);
     }
@@ -544,7 +547,11 @@ fn observe_mass(
                     issues,
                     KitchenOutcomeIssueCodeV1::UnknownMeasurement,
                     Some(&term.term_id),
-                    if nonempty(reason) { reason.clone() } else { "unknown measurement has no reason".to_owned() },
+                    if nonempty(reason) {
+                        reason.clone()
+                    } else {
+                        "unknown measurement has no reason".to_owned()
+                    },
                 );
                 complete = false;
             }
@@ -591,7 +598,12 @@ fn observe_mass(
     }
 
     if complete {
-        (Some(input_total), Some(output_total), Some(accepted_total), true)
+        (
+            Some(input_total),
+            Some(output_total),
+            Some(accepted_total),
+            true,
+        )
     } else {
         (None, None, None, false)
     }
@@ -683,7 +695,11 @@ fn observe_water(
                     issues,
                     KitchenOutcomeIssueCodeV1::UnknownMeasurement,
                     Some(&format!("{:?}", term.stage)),
-                    if nonempty(reason) { reason.clone() } else { "unknown measurement has no reason".to_owned() },
+                    if nonempty(reason) {
+                        reason.clone()
+                    } else {
+                        "unknown measurement has no reason".to_owned()
+                    },
                 );
                 complete = false;
             }
@@ -789,7 +805,11 @@ fn observe_electricity(
                     issues,
                     KitchenOutcomeIssueCodeV1::UnknownMeasurement,
                     Some(&format!("{:?}", term.stage)),
-                    if nonempty(reason) { reason.clone() } else { "unknown measurement has no reason".to_owned() },
+                    if nonempty(reason) {
+                        reason.clone()
+                    } else {
+                        "unknown measurement has no reason".to_owned()
+                    },
                 );
                 complete = false;
             }
@@ -900,7 +920,11 @@ pub fn evaluate_kitchen_outcome_accounting(
             "mass, water and electricity boundaries must each declare expected terms/stages",
         );
     }
-    if request.required_water_stages.iter().collect::<BTreeSet<_>>().len()
+    if request
+        .required_water_stages
+        .iter()
+        .collect::<BTreeSet<_>>()
+        .len()
         != request.required_water_stages.len()
     {
         add_issue(
@@ -910,7 +934,11 @@ pub fn evaluate_kitchen_outcome_accounting(
             "required water stages contain duplicates",
         );
     }
-    if request.required_electricity_stages.iter().collect::<BTreeSet<_>>().len()
+    if request
+        .required_electricity_stages
+        .iter()
+        .collect::<BTreeSet<_>>()
+        .len()
         != request.required_electricity_stages.len()
     {
         add_issue(
@@ -1010,13 +1038,10 @@ pub fn evaluate_kitchen_outcome_accounting(
         && accepted_mass.is_some()
         && residual.is_some()
         && !issues.iter().any(|issue| {
-            is_blocking(issue.code)
-                || issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
+            is_blocking(issue.code) || issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
         });
-    let claim_eligible = complete
-        && claimable
-        && request.accepted_servings > 0
-        && residual_ppm.is_some();
+    let claim_eligible =
+        complete && claimable && request.accepted_servings > 0 && residual_ppm.is_some();
     let disposition = if issues.iter().any(|issue| is_blocking(issue.code)) {
         KitchenOutcomeDispositionV1::Blocked
     } else if !complete {
@@ -1102,7 +1127,11 @@ mod tests {
         }
     }
 
-    fn water_term(stage: KitchenFlowStageV1, value: u64, unit: KitchenWaterUnitV1) -> KitchenWaterFlowTermV1 {
+    fn water_term(
+        stage: KitchenFlowStageV1,
+        value: u64,
+        unit: KitchenWaterUnitV1,
+    ) -> KitchenWaterFlowTermV1 {
         KitchenWaterFlowTermV1 {
             stage,
             observation: KitchenFlowObservationV1::Observed {
@@ -1116,7 +1145,11 @@ mod tests {
         }
     }
 
-    fn energy_term(stage: KitchenFlowStageV1, value: u64, unit: KitchenEnergyUnitV1) -> KitchenElectricityFlowTermV1 {
+    fn energy_term(
+        stage: KitchenFlowStageV1,
+        value: u64,
+        unit: KitchenEnergyUnitV1,
+    ) -> KitchenElectricityFlowTermV1 {
         KitchenElectricityFlowTermV1 {
             stage,
             observation: KitchenFlowObservationV1::Observed {
@@ -1145,23 +1178,96 @@ mod tests {
                 "evaporated".to_owned(),
             ],
             mass_terms: vec![
-                mass_term("ingredient", KitchenMassDirectionV1::Input, KitchenMassCategoryV1::Ingredient, ExactKitchenMassV1 { value: 1_000, decimal_places: 0, unit: KitchenMassUnitV1::Gram }),
-                mass_term("accepted", KitchenMassDirectionV1::Output, KitchenMassCategoryV1::AcceptedEdible, ExactKitchenMassV1 { value: 800, decimal_places: 0, unit: KitchenMassUnitV1::Gram }),
-                mass_term("trim", KitchenMassDirectionV1::Output, KitchenMassCategoryV1::Trim, ExactKitchenMassV1 { value: 100, decimal_places: 0, unit: KitchenMassUnitV1::Gram }),
-                mass_term("rejected", KitchenMassDirectionV1::Output, KitchenMassCategoryV1::Rejected, ExactKitchenMassV1 { value: 50, decimal_places: 0, unit: KitchenMassUnitV1::Gram }),
-                mass_term("evaporated", KitchenMassDirectionV1::Output, KitchenMassCategoryV1::Evaporated, ExactKitchenMassV1 { value: 50, decimal_places: 0, unit: KitchenMassUnitV1::Gram }),
+                mass_term(
+                    "ingredient",
+                    KitchenMassDirectionV1::Input,
+                    KitchenMassCategoryV1::Ingredient,
+                    ExactKitchenMassV1 {
+                        value: 1_000,
+                        decimal_places: 0,
+                        unit: KitchenMassUnitV1::Gram,
+                    },
+                ),
+                mass_term(
+                    "accepted",
+                    KitchenMassDirectionV1::Output,
+                    KitchenMassCategoryV1::AcceptedEdible,
+                    ExactKitchenMassV1 {
+                        value: 800,
+                        decimal_places: 0,
+                        unit: KitchenMassUnitV1::Gram,
+                    },
+                ),
+                mass_term(
+                    "trim",
+                    KitchenMassDirectionV1::Output,
+                    KitchenMassCategoryV1::Trim,
+                    ExactKitchenMassV1 {
+                        value: 100,
+                        decimal_places: 0,
+                        unit: KitchenMassUnitV1::Gram,
+                    },
+                ),
+                mass_term(
+                    "rejected",
+                    KitchenMassDirectionV1::Output,
+                    KitchenMassCategoryV1::Rejected,
+                    ExactKitchenMassV1 {
+                        value: 50,
+                        decimal_places: 0,
+                        unit: KitchenMassUnitV1::Gram,
+                    },
+                ),
+                mass_term(
+                    "evaporated",
+                    KitchenMassDirectionV1::Output,
+                    KitchenMassCategoryV1::Evaporated,
+                    ExactKitchenMassV1 {
+                        value: 50,
+                        decimal_places: 0,
+                        unit: KitchenMassUnitV1::Gram,
+                    },
+                ),
             ],
-            required_water_stages: vec![KitchenFlowStageV1::Preparation, KitchenFlowStageV1::Cooking, KitchenFlowStageV1::Cleaning],
+            required_water_stages: vec![
+                KitchenFlowStageV1::Preparation,
+                KitchenFlowStageV1::Cooking,
+                KitchenFlowStageV1::Cleaning,
+            ],
             water_terms: vec![
-                water_term(KitchenFlowStageV1::Preparation, 500, KitchenWaterUnitV1::Millilitre),
+                water_term(
+                    KitchenFlowStageV1::Preparation,
+                    500,
+                    KitchenWaterUnitV1::Millilitre,
+                ),
                 water_term(KitchenFlowStageV1::Cooking, 1, KitchenWaterUnitV1::Litre),
-                water_term(KitchenFlowStageV1::Cleaning, 500, KitchenWaterUnitV1::Millilitre),
+                water_term(
+                    KitchenFlowStageV1::Cleaning,
+                    500,
+                    KitchenWaterUnitV1::Millilitre,
+                ),
             ],
-            required_electricity_stages: vec![KitchenFlowStageV1::Preparation, KitchenFlowStageV1::Cooking, KitchenFlowStageV1::Cleaning],
+            required_electricity_stages: vec![
+                KitchenFlowStageV1::Preparation,
+                KitchenFlowStageV1::Cooking,
+                KitchenFlowStageV1::Cleaning,
+            ],
             electricity_terms: vec![
-                energy_term(KitchenFlowStageV1::Preparation, 100, KitchenEnergyUnitV1::WattHour),
-                energy_term(KitchenFlowStageV1::Cooking, 1, KitchenEnergyUnitV1::KilowattHour),
-                energy_term(KitchenFlowStageV1::Cleaning, 50, KitchenEnergyUnitV1::WattHour),
+                energy_term(
+                    KitchenFlowStageV1::Preparation,
+                    100,
+                    KitchenEnergyUnitV1::WattHour,
+                ),
+                energy_term(
+                    KitchenFlowStageV1::Cooking,
+                    1,
+                    KitchenEnergyUnitV1::KilowattHour,
+                ),
+                energy_term(
+                    KitchenFlowStageV1::Cleaning,
+                    50,
+                    KitchenEnergyUnitV1::WattHour,
+                ),
             ],
             claim_ceiling: KITCHEN_OUTCOME_ACCOUNTING_CLAIM_CEILING.to_owned(),
         }
@@ -1170,13 +1276,22 @@ mod tests {
     #[test]
     fn complete_meal_accounting_is_exact_and_claim_eligible() {
         let report = evaluate_kitchen_outcome_accounting(&request());
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::CompleteClaimEligible);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::CompleteClaimEligible
+        );
         assert!(report.claim_eligible);
         assert_eq!(report.input_mass_nanograms, Some(1_000 * NANO_PER_GRAM));
         assert_eq!(report.output_mass_nanograms, Some(1_000 * NANO_PER_GRAM));
         assert_eq!(report.unaccounted_mass_nanograms, Some(0));
-        assert_eq!(report.water_nanolitres, Some(2_000 * NANO_LITRES_PER_MILLILITRE));
-        assert_eq!(report.electricity_microwatt_hours, Some(1_150 * MICRO_WH_PER_WH));
+        assert_eq!(
+            report.water_nanolitres,
+            Some(2_000 * NANO_LITRES_PER_MILLILITRE)
+        );
+        assert_eq!(
+            report.electricity_microwatt_hours,
+            Some(1_150 * MICRO_WH_PER_WH)
+        );
         assert_eq!(
             report.water_nanolitres_per_accepted_serving,
             Some(ExactPerServingRatioV1 {
@@ -1193,10 +1308,18 @@ mod tests {
             reason: "meter unavailable".to_owned(),
         };
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::Indeterminate
+        );
         assert_eq!(report.water_nanolitres, None);
         assert!(!report.claim_eligible);
-        assert!(report.unknown_refs.iter().any(|value| value == "water:Cooking"));
+        assert!(
+            report
+                .unknown_refs
+                .iter()
+                .any(|value| value == "water:Cooking")
+        );
     }
 
     #[test]
@@ -1207,7 +1330,12 @@ mod tests {
         };
         let report = evaluate_kitchen_outcome_accounting(&request);
         assert!(report.complete);
-        assert!(report.not_applicable_refs.iter().any(|value| value == "water:Preparation"));
+        assert!(
+            report
+                .not_applicable_refs
+                .iter()
+                .any(|value| value == "water:Preparation")
+        );
 
         let mut request = request();
         request.water_terms[0].observation = KitchenFlowObservationV1::NotApplicable {
@@ -1222,18 +1350,25 @@ mod tests {
     #[test]
     fn simulated_evidence_is_exploratory_not_claim_eligible() {
         let mut request = request();
-        if let KitchenFlowObservationV1::Observed { evidence, .. } = &mut request.electricity_terms[0].observation {
+        if let KitchenFlowObservationV1::Observed { evidence, .. } =
+            &mut request.electricity_terms[0].observation
+        {
             evidence.evidence_class = KitchenFlowEvidenceClassV1::Simulated;
         }
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::CompleteExploratory);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::CompleteExploratory
+        );
         assert!(!report.claim_eligible);
     }
 
     #[test]
     fn outputs_above_inputs_are_blocked() {
         let mut request = request();
-        if let KitchenFlowObservationV1::Observed { quantity, .. } = &mut request.mass_terms[1].observation {
+        if let KitchenFlowObservationV1::Observed { quantity, .. } =
+            &mut request.mass_terms[1].observation
+        {
             quantity.value = 2_000;
         }
         assert_eq!(
@@ -1247,7 +1382,10 @@ mod tests {
         let mut request = request();
         request.mass_terms.pop();
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::Indeterminate
+        );
         assert_eq!(report.input_mass_nanograms, None);
         assert!(!report.claim_eligible);
     }
@@ -1276,7 +1414,8 @@ mod tests {
                 value: 125,
                 decimal_places: 2,
                 unit: KitchenMassUnitV1::Gram,
-            }).unwrap(),
+            })
+            .unwrap(),
             1_250_000_000
         );
         assert_eq!(
@@ -1284,7 +1423,8 @@ mod tests {
                 value: 125,
                 decimal_places: 2,
                 unit: KitchenWaterUnitV1::Millilitre,
-            }).unwrap(),
+            })
+            .unwrap(),
             1_250_000
         );
         assert_eq!(
@@ -1292,7 +1432,8 @@ mod tests {
                 value: 125,
                 decimal_places: 2,
                 unit: KitchenEnergyUnitV1::KilowattHour,
-            }).unwrap(),
+            })
+            .unwrap(),
             1_250_000_000
         );
     }
@@ -1300,7 +1441,9 @@ mod tests {
     #[test]
     fn measured_evidence_requires_calibration() {
         let mut request = request();
-        if let KitchenFlowObservationV1::Observed { evidence, .. } = &mut request.mass_terms[0].observation {
+        if let KitchenFlowObservationV1::Observed { evidence, .. } =
+            &mut request.mass_terms[0].observation
+        {
             evidence.calibration_ref = None;
         }
         assert_eq!(
@@ -1313,20 +1456,30 @@ mod tests {
     fn rejected_batch_can_be_complete_without_per_serving_ratios() {
         let mut request = request();
         request.accepted_servings = 0;
-        if let KitchenFlowObservationV1::Observed { quantity, .. } = &mut request.mass_terms[1].observation {
+        if let KitchenFlowObservationV1::Observed { quantity, .. } =
+            &mut request.mass_terms[1].observation
+        {
             quantity.value = 0;
         }
         let report = evaluate_kitchen_outcome_accounting(&request);
         assert!(report.complete);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::CompleteExploratory);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::CompleteExploratory
+        );
         assert_eq!(report.water_nanolitres_per_accepted_serving, None);
-        assert_eq!(report.electricity_microwatt_hours_per_accepted_serving, None);
+        assert_eq!(
+            report.electricity_microwatt_hours_per_accepted_serving,
+            None
+        );
     }
 
     #[test]
     fn positive_servings_require_positive_accepted_mass() {
         let mut request = request();
-        if let KitchenFlowObservationV1::Observed { quantity, .. } = &mut request.mass_terms[1].observation {
+        if let KitchenFlowObservationV1::Observed { quantity, .. } =
+            &mut request.mass_terms[1].observation
+        {
             quantity.value = 0;
         }
         assert_eq!(
@@ -1366,9 +1519,15 @@ mod tests {
             },
         ));
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::Indeterminate);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
-        }));
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::Indeterminate
+        );
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow })
+        );
     }
 }
