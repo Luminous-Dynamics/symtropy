@@ -133,7 +133,6 @@
           "enum": [
             "robot_world",
             "self_collision",
-            "both",
             "analytic"
           ]
         },
@@ -322,6 +321,40 @@
       "then": {
         "properties": {
           "execution": { "required": ["reason_code", "reason"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capability_probe": {
+            "properties": { "status": { "enum": ["EXECUTED", "UNSUPPORTED", "ERROR"] } },
+            "required": ["status"]
+          }
+        },
+        "required": ["capability_probe"]
+      },
+      "then": {
+        "properties": {
+          "capability_probe": { "required": ["runtime_api", "probe_log_sha256"] }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": { "disposition": { "const": "NOT_RUN" } },
+            "required": ["disposition"]
+          }
+        },
+        "required": ["execution"]
+      },
+      "then": {
+        "properties": {
+          "capability_probe": {
+            "properties": { "status": { "enum": ["UNSUPPORTED", "NOT_PROBED"] } }
+          }
         }
       }
     },
