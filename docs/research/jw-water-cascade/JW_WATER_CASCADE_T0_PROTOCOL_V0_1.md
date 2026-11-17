@@ -174,7 +174,7 @@ For this T0 pack:
 - local point-of-use evidence remains boundary-specific;
 - field qualification is rejected for synthetic inputs.
 
-The next implementation increment is a Rust read-only evaluator in the existing water-service evaluation package once its parent code branch is selected. It must compare all expected outputs against the separate oracle and emit a deterministic receipt binding the input, schema, oracle, source manifest, package lock and exact source revision. No action/control output is permitted.
+The read-only Rust evaluator is now implemented in `tools/water-service-t0/src/bin/jw-water-cascade-t0.rs` on the branch stacked over the existing `water-service-t0` package. It compares all 15 computed case outputs against this separate oracle and emits a deterministic receipt binding input, oracle, both schemas, source manifest, root Cargo.lock, package manifest, implementation bytes and the exact checkout revision. The existing water-service workflow now runs this evaluator alongside the original T0 evaluator and requires both to succeed. This is implementation status only: native compilation, tests, Clippy, hosted CI and an exact-head receipt remain pending until the workflow reports them. No action/control output is permitted.
 
 ## 10. Nonclaims
 
