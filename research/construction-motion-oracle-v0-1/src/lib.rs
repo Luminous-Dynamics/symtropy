@@ -32,11 +32,10 @@ pub use multibody_time_swept_broadphase::{
     time_swept_capsule_broadphase,
 };
 pub use relative_time_multibody_ccd::{
-    BodyClockMappingReceipt, ClockDomainCapsuleBody, ClockMappingDisposition,
-    ClockMappingFailure, MAX_RELATIVE_TIME_BODIES, MAX_RELATIVE_TIME_PAIR_CHECKS,
-    QualifiedClockMapping, RelativeTimeMultiBodyConfig, RelativeTimeMultiBodyError,
-    RelativeTimeMultiBodyReport, RelativeTimePairDisposition,
-    RelativeTimePairReceipt, RelativeTimePairUnresolvedReason,
+    BodyClockMappingReceipt, ClockDomainCapsuleBody, ClockMappingDisposition, ClockMappingFailure,
+    MAX_RELATIVE_TIME_BODIES, MAX_RELATIVE_TIME_PAIR_CHECKS, QualifiedClockMapping,
+    RelativeTimeMultiBodyConfig, RelativeTimeMultiBodyError, RelativeTimeMultiBodyReport,
+    RelativeTimePairDisposition, RelativeTimePairReceipt, RelativeTimePairUnresolvedReason,
     evaluate_relative_time_multibody_ccd,
 };
 pub use timed_co_translation_ccd::{
