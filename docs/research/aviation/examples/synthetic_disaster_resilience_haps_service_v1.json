@@ -60,7 +60,7 @@
     "candidate_selection_policy": "matched_service_optimization"
   },
   "fleet_policy": {
-    "minimum_fleet_availability_fraction": 0.99,
+    "minimum_fleet_availability_fraction": 0.999,
     "maximum_concurrent_node_losses": 1,
     "minimum_spare_ratio": 0.25,
     "maximum_maintenance_downtime_fraction": 0.05,
