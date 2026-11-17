@@ -159,15 +159,18 @@ The current executable research slices are intentionally separated:
 - [Exact engineering-evidence dependency closure](../holofrac-retrieval/src/impact.rs)
 - [Bitemporal six-channel observation fixture](../holofrac-retrieval/src/temporal.rs)
 - [Sensor-placement and nearest-sensor virtual-sensing baselines](../holofrac-retrieval/src/sensor_placement.rs)
+- [Append-only component lifecycle and mass ledger](../holofrac-retrieval/src/lifecycle.rs)
 - [Continuous-field benchmark CLI](../holofrac-retrieval/src/bin/field_sweep.rs)
 - [Multi-channel field benchmark CLI](../holofrac-retrieval/src/bin/multichannel_sweep.rs)
 - [Geometric scale benchmark CLI](../holofrac-retrieval/src/bin/fractal_sweep.rs)
 - [Bitemporal observation benchmark CLI](../holofrac-retrieval/src/bin/temporal_fixture_sweep.rs)
 - [Sensor-placement benchmark CLI](../holofrac-retrieval/src/bin/sensor_placement_sweep.rs)
+- [Component lifecycle benchmark CLI](../holofrac-retrieval/src/bin/lifecycle_sweep.rs)
 - [Temporal observation protocol](TEMPORAL_FIXTURE_PROTOCOL_V0.md)
 - [Sensor-placement protocol](SENSOR_PLACEMENT_PROTOCOL_V0.md)
+- [Component lifecycle protocol](LIFECYCLE_FIXTURE_PROTOCOL_V0.md)
 
-The graph benchmark measures exact relations and partial-context candidates; the continuous-field tracks measure positional encoding, multi-channel binding, bundling, unbinding, cleanup and held-out reconstruction against classical storage/interpolation. The geometry track tests a declared scale estimator against known-dimension controls. The dependency track computes exact evidence invalidation. The temporal fixture separates evaluator-only truth from observations and models late delivery/corrections with decision-time snapshots. The sensor-placement fixture compares regular-grid, seeded-random and greedy-maximin layouts using a deliberately simple nearest-sensor virtual-sensing baseline. Both temporal and placement fixtures are synthetic and do not represent measured buildings. None substitutes for physical simulation or engineering authority.
+The graph benchmark measures exact relations and partial-context candidates; the continuous-field tracks measure positional encoding, multi-channel binding, bundling, unbinding, cleanup and held-out reconstruction against classical storage/interpolation. The geometry track tests a declared scale estimator against known-dimension controls. The dependency track computes exact evidence invalidation. The temporal fixture separates evaluator-only truth from observations and models late delivery/corrections with decision-time snapshots. The sensor-placement fixture compares regular-grid, seeded-random and greedy-maximin layouts using a deliberately simple nearest-sensor virtual-sensing baseline. The temporal, placement and component-lifecycle fixtures are synthetic and do not represent measured buildings or actual material passports. None substitutes for physical simulation or engineering authority.
 
 Compare representations on identical graph fixtures and query sets:
 
