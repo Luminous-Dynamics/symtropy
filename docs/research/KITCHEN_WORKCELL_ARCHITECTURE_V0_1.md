@@ -352,3 +352,10 @@ Our first Kitchen-R adapter is a simulation evaluation target only. Kitchen-R's 
 - Physical kitchen: separately instrumented energy, water, temperature, accepted food yield, blinded texture/sensory quality and qualified food-safety procedures.
 
 Do not collapse these dimensions into one score. The objective is to improve the whole chain without trading precision for coverage or simulation success for unsupported physical claims.
+
+
+### Kitchen-R episode receipt and denominator rules
+
+The benchmark now defines `KitchenRobotEpisodeReceiptV1` with a strict mode discriminator (`planning_only`, `low_level_control_only`, `integrated`). It binds each receipt to a source/rights status, instruction ID, deterministic seed, simulator and asset-manifest revisions, robot revision, initial-state digest, perturbations, planner and controller outcomes, recovery attempts, human takeover and final scene digest. The schema has synthetic fixtures for all three modes plus a negative case that rejects a planning-only episode that claims controller execution.
+
+Every attempted episode stays in the relevant denominator. A plan that succeeds but whose low-level controller fails is not an integrated success. Human takeover, timeouts and unrecovered perturbations are retained. Scene restoration, collision incidence and recovery latency are separately reported. The receipts are explicitly simulated and cannot support a physical robot safety or food-quality claim.
