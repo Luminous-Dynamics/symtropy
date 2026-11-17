@@ -34,7 +34,8 @@
         "source_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "source_schema_release": "IFC4X3_ADD2",
         "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "ids_version": "1.0"
+        "ids_version": "1.0",
+        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     }
   },
@@ -146,7 +147,8 @@
         "source_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "source_schema_release": "IFC4X3_ADD2",
         "ids_spec_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "ids_version": "1.0"
+        "ids_version": "1.0",
+        "ids_engine_build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       }
     }
   }
