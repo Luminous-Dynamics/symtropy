@@ -78,6 +78,10 @@ The evaluator should preserve the following maximum total Taylor degree at every
 
 The implementation must encode these reductions explicitly. A lower-order intermediate must not be differentiated as though the missing Taylor coefficients were available.
 
+### Coordinate identity dependency
+
+A scalar Taylor jet is a local derivative expansion, not a complete spacetime tensor object. When jets are assembled into metric, inverse-metric, connection or curvature objects, they must carry the canonical chart/convention/event descriptor owned by [BH-METRIC-CONTRACT-001 #4073](https://github.com/Luminous-Dynamics/symtropy/issues/4073). The scalar jet module must not invent informal chart strings or permit tensors from different charts to be combined. A chart change requires an explicit Jacobian transformation and a new descriptor; relabelling is not a transformation.
+
 ## 4. Tensor evaluation contract
 
 Pin all of the following in a machine-readable convention descriptor before returning a qualified result:
