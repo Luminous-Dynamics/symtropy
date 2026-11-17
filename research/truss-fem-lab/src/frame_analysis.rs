@@ -382,22 +382,24 @@ pub fn audit_frame_equilibrium(
     let mut support_moment = Vec3::new(0.0, 0.0, 0.0);
     let mut external_work_j = 0.0_f64;
 
-    for node in 0..node_count {
-        let load = boundary.nodal_loads[node];
+    for (node, (((load, reaction), fixed), displacement)) in model
+        .nodes
+        .iter()
+        .zip(boundary.nodal_loads.iter())
+        .zip(result.nodal_reactions.iter())
+        .zip(boundary.fixed_dofs.iter())
+        .zip(result.nodal_displacements.iter())
+        .enumerate()
+    {
         let force = Vec3::new(load[0], load[1], load[2]);
         let couple = Vec3::new(load[3], load[4], load[5]);
         applied_force = applied_force + force;
         applied_moment = applied_moment + model.nodes[node].cross(force) + couple;
 
-        for (load_component, displacement_component) in load
-            .iter()
-            .zip(result.nodal_displacements[node].iter())
-        {
+        for (load_component, displacement_component) in load.iter().zip(displacement.iter()) {
             external_work_j += load_component * displacement_component;
         }
 
-        let reaction = result.nodal_reactions[node];
-        let fixed = boundary.fixed_dofs[node];
         let reaction_force = Vec3::new(
             if fixed[0] { reaction[0] } else { 0.0 },
             if fixed[1] { reaction[1] } else { 0.0 },
