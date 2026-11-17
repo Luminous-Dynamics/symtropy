@@ -63,6 +63,14 @@ impl Vec3 {
         }
     }
 
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
+    }
+
     fn components(self) -> [f64; 3] {
         [self.x, self.y, self.z]
     }
@@ -80,6 +88,66 @@ pub struct TaxelGeometry {
     /// Unit local tangent basis; tangent_u × tangent_v must equal normal.
     pub tangent_u: Vec3,
     pub tangent_v: Vec3,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct RigidFrameTransform3 {
+    pub transform_digest: String,
+    pub source_frame_digest: String,
+    pub target_frame_digest: String,
+    /// Proper rotation matrix, row-major.
+    pub rotation_row_major: [f64; 9],
+    /// Translation from source-frame origin to target-frame origin, metres.
+    pub translation_m: Vec3,
+}
+
+impl RigidFrameTransform3 {
+    fn validate(&self) -> Result<(), String> {
+        if self.transform_digest.trim().is_empty()
+            || self.source_frame_digest.trim().is_empty()
+            || self.target_frame_digest.trim().is_empty()
+            || self.source_frame_digest == self.target_frame_digest
+            || !self.translation_m.is_finite()
+            || self.rotation_row_major.iter().any(|value| !value.is_finite())
+        {
+            return Err("rigid frame transform has missing identities or non-finite values".to_owned());
+        }
+
+        let rotation = &self.rotation_row_major;
+        let tolerance = 1.0e-9;
+        for row in 0..3 {
+            for other_row in 0..3 {
+                let dot = (0..3)
+                    .map(|column| rotation[row * 3 + column] * rotation[other_row * 3 + column])
+                    .sum::<f64>();
+                let expected = if row == other_row { 1.0 } else { 0.0 };
+                if (dot - expected).abs() > tolerance {
+                    return Err("frame transform rotation must be orthonormal".to_owned());
+                }
+            }
+        }
+        let determinant =
+            rotation[0] * (rotation[4] * rotation[8] - rotation[5] * rotation[7])
+                - rotation[1] * (rotation[3] * rotation[8] - rotation[5] * rotation[6])
+                + rotation[2] * (rotation[3] * rotation[7] - rotation[4] * rotation[6]);
+        if (determinant - 1.0).abs() > tolerance {
+            return Err("frame transform rotation must be proper (determinant +1), not a reflection".to_owned());
+        }
+        Ok(())
+    }
+
+    fn rotate_vector(&self, vector: Vec3) -> Vec3 {
+        let r = &self.rotation_row_major;
+        Vec3 {
+            x: r[0] * vector.x + r[1] * vector.y + r[2] * vector.z,
+            y: r[3] * vector.x + r[4] * vector.y + r[5] * vector.z,
+            z: r[6] * vector.x + r[7] * vector.y + r[8] * vector.z,
+        }
+    }
+
+    fn transform_point(&self, point: Vec3) -> Vec3 {
+        self.rotate_vector(point).add(self.translation_m)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -109,13 +177,18 @@ pub struct WrenchVector {
     pub moment_nm: Vec3,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct WrenchCovariance6 {
+    /// Full symmetric positive-definite 6×6 covariance, row-major.
+    /// Component order: Fx,Fy,Fz,Mx,My,Mz.
+    pub matrix_row_major: Vec<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct WrenchObservation {
     pub force_n: Vec3,
     pub moment_nm: Vec3,
-    /// Per-axis one-standard-deviation uncertainty; diagonal approximation only.
-    pub force_standard_uncertainty_n: Vec3,
-    pub moment_standard_uncertainty_nm: Vec3,
+    pub covariance: WrenchCovariance6,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -123,6 +196,28 @@ pub enum ReferenceIndependenceDisposition {
     IndependentlyCharacterized,
     SharedCommonCause,
     Unresolved,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct WrenchObservationBinding {
+    pub sample_identity: String,
+    pub native_observation_set_digest: String,
+    pub wrench_observation_digest: String,
+}
+
+impl WrenchObservationBinding {
+    fn validate(&self) -> Result<(), String> {
+        for (name, value) in [
+            ("sample_identity", self.sample_identity.as_str()),
+            ("native_observation_set_digest", self.native_observation_set_digest.as_str()),
+            ("wrench_observation_digest", self.wrench_observation_digest.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(format!("wrench observation binding field {name} is missing"));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -158,9 +253,11 @@ pub struct WrenchConsistencyReport {
     pub predicted_wrench: Option<WrenchVector>,
     pub residual_force_n: Option<Vec3>,
     pub residual_moment_nm: Option<Vec3>,
-    pub standardized_residual_components: Option<[f64; 6]>,
-    pub maximum_absolute_standardized_residual: Option<f64>,
-    pub accepted_threshold: f64,
+    /// Whitened residual components from the covariance Cholesky factor.
+    pub whitened_residual_components: Option<[f64; 6]>,
+    /// Mahalanobis distance sqrt(rᵀ Σ⁻¹ r); threshold is supplied by evaluator.
+    pub mahalanobis_distance: Option<f64>,
+    pub accepted_maximum_mahalanobis_distance: f64,
     pub reasons: Vec<String>,
     pub claim_class: &'static str,
 }
@@ -314,6 +411,48 @@ fn validate_geometry(geometry: &TaxelGeometrySet) -> Result<(), String> {
     Ok(())
 }
 
+/// Transform as-built taxel geometry from its sensor frame into the
+/// declared wrench/reference frame. Positions and wrench origin receive the
+/// rigid translation; normals and tangent vectors receive rotation only.
+/// The returned digest must be supplied by the evidence/geometry registry and
+/// should bind source geometry, transform and exact transformed output.
+pub fn transform_geometry_to_reference(
+    local_geometry: &TaxelGeometrySet,
+    transform: &RigidFrameTransform3,
+    transformed_geometry_digest: &str,
+) -> Result<TaxelGeometrySet, String> {
+    validate_geometry(local_geometry)?;
+    transform.validate()?;
+    if local_geometry.reference_frame_digest != transform.source_frame_digest {
+        return Err("local geometry frame does not match transform source frame".to_owned());
+    }
+    if transformed_geometry_digest.trim().is_empty() {
+        return Err("transformed geometry digest must not be empty".to_owned());
+    }
+    let taxels = local_geometry
+        .taxels
+        .iter()
+        .map(|taxel| TaxelGeometry {
+            taxel_id: taxel.taxel_id.clone(),
+            area_m2: taxel.area_m2,
+            application_point_m: transform.transform_point(taxel.application_point_m),
+            normal: transform.rotate_vector(taxel.normal),
+            tangent_u: transform.rotate_vector(taxel.tangent_u),
+            tangent_v: transform.rotate_vector(taxel.tangent_v),
+        })
+        .collect();
+
+    let transformed = TaxelGeometrySet {
+        geometry_digest: transformed_geometry_digest.to_owned(),
+        reference_frame_digest: transform.target_frame_digest.clone(),
+        contact_boundary_digest: local_geometry.contact_boundary_digest.clone(),
+        wrench_origin_m: transform.transform_point(local_geometry.wrench_origin_m),
+        taxels,
+    };
+    validate_geometry(&transformed)?;
+    Ok(transformed)
+}
+
 /// Construct the geometry-aware map from local taxel traction in pascals to
 /// six-axis wrench in newtons and newton-metres.
 pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperator, String> {
@@ -417,8 +556,7 @@ impl WrenchReferenceEvidence {
     fn validate(
         &self,
         operator: &WrenchOperator,
-        native_observation_set_digest: &str,
-        wrench_observation_digest: &str,
+        binding: &WrenchObservationBinding,
     ) -> Result<(), String> {
         for (name, value) in [
             (
@@ -464,8 +602,12 @@ impl WrenchReferenceEvidence {
                     .to_owned(),
             );
         }
-        if self.native_observation_set_digest != native_observation_set_digest
-            || self.wrench_observation_digest != wrench_observation_digest
+        binding.validate()?;
+        if self.sample_identity != binding.sample_identity {
+            return Err("wrench evidence sample identity does not match the native tactile sample".to_owned());
+        }
+        if self.native_observation_set_digest != binding.native_observation_set_digest
+            || self.wrench_observation_digest != binding.wrench_observation_digest
         {
             return Err(
                 "wrench evidence does not bind the exact native and wrench observation sets"
@@ -491,39 +633,92 @@ impl WrenchReferenceEvidence {
     }
 }
 
+fn cholesky_wrench_covariance(
+    covariance: &WrenchCovariance6,
+) -> Result<[[f64; 6]; 6], String> {
+    if covariance.matrix_row_major.len() != 36
+        || covariance.matrix_row_major.iter().any(|value| !value.is_finite())
+    {
+        return Err("wrench covariance must contain 36 finite row-major values".to_owned());
+    }
+    let mut matrix = [[0.0; 6]; 6];
+    for (row_index, matrix_row) in matrix.iter_mut().enumerate() {
+        for (column_index, value) in matrix_row.iter_mut().enumerate() {
+            *value = covariance.matrix_row_major[row_index * 6 + column_index];
+            let transpose = covariance.matrix_row_major[column_index * 6 + row_index];
+            let scale = value.abs().max(transpose.abs()).max(f64::MIN_POSITIVE);
+            if (*value - transpose).abs() > 1.0e-12 * scale {
+                return Err("wrench covariance must be symmetric".to_owned());
+            }
+        }
+    }
+
+    let mut lower = [[0.0; 6]; 6];
+    for row in 0..6 {
+        for column in 0..=row {
+            let correction = (0..column)
+                .map(|index| lower[row][index] * lower[column][index])
+                .sum::<f64>();
+            if row == column {
+                let diagonal = matrix[row][row] - correction;
+                if !diagonal.is_finite() || diagonal <= 0.0 {
+                    return Err("wrench covariance must be positive definite".to_owned());
+                }
+                lower[row][column] = diagonal.sqrt();
+            } else {
+                lower[row][column] =
+                    (matrix[row][column] - correction) / lower[column][column];
+            }
+        }
+    }
+    Ok(lower)
+}
+
+fn whiten_wrench_residual(lower: &[[f64; 6]; 6], residual: &[f64; 6]) -> [f64; 6] {
+    let mut whitened = [0.0; 6];
+    for row in 0..6 {
+        let correction = (0..row)
+            .map(|column| lower[row][column] * whitened[column])
+            .sum::<f64>();
+        whitened[row] = (residual[row] - correction) / lower[row][row];
+    }
+    whitened
+}
+
 pub fn assess_wrench_consistency(
     operator: &WrenchOperator,
     local_traction_pa: &[f64],
     observed: &WrenchObservation,
     evidence: &WrenchReferenceEvidence,
-    native_observation_set_digest: &str,
-    wrench_observation_digest: &str,
-    maximum_absolute_standardized_residual: f64,
+    binding: &WrenchObservationBinding,
+    maximum_mahalanobis_distance: f64,
 ) -> WrenchConsistencyReport {
     let base = |disposition, reasons| WrenchConsistencyReport {
         disposition,
         predicted_wrench: None,
         residual_force_n: None,
         residual_moment_nm: None,
-        standardized_residual_components: None,
-        maximum_absolute_standardized_residual: None,
-        accepted_threshold: maximum_absolute_standardized_residual,
+        whitened_residual_components: None,
+        mahalanobis_distance: None,
+        accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
         reasons,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     };
-    if !maximum_absolute_standardized_residual.is_finite()
-        || maximum_absolute_standardized_residual <= 0.0
+    if !maximum_mahalanobis_distance.is_finite()
+        || maximum_mahalanobis_distance <= 0.0
     {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
-            vec!["standardized residual threshold must be finite and positive".to_owned()],
+            vec!["maximum Mahalanobis-distance threshold must be finite and positive".to_owned()],
         );
     }
-    if let Err(error) = evidence.validate(
-        operator,
-        native_observation_set_digest,
-        wrench_observation_digest,
-    ) {
+    if evidence.sample_identity != binding.sample_identity {
+        return base(
+            WrenchConsistencyDisposition::SampleOrBoundaryMismatch,
+            vec!["wrench evidence sample identity does not match the native tactile sample".to_owned()],
+        );
+    }
+    if let Err(error) = evidence.validate(operator, binding) {
         let geometry_or_sample = error.contains("frame/contact boundary");
         return base(
             if geometry_or_sample {
@@ -534,26 +729,18 @@ pub fn assess_wrench_consistency(
             vec![error],
         );
     }
-    if !observed.force_n.is_finite()
-        || !observed.moment_nm.is_finite()
-        || !observed.force_standard_uncertainty_n.is_finite()
-        || !observed.moment_standard_uncertainty_nm.is_finite()
-        || observed
-            .force_standard_uncertainty_n
-            .components()
-            .iter()
-            .any(|value| *value <= 0.0)
-        || observed
-            .moment_standard_uncertainty_nm
-            .components()
-            .iter()
-            .any(|value| *value <= 0.0)
-    {
+    if !observed.force_n.is_finite() || !observed.moment_nm.is_finite() {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
-            vec!["wrench observation and per-axis standard uncertainties must be finite, with positive uncertainties".to_owned()],
+            vec!["wrench force and moment observations must be finite".to_owned()],
         );
     }
+    let covariance_cholesky = match cholesky_wrench_covariance(&observed.covariance) {
+        Ok(value) => value,
+        Err(error) => {
+            return base(WrenchConsistencyDisposition::InvalidObservation, vec![error]);
+        }
+    };
     let predicted = match integrate_tactile_field(operator, local_traction_pa) {
         Ok(value) => value,
         Err(error) => {
@@ -570,23 +757,9 @@ pub fn assess_wrench_consistency(
         residual_moment.y,
         residual_moment.z,
     ];
-    let sigma = [
-        observed.force_standard_uncertainty_n.x,
-        observed.force_standard_uncertainty_n.y,
-        observed.force_standard_uncertainty_n.z,
-        observed.moment_standard_uncertainty_nm.x,
-        observed.moment_standard_uncertainty_nm.y,
-        observed.moment_standard_uncertainty_nm.z,
-    ];
-    let mut standardized = [0.0; 6];
-    for index in 0..6 {
-        standardized[index] = raw_residual[index] / sigma[index];
-    }
-    let maximum = standardized
-        .iter()
-        .map(|value| value.abs())
-        .fold(0.0_f64, f64::max);
-    let disposition = if maximum <= maximum_absolute_standardized_residual {
+    let whitened = whiten_wrench_residual(&covariance_cholesky, &raw_residual);
+    let distance = dot(&whitened, &whitened).sqrt();
+    let disposition = if distance <= maximum_mahalanobis_distance {
         WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
     } else {
         WrenchConsistencyDisposition::Mismatch
@@ -596,11 +769,11 @@ pub fn assess_wrench_consistency(
         predicted_wrench: Some(predicted),
         residual_force_n: Some(residual_force),
         residual_moment_nm: Some(residual_moment),
-        standardized_residual_components: Some(standardized),
-        maximum_absolute_standardized_residual: Some(maximum),
-        accepted_threshold: maximum_absolute_standardized_residual,
+        whitened_residual_components: Some(whitened),
+        mahalanobis_distance: Some(distance),
+        accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
         reasons: if disposition == WrenchConsistencyDisposition::Mismatch {
-            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared per-axis uncertainty threshold".to_owned()]
+            vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared full-covariance Mahalanobis threshold".to_owned()]
         } else {
             Vec::new()
         },
@@ -613,11 +786,10 @@ pub fn assess_wrench_consistency(
 /// structural constraints; priors are deliberately not accepted as rows.
 pub fn compare_field_identifiability(
     operator: &WrenchOperator,
-    native_observation_set_digest: &str,
     native_design_matrix: &[f64],
     native_row_count: usize,
     reference_evidence: &WrenchReferenceEvidence,
-    wrench_observation_digest: &str,
+    binding: &WrenchObservationBinding,
     tolerance: f64,
 ) -> Result<WrenchIdentifiabilityReport, String> {
     if !tolerance.is_finite() || tolerance <= 0.0 {
@@ -632,11 +804,7 @@ pub fn compare_field_identifiability(
     {
         return Err("native design matrix dimensions or values are invalid".to_owned());
     }
-    reference_evidence.validate(
-        operator,
-        native_observation_set_digest,
-        wrench_observation_digest,
-    )?;
+    reference_evidence.validate(operator, binding)?;
 
     let parameter_count = operator.parameter_count;
     let native_basis = row_space_basis(
@@ -707,6 +875,103 @@ pub fn compare_field_identifiability(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct SyntheticWrenchExampleReport {
+    pub consistency: WrenchConsistencyReport,
+    pub identifiability: WrenchIdentifiabilityReport,
+    pub example_sample_identity: String,
+    pub claim_class: &'static str,
+}
+
+/// Reproducible small known-answer example for the CLI scorecard.
+/// This is a three-taxel synthetic geometry and is not a physical sensor result.
+pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, String> {
+    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
+    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+    let geometry = TaxelGeometrySet {
+        geometry_digest: "sha256:synthetic-wrench-geometry-3-taxel".to_owned(),
+        reference_frame_digest: "sha256:synthetic-wrench-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-contact-boundary".to_owned(),
+        wrench_origin_m: Vec3::default(),
+        taxels: [-0.02, 0.0, 0.02]
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| TaxelGeometry {
+                taxel_id: format!("taxel-{index}"),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            })
+            .collect(),
+    };
+    let operator = build_wrench_operator(&geometry)?;
+    let field = vec![
+        10_000.0, 1_000.0, 500.0,
+        12_000.0, 1_500.0, 750.0,
+        8_000.0, 2_000.0, 1_000.0,
+    ];
+    let predicted = integrate_tactile_field(&operator, &field)?;
+    let standard_deviations = [0.01_f64, 0.01, 0.01, 0.001, 0.001, 0.001];
+    let mut covariance = vec![0.0; 36];
+    for index in 0..6 {
+        covariance[index * 6 + index] = standard_deviations[index].powi(2);
+    }
+    let observed = WrenchObservation {
+        force_n: predicted.force_n,
+        moment_nm: predicted.moment_nm,
+        covariance: WrenchCovariance6 { matrix_row_major: covariance },
+    };
+    let binding = WrenchObservationBinding {
+        sample_identity: "sample:synthetic-001".to_owned(),
+        native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
+        wrench_observation_digest: "sha256:synthetic-wrench-observation".to_owned(),
+    };
+    let evidence = WrenchReferenceEvidence {
+        native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
+        wrench_observation_digest: "sha256:synthetic-wrench-observation".to_owned(),
+        sample_identity: "sample:synthetic-001".to_owned(),
+        reference_frame_digest: "sha256:synthetic-wrench-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-contact-boundary".to_owned(),
+        reference_instrument_receipt_id: "receipt:synthetic-six-axis-reference".to_owned(),
+        reference_ancestry_receipt_id: "receipt:synthetic-reference-ancestry".to_owned(),
+        common_cause_analysis_receipt_id: "receipt:synthetic-common-cause".to_owned(),
+        verifier_receipt_id: "receipt:synthetic-verifier".to_owned(),
+        reference_independence: ReferenceIndependenceDisposition::IndependentlyCharacterized,
+        timestamp_alignment_uncertainty_ns: 100_000,
+        maximum_permitted_alignment_uncertainty_ns: 500_000,
+    };
+    let consistency = assess_wrench_consistency(
+        &operator,
+        &field,
+        &observed,
+        &evidence,
+        &binding,
+        3.0,
+    );
+    let mut native = vec![0.0; 3 * operator.parameter_count];
+    for taxel in 0..3 {
+        native[taxel * operator.parameter_count + taxel * 3] = 1.0;
+    }
+    let identifiability = compare_field_identifiability(
+        &operator,
+        &native,
+        3,
+        &evidence,
+        &binding,
+        1.0e-10,
+    )?;
+
+    Ok(SyntheticWrenchExampleReport {
+        consistency,
+        identifiability,
+        example_sample_identity: "sample:synthetic-001".to_owned(),
+        claim_class: "synthetic_wrench_consistency_and_identifiability_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -747,6 +1012,14 @@ mod tests {
         }
     }
 
+    fn binding() -> WrenchObservationBinding {
+        WrenchObservationBinding {
+            sample_identity: "sample:001".to_owned(),
+            native_observation_set_digest: "sha256:native-observations".to_owned(),
+            wrench_observation_digest: "sha256:wrench-observation".to_owned(),
+        }
+    }
+
     fn evidence() -> WrenchReferenceEvidence {
         WrenchReferenceEvidence {
             native_observation_set_digest: "sha256:native-observations".to_owned(),
@@ -773,20 +1046,96 @@ mod tests {
 
     fn observation_from_field(operator: &WrenchOperator, field: &[f64]) -> WrenchObservation {
         let wrench = integrate_tactile_field(operator, field).unwrap();
+        let standard_deviations = [0.01_f64, 0.01, 0.01, 0.001, 0.001, 0.001];
+        let mut covariance = vec![0.0; 36];
+        for index in 0..6 {
+            covariance[index * 6 + index] = standard_deviations[index].powi(2);
+        }
         WrenchObservation {
             force_n: wrench.force_n,
             moment_nm: wrench.moment_nm,
-            force_standard_uncertainty_n: Vec3 {
-                x: 0.01,
-                y: 0.01,
-                z: 0.01,
-            },
-            moment_standard_uncertainty_nm: Vec3 {
-                x: 0.001,
-                y: 0.001,
-                z: 0.001,
-            },
+            covariance: WrenchCovariance6 { matrix_row_major: covariance },
         }
+    }
+
+    #[test]
+    fn rigid_frame_transform_rotates_vectors_and_translates_points_and_origin() {
+        let local = TaxelGeometrySet {
+            geometry_digest: "sha256:local-geometry".to_owned(),
+            reference_frame_digest: "sha256:sensor-frame".to_owned(),
+            contact_boundary_digest: "sha256:contact-boundary-01".to_owned(),
+            wrench_origin_m: Vec3 { x: 0.1, y: 0.0, z: 0.0 },
+            taxels: vec![TaxelGeometry {
+                taxel_id: "taxel-a".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                normal: Vec3 { x: 0.0, y: 0.0, z: 1.0 },
+                tangent_u: Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                tangent_v: Vec3 { x: 0.0, y: 1.0, z: 0.0 },
+            }],
+        };
+        let transform = RigidFrameTransform3 {
+            transform_digest: "sha256:sensor-to-body-transform".to_owned(),
+            source_frame_digest: "sha256:sensor-frame".to_owned(),
+            target_frame_digest: "sha256:body-frame".to_owned(),
+            // +90 degrees around z.
+            rotation_row_major: [0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            translation_m: Vec3 { x: 0.5, y: -0.2, z: 0.1 },
+        };
+        let transformed = transform_geometry_to_reference(
+            &local,
+            &transform,
+            "sha256:body-frame-geometry",
+        )
+        .expect("rigid frame transform");
+
+        let taxel = &transformed.taxels[0];
+        assert!((taxel.application_point_m.x - 0.5).abs() < 1.0e-12);
+        assert!((taxel.application_point_m.y - -0.18).abs() < 1.0e-12);
+        assert!((taxel.application_point_m.z - 0.1).abs() < 1.0e-12);
+        assert!((taxel.normal.z - 1.0).abs() < 1.0e-12);
+        assert!((taxel.tangent_u.y - 1.0).abs() < 1.0e-12);
+        assert!((taxel.tangent_v.x + 1.0).abs() < 1.0e-12);
+        assert!((transformed.wrench_origin_m.x - 0.5).abs() < 1.0e-12);
+        assert!((transformed.wrench_origin_m.y - -0.1).abs() < 1.0e-12);
+        assert_eq!(transformed.reference_frame_digest, "sha256:body-frame");
+        assert!(build_wrench_operator(&transformed).is_ok());
+    }
+
+    #[test]
+    fn frame_transform_rejects_reflection_nonorthogonal_and_wrong_source_frame() {
+        let local = geometry();
+        let mut reflection = RigidFrameTransform3 {
+            transform_digest: "sha256:reflection".to_owned(),
+            source_frame_digest: "sha256:frame-sensorized-body".to_owned(),
+            target_frame_digest: "sha256:world-frame".to_owned(),
+            rotation_row_major: [-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+            translation_m: Vec3::default(),
+        };
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
+
+        reflection.rotation_row_major =
+            [1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
+
+        reflection.rotation_row_major = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+        reflection.source_frame_digest = "sha256:wrong-source".to_owned();
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
     }
 
     #[test]
@@ -825,11 +1174,10 @@ mod tests {
         }
         let report = compare_field_identifiability(
             &operator,
-            "sha256:native-observations",
             &native,
             3,
             &evidence(),
-            "sha256:wrench-observation",
+            &binding(),
             1.0e-10,
         )
         .expect("identifiability report");
@@ -859,15 +1207,14 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
             report.disposition,
             WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
         );
-        assert_eq!(report.maximum_absolute_standardized_residual, Some(0.0));
+        assert_eq!(report.mahalanobis_distance, Some(0.0));
 
         let mut shared = evidence();
         shared.reference_independence = ReferenceIndependenceDisposition::SharedCommonCause;
@@ -876,8 +1223,7 @@ mod tests {
             &field,
             &observation,
             &shared,
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -892,8 +1238,7 @@ mod tests {
             &field,
             &observation,
             &wrong_frame,
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -913,8 +1258,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(report.disposition, WrenchConsistencyDisposition::Mismatch);
@@ -926,13 +1270,90 @@ mod tests {
             &field,
             &observation_from_field(&operator, &field),
             &bad_timing,
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
             report.disposition,
             WrenchConsistencyDisposition::ReferenceChainUnresolved
+        );
+    }
+
+    #[test]
+    fn full_covariance_changes_joint_wrench_residual_admission() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let mut observation = observation_from_field(&operator, &field);
+        observation.force_n.x += 0.01;
+        observation.force_n.y += 0.01;
+        // Correlated Fx/Fy uncertainty (rho = 0.5); covariance remains SPD.
+        observation.covariance.matrix_row_major[1] = 0.00005;
+        observation.covariance.matrix_row_major[6] = 0.00005;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &observation,
+            &evidence(),
+            &binding(),
+            1.2,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
+        );
+        let distance = report.mahalanobis_distance.expect("joint distance");
+        assert!((distance - 1.154700538).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn malformed_wrench_covariance_is_rejected() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let mut asymmetric = observation_from_field(&operator, &field);
+        asymmetric.covariance.matrix_row_major[1] = 0.00001;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &asymmetric,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
+
+        let mut non_positive_definite = observation_from_field(&operator, &field);
+        non_positive_definite.covariance.matrix_row_major[0] = 0.0;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &non_positive_definite,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
+    }
+
+    #[test]
+    fn wrench_evidence_must_match_exact_native_sample_identity() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let observation = observation_from_field(&operator, &field);
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &observation,
+            &evidence(),
+            &WrenchObservationBinding {
+                sample_identity: "sample:different".to_owned(),
+                native_observation_set_digest: "sha256:native-observations".to_owned(),
+                wrench_observation_digest: "sha256:wrench-observation".to_owned(),
+            },
+            3.0,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::SampleOrBoundaryMismatch
         );
     }
 
