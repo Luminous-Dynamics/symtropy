@@ -21,10 +21,10 @@ fn run() -> Result<(), String> {
         return Err("unexpected extra arguments".to_owned());
     }
 
-    let schema = fs::read_to_string(&schema_path)
-        .map_err(|e| format!("cannot read {schema_path}: {e}"))?;
-    let corpus = fs::read_to_string(&corpus_path)
-        .map_err(|e| format!("cannot read {corpus_path}: {e}"))?;
+    let schema =
+        fs::read_to_string(&schema_path).map_err(|e| format!("cannot read {schema_path}: {e}"))?;
+    let corpus =
+        fs::read_to_string(&corpus_path).map_err(|e| format!("cannot read {corpus_path}: {e}"))?;
     let report = audit_schema_and_corpus(&schema, &corpus)?;
     let output =
         serde_json::to_string_pretty(&report).map_err(|e| format!("cannot encode report: {e}"))?;
