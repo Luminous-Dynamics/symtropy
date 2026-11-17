@@ -452,6 +452,69 @@
         "step_hours": 12,
         "denominator_tolerance": 1e-12
       }
+    },
+    {
+      "case_id": "HC-T0-028-ensemble-crps",
+      "family": "probabilistic_score",
+      "inputs": {
+        "observed": 4,
+        "ensemble_members": [
+          3,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-029-threshold-event-brier",
+      "family": "probabilistic_score",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.7,
+        "observed_event": 1
+      }
+    },
+    {
+      "case_id": "HC-T0-030-brier-reliability-diagnostic",
+      "family": "probabilistic_score",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probabilities": [
+          0.05,
+          0.2,
+          0.55,
+          0.8,
+          0.95
+        ],
+        "observed_events": [
+          0,
+          0,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "case_id": "HC-T0-031-invalid-event-probability-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 1.2,
+        "observed_event": 1
+      }
+    },
+    {
+      "case_id": "HC-T0-032-ensemble-crps-negative-flow-reject",
+      "family": "probabilistic_score",
+      "inputs": {
+        "observed": 4,
+        "ensemble_members": [
+          2,
+          -0.1,
+          3
+        ]
+      }
     }
   ]
 }

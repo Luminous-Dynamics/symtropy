@@ -402,6 +402,114 @@
         "event_nse": 0.8333333333333334,
         "event_volume_bias_pct": -18.75
       }
+    },
+    {
+      "case_id": "HC-T0-028-ensemble-crps",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "EMPIRICAL_ENSEMBLE_CRPS",
+        "member_count": 3,
+        "observed": 4,
+        "ensemble_mean": 4.666666666666667,
+        "ensemble_population_stddev": 1.247219128924647,
+        "crps": 0.6666666666666666
+      }
+    },
+    {
+      "case_id": "HC-T0-029-threshold-event-brier",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BINARY_EVENT_BRIER_SCORE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 0.7,
+        "observed_event": 1,
+        "brier_score": 0.09
+      }
+    },
+    {
+      "case_id": "HC-T0-030-brier-reliability-diagnostic",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "MEAN_BRIER_AND_FIXED_FIVE_BIN_RELIABILITY_DIAGNOSTIC",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "sample_count": 5,
+        "event_count": 3,
+        "brier_score": 0.0575,
+        "reliability_bins": [
+          {
+            "bin_index": 0,
+            "lower_inclusive": 0,
+            "upper_exclusive": 0.2,
+            "sample_count": 1,
+            "mean_forecast_probability": 0.05,
+            "observed_event_frequency": 0,
+            "observed_minus_forecast_frequency": -0.05
+          },
+          {
+            "bin_index": 1,
+            "lower_inclusive": 0.2,
+            "upper_exclusive": 0.4,
+            "sample_count": 1,
+            "mean_forecast_probability": 0.2,
+            "observed_event_frequency": 0,
+            "observed_minus_forecast_frequency": -0.2
+          },
+          {
+            "bin_index": 2,
+            "lower_inclusive": 0.4,
+            "upper_exclusive": 0.6,
+            "sample_count": 1,
+            "mean_forecast_probability": 0.55,
+            "observed_event_frequency": 1,
+            "observed_minus_forecast_frequency": 0.45
+          },
+          {
+            "bin_index": 3,
+            "lower_inclusive": 0.6,
+            "upper_exclusive": 0.8,
+            "sample_count": 0,
+            "mean_forecast_probability": null,
+            "observed_event_frequency": null,
+            "observed_minus_forecast_frequency": null
+          },
+          {
+            "bin_index": 4,
+            "lower_inclusive": 0.8,
+            "upper_exclusive": null,
+            "sample_count": 2,
+            "mean_forecast_probability": 0.875,
+            "observed_event_frequency": 1,
+            "observed_minus_forecast_frequency": 0.125
+          }
+        ],
+        "reliability_warning": "Five-bin reliability is descriptive only; assess sampling uncertainty and do not interpret sparse bins as calibrated."
+      }
+    },
+    {
+      "case_id": "HC-T0-031-invalid-event-probability-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "FORECAST_PROBABILITY_OUTSIDE_ZERO_ONE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "forecast_probability": 1.2,
+        "observed_event": 1,
+        "brier_score": null
+      }
+    },
+    {
+      "case_id": "HC-T0-032-ensemble-crps-negative-flow-reject",
+      "family": "probabilistic_score",
+      "expected": {
+        "probabilistic_disposition": "REJECT",
+        "reason": "NEGATIVE_STREAMFLOW_VALUE",
+        "member_count": 3,
+        "observed": 4,
+        "crps": null
+      }
     }
   ]
 }
