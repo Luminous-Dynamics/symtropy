@@ -95,13 +95,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         graph.digest_non_security()?
     );
     println!(
-        "dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_only_payload_bytes,f32_only_payload_bytes,dual_view_payload_bytes,unique_role_codebook_entries,role_codebook_payload_bytes,slot_reference_bytes,duplicated_role_slot_payload_bytes,factorized_role_slot_bytes_saved,retained_vector_payload_bytes,retained_payload_plus_refs_bytes,encoder_fingerprint_non_security"
+        "dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_only_payload_bytes,f32_only_payload_bytes,dual_view_payload_bytes,unique_role_codebook_entries,role_codebook_payload_bytes,slot_reference_bytes,posting_fact_id_bytes,posting_header_bytes,duplicated_role_slot_payload_bytes,gross_factorized_role_slot_bytes_saved,net_role_index_bytes_saved,retained_vector_payload_bytes,retained_payload_plus_slot_refs_bytes,retained_payload_plus_all_index_refs_bytes,encoder_fingerprint_non_security"
     );
 
     for dimension in [2_048, 4_096, 8_192, 16_384] {
         let report = run_benchmark(&graph, dimension, 0x484f_4c4f_4652_4143)?;
         println!(
-            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             report.dimension,
             report.fact_count,
             report.positive_queries,
@@ -124,10 +124,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             report.unique_role_codebook_entries,
             report.role_slot_index_bytes_estimate,
             report.slot_reference_bytes_estimate,
+            report.role_postings_fact_id_bytes_estimate,
+            report.role_postings_header_bytes_estimate,
             report.duplicated_role_slot_payload_bytes_estimate,
             report.factorized_role_slot_bytes_saved,
+            report.factorized_role_index_net_bytes_saved,
             report.retained_vector_payload_bytes_estimate,
             report.retained_payload_and_slot_refs_bytes_estimate,
+            report.retained_payload_and_all_index_refs_bytes_estimate,
             report.encoder_fingerprint_non_security
         );
 
