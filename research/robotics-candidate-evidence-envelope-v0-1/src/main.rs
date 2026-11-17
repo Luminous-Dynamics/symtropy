@@ -12,6 +12,8 @@ fn main() {
     let binding = fixture_binding();
     let preimage_bytes = binding.canonical_binding_bytes().len();
     let receipts = fixture_receipts(&binding);
+    // A is a fixture-only digest sentinel, not the SHA-256 of canonical bytes.
+    // Production callers must compute the digest with a trusted implementation.
     let envelope = CandidateEvidenceEnvelope {
         schema_version: SCHEMA_VERSION.to_owned(),
         binding,
@@ -27,11 +29,11 @@ fn main() {
             println!("receipt_count={}", envelope.receipts.len());
             println!("canonical_binding_preimage_bytes={preimage_bytes}");
             println!(
-                "candidate_feedable={}",
+                "qualified_projection_available={}",
                 result.eligibility() == CandidateEligibility::Qualified
             );
             println!(
-                "note=fixture-only structural check; digest authentication and physical truth are external"
+                "note=fixture-only structural check with placeholder digest; production SHA-256 and physical truth are external"
             );
         }
         Err(errors) => {
