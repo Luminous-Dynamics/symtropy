@@ -98,7 +98,8 @@
         "availability_fraction": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Minimum fraction of scheduled service time in which the declared service-level requirements must be met."
         },
         "service_window_s": {
           "type": "integer",
@@ -258,7 +259,8 @@
         "minimum_fleet_availability_fraction": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Minimum fraction of the declared service window in which the platform fleet is capable of serving the required coverage; this should be at least the service availability target unless a separately modelled alternate layer provides continuity."
         },
         "maximum_concurrent_node_losses": {
           "type": "integer",
@@ -271,7 +273,8 @@
         "maximum_maintenance_downtime_fraction": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Maximum planned maintenance downtime fraction per individual node, not the total fleet outage fraction."
         },
         "single_node_failure_must_be_tolerated": {
           "type": "boolean"
