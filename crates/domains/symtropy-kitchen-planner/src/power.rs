@@ -601,7 +601,9 @@ fn build_power_aware_earliest_gap(
     for task_id in &plan_report.topological_order {
         let Some(task) = task_index.get(task_id.as_str()).copied() else {
             return Err((
-                Some(format!("validated task {task_id} is absent from the task index")),
+                Some(format!(
+                    "validated task {task_id} is absent from the task index"
+                )),
                 last_power_violations,
             ));
         };
@@ -638,10 +640,11 @@ fn build_power_aware_earliest_gap(
                     last_power_violations,
                 ));
             };
-            let Some(minimum_start) = predecessor.end_ms.checked_add(dependency.min_lag_ms)
-            else {
+            let Some(minimum_start) = predecessor.end_ms.checked_add(dependency.min_lag_ms) else {
                 return Err((
-                    Some(format!("minimum dependency lag overflows for task {task_id}")),
+                    Some(format!(
+                        "minimum dependency lag overflows for task {task_id}"
+                    )),
                     last_power_violations,
                 ));
             };
@@ -650,7 +653,9 @@ fn build_power_aware_earliest_gap(
             if let Some(maximum_lag) = dependency.max_lag_ms {
                 let Some(maximum_start) = predecessor.end_ms.checked_add(maximum_lag) else {
                     return Err((
-                        Some(format!("maximum dependency lag overflows for task {task_id}")),
+                        Some(format!(
+                            "maximum dependency lag overflows for task {task_id}"
+                        )),
                         last_power_violations,
                     ));
                 };
@@ -693,7 +698,9 @@ fn build_power_aware_earliest_gap(
             }
             if resource_conflict_end.is_some_and(|next_start| next_start <= candidate_start) {
                 return Err((
-                    Some(format!("resource conflict made no progress for task {task_id}")),
+                    Some(format!(
+                        "resource conflict made no progress for task {task_id}"
+                    )),
                     last_power_violations,
                 ));
             }
@@ -762,7 +769,9 @@ fn build_power_aware_earliest_gap(
                 existing_events.insert(existing.end_ms);
                 if let Some(existing_profile) = profile_index.get(existing.task_id.as_str()) {
                     for segment in &existing_profile.segments {
-                        if let Some(event_time) = existing.start_ms.checked_add(segment.start_offset_ms) {
+                        if let Some(event_time) =
+                            existing.start_ms.checked_add(segment.start_offset_ms)
+                        {
                             existing_events.insert(event_time);
                         }
                         if let Some(event_time) = existing.start_ms.checked_add(segment.end_offset_ms) {
@@ -809,9 +818,8 @@ fn build_power_aware_earliest_gap(
         scheduled.push(accepted_task);
     }
 
-    scheduled.sort_by(|a, b| {
-        (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str()))
-    });
+    scheduled
+        .sort_by(|a, b| (a.start_ms, a.task_id.as_str()).cmp(&(b.start_ms, b.task_id.as_str())));
     let makespan_ms = scheduled
         .iter()
         .map(|scheduled_task| scheduled_task.end_ms)
@@ -826,7 +834,10 @@ fn build_power_aware_earliest_gap(
     };
     let power_report = validate_power_envelope(input, &receipt);
     if !power_report.is_valid() {
-        return Err((Some("final whole-plan power verification failed".to_owned()), power_report.violations));
+        return Err((
+            Some("final whole-plan power verification failed".to_owned()),
+            power_report.violations,
+        ));
     }
 
     Ok(PowerScheduleReceiptV1 {
@@ -968,7 +979,10 @@ mod tests {
             vec![profile("processor", 10, 700), profile("cooker", 10, 600)],
         );
         let receipt = build_power_constrained_schedule(&input).unwrap();
-        assert_eq!(receipt.strategy, PowerScheduleStrategyV1::PowerAwareEarliestGap);
+        assert_eq!(
+            receipt.strategy,
+            PowerScheduleStrategyV1::PowerAwareEarliestGap
+        );
         assert!(receipt.power_validation.is_valid());
         assert_eq!(receipt.power_validation.peak_real_power_w, Some(1_300));
         assert_eq!(receipt.power_validation.longest_surge_ms, 5);
@@ -1163,10 +1177,9 @@ mod tests {
 
     #[test]
     fn versioned_json_fixtures_match_rust_power_contract() {
-        let bundle: PowerFixtureBundle = serde_json::from_str(include_str!(
-            "../schemas/fixtures/power-envelope-v1.json"
-        ))
-        .expect("power-envelope fixture bundle must deserialize");
+        let bundle: PowerFixtureBundle =
+            serde_json::from_str(include_str!("../schemas/fixtures/power-envelope-v1.json"))
+                .expect("power-envelope fixture bundle must deserialize");
 
         for fixture in bundle.fixtures {
             let result = build_power_constrained_schedule(&fixture.input);
@@ -1195,7 +1208,10 @@ mod tests {
             }
 
             let receipt = result.unwrap_or_else(|error| {
-                panic!("fixture {} unexpectedly failed: {error:?}", fixture.fixture_id)
+                panic!(
+                    "fixture {} unexpectedly failed: {error:?}",
+                    fixture.fixture_id
+                )
             });
             let actual_strategy = match receipt.strategy {
                 PowerScheduleStrategyV1::ParallelEarliestGap => "parallel_earliest_gap",
@@ -1203,8 +1219,7 @@ mod tests {
                 PowerScheduleStrategyV1::SerialFallback => "serial_fallback",
             };
             assert_eq!(
-                actual_strategy,
-                fixture.expected_strategy,
+                actual_strategy, fixture.expected_strategy,
                 "fixture {} strategy mismatch",
                 fixture.fixture_id
             );
