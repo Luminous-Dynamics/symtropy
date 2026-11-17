@@ -1,0 +1,15 @@
+case_id,port_id,direction,mass_flow_kg_s,position_x_m,position_y_m,position_z_m,velocity_x_m_s,velocity_y_m_s,velocity_z_m_s
+RADIAL_THROUGH,INLET,Inflow,1,2,0,0,3,0,0
+RADIAL_THROUGH,OUTLET,Outflow,1,1,0,0,3,0,0
+TANGENTIAL_FLOW,INLET,Inflow,1,2,0,0,0,3,0
+TANGENTIAL_FLOW,OUTLET,Outflow,1,2,0,0,0,4,0
+OFF_AXIS_TURN,INLET,Inflow,1,2,0,0,0,3,0
+OFF_AXIS_TURN,OUTLET,Outflow,1,0,2,0,3,0,0
+MULTIPORT_3D,IN_A,Inflow,2,1,0,0,0,2,0
+MULTIPORT_3D,IN_B,Inflow,1,0,1,0,3,0,0
+MULTIPORT_3D,OUT_A,Outflow,1,0,0,2,0,3,0
+MULTIPORT_3D,OUT_B,Outflow,2,0,0,1,4,0,0
+UNSTEADY_STORAGE,INLET,Inflow,4,1,0,0,0,2,0
+UNSTEADY_STORAGE,OUTLET,Outflow,3,0,1,0,2,0,0
+TORQUE_ISOLATION,INLET,Inflow,1,2,0,0,0,1,0
+TORQUE_ISOLATION,OUTLET,Outflow,1,0,2,0,1,0,0
