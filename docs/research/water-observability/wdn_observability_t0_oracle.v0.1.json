@@ -63,7 +63,7 @@
       "state_dispositions": [
         {
           "state_id": "pressure:JHB-N1",
-          "disposition": "unobservable_under_declared_faults",
+          "disposition": "directly_observed_current",
           "surviving_sensor_ids": [
             "S1-ALT"
           ],
@@ -395,7 +395,10 @@
       "structural_reuse_allowed": true,
       "overall_disposition": "directly_observed_current",
       "surviving_sensor_ids": [
-        "S1-ACOUSTIC"
+        "S1-ACOUSTIC",
+        "S2",
+        "S3",
+        "S4"
       ],
       "state_dispositions": [
         {
@@ -409,19 +412,25 @@
         {
           "state_id": "pressure:JHB-N2",
           "disposition": "directly_observed_current",
-          "surviving_sensor_ids": [],
+          "surviving_sensor_ids": [
+            "S2"
+          ],
           "clock_evidence_invalid": false
         },
         {
           "state_id": "pressure:JHB-N3",
           "disposition": "directly_observed_current",
-          "surviving_sensor_ids": [],
+          "surviving_sensor_ids": [
+            "S3"
+          ],
           "clock_evidence_invalid": false
         },
         {
           "state_id": "pressure:JHB-N4",
           "disposition": "directly_observed_current",
-          "surviving_sensor_ids": [],
+          "surviving_sensor_ids": [
+            "S4"
+          ],
           "clock_evidence_invalid": false
         }
       ]
