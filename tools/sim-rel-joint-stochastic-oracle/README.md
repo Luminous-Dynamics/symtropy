@@ -48,7 +48,7 @@ The public `EpisodeView` exposes only an opaque episode identity, current discre
 
 Unknown actions, calls after a terminal event, cost-denied requests, attempt-budget-denied requests, and horizon-denied requests are retained as attempts and do not mutate the hidden world. The in-memory receipt log is capped at 65,536 requests; an external runner must reconcile its own independent request counter for campaign-completeness claims.
 
-The first adapter profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
+This is currently a typed in-process Rust seam only: it does not yet serialize the generic public-packet JSON Schema, implement the parent/child JSONL process bridge, or connect a Symthaea policy. Those integrations belong to the existing provider and Symthaea #11171 owners. The policy process should receive an EpisodeView projection only; it must never receive an EpisodeProvider instance.\n\nThe first adapter profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
 
 ### Randomness and claim ceiling
 
