@@ -75,8 +75,6 @@
         "cost_model_id",
         "cost_model_revision",
         "cost_model_sha256",
-        "estimated_travel_distance_m",
-        "estimated_travel_time_s",
         "estimated_acquisition_time_s",
         "estimated_energy_wh",
         "risk_penalty_s"
