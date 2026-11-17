@@ -310,7 +310,9 @@ pub enum ProfileFinding {
     QcmCannotStandForOpticalTransmission(String),
     IneligibleCalibration(String),
     MissingCalibrationVerificationReceipt(String),
+    InvalidCalibrationVerificationReceipt(String),
     MissingQualificationReceipt(String),
+    InvalidQualificationReceipt(String),
     MissingMethod(String),
     MissingReferenceMaterial(String),
     MissingLaboratory(String),
@@ -358,6 +360,42 @@ impl PortableEvidenceProfile {
             relation.kind == kind
                 && relation.subject_id == subject_id
                 && relation.object_id == object_id
+        })
+    }
+
+    fn authority_receipt_is_qualified(
+        &self,
+        receipt_id: &str,
+        nodes: &BTreeMap<&str, &EvidenceNode>,
+    ) -> bool {
+        if !matches!(
+            nodes.get(receipt_id).map(|node| &node.class),
+            Some(NodeClass::Entity(EntityKind::AuthorityReceipt))
+        ) {
+            return false;
+        }
+
+        self.relations.iter().any(|generated| {
+            if generated.kind != ProvRelationKind::WasGeneratedBy
+                || generated.subject_id != receipt_id
+            {
+                return false;
+            }
+            let activity_id = generated.object_id.as_str();
+            if !matches!(
+                nodes.get(activity_id).map(|node| &node.class),
+                Some(NodeClass::Activity(_))
+            ) {
+                return false;
+            }
+            self.relations.iter().any(|associated| {
+                associated.kind == ProvRelationKind::WasAssociatedWith
+                    && associated.subject_id == activity_id
+                    && matches!(
+                        nodes.get(associated.object_id.as_str()).map(|node| &node.class),
+                        Some(NodeClass::Agent(AgentKind::Authority))
+                    )
+            })
         })
     }
 
@@ -675,23 +713,31 @@ impl PortableEvidenceProfile {
             if claim.calibration_disposition != CalibrationDisposition::EligibleAtMeasurementTime {
                 findings.push(ProfileFinding::IneligibleCalibration(claim.id.clone()));
             }
-            if claim
-                .calibration_verification_receipt_id
-                .as_deref()
-                .is_none_or(|receipt| !nonempty(receipt))
-            {
-                findings.push(ProfileFinding::MissingCalibrationVerificationReceipt(
-                    claim.id.clone(),
-                ));
+            match claim.calibration_verification_receipt_id.as_deref() {
+                None | Some("") => {
+                    findings.push(ProfileFinding::MissingCalibrationVerificationReceipt(
+                        claim.id.clone(),
+                    ));
+                }
+                Some(receipt_id) if !self.authority_receipt_is_qualified(receipt_id, &nodes) => {
+                    findings.push(ProfileFinding::InvalidCalibrationVerificationReceipt(
+                        claim.id.clone(),
+                    ));
+                }
+                Some(_) => {}
             }
-            if claim
-                .qualification_receipt_id
-                .as_deref()
-                .is_none_or(|receipt| !nonempty(receipt))
-            {
-                findings.push(ProfileFinding::MissingQualificationReceipt(
-                    claim.id.clone(),
-                ));
+            match claim.qualification_receipt_id.as_deref() {
+                None | Some("") => {
+                    findings.push(ProfileFinding::MissingQualificationReceipt(
+                        claim.id.clone(),
+                    ));
+                }
+                Some(receipt_id) if !self.authority_receipt_is_qualified(receipt_id, &nodes) => {
+                    findings.push(ProfileFinding::InvalidQualificationReceipt(
+                        claim.id.clone(),
+                    ));
+                }
+                Some(_) => {}
             }
         }
 
@@ -1125,7 +1171,7 @@ mod tests {
     }
 
     fn profile() -> PortableEvidenceProfile {
-        let nodes = vec![
+        let mut nodes = vec![
             node(
                 "./",
                 "Optical ISRU campaign crate",
@@ -1257,7 +1303,7 @@ mod tests {
             ),
         ];
 
-        let relations = vec![
+        let mut relations = vec![
             ProvRelation {
                 kind: ProvRelationKind::WasGeneratedBy,
                 subject_id: "./".to_string(),
@@ -1541,6 +1587,49 @@ mod tests {
             laboratory_id: Some("urn:lab:one".to_string()),
         };
 
+        for claim in &measurements {
+            let suffix = claim.id.rsplit(':').next().unwrap_or("claim");
+            for (receipt_id, activity_suffix, activity_name) in [
+                (
+                    claim.calibration_verification_receipt_id.as_deref().unwrap(),
+                    "calibration-verification",
+                    "Calibration receipt verification",
+                ),
+                (
+                    claim.qualification_receipt_id.as_deref().unwrap(),
+                    "measurement-qualification",
+                    "Measurement qualification review",
+                ),
+            ] {
+                let activity_id = format!("urn:activity:{activity_suffix}:{suffix}");
+                nodes.push(node(
+                    receipt_id,
+                    "Authority verification receipt",
+                    NodeClass::Entity(EntityKind::AuthorityReceipt),
+                ));
+                nodes.push(node(
+                    &activity_id,
+                    activity_name,
+                    NodeClass::Activity(ActivityKind::Decision),
+                ));
+                relations.push(ProvRelation {
+                    kind: ProvRelationKind::WasGeneratedBy,
+                    subject_id: receipt_id.to_string(),
+                    object_id: activity_id.clone(),
+                });
+                relations.push(ProvRelation {
+                    kind: ProvRelationKind::WasAssociatedWith,
+                    subject_id: activity_id.clone(),
+                    object_id: "urn:authority:one".to_string(),
+                });
+                relations.push(ProvRelation {
+                    kind: ProvRelationKind::Used,
+                    subject_id: activity_id,
+                    object_id: claim.id.clone(),
+                });
+            }
+        }
+
         PortableEvidenceProfile {
             crate_id: "urn:crate:campaign-one".to_string(),
             crate_name: "Optical ISRU Campaign".to_string(),
@@ -1583,6 +1672,41 @@ mod tests {
         assert!(findings
             .iter()
             .any(|f| matches!(f, ProfileFinding::MissingQualificationReceipt(_))));
+    }
+
+    #[test]
+    fn non_resolving_calibration_or_qualification_receipt_fails_p2() {
+        let mut value = profile();
+        let witness = value
+            .measurements
+            .iter_mut()
+            .find(|claim| claim.id == "urn:observation:witness")
+            .unwrap();
+        witness.calibration_verification_receipt_id =
+            Some("urn:receipt:missing".to_string());
+        witness.qualification_receipt_id = Some("urn:receipt:also-missing".to_string());
+
+        let findings = value.validate(ConformanceLevel::P2MetrologyQualified).findings;
+        assert!(findings.contains(&ProfileFinding::InvalidCalibrationVerificationReceipt(
+            "urn:observation:witness".to_string()
+        )));
+        assert!(findings.contains(&ProfileFinding::InvalidQualificationReceipt(
+            "urn:observation:witness".to_string()
+        )));
+    }
+
+    #[test]
+    fn receipt_generated_without_authority_attribution_fails_p2() {
+        let mut value = profile();
+        value.relations.retain(|relation| {
+            !(relation.kind == ProvRelationKind::WasAssociatedWith
+                && relation.subject_id == "urn:activity:calibration-verification:witness")
+        });
+        assert!(value.validate(ConformanceLevel::P2MetrologyQualified).findings.contains(
+            &ProfileFinding::InvalidCalibrationVerificationReceipt(
+                "urn:observation:witness".to_string()
+            )
+        ));
     }
 
     #[test]
