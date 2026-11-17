@@ -1,0 +1,413 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Power Fabric transport-session binding sidecar",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binding_id",
+    "session_event",
+    "assets",
+    "service",
+    "transport_path",
+    "measurement_profile_digest",
+    "calibration_receipt_digests",
+    "binding_status",
+    "reason_codes",
+    "authority"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "binding_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "session_id",
+        "event_id",
+        "event_digest"
+      ],
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "source_capability_digest",
+        "source_firmware_digest",
+        "source_topology_digest",
+        "receiver_id",
+        "receiver_capability_digest",
+        "receiver_firmware_digest"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_capability_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_firmware_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_topology_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receiver_capability_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_firmware_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_type",
+        "service_profile_digest",
+        "quality_profile_digest",
+        "duty_cycle_digest",
+        "scenario_digest",
+        "source_input_boundary_id",
+        "useful_output_boundary_id",
+        "source_boundary_profile_digest",
+        "useful_boundary_profile_digest"
+      ],
+      "properties": {
+        "service_type": {
+          "enum": [
+            "BATTERY_DC",
+            "SHAFT_MECHANICAL",
+            "PROCESS_HEAT",
+            "OPTICAL_RADIANT",
+            "CHEMICAL_PROCESS"
+          ]
+        },
+        "service_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "quality_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "duty_cycle_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "scenario_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_input_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useful_output_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_boundary_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "useful_boundary_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "transport_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_id",
+        "path_revision_id",
+        "path_digest",
+        "operating_regime_profile_digest",
+        "source_port_id",
+        "useful_service_port_id",
+        "primitives"
+      ],
+      "properties": {
+        "path_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_revision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "operating_regime_profile_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_port_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useful_service_port_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primitives": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "primitive_id",
+              "primitive_digest",
+              "source_port_id",
+              "destination_port_id",
+              "carrier",
+              "mechanism",
+              "medium",
+              "conversion_stages",
+              "storage_state",
+              "evidence_class",
+              "evidence_id"
+            ],
+            "properties": {
+              "primitive_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "primitive_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "source_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "destination_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "carrier": {
+                "enum": [
+                  "Electrical",
+                  "ElectromagneticField",
+                  "Thermal",
+                  "Mechanical",
+                  "Acoustic",
+                  "Chemical",
+                  "Electrochemical",
+                  "GravitationalPotential"
+                ]
+              },
+              "mechanism": {
+                "enum": [
+                  "Conduction",
+                  "SuperconductingConduction",
+                  "MagneticInduction",
+                  "CapacitiveCoupling",
+                  "RadiativePropagation",
+                  "GuidedElectromagnetic",
+                  "ThermalConduction",
+                  "ThermalAdvection",
+                  "PhaseChangeCapillary",
+                  "ShaftDrive",
+                  "HydraulicFlow",
+                  "PneumaticFlow",
+                  "AcousticWave",
+                  "EnergyBearingLogistics"
+                ]
+              },
+              "medium": {
+                "enum": [
+                  "Conductor",
+                  "SuperconductingCable",
+                  "Soil",
+                  "Coil",
+                  "Electrodes",
+                  "FreeSpace",
+                  "Waveguide",
+                  "Solid",
+                  "Liquid",
+                  "Gas",
+                  "Pipe",
+                  "Shaft",
+                  "Road",
+                  "Rail",
+                  "Vessel"
+                ]
+              },
+              "conversion_stages": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "Inverter",
+                    "Rectifier",
+                    "ElectroOptic",
+                    "OpticalToElectric",
+                    "MotorGenerator",
+                    "HeatPump",
+                    "Electrolysis",
+                    "FuelCell",
+                    "Combustion",
+                    "CompressionExpansion",
+                    "AcousticToElectric",
+                    "OtherDeclaredTransduction"
+                  ]
+                }
+              },
+              "storage_state": {
+                "enum": [
+                  "None",
+                  "Field",
+                  "Battery",
+                  "Thermal",
+                  "Mechanical",
+                  "Chemical",
+                  "Gravitational"
+                ]
+              },
+              "evidence_class": {
+                "enum": [
+                  "Unknown",
+                  "ManufacturerDeclared",
+                  "Modelled",
+                  "Measured",
+                  "IndependentlyVerified",
+                  "FieldQualified"
+                ]
+              },
+              "evidence_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "measurement_profile_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "calibration_receipt_digests": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "binding_status": {
+      "enum": [
+        "METADATA_BOUND",
+        "NOT_COMPARABLE",
+        "UNRESOLVED"
+      ]
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "binding_is_evidence_only",
+        "energization_authority",
+        "interlock_override"
+      ],
+      "properties": {
+        "binding_is_evidence_only": {
+          "const": true
+        },
+        "energization_authority": {
+          "const": false
+        },
+        "interlock_override": {
+          "const": false
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "binding_status": {
+            "const": "METADATA_BOUND"
+          }
+        },
+        "required": [
+          "binding_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason_codes": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "binding_status": {
+            "enum": [
+              "NOT_COMPARABLE",
+              "UNRESOLVED"
+            ]
+          }
+        },
+        "required": [
+          "binding_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason_codes": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
