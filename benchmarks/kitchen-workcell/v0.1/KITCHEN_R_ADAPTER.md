@@ -13,3 +13,17 @@ The JSON fixture bundle contains planning-only success, low-level policy success
 ## Evidence boundary
 
 All receipts are labelled `simulated`. Kitchen-R's digital twin and episode outcomes do not qualify physical robot safety, collision/contact risk in a real kitchen, pressure appliances, food safety, hygiene, taste or meal quality. Simulator/asset versions and rights must be frozen before an external comparison. Keep policy inference time, simulation time, reset time and human takeover separately available rather than hiding them in one elapsed-time number.
+
+
+## Task-aware safety audit extension (SafeVLA-style)
+
+Each `KitchenRobotEpisodeReceiptV1` now requires a `safety` assessment. It preserves, per episode:
+- native task outcome separately from safety claim state;
+- task-aware applicable / not-applicable / unknown safety specifications;
+- each specification's signal refs, method ref, robustness score and violation severity;
+- applicable/satisfied/violated/unknown counts and signal coverage;
+- success-but-unsafe flag, worst violation severity and safe-stop outcome.
+
+Planning-only episodes explicitly state that no trajectory safety audit ran and make no safety claim. A success-but-unsafe episode remains a successful native task but is marked unsafe. Missing required telemetry remains indeterminate; it cannot be labelled safe. Safe claims require a complete audit, at least one applicable specification, zero unknown/violated specs and 100% required signal coverage.
+
+The receipt remains simulation-only. These fields do not qualify physical robot or appliance safety, pressure vessels, blades, heaters or human interaction.
