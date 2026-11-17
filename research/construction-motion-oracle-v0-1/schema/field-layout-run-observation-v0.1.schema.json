@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/construction-field-layout-run-observation-v0.1.json",
+  "title": "Construction Field Layout Run Observation v0.1",
+  "description": "Machine-readable per-run observations. The robot's own state is separated from independent referee acceptance; this schema is not itself a score or standards certificate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_profile",
+    "design_work_package",
+    "platform",
+    "site",
+    "metrology",
+    "execution",
+    "accounting",
+    "entity_observations",
+    "raw_receipt_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "construction-field-layout-run-observation/0.1"
+    },
+    "run_id": { "type": "string", "minLength": 1 },
+    "task_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_id", "task_family", "acceptance_profile_sha256"],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "task_family": {
+          "enum": [
+            "simple_layout",
+            "dense_mep",
+            "multitrade",
+            "short_segments",
+            "obstacles",
+            "stationing",
+            "occlusion_tracking",
+            "surface_environment",
+            "floor_elevation",
+            "partial_restart",
+            "multi_robot",
+            "configuration_change"
+          ]
+        },
+        "acceptance_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "strata": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "design_work_package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_sha256",
+        "design_revision_sha256",
+        "frame_id",
+        "transform_sha256",
+        "entity_manifest_sha256",
+        "entity_count"
+      ],
+      "properties": {
+        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "design_revision_sha256": { "$ref": "#/$defs/sha256" },
+        "frame_id": { "type": "string", "minLength": 1 },
+        "transform_sha256": { "$ref": "#/$defs/sha256" },
+        "entity_manifest_sha256": { "$ref": "#/$defs/sha256" },
+        "entity_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manufacturer",
+        "system_name",
+        "serial_id",
+        "firmware_version",
+        "software_version",
+        "build_sha256",
+        "operating_mode",
+        "positioning_method",
+        "stationing_profile_sha256",
+        "sensor_profile_sha256",
+        "tool_config_sha256"
+      ],
+      "properties": {
+        "manufacturer": { "type": "string", "minLength": 1 },
+        "system_name": { "type": "string", "minLength": 1 },
+        "serial_id": { "type": "string", "minLength": 1 },
+        "firmware_version": { "type": "string", "minLength": 1 },
+        "software_version": { "type": "string", "minLength": 1 },
+        "build_sha256": { "$ref": "#/$defs/sha256" },
+        "operating_mode": { "type": "string", "minLength": 1 },
+        "positioning_method": { "type": "string", "minLength": 1 },
+        "tracker_or_total_station_model": { "type": "string", "minLength": 1 },
+        "prism_or_reflector_model": { "type": "string", "minLength": 1 },
+        "stationing_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "sensor_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "tool_config_sha256": { "$ref": "#/$defs/sha256" },
+        "payload_config_sha256": { "$ref": "#/$defs/sha256" },
+        "collision_model_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "lab_id",
+        "operator_id",
+        "session_id",
+        "surface_profile",
+        "environment_profile_sha256",
+        "obstacle_profile_sha256",
+        "start_time_utc",
+        "end_time_utc"
+      ],
+      "properties": {
+        "site_id": { "type": "string", "minLength": 1 },
+        "lab_id": { "type": "string", "minLength": 1 },
+        "serial_unit_id": { "type": "string", "minLength": 1 },
+        "operator_id": { "type": "string", "minLength": 1 },
+        "session_id": { "type": "string", "minLength": 1 },
+        "surface_profile": { "type": "string", "minLength": 1 },
+        "environment_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "obstacle_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "start_time_utc": { "type": "string", "format": "date-time" },
+        "end_time_utc": { "type": "string", "format": "date-time" },
+        "notes_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "metrology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_instrument_id",
+        "reference_instrument_model",
+        "calibration_record_sha256",
+        "reference_chain_sha256",
+        "independent_of_robot_control",
+        "expanded_uncertainty_u95_mm"
+      ],
+      "properties": {
+        "reference_instrument_id": { "type": "string", "minLength": 1 },
+        "reference_instrument_model": { "type": "string", "minLength": 1 },
+        "calibration_record_sha256": { "$ref": "#/$defs/sha256" },
+        "reference_chain_sha256": { "$ref": "#/$defs/sha256" },
+        "independent_of_robot_control": { "type": "boolean" },
+        "expanded_uncertainty_u95_mm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "z"],
+          "properties": {
+            "x": { "$ref": "#/$defs/nonnegative_number" },
+            "y": { "$ref": "#/$defs/nonnegative_number" },
+            "z": { "$ref": "#/$defs/nonnegative_number" }
+          }
+        },
+        "uncertainty_budget_sha256": { "$ref": "#/$defs/sha256" },
+        "control_network_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "robot_claimed_disposition",
+        "execution_disposition",
+        "attempted_entity_count",
+        "intervention_count",
+        "fault_event_count"
+      ],
+      "properties": {
+        "robot_claimed_disposition": {
+          "enum": ["COMPLETE", "PARTIAL", "FAILED", "UNKNOWN"]
+        },
+        "execution_disposition": {
+          "enum": ["OBSERVED", "UNRESOLVED", "NOT_RUN"]
+        },
+        "not_run_or_unresolved_reason": { "type": "string", "minLength": 1 },
+        "attempted_entity_count": { "type": "integer", "minimum": 0 },
+        "intervention_count": { "type": "integer", "minimum": 0 },
+        "fault_event_count": { "type": "integer", "minimum": 0 },
+        "station_verification_receipt_sha256": { "$ref": "#/$defs/sha256" },
+        "event_log_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "crew_hours",
+        "elapsed_minutes",
+        "equipment_energy_wh",
+        "consumable_cost_minor_units",
+        "rework_hours",
+        "waiting_hours"
+      ],
+      "properties": {
+        "crew_hours": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bim_vdc",
+            "coordination",
+            "survey_control",
+            "setup_calibration",
+            "stationing",
+            "execution_supervision",
+            "inspection",
+            "recovery",
+            "rework",
+            "other"
+          ],
+          "properties": {
+            "bim_vdc": { "$ref": "#/$defs/nonnegative_number" },
+            "coordination": { "$ref": "#/$defs/nonnegative_number" },
+            "survey_control": { "$ref": "#/$defs/nonnegative_number" },
+            "setup_calibration": { "$ref": "#/$defs/nonnegative_number" },
+            "stationing": { "$ref": "#/$defs/nonnegative_number" },
+            "execution_supervision": { "$ref": "#/$defs/nonnegative_number" },
+            "inspection": { "$ref": "#/$defs/nonnegative_number" },
+            "recovery": { "$ref": "#/$defs/nonnegative_number" },
+            "rework": { "$ref": "#/$defs/nonnegative_number" },
+            "other": { "$ref": "#/$defs/nonnegative_number" }
+          }
+        },
+        "elapsed_minutes": { "type": "integer", "minimum": 0 },
+        "equipment_energy_wh": { "$ref": "#/$defs/nonnegative_number" },
+        "consumable_cost_minor_units": { "type": "integer", "minimum": 0 },
+        "rework_hours": { "$ref": "#/$defs/nonnegative_number" },
+        "waiting_hours": { "$ref": "#/$defs/nonnegative_number" },
+        "battery_or_ink_events": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "entity_observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "design_entity_id",
+          "entity_type",
+          "robot_claimed_state",
+          "referee_state",
+          "measurement_disposition"
+        ],
+        "properties": {
+          "design_entity_id": { "type": "string", "minLength": 1 },
+          "entity_type": {
+            "enum": ["line", "point", "arc", "text", "opening", "elevation", "other"]
+          },
+          "robot_claimed_state": {
+            "enum": ["PRINTED", "NOT_PRINTED", "UNKNOWN"]
+          },
+          "referee_state": {
+            "enum": ["ACCEPTED", "REJECTED", "HELD", "WAIVED", "NOT_ATTEMPTED"]
+          },
+          "measurement_disposition": {
+            "enum": ["MEASURED", "UNRESOLVED", "NOT_MEASURED"]
+          },
+          "residual_mm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "z": { "type": "number" },
+              "normal": { "type": "number" },
+              "endpoint_start": { "type": "number" },
+              "endpoint_end": { "type": "number" }
+            }
+          },
+          "reference_u95_mm": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "x": { "$ref": "#/$defs/nonnegative_number" },
+              "y": { "$ref": "#/$defs/nonnegative_number" },
+              "z": { "$ref": "#/$defs/nonnegative_number" }
+            }
+          },
+          "measurement_receipt_sha256": { "$ref": "#/$defs/sha256" },
+          "acceptance_reason": { "type": "string", "minLength": 1 },
+          "rework_event_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "raw_receipt_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "nonnegative_number": {
+      "type": "number",
+      "minimum": 0
+    }
+  }
+}
