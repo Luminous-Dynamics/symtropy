@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Verified Water Loss Recovery T0 oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "vwlr-t0-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-VERIFIED-LOSS-RECOVERY-T0-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "event_count",
+          "events",
+          "verified_recovery_event_count",
+          "partial_recovery_event_count",
+          "lower_bound_recovered_l_per_day",
+          "point_recovered_l_per_day",
+          "claim_eligibility"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "event_count": {
+            "type": "integer"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "event_id",
+                "disposition",
+                "localization_correct",
+                "inspection_cost_zar",
+                "crew_hours",
+                "repair_cost_zar",
+                "point_recovered_l_per_day",
+                "lower_bound_recovered_l_per_day",
+                "sustained_recovery_eligible"
+              ]
+            }
+          },
+          "verified_recovery_event_count": {
+            "type": "integer"
+          },
+          "partial_recovery_event_count": {
+            "type": "integer"
+          },
+          "lower_bound_recovered_l_per_day": {
+            "type": "number"
+          },
+          "point_recovered_l_per_day": {
+            "type": "number"
+          },
+          "claim_eligibility": {
+            "const": "NotEligible"
+          }
+        }
+      }
+    }
+  }
+}
