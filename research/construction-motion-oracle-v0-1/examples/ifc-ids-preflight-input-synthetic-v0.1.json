@@ -17,7 +17,7 @@
   },
   "entities": [
     {
-      "global_id": "AAAAAAAAAAAAAAAAAAAAAA",
+      "global_id": "0000000000000000000000",
       "entity_type": "line",
       "geometry_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
       "required_ids_properties": [
@@ -47,7 +47,7 @@
       "in_work_scope": true
     },
     {
-      "global_id": "BBBBBBBBBBBBBBBBBBBBBB",
+      "global_id": "1111111111111111111111",
       "entity_type": "point",
       "geometry_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "required_ids_properties": [
@@ -69,7 +69,7 @@
       "in_work_scope": true
     },
     {
-      "global_id": "CCCCCCCCCCCCCCCCCCCCCC",
+      "global_id": "2222222222222222222222",
       "entity_type": "other",
       "geometry_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "required_ids_properties": [],
