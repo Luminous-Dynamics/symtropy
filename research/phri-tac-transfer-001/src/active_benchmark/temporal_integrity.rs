@@ -542,6 +542,24 @@ mod tests {
         }
     }
 
+    fn attestation(
+        clock_domain: &str,
+        reference_clock_domain: &str,
+        pairs: &[ClockSyncPair],
+    ) -> ClockSyncAttestation {
+        ClockSyncAttestation {
+            attestation_id: "attestation:clock-sync-01".to_owned(),
+            clock_domain: clock_domain.to_owned(),
+            reference_clock_domain: reference_clock_domain.to_owned(),
+            sync_pairs: pairs.to_vec(),
+            reference_instrument_receipt_id: "receipt:time-reference".to_owned(),
+            reference_ancestry_receipt_id: "receipt:time-reference-ancestry".to_owned(),
+            common_cause_analysis_receipt_id: "receipt:time-common-cause".to_owned(),
+            verifier_receipt_id: "receipt:clock-sync-verifier".to_owned(),
+            disposition: ClockSyncEvidenceDisposition::IndependentlyCharacterized,
+        }
+    }
+
     #[test]
     fn affine_clock_fit_recovers_offset_and_drift() {
         let pairs = vec![
@@ -562,27 +580,36 @@ mod tests {
                 reference_timestamp_ns: 4_005_000_300,
             },
         ];
-        let mapping =
-            fit_clock_mapping("accelerometer-clock", "robot-clock", &pairs).expect("clock mapping");
+        let proof = attestation("accelerometer-clock", "robot-clock", &pairs);
+        let mapping = fit_clock_mapping(
+            "accelerometer-clock",
+            "robot-clock",
+            &pairs,
+            &proof,
+        )
+        .expect("clock mapping");
         assert_eq!(mapping.offset_ns, 0);
         assert_eq!(mapping.drift_ppb, 100);
         assert_eq!(mapping.maximum_fit_residual_ns, 0);
+        assert_eq!(mapping.sync_attestation_id, proof.attestation_id);
         assert_eq!(mapping.map_timestamp(5_000_000_000).unwrap(), 5_005_000_400);
     }
 
     #[test]
-    fn clock_fit_rejects_insufficient_or_nonmonotonic_sync_pairs() {
-        assert!(
-            fit_clock_mapping(
-                "sensor",
-                "robot",
-                &[ClockSyncPair {
-                    local_timestamp_ns: 1,
-                    reference_timestamp_ns: 1,
-                }]
-            )
-            .is_err()
-        );
+    fn clock_fit_rejects_bad_pairs_and_unresolved_reference_ancestry() {
+        let insufficient = [ClockSyncPair {
+            local_timestamp_ns: 1,
+            reference_timestamp_ns: 1,
+        }];
+        let insufficient_proof = attestation("sensor", "robot", &insufficient);
+        assert!(fit_clock_mapping(
+            "sensor",
+            "robot",
+            &insufficient,
+            &insufficient_proof,
+        )
+        .is_err());
+
         let nonmonotonic = [
             ClockSyncPair {
                 local_timestamp_ns: 1,
@@ -597,7 +624,27 @@ mod tests {
                 reference_timestamp_ns: 4,
             },
         ];
-        assert!(fit_clock_mapping("sensor", "robot", &nonmonotonic).is_err());
+        let nonmonotonic_proof = attestation("sensor", "robot", &nonmonotonic);
+        assert!(fit_clock_mapping(
+            "sensor",
+            "robot",
+            &nonmonotonic,
+            &nonmonotonic_proof,
+        )
+        .is_err());
+
+        let valid_pairs = [
+            ClockSyncPair { local_timestamp_ns: 1, reference_timestamp_ns: 11 },
+            ClockSyncPair { local_timestamp_ns: 2, reference_timestamp_ns: 12 },
+            ClockSyncPair { local_timestamp_ns: 3, reference_timestamp_ns: 13 },
+        ];
+        let mut shared_cause = attestation("sensor", "robot", &valid_pairs);
+        shared_cause.disposition = ClockSyncEvidenceDisposition::SharedCommonCause;
+        assert!(fit_clock_mapping("sensor", "robot", &valid_pairs, &shared_cause).is_err());
+
+        let mut stale_binding = attestation("sensor", "robot", &valid_pairs);
+        stale_binding.sync_pairs[2].local_timestamp_ns = 4;
+        assert!(fit_clock_mapping("sensor", "robot", &valid_pairs, &stale_binding).is_err());
     }
 
     #[test]
