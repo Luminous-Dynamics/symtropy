@@ -1658,7 +1658,11 @@ mod tests {
         let input = r#"{"€":"euro","\r":"cr","שּׁ":"hebrew","1":"one","😀":"emoji","\u0080":"control","ö":"diaeresis","array":[{"z":1,"a":2},3]}"#;
         let value = parse(input.as_bytes(), "RFC 8785 UTF-16 vector").expect("valid vector");
         let canonical = serde_json_canonicalizer::to_string(&value).expect("JCS canonicalization");
-        let expected = r#"{"\r":"cr","1":"one","\u0080":"control","ö":"diaeresis","€":"euro","😀":"emoji","שּׁ":"hebrew","array":[{"a":2,"z":1},3]}"#;
+        let expected = concat!(
+            r#"{"\r":"cr","1":"one",""#,
+            "\u0080",
+            r#"":"control","ö":"diaeresis","€":"euro","😀":"emoji","שּׁ":"hebrew","array":[{"a":2,"z":1},3]}"#
+        );
         assert_eq!(canonical, expected);
     }
 
@@ -1690,6 +1694,26 @@ mod tests {
         assert_ne!(
             envelope_a.source_receipts[0].source_sha256,
             envelope_b.source_receipts[0].source_sha256
+        );
+    }
+
+    #[test]
+    fn semantic_fingerprint_preserves_provider_array_order() {
+        let (mut datacite, ogc, lineage) = parsed_fixtures();
+        datacite["data"]["attributes"]["creators"]
+            .as_array_mut()
+            .expect("creators")
+            .push(json!({"name":"Second Synthetic Contributor","nameType":"Organizational"}));
+        let original = build_envelope(&datacite, &ogc, &lineage).expect("ordered creators");
+        datacite["data"]["attributes"]["creators"]
+            .as_array_mut()
+            .expect("creators")
+            .reverse();
+        let reversed = build_envelope(&datacite, &ogc, &lineage).expect("reversed creators");
+        assert_ne!(
+            semantic_fingerprint(&original),
+            semantic_fingerprint(&reversed),
+            "JCS sorts object members but never reorders arrays"
         );
     }
 
