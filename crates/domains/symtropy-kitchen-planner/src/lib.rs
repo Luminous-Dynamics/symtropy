@@ -771,11 +771,16 @@ pub fn validate_schedule(
         );
     }
     violations.sort_by(|a, b| {
-        (a.code, a.task_id.as_deref().unwrap_or(""), a.detail.as_str()).cmp(&(
-            b.code,
-            b.task_id.as_deref().unwrap_or(""),
-            b.detail.as_str(),
-        ))
+        (
+            a.code,
+            a.task_id.as_deref().unwrap_or(""),
+            a.detail.as_str(),
+        )
+            .cmp(&(
+                b.code,
+                b.task_id.as_deref().unwrap_or(""),
+                b.detail.as_str(),
+            ))
     });
     ScheduleValidationReport {
         plan_id: plan.plan_id.clone(),
@@ -820,7 +825,12 @@ mod tests {
     }
 
     fn start_at(receipt: &KitchenScheduleReceiptV1, id: &str) -> u64 {
-        receipt.tasks.iter().find(|task| task.task_id == id).unwrap().start_ms
+        receipt
+            .tasks
+            .iter()
+            .find(|task| task.task_id == id)
+            .unwrap()
+            .start_ms
     }
 
     #[test]
@@ -863,7 +873,10 @@ mod tests {
             task("a-first", 3, &["a"], vec![]),
             task("m-middle", 4, &["m"], vec![]),
         ]);
-        assert_eq!(build_schedule(&source).unwrap(), build_schedule(&source).unwrap());
+        assert_eq!(
+            build_schedule(&source).unwrap(),
+            build_schedule(&source).unwrap()
+        );
     }
 
     #[test]
@@ -878,7 +891,10 @@ mod tests {
                 .iter()
                 .any(|v| v.code == PlanViolationCode::DependencyCycle)
         );
-        assert!(matches!(build_schedule(&source), Err(ScheduleError::InvalidPlan(_))));
+        assert!(matches!(
+            build_schedule(&source),
+            Err(ScheduleError::InvalidPlan(_))
+        ));
     }
 
     #[test]
@@ -962,10 +978,7 @@ mod tests {
 
         assert_eq!(parallel.makespan_ms, 10);
         assert_eq!(serial.makespan_ms, 15);
-        assert_eq!(
-            serial.scheduler_id,
-            "stable_serial_topological_baseline_v1"
-        );
+        assert_eq!(serial.scheduler_id, "stable_serial_topological_baseline_v1");
         assert!(validate_schedule(&source, &serial).is_valid());
     }
 
