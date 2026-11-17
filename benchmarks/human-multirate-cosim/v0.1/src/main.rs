@@ -1,6 +1,9 @@
 use human_multirate_cosim::{
     AdaptiveConfig, Method, Scenario,
-    network::{Edge, NetworkMethod, NetworkScenario, simulate_network},
+    network::{
+        AdaptiveNetworkConfig, Edge, NetworkMethod, NetworkScenario, simulate_network,
+        simulate_network_adaptive,
+    },
     simulate, simulate_adaptive_conservative_flux,
 };
 
@@ -165,6 +168,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 );
             }
         }
+
+        let adaptive_config = AdaptiveNetworkConfig {
+            initial_step: scenario.horizon,
+            min_step: 1.0e-8,
+            max_step: scenario.horizon,
+            absolute_tolerance: 1.0e-7,
+            relative_tolerance: 1.0e-6,
+            max_attempts: 100_000,
+        };
+        let adaptive = simulate_network_adaptive(scenario, adaptive_config)?;
+        println!(
+            "{},adaptive_jacobi_shared_flux,{:.10},{},{:.10},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e}",
+            scenario.name,
+            adaptive_config.initial_step,
+            adaptive.accepted_steps,
+            adaptive.max_spectral_stability_number,
+            adaptive.max_abs_state_error,
+            adaptive.rms_state_error,
+            adaptive.max_abs_total_residual,
+            adaptive.min_state,
+            adaptive.max_state,
+            adaptive.positive_states,
+            adaptive.final_state.first().copied().unwrap_or_default(),
+            adaptive.final_state.last().copied().unwrap_or_default(),
+        );
     }
 
     Ok(())
