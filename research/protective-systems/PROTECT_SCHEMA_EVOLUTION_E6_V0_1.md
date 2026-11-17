@@ -107,7 +107,9 @@ The gate validates the Draft 2020-12 lifecycle registry schema, unique profile i
 - unknown compatibility requiring review/block/abstention;
 - unknown profile references and duplicate profile identities rejected;
 - root schema snapshot tampering/digest mismatch negative controls;
-- no automatic upgrade and deterministic historical replay status.
+- no automatic upgrade and deterministic historical replay status;
+- no full admission when validator identity or mapping-manifest version is absent;
+- failed/missing validator receipt, unknown profile IDs and unsafe `BREAKING`/`LOSSY`/`SEMANTIC_BREAK` compatibility decisions fail closed.
 
 Formatting, Clippy, compilation, test execution and executable output must be checked on the exact E6 head. A test count is not a passing result.
 
