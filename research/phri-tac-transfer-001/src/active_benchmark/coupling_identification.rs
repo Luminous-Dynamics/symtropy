@@ -220,22 +220,12 @@ fn fit_row_least_squares(
     for pivot_step in 0..required_rank {
         let pivot = (pivot_step..required_rank)
             .max_by(|left, right| {
-                dot(
-                    &residual_columns[*left],
-                    &residual_columns[*left],
-                )
-                .total_cmp(&dot(
-                    &residual_columns[*right],
-                    &residual_columns[*right],
-                ))
+                dot(&residual_columns[*left], &residual_columns[*left])
+                    .total_cmp(&dot(&residual_columns[*right], &residual_columns[*right]))
             })
             .ok_or_else(|| "QR pivot selection produced no candidate".to_owned())?;
 
-        let pivot_norm = dot(
-            &residual_columns[pivot],
-            &residual_columns[pivot],
-        )
-        .sqrt();
+        let pivot_norm = dot(&residual_columns[pivot], &residual_columns[pivot]).sqrt();
         if pivot_norm <= config.rank_tolerance * maximum_column_norm {
             return Ok(LeastSquaresFit {
                 coefficients: None,
@@ -252,11 +242,7 @@ fn fit_row_least_squares(
             }
         }
 
-        let diagonal = dot(
-            &residual_columns[pivot_step],
-            &residual_columns[pivot_step],
-        )
-        .sqrt();
+        let diagonal = dot(&residual_columns[pivot_step], &residual_columns[pivot_step]).sqrt();
         upper[pivot_step][pivot_step] = diagonal;
         let basis: Vec<_> = residual_columns[pivot_step]
             .iter()
@@ -280,9 +266,7 @@ fn fit_row_least_squares(
     }
 
     let response: Vec<_> = (0..training_pattern_count)
-        .map(|pattern| {
-            problem.training_responses[pattern * problem.taxel_count + output_taxel]
-        })
+        .map(|pattern| problem.training_responses[pattern * problem.taxel_count + output_taxel])
         .collect();
     let projected: Vec<_> = q_columns
         .iter()
@@ -294,8 +278,7 @@ fn fit_row_least_squares(
         let upper_sum = ((row + 1)..required_rank)
             .map(|column| upper[row][column] * pivoted_coefficients[column])
             .sum::<f64>();
-        pivoted_coefficients[row] =
-            (projected[row] - upper_sum) / upper[row][row];
+        pivoted_coefficients[row] = (projected[row] - upper_sum) / upper[row][row];
     }
 
     let mut coefficients = vec![0.0; required_rank];
@@ -603,26 +586,15 @@ mod tests {
             taxel_count: 3,
             module_ids: vec![0, 0, 0],
             support_radius: 1,
-            training_stimuli: vec![
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-                0.0, 1.0, 1.0,
-                0.0, 2.0, 0.0,
-            ],
+            training_stimuli: vec![0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 2.0, 0.0],
             training_responses: vec![0.0; 12],
-            heldout_stimuli: vec![
-                0.0, 1.0, 0.0,
-                0.0, 0.0, 1.0,
-            ],
+            heldout_stimuli: vec![0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
             heldout_responses: vec![0.0; 6],
             admitted_output_channels: vec![true; 3],
             forward_profile_digest: "sha256:pivoted-rank-known-answer".to_owned(),
         };
-        let report = identify_coupling_operator(
-            &problem,
-            &CouplingIdentificationConfig::default(),
-        )
-        .expect("rank revealing design");
+        let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())
+            .expect("rank revealing design");
         let middle = &report.rows[1];
         assert_eq!(middle.required_rank, 3);
         assert_eq!(middle.design_rank, 2);
