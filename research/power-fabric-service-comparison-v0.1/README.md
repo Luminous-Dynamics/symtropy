@@ -120,3 +120,18 @@ The unit tests are authored but have not been executed in this authoring environ
 ---
 
 **Claim ceiling:** contract and synthetic-fixture correctness only. No physical performance, safety, certification, interoperability in hardware, or SOTA superiority is established by this artifact.
+
+
+## Integration ownership and next quantitative stage
+
+This metadata gate is intentionally not an optimizer or numeric performance comparator. The next stage composes existing owners:
+
+- [#3421 WELL-TO-SERVICE](https://github.com/Luminous-Dynamics/symtropy/issues/3421) supplies primary-energy and lifecycle accounting for matched services.
+- [#3453 WPT-PARETO-SAFETY](https://github.com/Luminous-Dynamics/symtropy/issues/3453) supplies interval-aware, constraint-first feasibility and robust Pareto dominance. Its Feasible / Infeasible / Uncertain / NotEvaluable states must remain distinct; hard safety constraints must not be traded away by weighted scoring.
+- [#3469 typed WPT metrology](https://github.com/Luminous-Dynamics/symtropy/pull/3469) and [#3472 source-to-load accounting](https://github.com/Luminous-Dynamics/symtropy/issues/3472) supply numerical measurement planes, loss partition and energy-balance evidence.
+- [#3680 direct wireless conversion](https://github.com/Luminous-Dynamics/symtropy/issues/3680) owns wireless delivery to mechanical, thermal, optical and chemical service endpoints.
+- [#3559 robust multi-receiver dispatch](https://github.com/Luminous-Dynamics/symtropy/issues/3559) owns WPT-specific dispatch optimization.
+
+The intended chain is: this PR establishes matched-service metadata; modality owners provide measured/uncertain metrics; #3453 filters feasible candidates and computes robust Pareto relations; #3421 adds primary-energy/lifecycle context; Symthaea may propose routes using these qualified inputs but cannot certify its own physical predictions or override safety.
+
+A synthetic `Comparable` result from this crate is not evidence of an energy-efficiency win.
