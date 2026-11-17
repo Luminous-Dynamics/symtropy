@@ -7,7 +7,7 @@
 //! deterministic bipolar vector. It measures storage/scoring trade-offs only;
 //! it is not a separate continuous encoder family.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
 use symtropy_hdc_core::{
