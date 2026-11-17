@@ -127,7 +127,6 @@ pub struct SiteEventEnvelope {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SiteRejectionReason {
     GeometryOutsideTolerance,
-    NoMarkFound,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1107,14 +1106,11 @@ mod tests {
         ledger.apply(assessment).unwrap();
         assert!(matches!(
             ledger.entity_state(&package_digest, "line-1"),
-            Some(SiteEntityState::Rejected {
-                reason: SiteRejectionReason::NoMarkFound,
-                ..
-            })
+            Some(SiteEntityState::PhysicallyAbsent { .. })
         ));
 
-        // A rejected first attempt may be reworked. The follow-up is not
-        // accepted until a second independent assessment resolves it.
+        // A confirmed-absent entity can be attempted again. The follow-up is
+        // not accepted until a second independent assessment resolves it.
         let retry_start = event(
             "event-start-rework",
             6,
