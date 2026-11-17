@@ -30,6 +30,9 @@ pub enum EnergyCarrier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TransportMechanism {
     Conduction,
+    /// Transient conduction through an explicitly ionized gas medium.
+    /// Classification does not establish a useful-power advantage or safety.
+    PlasmaChannelConduction,
     SuperconductingConduction,
     MagneticInduction,
     CapacitiveCoupling,
@@ -49,6 +52,8 @@ pub enum TransportMechanism {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum TransportMedium {
     Conductor,
+    /// Ionized gas used as a transient conductive path; research-only by default.
+    IonizedGas,
     SuperconductingCable,
     Soil,
     Coil,
@@ -631,6 +636,10 @@ fn valid_carrier_mechanism_medium(
         (EnergyCarrier::Electrical, TransportMechanism::Conduction) => {
             matches!(medium, TransportMedium::Conductor | TransportMedium::Soil)
         }
+        (
+            EnergyCarrier::Electrical,
+            TransportMechanism::PlasmaChannelConduction,
+        ) => medium == TransportMedium::IonizedGas,
         (EnergyCarrier::Electrical, TransportMechanism::SuperconductingConduction) => {
             medium == TransportMedium::SuperconductingCable
         }
@@ -936,6 +945,33 @@ mod tests {
             optical.operating_regime_profile_digest(),
             rf.operating_regime_profile_digest()
         );
+    }
+
+    #[test]
+    fn plasma_channel_is_electrical_conduction_in_ionized_gas_not_a_new_carrier() {
+        let plasma = TransportPrimitive::new(TransportPrimitiveSpec {
+            primitive_id: "plasma-channel".to_owned(),
+            source_port_id: "pulse-source".to_owned(),
+            destination_port_id: "load".to_owned(),
+            carrier: EnergyCarrier::Electrical,
+            mechanism: TransportMechanism::PlasmaChannelConduction,
+            medium: TransportMedium::IonizedGas,
+            conversion_stages: Vec::new(),
+            storage_state: StorageState::None,
+            operating_regime_profile_digest: "transient-plasma-regime-v1".to_owned(),
+            evidence: verified_evidence("plasma-literature-case"),
+        })
+        .unwrap();
+
+        assert_eq!(plasma.carrier(), EnergyCarrier::Electrical);
+        assert_eq!(
+            plasma.mechanism(),
+            TransportMechanism::PlasmaChannelConduction
+        );
+        assert_eq!(plasma.medium(), TransportMedium::IonizedGas);
+        // A valid physical classification is not a deployability or safety pass.
+        let unqualified = EvidencePolicy::new(vec![ModuleEvidenceClass::FieldQualified]);
+        assert!(!unqualified.accepts(plasma.evidence()));
     }
 
     #[test]
