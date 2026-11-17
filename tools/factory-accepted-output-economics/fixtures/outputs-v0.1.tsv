@@ -1,47 +1,47 @@
-case_id	output_id	final_disposition	release_ref
-baseline_three_first_pass	unit:001-1	RELEASED_FIRST_PASS	release:001-1
-baseline_three_first_pass	unit:001-2	RELEASED_FIRST_PASS	release:001-2
-baseline_three_first_pass	unit:001-3	RELEASED_FIRST_PASS	release:001-3
-rework_one	unit:002-1	RELEASED_FIRST_PASS	release:002-1
-rework_one	unit:002-2	RELEASED_FIRST_PASS	release:002-2
-rework_one	unit:002-3	RELEASED_AFTER_REWORK	release:002-3
-zero_released	unit:003-1	SCRAP	-
-zero_released	unit:003-2	WIP	-
-route_ineligible	unit:004-1	WIP	-
-route_unknown	unit:005-1	WIP	-
-unknown_cost	unit:006-1	RELEASED_FIRST_PASS	release:006-1
-partial_release	unit:007-1	RELEASED_FIRST_PASS	release:007-1
-partial_release	unit:007-2	RELEASED_FIRST_PASS	release:007-2
-partial_release	unit:007-3	RELEASED_AFTER_REWORK	release:007-3
-partial_release	unit:007-4	AWAITING_INSPECTION	-
-scrap_cost	unit:008-1	RELEASED_FIRST_PASS	release:008-1
-scrap_cost	unit:008-2	SCRAP	-
-scrap_cost	unit:008-3	RELEASED_AFTER_REWORK	release:008-3
-repeat_inspection	unit:009-1	RELEASED_AFTER_REWORK	release:009-1
-supplier_moq	unit:010-1	RELEASED_FIRST_PASS	release:010-1
-supplier_moq	unit:010-2	RELEASED_FIRST_PASS	release:010-2
-supplier_moq	unit:010-3	RELEASED_FIRST_PASS	release:010-3
-supplier_moq	unit:010-4	RELEASED_FIRST_PASS	release:010-4
-capital_amortization	unit:011-1	RELEASED_FIRST_PASS	release:011-1
-capital_amortization	unit:011-2	RELEASED_FIRST_PASS	release:011-2
-capital_amortization	unit:011-3	RELEASED_FIRST_PASS	release:011-3
-capital_amortization	unit:011-4	RELEASED_FIRST_PASS	release:011-4
-capital_amortization	unit:011-5	RELEASED_FIRST_PASS	release:011-5
-out_of_scope_excluded	unit:012-1	RELEASED_FIRST_PASS	release:012-1
-out_of_scope_excluded	unit:012-2	RELEASED_FIRST_PASS	release:012-2
-first_pass_only	unit:013-1	RELEASED_FIRST_PASS	release:013-1
-first_pass_only	unit:013-2	RELEASED_FIRST_PASS	release:013-2
-all_after_rework	unit:014-1	RELEASED_AFTER_REWORK	release:014-1
-all_after_rework	unit:014-2	RELEASED_AFTER_REWORK	release:014-2
-zero_cost	unit:015-1	RELEASED_FIRST_PASS	release:015-1
-zero_cost	unit:015-2	SCRAP	-
-awaiting_inspection	unit:016-1	AWAITING_INSPECTION	-
-awaiting_inspection	unit:016-2	INDETERMINATE	-
-bounded_cost	unit:017-1	RELEASED_FIRST_PASS	release:017-1
-bounded_cost	unit:017-2	RELEASED_FIRST_PASS	release:017-2
-partner_transport	unit:018-1	RELEASED_FIRST_PASS	release:018-1
-partner_transport	unit:018-2	RELEASED_AFTER_REWORK	release:018-2
-energy_water	unit:019-1	RELEASED_FIRST_PASS	release:019-1
-complete_repair_refurb	unit:020-1	RELEASED_FIRST_PASS	release:020-1
-complete_repair_refurb	unit:020-2	RELEASED_AFTER_REWORK	release:020-2
-complete_repair_refurb	unit:020-3	SCRAP	-
+case_id	batch_ref	output_id	final_disposition	release_ref
+baseline_three_first_pass	batch:run-001	unit:001-1	RELEASED_FIRST_PASS	release:001-1
+baseline_three_first_pass	batch:run-001	unit:001-2	RELEASED_FIRST_PASS	release:001-2
+baseline_three_first_pass	batch:run-001	unit:001-3	RELEASED_FIRST_PASS	release:001-3
+rework_one	batch:run-002	unit:002-1	RELEASED_FIRST_PASS	release:002-1
+rework_one	batch:run-002	unit:002-2	RELEASED_FIRST_PASS	release:002-2
+rework_one	batch:run-002	unit:002-3	RELEASED_AFTER_REWORK	release:002-3
+zero_released	batch:run-003	unit:003-1	SCRAP	-
+zero_released	batch:run-003	unit:003-2	WIP	-
+route_ineligible	batch:run-004	unit:004-1	WIP	-
+route_unknown	batch:run-005	unit:005-1	WIP	-
+unknown_cost	batch:run-006	unit:006-1	RELEASED_FIRST_PASS	release:006-1
+partial_release	batch:run-007	unit:007-1	RELEASED_FIRST_PASS	release:007-1
+partial_release	batch:run-007	unit:007-2	RELEASED_FIRST_PASS	release:007-2
+partial_release	batch:run-007	unit:007-3	RELEASED_AFTER_REWORK	release:007-3
+partial_release	batch:run-007	unit:007-4	AWAITING_INSPECTION	-
+scrap_cost	batch:run-008	unit:008-1	RELEASED_FIRST_PASS	release:008-1
+scrap_cost	batch:run-008	unit:008-2	SCRAP	-
+scrap_cost	batch:run-008	unit:008-3	RELEASED_AFTER_REWORK	release:008-3
+repeat_inspection	batch:run-009	unit:009-1	RELEASED_AFTER_REWORK	release:009-1
+supplier_moq	batch:run-010	unit:010-1	RELEASED_FIRST_PASS	release:010-1
+supplier_moq	batch:run-010	unit:010-2	RELEASED_FIRST_PASS	release:010-2
+supplier_moq	batch:run-010	unit:010-3	RELEASED_FIRST_PASS	release:010-3
+supplier_moq	batch:run-010	unit:010-4	RELEASED_FIRST_PASS	release:010-4
+capital_amortization	batch:run-011	unit:011-1	RELEASED_FIRST_PASS	release:011-1
+capital_amortization	batch:run-011	unit:011-2	RELEASED_FIRST_PASS	release:011-2
+capital_amortization	batch:run-011	unit:011-3	RELEASED_FIRST_PASS	release:011-3
+capital_amortization	batch:run-011	unit:011-4	RELEASED_FIRST_PASS	release:011-4
+capital_amortization	batch:run-011	unit:011-5	RELEASED_FIRST_PASS	release:011-5
+out_of_scope_excluded	batch:run-012	unit:012-1	RELEASED_FIRST_PASS	release:012-1
+out_of_scope_excluded	batch:run-012	unit:012-2	RELEASED_FIRST_PASS	release:012-2
+first_pass_only	batch:run-013	unit:013-1	RELEASED_FIRST_PASS	release:013-1
+first_pass_only	batch:run-013	unit:013-2	RELEASED_FIRST_PASS	release:013-2
+all_after_rework	batch:run-014	unit:014-1	RELEASED_AFTER_REWORK	release:014-1
+all_after_rework	batch:run-014	unit:014-2	RELEASED_AFTER_REWORK	release:014-2
+zero_cost	batch:run-015	unit:015-1	RELEASED_FIRST_PASS	release:015-1
+zero_cost	batch:run-015	unit:015-2	SCRAP	-
+awaiting_inspection	batch:run-016	unit:016-1	AWAITING_INSPECTION	-
+awaiting_inspection	batch:run-016	unit:016-2	INDETERMINATE	-
+bounded_cost	batch:run-017	unit:017-1	RELEASED_FIRST_PASS	release:017-1
+bounded_cost	batch:run-017	unit:017-2	RELEASED_FIRST_PASS	release:017-2
+partner_transport	batch:run-018	unit:018-1	RELEASED_FIRST_PASS	release:018-1
+partner_transport	batch:run-018	unit:018-2	RELEASED_AFTER_REWORK	release:018-2
+energy_water	batch:run-019	unit:019-1	RELEASED_FIRST_PASS	release:019-1
+complete_repair_refurb	batch:run-020	unit:020-1	RELEASED_FIRST_PASS	release:020-1
+complete_repair_refurb	batch:run-020	unit:020-2	RELEASED_AFTER_REWORK	release:020-2
+complete_repair_refurb	batch:run-020	unit:020-3	SCRAP	-
