@@ -31,10 +31,9 @@ pub use fuel::{
 };
 pub use module_contract::{
     AcPort, CompatibilityAssessment, CompatibilityReason, CompatibilityStatus, ConnectionEnvelope,
-    assess_connection,
     DcPolarity, DcPort, ElectricalInterface, ElectricalInterfaceKind, EvidenceClaim,
     EvidencePolicy, ModuleClass, ModuleEvidenceClass, ModuleIdentity, ModulePort,
-    PortContractError, PortDirection, PowerModule, QuantityRange,
+    PortContractError, PortDirection, PowerModule, QuantityRange, assess_connection,
 };
 pub use service_graph::{
     GraphEvidence, GraphEvidenceState, GraphMaturity, GraphRevision, LoadCoverageStatus,
