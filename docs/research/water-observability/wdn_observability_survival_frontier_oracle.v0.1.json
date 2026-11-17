@@ -6,9 +6,9 @@
     {
       "layout_id": "SURV-T1-001-independent-single-channel",
       "status": "evaluated",
-      "component_count": 28,
+      "component_count": 25,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 24,
+      "dependency_domain_component_count": 21,
       "components": [
         {
           "component_id": "channel:I1",
@@ -107,28 +107,10 @@
           "domain_id": "DOM-communications_path-I4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I1",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-I1",
@@ -179,7 +161,7 @@
           "domain_id": "DOM-power_supply-I4"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -343,35 +325,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I1",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "I1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I2",
-          "dependent_sensor_ids": [
-            "I2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I3",
-          "dependent_sensor_ids": [
-            "I3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I4",
-          "dependent_sensor_ids": [
+            "I1",
+            "I2",
+            "I3",
             "I4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -415,77 +376,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 28,
+          "combination_count": 25,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 378,
+          "combination_count": 300,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         }
@@ -522,7 +483,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -551,20 +512,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -599,7 +560,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -628,20 +589,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -676,7 +637,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -705,20 +666,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -753,7 +714,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -782,20 +743,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         }
@@ -807,9 +768,9 @@
     {
       "layout_id": "SURV-T1-002-shared-power-domain",
       "status": "evaluated",
-      "component_count": 34,
+      "component_count": 31,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 29,
+      "dependency_domain_component_count": 26,
       "components": [
         {
           "component_id": "channel:A1",
@@ -932,34 +893,16 @@
           "domain_id": "DOM-communications_path-P4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-A1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P1",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-A1",
@@ -1016,7 +959,7 @@
           "domain_id": "PWR-N1-SHARED"
         }
       ],
-      "shared_domain_count": 1,
+      "shared_domain_count": 2,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -1213,7 +1156,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "A1"
           ],
@@ -1221,35 +1164,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "P1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P2",
-          "dependent_sensor_ids": [
-            "P2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P3",
-          "dependent_sensor_ids": [
-            "P3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P4",
-          "dependent_sensor_ids": [
+            "P1",
+            "P2",
+            "P3",
             "P4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -1293,77 +1215,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 34,
+          "combination_count": 31,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 561,
+          "combination_count": 465,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -1411,7 +1333,7 @@
               "failure_order": 2,
               "components": [
                 "channel:A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1446,7 +1368,7 @@
               "failure_order": 2,
               "components": [
                 "channel:P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -1481,7 +1403,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1509,7 +1431,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -1537,7 +1459,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1558,7 +1480,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -1579,7 +1501,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1593,7 +1515,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -1606,21 +1528,21 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:physical_interface:DOM-physical_interface-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:physical_interface:DOM-physical_interface-A1"
               ]
             },
@@ -1645,20 +1567,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -1693,7 +1615,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1722,20 +1644,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -1770,7 +1692,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1799,20 +1721,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -1847,7 +1769,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -1876,20 +1798,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -1901,9 +1823,9 @@
     {
       "layout_id": "SURV-T1-003-independent-pressure-acoustic-backup",
       "status": "evaluated",
-      "component_count": 35,
+      "component_count": 32,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 30,
+      "dependency_domain_component_count": 27,
       "components": [
         {
           "component_id": "channel:A1",
@@ -2026,34 +1948,16 @@
           "domain_id": "DOM-communications_path-P1"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-A1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-A1",
@@ -2116,7 +2020,7 @@
           "domain_id": "DOM-power_supply-P1"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -2320,7 +2224,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "A1"
           ],
@@ -2328,35 +2232,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
-            "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
+            "N4",
             "P1"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -2400,77 +2283,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 35,
+          "combination_count": 32,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 595,
+          "combination_count": 496,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -2512,7 +2395,7 @@
               "failure_order": 2,
               "components": [
                 "channel:A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2554,7 +2437,7 @@
               "failure_order": 2,
               "components": [
                 "channel:P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -2596,7 +2479,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2631,7 +2514,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -2666,7 +2549,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2694,7 +2577,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -2722,7 +2605,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2743,7 +2626,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -2763,35 +2646,35 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:physical_interface:DOM-physical_interface-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:power_supply:DOM-power_supply-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:physical_interface:DOM-physical_interface-A1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:power_supply:DOM-power_supply-A1"
               ]
             },
@@ -2837,8 +2720,8 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
@@ -2846,11 +2729,11 @@
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             }
           ]
         },
@@ -2885,7 +2768,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2914,20 +2797,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -2962,7 +2845,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -2991,20 +2874,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -3039,7 +2922,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -3068,20 +2951,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -3093,9 +2976,9 @@
     {
       "layout_id": "SURV-T1-004-shared-gateway-domain",
       "status": "evaluated",
-      "component_count": 34,
+      "component_count": 31,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 29,
+      "dependency_domain_component_count": 26,
       "components": [
         {
           "component_id": "channel:A1",
@@ -3212,34 +3095,16 @@
           "domain_id": "GW-N1-SHARED"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-A1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-A1",
@@ -3302,7 +3167,7 @@
           "domain_id": "DOM-power_supply-P1"
         }
       ],
-      "shared_domain_count": 1,
+      "shared_domain_count": 2,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -3499,7 +3364,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "A1"
           ],
@@ -3507,35 +3372,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
-            "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
+            "N4",
             "P1"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -3579,77 +3423,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 34,
+          "combination_count": 31,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 561,
+          "combination_count": 465,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -3690,7 +3534,7 @@
               "failure_order": 2,
               "components": [
                 "channel:A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -3725,7 +3569,7 @@
               "failure_order": 2,
               "components": [
                 "channel:P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -3760,7 +3604,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -3788,7 +3632,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -3816,7 +3660,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -3837,7 +3681,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -3857,35 +3701,35 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:physical_interface:DOM-physical_interface-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:power_supply:DOM-power_supply-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:physical_interface:DOM-physical_interface-A1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:power_supply:DOM-power_supply-A1"
               ]
             },
@@ -3931,20 +3775,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -3979,7 +3823,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4008,20 +3852,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -4056,7 +3900,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4085,20 +3929,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -4133,7 +3977,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4162,20 +4006,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -4187,9 +4031,9 @@
     {
       "layout_id": "SURV-T1-005-shared-process-interface",
       "status": "evaluated",
-      "component_count": 34,
+      "component_count": 31,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 29,
+      "dependency_domain_component_count": 26,
       "components": [
         {
           "component_id": "channel:A1",
@@ -4312,34 +4156,16 @@
           "domain_id": "DOM-communications_path-P1"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-A1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-N2",
@@ -4396,7 +4222,7 @@
           "domain_id": "DOM-power_supply-P1"
         }
       ],
-      "shared_domain_count": 1,
+      "shared_domain_count": 2,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -4593,7 +4419,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-A1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "A1"
           ],
@@ -4601,35 +4427,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
-            "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
+            "N4",
             "P1"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -4673,77 +4478,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 34,
+          "combination_count": 31,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 561,
+          "combination_count": 465,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -4791,7 +4596,7 @@
               "failure_order": 2,
               "components": [
                 "channel:A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4826,7 +4631,7 @@
               "failure_order": 2,
               "components": [
                 "channel:P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -4861,7 +4666,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4889,7 +4694,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -4917,7 +4722,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4938,7 +4743,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -4959,7 +4764,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -4973,7 +4778,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-P1",
-                "domain:measurement_principle:DOM-measurement_principle-A1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -4986,21 +4791,21 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:PRINC-acoustic",
                 "domain:power_supply:DOM-power_supply-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:power_supply:DOM-power_supply-A1"
               ]
             },
@@ -5025,20 +4830,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 34,
-              "observable_combinations": 33,
+              "total_combinations": 31,
+              "observable_combinations": 30,
               "unobservable_combinations": 1,
-              "survival_fraction_numerator": 33,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 30,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 561,
-              "observable_combinations": 492,
-              "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 399,
+              "unobservable_combinations": 66,
+              "survival_fraction_numerator": 133,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -5073,7 +4878,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5102,20 +4907,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -5150,7 +4955,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5179,20 +4984,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         },
@@ -5227,7 +5032,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5256,20 +5061,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 34,
-              "observable_combinations": 27,
+              "total_combinations": 31,
+              "observable_combinations": 24,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 27,
-              "survival_fraction_denominator": 34
+              "survival_fraction_numerator": 24,
+              "survival_fraction_denominator": 31
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 561,
-              "observable_combinations": 351,
-              "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "total_combinations": 465,
+              "observable_combinations": 276,
+              "unobservable_combinations": 189,
+              "survival_fraction_numerator": 92,
+              "survival_fraction_denominator": 155
             }
           ]
         }
@@ -5281,9 +5086,9 @@
     {
       "layout_id": "SURV-T1-006-common-clock-high-fanout",
       "status": "evaluated",
-      "component_count": 25,
+      "component_count": 22,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 21,
+      "dependency_domain_component_count": 18,
       "components": [
         {
           "component_id": "channel:CLK1",
@@ -5364,28 +5169,10 @@
           "domain_id": "DOM-communications_path-CLK4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CLK1",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CLK2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CLK3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CLK4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-CLK1",
@@ -5436,7 +5223,7 @@
           "domain_id": "DOM-power_supply-CLK4"
         }
       ],
-      "shared_domain_count": 1,
+      "shared_domain_count": 2,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -5579,35 +5366,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK1",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "CLK1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK2",
-          "dependent_sensor_ids": [
-            "CLK2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK3",
-          "dependent_sensor_ids": [
-            "CLK3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CLK4",
-          "dependent_sensor_ids": [
+            "CLK1",
+            "CLK2",
+            "CLK3",
             "CLK4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -5651,77 +5417,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 25,
+          "combination_count": 22,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 300,
+          "combination_count": 231,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         }
@@ -5758,7 +5524,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CLK1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5787,20 +5553,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -5835,7 +5601,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CLK2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5864,20 +5630,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -5912,7 +5678,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CLK3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -5941,20 +5707,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -5989,7 +5755,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CLK4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -6018,20 +5784,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         }
@@ -6043,9 +5809,9 @@
     {
       "layout_id": "SURV-T1-007-high-fanout-calibration-domain",
       "status": "evaluated",
-      "component_count": 25,
+      "component_count": 22,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 21,
+      "dependency_domain_component_count": 18,
       "components": [
         {
           "component_id": "channel:CAL1",
@@ -6126,28 +5892,10 @@
           "domain_id": "DOM-communications_path-CAL4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CAL1",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CAL2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CAL3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-CAL4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-CAL1",
@@ -6198,7 +5946,7 @@
           "domain_id": "DOM-power_supply-CAL4"
         }
       ],
-      "shared_domain_count": 1,
+      "shared_domain_count": 2,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -6341,35 +6089,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL1",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "CAL1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL2",
-          "dependent_sensor_ids": [
-            "CAL2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL3",
-          "dependent_sensor_ids": [
-            "CAL3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-CAL4",
-          "dependent_sensor_ids": [
+            "CAL1",
+            "CAL2",
+            "CAL3",
             "CAL4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -6413,77 +6140,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 25,
+          "combination_count": 22,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 300,
+          "combination_count": 231,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         }
@@ -6520,7 +6247,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CAL1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -6549,20 +6276,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -6597,7 +6324,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CAL2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -6626,20 +6353,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -6674,7 +6401,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CAL3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -6703,20 +6430,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         },
@@ -6751,7 +6478,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-CAL4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -6780,20 +6507,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 25,
-              "observable_combinations": 18,
+              "total_combinations": 22,
+              "observable_combinations": 15,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 18,
-              "survival_fraction_denominator": 25
+              "survival_fraction_numerator": 15,
+              "survival_fraction_denominator": 22
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 300,
-              "observable_combinations": 153,
-              "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "total_combinations": 231,
+              "observable_combinations": 105,
+              "unobservable_combinations": 126,
+              "survival_fraction_numerator": 5,
+              "survival_fraction_denominator": 11
             }
           ]
         }
@@ -6805,9 +6532,9 @@
     {
       "layout_id": "SURV-T1-008-distinct-measurement-principles",
       "status": "evaluated",
-      "component_count": 35,
+      "component_count": 32,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 30,
+      "dependency_domain_component_count": 27,
       "components": [
         {
           "component_id": "channel:N2",
@@ -6930,34 +6657,16 @@
           "domain_id": "DOM-communications_path-V1"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
+          "domain_id": "PRINC-pressure"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
+          "component_id": "domain:measurement_principle:PRINC-vibration",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-P1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-V1",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-V1"
+          "domain_id": "PRINC-vibration"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-N2",
@@ -7020,7 +6729,7 @@
           "domain_id": "DOM-power_supply-V1"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -7224,39 +6933,18 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
-            "N4"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-P1",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
+            "N4",
             "P1"
           ],
-          "fanout": 1
+          "fanout": 4
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-V1",
+          "domain_id": "PRINC-vibration",
           "dependent_sensor_ids": [
             "V1"
           ],
@@ -7304,77 +6992,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 35,
+          "combination_count": 32,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 595,
+          "combination_count": 496,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -7416,7 +7104,7 @@
               "failure_order": 2,
               "components": [
                 "channel:P1",
-                "domain:measurement_principle:DOM-measurement_principle-V1"
+                "domain:measurement_principle:PRINC-vibration"
               ]
             },
             {
@@ -7458,7 +7146,7 @@
               "failure_order": 2,
               "components": [
                 "channel:V1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7500,7 +7188,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-P1",
-                "domain:measurement_principle:DOM-measurement_principle-V1"
+                "domain:measurement_principle:PRINC-vibration"
               ]
             },
             {
@@ -7535,7 +7223,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-V1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7570,7 +7258,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-P1",
-                "domain:measurement_principle:DOM-measurement_principle-V1"
+                "domain:measurement_principle:PRINC-vibration"
               ]
             },
             {
@@ -7598,7 +7286,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-V1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7626,7 +7314,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-P1",
-                "domain:measurement_principle:DOM-measurement_principle-V1"
+                "domain:measurement_principle:PRINC-vibration"
               ]
             },
             {
@@ -7647,7 +7335,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-V1",
-                "domain:measurement_principle:DOM-measurement_principle-P1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7667,35 +7355,35 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
-                "domain:measurement_principle:DOM-measurement_principle-V1"
+                "domain:measurement_principle:PRINC-pressure",
+                "domain:measurement_principle:PRINC-vibration"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:physical_interface:DOM-physical_interface-V1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:power_supply:DOM-power_supply-V1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-V1",
+                "domain:measurement_principle:PRINC-vibration",
                 "domain:physical_interface:DOM-physical_interface-P1"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-V1",
+                "domain:measurement_principle:PRINC-vibration",
                 "domain:power_supply:DOM-power_supply-P1"
               ]
             },
@@ -7741,8 +7429,8 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
@@ -7750,11 +7438,11 @@
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             }
           ]
         },
@@ -7789,7 +7477,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7818,20 +7506,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -7866,7 +7554,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7895,20 +7583,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -7943,7 +7631,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -7972,20 +7660,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -7997,9 +7685,9 @@
     {
       "layout_id": "SURV-T1-009-stale-channel-excluded",
       "status": "evaluated",
-      "component_count": 28,
+      "component_count": 26,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 24,
+      "dependency_domain_component_count": 22,
       "components": [
         {
           "component_id": "channel:LIVE1",
@@ -8098,28 +7786,16 @@
           "domain_id": "DOM-communications_path-N4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-LIVE1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-LIVE1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-LIVE1",
@@ -8170,7 +7846,7 @@
           "domain_id": "DOM-power_supply-N4"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -8334,7 +8010,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-LIVE1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "LIVE1"
           ],
@@ -8342,27 +8018,13 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
             "N4"
           ],
-          "fanout": 1
+          "fanout": 3
         }
       ],
       "combinations_by_order": [
@@ -8406,77 +8068,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 28,
+          "combination_count": 26,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 378,
+          "combination_count": 325,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         }
@@ -8513,7 +8175,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-LIVE1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -8542,20 +8204,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -8590,7 +8252,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -8619,20 +8281,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -8667,7 +8329,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -8696,20 +8358,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -8744,7 +8406,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -8773,20 +8435,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         }
@@ -8798,9 +8460,9 @@
     {
       "layout_id": "SURV-T1-010-invalid-binding-excluded",
       "status": "evaluated",
-      "component_count": 28,
+      "component_count": 26,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 24,
+      "dependency_domain_component_count": 22,
       "components": [
         {
           "component_id": "channel:GOOD1",
@@ -8899,28 +8561,16 @@
           "domain_id": "DOM-communications_path-N4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-GOOD1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-GOOD1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-GOOD1",
@@ -8971,7 +8621,7 @@
           "domain_id": "DOM-power_supply-N4"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -9135,7 +8785,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-GOOD1",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "GOOD1"
           ],
@@ -9143,27 +8793,13 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
+            "N2",
+            "N3",
             "N4"
           ],
-          "fanout": 1
+          "fanout": 3
         }
       ],
       "combinations_by_order": [
@@ -9207,77 +8843,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 28,
+          "combination_count": 26,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 378,
+          "combination_count": 325,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         }
@@ -9314,7 +8950,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-GOOD1"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -9343,20 +8979,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -9391,7 +9027,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -9420,20 +9056,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -9468,7 +9104,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -9497,20 +9133,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         },
@@ -9545,7 +9181,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -9574,20 +9210,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 26,
+              "observable_combinations": 19,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 19,
+              "survival_fraction_denominator": 26
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 325,
+              "observable_combinations": 171,
+              "unobservable_combinations": 154,
+              "survival_fraction_numerator": 171,
+              "survival_fraction_denominator": 325
             }
           ]
         }
@@ -9599,9 +9235,9 @@
     {
       "layout_id": "SURV-T1-011-two-device-minimum-cut",
       "status": "evaluated",
-      "component_count": 35,
+      "component_count": 32,
       "channel_component_count": 5,
-      "dependency_domain_component_count": 30,
+      "dependency_domain_component_count": 27,
       "components": [
         {
           "component_id": "channel:DUAL1",
@@ -9724,34 +9360,16 @@
           "domain_id": "DOM-communications_path-N4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+          "component_id": "domain:measurement_principle:PRINC-acoustic",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-DUAL1"
+          "domain_id": "PRINC-acoustic"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-DUAL2",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-DUAL2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-N4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-DUAL1",
@@ -9814,7 +9432,7 @@
           "domain_id": "DOM-power_supply-N4"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -10018,15 +9636,7 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-DUAL1",
-          "dependent_sensor_ids": [
-            "DUAL1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-DUAL2",
+          "domain_id": "PRINC-acoustic",
           "dependent_sensor_ids": [
             "DUAL2"
           ],
@@ -10034,27 +9644,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N2",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "N2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N3",
-          "dependent_sensor_ids": [
-            "N3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-N4",
-          "dependent_sensor_ids": [
+            "DUAL1",
+            "N2",
+            "N3",
             "N4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -10098,77 +9695,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 35,
+          "combination_count": 32,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 595,
+          "combination_count": 496,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -10210,7 +9807,7 @@
               "failure_order": 2,
               "components": [
                 "channel:DUAL1",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -10252,7 +9849,7 @@
               "failure_order": 2,
               "components": [
                 "channel:DUAL2",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10294,7 +9891,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -10329,7 +9926,7 @@
               "failure_order": 2,
               "components": [
                 "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10364,7 +9961,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-DUAL1",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -10392,7 +9989,7 @@
               "failure_order": 2,
               "components": [
                 "domain:clock_domain:DOM-clock_domain-DUAL2",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10420,7 +10017,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-DUAL1",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+                "domain:measurement_principle:PRINC-acoustic"
               ]
             },
             {
@@ -10441,7 +10038,7 @@
               "failure_order": 2,
               "components": [
                 "domain:communications_path:DOM-communications_path-DUAL2",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10461,36 +10058,36 @@
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:PRINC-acoustic",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:physical_interface:DOM-physical_interface-DUAL2"
               ]
             },
             {
               "failure_order": 2,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+                "domain:measurement_principle:PRINC-pressure",
                 "domain:power_supply:DOM-power_supply-DUAL2"
-              ]
-            },
-            {
-              "failure_order": 2,
-              "components": [
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2",
-                "domain:physical_interface:DOM-physical_interface-DUAL1"
-              ]
-            },
-            {
-              "failure_order": 2,
-              "components": [
-                "domain:measurement_principle:DOM-measurement_principle-DUAL2",
-                "domain:power_supply:DOM-power_supply-DUAL1"
               ]
             },
             {
@@ -10535,8 +10132,8 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 35,
-              "observable_combinations": 35,
+              "total_combinations": 32,
+              "observable_combinations": 32,
               "unobservable_combinations": 0,
               "survival_fraction_numerator": 1,
               "survival_fraction_denominator": 1
@@ -10544,11 +10141,11 @@
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 595,
-              "observable_combinations": 546,
+              "total_combinations": 496,
+              "observable_combinations": 447,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 447,
+              "survival_fraction_denominator": 496
             }
           ]
         },
@@ -10583,7 +10180,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10612,20 +10209,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -10660,7 +10257,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10689,20 +10286,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         },
@@ -10737,7 +10334,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-N4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -10766,20 +10363,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 35,
-              "observable_combinations": 28,
+              "total_combinations": 32,
+              "observable_combinations": 25,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 25,
+              "survival_fraction_denominator": 32
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 595,
-              "observable_combinations": 378,
-              "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "total_combinations": 496,
+              "observable_combinations": 300,
+              "unobservable_combinations": 196,
+              "survival_fraction_numerator": 75,
+              "survival_fraction_denominator": 124
             }
           ]
         }
@@ -10791,9 +10388,9 @@
     {
       "layout_id": "SURV-T1-012-order-permutation-invariance",
       "status": "evaluated",
-      "component_count": 28,
+      "component_count": 25,
       "channel_component_count": 4,
-      "dependency_domain_component_count": 24,
+      "dependency_domain_component_count": 21,
       "components": [
         {
           "component_id": "channel:I1",
@@ -10892,28 +10489,10 @@
           "domain_id": "DOM-communications_path-I4"
         },
         {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I1",
+          "component_id": "domain:measurement_principle:PRINC-pressure",
           "component_kind": "dependency_domain",
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I1"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I2",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I2"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I3",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I3"
-        },
-        {
-          "component_id": "domain:measurement_principle:DOM-measurement_principle-I4",
-          "component_kind": "dependency_domain",
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I4"
+          "domain_id": "PRINC-pressure"
         },
         {
           "component_id": "domain:physical_interface:DOM-physical_interface-I1",
@@ -10964,7 +10543,7 @@
           "domain_id": "DOM-power_supply-I4"
         }
       ],
-      "shared_domain_count": 0,
+      "shared_domain_count": 1,
       "domain_fanout": [
         {
           "domain_type": "physical_interface",
@@ -11128,35 +10707,14 @@
         },
         {
           "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I1",
+          "domain_id": "PRINC-pressure",
           "dependent_sensor_ids": [
-            "I1"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I2",
-          "dependent_sensor_ids": [
-            "I2"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I3",
-          "dependent_sensor_ids": [
-            "I3"
-          ],
-          "fanout": 1
-        },
-        {
-          "domain_type": "measurement_principle",
-          "domain_id": "DOM-measurement_principle-I4",
-          "dependent_sensor_ids": [
+            "I1",
+            "I2",
+            "I3",
             "I4"
           ],
-          "fanout": 1
+          "fanout": 4
         }
       ],
       "combinations_by_order": [
@@ -11200,77 +10758,77 @@
         },
         {
           "failure_order": 1,
-          "combination_count": 28,
+          "combination_count": 25,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             }
           ]
         },
         {
           "failure_order": 2,
-          "combination_count": 378,
+          "combination_count": 300,
           "states": [
             {
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             },
             {
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         }
@@ -11307,7 +10865,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I1"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -11336,20 +10894,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N1",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -11384,7 +10942,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I2"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -11413,20 +10971,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N2",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -11461,7 +11019,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I3"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -11490,20 +11048,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N3",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         },
@@ -11538,7 +11096,7 @@
             {
               "failure_order": 1,
               "components": [
-                "domain:measurement_principle:DOM-measurement_principle-I4"
+                "domain:measurement_principle:PRINC-pressure"
               ]
             },
             {
@@ -11567,20 +11125,20 @@
             {
               "failure_order": 1,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 28,
-              "observable_combinations": 21,
+              "total_combinations": 25,
+              "observable_combinations": 18,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 18,
+              "survival_fraction_denominator": 25
             },
             {
               "failure_order": 2,
               "state_id": "pressure:JHB-N4",
-              "total_combinations": 378,
-              "observable_combinations": 210,
-              "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "total_combinations": 300,
+              "observable_combinations": 153,
+              "unobservable_combinations": 147,
+              "survival_fraction_numerator": 51,
+              "survival_fraction_denominator": 100
             }
           ]
         }
