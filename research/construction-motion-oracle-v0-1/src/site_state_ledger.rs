@@ -183,6 +183,7 @@ pub enum SiteLedgerError {
     ActorRoleDenied,
     EmptyPackageIdentity,
     InvalidPackageDigest,
+    InvalidIdsEngineBuildDigest,
     EmptyEntityManifest,
     EmptyEntityId,
     DuplicatePackageEntityId(String),
@@ -1032,6 +1033,9 @@ fn validate_work_package(package: &SiteWorkPackage) -> Result<(), SiteLedgerErro
     .any(|digest| !is_sha256(digest))
     {
         return Err(SiteLedgerError::InvalidPackageDigest);
+    }
+    if !is_sha256(&package.ids_engine_build_sha256) {
+        return Err(SiteLedgerError::InvalidIdsEngineBuildDigest);
     }
     if package.entities.is_empty() {
         return Err(SiteLedgerError::EmptyEntityManifest);
@@ -2190,6 +2194,29 @@ mod tests {
             SiteStateLedger::replay(&broken),
             Err(SiteLedgerError::PreviousEventDigestMismatch)
         );
+    }
+
+
+    #[test]
+    fn malformed_ids_engine_build_cannot_be_published_to_the_site_ledger() {
+        let mut ledger = SiteStateLedger::new();
+        let mut invalid = package('a', &["point-1"]);
+        invalid.ids_engine_build_sha256 = "unknown-engine-build".into();
+        let publication = event(
+            "event-publish-invalid-engine",
+            1,
+            None,
+            '1',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished { package: invalid },
+        );
+        assert_eq!(
+            ledger.apply(publication),
+            Err(SiteLedgerError::InvalidIdsEngineBuildDigest)
+        );
+        assert_eq!(ledger.last_sequence(), 0);
+        assert_eq!(ledger.event_count(), 0);
     }
 
 }
