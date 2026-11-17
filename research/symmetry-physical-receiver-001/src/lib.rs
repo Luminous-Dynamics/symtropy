@@ -53,6 +53,7 @@ pub enum ReceiverErrorV1 {
     SourceReceiptDigestMismatch,
     SourceReceiptMalformed,
     SourceReceiptIdentityMismatch,
+    UnsupportedEvidenceClass,
     GeneratorDigestMismatch,
     PhysicalFixtureDigestMismatch,
     MassMetricDigestMismatch,
@@ -88,7 +89,7 @@ impl fmt::Display for ReceiverErrorV1 {
 
 impl std::error::Error for ReceiverErrorV1 {}
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceMathReceiptRefV1 {
     pub repository: String,
@@ -107,7 +108,7 @@ pub struct SourceMathReceiptRefV1 {
     pub group_order: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CoordinateChangeRefV1 {
     pub kind: String,
@@ -117,7 +118,7 @@ pub struct CoordinateChangeRefV1 {
     pub transformed_mass_metric_sha256: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PhysicalProblemRefV1 {
     pub case_id: String,
@@ -133,7 +134,7 @@ pub struct PhysicalProblemRefV1 {
     pub units_profile_id: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSemanticsRefV1 {
     pub task_sha256: String,
@@ -145,7 +146,7 @@ pub struct TaskSemanticsRefV1 {
     pub answer_interpretation_sha256: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ClaimsRefV1 {
     pub physical_step_equivariance_status: String,
@@ -153,7 +154,7 @@ pub struct ClaimsRefV1 {
     pub scientific_search_pruning_authorized: bool,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HandoffEnvelopeV1 {
     pub schema_version: String,
@@ -168,7 +169,7 @@ pub struct HandoffEnvelopeV1 {
     pub claim_boundary: Value,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PhysicalFixtureV1 {
     pub transform_s: Matrix3,
@@ -185,7 +186,7 @@ pub struct PhysicalFixtureV1 {
     pub declared_generators_y: Vec<Matrix3>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSemanticsArtifactsV1 {
     pub candidate_domain: String,
@@ -196,7 +197,7 @@ pub struct TaskSemanticsArtifactsV1 {
     pub answer_interpretation: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ReceiverPackageV1 {
     pub schema_version: String,
@@ -925,11 +926,11 @@ pub fn verify_package(
     {
         return Err(ReceiverErrorV1::ClaimAlreadyPromoted);
     }
-    if envelope.source_math_receipt.evidence_class != "numeric_lie_basis"
-        && envelope.source_math_receipt.evidence_class != "exact_finite_group"
-        && envelope.source_math_receipt.evidence_class != "formal_proof"
-    {
-        return Err(ReceiverErrorV1::SourceReceiptIdentityMismatch);
+    if envelope.source_math_receipt.evidence_class != "numeric_lie_basis" {
+        return Err(ReceiverErrorV1::UnsupportedEvidenceClass);
+    }
+    if package.generator_set.is_empty() {
+        return Err(ReceiverErrorV1::UnsupportedEvidenceClass);
     }
     if envelope.source_math_receipt.qualification_status != "PASS" {
         return Err(ReceiverErrorV1::SourceReceiptIdentityMismatch);
@@ -946,6 +947,13 @@ pub fn verify_package(
     let physical = &envelope.physical_problem;
     let source = &envelope.source_math_receipt;
 
+    let transform_hash = canonical_matrix3_hash(
+        "luminous.transform-s.v1",
+        &fixture.transform_s,
+    )?;
+    if transform_hash != physical.coordinate_change.transform_sha256 {
+        return Err(ReceiverErrorV1::PhysicalFixtureDigestMismatch);
+    }
     let fixture_hash = canonical_fixture_hash(envelope, fixture)?;
     if fixture_hash != physical.fixture_sha256 {
         return Err(ReceiverErrorV1::PhysicalFixtureDigestMismatch);
@@ -1465,6 +1473,12 @@ mod tests {
         let mut package = build_package();
         package.generator_set[0][0][1] = -2.0;
         let generator_hash = canonical_generators_hash(&package.generator_set).unwrap();
+        let inverse_s = inverse_and_condition(&package.physical_fixture.transform_s, test_profile()).unwrap().0;
+        package.physical_fixture.declared_generators_y = package.generator_set.iter()
+            .map(|generator| multiply(&multiply(&inverse_s, generator), &package.physical_fixture.transform_s))
+            .collect();
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
         package.envelope.source_math_receipt.generator_set_sha256 = generator_hash.clone();
         let mut receipt: Value =
             serde_json::from_slice(&decode_hex(&package.source_receipt_bytes_hex).unwrap()).unwrap();
@@ -1497,11 +1511,17 @@ mod tests {
             [2.0, 4.0, 6.0],
             [0.0, 0.0, 1.0],
         ];
-        assert!(matches!(
+        package.envelope.physical_problem.coordinate_change.transform_sha256 =
+            canonical_matrix3_hash(
+                "luminous.transform-s.v1",
+                &package.physical_fixture.transform_s,
+            ).unwrap();
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+        assert_eq!(
             verify_package(&package, test_profile()),
-            Err(ReceiverErrorV1::PhysicalFixtureDigestMismatch)
-                | Err(ReceiverErrorV1::SingularCoordinateChange { .. })
-        ));
+            Err(ReceiverErrorV1::SingularCoordinateChange { pivot: 1 })
+        );
     }
 
     #[test]
@@ -1519,6 +1539,17 @@ mod tests {
         assert_eq!(
             verify_package(&package, test_profile()),
             Err(ReceiverErrorV1::ClaimAlreadyPromoted)
+        );
+    }
+
+    #[test]
+    fn package_json_roundtrip_is_stable() {
+        let package = build_package();
+        let bytes = serde_json::to_vec(&package).unwrap();
+        let decoded: ReceiverPackageV1 = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            verify_package(&package, test_profile()).unwrap(),
+            verify_package(&decoded, test_profile()).unwrap()
         );
     }
 
