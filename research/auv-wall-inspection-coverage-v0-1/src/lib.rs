@@ -220,7 +220,10 @@ fn dimensions(profile: &SurfaceProfile) -> Result<(usize, usize), String> {
     }
     let columns = columns_f as usize;
     let rows = rows_f as usize;
-    if rows.checked_mul(columns).is_none_or(|count| count > MAX_SURFACE_CELLS) {
+    if rows
+        .checked_mul(columns)
+        .is_none_or(|count| count > MAX_SURFACE_CELLS)
+    {
         return Err("surface grid contains too many cells".to_owned());
     }
     Ok((rows, columns))
@@ -237,7 +240,9 @@ fn validate_profile(profile: &SurfaceProfile) -> Result<(usize, usize), String> 
         || !nonempty(&identity.calibration_id)
         || !nonempty(&identity.calibration_revision)
     {
-        return Err("surface, mission, frame, sensor or calibration identity is incomplete".to_owned());
+        return Err(
+            "surface, mission, frame, sensor or calibration identity is incomplete".to_owned(),
+        );
     }
     if !valid_digest(&identity.calibration_digest) {
         return Err("calibration digest must be lowercase SHA-256 hex".to_owned());
@@ -344,15 +349,14 @@ fn validate_observation_values(observation: &SurfaceObservation) -> Result<(), S
         || observation.standoff_m <= 0.0
         || !finite_nonnegative(observation.standoff_uncertainty_m)
     {
-        return Err("observation contains an invalid range, footprint, time or uncertainty".to_owned());
+        return Err(
+            "observation contains an invalid range, footprint, time or uncertainty".to_owned(),
+        );
     }
     Ok(())
 }
 
-fn quality_rejection(
-    profile: &SurfaceProfile,
-    observation: &SurfaceObservation,
-) -> Option<String> {
+fn quality_rejection(profile: &SurfaceProfile, observation: &SurfaceObservation) -> Option<String> {
     if observation.navigation_uncertainty_m > profile.max_navigation_uncertainty_m {
         return Some("navigation uncertainty exceeds profile".to_owned());
     }
@@ -393,9 +397,7 @@ fn angular_separation(left: f64, right: f64) -> f64 {
     difference.min(std::f64::consts::TAU - difference)
 }
 
-fn conservative_footprint(
-    observation: &SurfaceObservation,
-) -> Option<(f64, f64, f64, f64)> {
+fn conservative_footprint(observation: &SurfaceObservation) -> Option<(f64, f64, f64, f64)> {
     let shrink = observation.navigation_uncertainty_m + observation.footprint_uncertainty_m;
     if !shrink.is_finite() {
         return None;
@@ -413,11 +415,7 @@ fn conservative_footprint(
     ))
 }
 
-fn cell_bounds(
-    profile: &SurfaceProfile,
-    row: usize,
-    column: usize,
-) -> (f64, f64, f64, f64) {
+fn cell_bounds(profile: &SurfaceProfile, row: usize, column: usize) -> (f64, f64, f64, f64) {
     let u_min = column as f64 * profile.cell_size_u_m;
     let u_max = (u_min + profile.cell_size_u_m).min(profile.length_u_m);
     let v_min = row as f64 * profile.cell_size_v_m;
@@ -451,15 +449,11 @@ fn covered_cells(
     cells
 }
 
-fn qualified_pass_count(
-    profile: &SurfaceProfile,
-    views: &BTreeMap<String, f64>,
-) -> usize {
+fn qualified_pass_count(profile: &SurfaceProfile, views: &BTreeMap<String, f64>) -> usize {
     let mut selected_angles = Vec::new();
     for angle in views.values() {
         if selected_angles.iter().all(|selected| {
-            angular_separation(*selected, *angle)
-                >= profile.minimum_view_angle_separation_rad
+            angular_separation(*selected, *angle) >= profile.minimum_view_angle_separation_rad
         }) {
             selected_angles.push(*angle);
         }
@@ -506,11 +500,17 @@ pub fn evaluate_coverage(
         let identity_result = validate_observation_identity(profile, observation);
         let value_result = validate_observation_values(observation);
         if !observation_ids.insert(observation.observation_id.as_str()) {
-            errors.push(format!("duplicate observation ID: {}", observation.observation_id));
+            errors.push(format!(
+                "duplicate observation ID: {}",
+                observation.observation_id
+            ));
             continue;
         }
         if !ping_ids.insert(observation.ping_id.as_str()) {
-            errors.push(format!("duplicate/replayed ping ID: {}", observation.ping_id));
+            errors.push(format!(
+                "duplicate/replayed ping ID: {}",
+                observation.ping_id
+            ));
             continue;
         }
 
@@ -796,7 +796,12 @@ mod tests {
         assert_eq!(result.disposition, SurfaceDisposition::Qualified);
         assert_eq!(result.expected_cells, 4);
         assert_eq!(result.qualified_cells, 4);
-        assert!(result.cells.iter().all(|cell| cell.disposition == CellDisposition::Qualified));
+        assert!(
+            result
+                .cells
+                .iter()
+                .all(|cell| cell.disposition == CellDisposition::Qualified)
+        );
     }
 
     #[test]
@@ -804,9 +809,12 @@ mod tests {
         let result = evaluate_coverage(&profile(), &[frame("track-A", "ping-A", 0.0, 1.0)]);
         assert_eq!(result.disposition, SurfaceDisposition::Incomplete);
         assert_eq!(result.qualified_cells, 0);
-        assert!(result.cells.iter().all(|cell| {
-            cell.disposition == CellDisposition::InsufficientIndependentViews
-        }));
+        assert!(
+            result
+                .cells
+                .iter()
+                .all(|cell| { cell.disposition == CellDisposition::InsufficientIndependentViews })
+        );
     }
 
     #[test]
@@ -855,8 +863,17 @@ mod tests {
         let mut observation = frame("track-A", "ping-A", 0.0, 1.0);
         observation.navigation_uncertainty_m = 0.2;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
-        assert!(result.frames[0].reason.as_deref().unwrap().contains("navigation uncertainty"));
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
+        assert!(
+            result.frames[0]
+                .reason
+                .as_deref()
+                .unwrap()
+                .contains("navigation uncertainty")
+        );
     }
 
     #[test]
@@ -865,7 +882,10 @@ mod tests {
         observation.sonar_range_m = 12.0;
         observation.range_uncertainty_m = 0.2;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -873,7 +893,10 @@ mod tests {
         let mut observation = frame("track-A", "ping-A", 0.0, 1.0);
         observation.return_strength_db = 21.9;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -881,7 +904,10 @@ mod tests {
         let mut observation = frame("track-A", "ping-A", 0.0, 1.0);
         observation.resolution_m = 0.11;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -889,7 +915,10 @@ mod tests {
         let mut observation = frame("track-A", "ping-A", 0.0, 1.0);
         observation.incidence_angle_rad = 0.71;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -898,7 +927,10 @@ mod tests {
         observation.standoff_m = 1.62;
         observation.standoff_uncertainty_m = 0.04;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -906,7 +938,10 @@ mod tests {
         let mut observation = frame("track-A", "ping-A", 0.0, 1.0);
         observation.heading_error_rad = 0.21;
         let result = evaluate_coverage(&profile(), &[observation]);
-        assert_eq!(result.frames[0].disposition, FrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].disposition,
+            FrameDisposition::QualityRejected
+        );
     }
 
     #[test]
