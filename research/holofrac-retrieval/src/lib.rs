@@ -668,8 +668,13 @@ pub struct BenchmarkReport {
     pub bipolar_index_bytes_estimate: usize,
     /// Payload estimate for an f32-only vector index.
     pub f32_index_bytes_estimate: usize,
-    /// Both representations are retained simultaneously by this research index.
+    /// Bipolar and f32 vector payloads retained simultaneously.
     pub dual_view_index_bytes_estimate: usize,
+    /// Five bipolar role-slot vectors retained per fact for partial retrieval.
+    pub role_slot_index_bytes_estimate: usize,
+    /// All vector payload retained by the current index: bipolar + f32 + role slots.
+    /// Excludes allocator overhead, graph objects and canonical key strings.
+    pub retained_vector_payload_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
 }
 
@@ -760,6 +765,13 @@ pub fn run_benchmark(
         dual_view_index_bytes_estimate: graph.facts.len()
             * dimension
             * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>()),
+        role_slot_index_bytes_estimate: graph.facts.len()
+            * dimension
+            * 5
+            * std::mem::size_of::<i8>(),
+        retained_vector_payload_bytes_estimate: graph.facts.len()
+            * dimension
+            * (2 * std::mem::size_of::<i8>() + std::mem::size_of::<f32>() + 5 * std::mem::size_of::<i8>()),
         outcomes,
     })
 }
@@ -1082,6 +1094,22 @@ mod tests {
             .unwrap();
         assert!((score_bipolar - score_continuous).abs() < 1.0e-6);
         assert_eq!(encoded.continuous_f32_view.values.len(), 2_048);
+    }
+
+    #[test]
+    fn memory_estimate_includes_partial_retrieval_role_slots() {
+        let graph = reference_architecture_graph().unwrap();
+        let dimension = 2_048;
+        let report = run_benchmark(&graph, dimension, 43).unwrap();
+        let facts = graph.facts().len();
+        assert_eq!(
+            report.role_slot_index_bytes_estimate,
+            facts * dimension * 5 * std::mem::size_of::<i8>()
+        );
+        assert_eq!(
+            report.retained_vector_payload_bytes_estimate,
+            report.dual_view_index_bytes_estimate + report.role_slot_index_bytes_estimate
+        );
     }
 
     #[test]
