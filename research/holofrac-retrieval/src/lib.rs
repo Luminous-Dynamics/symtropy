@@ -762,15 +762,24 @@ pub struct BenchmarkReport {
     pub role_slot_index_bytes_estimate: usize,
     /// Five compact codebook indices retained for each fact.
     pub slot_reference_bytes_estimate: usize,
+    /// Fact IDs stored across the exact role-postings lists (five per fact).
+    pub role_postings_fact_id_bytes_estimate: usize,
+    /// Vec headers retained for unique role/value postings lists.
+    pub role_postings_header_bytes_estimate: usize,
     /// Hypothetical duplicated role-vector payload without factorization.
     pub duplicated_role_slot_payload_bytes_estimate: usize,
-    /// Bytes saved by codebook factorization versus duplicated role vectors.
+    /// Gross vector bytes saved before compact references and posting lists.
     pub factorized_role_slot_bytes_saved: usize,
+    /// Net savings after codebook vectors, fact indices and postings storage; may be negative.
+    pub factorized_role_index_net_bytes_saved: i128,
     /// All vector payload retained: per-fact bipolar + f32 + unique role codebook.
     /// Excludes allocator overhead, graph objects and canonical key strings.
     pub retained_vector_payload_bytes_estimate: usize,
-    /// Vector payload plus per-fact compact references, still excluding map/key overhead.
+    /// Vector payload plus per-fact compact codebook references.
     pub retained_payload_and_slot_refs_bytes_estimate: usize,
+    /// Vector payload plus per-fact references, posting fact IDs and posting-list headers.
+    /// Excludes hash-map key/table overhead and allocator overhead.
+    pub retained_payload_and_all_index_refs_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
 }
 
@@ -785,10 +794,20 @@ pub struct FactorizationProfile {
     pub index_build_micros: f64,
     pub duplicated_role_slot_payload_bytes: usize,
     pub factorized_role_slot_payload_bytes: usize,
+    /// Per-fact five codebook indices.
     pub role_slot_reference_bytes: usize,
+    /// Five fact IDs per fact stored in exact role-postings lists.
+    pub role_postings_fact_id_bytes: usize,
+    /// One Vec header per unique role/value posting list.
+    pub role_postings_header_bytes: usize,
+    /// Gross reduction in role-vector payload, before index-reference metadata.
     pub factorized_role_slot_bytes_saved: usize,
+    /// Net role-slot bytes saved after codebook, slot references and postings metadata.
+    /// Negative values mean index metadata costs more than the duplicated vectors saved.
+    pub factorized_role_index_net_bytes_saved: i128,
     pub holistic_vector_payload_bytes: usize,
-    /// Includes holistic vectors, codebook vectors and compact slot references.
+    /// Includes holistic vectors, codebook vectors, per-fact indices, postings IDs and list headers.
+    /// Excludes hash-map keys/table overhead, graph objects and canonical-key strings.
     pub retained_payload_bytes_excluding_map_and_key_overhead: usize,
 }
 
@@ -813,9 +832,17 @@ pub fn run_factorization_profile(
     let factorized_role_slot_payload_bytes =
         index.role_codebook.len() * dimension * std::mem::size_of::<i8>();
     let role_slot_reference_bytes = fact_count * 5 * std::mem::size_of::<usize>();
+    let role_postings_fact_id_bytes = fact_count * 5 * std::mem::size_of::<usize>();
+    let role_postings_header_bytes =
+        index.role_codebook.len() * std::mem::size_of::<Vec<usize>>();
     let holistic_vector_payload_bytes =
         fact_count * dimension * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>());
     let role_slot_reuse_ratio = 1.0 - index.role_codebook.len() as f64 / (fact_count * 5) as f64;
+    let factorized_role_index_net_bytes_saved = duplicated_role_slot_payload_bytes as i128
+        - factorized_role_slot_payload_bytes as i128
+        - role_slot_reference_bytes as i128
+        - role_postings_fact_id_bytes as i128
+        - role_postings_header_bytes as i128;
 
     Ok(FactorizationProfile {
         fact_count,
@@ -827,12 +854,17 @@ pub fn run_factorization_profile(
         duplicated_role_slot_payload_bytes,
         factorized_role_slot_payload_bytes,
         role_slot_reference_bytes,
+        role_postings_fact_id_bytes,
+        role_postings_header_bytes,
         factorized_role_slot_bytes_saved: duplicated_role_slot_payload_bytes
             .saturating_sub(factorized_role_slot_payload_bytes),
+        factorized_role_index_net_bytes_saved,
         holistic_vector_payload_bytes,
         retained_payload_bytes_excluding_map_and_key_overhead: holistic_vector_payload_bytes
             + factorized_role_slot_payload_bytes
-            + role_slot_reference_bytes,
+            + role_slot_reference_bytes
+            + role_postings_fact_id_bytes
+            + role_postings_header_bytes,
     })
 }
 
@@ -928,6 +960,9 @@ pub fn run_benchmark(
             * dimension
             * std::mem::size_of::<i8>(),
         slot_reference_bytes_estimate: graph.facts.len() * 5 * std::mem::size_of::<usize>(),
+        role_postings_fact_id_bytes_estimate: graph.facts.len() * 5 * std::mem::size_of::<usize>(),
+        role_postings_header_bytes_estimate: index.role_codebook.len()
+            * std::mem::size_of::<Vec<usize>>(),
         duplicated_role_slot_payload_bytes_estimate: graph.facts.len()
             * 5
             * dimension
@@ -937,6 +972,14 @@ pub fn run_benchmark(
             * dimension
             * std::mem::size_of::<i8>()
             - index.role_codebook.len() * dimension * std::mem::size_of::<i8>(),
+        factorized_role_index_net_bytes_saved: (graph.facts.len()
+            * 5
+            * dimension
+            * std::mem::size_of::<i8>()) as i128
+            - (index.role_codebook.len() * dimension * std::mem::size_of::<i8>()) as i128
+            - (graph.facts.len() * 5 * std::mem::size_of::<usize>()) as i128
+            - (graph.facts.len() * 5 * std::mem::size_of::<usize>()) as i128
+            - (index.role_codebook.len() * std::mem::size_of::<Vec<usize>>()) as i128,
         retained_vector_payload_bytes_estimate: graph.facts.len()
             * dimension
             * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
@@ -946,6 +989,12 @@ pub fn run_benchmark(
             * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
             + index.role_codebook.len() * dimension * std::mem::size_of::<i8>()
             + graph.facts.len() * 5 * std::mem::size_of::<usize>(),
+        retained_payload_and_all_index_refs_bytes_estimate: graph.facts.len()
+            * dimension
+            * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>())
+            + index.role_codebook.len() * dimension * std::mem::size_of::<i8>()
+            + graph.facts.len() * 10 * std::mem::size_of::<usize>()
+            + index.role_codebook.len() * std::mem::size_of::<Vec<usize>>(),
         outcomes,
     })
 }
