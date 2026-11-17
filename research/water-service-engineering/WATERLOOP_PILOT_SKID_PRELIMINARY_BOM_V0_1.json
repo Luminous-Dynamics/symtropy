@@ -12,7 +12,18 @@
       "quantity": null,
       "material_spec": "TBD by structural/load/chemical/UV exposure review",
       "procurement_status": "not_specified",
-      "notes": "Include lift points, service clearance, vibration and wet-module load cases."
+      "notes": "Include lift points, service clearance, vibration and wet-module load cases.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "BD-001",
@@ -20,7 +31,18 @@
       "quantity": null,
       "material_spec": "TBD by compatibility review",
       "procurement_status": "not_specified",
-      "notes": "Capacity and drainage arrangement set by site hazard review."
+      "notes": "Capacity and drainage arrangement set by site hazard review.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "TK-101",
@@ -28,7 +50,10 @@
       "quantity": null,
       "material_spec": "opaque, drainable, greywater-compatible material to be selected",
       "procurement_status": "not_specified",
-      "notes": "Capacity derived from measured inflow hydrograph, batch policy and storage-age constraint."
+      "notes": "Capacity derived from measured inflow hydrograph, batch policy and storage-age constraint.",
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "tag": "SC-101",
@@ -36,7 +61,10 @@
       "quantity": null,
       "material_spec": "corrosion/cleaning compatible material TBD",
       "procurement_status": "not_specified",
-      "notes": "Accessible cleanout and captured-solids handling."
+      "notes": "Accessible cleanout and captured-solids handling.",
+      "module_ids": [
+        "PRE-100"
+      ]
     },
     {
       "tag": "TR-101",
@@ -44,7 +72,10 @@
       "quantity": null,
       "material_spec": "process- and clean-in-place-compatible material TBD",
       "procurement_status": "not_specified",
-      "notes": "Size only after feed characterization and hydraulic tests."
+      "notes": "Size only after feed characterization and hydraulic tests.",
+      "module_ids": [
+        "PRE-100"
+      ]
     },
     {
       "tag": "MB-101A",
@@ -52,7 +83,10 @@
       "quantity": null,
       "material_spec": "vendor / material compatibility pending",
       "procurement_status": "candidate_only",
-      "notes": "Requires membrane integrity, fouling, reject and validated UV design evidence."
+      "notes": "Requires membrane integrity, fouling, reject and validated UV design evidence.",
+      "module_ids": [
+        "TR-A-100"
+      ]
     },
     {
       "tag": "MB-101B",
@@ -60,7 +94,10 @@
       "quantity": null,
       "material_spec": "vendor / material compatibility pending",
       "procurement_status": "candidate_only",
-      "notes": "Requires start-up, temperature, sludge, shock load and biological stability evidence."
+      "notes": "Requires start-up, temperature, sludge, shock load and biological stability evidence.",
+      "module_ids": [
+        "TR-B-100"
+      ]
     },
     {
       "tag": "MB-101C",
@@ -68,7 +105,10 @@
       "quantity": null,
       "material_spec": "ozone-compatible materials and engineered off-gas control TBD",
       "procurement_status": "candidate_only",
-      "notes": "Requires ozone contact, leak detection, off-gas destruction, worker exposure, by-product and GAC exhaustion studies."
+      "notes": "Requires ozone contact, leak detection, off-gas destruction, worker exposure, by-product and GAC exhaustion studies.",
+      "module_ids": [
+        "TR-C-100"
+      ]
     },
     {
       "tag": "MB-101D",
@@ -76,7 +116,10 @@
       "quantity": null,
       "material_spec": "site/soil/media specific; TBD",
       "procurement_status": "candidate_only",
-      "notes": "Requires footprint, vector, hydraulic retention, seasonal and solids management review."
+      "notes": "Requires footprint, vector, hydraulic retention, seasonal and solids management review.",
+      "module_ids": [
+        "TR-D-100"
+      ]
     },
     {
       "tag": "TK-102",
@@ -84,7 +127,10 @@
       "quantity": null,
       "material_spec": "opaque, drainable, greywater-compatible material TBD",
       "procurement_status": "not_specified",
-      "notes": "No release solely based on online indicators; separate from raw storage."
+      "notes": "No release solely based on online indicators; separate from raw storage.",
+      "module_ids": [
+        "HOLD-100"
+      ]
     },
     {
       "tag": "P-101",
@@ -92,7 +138,16 @@
       "quantity": null,
       "material_spec": "wet-end compatible; final selection by pump duty owner",
       "procurement_status": "not_specified",
-      "notes": "Pump curve/duty, NPSH, energy, transient and dry-run protections deferred to pump-system owner."
+      "notes": "Pump curve/duty, NPSH, energy, transient and dry-run protections deferred to pump-system owner.",
+      "module_ids": [
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "XV-101",
@@ -100,7 +155,10 @@
       "quantity": null,
       "material_spec": "compatible valve material and actuator type TBD",
       "procurement_status": "not_specified",
-      "notes": "Unknown source and fault default to physically safe diversion."
+      "notes": "Unknown source and fault default to physically safe diversion.",
+      "module_ids": [
+        "SRC-100"
+      ]
     },
     {
       "tag": "XV-102",
@@ -108,7 +166,11 @@
       "quantity": null,
       "material_spec": "compatible valve material and fail state TBD",
       "procurement_status": "not_specified",
-      "notes": "Independent quality permission is required; control logic alone cannot admit use."
+      "notes": "Independent quality permission is required; control logic alone cannot admit use.",
+      "module_ids": [
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "FT-101",
@@ -116,7 +178,12 @@
       "quantity": null,
       "material_spec": "selected by measurand range/uncertainty/solids compatibility",
       "procurement_status": "not_specified",
-      "notes": "Mycelix measurand/capability passport required."
+      "notes": "Mycelix measurand/capability passport required.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100"
+      ]
     },
     {
       "tag": "FT-102",
@@ -124,7 +191,10 @@
       "quantity": null,
       "material_spec": "selected by measurand range/uncertainty",
       "procurement_status": "not_specified",
-      "notes": "Must measure at the declared end-use boundary."
+      "notes": "Must measure at the declared end-use boundary.",
+      "module_ids": [
+        "DIST-100"
+      ]
     },
     {
       "tag": "FT-103",
@@ -132,7 +202,13 @@
       "quantity": null,
       "material_spec": "selected by solids and chemical compatibility",
       "procurement_status": "not_specified",
-      "notes": "Necessary for water and residual closure."
+      "notes": "Necessary for water and residual closure.",
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "LT-101",
@@ -140,7 +216,10 @@
       "quantity": null,
       "material_spec": "range and material TBD",
       "procurement_status": "not_specified",
-      "notes": "Requires tank geometry/level-volume calibration and uncertainty."
+      "notes": "Requires tank geometry/level-volume calibration and uncertainty.",
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "tag": "TT-101",
@@ -148,7 +227,10 @@
       "quantity": null,
       "material_spec": "range and material TBD",
       "procurement_status": "not_specified",
-      "notes": "Time aligned with batch/source identity."
+      "notes": "Time aligned with batch/source identity.",
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "tag": "PT-101",
@@ -156,7 +238,15 @@
       "quantity": null,
       "material_spec": "range and pressure tap TBD",
       "procurement_status": "not_specified",
-      "notes": "Use exact pressure boundary and calibration evidence."
+      "notes": "Use exact pressure boundary and calibration evidence.",
+      "module_ids": [
+        "PRE-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "AI-101",
@@ -164,7 +254,13 @@
       "quantity": null,
       "material_spec": "method and wetted-material compatibility TBD",
       "procurement_status": "not_specified",
-      "notes": "Indicators only; never a substitute for an independent sample/use-quality assessment."
+      "notes": "Indicators only; never a substitute for an independent sample/use-quality assessment.",
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "SP-101",
@@ -172,7 +268,11 @@
       "quantity": null,
       "material_spec": "lab-compatible sample valve and hygiene detail TBD",
       "procurement_status": "not_specified",
-      "notes": "Sample identity, method, timebase and preservation owned by quality authority."
+      "notes": "Sample identity, method, timebase and preservation owned by quality authority.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100"
+      ]
     },
     {
       "tag": "SP-102",
@@ -180,7 +280,13 @@
       "quantity": null,
       "material_spec": "lab-compatible sample valve and hygiene detail TBD",
       "procurement_status": "not_specified",
-      "notes": "Before final release decision."
+      "notes": "Before final release decision.",
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "SP-103",
@@ -188,7 +294,10 @@
       "quantity": null,
       "material_spec": "lab-compatible sample valve and hygiene detail TBD",
       "procurement_status": "not_specified",
-      "notes": "Sample and use profile must match the proposed release batch."
+      "notes": "Sample and use profile must match the proposed release batch.",
+      "module_ids": [
+        "HOLD-100"
+      ]
     },
     {
       "tag": "SP-104",
@@ -196,7 +305,14 @@
       "quantity": null,
       "material_spec": "compatible sample point TBD",
       "procurement_status": "not_specified",
-      "notes": "Residual stream characterization."
+      "notes": "Residual stream characterization.",
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100"
+      ]
     },
     {
       "tag": "EL-001",
@@ -204,7 +320,18 @@
       "quantity": null,
       "material_spec": "electrical designer to select enclosure/protection by environment and load",
       "procurement_status": "not_specified",
-      "notes": "Must be outside wet service zones; professional electrical design required."
+      "notes": "Must be outside wet service zones; professional electrical design required.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "CTL-001",
@@ -212,7 +339,18 @@
       "quantity": null,
       "material_spec": "industrial enclosure/interface TBD",
       "procurement_status": "not_specified",
-      "notes": "Can hold/isolate/divert; cannot self-certify quality."
+      "notes": "Can hold/isolate/divert; cannot self-certify quality.",
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "DR-001",
@@ -220,7 +358,16 @@
       "quantity": null,
       "material_spec": "compatible drain material and capacity TBD",
       "procurement_status": "not_specified",
-      "notes": "Destination must be approved; no assumed stormwater or watercourse discharge."
+      "notes": "Destination must be approved; no assumed stormwater or watercourse discharge.",
+      "module_ids": [
+        "PRE-100",
+        "EQ-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100"
+      ]
     }
   ],
   "procurement_gates": [
