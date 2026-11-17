@@ -144,8 +144,8 @@ pub struct PowerScheduleReceiptV1 {
 }
 
 /// A power-aware scheduling heuristic failure is not a proof of global
-/// infeasibility. It means the existing parallel and serial heuristics did not
-/// find a schedule satisfying the declared inputs.
+/// infeasibility. It means the implemented parallel, power-aware and serial
+/// heuristics did not find a schedule satisfying the declared inputs.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum PowerScheduleErrorV1 {
     InvalidInput(Vec<PowerConstraintViolation>),
@@ -211,7 +211,7 @@ fn validate_inputs(input: &PowerConstrainedPlanV1) -> Vec<PowerConstraintViolati
             &mut violations,
             PowerConstraintViolationCode::InvalidEnvelope,
             None,
-            "continuous limit must be positive, surge limit must be at least continuous limit, and background load must not exceed surge limit",
+            "continuous limit must be positive, surge limit must be at least continuous limit, and continuous background load must not exceed the continuous limit",
         );
     }
 
@@ -691,13 +691,13 @@ fn build_power_aware_earliest_gap(
                     );
                 }
             }
+            if resource_conflict_end.is_some_and(|next_start| next_start <= candidate_start) {
+                return Err((
+                    Some(format!("resource conflict made no progress for task {task_id}")),
+                    last_power_violations,
+                ));
+            }
             if let Some(next_start) = resource_conflict_end {
-                if next_start <= candidate_start {
-                    return Err((
-                        Some(format!("resource conflict made no progress for task {task_id}")),
-                        last_power_violations,
-                    ));
-                }
                 candidate_start = next_start;
                 continue;
             }
@@ -775,22 +775,23 @@ fn build_power_aware_earliest_gap(
             let mut next_candidates = BTreeSet::new();
             for event_time in existing_events {
                 for offset in &profile_offsets {
-                    if let Some(aligned_start) = event_time.checked_sub(*offset) {
-                        if aligned_start > candidate_start {
-                            next_candidates.insert(aligned_start);
-                        }
-                        if let Some(before_surge_end) = aligned_start
-                            .checked_sub(input.envelope.max_surge_duration_ms)
-                            && before_surge_end > candidate_start
-                        {
-                            next_candidates.insert(before_surge_end);
-                        }
-                        if let Some(after_surge_end) = aligned_start
-                            .checked_add(input.envelope.max_surge_duration_ms)
-                            && after_surge_end > candidate_start
-                        {
-                            next_candidates.insert(after_surge_end);
-                        }
+                    let Some(aligned_start) = event_time.checked_sub(*offset) else {
+                        continue;
+                    };
+                    if aligned_start > candidate_start {
+                        next_candidates.insert(aligned_start);
+                    }
+                    if let Some(before_surge_end) =
+                        aligned_start.checked_sub(input.envelope.max_surge_duration_ms)
+                        && before_surge_end > candidate_start
+                    {
+                        next_candidates.insert(before_surge_end);
+                    }
+                    if let Some(after_surge_end) =
+                        aligned_start.checked_add(input.envelope.max_surge_duration_ms)
+                        && after_surge_end > candidate_start
+                    {
+                        next_candidates.insert(after_surge_end);
                     }
                 }
             }
@@ -836,10 +837,10 @@ fn build_power_aware_earliest_gap(
     })
 }
 
-/// Try the normal deterministic parallel schedule first. If its overlapping
-/// loads exceed the declared envelope, try the existing serial topological
-/// baseline. The serial fallback preserves all original dependency/deadline
-/// constraints and is independently checked again for power.
+/// Try deterministic parallel scheduling, then event-boundary power-aware
+/// earliest-gap scheduling, then the existing serial topological baseline.
+/// Each candidate is checked independently against the original constraints
+/// and complete power envelope. All three strategies are heuristics.
 pub fn build_power_constrained_schedule(
     input: &PowerConstrainedPlanV1,
 ) -> Result<PowerScheduleReceiptV1, PowerScheduleErrorV1> {
