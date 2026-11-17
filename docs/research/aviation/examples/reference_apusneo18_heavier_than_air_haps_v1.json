@@ -1,0 +1,157 @@
+{
+  "schema_version": "aero-aircraft-candidate/v1",
+  "candidate_id": "reference.mira-apusneo18.fixed-wing-haps.2026",
+  "revision": 1,
+  "family": "glider_or_solar_assisted",
+  "lift_class": "heavier_than_air",
+  "data_origin": "mixed",
+  "claim_ceiling": "flight_test_research",
+  "configuration_status": "conceptual",
+  "propulsion": {
+    "architecture": "unknown",
+    "propulsor_count": null,
+    "drive_train_config_ref": null
+  },
+  "energy": {
+    "primary_storage": "unknown",
+    "secondary_sources": [
+      "solar"
+    ],
+    "energy_system_model_ref": null,
+    "thermal_model_ref": null
+  },
+  "source_refs": [
+    {
+      "url": "https://www.uavos.com/apusneo-haps-completes-record-breaking-100-hour-flight-in-european-airspace/",
+      "source_kind": "manufacturer",
+      "claim_scope": "UAVOS reports ApusNeo HAPS completed 100 hours 50 minutes from 2 November 2026 00:15 to 6 November 2026 05:05, maximum altitude 14,500 m, exposure to turbulence/high-altitude cloud/strong winds, flexible wing adapting through controlled bending and torsional deformation, and a protective coating on solar panels.",
+      "independence": "source_attributed"
+    },
+    {
+      "url": "https://ptfue.com/en/The-Canarias-Stratoport-at-the-Fuerteventura-Technology-Park-consolidates-its-aerospace-leadership-with-a-new-European-record-for-a-HAPS-flight/",
+      "source_kind": "authority",
+      "claim_scope": "Canarias Stratoport / Fuerteventura Technology Park reports more than 3,000 km travelled, 14,534 m altitude, ApusNeo18 dimensions of 18 m wingspan and 12 m length, approximately 45 kg weight, and coordinated integration with commercial airspace during the November 2026 campaign.",
+      "independence": "source_attributed"
+    }
+  ],
+  "owner_work_refs": [
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5853",
+      "responsibility": "Whole-aircraft portfolio and matched mission MDO candidate taxonomy."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5885",
+      "responsibility": "HAPS platform persistence and service comparison."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5925",
+      "responsibility": "Wind-layer navigation and platform-specific aerodynamic/balloon control comparisons."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/5948",
+      "responsibility": "Demand-aware HAPS network service and edge workload placement."
+    },
+    {
+      "system": "symthaea",
+      "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/7343",
+      "responsibility": "Persistent-platform energy modelling and solar HAPS energy accounting."
+    },
+    {
+      "system": "symtropy",
+      "issue_url": "https://github.com/Luminous-Dynamics/symtropy/issues/3903",
+      "responsibility": "Cell-to-installed-pack battery evidence and mission-conditioned aircraft storage qualification."
+    },
+    {
+      "system": "symthaea",
+      "issue_url": "https://github.com/Luminous-Dynamics/symthaea/issues/11411",
+      "responsibility": "Mission electro-thermal coupling and temperature-dependent capability."
+    },
+    {
+      "system": "mycelix",
+      "issue_url": "https://github.com/Luminous-Dynamics/mycelix/issues/3638",
+      "responsibility": "Configuration, inspection and maintenance provenance."
+    }
+  ],
+  "discipline_model_refs": [],
+  "component_refs": [],
+  "closure_receipts": {
+    "mass_properties": null,
+    "cg_inertia": null,
+    "aerodynamics_loads": null,
+    "propulsion": null,
+    "energy_thermal": null,
+    "mission_reserve": null,
+    "maintainability": null
+  },
+  "unknowns": [
+    {
+      "field_path": "as_flown_configuration",
+      "disposition": "unknown",
+      "reason": "The public flight report does not provide a complete configuration manifest, build revision or instrumentation manifest."
+    },
+    {
+      "field_path": "propulsion_architecture_and_propulsor_count",
+      "disposition": "unknown",
+      "reason": "The public source confirms a HAPS aircraft and solar-panel coating but does not establish the complete propulsion architecture, propulsor count, motor ratings or drive-train map."
+    },
+    {
+      "field_path": "solar_array_area_and_power_profile",
+      "disposition": "unknown",
+      "reason": "No array area, cell type, conversion efficiency, incidence history, power trace or degradation data is supplied."
+    },
+    {
+      "field_path": "battery_pack_and_mission_energy",
+      "disposition": "unknown",
+      "reason": "No installed pack chemistry, mass, usable energy, charge/discharge trace, reserve policy, state-of-health or full mission energy ledger is supplied."
+    },
+    {
+      "field_path": "mass_properties_and_payload",
+      "disposition": "unknown",
+      "reason": "The facility reports approximately 45 kg for the platform and nominal geometry; detailed as-flown mass breakdown, payload mass, CG and inertia are not supplied."
+    },
+    {
+      "field_path": "aeroelastic_model_and_load_validation",
+      "disposition": "unknown",
+      "reason": "The source describes controlled wing bending/torsional deformation but does not supply a validated structural/aeroelastic model, strain/load measurements, fatigue life or gust-load envelope."
+    },
+    {
+      "field_path": "flight_weather_and_trajectory_trace",
+      "disposition": "unknown",
+      "reason": "No time-aligned position, altitude, wind, attitude, irradiance, propulsion and weather trace is bound to this record."
+    },
+    {
+      "field_path": "payload_and_delivered_service",
+      "disposition": "unknown",
+      "reason": "The wider ISSEC project concerns wildfire/environmental monitoring, but this particular 100-hour report does not provide workload-level service quality, coverage, revisit, latency or delivered-data completeness."
+    },
+    {
+      "field_path": "thermal_and_low_pressure_limits",
+      "disposition": "unknown",
+      "reason": "No battery, motor, inverter, payload or avionics thermal telemetry and no qualified low-pressure thermal envelope is supplied."
+    },
+    {
+      "field_path": "operating_authority_and_airspace_envelope",
+      "disposition": "unknown",
+      "reason": "Reported coordination with air navigation authorities is not a transferable operating authorization for another platform, operator or jurisdiction."
+    },
+    {
+      "field_path": "long_duration_service_reliability",
+      "disposition": "unknown",
+      "reason": "A single 100-hour flight does not establish multi-week endurance, 30-day availability, fleet reliability or maintenance turnaround."
+    }
+  ],
+  "assumptions": [
+    "This is a source-bound reference candidate, not a Mira Aerospace as-built digital twin or a Luminous Dynamics design.",
+    "The candidate is classified as heavier-than-air HAPS; it is not a buoyant free balloon or buoyant airship.",
+    "The solar-assisted family label is used only to index the HAPS/solar-panel research lane; the actual propulsion architecture and the role of solar generation in propulsion/mission energy remain unknown.",
+    "The 100 hours 50 minutes flight duration and 14.5 km maximum altitude are source-attributed campaign values; altitude was varied during the mission and should not be interpreted as continuous operation at maximum altitude.",
+    "The approximate 45 kg weight and 18 m by 12 m geometry are source-attributed facility values; no mass breakdown or installed payload/energy mass is inferred.",
+    "The source-described adaptive wing is a research lead for aeroelastic/co-design benchmarking, not proof of a particular structural safety factor, fatigue life or superior gust performance.",
+    "This four-day campaign is not directly comparable to AALTO Zephyr's 67-day high-altitude flight or Sceye ST1's 30-day buoyant US-Japan round trip; platform class, altitude, mission and service boundaries differ.",
+    "No flight-performance, endurance, commercial availability, airworthiness, certification or operating-authority claim is made beyond the cited source-reported test campaign."
+  ]
+}
