@@ -1,0 +1,134 @@
+{
+  "fixture_bundle_id": "kitchen-capability-admission-v1",
+  "status": "synthetic_only_not_physical_qualification",
+  "cases": [
+    {
+      "case_id": "explicit-exact-match",
+      "expected_disposition": "within_declared_envelope"
+    },
+    {
+      "case_id": "stale-module-revision",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "action-group-mismatch",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "unsupported-input-form",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "scheduled-resource-mismatch",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-action-ontology",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "unmapped-action",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "batch-above-maximum",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "batch-below-minimum",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "volume-is-not-mass",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "missing-maximum-run-time",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "maximum-run-time-exceeded",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-task-binding",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "duplicate-task-binding",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "invalid-module-claim-ceiling",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "unknown-module",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "unknown-capability",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "duplicate-module-revision",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "extra-unknown-task-binding",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-input-form-reference",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "missing-task-mass",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "measured-evidence-without-calibration",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "pressure-module-without-qualified-relief-evidence",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "pressure-module-with-qualified-relief-evidence",
+      "expected_disposition": "within_declared_envelope"
+    },
+    {
+      "case_id": "module-peak-power-exceeded",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "module-surge-duration-exceeded",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "household-power-envelope-exceeded",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "power-plan-recipe-mismatch",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-module-continuous-power-limit",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "missing-task-power-profile",
+      "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-task-power-profile",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "very-large-integer-mass-compared-without-overflow",
+      "expected_disposition": "blocked"
+    }
+  ]
+}

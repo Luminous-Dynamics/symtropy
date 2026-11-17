@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/KitchenCapabilityAdmissionV1.schema.json",
+  "title": "Kitchen Capability Admission Request V1",
+  "description": "Read-only consistency check for explicit recipe-task bindings to exact appliance-module capability revisions, module electrical envelopes, and a separately validated household power schedule. Not actuator authority or physical qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "recipe",
+    "modules",
+    "bindings",
+    "claim_ceiling",
+    "power_plan",
+    "schedule"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recipe": {
+      "$ref": "./RecipeTaskGraphV1.schema.json"
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "$ref": "./KitchenModuleCapabilityV1.schema.json"
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taskModuleBinding"
+      }
+    },
+    "claim_ceiling": {
+      "const": "Task-to-module declaration consistency only; not physical interoperability, safety certification, food-contact approval, measured performance, or actuator authorization."
+    },
+    "power_plan": {
+      "$ref": "./PowerConstrainedPlanV1.schema.json"
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "plan_id",
+        "scheduler_id",
+        "tasks",
+        "makespan_ms"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scheduler_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "task_id",
+              "start_ms",
+              "end_ms",
+              "resource_ids"
+            ],
+            "properties": {
+              "task_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "resource_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        "makespan_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "$defs": {
+    "taskModuleBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "module_id",
+        "module_revision",
+        "capability_id",
+        "input_form_ref",
+        "output_form_ref",
+        "scheduled_resource_id"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "module_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_form_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_form_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scheduled_resource_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
