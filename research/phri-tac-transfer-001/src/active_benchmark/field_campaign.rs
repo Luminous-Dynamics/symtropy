@@ -45,6 +45,11 @@ pub struct FieldEstimatorSummary {
     pub mean_sensitivity_support_ratio: f64,
     pub minimum_sensitivity_support_ratio: f64,
     pub mean_unsupported_cells: f64,
+    /// Fraction of cells whose scalar value is uniquely estimable from native
+    /// observations without graph or sparsity-prior assumptions.
+    pub mean_native_data_identifiability_ratio: f64,
+    pub minimum_native_data_identifiability_ratio: f64,
+    pub mean_underidentified_cells: f64,
     /// Mean numerical rank of the native data matrix before any graph prior.
     pub mean_native_data_rank: f64,
     pub mean_projected_gradient_residual: f64,
@@ -81,6 +86,8 @@ struct ReplicateScore {
     unsupported_cells: usize,
     native_data_rank: usize,
     native_data_full_column_rank: bool,
+    native_data_identifiable_cell_count: usize,
+    underidentified_cells: usize,
     projected_gradient_residual: f64,
     sparsity_prior_enabled: bool,
     converged: bool,
@@ -270,6 +277,8 @@ fn score_report(
         unsupported_cells: report.unsupported_cell_count,
         native_data_rank: report.native_data_rank,
         native_data_full_column_rank: report.native_data_full_column_rank,
+        native_data_identifiable_cell_count: report.native_data_identifiable_cell_count,
+        underidentified_cells: report.underidentified_cell_count,
         projected_gradient_residual: report.projected_gradient_residual,
         sparsity_prior_enabled: report.sparsity_prior_enabled,
         converged: report.converged,
@@ -309,6 +318,8 @@ fn score_independent_taxels(case: &SyntheticFieldCase) -> Result<ReplicateScore,
         unsupported_cells: case.evaluator_truth.len() - admitted_count,
         native_data_rank: admitted_count,
         native_data_full_column_rank: admitted_count == case.evaluator_truth.len(),
+        native_data_identifiable_cell_count: admitted_count,
+        underidentified_cells: 0,
         projected_gradient_residual: 0.0,
         sparsity_prior_enabled: false,
         converged: true,
@@ -353,6 +364,20 @@ fn summarize_scores(
         .map(|score| score.unsupported_cells as f64)
         .sum::<f64>()
         / scores.len() as f64;
+    let mean_native_data_identifiability_ratio = scores
+        .iter()
+        .map(|score| score.native_data_identifiable_cell_count as f64 / TAXEL_COUNT as f64)
+        .sum::<f64>()
+        / scores.len() as f64;
+    let minimum_native_data_identifiability_ratio = scores
+        .iter()
+        .map(|score| score.native_data_identifiable_cell_count as f64 / TAXEL_COUNT as f64)
+        .fold(f64::INFINITY, f64::min);
+    let mean_underidentified_cells = scores
+        .iter()
+        .map(|score| score.underidentified_cells as f64)
+        .sum::<f64>()
+        / scores.len() as f64;
     let mean_native_data_rank = scores
         .iter()
         .map(|score| score.native_data_rank as f64)
@@ -384,6 +409,9 @@ fn summarize_scores(
         mean_sensitivity_support_ratio,
         minimum_sensitivity_support_ratio,
         mean_unsupported_cells,
+        mean_native_data_identifiability_ratio,
+        minimum_native_data_identifiability_ratio,
+        mean_underidentified_cells,
         mean_native_data_rank,
         mean_projected_gradient_residual,
         maximum_projected_gradient_residual,
@@ -547,6 +575,8 @@ mod tests {
             assert!(result.mean_sensitivity_support_ratio > 0.0);
             assert!(result.mean_sensitivity_support_ratio <= 1.0);
             assert!(result.mean_native_data_rank <= 113.0);
+            assert!(result.mean_native_data_identifiability_ratio >= 0.0);
+            assert!(result.mean_native_data_identifiability_ratio <= 1.0);
             assert!(result.mean_projected_gradient_residual.is_finite());
             assert!(result.maximum_projected_gradient_residual.is_finite());
         }
@@ -563,6 +593,11 @@ mod tests {
         );
         assert_eq!(mechanics.full_rank_replicates, 0);
         assert_eq!(independent.full_rank_replicates, 0);
+        assert!(
+            mechanics.mean_native_data_identifiability_ratio
+                < independent.mean_native_data_identifiability_ratio,
+            "nonzero neighbor sensitivity must not be reported as uniquely identified field coverage"
+        );
         assert!(
             mechanics.mean_native_data_rank < 113.0,
             "dropped native channels must remain visible as rank deficiency"
