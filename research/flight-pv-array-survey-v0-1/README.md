@@ -23,7 +23,7 @@ This is not an image processor, photogrammetry implementation, radiometric camer
 
 ## Published-standard boundary
 
-IEC TS 62446-3:2017, Edition 1, remains the published IEC specification at the date of this v0.1 research branch. IEC's catalogue shows Edition 2 is a separate in-development project; re-check the official catalogue and applicable national adoption before any real campaign.
+IEC TS 62446-3:2017, Edition 1, remains the published specification; Edition 2 is a separate in-development project. The IEC project record lists the Edition 2 project at stage 50% with an effective date of 2026-10-23 and a next-stage date of 2027-01-15. This is a development status, not a published replacement. Re-check the official IEC catalogue and applicable national adoption before any real campaign.
 
 - IEC catalogue: https://webstore.iec.ch/en/publication/28628
 - IEC TS 62446-3 Edition 2 project: https://iss.rs/en/project/show/iec%3Aproj%3A134729
