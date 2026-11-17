@@ -785,8 +785,8 @@ mod tests {
         let manifest =
             include_str!("../../../../benchmarks/plasma/diagnostic-fault-replay-v0.json");
         let report = audit_manifest_json(manifest).expect("fixture should parse and audit");
-        assert_eq!(report.case_count, 6);
-        assert_eq!(report.matched_expectations, 6);
+        assert_eq!(report.case_count, 11);
+        assert_eq!(report.matched_expectations, 11);
         assert_eq!(report.mismatched_expectations, 0);
     }
 }
