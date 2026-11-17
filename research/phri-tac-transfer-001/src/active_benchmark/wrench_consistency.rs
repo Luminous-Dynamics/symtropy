@@ -417,6 +417,7 @@ impl WrenchReferenceEvidence {
     fn validate(
         &self,
         operator: &WrenchOperator,
+        expected_sample_identity: &str,
         native_observation_set_digest: &str,
         wrench_observation_digest: &str,
     ) -> Result<(), String> {
@@ -464,6 +465,9 @@ impl WrenchReferenceEvidence {
                     .to_owned(),
             );
         }
+        if self.sample_identity != expected_sample_identity {
+            return Err("wrench evidence sample identity does not match the native tactile sample".to_owned());
+        }
         if self.native_observation_set_digest != native_observation_set_digest
             || self.wrench_observation_digest != wrench_observation_digest
         {
@@ -496,6 +500,7 @@ pub fn assess_wrench_consistency(
     local_traction_pa: &[f64],
     observed: &WrenchObservation,
     evidence: &WrenchReferenceEvidence,
+    expected_sample_identity: &str,
     native_observation_set_digest: &str,
     wrench_observation_digest: &str,
     maximum_absolute_standardized_residual: f64,
@@ -519,8 +524,15 @@ pub fn assess_wrench_consistency(
             vec!["standardized residual threshold must be finite and positive".to_owned()],
         );
     }
+    if evidence.sample_identity != expected_sample_identity {
+        return base(
+            WrenchConsistencyDisposition::SampleOrBoundaryMismatch,
+            vec!["wrench evidence sample identity does not match the native tactile sample".to_owned()],
+        );
+    }
     if let Err(error) = evidence.validate(
         operator,
+        expected_sample_identity,
         native_observation_set_digest,
         wrench_observation_digest,
     ) {
@@ -618,6 +630,7 @@ pub fn compare_field_identifiability(
     native_row_count: usize,
     reference_evidence: &WrenchReferenceEvidence,
     wrench_observation_digest: &str,
+    expected_sample_identity: &str,
     tolerance: f64,
 ) -> Result<WrenchIdentifiabilityReport, String> {
     if !tolerance.is_finite() || tolerance <= 0.0 {
@@ -634,6 +647,7 @@ pub fn compare_field_identifiability(
     }
     reference_evidence.validate(
         operator,
+        expected_sample_identity,
         native_observation_set_digest,
         wrench_observation_digest,
     )?;
@@ -859,6 +873,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
+            "sample:001",
             "sha256:native-observations",
             "sha256:wrench-observation",
             3.0,
@@ -876,6 +891,7 @@ mod tests {
             &field,
             &observation,
             &shared,
+            "sample:001",
             "sha256:native-observations",
             "sha256:wrench-observation",
             3.0,
@@ -892,6 +908,7 @@ mod tests {
             &field,
             &observation,
             &wrong_frame,
+            "sample:001",
             "sha256:native-observations",
             "sha256:wrench-observation",
             3.0,
@@ -913,6 +930,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
+            "sample:001",
             "sha256:native-observations",
             "sha256:wrench-observation",
             3.0,
@@ -926,6 +944,7 @@ mod tests {
             &field,
             &observation_from_field(&operator, &field),
             &bad_timing,
+            "sample:001",
             "sha256:native-observations",
             "sha256:wrench-observation",
             3.0,
@@ -933,6 +952,27 @@ mod tests {
         assert_eq!(
             report.disposition,
             WrenchConsistencyDisposition::ReferenceChainUnresolved
+        );
+    }
+
+    #[test]
+    fn wrench_evidence_must_match_exact_native_sample_identity() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let observation = observation_from_field(&operator, &field);
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &observation,
+            &evidence(),
+            "sample:different",
+            "sha256:native-observations",
+            "sha256:wrench-observation",
+            3.0,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::SampleOrBoundaryMismatch
         );
     }
 
