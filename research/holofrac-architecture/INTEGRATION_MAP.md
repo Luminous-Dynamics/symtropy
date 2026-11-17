@@ -57,10 +57,16 @@ Use IFC 4.3 and IDS as external exchange/requirements formats. Test identity, pr
 ### I4 — counterfactual dependency retrieval and evidence invalidation
 [Symtropy #5934](https://github.com/Luminous-Dynamics/symtropy/issues/5934) now tracks the executable exact dependency-DAG slice in [impact.rs](../holofrac-retrieval/src/impact.rs). It models consumer -> dependency edges across requirements, parameters, geometry, interfaces, solver inputs/runs and evidence receipts. It validates acyclicity, computes reverse transitive closure, and uses a separate brute-force reachability oracle in tests. An incomplete dependency inventory conservatively invalidates all scoped evidence; it never preserves an unproven current result.
 
-The first capacity executable sweeps 100/1,000/10,000/100,000 artifacts with one or more changed project roots. Next qualification must add shared/common-cause DAGs, randomized topology families, incremental source-revision updates, raw evidence-currentness receipts and allocator-inclusive RSS. HDC may suggest analogous or missing dependency edges, but exact source-bound closure remains the only invalidation authority.
+The capacity executable now sweeps 100/1,000/10,000/100,000-artifact independent-chain DAGs and shared-site-input DAGs with 20/200/2,000/20,000 projects. It separately mutates a common cause and a project-local parameter. Tests include a shared-input fan-out and 24 deterministic generated DAGs checked against an independent per-candidate reachability oracle. Next qualification must add denser/common-cause cut sets, incremental source-revision updates, raw evidence-currentness receipts and allocator-inclusive RSS. HDC may suggest analogous or missing dependency edges, but exact source-bound closure remains the only invalidation authority.
 
 ### I5 — architectural and structural applications
 Run the existing #1766, #1848, #1790 and FFMFS scenarios with HoloFrac enabled/disabled under identical candidate sets, solver-call budgets, source revisions and hardware. Measure whether retrieval reduces work or improves context selection without reducing correctness, uncertainty calibration or hard-gate preservation.
+
+### I6 — continuous and multi-channel spatial fields
+The standalone research crate now provides analytic 2D field families, single-field bipolar positional/value memory, and a channel-aware shared-memory experiment. The latter compares one shared memory with independent per-channel memories and scalar-grid storage; it reports cross-channel reconstruction error and memory/latency trade-offs. Current data are analytic fixtures only. Do not connect these outputs to physical solvers as truth. Next qualification requires measured building fields with source IDs, units, boundaries, solver provenance and independently validated error bounds.
+
+### I7 — geometric scale and fractal qualification
+The executable box-counting lab compares known-dimension Sierpiński, grid, uniform-random and line controls, reporting the full curve, four grid translations, a predeclared 16–128 fit interval, residuals and scale-window sensitivity. This tests the estimator; it does not certify a building as fractal. Symthaea/FFMFS grammars should export exact geometry or point sets for measurement. Next work adds 3D voxel/mass-radius estimators, multifractal or correlation-sum comparisons where appropriate, null structures matched to size/density/topology, and real candidate geometries with uncertainty.
 
 ## Release rule
 
