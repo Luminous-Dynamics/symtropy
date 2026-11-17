@@ -223,7 +223,9 @@
         "measured_recovered_use_l": 30,
         "measured_mains_displacement_l": 25,
         "quality_evidence_current": true,
-        "matched_control_profile": true
+        "matched_control_profile": true,
+        "declared_use_profile_id": "nonpotable_toilet_flushing",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
       },
       "oracle": "Credit is bounded by qualified delivered, independently metered recovered use and matched-control mains displacement; gross treatment throughput is never the credit."
     },
@@ -235,7 +237,9 @@
         "measured_recovered_use_l": 60,
         "measured_mains_displacement_l": 50,
         "quality_evidence_current": false,
-        "matched_control_profile": true
+        "matched_control_profile": true,
+        "declared_use_profile_id": "nonpotable_toilet_flushing",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
       },
       "oracle": "Missing or stale critical use-profile quality evidence blocks service and mains-displacement credit even where volume meters report flow."
     },
@@ -247,7 +251,9 @@
         "measured_recovered_use_l": 60,
         "measured_mains_displacement_l": 50,
         "quality_evidence_current": true,
-        "matched_control_profile": false
+        "matched_control_profile": false,
+        "declared_use_profile_id": "nonpotable_toilet_flushing",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
       },
       "oracle": "Without a comparable no-reuse/control profile at the same end-use boundary, mains displacement is indeterminate and receives no credit."
     },
@@ -260,7 +266,9 @@
         "measured_mains_displacement_l": 40,
         "quality_evidence_current": true,
         "matched_control_profile": true,
-        "unused_or_overflow_l": 60
+        "unused_or_overflow_l": 60,
+        "declared_use_profile_id": "nonpotable_toilet_flushing",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
       },
       "oracle": "Recovered output that is not independently metered as used at its declared end-use boundary receives no service or mains-displacement credit."
     },
@@ -276,7 +284,9 @@
             "measured_recovered_use_l": 20,
             "measured_mains_displacement_l": 20,
             "quality_evidence_current": true,
-            "matched_control_profile": true
+            "matched_control_profile": true,
+            "declared_use_profile_id": "nonpotable_toilet_flushing",
+            "quality_evidence_profile_id": "nonpotable_toilet_flushing"
           },
           {
             "end_use_id": "synthetic-irrigation",
@@ -285,11 +295,29 @@
             "measured_recovered_use_l": 20,
             "measured_mains_displacement_l": 20,
             "quality_evidence_current": true,
-            "matched_control_profile": true
+            "matched_control_profile": true,
+            "declared_use_profile_id": "nonpotable_toilet_flushing",
+            "quality_evidence_profile_id": "nonpotable_toilet_flushing"
           }
-        ]
+        ],
+        "declared_use_profile_id": "nonpotable_toilet_flushing",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
       },
       "oracle": "A shared source/meter cannot be credited twice across end uses. Duplicate meter identity or total claims above source availability rejects all shared-stream credit."
+    },
+    {
+      "case_id": "PW-T0-014-quality-evidence-for-different-use-profile-no-credit",
+      "inputs": {
+        "gross_treatment_output_l": 80,
+        "qualified_delivered_l": 60,
+        "measured_recovered_use_l": 40,
+        "measured_mains_displacement_l": 35,
+        "quality_evidence_current": true,
+        "matched_control_profile": true,
+        "declared_use_profile_id": "nonpotable_garden_irrigation",
+        "quality_evidence_profile_id": "nonpotable_toilet_flushing"
+      },
+      "oracle": "Quality evidence only applies to its declared end-use profile. A current record for toilet flushing cannot authorize service credit for irrigation."
     }
   ],
   "network_diagnostics_cases": [
