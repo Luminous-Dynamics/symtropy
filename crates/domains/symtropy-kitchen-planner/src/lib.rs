@@ -981,5 +981,4 @@ mod tests {
         assert_eq!(serial.scheduler_id, "stable_serial_topological_baseline_v1");
         assert!(validate_schedule(&source, &serial).is_valid());
     }
-
 }
