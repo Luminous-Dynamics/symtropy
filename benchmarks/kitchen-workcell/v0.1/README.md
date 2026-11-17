@@ -39,3 +39,15 @@ The `workflow-power-envelope` task composes with the existing Symtropy [KITCHEN-
 - [Planner implementation](https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs)
 
 No local household limit is assumed. Limits are real watts, not VA/kVA; inverter compatibility also needs power factor, startup waveform and quality evidence. The benchmark's power work remains unrun until physical profiles and calibrated metering exist.
+
+ 
+## Additional qualification tracks — resilience and lifecycle
+
+The manifest also defines separate scenarios for:
+
+- **Offline/manual resilience:** eligible workflows must remain operable with WAN/cloud unavailable; manual takeover success and latency are measured separately. Camera and microphone are not prerequisites.
+- **Repairability:** time and functional verification for declared user-serviceable, non-safety module replacement. Pressure vessels, high-voltage assemblies and safety-critical components are excluded from consumer repair trials.
+- **Whole-process accounting:** water per accepted serving and unaccounted mass fraction, with cooking, preparation and cleaning boundaries visible. Unknown water or mass flows remain unknown.
+- **Disturbance replanning:** deterministic seeded simulation of task delays, resource outages, reduced power envelopes and stale observations. No disturbance is injected into live hazardous equipment.
+
+These targets are hypotheses, not current results. The manifest still has zero physical runs and is not preregistered. Do not combine these dimensions into one aggregate score or trade them against safety, manual control or evidence completeness.
