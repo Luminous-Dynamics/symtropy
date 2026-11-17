@@ -1,0 +1,573 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "water-verified-intervention-utility-t1-oracle-v0.1",
+  "benchmark_id": "WATER-VERIFIED-INTERVENTION-UTILITY-001",
+  "submission_id": "luminous-synthetic-fixture-v0.1",
+  "arm_id": "luminous_candidate",
+  "aggregate": {
+    "scenario_count": 12,
+    "leak_event_count": 11,
+    "true_positive_count": 10,
+    "false_positive_count": 1,
+    "false_negative_count": 1,
+    "abstention_count": 1,
+    "false_safe_pipe_claim_count": 3,
+    "localization_correct_count": 5,
+    "inspection_confirmed_leak_count": 6,
+    "false_dispatch_count": 1,
+    "crew_hours": 16.5,
+    "confirmed_leaks_per_crew_day": 2.909090909090909,
+    "median_detection_delay_min": 20,
+    "p95_detection_delay_min": 25,
+    "median_confirmation_delay_min": 90,
+    "p95_confirmation_delay_min": 90,
+    "verified_lower_reduction_7d_m3_day": 12.4,
+    "verified_lower_reduction_30d_m3_day": 6.7,
+    "verified_lower_reduction_90d_m3_day": 7.000000000000001
+  },
+  "scenarios": [
+    {
+      "scenario_id": "IVU-T1-001-observed-leak-repaired-persistent",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": true,
+      "false_safe_pipe_claim": false,
+      "localization_correct": true,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 120,
+      "repair_cost": 350,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": 90,
+      "repair_consistent": true,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "verified_positive_lower_bound",
+          "point_reduction_m3_day": 8,
+          "lower_reduction_m3_day": 6.2
+        },
+        {
+          "day": 30,
+          "status": "verified_positive_lower_bound",
+          "point_reduction_m3_day": 8.5,
+          "lower_reduction_m3_day": 6.7
+        },
+        {
+          "day": 90,
+          "status": "verified_positive_lower_bound",
+          "point_reduction_m3_day": 8.8,
+          "lower_reduction_m3_day": 7.000000000000001
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": 8,
+      "verified_point_reduction_30d_m3_day": 8.5,
+      "verified_point_reduction_90d_m3_day": 8.8,
+      "verified_lower_reduction_7d_m3_day": 6.2,
+      "verified_lower_reduction_30d_m3_day": 6.7,
+      "verified_lower_reduction_90d_m3_day": 7.000000000000001
+    },
+    {
+      "scenario_id": "IVU-T1-002-unobservable-false-pipe-claim",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": true,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": false,
+      "crew_hours": 1.5,
+      "inspection_cost": 100,
+      "repair_cost": 0,
+      "detection_delay_min": 15,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-003-nonleak-pressure-change",
+      "event_truth": "non_leak",
+      "true_positive": false,
+      "false_positive": true,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": false,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": true,
+      "crew_hours": 1.5,
+      "inspection_cost": 90,
+      "repair_cost": 0,
+      "detection_delay_min": 25,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-004-leak-missed-by-detector",
+      "event_truth": "leak",
+      "true_positive": false,
+      "false_positive": false,
+      "false_negative": true,
+      "abstained": true,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": false,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": false,
+      "crew_hours": 0,
+      "inspection_cost": 0,
+      "repair_cost": 0,
+      "detection_delay_min": null,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-005-structural-only-multiple-pipes",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": true,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": false,
+      "crew_hours": 1.5,
+      "inspection_cost": 90,
+      "repair_cost": 0,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-006-estimator-scope-mismatch",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": true,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": false,
+      "crew_hours": 0,
+      "inspection_cost": 0,
+      "repair_cost": 0,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-007-repair-only-seven-day-followup",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": true,
+      "false_safe_pipe_claim": false,
+      "localization_correct": true,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 120,
+      "repair_cost": 350,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": 90,
+      "repair_consistent": true,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "verified_positive_lower_bound",
+          "point_reduction_m3_day": 8,
+          "lower_reduction_m3_day": 6.2
+        },
+        {
+          "day": 30,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": 8,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": 6.2,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-008-post-pressure-mismatch",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": true,
+      "false_safe_pipe_claim": false,
+      "localization_correct": true,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 120,
+      "repair_cost": 350,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": 90,
+      "repair_consistent": true,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "indeterminate_operating_conditions",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "indeterminate_operating_conditions",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-009-replayed-raw-record",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": true,
+      "false_safe_pipe_claim": false,
+      "localization_correct": true,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 120,
+      "repair_cost": 350,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": 90,
+      "repair_consistent": true,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "indeterminate_evidence_scope",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-010-repair-asset-mismatch",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": true,
+      "false_safe_pipe_claim": false,
+      "localization_correct": true,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 120,
+      "repair_cost": 300,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": 90,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-011-zone-inspection-no-post-repair-evidence",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": false,
+      "localization_correct": false,
+      "inspection_confirmed": true,
+      "false_dispatch": false,
+      "crew_hours": 2,
+      "inspection_cost": 100,
+      "repair_cost": 330,
+      "detection_delay_min": 18,
+      "confirmation_delay_min": 85,
+      "repair_consistent": true,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_observed",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    },
+    {
+      "scenario_id": "IVU-T1-012-prioritized-not-inspected",
+      "event_truth": "leak",
+      "true_positive": true,
+      "false_positive": false,
+      "false_negative": false,
+      "abstained": false,
+      "pipe_claim_eligible": false,
+      "false_safe_pipe_claim": false,
+      "localization_correct": false,
+      "inspection_confirmed": false,
+      "false_dispatch": false,
+      "crew_hours": 0,
+      "inspection_cost": 0,
+      "repair_cost": 0,
+      "detection_delay_min": 20,
+      "confirmation_delay_min": null,
+      "repair_consistent": false,
+      "repair_verification": [
+        {
+          "day": 7,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 30,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        },
+        {
+          "day": 90,
+          "status": "not_applicable",
+          "point_reduction_m3_day": null,
+          "lower_reduction_m3_day": null
+        }
+      ],
+      "verified_point_reduction_7d_m3_day": null,
+      "verified_point_reduction_30d_m3_day": null,
+      "verified_point_reduction_90d_m3_day": null,
+      "verified_lower_reduction_7d_m3_day": null,
+      "verified_lower_reduction_30d_m3_day": null,
+      "verified_lower_reduction_90d_m3_day": null
+    }
+  ],
+  "physical_qualification_status": "NotRun",
+  "statistical_inference_status": "NotRun",
+  "claim_eligibility": "NotEligible"
+}
