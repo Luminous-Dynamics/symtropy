@@ -4,7 +4,7 @@
 **Parent programme:** evidence-gated industrial intelligence  
 **Fixture generation:** `pump-valve-topology-v0.1`  
 **Observation epoch:** `2026-11-15T12:00:00Z`  
-**Implementation status:** frozen synthetic specification and hand-checkable scenario corpus; a dependency-free Rust evaluator is being added in this PR; exact-head CI qualification is pending.
+**Implementation status:** frozen synthetic corpus and dependency-free Rust evaluator authored; eight unit tests and a deterministic TSV replay are defined; exact-head CI qualification is pending.
 
 ## Research question
 
@@ -30,6 +30,8 @@ Consequently, five nominal paths provide only three simultaneously pairwise faul
 - `routes-v0.1.tsv`: expected mandatory dependency count and route class for each candidate path.
 - `scenarios-v0.1.tsv`: 14 deterministic scenario rows, including shared-root failures, a single qualification revocation, an unknown dependency remainder, a compound failure, a no-route case, a failed first-article gate, and paired hidden-future controls.
 - `policy-arms-v0.1.tsv`: baseline and oracle definitions.
+- `Cargo.toml`, `src/lib.rs`, `src/main.rs`: dependency-free route evaluator, interval calculation, paired-future fingerprint check, and TSV CLI.
+- `.github/workflows/factory-capability-resilience.yml`: focused Rust formatting, Clippy, unit-test and deterministic replay gate.
 
 All IDs and values are synthetic. `fault_domain_id` is an owner-declared common-cause identity, not something inferred from a different or matching label. Distinct IDs alone do not establish physical independence. The future evaluator must consume dependency/fault-domain projections owned by Mycelix (#5762/#5696 and #1243); it must not create a competing generic graph.
 
@@ -75,6 +77,15 @@ The interval expresses uncertainty in capability inventory; it does not represen
 | S13 first-article inspection rejected | all five paths available | [3, 3] | route exists but no product is accepted |
 
 The machine-readable TSV is authoritative for scenario IDs, injected events, acceptance-gate state, expected route dispositions, lower/upper independence bounds and expected output disposition. The table is explanatory.
+
+Run the focused evaluator with:
+
+\`\`\`sh
+cargo fmt --manifest-path tools/factory-capability-resilience/Cargo.toml -- --check
+cargo clippy --manifest-path tools/factory-capability-resilience/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path tools/factory-capability-resilience/Cargo.toml --all-targets
+cargo run --quiet --manifest-path tools/factory-capability-resilience/Cargo.toml --bin factory-capability-resilience
+\`\`\`
 
 ## Required evaluator behavior
 
