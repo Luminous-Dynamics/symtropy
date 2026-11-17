@@ -119,18 +119,18 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
             (Some(speed), Some(force), Some(table_force), Some(error)) => {
                 writeln!(&mut output, "      \"orbital_speed_mps\": {:.15e},", speed).unwrap();
                 writeln!(&mut output, "      \"predicted_force_n\": {:.15e},", force).unwrap();
-                writeln!(&mut output, "      \"table_force_n\": null,").unwrap();
-                writeln!(&mut output, "      \"relative_error\": {:.15e}", error).unwrap();
-            }
-            _ => {
-                writeln!(&mut output, "      \"orbital_speed_mps\": null,").unwrap();
-                writeln!(&mut output, "      \"predicted_force_n\": null,").unwrap();
                 writeln!(
                     &mut output,
                     "      \"table_force_n\": {:.15e},",
                     table_force
                 )
                 .unwrap();
+                writeln!(&mut output, "      \"relative_error\": {:.15e}", error).unwrap();
+            }
+            _ => {
+                writeln!(&mut output, "      \"orbital_speed_mps\": null,").unwrap();
+                writeln!(&mut output, "      \"predicted_force_n\": null,").unwrap();
+                writeln!(&mut output, "      \"table_force_n\": null,").unwrap();
                 writeln!(&mut output, "      \"relative_error\": null").unwrap();
             }
         }
