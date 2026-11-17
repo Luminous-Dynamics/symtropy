@@ -704,10 +704,12 @@ mod tests {
     fn all_fifteen_cases_match_the_separate_oracle() {
         let input: Value = serde_json::from_str(include_str!(
             "../../../../docs/research/jw-water-cascade/jw_water_cascade_t0_input.v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         let oracle: Value = serde_json::from_str(include_str!(
             "../../../../docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.v0.1.json"
-        )).unwrap();
+        ))
+        .unwrap();
         let expected: BTreeMap<&str, &Value> = oracle["cases"]
             .as_array()
             .unwrap()
