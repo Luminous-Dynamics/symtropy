@@ -82,16 +82,16 @@ impl std::fmt::Display for FieldError {
             Self::EmptySamples => f.write_str("continuous field requires at least one sample"),
             Self::InvalidRange => {
                 f.write_str("field coordinate/value range must be finite with max > min")
-            },
+            }
             Self::SampleOutsideRange => {
                 f.write_str("field sample or query lies outside declared coordinate/value ranges")
-            },
+            }
             Self::DuplicateEncodedPosition => {
                 f.write_str("two field samples quantize to the same encoded spatial position")
             }
             Self::InvalidGrid => {
                 f.write_str("regular field grid requires at least two samples per axis")
-            },
+            }
             Self::Hdc(error) => write!(f, "continuous spatial VSA error: {error}"),
         }
     }
@@ -173,8 +173,7 @@ impl SpatialFieldMemory {
             let position = encode_position(
                 &x_encoder, &y_encoder, &x_role, &y_role, x_range, y_range, sample.x, sample.y,
             )?;
-            let value =
-                value_encoder.encode(sample.value, value_range.min, value_range.max)?;
+            let value = value_encoder.encode(sample.value, value_range.min, value_range.max)?;
             bundle.add(&position.bind(&value)?)?;
         }
 
@@ -446,7 +445,11 @@ pub fn field_value(family: FieldFamily, x: f64, y: f64) -> f64 {
         FieldFamily::Smooth => 0.5 + 0.2 * (tau * x).sin() + 0.2 * (tau * y).cos(),
         FieldFamily::HighFrequency => 0.5 + 0.2 * (8.0 * tau * x).sin() * (6.0 * tau * y).cos(),
         FieldFamily::Discontinuous => {
-            if x < 0.5 { 0.2 } else { 0.8 }
+            if x < 0.5 {
+                0.2
+            } else {
+                0.8
+            }
         }
         FieldFamily::Anisotropic => 0.5 + 0.25 * (tau * x).sin() + 0.1 * (12.0 * tau * y).cos(),
         FieldFamily::Localized => {
@@ -467,7 +470,11 @@ fn r2_from_residuals(residuals: &[f64], truth: &[f64]) -> f64 {
         .sum::<f64>();
     let residual_sum_squares = residuals.iter().map(|value| value * value).sum::<f64>();
     if total_sum_squares <= f64::EPSILON {
-        return if residual_sum_squares <= f64::EPSILON { 1.0 } else { 0.0 };
+        return if residual_sum_squares <= f64::EPSILON {
+            1.0
+        } else {
+            0.0
+        };
     }
     1.0 - residual_sum_squares / total_sum_squares
 }
