@@ -766,6 +766,41 @@ mod tests {
     }
 
     #[test]
+    fn overlong_surge_below_peak_limit_is_not_scheduled() {
+        let input = input(
+            vec![task("heater", 100, "heater")],
+            standard_envelope(),
+            vec![TaskPowerProfileV1 {
+                task_id: "heater".to_owned(),
+                source_ref: "fixture:long-surge".to_owned(),
+                evidence_class: PowerProfileEvidenceClassV1::Simulated,
+                segments: vec![
+                    PowerSegmentV1 {
+                        start_offset_ms: 0,
+                        end_offset_ms: 6,
+                        real_power_w: 1_200,
+                    },
+                    PowerSegmentV1 {
+                        start_offset_ms: 6,
+                        end_offset_ms: 100,
+                        real_power_w: 700,
+                    },
+                ],
+            }],
+        );
+        let error = build_power_constrained_schedule(&input).unwrap_err();
+        assert!(matches!(
+            error,
+            PowerScheduleErrorV1::NoScheduleFoundByHeuristics {
+                serial_power_violations,
+                ..
+            } if serial_power_violations.iter().any(|violation| {
+                violation.code == PowerConstraintViolationCode::SurgeDurationExceedsLimit
+            })
+        ));
+    }
+
+    #[test]
     fn profile_gap_is_rejected() {
         let input = input(
             vec![task("heater", 10, "heater")],
