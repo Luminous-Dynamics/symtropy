@@ -294,6 +294,7 @@ fn validate_capture(
             "http_status",
             "final_url",
             "content_type",
+            "expected_release",
             "headers",
             "body_bytes",
             "body_sha256",
@@ -386,6 +387,10 @@ fn validate_capture(
         return Err("body licence field and X-Licence header differ".to_owned());
     }
     let release = string(&body, "release", "body")?;
+    let expected_release = string(capture, "expected_release", "capture")?;
+    if release != expected_release {
+        return Err("response release differs from capture manifest expected_release".to_owned());
+    }
     if mode == "synthetic_fixture" {
         if release != "SYNTHETIC-ONLY"
             || string(normalized, "x-licence", "capture.headers")? != "SYNTHETIC-ONLY"
@@ -812,6 +817,21 @@ mod tests {
     }
 
     #[test]
+    fn response_release_must_match_manifest_pin() {
+        let (body, headers, manifest_bytes, bundle) = fixture();
+        let mut body_value: Value = serde_json::from_slice(&body).unwrap();
+        body_value["release"] = json!("SYNTHETIC-DIFFERENT");
+        let changed = serde_json::to_vec_pretty(&body_value).unwrap();
+        let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        let refreshed = refresh_manifest(&changed, &headers, &mut manifest);
+        assert!(
+            validate_capture(&changed, &headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("response release differs from capture manifest expected_release")
+        );
+    }
+
+    #[test]
     fn publisher_capture_requires_public_https_origin_and_rights_review_state() {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
@@ -835,6 +855,7 @@ mod tests {
         let (body, headers, manifest_bytes, bundle) = fixture();
         let mut body_value: Value = serde_json::from_slice(&body).unwrap();
         body_value["release"] = json!("2026-11-17-deadbeef");
+        manifest["capture"]["expected_release"] = json!("2026-11-17-deadbeef");
         body_value["licence"] =
             json!("CC BY 4.0. Credit Johannesburg Water for the underlying facts.");
         let publisher_body = serde_json::to_vec_pretty(&body_value).unwrap();
