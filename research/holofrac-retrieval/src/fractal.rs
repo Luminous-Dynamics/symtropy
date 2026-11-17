@@ -38,9 +38,9 @@ impl GeometryFamily {
         }
     }
 
-    pub const fn expected_dimension(self) -> f64 {
+    pub fn expected_dimension(self) -> f64 {
         match self {
-            Self::SierpinskiTriangle => 3.0_f64.log2(),
+            Self::SierpinskiTriangle => 1.584_962_500_721_156,
             Self::RegularGrid | Self::UniformRandom => 2.0,
             Self::LineSegment => 1.0,
         }
