@@ -12,8 +12,8 @@ use construction_motion_oracle::{
     evaluate_relative_time_multibody_ccd_with_broadphase, moving_sphere_capsule_collision,
     swept_sphere_capsule_aabb_candidate, time_swept_capsule_broadphase,
     time_swept_capsule_broadphase_hierarchical, timed_co_translating_capsule_vs_capsule,
-    translating_capsule_aabb_candidate,
-    translating_capsule_capsule_collision, translating_capsule_vs_capsule,
+    translating_capsule_aabb_candidate, translating_capsule_capsule_collision,
+    translating_capsule_vs_capsule,
 };
 
 const BATCH_SIZE: usize = 10_000;
@@ -972,7 +972,6 @@ fn run_relative_time_multibody_comparison_benchmarks() {
     }
 }
 
-
 fn build_site_time_sap_bodies(bodies: &[ClockDomainCapsuleBody]) -> Vec<TimedCapsuleBody> {
     bodies
         .iter()
@@ -1016,8 +1015,7 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
         for count in [32_usize, 64, 128, 256] {
             let source = build_clock_mapped_bodies_with_distribution(count, distribution);
             let bodies = build_site_time_sap_bodies(&source);
-            let possible_pairs =
-                (count as u64) * (count.saturating_sub(1) as u64) / 2;
+            let possible_pairs = (count as u64) * (count.saturating_sub(1) as u64) / 2;
 
             for subdivisions in [2_u32, 4, 8, 16] {
                 let direct = time_swept_capsule_broadphase(&bodies, subdivisions)
@@ -1084,8 +1082,8 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
                 let hierarchical_p50 = percentile(&hierarchical_durations, 50);
                 let hierarchical_p95 = percentile(&hierarchical_durations, 95);
                 let hierarchical_p99 = percentile(&hierarchical_durations, 99);
-                let speedup = direct_p50.as_nanos() as f64
-                    / hierarchical_p50.as_nanos().max(1) as f64;
+                let speedup =
+                    direct_p50.as_nanos() as f64 / hierarchical_p50.as_nanos().max(1) as f64;
 
                 println!(
                     "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
