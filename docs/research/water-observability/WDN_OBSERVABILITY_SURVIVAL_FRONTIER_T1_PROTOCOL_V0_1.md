@@ -18,7 +18,7 @@ For every baseline-eligible sensor, the failure universe contains:
 - one channel component identified by its sensor ID;
 - one component for each unique (domain type, domain ID) pair among its six dependency domains.
 
-A dependency instance shared by several sensors is one common-cause component and is failed once. It must not be counted as multiple independent failures.
+A dependency instance shared by several sensors is one common-cause component and is failed once. It must not be counted as multiple independent failures. In particular, sensors using the same measurement principle must carry the same measurement-principle domain ID; assigning a different ID to each device would falsely manufacture independent modality paths.
 
 A sensor is excluded from the active failure-component universe before enumeration if it is already failed, stale/un-calibrated, incorrectly bound or time-invalid. Its presence cannot dilute the denominator with no-op failure events.
 
