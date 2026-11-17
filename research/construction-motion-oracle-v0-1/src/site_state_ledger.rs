@@ -15,9 +15,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::field_layout_acceptance::{
-    CrewHours, DesignIntentEntity, DesignIntentManifest, EntityScoreReason,
-    FieldAcceptanceProfile, FieldEntityObservation, HumanWaiver, MeasurementDisposition,
-    RefereeEntityState, RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
+    CrewHours, DesignIntentEntity, DesignIntentManifest, EntityScoreReason, FieldAcceptanceProfile,
+    FieldEntityObservation, HumanWaiver, MeasurementDisposition, RefereeEntityState,
+    RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -40,7 +40,9 @@ pub enum RobotExecutionDisposition {
 #[derive(Clone, Debug, PartialEq)]
 pub enum SiteRefereeAssessment {
     Measured(RefereeMeasurement),
-    NoMarkFound { receipt_sha256: String },
+    NoMarkFound {
+        receipt_sha256: String,
+    },
     Unresolved {
         receipt_sha256: String,
         reason: String,
@@ -245,10 +247,7 @@ impl SiteStateLedger {
     /// with changed content, a sequence gap, or a broken previous-digest link
     /// is rejected. Any payload/state-transition failure leaves the ledger
     /// unchanged.
-    pub fn apply(
-        &mut self,
-        event: SiteEventEnvelope,
-    ) -> Result<SiteApplyOutcome, SiteLedgerError> {
+    pub fn apply(&mut self, event: SiteEventEnvelope) -> Result<SiteApplyOutcome, SiteLedgerError> {
         validate_event_envelope(&event)?;
 
         if let Some(existing) = self.events_by_id.get(&event.event_id) {
@@ -264,13 +263,13 @@ impl SiteStateLedger {
             ));
         }
 
-        let expected = self
-            .last_sequence
-            .checked_add(1)
-            .ok_or(SiteLedgerError::EventSequenceMismatch {
-                expected: u64::MAX,
-                actual: event.sequence,
-            })?;
+        let expected =
+            self.last_sequence
+                .checked_add(1)
+                .ok_or(SiteLedgerError::EventSequenceMismatch {
+                    expected: u64::MAX,
+                    actual: event.sequence,
+                })?;
         if event.sequence != expected {
             return Err(SiteLedgerError::EventSequenceMismatch {
                 expected,
@@ -289,7 +288,9 @@ impl SiteStateLedger {
         staged
             .event_ids_by_digest
             .insert(event.event_sha256.clone(), event.event_id.clone());
-        staged.events_by_id.insert(event.event_id.clone(), event.clone());
+        staged
+            .events_by_id
+            .insert(event.event_id.clone(), event.clone());
         staged.events.push(event);
         *self = staged;
         Ok(SiteApplyOutcome::Applied)
@@ -323,11 +324,7 @@ impl SiteStateLedger {
             .and_then(|package| package.superseded_by.as_deref())
     }
 
-    pub fn entity_state(
-        &self,
-        package_sha256: &str,
-        entity_id: &str,
-    ) -> Option<&SiteEntityState> {
+    pub fn entity_state(&self, package_sha256: &str, entity_id: &str) -> Option<&SiteEntityState> {
         self.packages
             .get(package_sha256)
             .and_then(|package| package.entity_states.get(entity_id))
@@ -360,8 +357,7 @@ impl SiteStateLedger {
                 }
                 if let Some(previous) = self.active_package_sha256.as_ref() {
                     if let Some(previous_projection) = self.packages.get_mut(previous) {
-                        previous_projection.superseded_by =
-                            Some(package.package_sha256.clone());
+                        previous_projection.superseded_by = Some(package.package_sha256.clone());
                     }
                 }
                 let entity_states = package
@@ -532,9 +528,7 @@ impl SiteStateLedger {
                 let outcome = evaluate_referee_assessment(
                     self.packages
                         .get(package_sha256)
-                        .ok_or_else(|| {
-                            SiteLedgerError::UnknownPackage(package_sha256.clone())
-                        })?,
+                        .ok_or_else(|| SiteLedgerError::UnknownPackage(package_sha256.clone()))?,
                     entity_id,
                     robot_disposition,
                     assessment,
@@ -612,9 +606,7 @@ impl SiteStateLedger {
         package_sha256: &str,
     ) -> Result<&mut PackageProjection, SiteLedgerError> {
         if self.active_package_sha256.as_deref() != Some(package_sha256) {
-            return Err(SiteLedgerError::InactivePackage(
-                package_sha256.to_owned(),
-            ));
+            return Err(SiteLedgerError::InactivePackage(package_sha256.to_owned()));
         }
         self.packages
             .get_mut(package_sha256)
@@ -698,12 +690,9 @@ fn evaluate_referee_assessment(
             .map_err(|_| {
                 SiteLedgerError::AcceptanceScorerRejectedMeasurement(entity_id.to_owned())
             })?;
-            let result = score
-                .entity_results
-                .first()
-                .ok_or_else(|| {
-                    SiteLedgerError::AcceptanceScorerRejectedMeasurement(entity_id.to_owned())
-                })?;
+            let result = score.entity_results.first().ok_or_else(|| {
+                SiteLedgerError::AcceptanceScorerRejectedMeasurement(entity_id.to_owned())
+            })?;
             match result.referee_state {
                 RefereeEntityState::Accepted => Ok(ScoredRefereeOutcome::Accepted(
                     measurement.measurement_receipt_sha256.clone(),
@@ -716,11 +705,9 @@ fn evaluate_referee_assessment(
                     measurement.measurement_receipt_sha256.clone(),
                     result.reason,
                 )),
-                RefereeEntityState::Waived | RefereeEntityState::NotAttempted => {
-                    Err(SiteLedgerError::AcceptanceScorerRejectedMeasurement(
-                        entity_id.to_owned(),
-                    ))
-                }
+                RefereeEntityState::Waived | RefereeEntityState::NotAttempted => Err(
+                    SiteLedgerError::AcceptanceScorerRejectedMeasurement(entity_id.to_owned()),
+                ),
             }
         }
     }
@@ -893,10 +880,7 @@ mod tests {
         }
     }
 
-    fn publish_package(
-        ledger: &mut SiteStateLedger,
-        package: SiteWorkPackage,
-    ) -> String {
+    fn publish_package(ledger: &mut SiteStateLedger, package: SiteWorkPackage) -> String {
         let package_digest = package.package_sha256.clone();
         let event = event(
             "event-publish",
@@ -1508,5 +1492,4 @@ mod tests {
         ));
         assert_eq!(ledger.accepted_count(&package_digest), Some(0));
     }
-
 }
