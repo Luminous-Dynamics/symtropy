@@ -28,7 +28,10 @@
     "case": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["case_id", "case_sha256"],
+      "required": [
+        "case_id",
+        "case_sha256"
+      ],
       "properties": {
         "case_id": {
           "type": "string",
@@ -93,20 +96,40 @@
         "margin_profile_sha256"
       ],
       "properties": {
-        "robot_model_sha256": { "$ref": "#/$defs/sha256" },
-        "tool_sha256": { "$ref": "#/$defs/sha256" },
-        "payload_sha256": { "$ref": "#/$defs/sha256" },
-        "obstacle_set_sha256": { "$ref": "#/$defs/sha256" },
-        "geometry_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "robot_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "tool_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "obstacle_set_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "geometry_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "frame_id": {
           "type": "string",
           "minLength": 1
         },
-        "transform_sha256": { "$ref": "#/$defs/sha256" },
-        "trajectory_sha256": { "$ref": "#/$defs/sha256" },
-        "interpolation_profile_sha256": { "$ref": "#/$defs/sha256" },
-        "collision_matrix_sha256": { "$ref": "#/$defs/sha256" },
-        "margin_profile_sha256": { "$ref": "#/$defs/sha256" }
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "trajectory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "interpolation_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "collision_matrix_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "margin_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "query": {
@@ -137,7 +160,11 @@
           ]
         },
         "obstacle_motion": {
-          "enum": ["static", "moving", "mixed"]
+          "enum": [
+            "static",
+            "moving",
+            "mixed"
+          ]
         },
         "geometry_representation": {
           "enum": [
@@ -162,14 +189,22 @@
     "capability_probe": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["probe_id", "status"],
+      "required": [
+        "probe_id",
+        "status"
+      ],
       "properties": {
         "probe_id": {
           "type": "string",
           "minLength": 1
         },
         "status": {
-          "enum": ["EXECUTED", "UNSUPPORTED", "ERROR", "NOT_PROBED"]
+          "enum": [
+            "EXECUTED",
+            "UNSUPPORTED",
+            "ERROR",
+            "NOT_PROBED"
+          ]
         },
         "runtime_api": {
           "type": "string",
@@ -183,10 +218,16 @@
     "execution": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["disposition"],
+      "required": [
+        "disposition"
+      ],
       "properties": {
         "disposition": {
-          "enum": ["OBSERVED", "UNRESOLVED", "NOT_RUN"]
+          "enum": [
+            "OBSERVED",
+            "UNRESOLVED",
+            "NOT_RUN"
+          ]
         },
         "reason_code": {
           "enum": [
@@ -208,7 +249,9 @@
         "observation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["collision_found"],
+          "required": [
+            "collision_found"
+          ],
           "properties": {
             "collision_found": {
               "type": "boolean"
@@ -274,12 +317,33 @@
         "build_profile"
       ],
       "properties": {
-        "operating_system": { "type": "string", "minLength": 1 },
-        "architecture": { "type": "string", "minLength": 1 },
-        "cpu_model": { "type": "string", "minLength": 1 },
-        "thread_count": { "type": "integer", "minimum": 1 },
-        "allocator": { "type": "string", "minLength": 1 },
-        "build_profile": { "enum": ["debug", "release", "other"] }
+        "operating_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thread_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allocator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_profile": {
+          "enum": [
+            "debug",
+            "release",
+            "other"
+          ]
+        }
       }
     },
     "raw_receipt_sha256": {
@@ -291,17 +355,33 @@
       "if": {
         "properties": {
           "execution": {
-            "properties": { "disposition": { "const": "OBSERVED" } },
-            "required": ["disposition"]
+            "properties": {
+              "disposition": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
           }
         },
-        "required": ["execution"]
+        "required": [
+          "execution"
+        ]
       },
       "then": {
         "properties": {
-          "execution": { "required": ["observation"] },
+          "execution": {
+            "required": [
+              "observation"
+            ]
+          },
           "capability_probe": {
-            "properties": { "status": { "const": "EXECUTED" } }
+            "properties": {
+              "status": {
+                "const": "EXECUTED"
+              }
+            }
           }
         }
       }
@@ -311,16 +391,30 @@
         "properties": {
           "execution": {
             "properties": {
-              "disposition": { "enum": ["UNRESOLVED", "NOT_RUN"] }
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN"
+                ]
+              }
             },
-            "required": ["disposition"]
+            "required": [
+              "disposition"
+            ]
           }
         },
-        "required": ["execution"]
+        "required": [
+          "execution"
+        ]
       },
       "then": {
         "properties": {
-          "execution": { "required": ["reason_code", "reason"] }
+          "execution": {
+            "required": [
+              "reason_code",
+              "reason"
+            ]
+          }
         }
       }
     },
@@ -328,15 +422,32 @@
       "if": {
         "properties": {
           "capability_probe": {
-            "properties": { "status": { "enum": ["EXECUTED", "UNSUPPORTED", "ERROR"] } },
-            "required": ["status"]
+            "properties": {
+              "status": {
+                "enum": [
+                  "EXECUTED",
+                  "UNSUPPORTED",
+                  "ERROR"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
           }
         },
-        "required": ["capability_probe"]
+        "required": [
+          "capability_probe"
+        ]
       },
       "then": {
         "properties": {
-          "capability_probe": { "required": ["runtime_api", "probe_log_sha256"] }
+          "capability_probe": {
+            "required": [
+              "runtime_api",
+              "probe_log_sha256"
+            ]
+          }
         }
       }
     },
@@ -344,16 +455,31 @@
       "if": {
         "properties": {
           "execution": {
-            "properties": { "disposition": { "const": "NOT_RUN" } },
-            "required": ["disposition"]
+            "properties": {
+              "disposition": {
+                "const": "NOT_RUN"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
           }
         },
-        "required": ["execution"]
+        "required": [
+          "execution"
+        ]
       },
       "then": {
         "properties": {
           "capability_probe": {
-            "properties": { "status": { "enum": ["UNSUPPORTED", "NOT_PROBED"] } }
+            "properties": {
+              "status": {
+                "enum": [
+                  "UNSUPPORTED",
+                  "NOT_PROBED"
+                ]
+              }
+            }
           }
         }
       }
@@ -363,16 +489,101 @@
         "properties": {
           "query": {
             "properties": {
-              "mode": { "enum": ["LVS_DISCRETE", "LVS_CONTINUOUS"] }
+              "mode": {
+                "enum": [
+                  "LVS_DISCRETE",
+                  "LVS_CONTINUOUS"
+                ]
+              }
             },
-            "required": ["mode"]
+            "required": [
+              "mode"
+            ]
           }
         },
-        "required": ["query"]
+        "required": [
+          "query"
+        ]
       },
       "then": {
         "properties": {
-          "query": { "required": ["longest_valid_segment_mm"] }
+          "query": {
+            "required": [
+              "longest_valid_segment_mm"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "const": "OBSERVED"
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "reason"
+                  ]
+                },
+                {
+                  "required": [
+                    "reason_code"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "UNRESOLVED",
+                  "NOT_RUN"
+                ]
+              }
+            },
+            "required": [
+              "disposition"
+            ]
+          }
+        },
+        "required": [
+          "execution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "execution": {
+            "not": {
+              "required": [
+                "observation"
+              ]
+            }
+          }
         }
       }
     }
