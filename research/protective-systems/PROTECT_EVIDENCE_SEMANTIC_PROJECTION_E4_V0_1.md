@@ -4,7 +4,7 @@
 **Owner:** PROTECT-EVIDENCE-SEMANTIC-PROJECTION-001 #5643  
 **Branch:** `research/protect-evidence-semantic-projection-e4-v0-1`  
 **Parent:** E3 multi-provider adapters #5598 / PR #5637  
-**Status:** Rust tagged-union projection prototype, 40 unit tests written, Cargo/CI integration authored; exact-head hosted execution pending
+**Status:** Rust tagged-union projection prototype, 41 unit tests written, Cargo/CI integration authored; exact-head hosted execution pending
 
 ## 1. Paradigm shift: a typed federation, not a universal flat schema
 
@@ -79,7 +79,8 @@ It constructs three tagged provider views, classifies the explicit mappings, ret
 - duplicate JSON object-member rejection, including nested objects;
 - RFC 8785 published numeric/string and UTF-16 property-order vectors;
 - JCS-safe integer bounds, array-order preservation and semantic fingerprint stability/change controls;
-- stable serialization and source receipt hashes.
+- stable serialization and source receipt hashes;
+- report-level distinction between serialization digest and JCS semantic fingerprint.
 
 Formatting, Clippy, compilation, tests and executable output must be evidenced on the exact branch head. A test count is not a pass.
 
