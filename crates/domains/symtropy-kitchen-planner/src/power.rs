@@ -1145,6 +1145,71 @@ mod tests {
         ));
     }
 
+    #[derive(Deserialize)]
+    struct PowerFixtureBundle {
+        fixtures: Vec<PowerFixtureCase>,
+    }
+
+    #[derive(Deserialize)]
+    struct PowerFixtureCase {
+        fixture_id: String,
+        expected_input_valid: bool,
+        expected_strategy: String,
+        expected_schedule_valid: bool,
+        input: PowerConstrainedPlanV1,
+    }
+
+    #[test]
+    fn versioned_json_fixtures_match_rust_power_contract() {
+        let bundle: PowerFixtureBundle = serde_json::from_str(include_str!(
+            "../schemas/fixtures/power-envelope-v1.json"
+        ))
+        .expect("power-envelope fixture bundle must deserialize");
+
+        for fixture in bundle.fixtures {
+            let result = build_power_constrained_schedule(&fixture.input);
+            if !fixture.expected_input_valid {
+                assert!(
+                    matches!(result, Err(PowerScheduleErrorV1::InvalidInput(_))),
+                    "fixture {} should fail input validation",
+                    fixture.fixture_id
+                );
+                assert!(!fixture.expected_schedule_valid);
+                assert_eq!(fixture.expected_strategy, "none");
+                continue;
+            }
+
+            if !fixture.expected_schedule_valid {
+                assert!(
+                    matches!(
+                        result,
+                        Err(PowerScheduleErrorV1::NoScheduleFoundByHeuristics { .. })
+                    ),
+                    "fixture {} should have no heuristic schedule",
+                    fixture.fixture_id
+                );
+                assert_eq!(fixture.expected_strategy, "none");
+                continue;
+            }
+
+            let receipt = result.unwrap_or_else(|error| {
+                panic!("fixture {} unexpectedly failed: {error:?}", fixture.fixture_id)
+            });
+            let actual_strategy = match receipt.strategy {
+                PowerScheduleStrategyV1::ParallelEarliestGap => "parallel_earliest_gap",
+                PowerScheduleStrategyV1::PowerAwareEarliestGap => "power_aware_earliest_gap",
+                PowerScheduleStrategyV1::SerialFallback => "serial_fallback",
+            };
+            assert_eq!(
+                actual_strategy,
+                fixture.expected_strategy,
+                "fixture {} strategy mismatch",
+                fixture.fixture_id
+            );
+            assert!(receipt.power_validation.is_valid());
+        }
+    }
+
     #[test]
     fn all_profile_classes_are_preserved_and_not_promoted() {
         let mut power_profile = profile("manual", 10, 0);
