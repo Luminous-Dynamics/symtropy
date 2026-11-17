@@ -50,3 +50,29 @@ The `stability` module adds per-member:
 Each member receives declared section properties (E, A, weak-axis I, yield strength and K factor). The CLI uses an illustrative uniform section solely to exercise the screen.
 
 This is not a design-code check. It excludes global frame buckling, beam-column interaction, bending/shear/torsion, joint restraint/compliance, initial crookedness, residual stress, plasticity, local buckling, load interaction, fatigue, fracture and safety factors. The K factor and section properties must be substantiated for any real design.
+
+## Joint-aware axial compliance
+
+The interfaces module provides a second solver path with one axial translational spring at each end of each member. Its element compliance is:
+
+`L/(E*A) + 1/k_from + 1/k_to`
+
+It reports member-bar extension/stress separately from end-connector slip and partitions strain energy into bar and joint contributions. Tests verify:
+- very stiff end springs approach the ideal rigid-joint result;
+- finite connector stiffness increases total extension while bar stress remains tied to bar strain;
+- tension/compression sign consistency;
+- invalid stiffness and property-count mismatches fail closed.
+
+This is only axial spring compliance. It does not model rotational stiffness, preload, friction, bearing/contact, clearance take-up, backlash, bolt slip, nonlinear connector behavior, multi-axis coupling or joint fatigue.
+
+## Mass-normalized candidate benchmark
+
+The benchmark module derives one uniform solid-round member section from a declared member-only mass budget and material density. It then runs the same load/support conditions through:
+- linear-elastic axial truss response;
+- yield and ideal Euler member screening;
+- exhaustive single-member removal;
+- bounded two-member removal.
+
+The receipt reports computed member mass, area/inertia, maximum displacement/stress, equilibrium residual, yield/Euler utilization, and damage-screen counts.
+
+**Comparability rule:** callers must use the same structural envelope, supports, load cases, material model, density, mass accounting boundary, evaluation budgets and numerical tolerances for all candidate designs. The current mass budget excludes joints, nodes, fasteners, services, manufacturing waste, inspection, assembly and lifecycle costs. It is not a whole-system mass comparison.
