@@ -91,6 +91,13 @@ pub enum SiteEventPayload {
         disposition: RobotExecutionDisposition,
         robot_receipt_sha256: String,
     },
+    ExecutionInterrupted {
+        package_sha256: String,
+        entity_id: String,
+        attempt_id: String,
+        reason: String,
+        interruption_receipt_sha256: String,
+    },
     RefereeAssessmentRecorded {
         package_sha256: String,
         entity_id: String,
@@ -143,6 +150,11 @@ pub enum SiteEntityState {
         referee_event_id: String,
         receipt_sha256: String,
         reason: SiteRejectionReason,
+    },
+    PhysicallyAbsent {
+        attempt_id: String,
+        referee_event_id: String,
+        receipt_sha256: String,
     },
     Held {
         attempt_id: String,
@@ -366,6 +378,8 @@ impl SiteStateLedger {
                             state,
                             SiteEntityState::ExecutionInProgress { .. }
                                 | SiteEntityState::AwaitingIndependentMeasurement { .. }
+                                | SiteEntityState::Rejected { .. }
+                                | SiteEntityState::Held { .. }
                         )
                     }) {
                         return Err(SiteLedgerError::PackageHasUnresolvedAttempts(
@@ -523,6 +537,42 @@ impl SiteStateLedger {
                     },
                 );
             }
+            SiteEventPayload::ExecutionInterrupted {
+                package_sha256,
+                entity_id,
+                attempt_id,
+                reason,
+                interruption_receipt_sha256,
+            } => {
+                require_role(event.actor_role, SiteActorRole::Robot)?;
+                if reason.trim().is_empty() || !is_sha256(interruption_receipt_sha256) {
+                    return Err(SiteLedgerError::InvalidReceiptDigest);
+                }
+                let attempt = self
+                    .attempts
+                    .get_mut(attempt_id)
+                    .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
+                if attempt.package_sha256 != *package_sha256 || attempt.entity_id != *entity_id {
+                    return Err(SiteLedgerError::AttemptContextMismatch(attempt_id.clone()));
+                }
+                if attempt.robot_id != event.actor_id {
+                    return Err(SiteLedgerError::AttemptActorMismatch(attempt_id.clone()));
+                }
+                if attempt.robot_disposition.is_some() || attempt.referee_assessed {
+                    return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
+                }
+                // Interruption is not a claim that work is absent or complete.
+                // It only advances the attempt to independent reconciliation.
+                attempt.robot_disposition = Some(RobotExecutionDisposition::Unknown);
+                let package = self.current_package_mut(package_sha256)?;
+                package.entity_states.insert(
+                    entity_id.clone(),
+                    SiteEntityState::AwaitingIndependentMeasurement {
+                        attempt_id: attempt_id.clone(),
+                        robot_disposition: RobotExecutionDisposition::Unknown,
+                    },
+                );
+            }
             SiteEventPayload::RefereeAssessmentRecorded {
                 package_sha256,
                 entity_id,
@@ -573,6 +623,11 @@ impl SiteStateLedger {
                                 reason,
                             }
                         }
+                        ScoredRefereeOutcome::Absent(receipt) => SiteEntityState::PhysicallyAbsent {
+                            attempt_id: attempt_id.clone(),
+                            referee_event_id: event.event_id.clone(),
+                            receipt_sha256: receipt,
+                        },
                         ScoredRefereeOutcome::Held(receipt, reason) => SiteEntityState::Held {
                             attempt_id: attempt_id.clone(),
                             referee_event_id: event.event_id.clone(),
@@ -636,6 +691,7 @@ impl SiteStateLedger {
 enum ScoredRefereeOutcome {
     Accepted(String),
     Rejected(String, SiteRejectionReason),
+    Absent(String),
     Held(String, EntityScoreReason),
 }
 
@@ -650,10 +706,7 @@ fn evaluate_referee_assessment(
             if !is_sha256(receipt_sha256) {
                 return Err(SiteLedgerError::InvalidReceiptDigest);
             }
-            Ok(ScoredRefereeOutcome::Rejected(
-                receipt_sha256.clone(),
-                SiteRejectionReason::NoMarkFound,
-            ))
+            Ok(ScoredRefereeOutcome::Absent(receipt_sha256.clone()))
         }
         SiteRefereeAssessment::Unresolved {
             receipt_sha256,
@@ -1582,6 +1635,240 @@ mod tests {
             ledger.entity_state(&old_package, "line-1"),
             Some(SiteEntityState::AwaitingIndependentMeasurement { .. })
         ));
+    }
+
+
+    #[test]
+    fn interrupted_attempt_remains_unaccepted_until_referee_reconciliation() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let interrupted = event(
+            "event-interrupted",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::ExecutionInterrupted {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                reason: "robot lost power mid-task".into(),
+                interruption_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(interrupted).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::AwaitingIndependentMeasurement {
+                robot_disposition: RobotExecutionDisposition::Unknown,
+                ..
+            })
+        ));
+        assert_eq!(ledger.accepted_count(&package_digest), Some(0));
+
+        let publish = event(
+            "event-publish-while-interrupted",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '8',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package('f', &["line-1"]),
+            },
+        );
+        assert_eq!(
+            ledger.apply(publish),
+            Err(SiteLedgerError::PackageHasUnresolvedAttempts(
+                package_digest.clone()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), 4);
+
+        let referee = event(
+            "event-referee-after-interruption",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::Measured(measurement(0.2, 0.1)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::Accepted { .. })
+        ));
+        assert_eq!(ledger.accepted_count(&package_digest), Some(1));
+    }
+
+    #[test]
+    fn held_and_rejected_physical_marks_block_package_supersession() {
+        let (mut held_ledger, held_package, held_attempt) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            held_ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: held_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: held_attempt.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        held_ledger.apply(robot).unwrap();
+        let unresolved = event(
+            "event-referee-held",
+            5,
+            held_ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: held_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: held_attempt,
+                assessment: SiteRefereeAssessment::Unresolved {
+                    receipt_sha256: digest('8'),
+                    reason: "tracker lost lock".into(),
+                },
+            },
+        );
+        held_ledger.apply(unresolved).unwrap();
+        let held_publish = event(
+            "event-publish-held",
+            6,
+            held_ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package('f', &["line-1"]),
+            },
+        );
+        assert!(matches!(
+            held_ledger.apply(held_publish),
+            Err(SiteLedgerError::PackageHasUnresolvedAttempts(_))
+        ));
+        assert_eq!(held_ledger.last_sequence(), 5);
+
+        let (mut rejected_ledger, rejected_package, rejected_attempt) =
+            setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            rejected_ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: rejected_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: rejected_attempt.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        rejected_ledger.apply(robot).unwrap();
+        let rejected = event(
+            "event-referee-rejected",
+            5,
+            rejected_ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: rejected_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: rejected_attempt,
+                assessment: SiteRefereeAssessment::Measured(measurement(2.0, 0.1)),
+            },
+        );
+        rejected_ledger.apply(rejected).unwrap();
+        let rejected_publish = event(
+            "event-publish-rejected",
+            6,
+            rejected_ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: package('f', &["line-1"]),
+            },
+        );
+        assert!(matches!(
+            rejected_ledger.apply(rejected_publish),
+            Err(SiteLedgerError::PackageHasUnresolvedAttempts(_))
+        ));
+        assert_eq!(rejected_ledger.last_sequence(), 5);
+    }
+
+    #[test]
+    fn confirmed_absence_allows_revision_without_falsely_counting_acceptance() {
+        let (mut ledger, old_package, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::NotPrinted,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let absent = event(
+            "event-referee-absent",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::NoMarkFound {
+                    receipt_sha256: digest('8'),
+                },
+            },
+        );
+        ledger.apply(absent).unwrap();
+        assert!(matches!(
+            ledger.entity_state(&old_package, "line-1"),
+            Some(SiteEntityState::PhysicallyAbsent { .. })
+        ));
+        assert_eq!(ledger.accepted_count(&old_package), Some(0));
+        let new_package = package('f', &["line-1"]);
+        let new_digest = new_package.package_sha256.clone();
+        let publish = event(
+            "event-publish-after-absence",
+            6,
+            ledger.last_event_sha256().map(str::to_owned),
+            '9',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: new_package,
+            },
+        );
+        assert_eq!(ledger.apply(publish), Ok(SiteApplyOutcome::Applied));
+        assert_eq!(ledger.active_package_sha256(), Some(new_digest.as_str()));
+        assert_eq!(ledger.accepted_count(&old_package), Some(0));
     }
 
 }
