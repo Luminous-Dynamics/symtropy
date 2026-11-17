@@ -1350,7 +1350,62 @@
       ]
     }
   ],
-  "instruments": [],
+  "instruments": [
+    {
+      "instrument_id": "ac-power-analyzer",
+      "measurement": "True real power/energy, voltage, frequency, power factor, current and safe transient/startup capture; record bandwidth, sampling cadence and uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "water-flow-meter-set",
+      "measurement": "Separate preparation, cooking and cleaning water flow/volume; hot/cold source and meter uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "precision-balance",
+      "measurement": "Ingredient, small-batch output, trim, residue and cleaning material mass; include check-weight verification.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "platform-scale",
+      "measurement": "Vessel, bulk ingredient, accepted output, reject and process-water mass; include capacity and check-weight verification.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "temperature-probe-array",
+      "measurement": "Food temperature and spatial uniformity; record probe type, response, placement, calibration and uncertainty.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "environment-monitor",
+      "measurement": "Ambient temperature, relative humidity and relevant environmental conditions during trials.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "particle-size-imaging-rig",
+      "measurement": "Calibrated imaging or sieve-based particle-size distribution, including scale, illumination, sampling and fines measurement.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "sound-level-meter",
+      "measurement": "A-weighted sound levels and background noise, with meter class, placement and calibration.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    },
+    {
+      "instrument_id": "cleaning-residue-assay",
+      "measurement": "Standardized soil loading and gravimetric or chemical residue measurement with method and detection limit.",
+      "calibration_ref": null,
+      "status": "not_selected"
+    }
+  ],
   "runs": [],
   "power_scheduler": {
     "status": "linked_unrun",
