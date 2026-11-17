@@ -562,7 +562,7 @@ pub fn assess_wrench_consistency(
     expected_sample_identity: &str,
     native_observation_set_digest: &str,
     wrench_observation_digest: &str,
-    maximum_absolute_standardized_residual: f64,
+    maximum_mahalanobis_distance: f64,
 ) -> WrenchConsistencyReport {
     let base = |disposition, reasons| WrenchConsistencyReport {
         disposition,
@@ -571,12 +571,12 @@ pub fn assess_wrench_consistency(
         residual_moment_nm: None,
         whitened_residual_components: None,
         mahalanobis_distance: None,
-        accepted_maximum_mahalanobis_distance: maximum_absolute_standardized_residual,
+        accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
         reasons,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     };
-    if !maximum_absolute_standardized_residual.is_finite()
-        || maximum_absolute_standardized_residual <= 0.0
+    if !maximum_mahalanobis_distance.is_finite()
+        || maximum_mahalanobis_distance <= 0.0
     {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
@@ -635,7 +635,7 @@ pub fn assess_wrench_consistency(
     ];
     let whitened = whiten_wrench_residual(&covariance_cholesky, &raw_residual);
     let distance = dot(&whitened, &whitened).sqrt();
-    let disposition = if distance <= maximum_absolute_standardized_residual {
+    let disposition = if distance <= maximum_mahalanobis_distance {
         WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
     } else {
         WrenchConsistencyDisposition::Mismatch
@@ -647,7 +647,7 @@ pub fn assess_wrench_consistency(
         residual_moment_nm: Some(residual_moment),
         whitened_residual_components: Some(whitened),
         mahalanobis_distance: Some(distance),
-        accepted_maximum_mahalanobis_distance: maximum_absolute_standardized_residual,
+        accepted_maximum_mahalanobis_distance: maximum_mahalanobis_distance,
         reasons: if disposition == WrenchConsistencyDisposition::Mismatch {
             vec!["integrated tactile field disagrees with the independent six-axis wrench beyond the declared full-covariance Mahalanobis threshold".to_owned()]
         } else {
@@ -1083,6 +1083,67 @@ mod tests {
             report.disposition,
             WrenchConsistencyDisposition::ReferenceChainUnresolved
         );
+    }
+
+    #[test]
+    fn full_covariance_changes_joint_wrench_residual_admission() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let mut observation = observation_from_field(&operator, &field);
+        observation.force_n.x += 0.01;
+        observation.force_n.y += 0.01;
+        // Correlated Fx/Fy uncertainty (rho = 0.5); covariance remains SPD.
+        observation.covariance.matrix_row_major[1] = 0.00005;
+        observation.covariance.matrix_row_major[6] = 0.00005;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &observation,
+            &evidence(),
+            "sample:001",
+            "sha256:native-observations",
+            "sha256:wrench-observation",
+            1.2,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
+        );
+        let distance = report.mahalanobis_distance.expect("joint distance");
+        assert!((distance - 1.154700538).abs() < 1.0e-6);
+    }
+
+    #[test]
+    fn malformed_wrench_covariance_is_rejected() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let mut asymmetric = observation_from_field(&operator, &field);
+        asymmetric.covariance.matrix_row_major[1] = 0.00001;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &asymmetric,
+            &evidence(),
+            "sample:001",
+            "sha256:native-observations",
+            "sha256:wrench-observation",
+            3.0,
+        );
+        assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
+
+        let mut non_positive_definite = observation_from_field(&operator, &field);
+        non_positive_definite.covariance.matrix_row_major[0] = 0.0;
+        let report = assess_wrench_consistency(
+            &operator,
+            &field,
+            &non_positive_definite,
+            &evidence(),
+            "sample:001",
+            "sha256:native-observations",
+            "sha256:wrench-observation",
+            3.0,
+        );
+        assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
     }
 
     #[test]
