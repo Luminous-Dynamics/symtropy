@@ -59,10 +59,8 @@ fn synchrotron_loss_mev_per_turn(
         return Err("synchrotron inputs must be finite and positive".to_owned());
     }
     let mass_scale = (ELECTRON_MASS_GEV / particle_mass_gev).powi(4);
-    let loss = ELECTRON_U0_COEFFICIENT_MEV
-        * beam_energy_gev.powi(4)
-        / bending_radius_m
-        * mass_scale;
+    let loss =
+        ELECTRON_U0_COEFFICIENT_MEV * beam_energy_gev.powi(4) / bending_radius_m * mass_scale;
     if !loss.is_finite() || loss < 0.0 {
         return Err("synchrotron loss is non-finite or negative".to_owned());
     }
@@ -119,8 +117,7 @@ fn calculate_case(
     let proton_sr_loss_mev_per_turn =
         synchrotron_loss_mev_per_turn(beam_energy_gev, bending_radius_m, PROTON_MASS_GEV)?;
     let proton_beam_energy_mev = beam_energy_gev * 1.0e3;
-    let proton_sr_loss_fraction_per_turn =
-        proton_sr_loss_mev_per_turn / proton_beam_energy_mev;
+    let proton_sr_loss_fraction_per_turn = proton_sr_loss_mev_per_turn / proton_beam_energy_mev;
     let proton_sr_power_mw_at_reference_current =
         PROTON_REFERENCE_CURRENT_A * proton_sr_loss_mev_per_turn;
 
@@ -134,22 +131,19 @@ fn calculate_case(
 
     // Retain the NLASG reference bunch/repetition inputs solely as a common
     // scaling profile. This is not a bunch-pattern or luminosity prediction.
-    let average_circulating_bunch_equivalents =
-        MUON_BUNCH_REPETITION_HZ * muon_lab_lifetime_s;
+    let average_circulating_bunch_equivalents = MUON_BUNCH_REPETITION_HZ * muon_lab_lifetime_s;
     let average_muon_beam_current_a = ELEMENTARY_CHARGE_C
         * MUONS_PER_BUNCH
         * average_circulating_bunch_equivalents
         * revolution_frequency_hz;
     let muon_bunch_energy_j = MUONS_PER_BUNCH * beam_energy_gev * JOULES_PER_GEV;
-    let muon_injection_power_mw_per_beam =
-        muon_bunch_energy_j * MUON_BUNCH_REPETITION_HZ / 1.0e6;
+    let muon_injection_power_mw_per_beam = muon_bunch_energy_j * MUON_BUNCH_REPETITION_HZ / 1.0e6;
 
     let muon_sr_loss_mev_per_turn =
         synchrotron_loss_mev_per_turn(beam_energy_gev, bending_radius_m, MUON_MASS_GEV)?;
     let muon_beam_energy_mev = beam_energy_gev * 1.0e3;
     let muon_sr_loss_fraction_per_turn = muon_sr_loss_mev_per_turn / muon_beam_energy_mev;
-    let muon_sr_power_mw_per_beam_formal =
-        average_muon_beam_current_a * muon_sr_loss_mev_per_turn;
+    let muon_sr_power_mw_per_beam_formal = average_muon_beam_current_a * muon_sr_loss_mev_per_turn;
     let muon_sr_to_injection_power_ratio =
         muon_sr_power_mw_per_beam_formal / muon_injection_power_mw_per_beam;
     let muon_quantum_chi = quantum_parameter(beam_energy_gev, field_t, MUON_MASS_GEV)?;
@@ -287,12 +281,15 @@ fn render_report_json() -> Result<String, String> {
     let mut rows = Vec::new();
     for circumference_km in [50.0, 100.0, 150.0] {
         for field_t in [8.33, 14.0, 16.0, 20.0] {
-            rows.push(render_case_json(calculate_case(circumference_km, field_t, 0.67)?));
+            rows.push(render_case_json(calculate_case(
+                circumference_km,
+                field_t,
+                0.67,
+            )?));
         }
     }
     let fcc_hh_comparator = calculate_case(97.75, 16.0, 0.67)?;
-    let fcc_energy_relative_difference =
-        (fcc_hh_comparator.proton_cm_energy_tev - 100.0) / 100.0;
+    let fcc_energy_relative_difference = (fcc_hh_comparator.proton_cm_energy_tev - 100.0) / 100.0;
     let fcc_power_relative_difference =
         (fcc_hh_comparator.proton_sr_power_mw_at_reference_current - 2.4) / 2.4;
 
@@ -369,7 +366,11 @@ mod tests {
     fn fcc_hh_geometry_screen_reproduces_energy_and_power_scale_without_fitting() {
         let case = calculate_case(97.75, 16.0, 0.67).expect("valid FCC comparator geometry");
         close(case.proton_cm_energy_tev, 99.995_943_309, 1.0e-9);
-        close(case.proton_sr_power_mw_at_reference_current, 2.333_866_237, 1.0e-9);
+        close(
+            case.proton_sr_power_mw_at_reference_current,
+            2.333_866_237,
+            1.0e-9,
+        );
         assert!((case.proton_sr_power_mw_at_reference_current - 2.4).abs() / 2.4 < 0.04);
     }
 
@@ -380,7 +381,11 @@ mod tests {
         let c150 = calculate_case(150.0, 14.0, 0.67).expect("150 km");
         close(c50.muon_decay_turns, c100.muon_decay_turns, 1.0e-9);
         close(c100.muon_decay_turns, c150.muon_decay_turns, 1.0e-9);
-        close(c50.two_beam_muon_luminosity_decay_turns, c50.muon_decay_turns / 2.0, 1.0e-12);
+        close(
+            c50.two_beam_muon_luminosity_decay_turns,
+            c50.muon_decay_turns / 2.0,
+            1.0e-12,
+        );
     }
 
     #[test]
@@ -408,9 +413,9 @@ mod tests {
         let report = render_report_json().expect("valid local-ring report");
         assert!(report.contains("\"comparison_matrix_count\":12"));
         assert!(report.contains("\"circumference_km\":100.000000"));
-        assert!(report.contains(
-            "\"field_evidence_label\":\"hts_stretch_case_not_production_ready\""
-        ));
+        assert!(
+            report.contains("\"field_evidence_label\":\"hts_stretch_case_not_production_ready\"")
+        );
         assert!(report.contains("unadjusted_screening_residual_retained_not_calibrated_away"));
         assert!(report.contains("synchrotron_replacement_power_exceeds_injection_power"));
         assert!(report.contains("no achievable collider"));
