@@ -314,6 +314,58 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::geometry_uncertainty::run_synthetic_geometry_uncertainty_example() {
+                Ok(report) => {
+                    println!("geometry_wrench_uncertainty=synthetic_v0_1");
+                    match serde_json::to_string(&report) {
+                        Ok(scorecard_json) => {
+                            println!("geometry_wrench_uq_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("geometry_wrench_uq_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "geometry_wrench_uq={:?} local_covariance={} global_pose_covariance={} total_geometry_covariance={} combined_admissible={} local_parameters={} global_pose_parameters={}",
+                        report.disposition,
+                        report.local_geometry_covariance_row_major.is_some(),
+                        report.global_pose_covariance_row_major.is_some(),
+                        report.total_geometry_covariance_row_major.is_some(),
+                        report.admissible_for_combined_wrench_uncertainty,
+                        report.local_taxel_parameter_count,
+                        report.global_pose_parameter_count,
+                    );
+                }
+                Err(error) => {
+                    eprintln!("geometry_wrench_uncertainty=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+            match phri_tac_transfer_oracle::active_benchmark::geometry_uncertainty::run_synthetic_geometry_uq_monte_carlo_example() {
+                Ok(report) => {
+                    println!("geometry_uq_monte_carlo=synthetic_v0_1");
+                    match serde_json::to_string(&report) {
+                        Ok(scorecard_json) => {
+                            println!("geometry_uq_monte_carlo_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("geometry_uq_monte_carlo_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "geometry_uq_mc=replicates={} relative_covariance_frobenius_error={:.6} mean_bias={:?}",
+                        report.replicate_count,
+                        report.relative_covariance_frobenius_error,
+                        report.empirical_mean_bias_from_nominal,
+                    );
+                }
+                Err(error) => {
+                    eprintln!("geometry_uq_monte_carlo=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {

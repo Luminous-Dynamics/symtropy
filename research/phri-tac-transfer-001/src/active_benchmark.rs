@@ -15,6 +15,7 @@ pub mod coupling_campaign;
 pub mod coupling_identification;
 pub mod field_campaign;
 pub mod field_reconstruction;
+pub mod geometry_uncertainty;
 pub mod model_forms;
 pub mod observability_design;
 pub mod operating_envelope;
