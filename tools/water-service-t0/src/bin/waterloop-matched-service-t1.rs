@@ -167,6 +167,20 @@ fn empty_block(block_id: &str, disposition: &str, energy: Option<f64>) -> Value 
     })
 }
 
+fn empty_block_from_input(block: &Value, block_id: &str, disposition: &str) -> Value {
+    let energy = block
+        .get("treatment")
+        .filter(|value| !value.is_null())
+        .and_then(|treatment| treatment.get("energy"))
+        .and_then(|raw| parse_measurement(raw, "treatment.energy").ok())
+        .filter(|measurement| {
+            measurement.unit == "kWh"
+                && measurement.boundary == "whole_treatment_pump_train_electrical_boundary"
+        })
+        .map(|measurement| measurement.value);
+    empty_block(block_id, disposition, energy)
+}
+
 fn count_duplicate_allocations(blocks: &[Value]) -> Result<BTreeSet<String>, String> {
     let mut counts = BTreeMap::<String, usize>::new();
     for (index, block) in blocks.iter().enumerate() {
@@ -191,16 +205,16 @@ fn eval_block(
     let context = format!("block {block_id}");
     let allocation_id = string(block, "recovered_allocation_id", &context)?;
     if duplicate_allocations.contains(allocation_id) {
-        return Ok(empty_block(block_id, "zero_credit_duplicate_recovered_allocation", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_duplicate_recovered_allocation"));
     }
 
     let control_value = field(block, "control", &context)?;
     if control_value.is_null() {
-        return Ok(empty_block(block_id, "indeterminate_missing_control", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_missing_control"));
     }
     let treatment_value = field(block, "treatment", &context)?;
     if treatment_value.is_null() {
-        return Ok(empty_block(block_id, "indeterminate_missing_treatment", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_missing_treatment"));
     }
     let control = control_value;
     let treatment = treatment_value;
@@ -208,23 +222,23 @@ fn eval_block(
     if string(control, "arm_id", &context)? != "CONTROL-MAINS"
         || string(treatment, "arm_id", &context)? != "TREATMENT-RECOVERED"
     {
-        return Ok(empty_block(block_id, "zero_credit_arm_identity", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_arm_identity"));
     }
     let use_profile = string(case, "use_profile_id", "case")?;
     let source_profile = string(case, "source_profile_id", "case")?;
     if string(control, "use_profile_id", &context)? != use_profile
         || string(treatment, "use_profile_id", &context)? != use_profile
     {
-        return Ok(empty_block(block_id, "zero_credit_use_profile_mismatch", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_use_profile_mismatch"));
     }
     if string(treatment, "source_profile_id", &context)? != source_profile {
-        return Ok(empty_block(block_id, "zero_credit_source_profile_mismatch", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_source_profile_mismatch"));
     }
 
     let control_run = string(control, "run_id", &context)?;
     let treatment_run = string(treatment, "run_id", &context)?;
     if control_run.trim().is_empty() || treatment_run.trim().is_empty() || control_run == treatment_run {
-        return Ok(empty_block(block_id, "zero_credit_arm_identity", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_arm_identity"));
     }
 
     let control_digest = string(control, "demand_trace_digest", &context)?;
@@ -235,20 +249,20 @@ fn eval_block(
         || control_digest != treatment_digest
         || control_digest != block_digest
     {
-        return Ok(empty_block(block_id, "indeterminate_demand_trace_mismatch", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_trace_mismatch"));
     }
 
     let control_demand = number(control, "measured_demand_l", &context)?;
     let treatment_demand = number(treatment, "measured_demand_l", &context)?;
     if control_demand < 0.0 || treatment_demand < 0.0 {
-        return Ok(empty_block(block_id, "indeterminate_demand_not_comparable", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_not_comparable"));
     }
     let demand_denominator = control_demand.max(treatment_demand).max(1.0);
     let demand_difference_percent =
         (control_demand - treatment_demand).abs() / demand_denominator * 100.0;
     let maximum_difference = number(case, "max_demand_relative_difference_percent", "case")?;
     if demand_difference_percent > maximum_difference {
-        return Ok(empty_block(block_id, "indeterminate_demand_not_comparable", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_not_comparable"));
     }
 
     let control_start = string(control, "start_utc", &context)?;
@@ -264,13 +278,13 @@ fn eval_block(
     .into_iter()
     .all(valid_canonical_utc)
     {
-        return Ok(empty_block(block_id, "indeterminate_invalid_timebase", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_timebase"));
     }
     if control_start >= control_end || treatment_start >= treatment_end {
-        return Ok(empty_block(block_id, "indeterminate_invalid_timebase", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_timebase"));
     }
     if !(control_end <= treatment_start || treatment_end <= control_start) {
-        return Ok(empty_block(block_id, "indeterminate_overlapping_windows", None));
+        return Ok(empty_block_from_input(block, block_id, "indeterminate_overlapping_windows"));
     }
 
     let service = field(case, "service_envelope", "case")?;
@@ -292,7 +306,7 @@ fn eval_block(
             || flow_min < min_flow
             || flow_max > max_flow
         {
-            return Ok(empty_block(block_id, "zero_credit_service_envelope_violation", None));
+            return Ok(empty_block_from_input(block, block_id, "zero_credit_service_envelope_violation"));
         }
     }
 
@@ -304,7 +318,7 @@ fn eval_block(
         || quality.get("independent_review").and_then(Value::as_bool) != Some(true)
         || quality.get("release_ref").and_then(Value::as_str).is_none_or(str::is_empty)
     {
-        return Ok(empty_block(block_id, "zero_credit_quality_not_released_for_profile", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_quality_not_released_for_profile"));
     }
 
     let raw_measurements = [
@@ -340,7 +354,7 @@ fn eval_block(
     ];
     for (key, unit) in expected_units {
         if expect_measurement(&measurements, key, unit, &context).is_err() {
-            return Ok(empty_block(block_id, "indeterminate_invalid_measurement_evidence", None));
+            return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_measurement_evidence"));
         }
     }
 
@@ -359,7 +373,7 @@ fn eval_block(
     if expected_boundaries.iter().any(|(key, boundary)| {
         measurements.get(*key).is_none_or(|measurement| measurement.boundary != *boundary)
     }) {
-        return Ok(empty_block(block_id, "zero_credit_service_boundary_mismatch", None));
+        return Ok(empty_block_from_input(block, block_id, "zero_credit_service_boundary_mismatch"));
     }
 
     let instrument_ids: BTreeSet<String> = measurements
@@ -378,10 +392,10 @@ fn eval_block(
         || channel_ids.len() != measurements.len()
         || raw_digests.len() != measurements.len()
     {
-        return Ok(empty_block(
+        return Ok(empty_block_from_input(
+            block,
             block_id,
             "zero_credit_duplicate_meter_or_record_identity",
-            None,
         ));
     }
 
@@ -499,6 +513,10 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         .iter()
         .map(|block| block["energy_kwh"].as_f64().unwrap_or(0.0))
         .sum();
+    let energy_observed_block_count = outputs
+        .iter()
+        .filter(|block| block["energy_kwh"].is_number())
+        .count();
     let credited_block_count = outputs
         .iter()
         .filter(|block| block["disposition"] == "credited")
@@ -519,6 +537,7 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         "point_credit_l": point_credit,
         "uncertainty_screened_lower_credit_l": lower_credit,
         "energy_kwh": energy,
+        "energy_observed_block_count": energy_observed_block_count,
         "energy_kwh_per_1000l_lower_credit": energy_intensity,
         "block_dispositions": outputs,
         "disposition_counts": disposition_counts,
