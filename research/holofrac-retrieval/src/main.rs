@@ -101,7 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for dimension in [2_048, 4_096, 8_192, 16_384] {
         let report = run_benchmark(&graph, dimension, 0x484f_4c4f_4652_4143)?;
         println!(
-            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{},{},{},{},{},{},{},{}",
             report.dimension,
             report.fact_count,
             report.positive_queries,
