@@ -77,7 +77,8 @@
         "quantity",
         "unit",
         "valid_from",
-        "valid_to"
+        "valid_to",
+        "conflict_evidence_ids"
       ],
       "properties": {
         "claim_id": {
@@ -102,6 +103,15 @@
         "valid_to": {
           "type": "string",
           "format": "date-time"
+        },
+        "conflict_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
