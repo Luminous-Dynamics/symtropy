@@ -16,6 +16,7 @@ pub mod coupling_identification;
 pub mod field_campaign;
 pub mod field_reconstruction;
 pub mod model_forms;
+pub mod observability_design;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
