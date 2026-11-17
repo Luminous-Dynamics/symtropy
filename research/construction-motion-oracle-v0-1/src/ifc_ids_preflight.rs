@@ -854,8 +854,6 @@ mod tests {
     }
 
 }
-)
-}
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
