@@ -738,18 +738,14 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     // Coarse SAP is run once across the full horizon. Temporal refinement
     // then visits only this conservative candidate set, not every body in
     // every slab.
-    let hierarchical: Option<HierarchicalMultiBodyBroadphaseReport> =
-        if outer_bodies.len() >= 2 {
-            Some(
-                time_swept_capsule_broadphase_hierarchical(
-                    &outer_bodies,
-                    config.subdivision_count,
-                )
+    let hierarchical: Option<HierarchicalMultiBodyBroadphaseReport> = if outer_bodies.len() >= 2 {
+        Some(
+            time_swept_capsule_broadphase_hierarchical(&outer_bodies, config.subdivision_count)
                 .map_err(RelativeTimeBroadphaseError::Broadphase)?,
-            )
-        } else {
-            None
-        };
+        )
+    } else {
+        None
+    };
     let broadphase = hierarchical.as_ref().map(|report| report.coarse.clone());
     let refined_pairs = hierarchical
         .as_ref()
@@ -807,50 +803,50 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     };
 
     for candidate in refined_pairs {
-            let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
+        let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
+            return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
+        };
+        let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
+            return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
+        };
+        let pairwise = evaluate_pair(&first.mapped, &second.mapped);
+        let unresolved_reason =
+            if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
+                pairwise
+                    .unresolved_reason
+                    .clone()
+                    .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+            } else {
+                None
             };
-            let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
-            };
-            let pairwise = evaluate_pair(&first.mapped, &second.mapped);
-            let unresolved_reason =
-                if pairwise.disposition == RelativeTimePairDisposition::Unresolved {
-                    pairwise
-                        .unresolved_reason
-                        .clone()
-                        .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
-                } else {
-                    None
-                };
-            if unresolved_reason.is_some() {
-                output.unresolved_pairs += 1;
-            }
-            if matches!(
-                pairwise.disposition,
-                RelativeTimePairDisposition::ExactNoContact
-                    | RelativeTimePairDisposition::NoPossibleContact
-                    | RelativeTimePairDisposition::NoPossibleTemporalOverlap
-            ) {
-                output.pairwise_noncontact_candidates += 1;
-            }
-            output.pairwise_checked_pairs += 1;
-            output.pairs.push(RelativeTimeBroadphasePairReceipt {
-                first_body_id: candidate.first_body_id.clone(),
-                second_body_id: candidate.second_body_id.clone(),
-                disposition: if unresolved_reason.is_some() {
-                    RelativeTimeBroadphasePairDisposition::Unresolved
-                } else {
-                    RelativeTimeBroadphasePairDisposition::PairwiseChecked
-                },
-                candidate_slab_indices: candidate
-                    .candidate_slabs
-                    .iter()
-                    .map(|slab| slab.slab_index)
-                    .collect(),
-                pairwise_result: Some(pairwise),
-                unresolved_reason,
-            });
+        if unresolved_reason.is_some() {
+            output.unresolved_pairs += 1;
+        }
+        if matches!(
+            pairwise.disposition,
+            RelativeTimePairDisposition::ExactNoContact
+                | RelativeTimePairDisposition::NoPossibleContact
+                | RelativeTimePairDisposition::NoPossibleTemporalOverlap
+        ) {
+            output.pairwise_noncontact_candidates += 1;
+        }
+        output.pairwise_checked_pairs += 1;
+        output.pairs.push(RelativeTimeBroadphasePairReceipt {
+            first_body_id: candidate.first_body_id.clone(),
+            second_body_id: candidate.second_body_id.clone(),
+            disposition: if unresolved_reason.is_some() {
+                RelativeTimeBroadphasePairDisposition::Unresolved
+            } else {
+                RelativeTimeBroadphasePairDisposition::PairwiseChecked
+            },
+            candidate_slab_indices: candidate
+                .candidate_slabs
+                .iter()
+                .map(|slab| slab.slab_index)
+                .collect(),
+            pairwise_result: Some(pairwise),
+            unresolved_reason,
+        });
     }
     Ok(output)
 }
