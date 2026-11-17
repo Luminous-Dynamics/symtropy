@@ -399,17 +399,24 @@ pub fn evaluate_groupwise_split_conformal(
             }
         };
 
-        let interval_width = model
-            .groups
-            .iter()
-            .find(|candidate| {
-                candidate.stratum_id == observation.stratum_id
-                    && candidate.context_digest == observation.context_digest
-                    && candidate.disposition == ConformalFitDisposition::Fitted
-            })
-            .and_then(|threshold| threshold.score_quantile)
-            .map(|quantile| 2.0 * quantile * observation.predicted_scale)
-            .filter(|width| width.is_finite() && observation.in_qualified_domain);
+        let interval_width = if matches!(
+            disposition,
+            IntervalEvaluationDisposition::Covered | IntervalEvaluationDisposition::Missed
+        ) {
+            model
+                .groups
+                .iter()
+                .find(|candidate| {
+                    candidate.stratum_id == observation.stratum_id
+                        && candidate.context_digest == observation.context_digest
+                        && candidate.disposition == ConformalFitDisposition::Fitted
+                })
+                .and_then(|threshold| threshold.score_quantile)
+                .map(|quantile| 2.0 * quantile * observation.predicted_scale)
+                .filter(|width| width.is_finite())
+        } else {
+            None
+        };
         let normalized_absolute_error = interval_width
             .map(|_| observation.absolute_error / observation.predicted_scale);
 
