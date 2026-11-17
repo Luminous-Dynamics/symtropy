@@ -747,5 +747,4 @@ mod tests {
             TimedCcdVerificationDisposition::ContactWitness
         );
     }
-
 }
