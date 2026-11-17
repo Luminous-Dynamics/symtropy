@@ -287,8 +287,9 @@ pub fn verify_timed_co_translating_result(
         return Ok(receipt);
     }
 
-    if distance <= radius_sum + CONTACT_EPSILON_MM {
-        receipt.disposition = if expected_terminal {
+    let contact_threshold = radius_sum + CONTACT_EPSILON_MM;
+    if distance <= contact_threshold {
+        receipt.disposition = if expected_terminal && distance == contact_threshold {
             TimedCcdVerificationDisposition::TerminalBoundaryCandidate
         } else {
             TimedCcdVerificationDisposition::ContactWitness
@@ -598,7 +599,10 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
         assert_eq!(
             receipt.reason,
             TimedCcdVerificationReason::ReportedValueMismatch
@@ -617,7 +621,10 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
         assert_eq!(
             receipt.reason,
             TimedCcdVerificationReason::ClockUncertaintyUnsupported
@@ -636,7 +643,10 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
         assert_eq!(receipt.reason, TimedCcdVerificationReason::ContextMismatch);
     }
 
@@ -683,8 +693,14 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
-        assert_eq!(receipt.reason, TimedCcdVerificationReason::ReportedValueMismatch);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
+        assert_eq!(
+            receipt.reason,
+            TimedCcdVerificationReason::ReportedValueMismatch
+        );
     }
 
     #[test]
@@ -709,7 +725,10 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
         assert_eq!(
             receipt.reason,
             TimedCcdVerificationReason::KktConditionsFailed
@@ -717,4 +736,16 @@ mod tests {
         assert!(receipt.kkt_checked);
         assert!(receipt.max_kkt_gradient_residual_mm2 > 1.0e-6);
     }
+
+    #[test]
+    fn strict_contact_at_terminal_limit_implies_an_attained_preterminal_witness() {
+        let moving = span(-10.0, 9.5, 0, 1_000);
+        let obstacle = span(0.0, 0.0, 0, 1_000);
+        let receipt = verify_pair(&moving, &obstacle);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::ContactWitness
+        );
+    }
+
 }
