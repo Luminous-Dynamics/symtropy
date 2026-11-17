@@ -1,0 +1,323 @@
+{
+  "schema_version": "protect-evidence-measurement-voi-e8/0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "DETERMINISTIC_MEASUREMENT_DISCRIMINATION_ONLY",
+  "hypothesis_set": {
+    "set_id": "water-flow-explanation-set-001",
+    "closed_world": true,
+    "hypotheses": [
+      {
+        "hypothesis_id": "H1_VALVE_RESTRICTION",
+        "description": "Valve restriction limits actual inlet flow.",
+        "known_truth_label": "synthetic-control-only"
+      },
+      {
+        "hypothesis_id": "H2_SENSOR_A_DRIFT",
+        "description": "Actual inlet flow is normal but the original sensor under-reads.",
+        "known_truth_label": "synthetic-control-only"
+      },
+      {
+        "hypothesis_id": "H3_DOWNSTREAM_LEAK",
+        "description": "Inlet flow is normal but a downstream leak reduces delivered flow.",
+        "known_truth_label": "synthetic-control-only"
+      },
+      {
+        "hypothesis_id": "H4_INTERMITTENT_CONTROL",
+        "description": "The system alternates between normal and low flow due to intermittent control.",
+        "known_truth_label": "synthetic-control-only"
+      }
+    ]
+  },
+  "claim_scope": {
+    "claim_id": "water-main-1-flow-rate",
+    "subject_id": "water-main-1",
+    "configuration_digest": "sha256:config-A",
+    "quantity": "volumetric_flow_rate",
+    "unit": "L/s",
+    "valid_from": "2026-11-16T09:00:00Z",
+    "valid_to": "2026-11-16T13:00:00Z"
+  },
+  "constraints": {
+    "maximum_tests_per_plan": 3,
+    "cost_unit": "synthetic-cost-credit",
+    "duration_unit": "minute",
+    "mandatory_safety_floor": "PASS",
+    "required_independence_state": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+    "unknown_status_policy": "INADMISSIBLE",
+    "open_world_policy": "ABSTAIN"
+  },
+  "candidates": [
+    {
+      "candidate_id": "M1_INLET_FLOWMETER",
+      "method_id": "independent-mobile-flowmeter-v1",
+      "description": "Independent calibrated inlet flow measurement.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "volumetric_flow_rate",
+      "unit": "L/s",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-independent-mobile-meter"
+      ],
+      "cost": 3,
+      "duration_minutes": 20,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "HIGH",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "VARIABLE",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M2_ENDPOINT_FLOWLOGGER",
+      "method_id": "independent-endpoint-flow-logger-v1",
+      "description": "Independent calibrated endpoint delivery measurement.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "volumetric_flow_rate",
+      "unit": "L/s",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-independent-endpoint-logger"
+      ],
+      "cost": 3,
+      "duration_minutes": 20,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "HIGH",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT"
+          ]
+        },
+        {
+          "outcome_id": "VARIABLE",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M3_PRESSURE_PROFILE",
+      "method_id": "independent-pressure-profile-v1",
+      "description": "Independent pressure profile across the service line.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "pressure_profile",
+      "unit": "kPa",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-independent-pressure-kit"
+      ],
+      "cost": 4,
+      "duration_minutes": 15,
+      "outcomes": [
+        {
+          "outcome_id": "UPSTREAM_RESTRICTION",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "NORMAL_PRESSURE",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT"
+          ]
+        },
+        {
+          "outcome_id": "DOWNSTREAM_GRADIENT",
+          "hypothesis_ids": [
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "OSCILLATING_PRESSURE",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M4_VALVE_INSPECTION",
+      "method_id": "qualified-valve-inspection-v1",
+      "description": "Qualified non-destructive inspection of valve and actuator.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "valve_state",
+      "unit": "categorical",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-independent-inspection-team"
+      ],
+      "cost": 2,
+      "duration_minutes": 35,
+      "outcomes": [
+        {
+          "outcome_id": "RESTRICTED",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "OPEN",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "OSCILLATING",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M5_VENDOR_REPEAT_OF_SENSOR_A",
+      "method_id": "vendor-repeat-v1",
+      "description": "Vendor re-exports the same upstream sensor-A feed.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "volumetric_flow_rate",
+      "unit": "L/s",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "SHARED_WITH_CONFLICT",
+      "dependency_evidence_ids": [
+        "ev-sensor-a"
+      ],
+      "cost": 1,
+      "duration_minutes": 5,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "HIGH",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "VARIABLE",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M6_UNCALIBRATED_PRESSURE_TEST",
+      "method_id": "unqualified-pressure-test",
+      "description": "Pressure test whose calibration status is unknown.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "pressure_profile",
+      "unit": "kPa",
+      "calibration_status": "UNKNOWN",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-unknown-calibration"
+      ],
+      "cost": 1,
+      "duration_minutes": 10,
+      "outcomes": [
+        {
+          "outcome_id": "LOW",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "HIGH",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        },
+        {
+          "outcome_id": "VARIABLE",
+          "hypothesis_ids": [
+            "H4_INTERMITTENT_CONTROL"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate_id": "M7_INCOMPLETE_PARTITION",
+      "method_id": "incomplete-outcome-map-v1",
+      "description": "Candidate test with one missing hypothesis outcome.",
+      "configuration_digest": "sha256:config-A",
+      "subject_id": "water-main-1",
+      "quantity": "valve_state",
+      "unit": "categorical",
+      "calibration_status": "VALID",
+      "authority_status": "QUALIFIED",
+      "safety_status": "PASS",
+      "independence_status": "ATTESTED_FOR_SYNTHETIC_SCOPE",
+      "dependency_evidence_ids": [
+        "ev-independent-inspection-team"
+      ],
+      "cost": 1,
+      "duration_minutes": 10,
+      "outcomes": [
+        {
+          "outcome_id": "RESTRICTED",
+          "hypothesis_ids": [
+            "H1_VALVE_RESTRICTION"
+          ]
+        },
+        {
+          "outcome_id": "OPEN",
+          "hypothesis_ids": [
+            "H2_SENSOR_A_DRIFT",
+            "H3_DOWNSTREAM_LEAK"
+          ]
+        }
+      ]
+    }
+  ]
+}
