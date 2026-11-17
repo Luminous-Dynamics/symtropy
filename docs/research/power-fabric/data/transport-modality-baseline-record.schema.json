@@ -74,7 +74,8 @@
         "measurement_plane",
         "boundary",
         "source_reported",
-        "conditions"
+        "conditions",
+        "evidence_kind"
       ],
       "properties": {
         "name": {
@@ -116,6 +117,15 @@
           "items": {
             "type": "string"
           }
+        },
+        "evidence_kind": {
+          "enum": [
+            "source_reported_measurement",
+            "source_reported_derived",
+            "source_declared_parameter",
+            "source_reported_model_fit",
+            "source_reported_announcement_claim"
+          ]
         }
       },
       "allOf": [
@@ -126,7 +136,8 @@
                 "enum": [
                   "exact",
                   "approximate",
-                  "greater_than"
+                  "greater_than",
+                  "less_than"
                 ]
               }
             },
