@@ -21,10 +21,7 @@ pub struct NumericRange {
 
 impl NumericRange {
     fn validate(self, name: &str) -> Result<(), String> {
-        if !self.minimum.is_finite()
-            || !self.maximum.is_finite()
-            || self.minimum > self.maximum
-        {
+        if !self.minimum.is_finite() || !self.maximum.is_finite() || self.minimum > self.maximum {
             return Err(format!("{name} range must have finite ordered bounds"));
         }
         Ok(())
@@ -114,14 +111,27 @@ impl OperatingDomainCell {
             errors.push("relative humidity range must lie within 0–100 percent RH".to_owned());
         }
         if self.contact_velocity_mm_per_s.minimum < 0.0 || self.contact_radius_mm.minimum < 0.0 {
-            errors.push("contact velocity and contact radius ranges must be nonnegative".to_owned());
+            errors
+                .push("contact velocity and contact radius ranges must be nonnegative".to_owned());
         }
         for (name, value) in [
-            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
-            ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
+            (
+                "sensor_identity_digest",
+                self.sensor_identity_digest.as_str(),
+            ),
+            (
+                "sensorized_body_context_digest",
+                self.sensorized_body_context_digest.as_str(),
+            ),
             ("readout_chain_digest", self.readout_chain_digest.as_str()),
-            ("material_profile_digest", self.material_profile_digest.as_str()),
-            ("contact_geometry_digest", self.contact_geometry_digest.as_str()),
+            (
+                "material_profile_digest",
+                self.material_profile_digest.as_str(),
+            ),
+            (
+                "contact_geometry_digest",
+                self.contact_geometry_digest.as_str(),
+            ),
             ("loading_history_state", self.loading_history_state.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -130,13 +140,38 @@ impl OperatingDomainCell {
         }
         if self.evidence.qualification_status == CellQualificationStatus::Qualified {
             for (name, value) in [
-                ("heldout_validation_receipt_id", self.evidence.heldout_validation_receipt_id.as_str()),
-                ("uncertainty_characterization_receipt_id", self.evidence.uncertainty_characterization_receipt_id.as_str()),
-                ("model_form_adequacy_receipt_id", self.evidence.model_form_adequacy_receipt_id.as_str()),
-                ("observability_qualification_receipt_id", self.evidence.observability_qualification_receipt_id.as_str()),
-                ("independent_reference_receipt_id", self.evidence.independent_reference_receipt_id.as_str()),
-                ("reference_ancestry_receipt_id", self.evidence.reference_ancestry_receipt_id.as_str()),
-                ("common_cause_analysis_receipt_id", self.evidence.common_cause_analysis_receipt_id.as_str()),
+                (
+                    "heldout_validation_receipt_id",
+                    self.evidence.heldout_validation_receipt_id.as_str(),
+                ),
+                (
+                    "uncertainty_characterization_receipt_id",
+                    self.evidence
+                        .uncertainty_characterization_receipt_id
+                        .as_str(),
+                ),
+                (
+                    "model_form_adequacy_receipt_id",
+                    self.evidence.model_form_adequacy_receipt_id.as_str(),
+                ),
+                (
+                    "observability_qualification_receipt_id",
+                    self.evidence
+                        .observability_qualification_receipt_id
+                        .as_str(),
+                ),
+                (
+                    "independent_reference_receipt_id",
+                    self.evidence.independent_reference_receipt_id.as_str(),
+                ),
+                (
+                    "reference_ancestry_receipt_id",
+                    self.evidence.reference_ancestry_receipt_id.as_str(),
+                ),
+                (
+                    "common_cause_analysis_receipt_id",
+                    self.evidence.common_cause_analysis_receipt_id.as_str(),
+                ),
             ] {
                 if value.trim().is_empty() {
                     errors.push(format!("qualified domain cell is missing {name}"));
@@ -147,13 +182,26 @@ impl OperatingDomainCell {
     }
 
     fn numeric_match(&self, point: &OperatingPoint) -> bool {
-        self.normal_force_n.contains(point.normal_force_n.unwrap_or(f64::NAN))
-            && self.tangential_force_n.contains(point.tangential_force_n.unwrap_or(f64::NAN))
-            && self.temperature_c.contains(point.temperature_c.unwrap_or(f64::NAN))
-            && self.humidity_percent.contains(point.humidity_percent.unwrap_or(f64::NAN))
-            && self.loading_rate_n_per_s.contains(point.loading_rate_n_per_s.unwrap_or(f64::NAN))
-            && self.contact_velocity_mm_per_s.contains(point.contact_velocity_mm_per_s.unwrap_or(f64::NAN))
-            && self.contact_radius_mm.contains(point.contact_radius_mm.unwrap_or(f64::NAN))
+        self.normal_force_n
+            .contains(point.normal_force_n.unwrap_or(f64::NAN))
+            && self
+                .tangential_force_n
+                .contains(point.tangential_force_n.unwrap_or(f64::NAN))
+            && self
+                .temperature_c
+                .contains(point.temperature_c.unwrap_or(f64::NAN))
+            && self
+                .humidity_percent
+                .contains(point.humidity_percent.unwrap_or(f64::NAN))
+            && self
+                .loading_rate_n_per_s
+                .contains(point.loading_rate_n_per_s.unwrap_or(f64::NAN))
+            && self
+                .contact_velocity_mm_per_s
+                .contains(point.contact_velocity_mm_per_s.unwrap_or(f64::NAN))
+            && self
+                .contact_radius_mm
+                .contains(point.contact_radius_mm.unwrap_or(f64::NAN))
     }
 
     fn context_match(&self, point: &OperatingPoint) -> bool {
@@ -176,8 +224,12 @@ impl OperatingDomainCell {
             && self.tangential_force_n.overlaps(other.tangential_force_n)
             && self.temperature_c.overlaps(other.temperature_c)
             && self.humidity_percent.overlaps(other.humidity_percent)
-            && self.loading_rate_n_per_s.overlaps(other.loading_rate_n_per_s)
-            && self.contact_velocity_mm_per_s.overlaps(other.contact_velocity_mm_per_s)
+            && self
+                .loading_rate_n_per_s
+                .overlaps(other.loading_rate_n_per_s)
+            && self
+                .contact_velocity_mm_per_s
+                .overlaps(other.contact_velocity_mm_per_s)
             && self.contact_radius_mm.overlaps(other.contact_radius_mm)
     }
 }
@@ -200,11 +252,23 @@ impl QualifiedOperatingEnvelope {
         for (name, value) in [
             ("envelope_id", self.envelope_id.as_str()),
             ("calibration_record_id", self.calibration_record_id.as_str()),
-            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
+            (
+                "sensor_identity_digest",
+                self.sensor_identity_digest.as_str(),
+            ),
             ("model_form_digest", self.model_form_digest.as_str()),
-            ("reference_chain_receipt_id", self.reference_chain_receipt_id.as_str()),
-            ("reference_ancestry_receipt_id", self.reference_ancestry_receipt_id.as_str()),
-            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            (
+                "reference_chain_receipt_id",
+                self.reference_chain_receipt_id.as_str(),
+            ),
+            (
+                "reference_ancestry_receipt_id",
+                self.reference_ancestry_receipt_id.as_str(),
+            ),
+            (
+                "common_cause_analysis_receipt_id",
+                self.common_cause_analysis_receipt_id.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(format!("operating-envelope field {name} is missing"));
@@ -239,8 +303,7 @@ impl QualifiedOperatingEnvelope {
                 if self.cells[left].overlaps(&self.cells[right]) {
                     errors.push(format!(
                         "operating-domain cells {} and {} overlap for the same physical context",
-                        self.cells[left].cell_id,
-                        self.cells[right].cell_id
+                        self.cells[left].cell_id, self.cells[right].cell_id
                     ));
                 }
             }
@@ -287,11 +350,23 @@ impl OperatingPoint {
             }
         }
         for (name, value) in [
-            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
-            ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
+            (
+                "sensor_identity_digest",
+                self.sensor_identity_digest.as_str(),
+            ),
+            (
+                "sensorized_body_context_digest",
+                self.sensorized_body_context_digest.as_str(),
+            ),
             ("readout_chain_digest", self.readout_chain_digest.as_str()),
-            ("material_profile_digest", self.material_profile_digest.as_str()),
-            ("contact_geometry_digest", self.contact_geometry_digest.as_str()),
+            (
+                "material_profile_digest",
+                self.material_profile_digest.as_str(),
+            ),
+            (
+                "contact_geometry_digest",
+                self.contact_geometry_digest.as_str(),
+            ),
             ("loading_history_state", self.loading_history_state.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -355,9 +430,9 @@ pub fn assess_operating_point(
 
     let point_errors = point.validate();
     if !point_errors.is_empty() {
-        let missing = point_errors
-            .iter()
-            .any(|reason| reason.contains("missing required state") || reason.contains("missing context field"));
+        let missing = point_errors.iter().any(|reason| {
+            reason.contains("missing required state") || reason.contains("missing context field")
+        });
         return OperatingEnvelopeAssessment {
             disposition: if missing {
                 OperatingEnvelopeDisposition::MissingRequiredState
@@ -425,8 +500,11 @@ pub fn assess_operating_point(
             OperatingEnvelopeDisposition::CellNotValidated
         }
         CellQualificationStatus::Qualified => {
-            if cell.evidence.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized {
-                reasons.push("cell reference ancestry/common-cause evidence is unresolved".to_owned());
+            if cell.evidence.reference_independence
+                != ReferenceIndependenceDisposition::IndependentlyCharacterized
+            {
+                reasons
+                    .push("cell reference ancestry/common-cause evidence is unresolved".to_owned());
                 OperatingEnvelopeDisposition::ReferenceChainUnresolved
             } else if !cell.evidence.model_form_adequate {
                 reasons.push("cell model-form adequacy is unresolved".to_owned());
@@ -482,12 +560,27 @@ mod tests {
         OperatingDomainCell {
             cell_id: id.to_owned(),
             normal_force_n,
-            tangential_force_n: NumericRange { minimum: 0.0, maximum: 5.0 },
+            tangential_force_n: NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
             temperature_c,
-            humidity_percent: NumericRange { minimum: 10.0, maximum: 90.0 },
-            loading_rate_n_per_s: NumericRange { minimum: 0.0, maximum: 20.0 },
-            contact_velocity_mm_per_s: NumericRange { minimum: 0.0, maximum: 100.0 },
-            contact_radius_mm: NumericRange { minimum: 1.0, maximum: 20.0 },
+            humidity_percent: NumericRange {
+                minimum: 10.0,
+                maximum: 90.0,
+            },
+            loading_rate_n_per_s: NumericRange {
+                minimum: 0.0,
+                maximum: 20.0,
+            },
+            contact_velocity_mm_per_s: NumericRange {
+                minimum: 0.0,
+                maximum: 100.0,
+            },
+            contact_radius_mm: NumericRange {
+                minimum: 1.0,
+                maximum: 20.0,
+            },
             sensor_identity_digest: "sha256:sensor-article".to_owned(),
             sensorized_body_context_digest: "sha256:body".to_owned(),
             readout_chain_digest: "sha256:readout".to_owned(),
@@ -533,11 +626,20 @@ mod tests {
     fn point_inside_exact_qualified_joint_cell_is_accepted() {
         let cell = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         let assessment = assess_operating_point(&envelope(vec![cell]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::QualifiedInsideCell);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::QualifiedInsideCell
+        );
         assert_eq!(assessment.matched_cell_id.as_deref(), Some("cell-a"));
     }
 
@@ -545,13 +647,25 @@ mod tests {
     fn independently_in_range_axes_do_not_qualify_an_untested_joint_combination() {
         let lower_force_high_temp = cell(
             "low-force-hot",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 30.0, maximum: 40.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 30.0,
+                maximum: 40.0,
+            },
         );
         let high_force_low_temp = cell(
             "high-force-cool",
-            NumericRange { minimum: 6.0, maximum: 10.0 },
-            NumericRange { minimum: 20.0, maximum: 29.0 },
+            NumericRange {
+                minimum: 6.0,
+                maximum: 10.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 29.0,
+            },
         );
         let mut candidate = point();
         candidate.normal_force_n = Some(8.0);
@@ -560,59 +674,101 @@ mod tests {
             &envelope(vec![lower_force_high_temp, high_force_low_temp]),
             &candidate,
         );
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::OutsideJointDomain);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::OutsideJointDomain
+        );
     }
 
     #[test]
     fn exact_numeric_bounds_are_inclusive_and_context_mismatch_is_separate() {
         let cell = cell(
             "cell-boundary",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         let mut boundary = point();
         boundary.normal_force_n = Some(5.0);
         boundary.temperature_c = Some(30.0);
         let assessment = assess_operating_point(&envelope(vec![cell.clone()]), &boundary);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::QualifiedInsideCell);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::QualifiedInsideCell
+        );
 
         let mut changed_context = point();
         changed_context.sensorized_body_context_digest = "sha256:new-host".to_owned();
         let assessment = assess_operating_point(&envelope(vec![cell]), &changed_context);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::PhysicalContextMismatch);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::PhysicalContextMismatch
+        );
     }
 
     #[test]
     fn missing_dimension_and_overlapping_cells_fail_closed() {
         let cell_a = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         let mut missing = point();
         missing.humidity_percent = None;
         let assessment = assess_operating_point(&envelope(vec![cell_a.clone()]), &missing);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::MissingRequiredState);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::MissingRequiredState
+        );
 
         let cell_b = cell(
             "cell-b",
-            NumericRange { minimum: 4.0, maximum: 7.0 },
-            NumericRange { minimum: 25.0, maximum: 35.0 },
+            NumericRange {
+                minimum: 4.0,
+                maximum: 7.0,
+            },
+            NumericRange {
+                minimum: 25.0,
+                maximum: 35.0,
+            },
         );
         let assessment = assess_operating_point(&envelope(vec![cell_a, cell_b]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::OverlappingOrAmbiguousCells);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::OverlappingOrAmbiguousCells
+        );
     }
 
     #[test]
     fn cells_cannot_cross_sensor_article_identity() {
         let mut changed_sensor = cell(
             "cell-new-sensor",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         changed_sensor.sensor_identity_digest = "sha256:replacement-sensor".to_owned();
         let assessment = assess_operating_point(&envelope(vec![changed_sensor]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::EnvelopeInvalid
+        );
         assert!(assessment.reasons.iter().any(|reason| {
             reason.contains("sensor identity differs from envelope sensor identity")
         }));
@@ -622,29 +778,56 @@ mod tests {
     fn physically_invalid_humidity_and_force_ranges_fail_closed() {
         let mut invalid_humidity = cell(
             "bad-humidity",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
-        invalid_humidity.humidity_percent = NumericRange { minimum: 10.0, maximum: 120.0 };
+        invalid_humidity.humidity_percent = NumericRange {
+            minimum: 10.0,
+            maximum: 120.0,
+        };
         let assessment = assess_operating_point(&envelope(vec![invalid_humidity]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::EnvelopeInvalid
+        );
 
         let mut negative_force = cell(
             "negative-force",
-            NumericRange { minimum: -1.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: -1.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         negative_force.evidence.qualification_status = CellQualificationStatus::NotValidated;
         let assessment = assess_operating_point(&envelope(vec![negative_force]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::EnvelopeInvalid
+        );
     }
 
     #[test]
     fn reference_model_observability_and_uncertainty_gates_remain_independent() {
         let mut unresolved_reference = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         unresolved_reference.evidence.reference_independence =
             ReferenceIndependenceDisposition::SharedCommonCause;
@@ -655,8 +838,14 @@ mod tests {
 
         let mut model_unresolved = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         model_unresolved.evidence.model_form_adequate = false;
         assert_eq!(
@@ -666,8 +855,14 @@ mod tests {
 
         let mut unobservable = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         unobservable.evidence.observability_qualified = false;
         assert_eq!(
@@ -677,8 +872,14 @@ mod tests {
 
         let mut uncertainty_missing = cell(
             "cell-a",
-            NumericRange { minimum: 0.0, maximum: 5.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 0.0,
+                maximum: 5.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         uncertainty_missing.evidence.uncertainty_qualified = false;
         assert_eq!(
@@ -691,11 +892,20 @@ mod tests {
     fn nonfinite_or_invalid_cells_cannot_emit_qualified_measurements() {
         let mut invalid = cell(
             "cell-a",
-            NumericRange { minimum: 5.0, maximum: 0.0 },
-            NumericRange { minimum: 20.0, maximum: 30.0 },
+            NumericRange {
+                minimum: 5.0,
+                maximum: 0.0,
+            },
+            NumericRange {
+                minimum: 20.0,
+                maximum: 30.0,
+            },
         );
         invalid.evidence.heldout_validation_receipt_id.clear();
         let assessment = assess_operating_point(&envelope(vec![invalid]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
+        assert_eq!(
+            assessment.disposition,
+            OperatingEnvelopeDisposition::EnvelopeInvalid
+        );
     }
 }
