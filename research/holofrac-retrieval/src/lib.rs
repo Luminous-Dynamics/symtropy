@@ -16,7 +16,7 @@ use symtropy_hdc_core::{
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ENCODER_RECIPE: &str =
-    "holofrac-directed-triple-v1:subject-role+predicate-role+object-role:majority-bundle";
+    "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SpatialScale {
@@ -41,6 +41,19 @@ impl SpatialScale {
             Self::Assembly => "assembly",
             Self::Component => "component",
             Self::Material => "material",
+        }
+    }
+
+    const fn hierarchy_rank(self) -> u8 {
+        match self {
+            Self::Site => 0,
+            Self::Building => 1,
+            Self::Storey => 2,
+            Self::Zone => 3,
+            Self::Room => 4,
+            Self::Assembly => 5,
+            Self::Component => 6,
+            Self::Material => 7,
         }
     }
 }
@@ -117,6 +130,37 @@ impl std::fmt::Display for GraphError {
 
 impl std::error::Error for GraphError {}
 
+#[derive(Debug)]
+pub enum HoloFracError {
+    Graph(GraphError),
+    Hdc(HdcError),
+    StaleIndex,
+}
+
+impl std::fmt::Display for HoloFracError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Graph(error) => write!(f, "spatial graph error: {error}"),
+            Self::Hdc(error) => write!(f, "HDC encoding error: {error}"),
+            Self::StaleIndex => f.write_str("spatial index source digest does not match graph"),
+        }
+    }
+}
+
+impl std::error::Error for HoloFracError {}
+
+impl From<GraphError> for HoloFracError {
+    fn from(value: GraphError) -> Self {
+        Self::Graph(value)
+    }
+}
+
+impl From<HdcError> for HoloFracError {
+    fn from(value: HdcError) -> Self {
+        Self::Hdc(value)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SpatialGraph {
     entities: Vec<SpatialEntity>,
@@ -143,6 +187,9 @@ impl SpatialGraph {
         if fact.subject.trim().is_empty() || fact.object.trim().is_empty() {
             return Err(GraphError("fact endpoints must not be empty"));
         }
+        if fact.subject == fact.object {
+            return Err(GraphError("self-relations are not allowed in this fixture"));
+        }
         if self.facts.contains(&fact) {
             return Err(GraphError("duplicate directed fact"));
         }
@@ -157,13 +204,27 @@ impl SpatialGraph {
                 return Err(GraphError("empty or duplicate entity ID"));
             }
         }
+
         let mut facts = HashSet::with_capacity(self.facts.len());
         for fact in &self.facts {
+            if fact.subject == fact.object {
+                return Err(GraphError("self-relations are not allowed in this fixture"));
+            }
             if !ids.contains(fact.subject.as_str()) || !ids.contains(fact.object.as_str()) {
                 return Err(GraphError("fact references an unknown endpoint"));
             }
             if !facts.insert(fact) {
                 return Err(GraphError("duplicate directed fact"));
+            }
+
+            if fact.relation == RelationKind::Contains {
+                let subject_scale = self.entity_scale(&fact.subject)?;
+                let object_scale = self.entity_scale(&fact.object)?;
+                if subject_scale.hierarchy_rank() >= object_scale.hierarchy_rank() {
+                    return Err(GraphError(
+                        "contains must point from a broader scale to a narrower scale",
+                    ));
+                }
             }
         }
         Ok(())
@@ -175,6 +236,14 @@ impl SpatialGraph {
 
     pub fn facts(&self) -> &[SpatialFact] {
         &self.facts
+    }
+
+    pub fn entity_scale(&self, id: &str) -> Result<SpatialScale, GraphError> {
+        self.entities
+            .iter()
+            .find(|entity| entity.id == id)
+            .map(|entity| entity.scale)
+            .ok_or(GraphError("entity scale lookup references an unknown endpoint"))
     }
 
     /// Exact typed-graph oracle. This is authoritative for benchmark labels.
@@ -257,28 +326,172 @@ impl HoloFracEncoder {
         self.fingerprint
     }
 
-    /// Role-separated directed triple composition.
+    /// Encode a typed, directed triple. Entity scale participates in the code.
     ///
     /// Binding is the existing commutative bipolar HDC operation. Subject,
-    /// predicate and object roles are distinct, so direction is represented
-    /// by role assignment. This is not GHRR or non-commutative matrix binding.
-    pub fn encode_fact(&self, fact: &SpatialFact) -> Result<EncodedFact, HdcError> {
-        let subject = self.memory.bind_role_value("subject", "entity", &fact.subject);
+    /// subject-scale, predicate, object and object-scale have distinct roles.
+    /// Direction is represented by role assignment. This is not GHRR or
+    /// non-commutative matrix binding.
+    pub fn encode_fact(
+        &self,
+        graph: &SpatialGraph,
+        fact: &SpatialFact,
+    ) -> Result<EncodedFact, HoloFracError> {
+        let subject_scale = graph.entity_scale(&fact.subject)?;
+        let object_scale = graph.entity_scale(&fact.object)?;
+
+        let subject = self
+            .memory
+            .bind_role_value("subject", "entity", &fact.subject);
+        let subject_scale = self.memory.bind_role_value(
+            "subject_scale",
+            "spatial_scale",
+            subject_scale.as_str(),
+        );
         let predicate = self
             .memory
             .bind_role_value("predicate", "relation", fact.relation.as_str());
         let object = self.memory.bind_role_value("object", "entity", &fact.object);
+        let object_scale = self.memory.bind_role_value(
+            "object_scale",
+            "spatial_scale",
+            object_scale.as_str(),
+        );
 
         let mut bundle = BipolarBundle::new(self.spec.dimension);
         bundle.add(&subject)?;
+        bundle.add(&subject_scale)?;
         bundle.add(&predicate)?;
         bundle.add(&object)?;
-        let bipolar = bundle.finish(&self.memory.tie_breaker("spatial-fact-v1"))?;
+        bundle.add(&object_scale)?;
+        let bipolar = bundle.finish(&self.memory.tie_breaker("spatial-fact-v2"))?;
         let continuous_f32_view = bipolar.to_continuous();
 
         Ok(EncodedFact {
             bipolar,
             continuous_f32_view,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+struct IndexedFact {
+    fact: SpatialFact,
+    encoded: EncodedFact,
+}
+
+/// A prebuilt index. Candidate vectors and canonical keys are computed once;
+/// query latency must not include repeated index reconstruction.
+#[derive(Clone, Debug)]
+pub struct SpatialIndex {
+    source_graph_digest_non_security: u64,
+    canonical_keys: Vec<String>,
+    facts: Vec<IndexedFact>,
+}
+
+impl SpatialIndex {
+    pub fn build(
+        graph: &SpatialGraph,
+        encoder: &HoloFracEncoder,
+    ) -> Result<(Self, f64), HoloFracError> {
+        graph.validate()?;
+        let source_graph_digest_non_security = graph.digest_non_security()?;
+        let started = Instant::now();
+
+        let mut facts = Vec::with_capacity(graph.facts.len());
+        for fact in &graph.facts {
+            facts.push(IndexedFact {
+                fact: fact.clone(),
+                encoded: encoder.encode_fact(graph, fact)?,
+            });
+        }
+
+        let mut canonical_keys = graph.canonical_facts();
+        canonical_keys.sort();
+
+        let index = Self {
+            source_graph_digest_non_security,
+            canonical_keys,
+            facts,
+        };
+        Ok((index, started.elapsed().as_secs_f64() * 1_000_000.0))
+    }
+
+    pub fn len(&self) -> usize {
+        self.facts.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.facts.is_empty()
+    }
+
+    pub fn rank_query(
+        &self,
+        graph: &SpatialGraph,
+        encoder: &HoloFracEncoder,
+        query: &SpatialFact,
+    ) -> Result<QueryOutcome, HoloFracError> {
+        if graph.digest_non_security()? != self.source_graph_digest_non_security {
+            return Err(HoloFracError::StaleIndex);
+        }
+
+        let query_encoded = encoder.encode_fact(graph, query)?;
+        let mut bipolar_ranked = Vec::with_capacity(self.facts.len());
+        let mut f32_ranked = Vec::with_capacity(self.facts.len());
+
+        for indexed in &self.facts {
+            let bipolar_score = query_encoded
+                .bipolar
+                .similarity(&indexed.encoded.bipolar)?;
+            let f32_score = query_encoded
+                .continuous_f32_view
+                .similarity(&indexed.encoded.continuous_f32_view)?;
+            bipolar_ranked.push((bipolar_score, indexed.fact.clone()));
+            f32_ranked.push((f32_score, indexed.fact.clone()));
+        }
+
+        let sort_ranked = |ranked: &mut Vec<(f32, SpatialFact)>| {
+            ranked.sort_by(|left, right| {
+                right
+                    .0
+                    .total_cmp(&left.0)
+                    .then_with(|| left.1.canonical_key().cmp(&right.1.canonical_key()))
+            });
+        };
+        sort_ranked(&mut bipolar_ranked);
+        sort_ranked(&mut f32_ranked);
+
+        let (top1_similarity, hdc_top1) = bipolar_ranked
+            .first()
+            .map(|(score, fact)| (*score, Some(fact.clone())))
+            .unwrap_or((0.0, None));
+        let (f32_top1_similarity, f32_top1) = f32_ranked
+            .first()
+            .map(|(score, fact)| (*score, Some(fact.clone())))
+            .unwrap_or((0.0, None));
+
+        let oracle_match = graph.contains_fact(query);
+        let exact_metadata_match = self
+            .canonical_keys
+            .binary_search(&query.canonical_key())
+            .is_ok();
+
+        // Exact-match threshold is intentionally strict. Partial-context
+        // retrieval needs its own calibrated acceptance and abstention study.
+        let hdc_exact_accept = hdc_top1.is_some() && top1_similarity >= 1.0 - f32::EPSILON;
+        let f32_exact_accept =
+            f32_top1.is_some() && f32_top1_similarity >= 1.0 - f32::EPSILON;
+
+        Ok(QueryOutcome {
+            query: query.clone(),
+            oracle_match,
+            exact_metadata_match,
+            hdc_top1,
+            top1_similarity,
+            hdc_exact_accept,
+            f32_top1,
+            f32_top1_similarity,
+            f32_exact_accept,
         })
     }
 }
@@ -291,6 +504,9 @@ pub struct QueryOutcome {
     pub hdc_top1: Option<SpatialFact>,
     pub top1_similarity: f32,
     pub hdc_exact_accept: bool,
+    pub f32_top1: Option<SpatialFact>,
+    pub f32_top1_similarity: f32,
+    pub f32_exact_accept: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -301,64 +517,27 @@ pub struct BenchmarkReport {
     pub fact_count: usize,
     pub positive_queries: usize,
     pub positive_top1_hits: usize,
+    pub f32_positive_top1_hits: usize,
     pub reversed_queries: usize,
     pub reversed_false_accepts: usize,
+    pub f32_reversed_false_accepts: usize,
+    pub index_build_micros: f64,
     pub mean_query_micros: f64,
-    pub bipolar_index_bytes: usize,
-    pub continuous_f32_index_bytes: usize,
+    pub bipolar_index_bytes_estimate: usize,
+    pub f32_index_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
-}
-
-pub fn rank_query(
-    graph: &SpatialGraph,
-    encoder: &HoloFracEncoder,
-    query: &SpatialFact,
-) -> Result<QueryOutcome, HdcError> {
-    let query_vector = encoder.encode_fact(query)?.bipolar;
-    let mut ranked = Vec::with_capacity(graph.facts.len());
-
-    for candidate in &graph.facts {
-        let candidate_vector = encoder.encode_fact(candidate)?.bipolar;
-        let score = query_vector.similarity(&candidate_vector)?;
-        ranked.push((score, candidate.clone()));
-    }
-
-    ranked.sort_by(|left, right| {
-        right
-            .0
-            .total_cmp(&left.0)
-            .then_with(|| left.1.canonical_key().cmp(&right.1.canonical_key()))
-    });
-
-    let (top1_similarity, hdc_top1) = ranked
-        .first()
-        .map(|(score, fact)| (*score, Some(fact.clone())))
-        .unwrap_or((0.0, None));
-
-    // An exact-match threshold is deliberately strict. Similarity ranking is
-    // candidate retrieval, not a probabilistic statement about truth.
-    let hdc_exact_accept = hdc_top1.is_some() && top1_similarity >= 1.0 - f32::EPSILON;
-    let oracle_match = graph.contains_fact(query);
-    let exact_metadata_match = graph.canonical_facts().binary_search(&query.canonical_key()).is_ok();
-
-    Ok(QueryOutcome {
-        query: query.clone(),
-        oracle_match,
-        exact_metadata_match,
-        hdc_top1,
-        top1_similarity,
-        hdc_exact_accept,
-    })
 }
 
 pub fn run_benchmark(
     graph: &SpatialGraph,
     dimension: usize,
     seed: u64,
-) -> Result<BenchmarkReport, Box<dyn std::error::Error>> {
+) -> Result<BenchmarkReport, HoloFracError> {
     graph.validate()?;
     if graph.facts.is_empty() {
-        return Err("benchmark graph must contain at least one fact".into());
+        return Err(HoloFracError::Graph(GraphError(
+            "benchmark graph must contain at least one fact",
+        )));
     }
 
     let spec = EncoderSpec {
@@ -369,26 +548,34 @@ pub fn run_benchmark(
     };
     let encoder = HoloFracEncoder::new(spec)?;
     let graph_digest_non_security = graph.digest_non_security()?;
+    let (index, index_build_micros) = SpatialIndex::build(graph, &encoder)?;
 
-    let mut outcomes = Vec::with_capacity(graph.facts.len() * 2);
-    let started = Instant::now();
-
+    let mut queries = Vec::with_capacity(graph.facts.len() * 2);
     for fact in &graph.facts {
-        outcomes.push(rank_query(graph, &encoder, fact)?);
-        outcomes.push(rank_query(graph, &encoder, &fact.reversed())?);
+        queries.push(fact.clone());
+        queries.push(fact.reversed());
     }
 
+    let started = Instant::now();
+    let mut outcomes = Vec::with_capacity(queries.len());
+    for query in &queries {
+        outcomes.push(index.rank_query(graph, &encoder, query)?);
+    }
     let elapsed = started.elapsed();
+
     let positive: Vec<_> = outcomes.iter().filter(|row| row.oracle_match).collect();
     let reversed: Vec<_> = outcomes.iter().filter(|row| !row.oracle_match).collect();
     let positive_top1_hits = positive
         .iter()
         .filter(|row| row.hdc_top1.as_ref() == Some(&row.query))
         .count();
-    let reversed_false_accepts = reversed
+    let f32_positive_top1_hits = positive
         .iter()
-        .filter(|row| row.hdc_exact_accept)
+        .filter(|row| row.f32_top1.as_ref() == Some(&row.query))
         .count();
+    let reversed_false_accepts = reversed.iter().filter(|row| row.hdc_exact_accept).count();
+    let f32_reversed_false_accepts =
+        reversed.iter().filter(|row| row.f32_exact_accept).count();
 
     let query_count = outcomes.len().max(1);
     let mean_query_micros = elapsed.as_secs_f64() * 1_000_000.0 / query_count as f64;
@@ -400,11 +587,14 @@ pub fn run_benchmark(
         fact_count: graph.facts.len(),
         positive_queries: positive.len(),
         positive_top1_hits,
+        f32_positive_top1_hits,
         reversed_queries: reversed.len(),
         reversed_false_accepts,
+        f32_reversed_false_accepts,
+        index_build_micros,
         mean_query_micros,
-        bipolar_index_bytes: graph.facts.len() * dimension * std::mem::size_of::<i8>(),
-        continuous_f32_index_bytes: graph.facts.len() * dimension * std::mem::size_of::<f32>(),
+        bipolar_index_bytes_estimate: graph.facts.len() * dimension * std::mem::size_of::<i8>(),
+        f32_index_bytes_estimate: graph.facts.len() * dimension * std::mem::size_of::<f32>(),
         outcomes,
     })
 }
@@ -501,26 +691,52 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_facts_are_rejected() {
+    fn duplicate_facts_and_self_relations_are_rejected() {
         let mut graph = SpatialGraph::new();
-        graph
-            .add_fact(SpatialFact {
-                subject: "a".into(),
-                relation: RelationKind::Supports,
-                object: "b".into(),
-            })
-            .unwrap();
+        let fact = SpatialFact {
+            subject: "a".into(),
+            relation: RelationKind::Supports,
+            object: "b".into(),
+        };
+        graph.add_fact(fact.clone()).unwrap();
+        assert!(graph.add_fact(fact).is_err());
         assert!(graph
             .add_fact(SpatialFact {
                 subject: "a".into(),
                 relation: RelationKind::Supports,
-                object: "b".into(),
+                object: "a".into(),
             })
             .is_err());
     }
 
     #[test]
+    fn contains_must_point_from_broader_to_narrower_scale() {
+        let mut graph = SpatialGraph::new();
+        graph
+            .add_entity(SpatialEntity {
+                id: "room".into(),
+                scale: SpatialScale::Room,
+            })
+            .unwrap();
+        graph
+            .add_entity(SpatialEntity {
+                id: "site".into(),
+                scale: SpatialScale::Site,
+            })
+            .unwrap();
+        graph
+            .add_fact(SpatialFact {
+                subject: "room".into(),
+                relation: RelationKind::Contains,
+                object: "site".into(),
+            })
+            .unwrap();
+        assert!(graph.validate().is_err());
+    }
+
+    #[test]
     fn role_encoding_preserves_direction_as_a_role_assignment() {
+        let graph = reference_architecture_graph().unwrap();
         let encoder = HoloFracEncoder::new(spec(4_096, 7)).unwrap();
         let forward = SpatialFact {
             subject: "water-main".into(),
@@ -528,25 +744,60 @@ mod tests {
             object: "kitchen".into(),
         };
         let reverse = forward.reversed();
-        let encoded_forward = encoder.encode_fact(&forward).unwrap();
-        let encoded_reverse = encoder.encode_fact(&reverse).unwrap();
+        let encoded_forward = encoder.encode_fact(&graph, &forward).unwrap();
+        let encoded_reverse = encoder.encode_fact(&graph, &reverse).unwrap();
         assert_ne!(encoded_forward.bipolar, encoded_reverse.bipolar);
         assert!(encoded_forward.bipolar.similarity(&encoded_reverse.bipolar).unwrap() < 1.0);
     }
 
     #[test]
-    fn encoding_is_deterministic_and_fingerprint_is_configuration_bound() {
-        let fact = SpatialFact {
-            subject: "room-a".into(),
-            relation: RelationKind::AdjacentTo,
-            object: "room-b".into(),
+    fn entity_scales_participate_in_encoding() {
+        let make_graph = |second_scale| {
+            let mut graph = SpatialGraph::new();
+            graph
+                .add_entity(SpatialEntity {
+                    id: "a".into(),
+                    scale: SpatialScale::Room,
+                })
+                .unwrap();
+            graph
+                .add_entity(SpatialEntity {
+                    id: "b".into(),
+                    scale: second_scale,
+                })
+                .unwrap();
+            graph
+                .add_fact(SpatialFact {
+                    subject: "a".into(),
+                    relation: RelationKind::AdjacentTo,
+                    object: "b".into(),
+                })
+                .unwrap();
+            graph
         };
+        let a = make_graph(SpatialScale::Room);
+        let b = make_graph(SpatialScale::Zone);
+        let fact = a.facts()[0].clone();
+        let encoder = HoloFracEncoder::new(spec(4_096, 13)).unwrap();
+        assert_ne!(
+            encoder.encode_fact(&a, &fact).unwrap().bipolar,
+            encoder.encode_fact(&b, &fact).unwrap().bipolar
+        );
+    }
+
+    #[test]
+    fn encoding_is_deterministic_and_fingerprint_is_configuration_bound() {
+        let graph = reference_architecture_graph().unwrap();
+        let fact = graph.facts()[0].clone();
         let a = HoloFracEncoder::new(spec(4_096, 9)).unwrap();
         let b = HoloFracEncoder::new(spec(4_096, 9)).unwrap();
         let changed_seed = HoloFracEncoder::new(spec(4_096, 10)).unwrap();
         let changed_dimension = HoloFracEncoder::new(spec(8_192, 9)).unwrap();
 
-        assert_eq!(a.encode_fact(&fact).unwrap().bipolar, b.encode_fact(&fact).unwrap().bipolar);
+        assert_eq!(
+            a.encode_fact(&graph, &fact).unwrap().bipolar,
+            b.encode_fact(&graph, &fact).unwrap().bipolar
+        );
         assert_ne!(a.fingerprint(), changed_seed.fingerprint());
         assert_ne!(a.fingerprint(), changed_dimension.fingerprint());
     }
@@ -564,22 +815,36 @@ mod tests {
     }
 
     #[test]
+    fn index_is_built_once_and_stale_source_state_is_rejected() {
+        let graph = reference_architecture_graph().unwrap();
+        let encoder = HoloFracEncoder::new(spec(2_048, 3)).unwrap();
+        let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
+        assert_eq!(index.len(), graph.facts().len());
+
+        let mut changed = graph.clone();
+        changed.entities[0].scale = SpatialScale::Building;
+        assert!(matches!(
+            index.rank_query(&changed, &encoder, &graph.facts()[0]),
+            Err(HoloFracError::StaleIndex)
+        ));
+    }
+
+    #[test]
     fn hdc_retrieval_separates_reference_facts_from_reversed_controls() {
         let graph = reference_architecture_graph().unwrap();
         let report = run_benchmark(&graph, 8_192, 11).unwrap();
         assert_eq!(report.positive_top1_hits, report.positive_queries);
+        assert_eq!(report.f32_positive_top1_hits, report.positive_queries);
         assert_eq!(report.reversed_false_accepts, 0);
+        assert_eq!(report.f32_reversed_false_accepts, 0);
     }
 
     #[test]
     fn continuous_view_is_explicitly_the_same_code_with_larger_storage() {
+        let graph = reference_architecture_graph().unwrap();
         let encoder = HoloFracEncoder::new(spec(2_048, 5)).unwrap();
-        let fact = SpatialFact {
-            subject: "room-a".into(),
-            relation: RelationKind::VentilatesTo,
-            object: "shaft".into(),
-        };
-        let encoded = encoder.encode_fact(&fact).unwrap();
+        let fact = graph.facts()[0].clone();
+        let encoded = encoder.encode_fact(&graph, &fact).unwrap();
         let score_bipolar = encoded.bipolar.similarity(&encoded.bipolar).unwrap();
         let score_continuous = encoded
             .continuous_f32_view
