@@ -4,6 +4,7 @@
 //! mechanics and kinematic-mechanism detection, not a production FEM code.
 
 pub mod damage;
+pub mod stability;
 
 use std::collections::HashSet;
 use std::error::Error;
