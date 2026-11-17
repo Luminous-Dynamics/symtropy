@@ -9,8 +9,13 @@
 
 #![forbid(unsafe_code)]
 
+pub mod constraint_basis;
 pub mod delassus;
 
+pub use constraint_basis::{
+    ConstraintBasisErrorV1, ConstraintBasisStatusV1, IntervalConstraintBasisCertificateV1,
+    certify_interval_constraint_basis_covariance, verify_interval_constraint_basis_certificate,
+};
 pub use delassus::{
     DerivedConstraintCoefficientsV1, IntervalMatrix, VerifiedDelassusErrorV1,
     VerifiedDelassusProfileV1, VerifiedDelassusStatusV1, certify_delassus_coefficients,

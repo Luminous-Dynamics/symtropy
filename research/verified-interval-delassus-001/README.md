@@ -21,6 +21,12 @@ The receipt retains exact input interval arrays, profile, Cholesky factors, B, Y
 
 For constraint residual r, the minimum kinetic correction is bounded by ||r||_2 / sqrt(lambda_min_lower(W)). For multiplier lambda, the induced kinetic norm is bounded by sqrt(||W||_F_upper) * ||lambda||_2. The eigenvalue lower bound is derived from an outward upper bound on ||W^-1||_2 using the interval Cholesky factor and interval triangular solves.
 
+## Constraint-equation basis covariance
+
+The stacked interval constraint-basis module verifies the second covariance axis without changing generalized coordinates. For an exact point transform T and r_new = T r_old, it derives J_new = T J_old, independently derives W_new from M/J_new, and intersects that enclosure with the congruence T W_old T^T. It solves T^T lambda_new = lambda_old with outward interval elimination; no inverse matrix is formed.
+
+The receipt checks overlapping enclosures for the dual pairing, generalized constraint force, multiplier-induced metric norm, residual-dual norm, and minimum-kinetic correction. It also checks J delta_v = r in both constraint representations and supports exact replay against the original M, J, T, residual and multiplier inputs. V0 supports exact binary64 point T transforms only; an interval-valued uncertain transform is explicitly out of scope.
+
 ## Fail-closed behavior
 
 - Non-symmetric mass intervals are rejected.
@@ -32,7 +38,7 @@ For constraint residual r, the minimum kinetic correction is bounded by ||r||_2 
 
 ## Tests
 
-Ten tests cover exact coefficient fixtures, uncertain mass/J sample coverage, dense coordinate re-basing, rank-deficient constraint abstention, non-SPD and near-singular mass abstention, asymmetric interval-mass rejection, a wrong-J-transpose negative control, and independent coverage of the residual/multiplier norm bounds.
+Ten coefficient-provenance tests plus five constraint-basis tests cover exact coefficient fixtures, uncertain mass/J sample coverage, dense coordinate re-basing, rank-deficient constraint abstention, non-SPD and near-singular mass abstention, asymmetric interval-mass rejection, a wrong-J-transpose negative control, and independent coverage of the residual/multiplier norm bounds, constraint-equation shears and row scaling, singular transforms, wrong transpose/dual variance, and forged/stale receipt replay.
 
 ## Arithmetic contract
 
