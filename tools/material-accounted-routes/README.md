@@ -2,7 +2,7 @@
 
 **Parent:** Symtropy [MATERIAL-ACCOUNTED-ROUTES-001 #5875](https://github.com/Luminous-Dynamics/symtropy/issues/5875)  
 **Implementation tranche:** [#5879](https://github.com/Luminous-Dynamics/symtropy/issues/5879)  
-**Specification:** [MATERIAL_ACCOUNTED_FACTORY_ROUTES_V0_1.md](../../docs/research/MATERIAL_ACCOUNTED_FACTORY_ROUTES_V0_1.md)  
+**Specification:** [draft PR #5876](https://github.com/Luminous-Dynamics/symtropy/pull/5876)  
 **Status:** Standalone Rust prototype; synthetic receipt fixtures only.
 
 ## What it does
