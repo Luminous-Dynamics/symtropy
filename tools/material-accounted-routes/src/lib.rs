@@ -167,7 +167,12 @@ fn valid_sha256_shape(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn split_row<'a>(line: &'a str, expected: usize, source: &str, line_no: usize) -> Result<Vec<&'a str>, String> {
+fn split_row(
+    line: &str,
+    expected: usize,
+    source: &str,
+    line_no: usize,
+) -> Result<Vec<&str>, String> {
     let fields: Vec<&str> = line.split('\t').collect();
     if fields.len() != expected {
         return Err(format!(
@@ -254,7 +259,10 @@ pub fn parse_receipts(input: &str) -> Result<Vec<Receipt>, String> {
             return Err(format!("receipts:{}: empty field", index + 2));
         }
         if !valid_ref(row[0]) || !valid_ref(row[1]) || !valid_ref(row[3]) {
-            return Err(format!("receipts:{}: invalid case, manifest or receipt reference", index + 2));
+            return Err(format!(
+                "receipts:{}: invalid case, manifest or receipt reference",
+                index + 2
+            ));
         }
         let gate = Gate::parse(row[2])?;
         if row[4] != "-" && !valid_ref(row[4]) {
@@ -353,7 +361,11 @@ fn evaluate_case(case: &CaseManifest, receipts: &[Receipt]) -> CaseEvaluation {
             continue;
         }
         if entries.len() != 1 {
-            blocked.push(format!("{} has {} receipts; exactly one is required", gate.as_str(), entries.len()));
+            blocked.push(format!(
+                "{} has {} receipts; exactly one is required",
+                gate.as_str(),
+                entries.len()
+            ));
             continue;
         }
 
@@ -379,8 +391,12 @@ fn evaluate_case(case: &CaseManifest, receipts: &[Receipt]) -> CaseEvaluation {
 
         match gate_result(gate, &receipt.status) {
             GateResult::Pass => {}
-            GateResult::Blocked => blocked.push(format!("{} status {}", gate.as_str(), receipt.status)),
-            GateResult::Indeterminate => indeterminate.push(format!("{} status {}", gate.as_str(), receipt.status)),
+            GateResult::Blocked => {
+                blocked.push(format!("{} status {}", gate.as_str(), receipt.status))
+            }
+            GateResult::Indeterminate => {
+                indeterminate.push(format!("{} status {}", gate.as_str(), receipt.status))
+            }
         }
     }
 
@@ -409,7 +425,10 @@ fn evaluate_case(case: &CaseManifest, receipts: &[Receipt]) -> CaseEvaluation {
     }
 }
 
-pub fn evaluate(cases: &[CaseManifest], receipts: &[Receipt]) -> Result<Vec<CaseEvaluation>, String> {
+pub fn evaluate(
+    cases: &[CaseManifest],
+    receipts: &[Receipt],
+) -> Result<Vec<CaseEvaluation>, String> {
     let cases_by_id: BTreeMap<&str, &CaseManifest> =
         cases.iter().map(|case| (case.case_id.as_str(), case)).collect();
     for receipt in receipts {
@@ -489,9 +508,15 @@ mod tests {
     fn missing_gate_receipt_is_indeterminate_not_accepted() {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
-        receipts.retain(|row| !(row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance));
+        receipts.retain(|row| {
+            !(row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance)
+        });
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         let result = evaluate_case(case, &own);
         assert_eq!(result.actual, Disposition::Indeterminate);
         assert!(!result.expected_matches);
@@ -501,7 +526,12 @@ mod tests {
     fn receipt_subject_and_scope_are_exact_not_fuzzy() {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
-        let row = receipts.iter_mut().find(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance).unwrap();
+        let row = receipts
+            .iter_mut()
+            .find(|row| {
+                row.case_id == "baseline_exact_closed" && row.gate == Gate::MassBalance
+            })
+            .unwrap();
         row.subject_ref = "process:similar-looking-name".into();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
         let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
@@ -512,8 +542,18 @@ mod tests {
     fn duplicate_receipt_reference_is_blocked() {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
-        let index_a = receipts.iter().position(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Inspection).unwrap();
-        let index_b = receipts.iter().position(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Provenance).unwrap();
+        let index_a = receipts
+            .iter()
+            .position(|row| {
+                row.case_id == "baseline_exact_closed" && row.gate == Gate::Inspection
+            })
+            .unwrap();
+        let index_b = receipts
+            .iter()
+            .position(|row| {
+                row.case_id == "baseline_exact_closed" && row.gate == Gate::Provenance
+            })
+            .unwrap();
         receipts[index_b].receipt_ref = receipts[index_a].receipt_ref.clone();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
         let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
@@ -526,7 +566,10 @@ mod tests {
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
 
-        let row = receipts.iter_mut().find(|row| row.case_id == case.case_id && row.gate == Gate::Inspection).unwrap();
+        let row = receipts
+            .iter_mut()
+            .find(|row| row.case_id == case.case_id && row.gate == Gate::Inspection)
+            .unwrap();
         row.source_digest = "not-a-digest".into();
         let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
@@ -549,7 +592,12 @@ mod tests {
     fn unknown_gate_status_cannot_pass() {
         let cases = parse_cases(CASES).unwrap();
         let mut receipts = parse_receipts(RECEIPTS).unwrap();
-        let row = receipts.iter_mut().find(|row| row.case_id == "baseline_exact_closed" && row.gate == Gate::Utility).unwrap();
+        let row = receipts
+            .iter_mut()
+            .find(|row| {
+                row.case_id == "baseline_exact_closed" && row.gate == Gate::Utility
+            })
+            .unwrap();
         row.status = "GREEN_ENOUGH".into();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
         let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
