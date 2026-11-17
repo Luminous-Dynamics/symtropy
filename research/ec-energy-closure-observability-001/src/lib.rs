@@ -417,6 +417,8 @@ pub enum GapFillState {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct IntegratedEnergyInterval {
     pub interval_id: u64,
+    /// UTC/Unix interval start; used to prove that the integrated window is contiguous.
+    pub interval_start_unix_seconds: i64,
     pub duration_seconds: u64,
     pub available_energy_w_m2: f64,
     pub turbulent_energy_w_m2: f64,
@@ -439,6 +441,8 @@ pub enum IntegratedEbrError {
     ZeroDuration,
     NonFiniteFlux,
     NoEligibleIntervals,
+    NonContiguousIntervals,
+    IntervalTimeOverflow,
     ZeroAvailableEnergyIntegral,
     NonFiniteResult,
 }
@@ -454,6 +458,30 @@ pub fn integrated_energy_balance_ratio(
     }
 
     let mut ids = BTreeSet::new();
+    let mut ordered_intervals = intervals.iter().collect::<Vec<_>>();
+    for interval in intervals {
+        if interval.duration_seconds == 0 {
+            return Err(IntegratedEbrError::ZeroDuration);
+        }
+        if i64::try_from(interval.duration_seconds).is_err() {
+            return Err(IntegratedEbrError::IntervalTimeOverflow);
+        }
+    }
+    ordered_intervals.sort_by_key(|interval| interval.interval_start_unix_seconds);
+    for pair in ordered_intervals.windows(2) {
+        let previous = pair[0];
+        let next = pair[1];
+        let duration = i64::try_from(previous.duration_seconds)
+            .map_err(|_| IntegratedEbrError::IntervalTimeOverflow)?;
+        let expected_next = previous
+            .interval_start_unix_seconds
+            .checked_add(duration)
+            .ok_or(IntegratedEbrError::IntervalTimeOverflow)?;
+        if next.interval_start_unix_seconds != expected_next {
+            return Err(IntegratedEbrError::NonContiguousIntervals);
+        }
+    }
+
     let mut available_energy_j_m2 = 0.0;
     let mut turbulent_energy_j_m2 = 0.0;
     let mut included = 0;
@@ -462,9 +490,6 @@ pub fn integrated_energy_balance_ratio(
     for interval in intervals {
         if !ids.insert(interval.interval_id) {
             return Err(IntegratedEbrError::DuplicateIntervalId);
-        }
-        if interval.duration_seconds == 0 {
-            return Err(IntegratedEbrError::ZeroDuration);
         }
         if !interval.available_energy_w_m2.is_finite()
             || !interval.turbulent_energy_w_m2.is_finite()
@@ -843,6 +868,7 @@ mod tests {
         let intervals = [
             IntegratedEnergyInterval {
                 interval_id: 1,
+                interval_start_unix_seconds: 0,
                 duration_seconds: 1800,
                 available_energy_w_m2: 100.0,
                 turbulent_energy_w_m2: 50.0,
@@ -850,6 +876,7 @@ mod tests {
             },
             IntegratedEnergyInterval {
                 interval_id: 2,
+                interval_start_unix_seconds: 1800,
                 duration_seconds: 3600,
                 available_energy_w_m2: 200.0,
                 turbulent_energy_w_m2: 180.0,
@@ -876,6 +903,7 @@ mod tests {
             },
             IntegratedEnergyInterval {
                 interval_id: 2,
+                interval_start_unix_seconds: 1800,
                 duration_seconds: 1800,
                 available_energy_w_m2: 100.0,
                 turbulent_energy_w_m2: 100.0,
@@ -921,6 +949,7 @@ mod tests {
     fn integrated_ebr_rejects_duplicate_or_zero_duration_intervals() {
         let base = IntegratedEnergyInterval {
             interval_id: 1,
+            interval_start_unix_seconds: 0,
             duration_seconds: 1800,
             available_energy_w_m2: 100.0,
             turbulent_energy_w_m2: 80.0,
@@ -937,6 +966,33 @@ mod tests {
         assert_eq!(
             integrated_energy_balance_ratio(&[zero], GapFillPolicy::ObservedOnly),
             Err(IntegratedEbrError::ZeroDuration)
+        );
+    }
+
+    #[test]
+    fn integrated_ebr_rejects_non_contiguous_windows() {
+        let first = IntegratedEnergyInterval {
+            interval_id: 1,
+            interval_start_unix_seconds: 0,
+            duration_seconds: 1800,
+            available_energy_w_m2: 100.0,
+            turbulent_energy_w_m2: 80.0,
+            gap_fill_state: GapFillState::Observed,
+        };
+        let third = IntegratedEnergyInterval {
+            interval_id: 3,
+            interval_start_unix_seconds: 3600,
+            duration_seconds: 1800,
+            available_energy_w_m2: 100.0,
+            turbulent_energy_w_m2: 80.0,
+            gap_fill_state: GapFillState::Observed,
+        };
+        assert_eq!(
+            integrated_energy_balance_ratio(
+                &[first, third],
+                GapFillPolicy::ObservedOnly
+            ),
+            Err(IntegratedEbrError::NonContiguousIntervals)
         );
     }
 
