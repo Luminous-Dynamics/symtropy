@@ -293,17 +293,18 @@ pub fn score_backend_observation(
         return Ok(verdict);
     }
     if !scene_fingerprints_match(&adapter.scene, &truth.scene) {
-        verdict.reason_code = Some(if adapter.scene.geometry_profile_sha256
-            != truth.scene.geometry_profile_sha256
-            || adapter.scene.robot_model_sha256 != truth.scene.robot_model_sha256
-            || adapter.scene.tool_sha256 != truth.scene.tool_sha256
-            || adapter.scene.payload_sha256 != truth.scene.payload_sha256
-            || adapter.scene.obstacle_set_sha256 != truth.scene.obstacle_set_sha256
-        {
-            ScoreReasonCode::GeometryProfileMismatch
-        } else {
-            ScoreReasonCode::SceneFingerprintMismatch
-        });
+        verdict.reason_code = Some(
+            if adapter.scene.geometry_profile_sha256 != truth.scene.geometry_profile_sha256
+                || adapter.scene.robot_model_sha256 != truth.scene.robot_model_sha256
+                || adapter.scene.tool_sha256 != truth.scene.tool_sha256
+                || adapter.scene.payload_sha256 != truth.scene.payload_sha256
+                || adapter.scene.obstacle_set_sha256 != truth.scene.obstacle_set_sha256
+            {
+                ScoreReasonCode::GeometryProfileMismatch
+            } else {
+                ScoreReasonCode::SceneFingerprintMismatch
+            },
+        );
         return Ok(verdict);
     }
     if !query_fingerprints_match(adapter.query, truth.query) {
@@ -355,7 +356,11 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
     }
 
     validate_digest(adapter.case.case_sha256.as_str(), "case")?;
-    validate_digest_with_length(adapter.backend.backend_commit_sha1.as_str(), "backend commit", 40)?;
+    validate_digest_with_length(
+        adapter.backend.backend_commit_sha1.as_str(),
+        "backend commit",
+        40,
+    )?;
     validate_digest(adapter.backend.build_sha256.as_str(), "backend build")?;
     validate_digest(adapter.raw_receipt_sha256.as_str(), "raw receipt")?;
 
@@ -383,13 +388,22 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
         validate_digest(digest, "capability probe log")?;
     }
     if adapter.capability_probe.status != CapabilityProbeStatus::NotProbed
-        && (adapter.capability_probe.runtime_api.as_deref().is_none_or(str::is_empty)
+        && (adapter
+            .capability_probe
+            .runtime_api
+            .as_deref()
+            .is_none_or(str::is_empty)
             || adapter.capability_probe.probe_log_sha256.is_none())
     {
         return Err(CollisionScoreInputError::InvalidProbeIdentity);
     }
 
-    if adapter.environment.allocator.as_deref().is_some_and(str::is_empty) {
+    if adapter
+        .environment
+        .allocator
+        .as_deref()
+        .is_some_and(str::is_empty)
+    {
         return Err(CollisionScoreInputError::InvalidEnvironmentIdentity);
     }
 
@@ -412,8 +426,7 @@ fn validate_adapter(adapter: &AdapterObservation) -> Result<(), CollisionScoreIn
             if adapter.observation.is_some() {
                 return Err(CollisionScoreInputError::UnexpectedObservation);
             }
-            if adapter.reason.as_deref().is_none_or(str::is_empty)
-                || adapter.reason_code.is_none()
+            if adapter.reason.as_deref().is_none_or(str::is_empty) || adapter.reason_code.is_none()
             {
                 return Err(CollisionScoreInputError::MissingReason);
             }
@@ -462,9 +475,7 @@ fn validate_scorer(scorer: &ScorerIdentity) -> Result<(), CollisionScoreInputErr
     validate_digest(scorer.scorer_binary_sha256.as_str(), "scorer binary")
 }
 
-fn validate_scene_fingerprint(
-    scene: &SceneFingerprint,
-) -> Result<(), CollisionScoreInputError> {
+fn validate_scene_fingerprint(scene: &SceneFingerprint) -> Result<(), CollisionScoreInputError> {
     for (value, name) in [
         (scene.robot_model_sha256.as_str(), "robot model"),
         (scene.tool_sha256.as_str(), "tool"),
@@ -473,7 +484,10 @@ fn validate_scene_fingerprint(
         (scene.geometry_profile_sha256.as_str(), "geometry profile"),
         (scene.transform_sha256.as_str(), "transform"),
         (scene.trajectory_sha256.as_str(), "trajectory"),
-        (scene.interpolation_profile_sha256.as_str(), "interpolation profile"),
+        (
+            scene.interpolation_profile_sha256.as_str(),
+            "interpolation profile",
+        ),
         (scene.collision_matrix_sha256.as_str(), "collision matrix"),
         (scene.margin_profile_sha256.as_str(), "margin profile"),
     ] {
@@ -669,14 +683,30 @@ mod tests {
     #[test]
     fn emits_all_four_confusion_cells_from_oracle_truth_and_observation() {
         let cases = [
-            (OracleTruthDisposition::Contact, true, ConfusionCell::TruePositive),
-            (OracleTruthDisposition::Contact, false, ConfusionCell::FalseNegative),
-            (OracleTruthDisposition::NoContact, true, ConfusionCell::FalsePositive),
-            (OracleTruthDisposition::NoContact, false, ConfusionCell::TrueNegative),
+            (
+                OracleTruthDisposition::Contact,
+                true,
+                ConfusionCell::TruePositive,
+            ),
+            (
+                OracleTruthDisposition::Contact,
+                false,
+                ConfusionCell::FalseNegative,
+            ),
+            (
+                OracleTruthDisposition::NoContact,
+                true,
+                ConfusionCell::FalsePositive,
+            ),
+            (
+                OracleTruthDisposition::NoContact,
+                false,
+                ConfusionCell::TrueNegative,
+            ),
         ];
         for (oracle, observed, expected) in cases {
-            let verdict = score_backend_observation(&adapter(observed), &truth(oracle), &scorer())
-                .unwrap();
+            let verdict =
+                score_backend_observation(&adapter(observed), &truth(oracle), &scorer()).unwrap();
             assert_eq!(verdict.disposition, ScoreDisposition::Matched);
             assert_eq!(verdict.confusion_cell, Some(expected));
         }
@@ -690,9 +720,12 @@ mod tests {
         not_run.reason_code = Some(AdapterReasonCode::BackendUnsupported);
         not_run.reason = Some("continuous overload unsupported".into());
         not_run.capability_probe.status = CapabilityProbeStatus::Unsupported;
-        let verdict =
-            score_backend_observation(&not_run, &truth(OracleTruthDisposition::NoContact), &scorer())
-                .unwrap();
+        let verdict = score_backend_observation(
+            &not_run,
+            &truth(OracleTruthDisposition::NoContact),
+            &scorer(),
+        )
+        .unwrap();
         assert_eq!(verdict.disposition, ScoreDisposition::NotRun);
         assert_eq!(verdict.confusion_cell, None);
 
@@ -748,12 +781,9 @@ mod tests {
         adapter.reason_code = Some(AdapterReasonCode::BackendUnsupported);
         adapter.reason = Some("not executed".into());
         adapter.capability_probe.status = CapabilityProbeStatus::NotProbed;
-        let verdict = score_backend_observation(
-            &adapter,
-            &truth(OracleTruthDisposition::Contact),
-            &scorer(),
-        )
-        .unwrap();
+        let verdict =
+            score_backend_observation(&adapter, &truth(OracleTruthDisposition::Contact), &scorer())
+                .unwrap();
         assert_ne!(verdict.confusion_cell, Some(ConfusionCell::FalseNegative));
     }
 
@@ -773,7 +803,11 @@ mod tests {
         let mut unproven = adapter(true);
         unproven.capability_probe.status = CapabilityProbeStatus::NotProbed;
         assert_eq!(
-            score_backend_observation(&unproven, &truth(OracleTruthDisposition::Contact), &scorer()),
+            score_backend_observation(
+                &unproven,
+                &truth(OracleTruthDisposition::Contact),
+                &scorer()
+            ),
             Err(CollisionScoreInputError::CapabilityNotExecuted)
         );
     }
@@ -798,7 +832,10 @@ mod tests {
         .unwrap();
         assert_eq!(unsupported.disposition, ScoreDisposition::NotComparable);
         assert_eq!(unsupported.confusion_cell, None);
-        assert_eq!(unsupported.reason_code, Some(ScoreReasonCode::OracleUnsupported));
+        assert_eq!(
+            unsupported.reason_code,
+            Some(ScoreReasonCode::OracleUnsupported)
+        );
     }
 
     #[test]
@@ -815,12 +852,8 @@ mod tests {
 
         let mut self_collision_truth = truth(OracleTruthDisposition::Contact);
         self_collision_truth.query.scope = QueryScope::SelfCollision;
-        let verdict = score_backend_observation(
-            &adapter(true),
-            &self_collision_truth,
-            &scorer(),
-        )
-        .unwrap();
+        let verdict =
+            score_backend_observation(&adapter(true), &self_collision_truth, &scorer()).unwrap();
         assert_eq!(verdict.disposition, ScoreDisposition::NotComparable);
         assert_eq!(
             verdict.reason_code,
@@ -881,5 +914,4 @@ mod tests {
             Err(CollisionScoreInputError::InvalidProbeIdentity)
         );
     }
-
 }
