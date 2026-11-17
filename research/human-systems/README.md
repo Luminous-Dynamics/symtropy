@@ -31,6 +31,11 @@ Start with a **human day / human operator** in an explicitly modelled environmen
 
 This gives us a non-clinical research target useful for human-centred robotics, workplaces, education, care environments and assistive systems. It also allows public observational datasets to inform selected state and sensor models without requiring controlled patient data.
 
+## Multi-scale biological systems
+
+- [Human multi-scale systems atlas v0.1](HUMAN_MULTISCALE_SYSTEMS_ATLAS_V0_1.md) — nested biological organization, 20 subsystem status entries, cross-organ coupling priorities, Symtropy/Symthaea ownership, standards and benchmark ladder.
+- [Machine-readable coupling register v0.1](HUMAN_MULTISCALE_COUPLING_REGISTER_V0_1.json) — versioned system/port/coupling inventory for future adapters and review.
+
 ## Architecture and evidence boundaries
 
 - [Human-systems architecture v0.1](HUMAN_SYSTEMS_ARCHITECTURE_V0_1.md) — subsystem responsibilities, coupling contracts and fidelity levels.
