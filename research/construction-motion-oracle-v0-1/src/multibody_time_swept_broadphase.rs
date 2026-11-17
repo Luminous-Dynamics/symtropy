@@ -417,6 +417,162 @@ pub fn time_swept_capsule_broadphase(
     })
 }
 
+
+/// Result of refining a conservative coarse candidate set without rebuilding
+/// the full-body SAP for every temporal slab.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CandidateRefinementReport {
+    pub coarse_candidate_pairs: u64,
+    pub refinement_subdivision_count: u32,
+    pub tested_pair_slabs: u64,
+    pub pairs: Vec<TimedCapsulePairCandidate>,
+}
+
+/// Refine a one-slab conservative candidate report into smaller common-time
+/// intervals. Every pair omitted by the coarse report remains safely omitted
+/// only under the same numeric swept-AABB assumptions as the coarse SAP.
+///
+/// This computes time-slab bounds only for coarse candidate pairs. It does not
+/// rebuild per-body sweep-and-prune for every slab, making the refinement cost
+/// proportional to coarse candidates × slab count rather than bodies × slabs
+/// plus a full SAP pass for each slab.
+///
+/// The caller must retain the coarse report and its claim ceiling. This method
+/// is a candidate optimization, not a collision verdict or formal certificate.
+pub fn refine_time_swept_capsule_candidates(
+    bodies: &[TimedCapsuleBody],
+    coarse: &MultiBodyBroadphaseReport,
+    subdivision_count: u32,
+) -> Result<CandidateRefinementReport, MultiBodyBroadphaseError> {
+    if subdivision_count == 0
+        || !subdivision_count.is_power_of_two()
+        || subdivision_count > MAX_TIME_SLABS
+    {
+        return Err(MultiBodyBroadphaseError::InvalidSubdivisionCount);
+    }
+    if bodies.is_empty() {
+        return Err(MultiBodyBroadphaseError::NoBodies);
+    }
+    if coarse.body_count as usize != bodies.len()
+        || coarse.horizon_start_ms >= coarse.horizon_end_ms
+    {
+        return Err(MultiBodyBroadphaseError::BodyIdLookupFailure);
+    }
+
+    let mut span_by_id = BTreeMap::new();
+    let mut ids = BTreeSet::new();
+    let first = &bodies[0].motion;
+    for body in bodies {
+        if body.body_id.trim().is_empty() {
+            return Err(MultiBodyBroadphaseError::EmptyBodyId);
+        }
+        if !ids.insert(body.body_id.as_str()) {
+            return Err(MultiBodyBroadphaseError::DuplicateBodyId);
+        }
+        validate_capsule_motion_span(&body.motion)?;
+        if body.motion.site_epoch != first.site_epoch {
+            return Err(MultiBodyBroadphaseError::SiteEpochMismatch);
+        }
+        if body.motion.frame_id != first.frame_id {
+            return Err(MultiBodyBroadphaseError::FrameMismatch);
+        }
+        if body.motion.clock_domain_id != first.clock_domain_id {
+            return Err(MultiBodyBroadphaseError::ClockDomainMismatch);
+        }
+        span_by_id.insert(body.body_id.as_str(), &body.motion);
+    }
+
+    let horizon_duration = coarse
+        .horizon_end_ms
+        .checked_sub(coarse.horizon_start_ms)
+        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+    let mut output_pairs = Vec::with_capacity(coarse.pairs.len());
+    let mut tested_pair_slabs = 0_u64;
+
+    for pair in &coarse.pairs {
+        let first_span = span_by_id
+            .get(pair.first_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let second_span = span_by_id
+            .get(pair.second_body_id.as_str())
+            .ok_or(MultiBodyBroadphaseError::BodyIdLookupFailure)?;
+        let active_overlap_start_ms = first_span.start_ms.max(second_span.start_ms);
+        let active_overlap_end_ms = first_span.end_ms.min(second_span.end_ms);
+        if active_overlap_start_ms >= active_overlap_end_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
+        let mut candidate_slabs = Vec::new();
+
+        for slab_index in 0..subdivision_count {
+            let slab_start_ms = slab_boundary(
+                coarse.horizon_start_ms,
+                horizon_duration,
+                slab_index,
+                subdivision_count,
+            )?;
+            let slab_end_ms = slab_boundary(
+                coarse.horizon_start_ms,
+                horizon_duration,
+                slab_index + 1,
+                subdivision_count,
+            )?;
+            let overlap_start_ms = active_overlap_start_ms.max(slab_start_ms);
+            let overlap_end_ms = active_overlap_end_ms.min(slab_end_ms);
+            if overlap_start_ms >= overlap_end_ms {
+                continue;
+            }
+            tested_pair_slabs = tested_pair_slabs
+                .checked_add(1)
+                .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+
+            let first_bounds = swept_bounds(first_span, overlap_start_ms, overlap_end_ms)?;
+            let second_bounds = swept_bounds(second_span, overlap_start_ms, overlap_end_ms)?;
+            if first_bounds.overlaps(second_bounds) {
+                candidate_slabs.push(CandidateSlab {
+                    slab_index,
+                    overlap_start_ms,
+                    overlap_end_ms,
+                });
+            }
+        }
+
+        if candidate_slabs.is_empty() {
+            continue;
+        }
+        let candidate_duration_u128 = candidate_slabs
+            .iter()
+            .try_fold(0_u128, |total, candidate| {
+                total.checked_add(u128::from(
+                    candidate.overlap_end_ms - candidate.overlap_start_ms,
+                ))
+            })
+            .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        let candidate_duration_ms = u64::try_from(candidate_duration_u128)
+            .map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+        if candidate_duration_ms > active_duration_ms {
+            return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
+        }
+        output_pairs.push(TimedCapsulePairCandidate {
+            first_body_id: pair.first_body_id.clone(),
+            second_body_id: pair.second_body_id.clone(),
+            active_overlap_start_ms,
+            active_overlap_end_ms,
+            active_duration_ms,
+            candidate_duration_ms,
+            candidate_time_fraction: candidate_duration_ms as f64 / active_duration_ms as f64,
+            candidate_slabs,
+        });
+    }
+
+    Ok(CandidateRefinementReport {
+        coarse_candidate_pairs: coarse.pairs.len() as u64,
+        refinement_subdivision_count: subdivision_count,
+        tested_pair_slabs,
+        pairs: output_pairs,
+    })
+}
+
 #[derive(Clone, Copy, Debug)]
 struct SlabEntry {
     body_index: usize,
