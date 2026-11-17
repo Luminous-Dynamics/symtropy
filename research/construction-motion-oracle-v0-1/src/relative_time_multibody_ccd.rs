@@ -670,6 +670,7 @@ mod tests {
         );
 
         let mut expired = mapping("robot-a-clock", 0, 0, 0);
+        expired.reference_source_time_ms = 500;
         expired.valid_until_source_ms = 900;
         let bodies = [
             body(
