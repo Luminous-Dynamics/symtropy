@@ -12,7 +12,7 @@ Compare complete physical theories, not isolated metric functions:
 
 The initial comparison is GR, GR as an effective field theory, pure Weyl-squared conformal gravity, scalar-conformal gravity, and explicitly named quadratic scalar-tensor comparators. They must remain separate model identities.
 
-Chain Theory is a potential discrete quantum-information foundation. It has no qualified continuum metric or gravitational field equation in this research intake. It must not be inserted into a metric solver by analogy. The candidate's continuum map is separately owned by [Symthaea #12604](https://github.com/Luminous-Dynamics/symthaea/issues/12604).
+Chain Theory is a potential discrete quantum-information foundation. It has no qualified continuum metric or gravitational field equation in this research intake. It must not be inserted into a metric solver by analogy. The candidate's finite-to-continuum bridge is separately owned by [Symthaea #12604](https://github.com/Luminous-Dynamics/symthaea/issues/12604); its finite arithmetic reference is in [Symthaea draft PR #12605](https://github.com/Luminous-Dynamics/symthaea/pull/12605). The Rust count audit does not establish the physical alpha(0) conjecture or a continuum gravity model.
 
 ## Why "Weyl gravity" needs model identity
 
