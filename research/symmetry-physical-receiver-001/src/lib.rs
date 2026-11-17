@@ -1811,14 +1811,25 @@ pub fn verify_package(
         return Err(ReceiverErrorV1::InvalidIdentifier);
     }
 
+    let step_verification = verify_step_map_witness(
+        &fixture.step_map_witness,
+        physical.time_step_seconds,
+        profile,
+    )?;
+    let step_status = if step_verification.qualified {
+        ObligationStatusV1::Pass
+    } else {
+        ObligationStatusV1::Inconclusive
+    };
+
     let obligations = ReceiverObligationsV1 {
         mass_metric_congruence: ObligationStatusV1::Pass,
         force_covector_duality: ObligationStatusV1::Pass,
         momentum_one_form: ObligationStatusV1::Pass,
         constraint_jacobian: ObligationStatusV1::Pass,
         generator_metric_isometry: ObligationStatusV1::Pass,
-        discrete_step_equivariance: ObligationStatusV1::Inconclusive,
-        physical_observables: ObligationStatusV1::Inconclusive,
+        discrete_step_equivariance: step_status,
+        physical_observables: step_status,
         numerical_error_envelope: ObligationStatusV1::Inconclusive,
         full_task_semantics: ObligationStatusV1::Pass,
     };
@@ -1838,6 +1849,7 @@ pub fn verify_package(
         tangent_norm_relative_defect: tangent_defect,
         force_dual_norm_relative_defect: force_dual_defect,
         momentum_dual_norm_relative_defect: momentum_dual_defect,
+        step_map: step_verification.diagnostics,
     };
 
     let payload = ReceiverReceiptPayloadV1 {
@@ -1854,7 +1866,7 @@ pub fn verify_package(
         scientific_search_pruning_authorized: false,
         obligations,
         diagnostics,
-        claim_boundary: "Bounded 3D coordinate re-description only; no discrete-step, physical-observable, nonlinear solver, or scientific pruning authority.".to_owned(),
+        claim_boundary: "Bounded 3D coordinate re-description plus a frozen 6-DOF constrained midpoint step-map witness independently checked in canonical and dense coordinates. The receiver checks equations and invariants without rerunning the Newton solve. A certified forward-error envelope, broader physical observables, and scientific-search equivalence remain outstanding; no pruning authority.".to_owned(),
     };
     sign_receipt(payload)
 }
