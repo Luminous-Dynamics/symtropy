@@ -932,7 +932,7 @@ mod tests {
     #[test]
     fn rejects_invalid_carrier_mechanism_medium_combinations() {
         let result = TransportPrimitive::new(TransportPrimitiveSpec {
-            primitive_id: "bad-scalar".to_owned(),
+            primitive_id: "invalid-medium-pair".to_owned(),
             source_port_id: "source".to_owned(),
             destination_port_id: "receiver".to_owned(),
             carrier: EnergyCarrier::ElectromagneticField,
@@ -1262,40 +1262,76 @@ mod tests {
     }
 
     #[test]
-    fn service_contract_rejects_blank_known_digest_but_preserves_missing_digest() {
-        let mut blank = service("blank");
-        blank.duty_cycle_digest = Some("  ".to_owned());
-        // The public constructor is the validation boundary; mutate only inside
-        // this test to prove the assessment itself never interprets blank as a
-        // known matching value.
-        let first = candidate(
-            "a",
-            primitive(
-                "wire-a",
-                "source",
-                "load",
-                EnergyCarrier::Electrical,
-                TransportMechanism::Conduction,
-                TransportMedium::Conductor,
-            ),
-            blank,
-        );
-        let second = candidate(
-            "b",
-            primitive(
-                "wire-b",
-                "source",
-                "load",
-                EnergyCarrier::Electrical,
-                TransportMechanism::Conduction,
-                TransportMedium::Conductor,
-            ),
-            service("complete"),
-        );
-        let assessment = assess_matched_service(&[first, second], &policy()).unwrap();
+    fn service_contract_rejects_blank_known_digest() {
+        let result = UsefulServiceContract::new(UsefulServiceSpec {
+            service_id: "blank".to_owned(),
+            kind: UsefulServiceKind::ElectricalLoad,
+            quality_profile_digest: Some("quality".to_owned()),
+            duty_cycle_digest: Some("  ".to_owned()),
+            scenario_digest: Some("scenario".to_owned()),
+            location_environment_digest: Some("environment".to_owned()),
+            source_boundary_profile_digest: Some("source-boundary".to_owned()),
+            useful_service_boundary_profile_digest: Some("load-boundary".to_owned()),
+        });
+
+        assert!(matches!(
+            result,
+            Err(TransportContractError::MissingField {
+                field: "duty_cycle_digest"
+            })
+        ));
+    }
+
+    #[test]
+    fn conversion_and_storage_metadata_remain_orthogonal_to_transport() {
+        let primitive = TransportPrimitive::new(TransportPrimitiveSpec {
+            primitive_id: "stored-ipt".to_owned(),
+            source_port_id: "tx".to_owned(),
+            destination_port_id: "rx".to_owned(),
+            carrier: EnergyCarrier::ElectromagneticField,
+            mechanism: TransportMechanism::MagneticInduction,
+            medium: TransportMedium::Coil,
+            conversion_stages: vec![ConversionStage::Rectifier],
+            storage_state: StorageState::Battery,
+            operating_regime_profile_digest: "ipt-profile".to_owned(),
+            evidence: verified_evidence("ipt-evidence"),
+        })
+        .unwrap();
+
         assert_eq!(
-            assessment.status(),
-            MatchedServiceComparisonStatus::NotComparable
+            primitive.conversion_stages(),
+            &[ConversionStage::Rectifier]
         );
+        assert_eq!(primitive.storage_state(), StorageState::Battery);
+        assert_eq!(primitive.mechanism(), TransportMechanism::MagneticInduction);
+    }
+
+    #[test]
+    fn all_admitted_transport_families_have_explicit_physical_pairs() {
+        let cases = [
+            (EnergyCarrier::Electrical, TransportMechanism::Conduction, TransportMedium::Conductor),
+            (EnergyCarrier::Electrical, TransportMechanism::SuperconductingConduction, TransportMedium::SuperconductingCable),
+            (EnergyCarrier::ElectromagneticField, TransportMechanism::MagneticInduction, TransportMedium::Coil),
+            (EnergyCarrier::ElectromagneticField, TransportMechanism::CapacitiveCoupling, TransportMedium::Electrodes),
+            (EnergyCarrier::ElectromagneticField, TransportMechanism::RadiativePropagation, TransportMedium::FreeSpace),
+            (EnergyCarrier::ElectromagneticField, TransportMechanism::GuidedElectromagnetic, TransportMedium::Waveguide),
+            (EnergyCarrier::Thermal, TransportMechanism::ThermalConduction, TransportMedium::Solid),
+            (EnergyCarrier::Thermal, TransportMechanism::ThermalAdvection, TransportMedium::Liquid),
+            (EnergyCarrier::Thermal, TransportMechanism::PhaseChangeCapillary, TransportMedium::Pipe),
+            (EnergyCarrier::Mechanical, TransportMechanism::ShaftDrive, TransportMedium::Shaft),
+            (EnergyCarrier::Mechanical, TransportMechanism::HydraulicFlow, TransportMedium::Pipe),
+            (EnergyCarrier::Mechanical, TransportMechanism::PneumaticFlow, TransportMedium::Gas),
+            (EnergyCarrier::Acoustic, TransportMechanism::AcousticWave, TransportMedium::Liquid),
+            (EnergyCarrier::Chemical, TransportMechanism::EnergyBearingLogistics, TransportMedium::Vessel),
+            (EnergyCarrier::Electrochemical, TransportMechanism::EnergyBearingLogistics, TransportMedium::Road),
+            (EnergyCarrier::GravitationalPotential, TransportMechanism::EnergyBearingLogistics, TransportMedium::Rail),
+        ];
+
+        for (carrier, mechanism, medium) in cases {
+            assert!(
+                valid_carrier_mechanism_medium(carrier, mechanism, medium),
+                "expected admitted combination {carrier:?}/{mechanism:?}/{medium:?}"
+            );
+        }
     }
 }
