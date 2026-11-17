@@ -174,7 +174,20 @@ For this T0 pack:
 - local point-of-use evidence remains boundary-specific;
 - field qualification is rejected for synthetic inputs.
 
-The read-only Rust evaluator is now implemented in `tools/water-service-t0/src/bin/jw-water-cascade-t0.rs` on the branch stacked over the existing `water-service-t0` package. It compares all 15 computed case outputs against this separate oracle and emits a deterministic receipt binding input, oracle, both schemas, source manifest, root Cargo.lock, package manifest, implementation bytes and the exact checkout revision. The existing water-service workflow now runs this evaluator alongside the original T0 evaluator and requires both to succeed. This is implementation status only: native compilation, tests, Clippy, hosted CI and an exact-head receipt remain pending until the workflow reports them. No action/control output is permitted.
+The read-only Rust evaluator is implemented in `tools/water-service-t0/src/bin/jw-water-cascade-t0.rs` on a branch stacked over the existing `water-service-t0` package. It compares all 15 computed case outputs against this separate oracle and emits a deterministic receipt binding input, oracle, both schemas, source manifest, root Cargo.lock, package manifest, implementation bytes and exact checkout revision.
+
+### Exact-head software validation — 17 November 2026
+
+GitHub Actions run [#1227 / 44094878255](https://github.com/Luminous-Dynamics/symtropy/actions/runs/44094878255) completed successfully for PR source head `1fb8bc38cf5a4f927df2216f40178f9b2acbfdc7`. The workflow evaluated the merged checkout revision `7ddf297f9de2ba968159b3e794c13c1399650a89`, which merges that source head into the declared parent branch.
+
+- `cargo fmt --check`: PASS.
+- `cargo test --locked --package water-service-t0`: PASS; 22 unit tests total (8 library + 7 new cascade binary + 7 existing binary).
+- `cargo clippy --locked --package water-service-t0 --all-targets -- -D warnings`: PASS.
+- Existing water-service T0 evaluator: 23/23 expected outputs matched, zero mismatches.
+- Johannesburg cascade T0 evaluator: 15/15 expected outputs matched, zero mismatches.
+- Exact-revision receipt gate: PASS; evidence artifact [14333142561](https://github.com/Luminous-Dynamics/symtropy/actions/runs/44094878255/artifacts/14333142561) uploaded.
+
+The receipts deliberately retain `evidence_class: synthetic_only` and `qualification_status: NotRun`. This confirms software behavior against frozen synthetic contracts only. It does not admit live datasets or qualify a hydraulic network, sensor, household service, causal dependency, field forecast, repair outcome or water saving. No action/control output is permitted.
 
 ## 10. Nonclaims
 
