@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/protect-evidence-measurement-voi-e8-v0.1.schema.json",
+  "title": "Protect Evidence E8 Deterministic Measurement Selection Fixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_class",
+    "claim_ceiling",
+    "hypothesis_set",
+    "claim_scope",
+    "constraints",
+    "candidates"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "protect-evidence-measurement-voi-e8/0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "DETERMINISTIC_MEASUREMENT_DISCRIMINATION_ONLY"
+    },
+    "hypothesis_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "set_id",
+        "closed_world",
+        "hypotheses"
+      ],
+      "properties": {
+        "set_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closed_world": {
+          "type": "boolean"
+        },
+        "hypotheses": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "hypothesis_id",
+              "description",
+              "known_truth_label"
+            ],
+            "properties": {
+              "hypothesis_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "known_truth_label": {
+                "const": "synthetic-control-only"
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "subject_id",
+        "configuration_digest",
+        "quantity",
+        "unit",
+        "valid_from",
+        "valid_to"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string"
+        },
+        "subject_id": {
+          "type": "string"
+        },
+        "configuration_digest": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "valid_from": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_to": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximum_tests_per_plan",
+        "cost_unit",
+        "duration_unit",
+        "mandatory_safety_floor",
+        "required_independence_state",
+        "unknown_status_policy",
+        "open_world_policy"
+      ],
+      "properties": {
+        "maximum_tests_per_plan": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "cost_unit": {
+          "type": "string"
+        },
+        "duration_unit": {
+          "type": "string"
+        },
+        "mandatory_safety_floor": {
+          "const": "PASS"
+        },
+        "required_independence_state": {
+          "const": "ATTESTED_FOR_SYNTHETIC_SCOPE"
+        },
+        "unknown_status_policy": {
+          "const": "INADMISSIBLE"
+        },
+        "open_world_policy": {
+          "const": "ABSTAIN"
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidate_id",
+          "method_id",
+          "description",
+          "configuration_digest",
+          "subject_id",
+          "quantity",
+          "unit",
+          "calibration_status",
+          "authority_status",
+          "safety_status",
+          "independence_status",
+          "dependency_evidence_ids",
+          "cost",
+          "duration_minutes",
+          "outcomes"
+        ],
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "method_id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "configuration_digest": {
+            "type": "string"
+          },
+          "subject_id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "calibration_status": {
+            "enum": [
+              "VALID",
+              "INVALID",
+              "UNKNOWN"
+            ]
+          },
+          "authority_status": {
+            "enum": [
+              "QUALIFIED",
+              "UNQUALIFIED",
+              "UNKNOWN"
+            ]
+          },
+          "safety_status": {
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNKNOWN"
+            ]
+          },
+          "independence_status": {
+            "enum": [
+              "ATTESTED_FOR_SYNTHETIC_SCOPE",
+              "SHARED_WITH_CONFLICT",
+              "UNKNOWN"
+            ]
+          },
+          "dependency_evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "cost": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outcomes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "outcome_id",
+                "hypothesis_ids"
+              ],
+              "properties": {
+                "outcome_id": {
+                  "type": "string"
+                },
+                "hypothesis_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
