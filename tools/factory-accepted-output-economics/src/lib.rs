@@ -963,12 +963,14 @@ mod tests {
     #[test]
     fn counterfactual_cases_may_reuse_output_identity() {
         let (cases, costs, mut outputs) = parsed();
-        let mut alternate = outputs
+        let source_output_id = outputs[0].output_id.clone();
+        let source_release_ref = outputs[0].release_ref.clone();
+        let alternate = outputs
             .iter_mut()
             .find(|row| row.case_id == "out_of_scope_excluded")
             .unwrap();
-        alternate.output_id = outputs[0].output_id.clone();
-        alternate.release_ref = outputs[0].release_ref.clone();
+        alternate.output_id = source_output_id;
+        alternate.release_ref = source_release_ref;
         assert!(evaluate(&cases, &costs, &outputs).is_ok());
     }
 
