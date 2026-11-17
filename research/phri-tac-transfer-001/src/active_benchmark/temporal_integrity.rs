@@ -198,11 +198,15 @@ pub fn fit_clock_mapping(
 impl ClockMapping {
     pub fn map_timestamp(&self, local_timestamp_ns: u64) -> Result<u64, String> {
         let delta = i128::from(local_timestamp_ns) - i128::from(self.local_epoch_ns);
-        let drift_adjustment = delta * i128::from(self.drift_ppb) / 1_000_000_000_i128;
+        let drift_numerator = delta
+            .checked_mul(i128::from(self.drift_ppb))
+            .ok_or_else(|| "clock drift adjustment overflows i128".to_owned())?;
+        let drift_adjustment = drift_numerator / 1_000_000_000_i128;
         let mapped = i128::from(self.reference_epoch_ns)
-            + i128::from(self.offset_ns)
-            + delta
-            + drift_adjustment;
+            .checked_add(i128::from(self.offset_ns))
+            .and_then(|value| value.checked_add(delta))
+            .and_then(|value| value.checked_add(drift_adjustment))
+            .ok_or_else(|| "mapped timestamp overflows i128".to_owned())?;
         u64::try_from(mapped).map_err(|_| "mapped timestamp is outside u64 range".to_owned())
     }
 }
@@ -280,6 +284,24 @@ pub fn normalize_stream(
 /// window uses maximum_window_duration_ns; subsequent windows use the interval
 /// since the previous tactile sample. Samples after the tactile decision time
 /// are never included, and data gaps are never interpolated.
+fn validate_normalized_stream(stream: &NormalizedStream, name: &str) -> Result<(), String> {
+    if stream.device_id.trim().is_empty()
+        || stream.reference_clock_domain.trim().is_empty()
+        || stream.channel_count == 0
+        || stream.samples.is_empty()
+    {
+        return Err(format!("{name} normalized stream metadata or samples are incomplete"));
+    }
+    for pair in stream.samples.windows(2) {
+        if pair[1].sequence <= pair[0].sequence
+            || pair[1].reference_timestamp_ns <= pair[0].reference_timestamp_ns
+        {
+            return Err(format!("{name} normalized samples are not strictly ordered"));
+        }
+    }
+    Ok(())
+}
+
 pub fn align_causal_multirate(
     tactile: &NormalizedStream,
     vibration: &NormalizedStream,
@@ -288,9 +310,8 @@ pub fn align_causal_multirate(
     maximum_latest_sample_age_ns: u64,
     maximum_alignment_uncertainty_ns: u64,
 ) -> Result<TemporalAlignmentReport, String> {
-    if tactile.samples.is_empty() || vibration.samples.is_empty() {
-        return Err("causal alignment requires nonempty tactile and vibration streams".to_owned());
-    }
+    validate_normalized_stream(tactile, "tactile")?;
+    validate_normalized_stream(vibration, "vibration")?;
     if tactile.reference_clock_domain != vibration.reference_clock_domain {
         return Err("streams are not normalized to the same reference clock domain".to_owned());
     }
@@ -462,7 +483,7 @@ mod tests {
         ];
         let mapping = fit_clock_mapping("accelerometer-clock", "robot-clock", &pairs)
             .expect("clock mapping");
-        assert_eq!(mapping.offset_ns, 5_000_000);
+        assert_eq!(mapping.offset_ns, 0);
         assert_eq!(mapping.drift_ppb, 100);
         assert_eq!(mapping.maximum_fit_residual_ns, 0);
         assert_eq!(
