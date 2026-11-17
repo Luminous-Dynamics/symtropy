@@ -1,0 +1,195 @@
+{
+  "schema_version": "myco.study_comparability.v0.1",
+  "suite_id": "MYCO-STUDY-COMPARABILITY-001",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5733",
+  "status": "protocol_and_source_facts_recorded_raw_2026_data_not_accessed",
+  "sources": [
+    {
+      "id": "AMF-HOST-FREE-2026",
+      "publication": "Klein et al., Fungal Biology 130(4), 101775 (June 2026)",
+      "doi": "10.1016/j.funbio.2026.101775",
+      "url": "https://doi.org/10.1016/j.funbio.2026.101775",
+      "source_facts": {
+        "taxa": [
+          "Rhizophagus irregularis"
+        ],
+        "strains": [
+          "A5 / DAOM 664344",
+          "C2 / DAOM 664346"
+        ],
+        "host_exposure": "absent",
+        "carbon_arms": [
+          "no myristic acid",
+          "0.5 mM myristic acid"
+        ],
+        "medium": "MSR medium with 0.3% (w/v) Phytagel; additional exact composition must be taken from supplementary methods",
+        "imaging_days": 57,
+        "cadence_hours": [
+          2,
+          4
+        ],
+        "temperature_c": 25,
+        "bulk_flow_videos_approx": 5000,
+        "flow_trajectories_approx": 25000,
+        "lipid_label": "Nile red on a subset",
+        "reported_observations": {
+          "network_length_with_myristic_acid": "about 10 times the no-myristic-acid condition, within this study",
+          "network_area_with_myristic_acid": "up to 4 times the no-myristic-acid condition, within this study",
+          "bulk_cytoplasmic_mean_speed": "about 50% higher with myristic acid",
+          "rare_bulk_flow_bursts_um_per_s": [
+            10,
+            30
+          ],
+          "fluorescent_lipid_mean_speed_um_per_s": 3,
+          "lipid_speed_treatment_effect": "no effect reported",
+          "long_term_flow": "detected near parental spores up to one year after treatment in selected plates"
+        },
+        "raw_data_availability": "available upon request, not an open raw-data archive"
+      },
+      "context_admission": {
+        "taxon": "admitted",
+        "strain": "admitted",
+        "host_exposure": "admitted_absent",
+        "carbon_source": "admitted_two_arms",
+        "medium_fingerprint": "partial_supplementary_methods_required",
+        "plate_geometry_fingerprint": "not_admitted",
+        "time_origin": "spore_germination_admitted",
+        "cadence": "admitted_2_to_4_hours",
+        "duration": "admitted_57_days_for_main_growth_experiment",
+        "temperature": "admitted_25_c",
+        "flow_tracer_identity": "bulk_cytoplasm_and_nile_red_lipid_are_separate",
+        "randomization": "not_admitted_from_currently_reviewed_source_text",
+        "data_access": "author_request_required"
+      }
+    },
+    {
+      "id": "AMF-HOST-ASSOCIATED-2025",
+      "publication": "Oyarte Galvez et al., Nature 639, 172-180 (26 February 2025)",
+      "doi": "10.1038/s41586-025-08614-x",
+      "url": "https://doi.org/10.1038/s41586-025-08614-x",
+      "source_facts": {
+        "taxa": [
+          "Rhizophagus irregularis",
+          "Rhizophagus aggregatum"
+        ],
+        "strains": [
+          "A5 / DAOM664344",
+          "C2 / DAOM664346",
+          "R. aggregatum profile"
+        ],
+        "host_exposure": "present; Daucus carota root-organ culture",
+        "carbon_source": "host-derived carbon in the symbiosis; exact substrate profile not equivalent to the host-free MSR treatment",
+        "geometry": "split Petri plate with root and fungus-only compartments",
+        "timing": "imaging began after root colonization and hyphae entered the fungus-only arena; the 2026 authors note roughly four weeks of pre-imaging germination/colonization history",
+        "sampling": "typical 2-hour image interval; typical experiment ~150 images per replicate",
+        "measurements": "graph topology and cytoplasmic flow trajectories; graph metrics and flow readouts are distinct",
+        "flow_trajectories_approx": 100000,
+        "tracked_nodes_over": 500000,
+        "raw_data": "published Figshare source data; individual files require license and scope admission"
+      },
+      "context_admission": {
+        "taxon": "admitted_at_species_level",
+        "strain": "admitted_for_A5_C2_profiles",
+        "host_exposure": "admitted_present",
+        "carbon_source": "host-derived_context_not_equivalent_to_exogenous_myristic_acid",
+        "medium_fingerprint": "different_root-organ-culture_context; exact matched fingerprint not admitted",
+        "plate_geometry_fingerprint": "split-plate geometry admitted but exact matched descriptor not admitted",
+        "time_origin": "root colonization / fungal-arena entry; not equivalent to spore germination",
+        "cadence": "typical_2_hours; verify per replicate",
+        "duration": "experiment-specific; not directly matched to 57-day host-free experiment",
+        "temperature": "verify from source protocol before comparison",
+        "flow_tracer_identity": "bulk cytoplasmic flow; keep per-observation semantics",
+        "randomization": "do not infer from existence of treatment or replicate structure",
+        "data_access": "source-data DOI available; per-file rights review required"
+      }
+    }
+  ],
+  "critical_comparability_facts": [
+    "The 2026 host-free study contains no host-present randomized arm.",
+    "The within-study no-myristic-acid versus 0.5 mM myristic-acid contrast changes exogenous carbon in a host-free system; it is not a host-presence experiment.",
+    "Bulk cytoplasmic particle trajectories and Nile-red fluorescent-lipid cargo speeds are distinct outcomes.",
+    "The 2025 and 2026 studies differ in plate geometry and time origin; the 2026 authors explicitly caution that absolute growth comparisons are not direct.",
+    "The 2026 paper reports raw data available upon request; no raw-data reproduction is claimed.",
+    "Even if study context descriptors appear similar, distinct study IDs remain separate and are not pooled by this software gate."
+  ],
+  "implementation_contract": {
+    "rust_module": "symtropy_mycelium::study_comparability",
+    "report_statuses": [
+      "MatchedWithinStudyContext",
+      "RandomizedSingleFactorContrastCandidate",
+      "NonRandomizedSingleFactorContrast",
+      "NonComparableWithinStudy",
+      "CrossStudyContextShift",
+      "InsufficientMetadata"
+    ],
+    "allowed_declared_interventions": [
+      "host_exposure",
+      "carbon_source"
+    ],
+    "differences_never_treated_as_intervention": [
+      "strain",
+      "medium_composition",
+      "plate_geometry",
+      "time_origin",
+      "measurement_readout",
+      "measurement_method",
+      "sampling_cadence",
+      "observation_duration",
+      "temperature"
+    ],
+    "pooling_policy": "cross-study context results never authorize automatic pooling or causal effect estimation"
+  },
+  "expected_scenarios": [
+    {
+      "id": "SC-01",
+      "name": "host_free_myristic_acid_arms",
+      "expected": "RandomizedSingleFactorContrastCandidate only when both arm allocation fields explicitly report Randomized; otherwise NonRandomizedSingleFactorContrast"
+    },
+    {
+      "id": "SC-02",
+      "name": "bulk_flow_vs_lipid_cargo",
+      "expected": "NonComparableWithinStudy; MeasurementReadout is not an intervention"
+    },
+    {
+      "id": "SC-03",
+      "name": "2025_host_associated_vs_2026_host_free",
+      "expected": "CrossStudyContextShift with multiple differing factors; never a host-effect estimate"
+    },
+    {
+      "id": "SC-04",
+      "name": "identical_context_different_study_ids",
+      "expected": "CrossStudyContextShift with no differing context factors; do not pool"
+    },
+    {
+      "id": "SC-05",
+      "name": "missing_geometry_or_time_origin",
+      "expected": "InsufficientMetadata"
+    },
+    {
+      "id": "SC-06",
+      "name": "carbon_and_geometry_both_differ",
+      "expected": "NonComparableWithinStudy"
+    },
+    {
+      "id": "SC-07",
+      "name": "one_factor_without_randomization",
+      "expected": "NonRandomizedSingleFactorContrast"
+    },
+    {
+      "id": "SC-08",
+      "name": "different_strain",
+      "expected": "NonComparableWithinStudy; retain strain strata"
+    },
+    {
+      "id": "SC-09",
+      "name": "cadence_and_duration_differ",
+      "expected": "NonComparableWithinStudy"
+    },
+    {
+      "id": "SC-10",
+      "name": "method_difference_not_treatment",
+      "expected": "NonComparableWithinStudy"
+    }
+  ],
+  "claim_ceiling": "The module qualifies experimental context and interpretation only. It does not estimate an effect, prove causality, demonstrate host independence in a quantitative sense, or replace source-level statistical reproduction."
+}
