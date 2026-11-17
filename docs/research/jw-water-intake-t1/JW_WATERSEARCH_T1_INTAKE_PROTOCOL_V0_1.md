@@ -18,7 +18,7 @@ A tool-generated checksum is not an acquisition. A checksum over a synthetic fix
 - Release index: https://watersearch.co.za/api/v1/releases
 - Bulk status: https://watersearch.co.za/data
 
-The documented body includes licence, release, source_view, caveat, suburb, suburb_name and days. Each daily row contains day, asset_id, asset_name, level, bad, on_bypass, boards and wording. The level vocabulary is adequate, fair, pressure, low, no_water, critical and no_report. The API says each row is one suburb × linked supply × SAST day; no_report is a gap and never normal service.
+The documented body includes licence, release, source_view, caveat, suburb, suburb_name and days. Each daily row contains day, asset_id, asset_name, level, bad, on_bypass, boards and wording. The level vocabulary includes adequate, fair, pressure, low, warned, no_water, critical and no_report. The API example uses the token `warned` for its separate “warning: no water may occur” step; it is not marked bad and must not be recoded as an outage. The API says each row is one suburb × linked supply × SAST day; no_report is a gap and never normal service.
 
 The API says its compilation/readings are CC BY 4.0, asks for credit to Johannesburg Water for underlying facts, and places a licence statement in the body and X-Licence header. The license statement is a source assertion, not a legal opinion by this verifier. The source states it is not run by Johannesburg Water or the City.
 
