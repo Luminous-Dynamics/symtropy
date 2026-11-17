@@ -608,6 +608,16 @@ pub fn run_evidence_conflict_campaign(
     first_seed
         .checked_add(last_offset)
         .ok_or_else(|| "evidence conflict seed range overflows u64".to_owned())?;
+    let total_scenarios = replicate_count
+        .checked_mul(4)
+        .ok_or_else(|| "evidence conflict scenario count overflows usize".to_owned())?;
+    let event_offset = last_offset
+        .checked_mul(10_000)
+        .ok_or_else(|| "evidence conflict event-time range overflows u64".to_owned())?;
+    let event_time_end = 1_000_000_000_u64
+        .checked_add(event_offset)
+        .ok_or_else(|| "evidence conflict event-time range overflows u64".to_owned())?;
+    debug_assert!(event_time_end >= 1_000_000_000);
 
     let mut independent_agreement_safe_count = 0;
     let mut high_conflict_abstention_count = 0;
@@ -668,7 +678,7 @@ pub fn run_evidence_conflict_campaign(
     Ok(EvidenceConflictCampaignReport {
         first_seed,
         replicate_count,
-        total_scenarios: replicate_count * 4,
+        total_scenarios,
         independent_agreement_safe_count,
         high_conflict_abstention_count,
         high_conflict_dempster_comparator_count,
