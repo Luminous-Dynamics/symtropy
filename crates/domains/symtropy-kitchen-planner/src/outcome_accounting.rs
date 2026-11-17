@@ -288,7 +288,7 @@ fn validate_evidence(
     reference: &str,
     issues: &mut Vec<KitchenOutcomeIssueV1>,
 ) -> bool {
-    let valid = !nonempty(&evidence.source_ref).not();
+    let valid = nonempty(&evidence.source_ref);
     let mut result = valid;
     if !valid {
         add_issue(
@@ -350,7 +350,6 @@ fn mass_nanograms(value: ExactKitchenMassV1) -> Result<u128, KitchenOutcomeIssue
         KitchenMassUnitV1::Kilogram => NANO_PER_KILOGRAM,
     };
     exact_units(value.value, value.decimal_places, base)
-        .map_err(|code| if code == KitchenOutcomeIssueCodeV1::InvalidMassScale { code } else { code })
 }
 
 fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u128, KitchenOutcomeIssueCodeV1> {
