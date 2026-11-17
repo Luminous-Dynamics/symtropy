@@ -546,7 +546,13 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, CoreIdenti
             &format!("{opath}.source"),
             "undetermined",
         )?;
-        if !field(source, "translation_artifact_ref", &format!("{opath}.source"))?.is_null() {
+        if !field(
+            source,
+            "translation_artifact_ref",
+            &format!("{opath}.source"),
+        )?
+        .is_null()
+        {
             return Err(format!(
                 "{opath}.source.translation_artifact_ref: synthetic fixture cannot claim a real translation artifact"
             ));
