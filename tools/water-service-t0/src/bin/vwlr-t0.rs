@@ -259,6 +259,32 @@ fn evaluate_event(
 ) -> Result<Value, String> {
     let event_id = string(event, "event_id", "event")?;
     let context = format!("event {event_id}");
+    ensure_keys(
+        event,
+        &[
+            "event_id",
+            "recovery_claim_id",
+            "network_id",
+            "topology",
+            "measurement_boundary_id",
+            "diagnostic",
+            "inspection",
+            "field_confirmation",
+            "repair",
+            "treated_pre",
+            "treated_post",
+            "control_pre",
+            "control_post",
+            "max_pressure_difference_percent",
+            "max_demand_difference_percent",
+            "uncertainty_expansion_factor",
+            "follow_up",
+            "control_boundary_id",
+            "treated_zone_id",
+            "control_zone_id",
+        ],
+        &context,
+    )?;
     let claim_id = string(event, "recovery_claim_id", &context)?;
     if duplicated_claims.contains(claim_id) {
         return Ok(empty_output(event, "duplicate_recovery_claim_rejected"));
@@ -365,15 +391,19 @@ fn evaluate_event(
         measurement.topology_revision == topology_revision
             && measurement.topology_digest == topology_digest
     });
-    if treated_pre.boundary_id != treated_boundary
+    let treated_zone_id = string(event, "treated_zone_id", &context)?;
+    let control_zone_id = string(event, "control_zone_id", &context)?;
+    if treated_zone_id == control_zone_id
+        || treated_pre.boundary_id != treated_boundary
         || treated_post.boundary_id != treated_boundary
         || control_pre.boundary_id != control_boundary
         || control_post.boundary_id != control_boundary
         || treated_pre.boundary_id != treated_post.boundary_id
         || control_pre.boundary_id != control_post.boundary_id
-        || treated_pre.zone_id != treated_post.zone_id
-        || control_pre.zone_id != control_post.zone_id
-        || treated_pre.zone_id == control_pre.zone_id
+        || treated_pre.zone_id != treated_zone_id
+        || treated_post.zone_id != treated_zone_id
+        || control_pre.zone_id != control_zone_id
+        || control_post.zone_id != control_zone_id
         || !same_topology
     {
         return Ok(output_without_attribution(event, "attribution_indeterminate_boundary_or_topology", localization_correct));
@@ -387,11 +417,7 @@ fn evaluate_event(
         .iter()
         .map(|measurement| measurement.raw_record_digest.clone())
         .collect();
-    let methods: BTreeSet<String> = raw
-        .iter()
-        .map(|measurement| measurement.method_ref.clone())
-        .collect();
-    if identities.len() != raw.len() || digests.len() != raw.len() || methods.len() != raw.len() {
+    if identities.len() != raw.len() || digests.len() != raw.len() {
         return Ok(output_without_attribution(event, "attribution_indeterminate_duplicate_measurement_identity", localization_correct));
     }
 
