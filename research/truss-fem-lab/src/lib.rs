@@ -1,9 +1,9 @@
-pub mod damage;
-
 //! Small reference solver for linear-elastic 3D pin-jointed trusses.
 //!
 //! The solver is intentionally narrow. It is a reference for axial bar
 //! mechanics and kinematic-mechanism detection, not a production FEM code.
+
+pub mod damage;
 
 use std::collections::HashSet;
 use std::error::Error;
