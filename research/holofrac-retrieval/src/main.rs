@@ -10,12 +10,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_os={}", std::env::consts::OS);
     println!("# facts={}", graph.facts().len());
     println!("# graph_digest_non_security={}", graph.digest_non_security()?);
-    println!("dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,mean_query_us,bipolar_index_bytes_estimate,f32_index_bytes_estimate,encoder_fingerprint_non_security");
+    println!("dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_index_bytes_estimate,f32_index_bytes_estimate,encoder_fingerprint_non_security");
 
     for dimension in [2_048, 4_096, 8_192, 16_384] {
         let report = run_benchmark(&graph, dimension, 0x484f_4c4f_4652_4143)?;
         println!(
-            "{},{},{},{},{},{},{},{},{:.3},{:.3},{},{},{}",
+            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{}",
             report.dimension,
             report.fact_count,
             report.positive_queries,
@@ -25,14 +25,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             report.reversed_false_accepts,
             report.f32_reversed_false_accepts,
             report.index_build_micros,
-            report.mean_query_micros,
+            report.mean_query_encode_micros,
+            report.mean_bipolar_search_micros,
+            report.mean_f32_search_micros,
+            report.mean_bipolar_end_to_end_micros,
+            report.mean_f32_end_to_end_micros,
+            report.mean_exact_oracle_micros,
+            report.mean_metadata_lookup_micros,
             report.bipolar_index_bytes_estimate,
             report.f32_index_bytes_estimate,
             report.encoder_fingerprint_non_security
         );
 
         for row in &report.outcomes {
-            let top1 = row
+            let bipolar_top1 = row
                 .hdc_top1
                 .as_ref()
                 .map(|fact| fact.canonical_key())
@@ -47,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 row.query.canonical_key(),
                 row.oracle_match,
                 row.exact_metadata_match,
-                top1,
+                bipolar_top1,
                 row.top1_similarity,
                 row.hdc_exact_accept,
                 f32_top1,
