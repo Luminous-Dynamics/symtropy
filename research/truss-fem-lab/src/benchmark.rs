@@ -12,6 +12,7 @@ use crate::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
 };
 use crate::stability::{screen_member_stability, MemberStabilityProperties};
+use crate::verification::{audit_equilibrium, VerificationError};
 use crate::{
     AnalysisError, AnalysisResult, BoundaryConditions, TrussMaterial, TrussModel,
 };
@@ -44,6 +45,9 @@ pub struct MassNormalizedBenchmarkReceipt {
     pub maximum_absolute_axial_stress_pa: f64,
     pub total_strain_energy_j: f64,
     pub equilibrium_residual_n: f64,
+    pub global_force_residual_n: f64,
+    pub global_moment_residual_nm: f64,
+    pub energy_relative_error: f64,
     pub maximum_yield_utilization: f64,
     pub yield_exceedance_count: usize,
     pub maximum_elastic_euler_utilization: Option<f64>,
@@ -64,6 +68,7 @@ pub enum BenchmarkError {
     NonFiniteResult,
     Analysis(AnalysisError),
     Stability(crate::stability::StabilityError),
+    Verification(VerificationError),
 }
 
 impl fmt::Display for BenchmarkError {
@@ -74,6 +79,7 @@ impl fmt::Display for BenchmarkError {
             Self::NonFiniteResult => write!(f, "benchmark calculation produced a non-finite value"),
             Self::Analysis(error) => write!(f, "structural analysis failed: {error}"),
             Self::Stability(error) => write!(f, "member stability screen failed: {error}"),
+            Self::Verification(error) => write!(f, "equilibrium verification failed: {error}"),
         }
     }
 }
@@ -213,6 +219,8 @@ pub fn evaluate_mass_normalized_candidate(
     let analysis: AnalysisResult = model
         .analyze(material, boundary)
         .map_err(BenchmarkError::Analysis)?;
+    let equilibrium = audit_equilibrium(model, boundary, &analysis)
+        .map_err(BenchmarkError::Verification)?;
 
     let member_properties = vec![
         MemberStabilityProperties {
@@ -277,6 +285,9 @@ pub fn evaluate_mass_normalized_candidate(
         maximum_absolute_axial_stress_pa,
         total_strain_energy_j: analysis.total_strain_energy_j,
         equilibrium_residual_n: analysis.max_free_dof_equilibrium_residual_n,
+        global_force_residual_n: equilibrium.net_force_residual_norm_n,
+        global_moment_residual_nm: equilibrium.net_moment_residual_norm_nm,
+        energy_relative_error: equilibrium.energy_relative_error,
         maximum_yield_utilization: stability.maximum_yield_utilization,
         yield_exceedance_count: stability.yield_exceedance_count,
         maximum_elastic_euler_utilization: stability.maximum_elastic_euler_utilization,
@@ -464,6 +475,9 @@ mod tests {
         assert!(receipt.maximum_node_displacement_m.is_finite());
         assert!(receipt.maximum_absolute_axial_stress_pa.is_finite());
         assert!(receipt.equilibrium_residual_n < 1e-5);
+        assert!(receipt.global_force_residual_n < 1e-8);
+        assert!(receipt.global_moment_residual_nm < 1e-8);
+        assert!(receipt.energy_relative_error < 1e-10);
         assert_eq!(receipt.tested_two_member_pairs, 8);
         assert_eq!(receipt.omitted_two_member_pairs, receipt.total_two_member_pairs - 8);
     }
