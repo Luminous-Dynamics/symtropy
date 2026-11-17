@@ -1,0 +1,299 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "JW-WATER-CASCADE-T0",
+  "oracle_independence": "Separately authored expected dispositions; not generated from evaluator output.",
+  "evidence_class": "synthetic_only",
+  "cases": [
+    {
+      "case_id": "C01_NO_REPORT_IS_NOT_NORMAL",
+      "expected": {
+        "disposition": "NO_REPORT_PRESERVED",
+        "reported_status_vector": [
+          "no_report"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C02_REPORTED_STATUS_NOT_TAP_TRUTH",
+      "expected": {
+        "disposition": "REPORTED_STATUS_ONLY",
+        "reported_status_vector": [
+          "low"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C03_MULTI_SUPPLY_SUBURB_VECTOR",
+      "expected": {
+        "disposition": "PER_SUPPLY_VECTOR_ONLY",
+        "reported_status_vector": [
+          "fair",
+          "critical"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C04_BYPASS_IS_SEPARATE",
+      "expected": {
+        "disposition": "BYPASS_STATUS_SEPARATE",
+        "reported_status_vector": [
+          "warned"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C05_SCHEDULED_CLOSURE_IS_NOT_UNPLANNED",
+      "expected": {
+        "disposition": "SCHEDULED_CLOSURE_SEPARATE",
+        "reported_status_vector": [
+          "no_water"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C06_C41_FOUR_DAY_GAP_BRIDGED",
+      "expected": {
+        "disposition": "C41_GAP_WITHIN_CAP",
+        "reported_status_vector": [
+          "no_water",
+          "no_report",
+          "no_water",
+          "fair"
+        ],
+        "reported_episode_count": 1,
+        "no_board_days_between_severe_reports": 4,
+        "censoring": "NOT_CENSORED",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C07_C41_FIVE_DAY_GAP_NOT_BRIDGED",
+      "expected": {
+        "disposition": "C41_GAP_OVER_CAP_NOT_BRIDGED",
+        "reported_status_vector": [
+          "no_water",
+          "no_report",
+          "no_water"
+        ],
+        "reported_episode_count": 2,
+        "no_board_days_between_severe_reports": 5,
+        "censoring": "NOT_CENSORED",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C08_CENSORED_DURATION_IS_LOWER_BOUND",
+      "expected": {
+        "disposition": "RIGHT_CENSORED_LOWER_BOUND",
+        "reported_status_vector": [
+          "no_water"
+        ],
+        "reported_episode_count": 1,
+        "no_board_days_between_severe_reports": 0,
+        "censoring": "RIGHT_CENSORED",
+        "duration_hours_lower_bound": 157.25,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_ATTEMPTED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C09_NOTICE_TO_REPORTED_RETURN_DELAY",
+      "expected": {
+        "disposition": "NOTICE_TO_REPORTED_RETURN_DELAY",
+        "reported_status_vector": [
+          "fair"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "EXACT_SUPPLY_MATCH",
+        "temporal_join": "REPORTED_RETURN_ORDERED_AFTER_NOTICE",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C10_NOTICE_SUPPLY_MISMATCH_REJECTED",
+      "expected": {
+        "disposition": "SUPPLY_ID_JOIN_REJECTED",
+        "reported_status_vector": [
+          "fair"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "REJECTED_SUPPLY_MISMATCH",
+        "temporal_join": "NOT_JOINED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C11_TIMEBASE_UNKNOWN_BLOCKS_JOIN",
+      "expected": {
+        "disposition": "TIMEBASE_INDETERMINATE",
+        "reported_status_vector": [
+          "low"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "INDETERMINATE_TIMEBASE",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C12_STAGE_WITHOUT_RATING_CURVE_IS_NOT_FLOW",
+      "expected": {
+        "disposition": "STAGE_NOT_DISCHARGE",
+        "reported_status_vector": [
+          "critical"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_JOINED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C13_UNKNOWN_DEPENDENCY_MEANS_ASSOCIATION_ONLY",
+      "expected": {
+        "disposition": "UNKNOWN_DEPENDENCY_ASSOCIATION_ONLY",
+        "reported_status_vector": [
+          "critical"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "COARSE_DAILY_ALIGNMENT",
+        "dependency_conclusion": "UNKNOWN_NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C14_POINT_OF_USE_IS_A_SEPARATE_BOUNDARY",
+      "expected": {
+        "disposition": "LOCAL_POINT_OF_USE_SYNTHETIC_ONLY",
+        "reported_status_vector": [
+          "fair"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "LOCAL_MEASUREMENT_ONLY",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "SYNTHETIC_LOCAL_PRESSURE_FLOW_ONLY",
+        "claim_result": "RETAIN_SYNTHETIC_CEILING",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    },
+    {
+      "case_id": "C15_SYNTHETIC_TO_FIELD_PROMOTION_REJECTED",
+      "expected": {
+        "disposition": "SYNTHETIC_TO_FIELD_PROMOTION_REJECTED",
+        "reported_status_vector": [
+          "no_water"
+        ],
+        "reported_episode_count": null,
+        "no_board_days_between_severe_reports": null,
+        "censoring": "NOT_APPLICABLE",
+        "duration_hours_lower_bound": null,
+        "asset_join": "NOT_ATTEMPTED",
+        "temporal_join": "NOT_JOINED",
+        "dependency_conclusion": "NO_CAUSAL_CLAIM",
+        "point_of_use_conclusion": "NOT_MEASURED",
+        "claim_result": "REJECT_FIELD_CLAIM",
+        "claim_ceiling": "synthetic_contract_only"
+      }
+    }
+  ]
+}
