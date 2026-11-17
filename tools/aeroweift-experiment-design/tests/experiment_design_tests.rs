@@ -33,6 +33,7 @@ fn policy() -> ExperimentDesignPolicy {
         maximum_probability_uninformative: 0.80,
         minimum_estimate_confidence_level: 0.95,
         required_estimator_build_sha256: digest('e'),
+        expected_utility_estimator_issuer_id: "utility-estimator-owner".into(),
         required_estimate_method_sha256: digest('f'),
         authorization_required_modalities: vec![ExperimentModality::ControlledFlight],
         resource_budget: ResourceBudget {
@@ -87,7 +88,7 @@ fn utility_estimate_receipt(
     UtilityEstimateReceipt {
         receipt_id: format!("utility-estimate-{}", candidate.candidate_id),
         payload_sha256: digest('6'),
-        issuer_id: "utility-estimator-owner".into(),
+        issuer_id: frozen_policy.expected_utility_estimator_issuer_id.clone(),
         candidate_id: candidate.candidate_id.clone(),
         campaign_sha256: candidate.campaign_sha256.clone(),
         model_scope_sha256: candidate.model_scope_sha256.clone(),
@@ -1463,5 +1464,27 @@ fn model_family_pair_sampling_unit_must_match_distinct_qualified_group_pairs() {
     assert!(
         reason(&rejected, "model-family-pair-samples")
             .contains(&RejectionReason::InvalidUtilityEstimateReceipt)
+    );
+}
+
+
+#[test]
+fn utility_estimate_receipt_requires_policy_pinned_issuer_namespace() {
+    let mut item = candidate("wrong-utility-estimator-issuer");
+    item.utility_estimate_receipt.as_mut().unwrap().issuer_id =
+        "unapproved-estimator-namespace".into();
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "wrong-utility-estimator-issuer")
+        .contains(&RejectionReason::InvalidUtilityEstimateReceipt));
+}
+
+#[test]
+fn frozen_policy_requires_a_utility_estimator_issuer_namespace() {
+    let mut frozen = policy();
+    frozen.expected_utility_estimator_issuer_id = "  ".into();
+    assert_eq!(
+        select_experiments(&[candidate("missing-estimator-issuer")], &frozen),
+        Err(DesignError::InvalidPolicy)
     );
 }
