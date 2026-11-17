@@ -145,7 +145,7 @@ Earth remains the benchmark for tunnel boring, support, metrology, underground u
 
 The current industry frontier is **technology development for surface infrastructure**, not operational lunar megastructure construction.
 
-- NASA's Lunar Surface Technology portfolio lists power, thermal technology, autonomy/robotics, dust mitigation, excavation/construction, communications/navigation, and ISRU as priority areas. NASA describes IPEx as a robotic excavator designed to move on the order of 20 metric tonnes of regolith over a mission. This is a surface-material handling design target, not a tunnel-boring result. [NASA Lunar Surface Technology](https://www.nasa.gov/lunar-surface-technology/).
+- NASA's 2026 Lunar Surface Technology portfolio covers power, thermal technology, autonomy/robotics, dust mitigation, excavation/construction, communications/navigation, and ISRU. Its IPEx figures are presented differently across current NASA pages: the portfolio summary says 10 metric tonnes over 100 m and 11 days; the dedicated IPEx page says up to 10,000 kg in a single lunar day; the detailed portfolio description says on the order of 20 metric tonnes over a mission. Preserve these as separate source-specific design profiles and resolve the mission configuration before benchmarking; none is a deep tunnel-boring result. [NASA Lunar Surface Technology](https://www.nasa.gov/lunar-surface-technology/) and [NASA IPEx](https://www.nasa.gov/infrastructure-pilot-excavator/).
 - NASA's September 2026 Lunar Enabling Infrastructure solicitation emphasizes vertical solar arrays, oxygen from regolith, radioisotope Stirling generators, in-space advanced manufacturing and innovative nanomaterials. The agency's stated goal is maturation and ground demonstration; it is not evidence that these systems are already deployed on the Moon. [NASA release, 8 September 2026](https://www.nasa.gov/news-release/nasa-calls-for-proposals-to-accelerate-lunar-surface-technologies/).
 - Astroport's Brickbot programme is developing molten-tile deposition for roads, landing pads and surface pavements from processed regolith. It is useful as a surface construction benchmark, not a deep subsurface construction analogue. [NASA SBIR award](https://www.sbir.gov/awards/220309).
 - NASA describes ICON's Olympus technology as a robotic laser-based approach for transforming local regolith into ceramic-like structures. This is a relevant additive construction comparator, but it does not demonstrate support of kilometre-scale tunnels or large lava tubes. [NASA construction technology overview](https://www.nasa.gov/directorates/stmd/nasa-enables-construction-technology-for-moon-and-mars-exploration/).
@@ -271,3 +271,54 @@ This is a deliberately simple geometry lower bound: V = length × excavated cros
 - **Mercury:** MESSENGER-era observations and thermal modeling support permanently shadowed polar deposits with local temperatures below 100 K. This is a specialized cold-trap architecture, not a general underground settlement advantage: https://science.nasa.gov/photojournal/hot-and-cold/
 
 The Callisto and Mars entries remain screening hypotheses in this baseline. Before architecture ranking, add body-specific primary sources for crust composition, temperature, radiation, seismicity, gravity, and subsurface uncertainty. Do not fill missing evidence with analogy.
+
+
+## 10. New observability evidence and the survey bottleneck
+
+A 28 March 2026 JGR: Planets paper evaluates seismic interferometry, H/V spectral ratios, distributed acoustic sensing (DAS), and rotational measurements for lunar lava-tube imaging. In its synthetic simulations, the techniques respond to cavities and can estimate roof thickness, but total depth and the lower boundary are substantially harder to recover. Structures deeper than approximately 10 m require ambient noise below 1 Hz; the common thermal-moonquake signal is mainly above 1 Hz and primarily sensitive to the upper ~10 m. The authors argue for combinations of passive seismic techniques and complementary geophysical methods.
+
+Source: Keil et al. (2026), https://doi.org/10.1029/2025JE009576
+
+**Research consequence:** candidate-site surveying should be treated as an observability problem, not simply a mapping exercise. A multi-modal campaign could combine orbital / rover morphology, radar, gravimetry, active seismic sources, passive seismic, DAS, and eventually close-range robotic mapping. Every method needs a declared depth/scale detection envelope and false-positive model. A single best-fit cave mesh is not a sufficient basis for excavation or entry.
+
+### Model-form uncertainty is now a first-order design input
+
+The literature does not support treating one deterministic factor of safety as a universal answer:
+- Williams & Montési (2025) predict extensive internal roof/floor failure zones and note that current observation strategies do not confidently constrain exact tube dimensions: https://doi.org/10.1029/2024JE008553
+- A 2024 Icarus variable-cross-section analysis finds irregular geometry can materially reduce modeled stability and estimates 65–285 m widths beneath some studied skylights: https://doi.org/10.1016/j.icarus.2023.115928
+- A 2024 Earth and Planetary Science Letters study reports that layered roofs with weak interlayers can be less stable in its modeled cases and predicts local slice-like collapses: https://doi.org/10.1016/j.epsl.2024.118918
+- A 2026 Icarus study reports a different role for weak interlayers in its elasto-brittle cellular-automata models, where layer splitting can disperse loads and limit vertical crack propagation; it also emphasizes span and constitutive-model effects: https://doi.org/10.1016/j.icarus.2026.117054
+- A 2025 probabilistic study reports more than 30,000 numerical analyses and characterizes distributions of collapse behavior under uncertain geometry: https://doi.org/10.1016/j.gsf.2025.102076
+- A January 2026 paper proposes reshaping a lava-tube roof by removing partial rock mass to reduce modeled plastic-zone height and convergence in PLAXIS 2D. This is a numerical mitigation hypothesis, not demonstrated field practice; roof excavation could itself introduce dangerous transient states and must be compared against support, lining, preservation, and no-intervention alternatives: https://doi.org/10.1016/j.asr.2025.11.011
+
+The research programme should therefore compare model ensembles, constitutive assumptions, geometry priors and held-out cases. Preserve disagreement between models as model-form uncertainty instead of averaging it away or picking the most favorable result.
+
+## 11. Industry benchmark update: excavation and assembly are distinct capabilities
+
+The NASA 2026 *In-space Servicing, Assembly, and Manufacturing (ISAM) State of Play* distinguishes four lunar surface infrastructure capability groups: excavation/site preparation, regolith processing, logistics, and construction. It describes IPEX and LANCE as surface regolith collection / site-preparation prototypes, STOMP as a concept, and ARMADAS as a prototype; other construction activities range from concepts and scale models to demonstrated work. The report describes 50 m truss assembly technology, small autonomous voxel-assembled shelters, and a 5 m modular communications tower demonstration. These are important building blocks, but they are surface assembly and regolith-handling capabilities—not deep tunnel construction, large cavern stabilization, or accelerator-grade underground alignment.
+
+Source: NASA Langley Research Center et al., *2026 ISAM State of Play*, especially pages 40–41, https://assets.science.nasa.gov/content/dam/science/missions/isam/ISAM_State_of_Play_2026.pdf
+
+For terrestrial hard-rock tunnel-boring comparisons, avoid quoting one universal "industry advance rate." The literature separates:
+- penetration rate / rate of penetration (m/h) while actively cutting;
+- utilization (fraction of the scheduled period actually boring);
+- advance rate (m/day or m/week), which depends on penetration rate, utilization, shift length and shift count;
+- cutter life / replacement rate;
+- downtime from support, mucking, maintenance, geology and logistics.
+
+The operational distinction is essential: high instantaneous penetration can coexist with poor calendar advance if utilization collapses. A lunar robotic benchmark should therefore report cutting, clearing/mucking, support, inspection, charging, thermal dwell, maintenance and fault recovery separately, then report end-to-end accepted metres and excavated volume per mission time. Compare with terrestrial TBMs only on matched geology, diameter, support standard, shift/crew regime, and system boundary. Useful reference methods include Rostami (2016), https://doi.org/10.1016/j.tust.2016.01.009, and Zhang et al. (2024), https://doi.org/10.3390/app14114512.
+
+## 12. Executable quantity screen added
+
+A separate dependency-free Rust crate now owns the narrow civil quantity calculation:
+
+- `tools/lunar-subsurface-reference/` is independent of the collider beam-physics crate.
+- It emits a deterministic 72-case geometry matrix: 50/100/150 km; 10/20/30/40 m²; one/two bores; 0/10/20% overbreak.
+- It reports design bore volume, overbreak volume, and shaft/cavern/cross-passage volumes separately.
+- The first known answer is 100 km × 30 m² × one bore = 3,000,000 m³. Two bores with 20% overbreak produce 7,200,000 m³ before ancillary volumes.
+- A workflow pins Rust 1.96.0, checks formatting/tests/Clippy, executes twice for deterministic JSON, asserts known answers, and retains a source/report digest manifest.
+
+The tool intentionally does not calculate spoil mass, swell, excavation power, tunnel advance rate, support quantities, cost, geotechnical stability, or lunar feasibility. Those remain outside the geometry-only evidence class.
+
+Tracked implementation: [#5980 LUNAR-EXCAVATION-ACCOUNTING-001](https://github.com/Luminous-Dynamics/symtropy/issues/5980).  
+Observability work: [#5983 LUNAR-SUBSURFACE-OBSERVABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5983).
