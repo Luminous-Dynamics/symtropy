@@ -7,7 +7,8 @@ use adaptive_evidence_acquisition::{
 
 const TARGET_COUNT: usize = 12;
 const CANDIDATE_COUNT: usize = 72;
-const EPISODE_COUNT: usize = 64;
+const DEVELOPMENT_EPISODES: usize = 48;
+const HOLDOUT_EPISODES: usize = 16;
 
 #[derive(Clone, Copy)]
 struct DeterministicRng(u64);
@@ -157,6 +158,7 @@ fn policies(seed: u64) -> [(&'static str, SelectionPolicy); 5] {
 
 fn generate_episode(
     seed: u64,
+    layout_family: usize,
 ) -> (
     Vec<EvidenceTarget>,
     Vec<QualifiedExistingPass>,
@@ -164,7 +166,6 @@ fn generate_episode(
     AcquisitionBudget,
 ) {
     let mut rng = DeterministicRng(seed);
-    let layout_family = (seed % 4) as usize;
     let layout_scale = match layout_family {
         0 => 1.0,  // regular rectangular array
         1 => 1.15, // wider array
@@ -293,12 +294,83 @@ fn generate_episode(
     (targets, Vec::new(), candidates, budget)
 }
 
-fn run_matched_seeded_benchmark() {
-    let mut summaries: BTreeMap<&'static str, PolicySummary> = BTreeMap::new();
+fn independent_gate_violations(
+    plan: &adaptive_evidence_acquisition::AcquisitionPlan,
+    targets: &[EvidenceTarget],
+    candidates: &[AcquisitionCandidate],
+    budget: &AcquisitionBudget,
+) -> usize {
+    let mut violations = usize::from(
+        plan.cumulative_elapsed_time_s > budget.maximum_elapsed_time_s + f64::EPSILON
+            || plan.cumulative_energy_wh > budget.maximum_energy_wh + f64::EPSILON,
+    );
+    let mut credited: BTreeMap<&str, Vec<(&str, f64)>> = BTreeMap::new();
+    let target_by_id: BTreeMap<&str, &EvidenceTarget> = targets
+        .iter()
+        .map(|target| (target.target_id.as_str(), target))
+        .collect();
 
-    for episode in 0..EPISODE_COUNT {
-        let seed = 20_261_117_u64 + episode as u64;
-        let (targets, existing, candidates, budget) = generate_episode(seed);
+    for (ordinal, step) in plan.steps.iter().enumerate() {
+        if step.ordinal != ordinal {
+            violations += 1;
+        }
+        let Some(candidate) = candidates
+            .iter()
+            .find(|candidate| candidate.candidate_id == step.candidate_id)
+        else {
+            violations += 1;
+            continue;
+        };
+        if candidate.quality != CandidateQuality::Qualified || candidate.pass_id != step.pass_id {
+            violations += 1;
+            continue;
+        }
+        for target_id in &step.marginal_target_ids {
+            let Some(target) = target_by_id.get(target_id.as_str()) else {
+                violations += 1;
+                continue;
+            };
+            if !candidate
+                .covered_target_ids
+                .iter()
+                .any(|covered| covered == target_id)
+            {
+                violations += 1;
+                continue;
+            }
+            let previous = credited.entry(target_id.as_str()).or_default();
+            let duplicate_pass = previous.iter().any(|(pass_id, _)| *pass_id == candidate.pass_id);
+            let insufficient_separation = previous.iter().any(|(_, angle)| {
+                let difference = (angle - candidate.view_angle_rad).abs();
+                difference.min(std::f64::consts::TAU - difference)
+                    < target.minimum_view_angle_separation_rad
+            });
+            if duplicate_pass || insufficient_separation {
+                violations += 1;
+            } else {
+                previous.push((candidate.pass_id.as_str(), candidate.view_angle_rad));
+            }
+        }
+    }
+
+    let expected_energy: f64 = plan.steps.iter().map(|step| step.energy_wh).sum();
+    if (expected_energy - plan.cumulative_energy_wh).abs() > 1.0e-9 {
+        violations += 1;
+    }
+    violations
+}
+
+fn run_policy_split(
+    split_name: &str,
+    episodes: usize,
+    seed_start: u64,
+    layout_families: &[usize],
+    summaries: &mut BTreeMap<&'static str, PolicySummary>,
+) {
+    for episode in 0..episodes {
+        let seed = seed_start + episode as u64;
+        let family = layout_families[episode % layout_families.len()];
+        let (targets, existing, candidates, budget) = generate_episode(seed, family);
 
         for (name, policy) in policies(seed ^ 0x5eed) {
             let plan = match plan_acquisition_with_policy(
@@ -310,7 +382,9 @@ fn run_matched_seeded_benchmark() {
             ) {
                 Ok(plan) => plan,
                 Err(error) => {
-                    eprintln!("benchmark_episode={episode} policy={name} error={error}");
+                    eprintln!(
+                        "benchmark_split={split_name} episode={episode} policy={name} error={error}"
+                    );
                     std::process::exit(2);
                 }
             };
@@ -318,22 +392,56 @@ fn run_matched_seeded_benchmark() {
                 .entry(name)
                 .or_default()
                 .record(&plan, &targets, &candidates, &budget);
+            let violations =
+                independent_gate_violations(&plan, &targets, &candidates, &budget);
+            if violations > 0 {
+                summaries.get_mut(name).expect("summary was recorded").gate_violations +=
+                    violations;
+            }
         }
     }
+}
+
+fn run_matched_seeded_benchmark() {
+    let mut development_summaries: BTreeMap<&'static str, PolicySummary> = BTreeMap::new();
+    let mut holdout_summaries: BTreeMap<&'static str, PolicySummary> = BTreeMap::new();
+
+    // The first three layout families are development distributions. The
+    // staggered-row family is withheld from policy development and replayed
+    // only as a synthetic geometry-family holdout.
+    run_policy_split(
+        "development",
+        DEVELOPMENT_EPISODES,
+        20_261_117,
+        &[0, 1, 2],
+        &mut development_summaries,
+    );
+    run_policy_split(
+        "holdout_staggered",
+        HOLDOUT_EPISODES,
+        20_270_101,
+        &[3],
+        &mut holdout_summaries,
+    );
 
     println!(
-        "suite=ADAPTIVE-EVIDENCE-ACQUISITION-BENCHMARK-001 episodes={EPISODE_COUNT} targets_per_episode={TARGET_COUNT} candidates_per_episode={CANDIDATE_COUNT} seed_start=20261117"
+        "suite=ADAPTIVE-EVIDENCE-ACQUISITION-BENCHMARK-002 development_episodes={DEVELOPMENT_EPISODES} holdout_episodes={HOLDOUT_EPISODES} targets_per_episode={TARGET_COUNT} candidates_per_episode={CANDIDATE_COUNT} development_seeds=20261117+ holdout_seeds=20270101+"
     );
-    for (name, summary) in &summaries {
+    println!("split=development layout_families=regular,wide,compact");
+    for (name, summary) in &development_summaries {
+        summary.print(name);
+    }
+    println!("split=holdout layout_family=staggered_rows");
+    for (name, summary) in &holdout_summaries {
         summary.print(name);
     }
     println!(
-        "note=synthetic matched candidate/budget benchmark; all policies share identical fail-closed qualification and independence gates; not a physical performance claim"
+        "note=synthetic matched candidate/budget benchmark using oriented analytic footprints; sensor quality is a deterministic disposition fixture; no image formation, occlusion physics, obstacles, flight dynamics or physical trial; all policies share fail-closed qualification and independence gates"
     );
 }
 
 fn main() {
-    let (targets, existing, candidates, budget) = generate_episode(7);
+    let (targets, existing, candidates, budget) = generate_episode(7, 0);
     println!("suite=ADAPTIVE-EVIDENCE-ACQUISITION-EXAMPLE-001");
     println!("candidate_pool_size={}", candidates.len());
     for (name, policy) in policies(7) {
