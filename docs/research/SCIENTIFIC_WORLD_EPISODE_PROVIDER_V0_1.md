@@ -71,7 +71,7 @@ The packet contains:
 - initial observations with event/acquisition time and availability time; and
 - evidence class and a claim ceiling.
 
-The packet deliberately contains no `seed`, `split`, `answer`, `ground_truth`, `oracle`, `score`, or hidden model parameters field. The schema rejects unknown top-level fields. Domain-specific payloads must be added through a versioned extension that is reviewed for leakage, not smuggled through arbitrary metadata.
+The packet deliberately contains no `seed`, `split`, `answer`, `ground_truth`, `oracle`, `score`, or hidden model parameters field. If `owner_profile_ref` is present, it may resolve only to a public model/profile definition—not a per-episode state, private seed, answer key, evaluator location or oracle handle. The schema rejects unknown top-level fields. Domain-specific payloads must be added through a versioned extension that is reviewed for leakage, not smuggled through arbitrary metadata.
 
 A public episode packet does not define Symthaea's `AgentView` or `AgentAction`. The consumer adapter in Symthaea #11171 remains responsible for mapping the packet and subsequent observations into the existing blind-episode protocol.
 
