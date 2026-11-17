@@ -406,8 +406,8 @@ mod tests {
 
     #[test]
     fn clock_margin_is_speed_times_absolute_offset_bound() {
-        let a = span(0.0, 100.0, 0, 1_000, 50);
-        let b = span(500.0, 0.0, 0, 1_000, 0);
+        let a = span(0.0, 100.0, 1_000, 2_000, 50);
+        let b = span(500.0, 0.0, 1_000, 2_000, 0);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         assert!((result.moving_clock_margin_mm - 5.0).abs() < 1.0e-9);
         assert_eq!(result.obstacle_clock_margin_mm, 0.0);
@@ -416,8 +416,8 @@ mod tests {
 
     #[test]
     fn nonzero_uncertainty_never_establishes_exact_contact() {
-        let a = span(-10.0, 20.0, 0, 1_000, 5);
-        let b = span(10.0, -20.0, 0, 1_000, 5);
+        let a = span(-10.0, 20.0, 1_000, 2_000, 5);
+        let b = span(10.0, -20.0, 1_000, 2_000, 5);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         assert_eq!(
             result.disposition,
@@ -429,8 +429,8 @@ mod tests {
 
     #[test]
     fn clock_offset_that_could_hide_contact_returns_unresolved() {
-        let a = span(0.0, 100.0, 0, 1_000, 50);
-        let b = span(5.0, 0.0, 0, 1_000, 0);
+        let a = span(0.0, 100.0, 1_000, 2_000, 50);
+        let b = span(5.0, 0.0, 1_000, 2_000, 0);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         assert_eq!(
             result.disposition,
@@ -440,8 +440,8 @@ mod tests {
 
     #[test]
     fn separated_bodies_are_proven_clear_under_declared_bounds() {
-        let a = span(0.0, 0.0, 0, 1_000, 50);
-        let b = span(10.0, 0.0, 0, 1_000, 25);
+        let a = span(0.0, 0.0, 1_000, 2_000, 50);
+        let b = span(10.0, 0.0, 1_000, 2_000, 25);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         assert_eq!(
             result.disposition,
@@ -465,8 +465,8 @@ mod tests {
 
     #[test]
     fn disjoint_widened_windows_prove_no_possible_temporal_overlap() {
-        let a = span(0.0, 0.0, 0, 100, 10);
-        let b = span(10.0, 0.0, 200, 300, 20);
+        let a = span(0.0, 0.0, 1_000, 1_100, 10);
+        let b = span(10.0, 0.0, 1_200, 1_300, 20);
         let result = clock_uncertainty_aware_capsule_query(&a, &b).unwrap();
         assert_eq!(
             result.disposition,
@@ -477,9 +477,9 @@ mod tests {
 
     #[test]
     fn larger_clock_bounds_do_not_reduce_the_outer_geometry() {
-        let small_span = span(0.0, 100.0, 0, 1_000, 10);
-        let large_span = span(0.0, 100.0, 0, 1_000, 25);
-        let obstacle = span(5.0, 0.0, 0, 1_000, 0);
+        let small_span = span(0.0, 100.0, 1_000, 2_000, 10);
+        let large_span = span(0.0, 100.0, 1_000, 2_000, 25);
+        let obstacle = span(5.0, 0.0, 1_000, 2_000, 0);
         let small = clock_uncertainty_aware_capsule_query(&small_span, &obstacle).unwrap();
         let large = clock_uncertainty_aware_capsule_query(&large_span, &obstacle).unwrap();
         assert_eq!(
@@ -499,8 +499,8 @@ mod tests {
 
     #[test]
     fn world_translation_preserves_disposition_and_distance() {
-        let a = span(0.0, 100.0, 0, 1_000, 50);
-        let b = span(5.0, 0.0, 0, 1_000, 0);
+        let a = span(0.0, 100.0, 1_000, 2_000, 50);
+        let b = span(5.0, 0.0, 1_000, 2_000, 0);
         let mut moved_a = a.clone();
         let mut moved_b = b.clone();
         let shift = p(100.0, -50.0, 25.0);
@@ -605,8 +605,8 @@ mod tests {
             Err(ClockUncertaintyError::TimestampUnderflow)
         );
 
-        let a = span(0.0, 1.0, 0, u64::MAX, 1);
-        let b = span(10.0, 0.0, 0, u64::MAX, 0);
+        let a = span(0.0, 1.0, 1, u64::MAX, 1);
+        let b = span(10.0, 0.0, 1, u64::MAX, 0);
         assert_eq!(
             clock_uncertainty_aware_capsule_query(&a, &b),
             Err(ClockUncertaintyError::TimestampOverflow)
