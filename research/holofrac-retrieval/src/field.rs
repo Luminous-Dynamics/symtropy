@@ -11,6 +11,35 @@ use symtropy_hdc_core::{
     BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder,
 };
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FieldFamily {
+    Smooth,
+    HighFrequency,
+    Discontinuous,
+    Anisotropic,
+    Localized,
+}
+
+impl FieldFamily {
+    pub const ALL: [Self; 5] = [
+        Self::Smooth,
+        Self::HighFrequency,
+        Self::Discontinuous,
+        Self::Anisotropic,
+        Self::Localized,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Smooth => "smooth",
+            Self::HighFrequency => "high_frequency",
+            Self::Discontinuous => "discontinuous",
+            Self::Anisotropic => "anisotropic",
+            Self::Localized => "localized",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FieldSample {
     pub x: f64,
@@ -273,16 +302,20 @@ fn encode_position(
 
 #[derive(Clone, Debug)]
 pub struct FieldBenchmarkReport {
+    pub field_family: FieldFamily,
     pub dimension: usize,
     pub grid_size: usize,
     pub sample_count: usize,
     pub query_count: usize,
     pub hdc_mae: f64,
     pub hdc_rmse: f64,
+    pub hdc_r2: f64,
     pub nearest_mae: f64,
     pub nearest_rmse: f64,
+    pub nearest_r2: f64,
     pub bilinear_mae: f64,
     pub bilinear_rmse: f64,
+    pub bilinear_r2: f64,
     pub mean_coordinate_encode_micros: f64,
     pub mean_positional_unbind_micros: f64,
     pub mean_cleanup_micros: f64,
@@ -297,6 +330,15 @@ pub fn run_regular_grid_field_benchmark(
     grid_size: usize,
     dimension: usize,
     seed: u64,
+) -> Result<FieldBenchmarkReport, FieldError> {
+    run_field_family_benchmark(grid_size, dimension, seed, FieldFamily::Smooth)
+}
+
+pub fn run_field_family_benchmark(
+    grid_size: usize,
+    dimension: usize,
+    seed: u64,
+    field_family: FieldFamily,
 ) -> Result<FieldBenchmarkReport, FieldError> {
     if grid_size < 2 {
         return Err(FieldError::InvalidGrid);
@@ -316,7 +358,7 @@ pub fn run_regular_grid_field_benchmark(
             samples.push(FieldSample {
                 x,
                 y,
-                value: analytic_field(x, y),
+                value: field_value(field_family, x, y),
             });
         }
     }
@@ -334,6 +376,7 @@ pub fn run_regular_grid_field_benchmark(
         FieldRange { min: 0.0, max: 1.0 },
     )?;
 
+    let mut truth_values = Vec::with_capacity(query_capacity);
     let mut hdc_errors = Vec::with_capacity(query_capacity);
     let mut nearest_errors = Vec::with_capacity(query_capacity);
     let mut bilinear_errors = Vec::with_capacity(query_capacity);
@@ -346,7 +389,8 @@ pub fn run_regular_grid_field_benchmark(
         for x_index in 0..(grid_size - 1) {
             let x = (x_index as f64 + 0.5) / (grid_size - 1) as f64;
             let y = (y_index as f64 + 0.5) / (grid_size - 1) as f64;
-            let truth = analytic_field(x, y);
+            let truth = field_value(field_family, x, y);
+            truth_values.push(truth);
             let started = Instant::now();
             let result = memory.query(x, y)?;
             total_times.push(started.elapsed().as_secs_f64() * 1_000_000.0);
@@ -367,16 +411,20 @@ pub fn run_regular_grid_field_benchmark(
     let query_p95_micros = percentile(&mut total_times, 0.95);
 
     Ok(FieldBenchmarkReport {
+        field_family,
         dimension,
         grid_size,
         sample_count: samples.len(),
         query_count: hdc_errors.len(),
         hdc_mae: mean_abs(&hdc_errors),
         hdc_rmse: rmse(&hdc_errors),
+        hdc_r2: r2_from_residuals(&hdc_errors, &truth_values),
         nearest_mae: mean_abs(&nearest_errors),
         nearest_rmse: rmse(&nearest_errors),
+        nearest_r2: r2_from_residuals(&nearest_errors, &truth_values),
         bilinear_mae: mean_abs(&bilinear_errors),
         bilinear_rmse: rmse(&bilinear_errors),
+        bilinear_r2: r2_from_residuals(&bilinear_errors, &truth_values),
         mean_coordinate_encode_micros: mean(&encode_times),
         mean_positional_unbind_micros: mean(&unbind_times),
         mean_cleanup_micros: mean(&cleanup_times),
@@ -389,7 +437,39 @@ pub fn run_regular_grid_field_benchmark(
 }
 
 pub fn analytic_field(x: f64, y: f64) -> f64 {
-    0.5 + 0.2 * (std::f64::consts::TAU * x).sin() + 0.2 * (std::f64::consts::TAU * y).cos()
+    field_value(FieldFamily::Smooth, x, y)
+}
+
+pub fn field_value(family: FieldFamily, x: f64, y: f64) -> f64 {
+    let tau = std::f64::consts::TAU;
+    match family {
+        FieldFamily::Smooth => 0.5 + 0.2 * (tau * x).sin() + 0.2 * (tau * y).cos(),
+        FieldFamily::HighFrequency => 0.5 + 0.2 * (8.0 * tau * x).sin() * (6.0 * tau * y).cos(),
+        FieldFamily::Discontinuous => {
+            if x < 0.5 { 0.2 } else { 0.8 }
+        }
+        FieldFamily::Anisotropic => 0.5 + 0.25 * (tau * x).sin() + 0.1 * (12.0 * tau * y).cos(),
+        FieldFamily::Localized => {
+            let radius_squared = (x - 0.5).powi(2) + (y - 0.5).powi(2);
+            0.2 + 0.6 * (-radius_squared / 0.015).exp()
+        }
+    }
+}
+
+fn r2_from_residuals(residuals: &[f64], truth: &[f64]) -> f64 {
+    if residuals.is_empty() || residuals.len() != truth.len() {
+        return f64::NAN;
+    }
+    let mean_truth = mean(truth);
+    let total_sum_squares = truth
+        .iter()
+        .map(|value| (value - mean_truth).powi(2))
+        .sum::<f64>();
+    let residual_sum_squares = residuals.iter().map(|value| value * value).sum::<f64>();
+    if total_sum_squares <= f64::EPSILON {
+        return if residual_sum_squares <= f64::EPSILON { 1.0 } else { 0.0 };
+    }
+    1.0 - residual_sum_squares / total_sum_squares
 }
 
 fn nearest_sample_value(samples: &[FieldSample], x: f64, y: f64) -> f64 {
