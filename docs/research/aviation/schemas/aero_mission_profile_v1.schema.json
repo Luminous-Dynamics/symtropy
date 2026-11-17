@@ -438,7 +438,8 @@
           "electric_rotorcraft",
           "hybrid_fixed_wing",
           "hybrid_vtol",
-          "glider_or_solar_assisted"
+          "glider_or_solar_assisted",
+          "solar_haps"
         ]
       }
     },
