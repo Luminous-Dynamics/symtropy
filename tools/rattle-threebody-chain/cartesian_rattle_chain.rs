@@ -496,14 +496,12 @@ impl CartesianRattleChain {
         let mut backtracks = 0usize;
         let mut converged = false;
         let mut final_after = before;
-        let mut final_residuals = [0.0; EDGE_COUNT];
         let mut final_jacobian = [[0.0; EDGE_COUNT]; EDGE_COUNT];
 
         for iteration in 0..options.max_iterations {
             let (candidate_state, residuals, jacobian) = self.shake_trial(before, dt, multipliers);
             let residual_norm = self.scaled_position_residual(residuals);
             final_after = candidate_state;
-            final_residuals = residuals;
             final_jacobian = jacobian;
             if residual_norm <= options.relative_tolerance {
                 iterations = iteration;
@@ -525,7 +523,7 @@ impl CartesianRattleChain {
                     multipliers[1] + fraction * delta[1],
                 ];
                 if trial.iter().all(|value| value.is_finite()) {
-                    let (trial_state, trial_residuals, _) = self.shake_trial(before, dt, trial);
+                    let (_, trial_residuals, _) = self.shake_trial(before, dt, trial);
                     let trial_norm = self.scaled_position_residual(trial_residuals);
                     if trial_norm < residual_norm || trial_norm <= options.relative_tolerance {
                         multipliers = trial;
@@ -545,7 +543,6 @@ impl CartesianRattleChain {
         if !converged {
             let (candidate_state, residuals, jacobian) = self.shake_trial(before, dt, multipliers);
             final_after = candidate_state;
-            final_residuals = residuals;
             final_jacobian = jacobian;
             converged = self.scaled_position_residual(residuals) <= options.relative_tolerance;
         }
@@ -924,7 +921,7 @@ mod tests {
         let initial = initial_state();
         let reference = rk4_reference(initial, MASSES, 1.0 / 40_000.0, 40_000);
         let mut errors = Vec::new();
-        for dt in [0.02, 0.01, 0.005, 0.0025] {
+        for dt in [0.02_f64, 0.01, 0.005, 0.0025] {
             let mut state = initial;
             for _ in 0..(1.0 / dt).round() as usize {
                 state = model
