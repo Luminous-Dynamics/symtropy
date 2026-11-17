@@ -388,3 +388,37 @@ The truss reference lab now includes a second damage campaign. It selects evenly
 - original member indices for each tested pair.
 
 This is a deterministic screening sample, not exhaustive analysis and not a probability estimate. The next stage should prioritize physically credible failures from connector topology, load path, manufacturing defects and inspection data, and then use a validated progressive-damage model. No safety-critical reliability claim follows from the current linear-elastic model.
+
+
+
+## Verified standards and industry scope refresh — 2026-11-17
+
+### Industry capabilities we must match, not misrepresent
+
+- **nTop** publicly describes implicit parametric modeling, graph/TPMS/custom unit-cell and stochastic lattices, multi-objective/multi-constraint topology optimization, built-in structural/thermal FEA, and build-preparation features. FFMFS is not a generic replacement for these capabilities. Source: https://www.ntop.com/software/capabilities/modeling/ and https://www.ntop.com/software/capabilities/integrations/
+- **Autodesk Fusion Generative Design** already supports objectives/limits such as mass, stiffness, safety factor and displacement, with manufacturing-method constraints including additive, milling, 2-axis cutting and casting. Source: https://help.autodesk.com/cloudhelp/ENU/Fusion-GenerativeDesign/files/GD-DESIGN-CRITERIA.htm
+- **NASA ARMADAS** has builder robots and reusable voxels for autonomous assembly of functional structures including habitats and large antenna arrays. FFMFS must compare against modular voxel assembly rather than suggesting robotically assembled structures are novel. Source: https://www.nasa.gov/automated-reconfigurable-mission-adaptive-digital-assembly-systems-armadas/
+
+Our differentiation hypothesis remains the integration of:
+- cross-scale typed module grammar;
+- connector/port and tolerance contracts;
+- deterministic assembly and service plans;
+- member/joint damage sensitivity and repairability;
+- traceability from manufacturing process through as-built metrology and tests;
+- occupant-controlled spatial/expressive infill protected from qualified primary load paths.
+
+### Current NASA standards to map into later qualification
+
+The standards are not a complete compliance checklist; applicability and tailoring belong to the mission's responsible technical authority.
+
+- NASA-STD-5001 B with Change 3 is active and covers structural design, test and service-life factors for spaceflight hardware: https://standards.nasa.gov/standard/nasa/nasa-std-5001
+- NASA-STD-5002 B (2026-03-10) is listed for spacecraft and payload load analyses: https://standards.nasa.gov/all-standards
+- NASA-STD-5019 A with Change 4 is active for fracture control: https://standards.nasa.gov/standard/nasa/nasa-std-5019
+- NASA-HDBK-5026 is active guidance for strength, fatigue and fracture control of additive-manufactured spaceflight hardware. It explicitly notes process/build direction, surface finish, residual stress, heat treatment and multiaxial stress effects on fatigue: https://standards.nasa.gov/node/11897
+- NASA-STD-3001 Volume 2 Version F (2026-07-14) is active for human factors, habitability and environmental health in human-rated systems: https://standards.nasa.gov/standard/NASA/NASA-STD-3001_VOL_2
+
+These references reinforce why a geometry generator or ideal axial-truss solve cannot be described as flight qualification.
+
+### External manufacturing-model evidence
+
+NIST AM-Bench 2025 includes metals and polymer AM measurement/challenge sets, including a high-cycle-fatigue focus. NIST says its planned 2028 benchmarks will move toward more realistic, higher-TRL metal components, with additional processes and materials as modeling matures. This is a strong future external validation route for process/material models, not a direct benchmark of our module grammar: https://www.nist.gov/ambench
