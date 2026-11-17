@@ -721,6 +721,98 @@ pub fn compare_field_identifiability(
     })
 }
 
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct SyntheticWrenchExampleReport {
+    pub consistency: WrenchConsistencyReport,
+    pub identifiability: WrenchIdentifiabilityReport,
+    pub example_sample_identity: String,
+    pub claim_class: &'static str,
+}
+
+/// Reproducible small known-answer example for the CLI scorecard.
+/// This is a three-taxel synthetic geometry and is not a physical sensor result.
+pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, String> {
+    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
+    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+    let geometry = TaxelGeometrySet {
+        geometry_digest: "sha256:synthetic-wrench-geometry-3-taxel".to_owned(),
+        reference_frame_digest: "sha256:synthetic-wrench-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-contact-boundary".to_owned(),
+        wrench_origin_m: Vec3::default(),
+        taxels: [-0.02, 0.0, 0.02]
+            .into_iter()
+            .enumerate()
+            .map(|(index, x)| TaxelGeometry {
+                taxel_id: format!("taxel-{index}"),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            })
+            .collect(),
+    };
+    let operator = build_wrench_operator(&geometry)?;
+    let field = vec![
+        10_000.0, 1_000.0, 500.0,
+        12_000.0, 1_500.0, 750.0,
+        8_000.0, 2_000.0, 1_000.0,
+    ];
+    let predicted = integrate_tactile_field(&operator, &field)?;
+    let observed = WrenchObservation {
+        force_n: predicted.force_n,
+        moment_nm: predicted.moment_nm,
+        force_standard_uncertainty_n: Vec3 { x: 0.01, y: 0.01, z: 0.01 },
+        moment_standard_uncertainty_nm: Vec3 { x: 0.001, y: 0.001, z: 0.001 },
+    };
+    let evidence = WrenchReferenceEvidence {
+        native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
+        wrench_observation_digest: "sha256:synthetic-wrench-observation".to_owned(),
+        sample_identity: "sample:synthetic-001".to_owned(),
+        reference_frame_digest: "sha256:synthetic-wrench-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-contact-boundary".to_owned(),
+        reference_instrument_receipt_id: "receipt:synthetic-six-axis-reference".to_owned(),
+        reference_ancestry_receipt_id: "receipt:synthetic-reference-ancestry".to_owned(),
+        common_cause_analysis_receipt_id: "receipt:synthetic-common-cause".to_owned(),
+        verifier_receipt_id: "receipt:synthetic-verifier".to_owned(),
+        reference_independence: ReferenceIndependenceDisposition::IndependentlyCharacterized,
+        timestamp_alignment_uncertainty_ns: 100_000,
+        maximum_permitted_alignment_uncertainty_ns: 500_000,
+    };
+    let consistency = assess_wrench_consistency(
+        &operator,
+        &field,
+        &observed,
+        &evidence,
+        "sample:synthetic-001",
+        "sha256:synthetic-native-observations",
+        "sha256:synthetic-wrench-observation",
+        3.0,
+    );
+    let mut native = vec![0.0; 3 * operator.parameter_count];
+    for taxel in 0..3 {
+        native[taxel * operator.parameter_count + taxel * 3] = 1.0;
+    }
+    let identifiability = compare_field_identifiability(
+        &operator,
+        "sha256:synthetic-native-observations",
+        &native,
+        3,
+        &evidence,
+        "sha256:synthetic-wrench-observation",
+        "sample:synthetic-001",
+        1.0e-10,
+    )?;
+
+    Ok(SyntheticWrenchExampleReport {
+        consistency,
+        identifiability,
+        example_sample_identity: "sample:synthetic-001".to_owned(),
+        claim_class: "synthetic_wrench_consistency_and_identifiability_only",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
