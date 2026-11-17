@@ -182,3 +182,10 @@ Do not average these into a single scalar winner. First reject concepts that fai
 ### Validation state
 
 The new local-ring module and deterministic JSON / workflow assertions are committed in PR #3962. The latest exact head at this update is expected to be checked by the PR-triggered focused and repository CI workflows; queued work is not a pass. The numerical results above are independently recomputable from the declared rigidity and classical isomagnetic equations, but the Rust executable's test/CI result must be reported only after exact-head completion.
+
+
+## Additional host qualification owner — metrology and lifetime alignment
+
+The local-ring comparison now has a separate civil / precision-instrumentation dependency: [#5932 SPACE-COLLIDER-HOST-METROLOGY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5932). This work composes CERN's LHC/FCC alignment and ground-motion experience with source-bounded lunar geotechnical data. It will evaluate ground motion, support settlement, thermal strain, magnetic-centre fiducialization, reference-frame drift and lifetime re-alignment.
+
+The terrestrial LHC 0.15 mm relative-displacement figure is a comparator only. A Moon ring's acceptance tolerance must be derived from its own lattice/beam-optics sensitivity and the admitted site / structure measurements, not copied from the LHC.
