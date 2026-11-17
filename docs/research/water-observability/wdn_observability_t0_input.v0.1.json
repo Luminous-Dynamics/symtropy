@@ -1241,7 +1241,7 @@
             "power_supply": "PWR-S1-PRESSURE",
             "communications_path": "GW-S1-PRESSURE",
             "clock_domain": "CLK-S1-PRESSURE",
-            "measurement_principle": "PRINC-pressure"
+            "measurement_principle": "PRINC-S1-PRESSURE"
           }
         },
         {
@@ -1320,7 +1320,7 @@
       "active_failed_domains": [
         {
           "domain_type": "measurement_principle",
-          "domain_id": "PRINC-pressure"
+          "domain_id": "PRINC-S1-PRESSURE"
         }
       ],
       "structural_certificate": {
@@ -1340,7 +1340,10 @@
           "pressure:JHB-N4"
         ],
         "sensor_ids": [
-          "S1-ACOUSTIC"
+          "S1-ACOUSTIC",
+          "S2",
+          "S3",
+          "S4"
         ],
         "proof_ref": "synthetic-proof-OBS-T0-010-alternate-measurement-principle-survives"
       },
