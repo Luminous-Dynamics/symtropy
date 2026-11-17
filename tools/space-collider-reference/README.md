@@ -277,7 +277,7 @@ The model's \`0.67\` is a **ring-wide effective bending fraction**: total dipole
 For the 2019 FCC-hh CDR geometry, the cited machine has approximately 82 km of arcs in a 97.75 km ring and a dipole packing fraction of 0.80 within the arcs. The equivalent ring-wide fraction is:
 
 \[
-f_{ring}=0.80\\times\\frac{82.0}{97.75}=0.6710997.
+f_{ring}=0.80\times\frac{82.0}{97.75}=0.6710997.
 \]
 
 The common 0.67 matrix therefore approximates the FCC source geometry, but does not silently equate its arc-cell fill factor with the whole-ring bending fraction. The report exposes the conversion explicitly.
