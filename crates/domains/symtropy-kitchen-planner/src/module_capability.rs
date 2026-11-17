@@ -167,7 +167,6 @@ pub enum ModuleCapabilityViolationCodeV1 {
     InvalidClaimCeiling,
     EmptyCapabilityList,
     DuplicateCapabilityId,
-    DuplicateActionGroup,
     InvalidBatchRange,
     InvalidParameterRange,
     InvalidParameterScale,
@@ -321,7 +320,6 @@ pub fn validate_kitchen_module_capability(
         );
     }
     let mut capability_ids = BTreeSet::new();
-    let mut action_groups = BTreeSet::new();
     for capability in &module.capabilities {
         let capability_id = capability.capability_id.as_str();
         if !nonempty(capability_id) {
@@ -338,14 +336,6 @@ pub fn validate_kitchen_module_capability(
                 ModuleCapabilityViolationCodeV1::DuplicateCapabilityId,
                 Some(capability_id),
                 "capability_id must be unique within a module revision",
-            );
-        }
-        if !action_groups.insert(capability.action_group) {
-            add_violation(
-                &mut violations,
-                ModuleCapabilityViolationCodeV1::DuplicateActionGroup,
-                Some(capability_id),
-                "each action group may appear only once per module revision",
             );
         }
         if capability.minimum_batch_mass_g.is_some_and(|minimum| {
@@ -394,6 +384,14 @@ pub fn validate_kitchen_module_capability(
             }
             validate_evidence(&parameter.evidence, Some(capability_id), &mut violations);
         }
+        if capability.input_form_refs.is_empty() || capability.output_form_refs.is_empty() {
+            add_violation(
+                &mut violations,
+                ModuleCapabilityViolationCodeV1::EmptyRequiredValue,
+                Some(capability_id),
+                "each action capability needs at least one input form and output form reference",
+            );
+        }
         for reference in capability
             .input_form_refs
             .iter()
@@ -435,6 +433,17 @@ pub fn validate_kitchen_module_capability(
             ModuleCapabilityViolationCodeV1::InvalidElectricalRange,
             None,
             "electrical minimum must not exceed maximum",
+        );
+    }
+    if electrical.maximum_surge_duration_ms.is_some()
+        && (electrical.continuous_real_power_limit_w.is_none()
+            || electrical.peak_real_power_limit_w.is_none())
+    {
+        add_violation(
+            &mut violations,
+            ModuleCapabilityViolationCodeV1::IncompleteElectricalRange,
+            None,
+            "a surge duration requires continuous and peak real-power limits",
         );
     }
     if electrical.continuous_real_power_limit_w.is_some_and(|continuous| {
