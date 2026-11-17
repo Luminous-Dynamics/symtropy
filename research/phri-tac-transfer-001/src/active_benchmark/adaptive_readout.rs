@@ -363,17 +363,39 @@ pub fn score_acquisition_plan(
     }
     if plan.evidence_state_by_taxel.len() != taxel_count
         || plan.selected_taxel_count != plan.selected_taxel_indices.len()
-        || plan.selected_taxel_count > problem.maximum_taxel_reads
-            && plan.policy != AcquisitionPolicy::FullRaster
+        || plan.maximum_taxel_reads != problem.maximum_taxel_reads
+        || (plan.selected_taxel_count > problem.maximum_taxel_reads
+            && plan.policy != AcquisitionPolicy::FullRaster)
     {
         return Err("acquisition plan dimensions or readout budget are invalid".to_owned());
     }
     let mut observed = vec![false; taxel_count];
+    let mut expected_latency = problem.bus_setup_latency_ns;
+    let mut expected_energy = problem.bus_setup_energy_nj;
     for index in &plan.selected_taxel_indices {
         if *index >= taxel_count || observed[*index] {
             return Err("acquisition plan contains duplicate or out-of-range taxel indices".to_owned());
         }
+        let candidate = &problem.candidates[*index];
+        if !candidate.readout_available {
+            return Err("acquisition plan includes an unavailable taxel channel".to_owned());
+        }
         observed[*index] = true;
+        expected_latency = expected_latency
+            .checked_add(candidate.estimated_readout_latency_ns)
+            .ok_or_else(|| "recomputed acquisition latency overflows u64".to_owned())?;
+        expected_energy = expected_energy
+            .checked_add(candidate.estimated_readout_energy_nj)
+            .ok_or_else(|| "recomputed acquisition energy overflows u64".to_owned())?;
+    }
+    if plan.estimated_total_latency_ns != expected_latency
+        || plan.estimated_total_energy_nj != expected_energy
+    {
+        return Err("acquisition plan latency/energy receipts do not match selected taxel costs".to_owned());
+    }
+    let expected_unknown = taxel_count.saturating_sub(plan.selected_taxel_count);
+    if plan.unknown_taxel_count != expected_unknown {
+        return Err("acquisition plan unknown-taxel count does not match selected observations".to_owned());
     }
     for (index, is_observed) in observed.iter().enumerate() {
         let expected = if *is_observed {
@@ -565,9 +587,14 @@ mod tests {
         let second = plan_adaptive_readout(&input, AcquisitionPolicy::RiskAdaptive)
             .expect("second risk plan");
         assert_eq!(first, second);
-        assert!(first.selected_taxel_indices.iter().all(|index| {
-            let candidate = &input.candidates[*index];
-            candidate.predicted_event_hazard >= 0.99
+        let highest_hazard_selected = first
+            .selected_taxel_indices
+            .iter()
+            .filter(|index| input.candidates[**index].predicted_event_hazard >= 0.99)
+            .count();
+        assert_eq!(highest_hazard_selected, 4);
+        assert!(first.selected_taxel_indices[..4].iter().all(|index| {
+            input.candidates[*index].predicted_event_hazard >= 0.99
         }));
     }
 
