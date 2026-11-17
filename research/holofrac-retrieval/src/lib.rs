@@ -771,7 +771,9 @@ pub fn run_benchmark(
             * std::mem::size_of::<i8>(),
         retained_vector_payload_bytes_estimate: graph.facts.len()
             * dimension
-            * (2 * std::mem::size_of::<i8>() + std::mem::size_of::<f32>() + 5 * std::mem::size_of::<i8>()),
+            * (2 * std::mem::size_of::<i8>()
+                + std::mem::size_of::<f32>()
+                + 5 * std::mem::size_of::<i8>()),
         outcomes,
     })
 }
