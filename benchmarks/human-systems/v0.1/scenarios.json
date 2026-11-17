@@ -1,0 +1,405 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "HUMAN-IN-SILICO-MODEL-TOURNAMENT-001",
+  "evidence_class": "synthetic_only",
+  "human_subject_data_used": false,
+  "human_participant_records_used": false,
+  "personal_data_used": false,
+  "seed_policy": "Each scenario pins a deterministic seed; candidate receives no seed or scorer-only metadata.",
+  "candidate_boundary": {
+    "allowed": [
+      "scenario input contract",
+      "candidate-visible observation events",
+      "declared model metadata required for inference"
+    ],
+    "forbidden": [
+      "latent truth",
+      "alternate-world identifiers",
+      "random seed",
+      "future observations",
+      "scorer event map",
+      "hidden structural parameters",
+      "oracle potential outcomes"
+    ]
+  },
+  "evaluator_only": [
+    "latent trajectory",
+    "true parameters",
+    "alternate-world mapping",
+    "intervention potential outcomes",
+    "missingness mechanism",
+    "scoring labels"
+  ],
+  "scenarios": [
+    {
+      "id": "SYN-001",
+      "name": "clean_reference_trajectory",
+      "family": "equation_reproduction",
+      "generator": "analytic Process S trajectory and fixed-period Process C waveform",
+      "candidate_observations": "complete regularly sampled synthetic events",
+      "faults": [],
+      "negative_controls": [
+        "wrong time unit",
+        "wrong phase convention"
+      ],
+      "scorer_checks": [
+        "analytic trajectory agreement",
+        "deterministic replay"
+      ],
+      "claim_ceiling": "mathematical/software reproduction only"
+    },
+    {
+      "id": "SYN-002",
+      "name": "sleep_wake_transition_boundary",
+      "family": "event_boundary",
+      "generator": "piecewise exact Process S with declared wake/sleep transition times",
+      "candidate_observations": "timestamps around transition boundaries",
+      "faults": [
+        "coarse interval straddling transition"
+      ],
+      "negative_controls": [
+        "advance one state across an unmodeled transition"
+      ],
+      "scorer_checks": [
+        "split-at-event correctness",
+        "no hidden transition inference"
+      ],
+      "claim_ceiling": "event-time correctness only"
+    },
+    {
+      "id": "SYN-003",
+      "name": "light_pulse_circadian_response",
+      "family": "circadian_dynamics",
+      "generator": "pinned Process L/P reference with declared synthetic light pulse; enabled only after source adapter qualification",
+      "candidate_observations": "synthetic light exposure events and authorized phase observations",
+      "faults": [
+        "pulse truncation",
+        "late exposure event"
+      ],
+      "negative_controls": [
+        "treat fixed Process C as light entrained"
+      ],
+      "scorer_checks": [
+        "source-equation reproduction",
+        "phase/amplitude response"
+      ],
+      "claim_ceiling": "model-equation reproduction only"
+    },
+    {
+      "id": "SYN-004",
+      "name": "thermal_step_and_recovery",
+      "family": "thermoregulation",
+      "generator": "pinned multi-node thermal reference under fixed synthetic boundary conditions",
+      "candidate_observations": "selected temperature channels with declared cadence",
+      "faults": [
+        "temperature sensor bias",
+        "regional sensor dropout"
+      ],
+      "negative_controls": [
+        "wrong Celsius/Kelvin conversion",
+        "wrong radiant-temperature port"
+      ],
+      "scorer_checks": [
+        "reference output agreement",
+        "steady-state residual",
+        "transient response and recovery"
+      ],
+      "claim_ceiling": "reference-model comparison only"
+    },
+    {
+      "id": "SYN-005",
+      "name": "workload_pulse_and_rest_interval",
+      "family": "external_boundary_conditions",
+      "generator": "synthetic workload schedule with explicit start/stop events",
+      "candidate_observations": "workload and permitted state observation events",
+      "faults": [
+        "late workload event",
+        "delivered workload differs from assigned schedule"
+      ],
+      "negative_controls": [
+        "treat assignment as delivered exposure"
+      ],
+      "scorer_checks": [
+        "event-time correctness",
+        "response separated from assignment"
+      ],
+      "claim_ceiling": "synthetic input-response only"
+    },
+    {
+      "id": "SYN-006",
+      "name": "structural_model_disagreement",
+      "family": "model_form_uncertainty",
+      "generator": "one pinned reference generates truth; distinct lower/higher-fidelity models are candidate comparators",
+      "candidate_observations": "matched boundary conditions and output observations",
+      "faults": [
+        "hidden structural discrepancy"
+      ],
+      "negative_controls": [
+        "report ensemble mean without disagreement"
+      ],
+      "scorer_checks": [
+        "per-model residuals",
+        "model disagreement",
+        "no majority-vote-as-truth"
+      ],
+      "claim_ceiling": "synthetic cross-model comparison only"
+    },
+    {
+      "id": "SYN-007",
+      "name": "heat_and_water_balance_closure",
+      "family": "conservation",
+      "generator": "synthetic conservative thermal/fluid compartment with explicit sources, sinks and transfers",
+      "candidate_observations": "permitted boundary flux observations",
+      "faults": [
+        "flux transfer delay"
+      ],
+      "negative_controls": [
+        "duplicate transfer",
+        "unpaired sink",
+        "unit mismatch"
+      ],
+      "scorer_checks": [
+        "balance residual",
+        "source/sink closure",
+        "required positivity"
+      ],
+      "claim_ceiling": "generic conservation/software verification only"
+    },
+    {
+      "id": "SYN-008",
+      "name": "multi_rate_coupling",
+      "family": "numerical_integration",
+      "generator": "coupled ODE fixtures with fast, medium and slow timescales and high-accuracy reference",
+      "candidate_observations": "asynchronous subsystem outputs with explicit event times",
+      "faults": [
+        "different update cadences",
+        "stale port state"
+      ],
+      "negative_controls": [
+        "reverse update order",
+        "exceed maximum coupling interval"
+      ],
+      "scorer_checks": [
+        "convergence order",
+        "update-order sensitivity",
+        "coupling stability",
+        "federation error"
+      ],
+      "claim_ceiling": "numerical coupling qualification only"
+    },
+    {
+      "id": "SYN-009",
+      "name": "missingness_regime_tournament",
+      "family": "observation_process",
+      "generator": "same latent trajectory under MCAR, MAR and MNAR observation mechanisms",
+      "candidate_observations": "masked irregular events without mechanism labels",
+      "faults": [
+        "channel dropout",
+        "burst outage",
+        "activity-dependent sampling"
+      ],
+      "negative_controls": [
+        "fill missing with zero",
+        "leak missingness mechanism"
+      ],
+      "scorer_checks": [
+        "state error",
+        "calibration",
+        "abstention",
+        "false posterior movement"
+      ],
+      "claim_ceiling": "synthetic estimator robustness only"
+    },
+    {
+      "id": "SYN-010",
+      "name": "clock_delay_and_packet_faults",
+      "family": "event_transport",
+      "generator": "same physical state with offset clocks, delay, loss, duplication and reordering",
+      "candidate_observations": "availability-ordered event stream with capture and receive times",
+      "faults": [
+        "clock drift",
+        "duplicate packet",
+        "late/out-of-order packet"
+      ],
+      "negative_controls": [
+        "advance physical time twice",
+        "use unavailable event"
+      ],
+      "scorer_checks": [
+        "time-domain integrity",
+        "exactly-once advancement",
+        "stale event disposition"
+      ],
+      "claim_ceiling": "event/transport semantics only"
+    },
+    {
+      "id": "SYN-011",
+      "name": "common_cause_sensor_failure",
+      "family": "correlated_sensor_failure",
+      "generator": "multiple channels with shared synthetic power/network/calibration cause",
+      "candidate_observations": "correlated sensor failures without cause label",
+      "faults": [
+        "common-cause outage",
+        "shared calibration drift"
+      ],
+      "negative_controls": [
+        "assume sensor errors independent"
+      ],
+      "scorer_checks": [
+        "calibration under common cause",
+        "fault detection",
+        "abstention"
+      ],
+      "claim_ceiling": "synthetic observation robustness only"
+    },
+    {
+      "id": "SYN-012",
+      "name": "observationally_equivalent_worlds",
+      "family": "identifiability",
+      "generator": "at least three distinct latent worlds with identical candidate-visible histories",
+      "candidate_observations": "bitwise-identical event payload across paired worlds",
+      "faults": [
+        "latent structural ambiguity"
+      ],
+      "negative_controls": [
+        "leak world ID or seed"
+      ],
+      "scorer_checks": [
+        "zero false point certainty",
+        "identified-set coverage",
+        "non-identifiable output"
+      ],
+      "claim_ceiling": "identifiability/abstention software test only"
+    },
+    {
+      "id": "SYN-013",
+      "name": "assignment_delivery_exposure_mismatch",
+      "family": "causal_events",
+      "generator": "known synthetic assignment, delivery, exposure and response chain with null and heterogeneous effects",
+      "candidate_observations": "only events available before declared cutoff",
+      "faults": [
+        "assigned action not delivered",
+        "delivered action not observed"
+      ],
+      "negative_controls": [
+        "as-treated contrast under informative receipt"
+      ],
+      "scorer_checks": [
+        "estimand accounting",
+        "false causal claim rate",
+        "ITT/exposure separation"
+      ],
+      "claim_ceiling": "synthetic causal-DGP qualification only"
+    },
+    {
+      "id": "SYN-014",
+      "name": "coupling_semantic_corruption",
+      "family": "port_contract_negative_control",
+      "generator": "valid baseline graph with one invalid edge injected at a time",
+      "candidate_observations": "none; validator tested directly",
+      "faults": [
+        "wrong dimension",
+        "wrong sign",
+        "wrong direction",
+        "unknown conversion",
+        "stale model revision",
+        "duplicated flux"
+      ],
+      "negative_controls": [
+        "attempt mutation after failed validation"
+      ],
+      "scorer_checks": [
+        "100 percent reject-before-mutation"
+      ],
+      "claim_ceiling": "schema/port validator qualification only"
+    },
+    {
+      "id": "SYN-015",
+      "name": "out_of_domain_model_input",
+      "family": "validity_domain",
+      "generator": "pinned model with inputs outside declared domain",
+      "candidate_observations": "out-of-domain boundary conditions without evaluator labels",
+      "faults": [
+        "unsupported input range",
+        "unsupported solver cadence"
+      ],
+      "negative_controls": [
+        "silent extrapolation",
+        "undisclosed clamp"
+      ],
+      "scorer_checks": [
+        "typed unsupported response",
+        "no silent extrapolation",
+        "failure receipt"
+      ],
+      "claim_ceiling": "validity-gate software test only"
+    },
+    {
+      "id": "SYN-016",
+      "name": "observed_environmental_forcing_synthetic_response",
+      "family": "real_non_human_boundary_data",
+      "generator": "pinned public NASA POWER or ERA5 hourly environmental record; physiology remains entirely synthetic and generated by admitted reference models",
+      "candidate_observations": "permitted environmental boundary variables (temperature, dew point/derived humidity, wind, solar radiation) with source timestamps, units and provenance",
+      "faults": [
+        "time-zone conversion error",
+        "missing hourly interval",
+        "grid/site mismatch",
+        "unit conversion error",
+        "reanalysis/source version change"
+      ],
+      "negative_controls": [
+        "inject human-participant records",
+        "use physiology observations as model outputs",
+        "treat weather boundary observations as human response validation"
+      ],
+      "scorer_checks": [
+        "source checksum and licence receipt",
+        "time/unit integrity",
+        "boundary input replay",
+        "explicit synthetic-only physiology claim ceiling"
+      ],
+      "sources": [
+        "https://power.larc.nasa.gov/docs/services/api/temporal/hourly/",
+        "https://cds.climate.copernicus.eu/stac-browser/collections/reanalysis-era5-single-levels"
+      ],
+      "claim_ceiling": "real environmental forcing ingestion only; all physiological response is synthetic and not validated for humans"
+    },
+    {
+      "id": "SYN-017",
+      "name": "multirate_cosimulation_master_tournament",
+      "family": "federation_numerical_integrity",
+      "generator": "abstract two-compartment conservative exchange system with an independent exact exponential oracle; dimensionless state and arbitrary synthetic coefficients",
+      "candidate_observations": "component-local states and declared clock/communication events only; exact latent trajectories and balance oracle remain evaluator-only",
+      "faults": [
+        "timescale ratios from 1:1 through 1:1000",
+        "variable communication windows",
+        "stale partner outputs",
+        "coincident periodic clocks",
+        "discontinuous boundary events",
+        "component early return",
+        "state-restore capability unavailable",
+        "stiff coupling regime"
+      ],
+      "negative_controls": [
+        "unpaired source debit and destination credit",
+        "duplicate interface transfer",
+        "update-order-dependent flux recomputation",
+        "explicit shared-flux Euler beyond its declared stability region",
+        "commit component state beyond the accepted global time",
+        "accept iteration exhaustion as convergence",
+        "use rollback-dependent algorithm without state-restore capability"
+      ],
+      "scorer_checks": [
+        "state error against exact analytic trajectory",
+        "weighted-total conservation residual",
+        "communication-step refinement and convergence order",
+        "update-order sensitivity",
+        "global clock monotonicity and event ordering",
+        "rejected-step and rollback accounting",
+        "capability negotiation and unsupported-feature disposition",
+        "error/conservation/latency Pareto profile"
+      ],
+      "claim_ceiling": "synthetic numerical co-simulation algorithm qualification only; no physiological validation"
+    }
+  ]
+}
