@@ -52,16 +52,19 @@ fn run_partial_queries(
     ];
 
     println!(
-        "# partial_query,labelled_fields,exact_matches,abstained,slot_precision_at_5,slot_recall_at_5,slot_mrr_at_5,slot_false_suggestions,holistic_precision_at_5,holistic_recall_at_5,holistic_mrr_at_5,holistic_false_suggestions,encoding_us,slot_rank_us,holistic_rank_us,exact_oracle_us"
+        "# partial_query,labelled_fields,exact_matches,exact_postings_matches,abstained,exact_oracle_us,exact_postings_us,slot_precision_at_5,slot_recall_at_5,slot_mrr_at_5,slot_false_suggestions,holistic_precision_at_5,holistic_recall_at_5,holistic_mrr_at_5,holistic_false_suggestions,encoding_us,slot_rank_us,holistic_rank_us"
     );
     for (label, query) in queries {
         let report = index.rank_partial_query(graph, &encoder, &query, 5)?;
         println!(
-            "# partial_query={},{},{},{},{:.3},{},{},{},{:.3},{},{},{},{:.3},{:.3},{:.3},{:.3}",
+            "# partial_query={},{},{},{},{},{:.3},{:.3},{:.3},{},{},{},{},{:.3},{},{},{},{:.3},{:.3},{:.3}",
             label,
             report.query_slot_count,
             report.exact_match_count,
+            report.exact_indexed_results.len(),
             report.abstained,
+            report.exact_oracle_micros,
+            report.exact_indexed_micros,
             report.slot_metrics.precision_at_k,
             metric(report.slot_metrics.recall_at_k),
             metric(report.slot_metrics.reciprocal_rank),
@@ -72,8 +75,7 @@ fn run_partial_queries(
             report.holistic_metrics.false_suggestions_at_k,
             report.query_encoding_micros,
             report.slot_ranking_micros,
-            report.holistic_ranking_micros,
-            report.exact_oracle_micros
+            report.holistic_ranking_micros
         );
     }
     Ok(())
