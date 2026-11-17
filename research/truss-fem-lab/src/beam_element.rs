@@ -354,10 +354,10 @@ mod tests {
         // Tip local-y force; node i is fully fixed.
         rhs[1] = force;
         let tip = solve_dense_6(reduced, rhs);
-        let expected_deflection =
-            force * length.powi(3) / (3.0 * material().youngs_modulus_pa * section().second_moment_z_m4);
-        let expected_rotation =
-            force * length.powi(2) / (2.0 * material().youngs_modulus_pa * section().second_moment_z_m4);
+        let expected_deflection = force * length.powi(3)
+            / (3.0 * material().youngs_modulus_pa * section().second_moment_z_m4);
+        let expected_rotation = force * length.powi(2)
+            / (2.0 * material().youngs_modulus_pa * section().second_moment_z_m4);
         assert!((tip[1] - expected_deflection).abs() / expected_deflection < 1.0e-10);
         assert!((tip[5] - expected_rotation).abs() / expected_rotation < 1.0e-10);
     }
