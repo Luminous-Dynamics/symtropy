@@ -1,0 +1,82 @@
+{
+  "package_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "source_model_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "source_schema_release": "IFC4X3_ADD2",
+  "ids_spec_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "ids_version": "1.0",
+  "design_revision_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "frame_id": "site-level-02",
+  "frame_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "transform_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "entity_manifest_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "acceptance_profile_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "acceptance_profile": {
+    "max_abs_xy_residual_mm": 1,
+    "max_reference_u95_xy_mm": 0.25,
+    "max_abs_endpoint_residual_mm": 1
+  },
+  "entities": [
+    {
+      "global_id": "AAAAAAAAAAAAAAAAAAAAAA",
+      "entity_type": "line",
+      "geometry_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "required_ids_properties": [
+        "Pset_WallCommon.IsExternal",
+        "Pset_Layout.MarkingClass"
+      ],
+      "delivered_ids_properties": [
+        "Pset_WallCommon.IsExternal",
+        "Pset_Layout.MarkingClass"
+      ],
+      "applicable_ids_requirement_ids": [
+        "layout-marking-class",
+        "wall-external-classification"
+      ],
+      "ids_requirement_evaluations": [
+        {
+          "requirement_id": "layout-marking-class",
+          "passed": true,
+          "evaluation_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "requirement_id": "wall-external-classification",
+          "passed": true,
+          "evaluation_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "in_work_scope": true
+    },
+    {
+      "global_id": "BBBBBBBBBBBBBBBBBBBBBB",
+      "entity_type": "point",
+      "geometry_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "required_ids_properties": [
+        "Pset_Layout.MarkingClass"
+      ],
+      "delivered_ids_properties": [
+        "Pset_Layout.MarkingClass"
+      ],
+      "applicable_ids_requirement_ids": [
+        "layout-marking-class"
+      ],
+      "ids_requirement_evaluations": [
+        {
+          "requirement_id": "layout-marking-class",
+          "passed": true,
+          "evaluation_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "in_work_scope": true
+    },
+    {
+      "global_id": "CCCCCCCCCCCCCCCCCCCCCC",
+      "entity_type": "other",
+      "geometry_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "required_ids_properties": [],
+      "delivered_ids_properties": [],
+      "applicable_ids_requirement_ids": [],
+      "ids_requirement_evaluations": [],
+      "in_work_scope": false
+    }
+  ]
+}
