@@ -15,7 +15,7 @@ The receiver can PASS the checked re-description obligations while the overall p
 
 ## Exact bytes and canonical fields
 
-The source receipt is hashed as its exact raw byte sequence with a domain separator. The generator matrices and physical fixture fields use explicit versioned binary encodings: fixed field order, field labels, little-endian lengths, and IEEE-754 binary64 bit patterns. Each digest uses a distinct domain label. Task semantic components are separately bound and then combined into the top-level task digest.
+The source receipt is hashed as its exact raw byte sequence with a domain separator. The generator matrices, static physical fixture, and 6-DOF step witness use explicit versioned binary encodings: fixed field order, field labels, little-endian lengths, and IEEE-754 binary64 bit patterns. Each digest uses a distinct domain label. Task semantic components are separately bound and then combined into the top-level task digest.
 
 A SHA-256 match is a content-identity check, not proof of the truth of the source receipt or physics.
 
@@ -31,6 +31,8 @@ For q = S y, the receiver independently recomputes:
 - tangent mass norms and dual cotangent norms in both frames;
 - all fixture and full-task digest bindings.
 
+The v0.2 receiver package also checks one frozen constrained-midpoint step in both the canonical and dense generalized-coordinate frames. It verifies midpoint kinematics, the midpoint holonomic constraint residual, the discrete constraint identity, the full 6D momentum balance including the multiplier reaction, energy/work balance, fixed-link length, and lifted position/velocity agreement. It does not rerun the nonlinear multiplier solve: only the emitted input/output trace is replayed against the governing equations.
+
 The transform, metric, generator and all derived arrays are checked for finite values and declared conditioning/residual limits. No coordinate component infinity norm is used as a physical norm.
 
 ## Reproduction
@@ -44,4 +46,4 @@ The transform, metric, generator and all derived arrays are checked for finite v
 
 The unit-test package is synthetic and exists to exercise exact byte binding, independent transformation checks, wrong-law mutations, digest mutation and fail-closed outcomes. It is not a real source receipt. The checker currently supports one bounded 3D dense coordinate-re-description, one SPD metric, a small generator set and a two-row full-rank constraint map.
 
-It does not qualify arbitrary manifolds, arbitrary nonlinear integrators, contact/friction, sparse articulated dynamics, or scientific search pruning. The new one-step witness supports a bounded discrete-step check; numerical forward-error certification remains INCONCLUSIVE and prevents promotion to physical-equivalence authority.
+It does not qualify arbitrary manifolds, arbitrary nonlinear integrators, contact/friction, sparse articulated dynamics, or scientific search pruning. The receiver marks the bounded `discrete_step_equivariance` obligation PASS only when both frame traces satisfy the declared residual profile. The broader physical-observables bundle and numerical forward-error envelope remain INCONCLUSIVE, so the overall receipt remains INCONCLUSIVE and physical-equivalence authority stays NONE.
