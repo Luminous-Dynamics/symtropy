@@ -285,6 +285,41 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     Ok((profile_id, product_family, revision))
 }
 
+/// Validates the JSON Schema document and corpus against Draft 2020-12,
+/// then applies the deployment-specific semantic audit.
+pub fn audit_schema_and_corpus(schema_input: &str, corpus_input: &str) -> Result<Value, String> {
+    let schema: Value = serde_json::from_str(schema_input)
+        .map_err(|e| format!("invalid schema JSON: {e}"))?;
+    let corpus: Value = serde_json::from_str(corpus_input)
+        .map_err(|e| format!("invalid corpus JSON: {e}"))?;
+
+    require_string(
+        &schema,
+        "$schema",
+        "$",
+        "https://json-schema.org/draft/2020-12/schema",
+    )?;
+
+    jsonschema::draft202012::meta::validate(&schema)
+        .map_err(|e| format!("Draft 2020-12 meta-schema validation failed: {e}"))?;
+
+    let validator = jsonschema::draft202012::options()
+        .should_validate_formats(true)
+        .build(&schema)
+        .map_err(|e| format!("could not compile Draft 2020-12 schema: {e}"))?;
+
+    validator
+        .validate(&corpus)
+        .map_err(|e| format!("corpus violates Draft 2020-12 schema: {e}"))?;
+
+    let mut report = audit_corpus(corpus_input)?;
+    if let Some(map) = report.as_object_mut() {
+        map.insert("json_schema_valid".to_owned(), Value::Bool(true));
+        map.insert("json_schema_draft".to_owned(), Value::String("2020-12".to_owned()));
+    }
+    Ok(report)
+}
+
 /// Audits a corpus and returns a deterministic, synthetic-only structural report.
 pub fn audit_corpus(input: &str) -> Result<Value, String> {
     let corpus: Value = serde_json::from_str(input).map_err(|e| format!("invalid JSON: {e}"))?;
@@ -363,14 +398,42 @@ pub fn audit_corpus(input: &str) -> Result<Value, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::audit_corpus;
+    use super::{audit_corpus, audit_schema_and_corpus};
     use serde_json::Value;
 
     const FIXTURE: &str =
         include_str!("../../../fixtures/global/global_mfg_deployment_profiles_v0_1.json");
+    const SCHEMA: &str =
+        include_str!("../../../schemas/global/global_mfg_deployment_profile_v0_1.schema.json");
 
     fn fixture_value() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON parses")
+    }
+
+
+    #[test]
+    fn validates_corpus_against_draft_2020_12_schema() {
+        let report = audit_schema_and_corpus(SCHEMA, FIXTURE)
+            .expect("schema and corpus pass Draft 2020-12 and semantic audit");
+        assert_eq!(report["json_schema_valid"], true);
+        assert_eq!(report["json_schema_draft"], "2020-12");
+    }
+
+    #[test]
+    fn rejects_schema_invalid_missing_jurisdiction_dimension() {
+        let mut fixture: Value = serde_json::from_str(FIXTURE).expect("fixture JSON");
+        fixture["profiles"][0]["deployment_context"]
+            .as_object_mut()
+            .expect("deployment context")
+            .remove("data_processing_jurisdictions");
+        let encoded = serde_json::to_string(&fixture).expect("encode mutation");
+        assert!(audit_schema_and_corpus(SCHEMA, &encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_schema_document() {
+        let invalid_schema = r#"{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"not-a-json-type"}"#;
+        assert!(audit_schema_and_corpus(invalid_schema, FIXTURE).is_err());
     }
 
     #[test]
