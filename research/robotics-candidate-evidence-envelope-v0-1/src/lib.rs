@@ -41,6 +41,11 @@ pub struct CandidateBinding {
     pub pass_id: String,
     pub mission_id: String,
     pub mission_revision: String,
+    /// Exact upstream evidence-request set from Symthaea #12046, including
+    /// its behavior-conditioned progress/constraint revision.
+    pub request_set_id: String,
+    pub request_set_revision: String,
+    pub request_set_sha256: String,
     pub scenario_id: String,
     pub scenario_revision: String,
     pub robot_id: String,
@@ -214,6 +219,9 @@ impl CandidateBinding {
         push_str(&mut output, &self.pass_id);
         push_str(&mut output, &self.mission_id);
         push_str(&mut output, &self.mission_revision);
+        push_str(&mut output, &self.request_set_id);
+        push_str(&mut output, &self.request_set_revision);
+        push_str(&mut output, &self.request_set_sha256);
         push_str(&mut output, &self.scenario_id);
         push_str(&mut output, &self.scenario_revision);
         push_str(&mut output, &self.robot_id);
@@ -423,6 +431,8 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
         (&binding.pass_id, "pass_id"),
         (&binding.mission_id, "mission_id"),
         (&binding.mission_revision, "mission_revision"),
+        (&binding.request_set_id, "request_set_id"),
+        (&binding.request_set_revision, "request_set_revision"),
         (&binding.scenario_id, "scenario_id"),
         (&binding.scenario_revision, "scenario_revision"),
         (&binding.robot_id, "robot_id"),
@@ -454,6 +464,7 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
             &binding.robot_configuration_sha256,
             "robot_configuration_sha256",
         ),
+        (&binding.request_set_sha256, "request_set_sha256"),
         (&binding.module_manifest_sha256, "module_manifest_sha256"),
         (
             &binding.calibration_bundle_sha256,
@@ -615,6 +626,9 @@ mod tests {
             pass_id: "pass-north-01".to_owned(),
             mission_id: "mission-pv-01".to_owned(),
             mission_revision: "mission-r2".to_owned(),
+            request_set_id: "evidence-request-set-01".to_owned(),
+            request_set_revision: "request-set-r3".to_owned(),
+            request_set_sha256: C.to_owned(),
             scenario_id: "scenario-roof-01".to_owned(),
             scenario_revision: "scenario-r3".to_owned(),
             robot_id: "uav-01".to_owned(),
@@ -1028,6 +1042,12 @@ mod tests {
 
         assert_rebinding_required(envelope(), |binding| {
             binding.mission_revision = "mission-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.request_set_revision = "request-set-r-next".to_owned();
+        });
+        assert_rebinding_required(envelope(), |binding| {
+            binding.request_set_sha256 = D.to_owned();
         });
         assert_rebinding_required(envelope(), |binding| {
             binding.scenario_revision = "scenario-r-next".to_owned();
