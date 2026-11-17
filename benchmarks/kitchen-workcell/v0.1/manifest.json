@@ -394,6 +394,28 @@
       ],
       "safety_boundary": "Scheduler is advisory only. Local appliance protections remain authoritative. No pressure-cycle restart after power restoration unless manufacturer-approved; no power-interruption test outside the approved safe procedure.",
       "control_condition": "Compare manual schedule, fixed-rule schedule and Symtropy schedule on identical tasks and declared electrical envelope."
+    },
+    {
+      "task_id": "workflow-recipe-action-grounding",
+      "domain": "workflow",
+      "operation": "translate recipe text and current kitchen capability state into an executable task graph",
+      "input_manifest_required": [
+        "recipe text and source rights",
+        "ingredient identities and typed quantities",
+        "appliance capabilities",
+        "current resource availability",
+        "action timing constraints",
+        "practitioner review rubric"
+      ],
+      "primary_metrics": [
+        "action_grounding_precision",
+        "action_grounding_recall",
+        "task_graph_feasibility_rate",
+        "temporal_constraint_violation_count",
+        "human_correction_count"
+      ],
+      "safety_boundary": "Generated task graphs are advisory proposals and do not directly actuate appliances.",
+      "control_condition": "Compare human-authored graph, deterministic recipe rules and Symthaea proposal on frozen recipes."
     }
   ],
   "metrics": [
@@ -472,6 +494,43 @@
       "method": "evaluate measured concurrent draw against frozen declared envelope",
       "evidence_class": "measured",
       "notes": "Target is zero observed cap violations for a schedule represented as feasible; record all exceptions."
+    },
+    {
+      "metric_id": "schedule_feasibility_rate",
+      "unit": "fraction of submitted schedules independently valid",
+      "denominator": "all submitted schedules including failures",
+      "method": "Independent checks of dependencies, time windows, resources, power envelope and task coverage.",
+      "evidence_class": "measured",
+      "notes": "Failed/infeasible plans remain in denominator."
+    },
+    {
+      "metric_id": "makespan_relative_gap_to_lower_bound",
+      "unit": "fraction above proven lower bound",
+      "denominator": "instances with a proven exact/lower-bound result",
+      "method": "(observed makespan - proven lower bound) / proven lower bound; report solver proof status.",
+      "evidence_class": "measured",
+      "notes": "Do not call heuristic estimates proven lower bounds."
+    },
+    {
+      "metric_id": "temporal_constraint_violation_count",
+      "unit": "count",
+      "denominator": "all declared action windows",
+      "method": "Independent temporal verifier against frozen task graph.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "replan_latency_ms",
+      "unit": "milliseconds",
+      "denominator": "one declared replanning trigger",
+      "method": "Monotonic-clock duration for schedule computation plus verification; report hardware and task count.",
+      "evidence_class": "measured"
+    },
+    {
+      "metric_id": "human_correction_count",
+      "unit": "corrections/task graph",
+      "denominator": "all human-reviewed task graphs",
+      "method": "Count edits before a practitioner accepts the graph.",
+      "evidence_class": "assayed"
     }
   ],
   "target_hypotheses": [
@@ -525,6 +584,46 @@
         "any measured cap violation",
         "appliance unsafe state after supply loss",
         "scheduler assumes unknown power budget is available"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PLAN-FEASIBILITY",
+      "metric_id": "schedule_feasibility_rate",
+      "target": "100% of schedules returned as feasible pass the independent verifier; failures remain explicit.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "any invalid schedule is labelled feasible",
+        "failed schedules omitted from denominator"
+      ]
+    },
+    {
+      "hypothesis_id": "H-PLAN-GAP",
+      "metric_id": "makespan_relative_gap_to_lower_bound",
+      "target": "Measure first; propose <=10% median gap only on a frozen small-instance suite with proven lower bounds.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "lower bound unproven",
+        "solver timeout reported as optimality"
+      ]
+    },
+    {
+      "hypothesis_id": "H-REPLAN-LATENCY",
+      "metric_id": "replan_latency_ms",
+      "target": "Establish 50/100/500 task scaling curves before choosing a numeric target.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "verification time omitted",
+        "hardware/workload not recorded"
+      ]
+    },
+    {
+      "hypothesis_id": "H-RECIPE-GROUNDING",
+      "metric_id": "human_correction_count",
+      "target": "Reduce median practitioner corrections versus deterministic rules without increasing graph infeasibility.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "recipe rights missing",
+        "human corrections or failed graphs omitted"
       ]
     }
   ],
