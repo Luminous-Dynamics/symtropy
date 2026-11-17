@@ -296,16 +296,28 @@ impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidTopologyEventTime => {
-                write!(f, "topology event times must be finite, strictly increasing and inside the horizon")
+                write!(
+                    f,
+                    "topology event times must be finite, strictly increasing and inside the horizon"
+                )
             }
             Self::TopologyEventNotGridAligned => {
-                write!(f, "topology event time must align with the communication grid")
+                write!(
+                    f,
+                    "topology event time must align with the communication grid"
+                )
             }
             Self::InvalidAdaptiveConfig => {
-                write!(f, "adaptive network step/tolerance configuration is invalid")
+                write!(
+                    f,
+                    "adaptive network step/tolerance configuration is invalid"
+                )
             }
             Self::AdaptiveStepUnderflow => {
-                write!(f, "adaptive network reached its minimum step without an acceptable step")
+                write!(
+                    f,
+                    "adaptive network reached its minimum step without an acceptable step"
+                )
             }
             Self::AdaptiveAttemptLimitReached => {
                 write!(f, "adaptive network exceeded its attempt limit")
@@ -495,7 +507,6 @@ pub fn simulate_network(
     })
 }
 
-
 /// A deterministic graph-topology change at an exact model time.
 /// The state remains continuous; only the active edge set changes.
 #[derive(Debug, Clone, PartialEq)]
@@ -594,7 +605,8 @@ pub fn simulate_network_topology_events(
         let score = simulate_network(&segment, method, communication_step)?;
         total_steps += score.steps;
         max_abs_state_error = max_abs_state_error.max(score.max_abs_state_error);
-        sum_squared_error += score.rms_state_error * score.rms_state_error
+        sum_squared_error += score.rms_state_error
+            * score.rms_state_error
             * score.steps as f64
             * scenario.capacities.len() as f64;
         error_samples += score.steps * scenario.capacities.len();
@@ -774,7 +786,6 @@ fn symmetric_eigen(mut matrix: Vec<Vec<f64>>) -> Result<(Vec<f64>, Vec<Vec<f64>>
     Ok((eigenvalues, vectors))
 }
 
-
 /// Configuration for adaptive network-wide Jacobi shared-flux subcycling.
 ///
 /// The step-doubling difference is a local error indicator. Global trajectory
@@ -811,11 +822,7 @@ pub struct AdaptiveNetworkScore {
 /// One simultaneous, paired shared-edge Euler update. All edge fluxes are
 /// computed from the same immutable input snapshot and accumulated before
 /// any node state is advanced.
-fn network_shared_flux_euler(
-    scenario: &NetworkScenario,
-    state: &[f64],
-    step: f64,
-) -> Vec<f64> {
+fn network_shared_flux_euler(scenario: &NetworkScenario, state: &[f64], step: f64) -> Vec<f64> {
     let mut increments = vec![0.0; state.len()];
     for edge in &scenario.edges {
         let flux = edge.conductance * (state[edge.left] - state[edge.right]) * step;
@@ -890,14 +897,12 @@ pub fn simulate_network_adaptive(
         }
 
         let coarse = network_shared_flux_euler(scenario, &state, attempted_step);
-        let first_half =
-            network_shared_flux_euler(scenario, &state, attempted_step * 0.5);
-        let fine = network_shared_flux_euler(
-            scenario,
-            &first_half,
-            attempted_step * 0.5,
-        );
-        let finite = coarse.iter().chain(fine.iter()).all(|value| value.is_finite());
+        let first_half = network_shared_flux_euler(scenario, &state, attempted_step * 0.5);
+        let fine = network_shared_flux_euler(scenario, &first_half, attempted_step * 0.5);
+        let finite = coarse
+            .iter()
+            .chain(fine.iter())
+            .all(|value| value.is_finite());
 
         let error_norm = if finite {
             state
@@ -913,8 +918,7 @@ pub fn simulate_network_adaptive(
             f64::INFINITY
         };
 
-        let positivity_ok =
-            !positivity_required || fine.iter().all(|value| *value >= 0.0);
+        let positivity_ok = !positivity_required || fine.iter().all(|value| *value >= 0.0);
         let old_energy = scenario.quadratic_energy(&state);
         let new_energy = if finite {
             scenario.quadratic_energy(&fine)
@@ -929,8 +933,7 @@ pub fn simulate_network_adaptive(
             state = fine;
             time += attempted_step;
             accepted_steps += 1;
-            max_accepted_local_error_norm =
-                max_accepted_local_error_norm.max(error_norm);
+            max_accepted_local_error_norm = max_accepted_local_error_norm.max(error_norm);
             min_accepted_step = min_accepted_step.min(attempted_step);
             max_accepted_step = max_accepted_step.max(attempted_step);
 
@@ -948,8 +951,7 @@ pub fn simulate_network_adaptive(
                 .zip(state.iter())
                 .map(|(capacity, value)| capacity * value)
                 .sum();
-            max_abs_total_residual =
-                max_abs_total_residual.max((total - initial_total).abs());
+            max_abs_total_residual = max_abs_total_residual.max((total - initial_total).abs());
 
             let energy = scenario.quadratic_energy(&state);
             max_quadratic_energy_increase =
@@ -1152,7 +1154,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn topology_event_splits_state_continuously_and_preserves_total() {
         let scenario = chain();
@@ -1280,6 +1281,5 @@ mod tests {
         );
         assert_eq!(result, Err(NetworkError::InvalidAdaptiveConfig));
     }
-
 
 }
