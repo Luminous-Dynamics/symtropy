@@ -843,6 +843,27 @@ mod tests {
     }
 
     #[test]
+    fn component_breakdown_preserves_category_and_evidence_class() {
+        let (cases, mut costs, outputs) = parsed();
+        let row = costs
+            .iter_mut()
+            .find(|item| item.case_id == "baseline_three_first_pass" && item.category == "ENERGY")
+            .unwrap();
+        row.evidence_class = "ESTIMATE".into();
+        let result = evaluate(&cases, &costs, &outputs).unwrap();
+        let evaluated = result
+            .iter()
+            .find(|row| row.case_id == "baseline_three_first_pass")
+            .unwrap();
+        assert!(evaluated.cost_breakdown.iter().any(|item| {
+            item.category == "ENERGY" && item.evidence_class == "ESTIMATE"
+        }));
+        assert!(evaluated.cost_breakdown.iter().any(|item| {
+            item.category == "MATERIAL" && item.evidence_class == "SYNTHETIC"
+        }));
+    }
+
+    #[test]
     fn zero_cost_is_distinct_from_missing_cost() {
         let (cases, costs, outputs) = parsed();
         let row = evaluate(&cases, &costs, &outputs)
