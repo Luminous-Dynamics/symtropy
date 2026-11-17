@@ -51,3 +51,15 @@ The manifest also defines separate scenarios for:
 - **Disturbance replanning:** deterministic seeded simulation of task delays, resource outages, reduced power envelopes and stale observations. No disturbance is injected into live hazardous equipment.
 
 These targets are hypotheses, not current results. The manifest still has zero physical runs and is not preregistered. Do not combine these dimensions into one aggregate score or trade them against safety, manual control or evidence completeness.
+
+
+## Additional external robotics comparator: BEHAVIOR-1K
+
+Use [BEHAVIOR-1K](https://behavior.stanford.edu/) and the [2026 BEHAVIOR Challenge](https://behavior.stanford.edu/) as a complementary long-horizon household-service benchmark. The official project describes 1,000 everyday activities across 50 interactive scenes and 10,000+ objects; it is broader than a kitchen benchmark.
+
+Use:
+- **RoboCasa365** for kitchen-specific mobile manipulation and its reported Atomic-Seen, Composite-Seen and Composite-Unseen splits.
+- **BEHAVIOR-1K** for longer-horizon household work and task generalization outside the kitchen-only setting.
+- **Kitchen-R** for the separate planning-only, low-level-control-only and integrated kitchen evaluation modes.
+
+Only compare matched tasks, embodiments, sensors, simulator versions and success rubrics. Do not place the three benchmarks on one leaderboard or compare their aggregate success rates as if they were interchangeable. For each external evaluation, record the exact 2026 challenge release, split, task subset, assets/license, robot embodiment, onboard sensing, partial-credit rule, recovery, collision and human-takeover behavior.
