@@ -15,9 +15,13 @@ cargo clippy --manifest-path research/holofrac-retrieval/Cargo.toml \
 
 HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
   cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml
+
+HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" \
+  cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml \
+  --bin factorization_sweep
 ```
 
-The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcomes as comment records. Capture stdout as the run artifact; record `rustc --version`, CPU model, OS, exact commit and dirty-tree state alongside it.
+The primary CLI emits a CSV summary for 2K/4K/8K/16K dimensions, per-query exact/reversed controls and four partial-context workloads per dimension. The factorization sweep varies graph size (100/1,000/5,000 facts) and entity reuse (high/medium/low) at 1K dimension, reporting unique codebook cardinality, factorized versus duplicated role-vector bytes, compact-reference bytes and build time. CI uploads both raw CSVs as a 14-day workflow artifact, alongside runner/toolchain details and the exact checked-out source SHA.
 
 ## What is implemented
 
@@ -39,7 +43,9 @@ The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcom
 - Precision@k, recall@k, reciprocal rank and separate timing measures for both partial-retrieval treatments.
 - Stale-index rejection when the exact canonical source graph changes after index construction; insertion-order changes remain equivalent.
 - Rejection of an index queried with a different encoder schema, seed or dimension.
-- Separate bipolar-only, f32-only and dual-view vector-payload estimates, plus unique codebook-entry count, factorized role-slot payload, duplicated-slot baseline, byte savings, compact index-reference bytes and total retained vector payload.
+- Separate bipolar-only, f32-only and dual-view vector-payload estimates, plus unique codebook-entry count, factorized role-slot payload, duplicated-slot baseline, byte savings, compact index-reference bytes and total retained vector payload.\n- Controlled directed-circulant graph fixture generator with one-pass validation for large workloads.
+- Factorization capacity sweep across 100/1,000/5,000 facts and high/medium/low node reuse, avoiding the exact-retrieval O(E²) query loop.
+- CI raw benchmark artifacts containing the primary retrieval and factorization CSV outputs.
 
 ## Claim boundaries
 
@@ -47,7 +53,7 @@ This is an initial exact-fact and partial-context retrieval fixture, not a floor
 
 The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
 
-The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains one bipolar and one f32 holistic vector per fact, plus a shared bipolar role/value codebook. The role-slot payload therefore scales with the number of unique typed role/value pairs rather than five vectors per fact. Estimates exclude hash-map keys/table overhead, allocator overhead, graph objects and canonical-key strings. Compact per-fact slot-reference bytes are reported separately and alongside vector payload; follow-on capacity workloads must measure actual process RSS. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
+The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains one bipolar and one f32 holistic vector per fact, plus a shared bipolar role/value codebook. The role-slot payload therefore scales with the number of unique typed role/value pairs rather than five vectors per fact. Estimates exclude hash-map keys/table overhead, allocator overhead, graph objects and canonical-key strings. Compact per-fact slot-reference bytes are reported separately and alongside vector payload; follow-on capacity workloads must measure actual process RSS. The new factorization sweep currently quantifies exact vector and compact-reference payload, not allocator-inclusive memory; hash-map key/table overhead remains excluded. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
 
 The source-graph digest and encoder fingerprint are non-cryptographic regression identifiers. They are not security hashes, signatures, or provenance attestations.
 
