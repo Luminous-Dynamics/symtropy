@@ -372,6 +372,7 @@ pub fn audit_frame_equilibrium(
         || boundary.nodal_loads.len() != node_count
         || result.nodal_displacements.len() != node_count
         || result.nodal_reactions.len() != node_count
+        || result.members.len() != model.members.len()
     {
         return Err(FrameAnalysisError::InvalidBoundaryConditions);
     }
@@ -449,6 +450,7 @@ pub fn audit_frame_equilibrium(
         result.total_strain_energy_j,
         half_external_work_j,
         energy_relative_error,
+        result.maximum_free_dof_residual,
     ];
     if !scalar_values.iter().all(|value| value.is_finite()) {
         return Err(FrameAnalysisError::NonFiniteResult);
@@ -679,7 +681,7 @@ mod tests {
 
     #[test]
     fn duplicate_members_and_invalid_loads_fail_closed() {
-        let (mut model, mut boundary) = cantilever_model();
+        let (mut model, boundary) = cantilever_model();
         model.members.push(model.members[0]);
         assert!(matches!(
             model.analyze(&boundary),
