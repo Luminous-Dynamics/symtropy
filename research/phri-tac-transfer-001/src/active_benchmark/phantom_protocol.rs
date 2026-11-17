@@ -452,8 +452,9 @@ fn validate_episode(
     if evidence.reference_instrument_receipt_id != manifest.six_axis_reference.instrument_receipt_id
         || evidence.reference_ancestry_receipt_id != manifest.six_axis_reference.reference_ancestry_receipt_id
         || evidence.common_cause_analysis_receipt_id != manifest.six_axis_reference.common_cause_analysis_receipt_id
+        || evidence.verifier_receipt_id != manifest.six_axis_reference.verifier_receipt_id
     {
-        errors.push("episode reference instrument/ancestry/common-cause receipts do not match the declared six-axis reference identity".to_owned());
+        errors.push("episode reference instrument/ancestry/common-cause/verifier receipts do not match the declared six-axis reference identity".to_owned());
     }
     errors
 }
@@ -594,10 +595,10 @@ pub fn audit_phantom_campaign(manifest: &PhantomCampaignManifest) -> PhantomCamp
     let coverage_incomplete = family_coverage.iter().any(|coverage| !coverage.complete);
     let disposition = if !leakage_findings.is_empty() {
         PhantomAuditDisposition::PartitionLeakage
-    } else if !invalid_episode_ids.is_empty() {
-        PhantomAuditDisposition::EpisodeEvidenceUnresolved
     } else if manifest_identity_invalid {
         PhantomAuditDisposition::InvalidManifest
+    } else if !invalid_episode_ids.is_empty() {
+        PhantomAuditDisposition::EpisodeEvidenceUnresolved
     } else if coverage_incomplete {
         PhantomAuditDisposition::CoverageIncomplete
     } else {
