@@ -337,7 +337,7 @@ mod tests {
         let (tasks, obligations, mutations, trace) = load_reference().expect("reference data parses");
         let results = evaluate(&tasks, &obligations, &trace);
         assert_eq!(results.len(), 18);
-        assert_eq!(trace.len(), 38);
+        assert_eq!(trace.len(), 40);
         assert!(results.iter().all(|result| result.trace_contract_clear));
         assert_eq!(mutations.len(), 16);
     }
