@@ -5,6 +5,7 @@
 
 pub mod benchmark;
 pub mod damage;
+pub mod interfaces;
 pub mod stability;
 
 use std::collections::HashSet;
