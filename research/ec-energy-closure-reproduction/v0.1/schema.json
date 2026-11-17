@@ -156,12 +156,6 @@
                 "filename": {
                   "type": "string"
                 },
-                "size_bytes": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
                 "published_md5": {
                   "type": [
                     "string",
@@ -179,6 +173,12 @@
                     "not_retrieved",
                     "retrieved_checksum_verified",
                     "not_applicable"
+                  ]
+                },
+                "reported_size": {
+                  "type": [
+                    "string",
+                    "null"
                   ]
                 }
               }
