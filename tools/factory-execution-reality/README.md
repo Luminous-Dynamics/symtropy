@@ -33,7 +33,7 @@ Possible product/release outcomes are distinct: ACCEPTED, REJECTED, UNKNOWN, BLO
 ## Files
 
 - route-contract-v0.1.tsv: six-step synthetic pump/valve route.
-- scenarios-v0.1.tsv: 11 event-reconciliation cases, including paired hidden-future controls.
+- scenarios-v0.1.tsv: 12 event-reconciliation cases, including paired hidden-future controls.
 - observations-v0.1.tsv: synthetic MES, RTLS, machine-cycle, scan and inspection observations. Event time and ingest/observation time are separate.
 - coverage-v0.1.tsv: declared sensor coverage, calibration state and location uncertainty windows.
 - This is a public development corpus with its expected dispositions exposed. It is not a blind evaluation set.
