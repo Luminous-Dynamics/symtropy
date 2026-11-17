@@ -14,6 +14,11 @@ use super::{JointKernel, Rational};
 /// Hard cap on one in-memory episode's retained action-attempt records.
 pub const MAX_ATTEMPT_RECEIPTS: usize = 65_536;
 
+// SplitMix64 emits 2^53 equiprobable values. Requiring at least two grid
+// points per event avoids silently treating a positive sub-resolution event
+// as a reliably sampleable trajectory outcome.
+const MIN_SAMPLE_MASS: f64 = 2.0 / 9_007_199_254_740_992.0;
+
 /// Resource and horizon limits for one interactive episode.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EpisodeConfig {
@@ -32,6 +37,49 @@ impl Default for EpisodeConfig {
             max_cost_units: 64,
             max_world_steps: 8,
         }
+    }
+}
+
+/// Public, non-secret identities that bind one episode to its exact model inputs.
+///
+/// All digests are lowercase SHA-256 hex strings supplied by the trusted runner.
+/// These values may be shown to the research policy; per-episode seeds and hidden
+/// initial-state realizations must not be included here.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EpisodeManifest {
+    /// Digest of the public episode contract and admissible action/observation surface.
+    pub contract_sha256: String,
+    /// Digest of the exact owner-model implementation.
+    pub world_model_sha256: String,
+    /// Digest of the exact selected model/profile and applicability declaration.
+    pub model_profile_sha256: String,
+    /// Digest of the world-generation recipe, excluding private episode seed/state.
+    pub world_recipe_sha256: String,
+    /// Digest of the clock semantics used by this episode.
+    pub clock_profile_sha256: String,
+    /// Digest of the episode's time-origin definition.
+    pub time_origin_sha256: String,
+}
+
+impl EpisodeManifest {
+    fn validate(&self) -> Result<(), EpisodeError> {
+        for digest in [
+            self.contract_sha256.as_str(),
+            self.world_model_sha256.as_str(),
+            self.model_profile_sha256.as_str(),
+            self.world_recipe_sha256.as_str(),
+            self.clock_profile_sha256.as_str(),
+            self.time_origin_sha256.as_str(),
+        ] {
+            if digest.len() != 64
+                || !digest
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            {
+                return Err(EpisodeError::InvalidManifest);
+            }
+        }
+        Ok(())
     }
 }
 
@@ -98,6 +146,8 @@ pub struct EpisodeAttempt {
     pub charged_cost_units: u64,
     /// Decision step at which the request was received.
     pub requested_at_step: u64,
+    /// World step at which the model executed the action; absent for rejected requests.
+    pub executed_at_step: Option<u64>,
     /// Provider-owned outcome.
     pub disposition: AttemptDisposition,
 }
@@ -110,6 +160,8 @@ pub struct EpisodeAttempt {
 pub struct EpisodeView {
     /// Opaque episode identity supplied by the trusted runner.
     pub episode_id: String,
+    /// Public exact model/profile/recipe/clock identities.
+    pub manifest: EpisodeManifest,
     /// Current discrete world step.
     pub current_step: u64,
     /// Public action catalogue.
@@ -128,6 +180,10 @@ pub struct EpisodeView {
     pub max_cost_units: u64,
     /// Frozen world-step horizon.
     pub max_world_steps: u64,
+    /// Number of requests not individually retained after the receipt cap was reached.
+    pub dropped_attempts: u64,
+    /// False once any attempt receipt has been dropped; never promote an incomplete trace.
+    pub trace_complete: bool,
     /// Whether a hazard or terminal condition ended the episode.
     pub terminal: bool,
 }
@@ -139,6 +195,8 @@ pub enum EpisodeError {
     InvalidKernel(String),
     /// The episode ID is malformed.
     InvalidEpisodeId,
+    /// One or more required public manifest digests are malformed.
+    InvalidManifest,
     /// The configured horizon exceeds the joint oracle's supported horizon.
     InvalidConfig,
     /// A validated kernel unexpectedly lacks a transition row or observation.
@@ -147,6 +205,8 @@ pub enum EpisodeError {
     EmptyOutcomeRow,
     /// The floating-point sampler could not construct a valid distribution.
     InvalidSamplingDistribution,
+    /// A positive rational event probability is below the 53-bit sampler resolution.
+    SamplingResolutionTooCoarse,
     /// The action-attempt receipt cap was reached.
     AttemptReceiptLimit,
     /// An attempt ordinal overflowed.
@@ -161,6 +221,7 @@ pub enum EpisodeError {
 /// EpisodeView values and cannot read or mutate the hidden tuple.
 pub struct EpisodeProvider {
     episode_id: String,
+    manifest: EpisodeManifest,
     kernel: JointKernel,
     hypothesis: usize,
     physical_state: usize,
@@ -171,6 +232,8 @@ pub struct EpisodeProvider {
     accepted_attempts: u64,
     spent_cost_units: u64,
     terminal: bool,
+    dropped_attempts: u64,
+    trace_complete: bool,
     observations: Vec<EpisodeObservation>,
     attempts: Vec<EpisodeAttempt>,
 }
@@ -180,6 +243,7 @@ impl EpisodeProvider {
     /// create an episode. The supplied seed remains private to this provider.
     pub fn new(
         episode_id: impl Into<String>,
+        manifest: EpisodeManifest,
         kernel: JointKernel,
         config: EpisodeConfig,
         seed: u64,
@@ -188,9 +252,12 @@ impl EpisodeProvider {
         if !valid_episode_id(&episode_id) {
             return Err(EpisodeError::InvalidEpisodeId);
         }
-        if config.max_world_steps > 12 {
+        if config.max_world_steps > 12
+            || config.max_attempts > MAX_ATTEMPT_RECEIPTS as u64
+        {
             return Err(EpisodeError::InvalidConfig);
         }
+        manifest.validate()?;
         kernel
             .validate()
             .map_err(EpisodeError::InvalidKernel)?;
@@ -208,6 +275,7 @@ impl EpisodeProvider {
 
         Ok(Self {
             episode_id,
+            manifest,
             kernel,
             hypothesis,
             physical_state,
@@ -218,6 +286,8 @@ impl EpisodeProvider {
             accepted_attempts: 0,
             spent_cost_units: 0,
             terminal: false,
+            dropped_attempts: 0,
+            trace_complete: true,
             observations: Vec::new(),
             attempts: Vec::new(),
         })
@@ -248,6 +318,7 @@ impl EpisodeProvider {
 
         EpisodeView {
             episode_id: self.episode_id.clone(),
+            manifest: self.manifest.clone(),
             current_step: self.current_step,
             actions,
             observations,
@@ -257,6 +328,8 @@ impl EpisodeProvider {
             max_attempts: self.config.max_attempts,
             max_cost_units: self.config.max_cost_units,
             max_world_steps: self.config.max_world_steps,
+            dropped_attempts: self.dropped_attempts,
+            trace_complete: self.trace_complete,
             terminal: self.terminal,
         }
     }
@@ -274,6 +347,9 @@ impl EpisodeProvider {
         action_id: &str,
     ) -> Result<EpisodeAttempt, EpisodeError> {
         if self.attempts.len() >= MAX_ATTEMPT_RECEIPTS {
+            self.dropped_attempts = self.dropped_attempts.saturating_add(1);
+            self.trace_complete = false;
+            self.terminal = true;
             return Err(EpisodeError::AttemptReceiptLimit);
         }
 
@@ -372,6 +448,7 @@ impl EpisodeProvider {
             0
         };
 
+        let executed_at_step = (charged_cost_units > 0).then_some(self.current_step);
         let receipt = EpisodeAttempt {
             attempt_id,
             ordinal,
@@ -379,6 +456,7 @@ impl EpisodeProvider {
             requested_cost_units,
             charged_cost_units,
             requested_at_step,
+            executed_at_step,
             disposition,
         };
         self.attempts.push(receipt.clone());
@@ -444,6 +522,9 @@ fn sample_index<T>(
         let weight = rational_as_f64(mass(value));
         if !weight.is_finite() || weight < 0.0 {
             return Err(EpisodeError::InvalidSamplingDistribution);
+        }
+        if weight < MIN_SAMPLE_MASS {
+            return Err(EpisodeError::SamplingResolutionTooCoarse);
         }
         total += weight;
         weights.push(weight);
