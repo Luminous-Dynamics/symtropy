@@ -143,7 +143,9 @@ impl fmt::Display for StudyContextError {
             Self::EmptyPlateGeometryFingerprint => {
                 write!(f, "plate/geometry fingerprint must not be empty")
             }
-            Self::EmptyOtherCarbonSource => write!(f, "defined carbon source code must not be empty"),
+            Self::EmptyOtherCarbonSource => {
+                write!(f, "defined carbon source code must not be empty")
+            }
             Self::InvalidSamplingCadence => {
                 write!(f, "sampling cadence must be finite, positive and ordered")
             }
@@ -220,9 +222,10 @@ impl StudyContext {
         ) {
             return Err(StudyContextError::EmptyOtherCarbonSource);
         }
-        if self.sampling_interval_minutes.is_some_and(|(min, max)| {
-            min == 0 || max == 0 || min > max
-        }) {
+        if self
+            .sampling_interval_minutes
+            .is_some_and(|(min, max)| min == 0 || max == 0 || min > max)
+        {
             return Err(StudyContextError::InvalidSamplingCadence);
         }
         if self
@@ -324,10 +327,14 @@ impl StudyContext {
 pub enum StudyComparability {
     MatchedWithinStudyContext,
     /// Design-level qualification only; no effect size or causal conclusion.
-    RandomizedSingleFactorContrastCandidate { factor: ContextFactor },
+    RandomizedSingleFactorContrastCandidate {
+        factor: ContextFactor,
+    },
     /// One declared intervention differs, but allocation was not randomized
     /// or was not reported. This is not a randomized causal contrast.
-    NonRandomizedSingleFactorContrast { factor: ContextFactor },
+    NonRandomizedSingleFactorContrast {
+        factor: ContextFactor,
+    },
     NonComparableWithinStudy {
         differing_factors: Vec<ContextFactor>,
     },
@@ -399,9 +406,7 @@ pub fn assess_study_comparability(
 
     let differing_factors = left.differences(right);
     if left.study != right.study {
-        return Ok(StudyComparability::CrossStudyContextShift {
-            differing_factors,
-        });
+        return Ok(StudyComparability::CrossStudyContextShift { differing_factors });
     }
     if differing_factors.is_empty() {
         return Ok(StudyComparability::MatchedWithinStudyContext);
@@ -413,9 +418,7 @@ pub fn assess_study_comparability(
             if left.allocation == AllocationMethod::Randomized
                 && right.allocation == AllocationMethod::Randomized
             {
-                return Ok(StudyComparability::RandomizedSingleFactorContrastCandidate {
-                    factor,
-                });
+                return Ok(StudyComparability::RandomizedSingleFactorContrastCandidate { factor });
             }
             return Ok(StudyComparability::NonRandomizedSingleFactorContrast { factor });
         }
@@ -455,14 +458,12 @@ mod tests {
             concentration_milli_mM: 500,
         };
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::CarbonSource)
-            ),
-            Ok(StudyComparability::RandomizedSingleFactorContrastCandidate {
-                factor: ContextFactor::CarbonSource
-            })
+            assess_study_comparability(&left, &right, Some(ContextFactor::CarbonSource)),
+            Ok(
+                StudyComparability::RandomizedSingleFactorContrastCandidate {
+                    factor: ContextFactor::CarbonSource
+                }
+            )
         );
     }
 
@@ -472,11 +473,7 @@ mod tests {
         let mut right = context(1);
         right.measurement_readout = MeasurementReadout::FluorescentLipidCargoVelocity;
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::MeasurementReadout)
-            ),
+            assess_study_comparability(&left, &right, Some(ContextFactor::MeasurementReadout)),
             Ok(StudyComparability::NonComparableWithinStudy {
                 differing_factors: vec![ContextFactor::MeasurementReadout]
             })
@@ -496,9 +493,12 @@ mod tests {
         host_associated.measurement_method = MeasurementMethod::BrightfieldTimeLapse;
 
         let host_free = context(2026);
-        let result =
-            assess_study_comparability(&host_associated, &host_free, Some(ContextFactor::HostExposure))
-                .unwrap();
+        let result = assess_study_comparability(
+            &host_associated,
+            &host_free,
+            Some(ContextFactor::HostExposure),
+        )
+        .unwrap();
         let StudyComparability::CrossStudyContextShift { differing_factors } = result else {
             panic!("different studies must never be treated as a within-study host contrast");
         };
@@ -528,10 +528,7 @@ mod tests {
         right.plate_geometry_fingerprint = None;
         right.time_origin = ExperimentTimeOrigin::Unknown;
         let result = assess_study_comparability(&left, &right, None).unwrap();
-        let StudyComparability::InsufficientMetadata {
-            right_missing,
-            ..
-        } = result else {
+        let StudyComparability::InsufficientMetadata { right_missing, .. } = result else {
             panic!("missing context must not be considered a match");
         };
         assert!(right_missing.contains(&MissingContextField::PlateGeometryFingerprint));
@@ -547,16 +544,9 @@ mod tests {
         };
         right.plate_geometry_fingerprint = Some("rectangular-plate".to_owned());
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::CarbonSource)
-            ),
+            assess_study_comparability(&left, &right, Some(ContextFactor::CarbonSource)),
             Ok(StudyComparability::NonComparableWithinStudy {
-                differing_factors: vec![
-                    ContextFactor::CarbonSource,
-                    ContextFactor::PlateGeometry
-                ]
+                differing_factors: vec![ContextFactor::CarbonSource, ContextFactor::PlateGeometry]
             })
         );
     }
@@ -571,11 +561,7 @@ mod tests {
             concentration_milli_mM: 500,
         };
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::CarbonSource)
-            ),
+            assess_study_comparability(&left, &right, Some(ContextFactor::CarbonSource)),
             Ok(StudyComparability::NonRandomizedSingleFactorContrast {
                 factor: ContextFactor::CarbonSource
             })
@@ -588,11 +574,7 @@ mod tests {
         let mut right = context(1);
         right.fungal_strain = Some("C2 / DAOM 664346".to_owned());
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::HostExposure)
-            ),
+            assess_study_comparability(&left, &right, Some(ContextFactor::HostExposure)),
             Ok(StudyComparability::NonComparableWithinStudy {
                 differing_factors: vec![ContextFactor::Strain]
             })
@@ -635,11 +617,7 @@ mod tests {
         let mut right = context(1);
         right.measurement_method = MeasurementMethod::FluorescenceKymograph;
         assert_eq!(
-            assess_study_comparability(
-                &left,
-                &right,
-                Some(ContextFactor::MeasurementMethod)
-            ),
+            assess_study_comparability(&left, &right, Some(ContextFactor::MeasurementMethod)),
             Ok(StudyComparability::NonComparableWithinStudy {
                 differing_factors: vec![ContextFactor::MeasurementMethod]
             })
