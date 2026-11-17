@@ -1,6 +1,6 @@
 use flight_pv_array_survey::{
-    ArrayIdentity, FlightFrame, IrImage, ModuleBounds, RadiometricQc, RgbImage, SurveyProfile,
-    assess_return_reserve, evaluate_survey, MissionEnergyEnvelope, SweepAxis,
+    ArrayIdentity, FlightFrame, IrImage, MissionEnergyEnvelope, ModuleBounds, RadiometricQc,
+    RgbImage, SurveyProfile, SweepAxis, assess_return_reserve, evaluate_survey,
 };
 
 fn identity() -> ArrayIdentity {
