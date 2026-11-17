@@ -571,7 +571,13 @@ impl SiteStateLedger {
                     .attempts
                     .get(attempt_id)
                     .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
-                validate_attempt_owner(attempt, package_sha256, entity_id, &event.actor_id)?;
+                validate_attempt_owner(
+                    attempt,
+                    package_sha256,
+                    entity_id,
+                    attempt_id,
+                    &event.actor_id,
+                )?;
                 if attempt.robot_disposition.is_some() || attempt.referee_assessed {
                     return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
                 }
