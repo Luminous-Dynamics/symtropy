@@ -16,6 +16,7 @@ pub mod coupling_identification;
 pub mod field_campaign;
 pub mod field_reconstruction;
 pub mod model_forms;
+pub mod multiaxis_transfer;
 pub mod observability_design;
 pub mod operating_envelope;
 pub mod self_test;
