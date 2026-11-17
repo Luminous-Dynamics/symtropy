@@ -374,8 +374,10 @@ mod tests {
     }
 
     fn anchored() -> MissionSnapshot {
-        let mut snapshot = MissionSnapshot::default();
-        snapshot.access_observations = available_access();
+        let mut snapshot = MissionSnapshot {
+            access_observations: available_access(),
+            ..MissionSnapshot::default()
+        };
         accept(&mut snapshot, &[PackageKey::Anchor.id()]);
         snapshot
     }
@@ -403,15 +405,19 @@ mod tests {
 
     #[test]
     fn explicit_available_access_allows_anchor_package() {
-        let mut snapshot = MissionSnapshot::default();
-        snapshot.access_observations = available_access();
+        let snapshot = MissionSnapshot {
+            access_observations: available_access(),
+            ..MissionSnapshot::default()
+        };
         assert_eq!(ready(&snapshot), vec![PackageKey::Anchor.id()]);
     }
 
     #[test]
     fn robot_self_report_does_not_satisfy_accepted_output() {
-        let mut snapshot = MissionSnapshot::default();
-        snapshot.access_observations = available_access();
+        let mut snapshot = MissionSnapshot {
+            access_observations: available_access(),
+            ..MissionSnapshot::default()
+        };
         snapshot.robot_reported_completed.push(PackageKey::Anchor.id());
         assert_eq!(ready(&snapshot), vec![PackageKey::Anchor.id()]);
     }
