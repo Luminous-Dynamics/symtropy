@@ -1495,11 +1495,28 @@ mod tests {
     #[test]
     fn report_carries_sorted_deduplicated_evidence_references() {
         let report = evaluate_kitchen_outcome_accounting(&request());
-        assert!(report.evidence_refs.windows(2).all(|pair| pair[0] <= pair[1]));
-        assert!(report.evidence_refs.contains(&"fixture:meter-v1".to_owned()));
-        assert!(report.evidence_refs.contains(&"fixture:calibration-v1".to_owned()));
+        assert!(
+            report
+                .evidence_refs
+                .windows(2)
+                .all(|pair| pair[0] <= pair[1])
+        );
+        assert!(
+            report
+                .evidence_refs
+                .contains(&"fixture:meter-v1".to_owned())
+        );
+        assert!(
+            report
+                .evidence_refs
+                .contains(&"fixture:calibration-v1".to_owned())
+        );
         assert_eq!(
-            report.evidence_refs.iter().filter(|value| *value == "fixture:meter-v1").count(),
+            report
+                .evidence_refs
+                .iter()
+                .filter(|value| *value == "fixture:meter-v1")
+                .count(),
             1
         );
     }
