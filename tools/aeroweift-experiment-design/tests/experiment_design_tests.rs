@@ -36,6 +36,7 @@ fn policy() -> ExperimentDesignPolicy {
         maximum_probability_uninformative: 0.80,
         minimum_estimate_confidence_level: 0.95,
         required_estimator_build_sha256: digest('e'),
+        expected_utility_estimator_issuer_id: "aeroweift-utility-estimator".into(),
         required_estimate_method_sha256: digest('f'),
         expected_gate_issuer_ids: std::collections::BTreeMap::from([
             (
@@ -155,6 +156,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
         probability_uninformative: 0.10,
         estimate_confidence_level: 0.95,
         estimate_method_sha256: digest('f'),
+        utility_estimate_evidence: None,
         estimator_build_sha256: digest('e'),
         cost_units: 20,
         resource_cost: ResourceCost {
@@ -168,6 +170,21 @@ fn candidate(id: &str) -> ExperimentCandidate {
     };
 
     let frozen_policy = policy();
+    result.utility_estimate_evidence = Some(UtilityEstimateEvidence {
+        receipt_id: format!("{id}-utility-estimate"),
+        payload_sha256: digest('a'),
+        issuer_id: frozen_policy.expected_utility_estimator_issuer_id.clone(),
+        candidate_id: result.candidate_id.clone(),
+        campaign_sha256: result.campaign_sha256.clone(),
+        model_scope_sha256: result.model_scope_sha256.clone(),
+        policy_sha256: frozen_policy.policy_sha256.clone(),
+        estimator_build_sha256: result.estimator_build_sha256.clone(),
+        estimate_method_sha256: result.estimate_method_sha256.clone(),
+        development_data_manifest_sha256: digest('b'),
+        prior_manifest_sha256: digest('c'),
+        uncertainty_set_manifest_sha256: digest('d'),
+        utility_vector_sha256: digest('e'),
+    });
     add_gate_evidence_receipt(
         &mut result,
         &frozen_policy,
@@ -1237,4 +1254,45 @@ fn no_longer_required_semantic_receipt_cannot_remain_as_an_unbound_extra() {
         reason(&result, "stale-semantic-receipt")
             .contains(&RejectionReason::InvalidEvidenceBinding)
     );
+}
+
+
+#[test]
+fn missing_utility_estimate_provenance_cannot_admit_a_candidate() {
+    let mut item = candidate("missing-utility-provenance");
+    item.utility_estimate_evidence = None;
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "missing-utility-provenance")
+        .contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn utility_estimate_provenance_is_bound_to_exact_candidate_and_policy() {
+    let mut item = candidate("spliced-utility-provenance");
+    item.utility_estimate_evidence.as_mut().unwrap().candidate_id = "other-candidate".into();
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "spliced-utility-provenance")
+        .contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn utility_estimate_provenance_rejects_unpinned_estimator_issuer() {
+    let mut item = candidate("untrusted-utility-issuer");
+    item.utility_estimate_evidence.as_mut().unwrap().issuer_id = "unknown-estimator".into();
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "untrusted-utility-issuer")
+        .contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+#[test]
+fn utility_estimate_provenance_requires_distinct_frozen_input_manifests() {
+    let mut item = candidate("malformed-utility-inputs");
+    item.utility_estimate_evidence.as_mut().unwrap().prior_manifest_sha256 = "not-a-digest".into();
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "malformed-utility-inputs")
+        .contains(&RejectionReason::MissingEvidenceReceipt));
 }
