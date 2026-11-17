@@ -472,9 +472,7 @@ fn decide_validated(
         let terminal_reason = match response.outcome {
             ResponseOutcome::Unknown => Some(StopReason::EvidenceRequired),
             ResponseOutcome::UnsafeViolation => Some(StopReason::SafetyGateFailed),
-            ResponseOutcome::Failure if item.safety_critical => {
-                Some(StopReason::SafetyGateFailed)
-            }
+            ResponseOutcome::Failure if item.safety_critical => Some(StopReason::SafetyGateFailed),
             ResponseOutcome::Success | ResponseOutcome::Failure => None,
             ResponseOutcome::InvalidEvidence => {
                 return Err(format!(
@@ -787,11 +785,7 @@ mod tests {
         }
     }
 
-    fn outcome_response(
-        sequence: u32,
-        item_id: &str,
-        outcome: ResponseOutcome,
-    ) -> Response {
+    fn outcome_response(sequence: u32, item_id: &str, outcome: ResponseOutcome) -> Response {
         Response {
             sequence,
             item_id: item_id.to_owned(),
@@ -802,12 +796,8 @@ mod tests {
     #[test]
     fn gate_only_safety_control_does_not_shift_capability_estimate() {
         let baseline = posterior(&bank(), &profile(), &[]).unwrap();
-        let safety_only = posterior(
-            &bank(),
-            &profile(),
-            &[response(0, "safety-negative", true)],
-        )
-        .unwrap();
+        let safety_only =
+            posterior(&bank(), &profile(), &[response(0, "safety-negative", true)]).unwrap();
         assert!((baseline.0 - safety_only.0).abs() < 1e-14);
         assert!((baseline.1 - safety_only.1).abs() < 1e-14);
     }
@@ -820,7 +810,10 @@ mod tests {
             &[response(0, "safety-negative", false)],
         )
         .unwrap();
-        assert_eq!(receipt.decision.stop_reason, Some(StopReason::SafetyGateFailed));
+        assert_eq!(
+            receipt.decision.stop_reason,
+            Some(StopReason::SafetyGateFailed)
+        );
         assert!(receipt.decision.selected.is_none());
         assert_eq!(receipt.responses.len(), 1);
     }
@@ -832,7 +825,10 @@ mod tests {
             outcome_response(1, "anchor-common", ResponseOutcome::Unknown),
         ];
         let receipt = evaluate_run(&bank(), &profile(), &responses).unwrap();
-        assert_eq!(receipt.decision.stop_reason, Some(StopReason::EvidenceRequired));
+        assert_eq!(
+            receipt.decision.stop_reason,
+            Some(StopReason::EvidenceRequired)
+        );
         assert!(receipt.decision.selected.is_none());
         assert_eq!(receipt.responses[1].outcome, ResponseOutcome::Unknown);
 
@@ -890,12 +886,8 @@ mod tests {
 
     #[test]
     fn common_anchor_is_administered_before_adaptive_items() {
-        let result = evaluate_run(
-            &bank(),
-            &profile(),
-            &[response(0, "safety-negative", true)],
-        )
-        .unwrap();
+        let result =
+            evaluate_run(&bank(), &profile(), &[response(0, "safety-negative", true)]).unwrap();
         let selected = result.decision.selected.unwrap();
         assert_eq!(selected.item_id, "anchor-common");
         assert_eq!(selected.reason, SelectionReason::CommonAnchor);
