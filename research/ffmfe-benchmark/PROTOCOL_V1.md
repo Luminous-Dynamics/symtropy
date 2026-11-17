@@ -293,3 +293,12 @@ This is a research progression toward L4, not L4 qualification yet. The implemen
 ### L4 research implementation status
 
 The branch now has a small assembled 3D Euler-Bernoulli static frame reference, with six DOFs per node and rigid six-DOF continuity at shared nodes. It has authored cantilever and two-member elbow fixtures and a global force/moment/energy audit. It is a first step toward L4, but the benchmark level is not complete: independent OpenSees/CalculiX comparison, convergence, flexible six-DOF connectors, geometric stiffness and global eigenvalue buckling are still required. No L4 claim is yet permitted.
+
+## 18. Human-centred and robotic validation workstreams
+
+Two follow-on experiments now operationalize the non-mechanical dimensions:
+
+- [Issue #5817](https://github.com/Luminous-Dynamics/symtropy/issues/5817): occupant-authored reconfigurable architecture. Primary structure, services, accessible circulation/egress and expressive infill are separate typed layers. Tests cover accessible route/reach, task success, privacy/social choice, sensory controls, wayfinding, reversibility, comfort and preference diversity. Do not reduce the result to one aesthetic score.
+- [Issue #5818](https://github.com/Luminous-Dynamics/symtropy/issues/5818): robotic assembly, inspection and replacement. Each interface needs grasp/approach, fiducial, insertion/locking, feedback, force/torque, verification, disassembly and inspection contracts. The benchmark measures success, pose error, insertion force, time, tool changes, false lock verification, collisions, damage and repair. NASA ARMADAS is an existing comparator; robotic assembly itself is not claimed as novel.
+
+Both are future research/physical programmes. Neither human trials nor robotic assembly trials have been run in this software increment.
