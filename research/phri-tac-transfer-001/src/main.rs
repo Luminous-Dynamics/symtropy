@@ -215,7 +215,10 @@ fn main() -> ExitCode {
                         study.replicate_count_per_morphology
                     );
                     println!("prior_selected_l1_penalty={:?}", study.selected_l1_penalty);
-                    println!("prior_l1_selection_disposition={}", study.l1_selection_disposition);
+                    println!(
+                        "prior_l1_selection_disposition={}",
+                        study.l1_selection_disposition
+                    );
                     for candidate in &study.development_l1_candidates {
                         println!(
                             "prior_development_candidate_l1={:.6} development_mean_rmse={:.8} development_mean_delta_vs_independent={:.8} maximum_family_relative_regression={:.4} eligible_for_promotion={}",

@@ -699,8 +699,7 @@ pub fn run_prior_study(
             development_mean_delta_vs_independent,
             maximum_family_relative_regression,
             eligible_for_promotion: development_mean_delta_vs_independent <= 0.0
-                && maximum_family_relative_regression
-                    <= MAXIMUM_ALLOWED_FAMILY_REGRESSION,
+                && maximum_family_relative_regression <= MAXIMUM_ALLOWED_FAMILY_REGRESSION,
         });
     }
 
