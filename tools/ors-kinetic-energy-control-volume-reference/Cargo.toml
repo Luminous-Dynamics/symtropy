@@ -1,0 +1,15 @@
+[package]
+name = "ors-kinetic-energy-control-volume-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "ors_kinetic_energy_control_volume_reference"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ors-kinetic-energy-control-volume-reference"
+path = "src/main.rs"
+
+[workspace]
