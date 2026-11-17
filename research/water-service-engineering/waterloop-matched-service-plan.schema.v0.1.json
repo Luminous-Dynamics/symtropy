@@ -1,0 +1,446 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/waterloop_matched_service_plan.schema.v0.1.json",
+  "title": "WaterLoop matched-service trial plan v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "issue",
+    "parent_demonstrator",
+    "accounting_contract",
+    "evidence_class",
+    "status",
+    "claim_ceiling",
+    "physical_trial_authorized",
+    "procurement_authorized",
+    "occupied_use_authorized",
+    "network_interconnection_authorized",
+    "declared_use_profile",
+    "trial_design",
+    "arms",
+    "measurement_channels",
+    "quality_evidence_requirements",
+    "service_credit_rule",
+    "pre_run_hold_points",
+    "claim_guards"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "waterloop-matched-service-plan-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-MATCHED-SERVICE-BENCH-001"
+    },
+    "issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "parent_demonstrator": {
+      "type": "string",
+      "format": "uri"
+    },
+    "accounting_contract": {
+      "type": "string",
+      "format": "uri"
+    },
+    "evidence_class": {
+      "const": "synthetic_plan_only"
+    },
+    "status": {
+      "const": "design_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "physical_trial_authorized": {
+      "const": false
+    },
+    "procurement_authorized": {
+      "const": false
+    },
+    "occupied_use_authorized": {
+      "const": false
+    },
+    "network_interconnection_authorized": {
+      "const": false
+    },
+    "declared_use_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "display_name",
+        "potable",
+        "quality_evidence_profile_id",
+        "intended_end_use_boundary",
+        "source_water_profile_ref",
+        "quality_release_ref"
+      ],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "potable": {
+          "type": "boolean"
+        },
+        "quality_evidence_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intended_end_use_boundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_water_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quality_release_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "trial_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design",
+        "paired_block_unit",
+        "minimum_paired_blocks_proposed",
+        "run_duration_seconds_proposed",
+        "demand_trace_ref",
+        "pressure_flow_envelope_ref",
+        "initial_storage_state_ref",
+        "temperature_band_ref",
+        "randomization_seed",
+        "randomization_schedule_ref",
+        "analysis_plan_ref",
+        "stopping_rule_ref",
+        "notes"
+      ],
+      "properties": {
+        "design": {
+          "const": "randomized_counterbalanced_crossover"
+        },
+        "paired_block_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_paired_blocks_proposed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "run_duration_seconds_proposed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "demand_trace_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pressure_flow_envelope_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_storage_state_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temperature_band_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "randomization_seed": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "randomization_schedule_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "analysis_plan_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopping_rule_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "arms": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "arm_id",
+          "role",
+          "supply_mode",
+          "recovered_supply_enabled",
+          "same_end_use_profile",
+          "fallback_events_count_as_displacement"
+        ],
+        "properties": {
+          "arm_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "control",
+              "treatment"
+            ]
+          },
+          "supply_mode": {
+            "type": "string",
+            "minLength": 1
+          },
+          "recovered_supply_enabled": {
+            "type": "boolean"
+          },
+          "same_end_use_profile": {
+            "const": true
+          },
+          "fallback_events_count_as_displacement": {
+            "const": false
+          }
+        }
+      }
+    },
+    "measurement_channels": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "quantity",
+          "unit",
+          "boundary",
+          "instrument_role",
+          "required",
+          "calibration_ref",
+          "uncertainty_ref",
+          "timebase_ref",
+          "data_status"
+        ],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "instrument_role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "calibration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uncertainty_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timebase_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "data_status": {
+            "const": "not_acquired"
+          }
+        }
+      }
+    },
+    "quality_evidence_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quality_profile_match_required",
+        "independent_sample_custody_required",
+        "method_and_revision_required",
+        "analyte_panel_ref",
+        "laboratory_ref",
+        "calibration_and_detection_limits_ref",
+        "release_decision_ref",
+        "missing_stale_or_out_of_scope_evidence"
+      ],
+      "properties": {
+        "quality_profile_match_required": {
+          "const": true
+        },
+        "independent_sample_custody_required": {
+          "const": true
+        },
+        "method_and_revision_required": {
+          "const": true
+        },
+        "analyte_panel_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_and_detection_limits_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release_decision_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "missing_stale_or_out_of_scope_evidence": {
+          "const": "no_release_no_credit"
+        }
+      }
+    },
+    "service_credit_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "formula",
+        "credit_unit",
+        "control_and_treatment_demand_must_be_comparable",
+        "same_service_boundary_required",
+        "same_use_profile_required",
+        "meter_identities_must_be_distinct_and_bound",
+        "non_overlapping_time_windows_required",
+        "uncertainty_propagation_required",
+        "fallback_mains_volume_is_displacement",
+        "gross_treatment_output_is_service_credit",
+        "unused_reject_purge_overflow_get_credit"
+      ],
+      "properties": {
+        "rule_id": {
+          "const": "net-mains-displacement-bounded-v0.1"
+        },
+        "formula": {
+          "const": "min(quality_qualified_recovered_delivery_l, independently_metered_recovered_fixture_use_l, matched_control_mains_volume_displaced_l)"
+        },
+        "credit_unit": {
+          "const": "L"
+        },
+        "control_and_treatment_demand_must_be_comparable": {
+          "const": true
+        },
+        "same_service_boundary_required": {
+          "const": true
+        },
+        "same_use_profile_required": {
+          "const": true
+        },
+        "meter_identities_must_be_distinct_and_bound": {
+          "const": true
+        },
+        "non_overlapping_time_windows_required": {
+          "const": true
+        },
+        "uncertainty_propagation_required": {
+          "const": true
+        },
+        "fallback_mains_volume_is_displacement": {
+          "const": false
+        },
+        "gross_treatment_output_is_service_credit": {
+          "const": false
+        },
+        "unused_reject_purge_overflow_get_credit": {
+          "const": false
+        }
+      }
+    },
+    "pre_run_hold_points": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "claim_guards": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "real_measurements_acquired",
+        "quality_release_exists",
+        "matched_control_completed",
+        "net_mains_savings_claimed",
+        "physical_performance_claimed",
+        "regulatory_compliance_claimed",
+        "sota_superiority_claimed"
+      ],
+      "properties": {
+        "real_measurements_acquired": {
+          "const": false
+        },
+        "quality_release_exists": {
+          "const": false
+        },
+        "matched_control_completed": {
+          "const": false
+        },
+        "net_mains_savings_claimed": {
+          "const": false
+        },
+        "physical_performance_claimed": {
+          "const": false
+        },
+        "regulatory_compliance_claimed": {
+          "const": false
+        },
+        "sota_superiority_claimed": {
+          "const": false
+        }
+      }
+    }
+  }
+}
