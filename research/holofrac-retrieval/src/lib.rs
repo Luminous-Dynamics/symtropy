@@ -886,7 +886,7 @@ mod tests {
         assert_eq!(index.len(), graph.facts().len());
 
         let mut changed = graph.clone();
-        changed.entities[0].scale = SpatialScale::Building;
+        changed.entities[8].scale = SpatialScale::Assembly;
         assert!(matches!(
             index.rank_query(&changed, &encoder, &graph.facts()[0]),
             Err(HoloFracError::StaleIndex)
@@ -916,6 +916,11 @@ mod tests {
             .unwrap();
         assert!((score_bipolar - score_continuous).abs() < 1.0e-6);
         assert_eq!(encoded.continuous_f32_view.values.len(), 2_048);
+    }
+
+    #[test]
+    fn invalid_zero_dimension_fails_closed() {
+        assert!(HoloFracEncoder::new(spec(0, 1)).is_err());
     }
 
     #[test]
