@@ -83,7 +83,9 @@ Do not force a universal winner. A family can dominate for one service and lose 
 
 ## 4. Frozen mission contract
 
-Each benchmark case must be a versioned data profile, not a hidden code constant. It binds:
+Each benchmark case must be a versioned data profile, not a hidden code constant. The first executable profile contract is [aero_mission_profile_v1.schema.json](schemas/aero_mission_profile_v1.schema.json), with a schema-only example at [synthetic_rural_medical_logistics_v1.json](examples/synthetic_rural_medical_logistics_v1.json). The example's values are deliberately synthetic schema fixtures, not measured South African operating data or aircraft performance claims.
+
+The profile binds:
 
 ### 4.1 Service requirements
 
@@ -409,7 +411,8 @@ Evidence stages do not automatically promote one another. Any physical test or f
 
 ## 14. Definition of done for v0.1
 
-- [ ] Frozen mission-profile and candidate-configuration schema.
+- [x] Versioned mission-profile JSON Schema and synthetic schema fixture.
+- [ ] Candidate-configuration schema with exact owner-supplied physical model references.
 - [ ] Three-family synthetic comparison: fixed-wing, eSTOL and lift-plus-cruise.
 - [ ] Exact whole-aircraft closure inputs/outputs and unknown-field semantics.
 - [ ] Independent tiny oracle and adversarial known-answer fixtures.
