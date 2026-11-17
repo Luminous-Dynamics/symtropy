@@ -340,7 +340,9 @@ fn validate_profile(profile: &SurveyProfile) -> Result<(), String> {
         || !nonempty(&identity.ir_calibration_revision)
         || !nonempty(&identity.ir_nuc_revision)
     {
-        return Err("mission, array, frame, aircraft, gimbal or camera identity is incomplete".to_owned());
+        return Err(
+            "mission, array, frame, aircraft, gimbal or camera identity is incomplete".to_owned(),
+        );
     }
     if !valid_digest(&identity.rgb_calibration_digest)
         || !valid_digest(&identity.ir_calibration_digest)
@@ -355,7 +357,10 @@ fn validate_profile(profile: &SurveyProfile) -> Result<(), String> {
     let mut coordinates = BTreeSet::new();
     for module in &profile.modules {
         if !nonempty(&module.module_id) || !valid_bounds(module) {
-            return Err(format!("module {} has missing identity or invalid bounds", module.module_id));
+            return Err(format!(
+                "module {} has missing identity or invalid bounds",
+                module.module_id
+            ));
         }
         if !ids.insert(module.module_id.as_str()) {
             return Err(format!("duplicate module identity: {}", module.module_id));
@@ -408,15 +413,15 @@ fn validate_profile(profile: &SurveyProfile) -> Result<(), String> {
         || !profile.maximum_rgb_ir_skew_s.is_finite()
         || profile.maximum_rgb_ir_skew_s < 0.0
     {
-        return Err("PV survey profile contains invalid sensor, geometry, environment or quality limits".to_owned());
+        return Err(
+            "PV survey profile contains invalid sensor, geometry, environment or quality limits"
+                .to_owned(),
+        );
     }
     Ok(())
 }
 
-fn validate_frame_identity(
-    profile: &SurveyProfile,
-    frame: &FlightFrame,
-) -> Result<(), String> {
+fn validate_frame_identity(profile: &SurveyProfile, frame: &FlightFrame) -> Result<(), String> {
     let expected = &profile.identity;
     if !nonempty(&frame.frame_id)
         || !nonempty(&frame.trigger_id)
@@ -442,7 +447,9 @@ fn validate_frame_identity(
         || frame.gimbal_id != expected.gimbal_id
         || frame.gimbal_mount_revision != expected.gimbal_mount_revision
     {
-        return Err("aircraft configuration or gimbal mount revision does not match profile".to_owned());
+        return Err(
+            "aircraft configuration or gimbal mount revision does not match profile".to_owned(),
+        );
     }
     let rgb = &frame.rgb;
     if rgb.camera_id != expected.rgb_camera_id
@@ -451,7 +458,9 @@ fn validate_frame_identity(
         || rgb.calibration_revision != expected.rgb_calibration_revision
         || rgb.calibration_digest != expected.rgb_calibration_digest
     {
-        return Err("RGB camera/calibration identity or revision does not match profile".to_owned());
+        return Err(
+            "RGB camera/calibration identity or revision does not match profile".to_owned(),
+        );
     }
     Ok(())
 }
@@ -515,7 +524,9 @@ fn validate_ir_identity(profile: &SurveyProfile, ir: &IrImage) -> Result<(), Str
         || ir.calibration_digest != expected.ir_calibration_digest
         || ir.nuc_revision != expected.ir_nuc_revision
     {
-        return Err("IR camera/calibration/NUC identity or revision does not match profile".to_owned());
+        return Err(
+            "IR camera/calibration/NUC identity or revision does not match profile".to_owned(),
+        );
     }
     Ok(())
 }
@@ -537,7 +548,9 @@ fn validate_ir_values(ir: &IrImage) -> Result<(), String> {
         ir.glare_fraction,
     ];
     if !values.iter().all(|value| value.is_finite())
-        || ir.reflected_apparent_temperature_c.is_some_and(|value| !value.is_finite())
+        || ir
+            .reflected_apparent_temperature_c
+            .is_some_and(|value| !value.is_finite())
     {
         return Err("radiometric image contains a non-finite value".to_owned());
     }
@@ -588,18 +601,8 @@ fn overlap_fraction(previous: &FlightFrame, current: &FlightFrame) -> f64 {
         return 0.0;
     };
     let (left_min, left_max, right_min, right_max) = match current.sweep_axis {
-        SweepAxis::U => (
-            previous_u_min,
-            previous_u_max,
-            current_u_min,
-            current_u_max,
-        ),
-        SweepAxis::V => (
-            previous_v_min,
-            previous_v_max,
-            current_v_min,
-            current_v_max,
-        ),
+        SweepAxis::U => (previous_u_min, previous_u_max, current_u_min, current_u_max),
+        SweepAxis::V => (previous_v_min, previous_v_max, current_v_min, current_v_max),
     };
     let overlap = (left_max.min(right_max) - left_min.max(right_min)).max(0.0);
     let left_width = left_max - left_min;
@@ -625,10 +628,7 @@ fn conservative_footprint(frame: &FlightFrame) -> Option<(f64, f64, f64, f64)> {
     ))
 }
 
-fn frame_covers_module(
-    frame: &FlightFrame,
-    module: &ModuleBounds,
-) -> bool {
+fn frame_covers_module(frame: &FlightFrame, module: &ModuleBounds) -> bool {
     let Some((u_min, u_max, v_min, v_max)) = conservative_footprint(frame) else {
         return false;
     };
@@ -650,10 +650,7 @@ fn radiometric_disposition(
         );
     };
     if let Err(error) = validate_ir_identity(profile, ir) {
-        return (
-            RadiometricFrameDisposition::InvalidEvidence,
-            Some(error),
-        );
+        return (RadiometricFrameDisposition::InvalidEvidence, Some(error));
     }
     if let Err(error) = validate_ir_values(ir) {
         return (
@@ -690,7 +687,10 @@ fn radiometric_disposition(
     if ir.radiometric_qc != RadiometricQc::Pass {
         return (
             RadiometricFrameDisposition::NotEligible,
-            Some(format!("IR radiometric QC disposition is {:?}", ir.radiometric_qc)),
+            Some(format!(
+                "IR radiometric QC disposition is {:?}",
+                ir.radiometric_qc
+            )),
         );
     }
     if ir.irradiance_w_per_m2 < profile.minimum_irradiance_w_per_m2 {
@@ -730,7 +730,10 @@ fn radiometric_disposition(
     if ir.reflected_apparent_temperature_c.is_none() && !ir.reflection_mitigated {
         return (
             RadiometricFrameDisposition::NotEligible,
-            Some("reflected apparent temperature is unavailable and reflection is not mitigated".to_owned()),
+            Some(
+                "reflected apparent temperature is unavailable and reflection is not mitigated"
+                    .to_owned(),
+            ),
         );
     }
     (
@@ -759,10 +762,7 @@ fn angular_separation(left: f64, right: f64) -> f64 {
 
 /// Evaluate a module-level aerial PV survey. The output qualifies acquisition
 /// evidence only; it cannot diagnose a fault or establish module health.
-pub fn evaluate_survey(
-    profile: &SurveyProfile,
-    observations: &[FlightFrame],
-) -> SurveyReport {
+pub fn evaluate_survey(profile: &SurveyProfile, observations: &[FlightFrame]) -> SurveyReport {
     if let Err(error) = validate_profile(profile) {
         return SurveyReport {
             disposition: SurveyDisposition::InvalidEvidence,
@@ -803,7 +803,10 @@ pub fn evaluate_survey(
             continue;
         }
         if !trigger_ids.insert(frame.trigger_id.as_str()) {
-            errors.push(format!("duplicate/replayed trigger ID: {}", frame.trigger_id));
+            errors.push(format!(
+                "duplicate/replayed trigger ID: {}",
+                frame.trigger_id
+            ));
             continue;
         }
         if !pass_indices.insert((frame.pass_id.as_str(), frame.pass_index)) {
@@ -840,11 +843,13 @@ pub fn evaluate_survey(
         let previous = if frame.pass_index == 0 {
             None
         } else {
-            valid_frame_by_key.get(&(frame.pass_id.clone(), frame.pass_index - 1)).copied()
+            valid_frame_by_key
+                .get(&(frame.pass_id.clone(), frame.pass_index - 1))
+                .copied()
         };
         let overlap = previous.map(|previous_frame| overlap_fraction(previous_frame, frame));
-        let rgb_gsd_upper = frame.rgb.ground_sample_distance_m_per_pixel
-            + frame.rgb.gsd_uncertainty_m_per_pixel;
+        let rgb_gsd_upper =
+            frame.rgb.ground_sample_distance_m_per_pixel + frame.rgb.gsd_uncertainty_m_per_pixel;
         let rgb_blur = image_blur_upper_bound_px(
             frame.ground_speed_m_per_s,
             frame.ground_speed_uncertainty_m_per_s,
@@ -867,10 +872,9 @@ pub fn evaluate_survey(
         });
 
         let mut geometry_reason = None;
-        if (frame.acquired_at_s - frame.rgb.acquired_at_s).abs()
-            > profile.maximum_rgb_ir_skew_s
-        {
-            geometry_reason = Some("RGB image timestamp differs from frame pose timestamp".to_owned());
+        if (frame.acquired_at_s - frame.rgb.acquired_at_s).abs() > profile.maximum_rgb_ir_skew_s {
+            geometry_reason =
+                Some("RGB image timestamp differs from frame pose timestamp".to_owned());
         } else if rgb_gsd_upper > profile.max_rgb_gsd_m_per_pixel {
             geometry_reason = Some("RGB ground sample distance is too coarse".to_owned());
         } else if rgb_blur.is_none_or(|blur| blur > profile.max_motion_blur_pixels) {
@@ -890,8 +894,10 @@ pub fn evaluate_survey(
         {
             geometry_reason = Some("pose or footprint uncertainty exceeds profile".to_owned());
         } else if frame.pass_index > 0 && previous.is_none() {
-            geometry_reason = Some("preceding frame is absent; along-track overlap is unknown".to_owned());
-        } else if overlap.is_some_and(|value| value < profile.minimum_consecutive_overlap_fraction) {
+            geometry_reason =
+                Some("preceding frame is absent; along-track overlap is unknown".to_owned());
+        } else if overlap.is_some_and(|value| value < profile.minimum_consecutive_overlap_fraction)
+        {
             geometry_reason = Some("consecutive along-track overlap is below profile".to_owned());
         }
 
@@ -982,15 +988,16 @@ pub fn evaluate_survey(
             separated_view_count(views, profile.minimum_view_angle_separation_rad)
         });
 
-        let geometry_disposition = if qualified_geometry_passes >= profile.minimum_independent_passes {
-            geometrically_qualified += 1;
-            ModuleGeometryDisposition::Qualified
-        } else if geometry_passes == 0 {
-            unobserved += 1;
-            ModuleGeometryDisposition::Unobserved
-        } else {
-            ModuleGeometryDisposition::InsufficientIndependentPasses
-        };
+        let geometry_disposition =
+            if qualified_geometry_passes >= profile.minimum_independent_passes {
+                geometrically_qualified += 1;
+                ModuleGeometryDisposition::Qualified
+            } else if geometry_passes == 0 {
+                unobserved += 1;
+                ModuleGeometryDisposition::Unobserved
+            } else {
+                ModuleGeometryDisposition::InsufficientIndependentPasses
+            };
 
         let radiometric_disposition = if radiometric_invalid_modules.contains(&module.module_id) {
             ModuleRadiometricDisposition::InvalidEvidence
@@ -1366,7 +1373,10 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].rgb.ground_sample_distance_m_per_pixel = 0.02;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::QualityRejected
+        );
     }
 
     #[test]
@@ -1384,8 +1394,14 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].ir.as_mut().unwrap().irradiance_w_per_m2 = 300.0;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::Qualified
+        );
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::NotEligible
+        );
         assert_eq!(result.disposition, SurveyDisposition::Incomplete);
     }
 
@@ -1412,7 +1428,10 @@ mod tests {
         frames[0].ir = None;
         let result = evaluate_survey(&profile(), &frames);
         assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::Unknown);
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::Unknown
+        );
     }
 
     #[test]
@@ -1428,7 +1447,10 @@ mod tests {
         let mut frames = two_pass_frames();
         frames[0].array_revision = "old-array".to_owned();
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::InvalidEvidence);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::InvalidEvidence
+        );
         assert_eq!(result.disposition, SurveyDisposition::InvalidEvidence);
     }
 
@@ -1448,7 +1470,10 @@ mod tests {
             "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned();
         let result = evaluate_survey(&profile(), &frames);
         assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
-        assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::InvalidEvidence);
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -1477,7 +1502,10 @@ mod tests {
         frames[0].half_width_u_m = 0.6;
         frames[1].half_width_u_m = 0.6;
         let result = evaluate_survey(&profile(), &frames);
-        assert_eq!(result.frames[1].geometry, GeometryFrameDisposition::QualityRejected);
+        assert_eq!(
+            result.frames[1].geometry,
+            GeometryFrameDisposition::QualityRejected
+        );
         assert!(result.frames[1].consecutive_overlap_fraction.unwrap() < 0.70);
     }
 
@@ -1489,7 +1517,12 @@ mod tests {
         ];
         let result = evaluate_survey(&profile(), &frames);
         assert_eq!(result.geometrically_qualified_modules, 0);
-        assert!(result.modules.iter().all(|module| module.geometric_passes == 1));
+        assert!(
+            result
+                .modules
+                .iter()
+                .all(|module| module.geometric_passes == 1)
+        );
     }
 
     #[test]
@@ -1518,11 +1551,13 @@ mod tests {
             result.frames[0].geometry,
             GeometryFrameDisposition::QualityRejected
         );
-        assert!(result.frames[0]
-            .geometry_reason
-            .as_deref()
-            .unwrap()
-            .contains("timestamp"));
+        assert!(
+            result.frames[0]
+                .geometry_reason
+                .as_deref()
+                .unwrap()
+                .contains("timestamp")
+        );
     }
 
     #[test]
@@ -1559,7 +1594,10 @@ mod tests {
         let frames = two_pass_frames();
         let mut reversed = frames.clone();
         reversed.reverse();
-        assert_eq!(evaluate_survey(&profile(), &frames), evaluate_survey(&profile(), &reversed));
+        assert_eq!(
+            evaluate_survey(&profile(), &frames),
+            evaluate_survey(&profile(), &reversed)
+        );
     }
 
     #[test]
