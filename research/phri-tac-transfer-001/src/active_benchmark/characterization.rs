@@ -65,7 +65,10 @@ impl SensorObjectIdentity {
             ("skin_article_id", self.skin_article_id.as_str()),
             ("skin_revision", self.skin_revision.as_str()),
             ("material_lot_id", self.material_lot_id.as_str()),
-            ("transducer_profile_digest", self.transducer_profile_digest.as_str()),
+            (
+                "transducer_profile_digest",
+                self.transducer_profile_digest.as_str(),
+            ),
         ];
         fields
             .into_iter()
@@ -138,8 +141,14 @@ impl CharacterizationContext {
                 for (name, value) in [
                     ("fixture_article_id", context.fixture_article_id.as_str()),
                     ("fixture_revision", context.fixture_revision.as_str()),
-                    ("fixture_geometry_digest", context.fixture_geometry_digest.as_str()),
-                    ("boundary_condition_digest", context.boundary_condition_digest.as_str()),
+                    (
+                        "fixture_geometry_digest",
+                        context.fixture_geometry_digest.as_str(),
+                    ),
+                    (
+                        "boundary_condition_digest",
+                        context.boundary_condition_digest.as_str(),
+                    ),
                     ("context_digest", context.context_digest.as_str()),
                 ] {
                     if value.trim().is_empty() {
@@ -152,10 +161,22 @@ impl CharacterizationContext {
                     ("host_article_id", context.host_article_id.as_str()),
                     ("host_revision", context.host_revision.as_str()),
                     ("mounting_revision", context.mounting_revision.as_str()),
-                    ("mount_interface_digest", context.mount_interface_digest.as_str()),
-                    ("host_geometry_digest", context.host_geometry_digest.as_str()),
-                    ("host_compliance_profile_digest", context.host_compliance_profile_digest.as_str()),
-                    ("preload_profile_digest", context.preload_profile_digest.as_str()),
+                    (
+                        "mount_interface_digest",
+                        context.mount_interface_digest.as_str(),
+                    ),
+                    (
+                        "host_geometry_digest",
+                        context.host_geometry_digest.as_str(),
+                    ),
+                    (
+                        "host_compliance_profile_digest",
+                        context.host_compliance_profile_digest.as_str(),
+                    ),
+                    (
+                        "preload_profile_digest",
+                        context.preload_profile_digest.as_str(),
+                    ),
                     ("context_digest", context.context_digest.as_str()),
                 ] {
                     if value.trim().is_empty() {
@@ -211,17 +232,25 @@ impl CharacterizationRecord {
         if self.stage != context.stage() {
             errors.push("record stage does not match physical context stage".to_owned());
         }
-        if self.context_digest.trim().is_empty()
-            || self.context_digest != context.context_digest()
+        if self.context_digest.trim().is_empty() || self.context_digest != context.context_digest()
         {
             errors.push("record context digest does not match its physical context".to_owned());
         }
         for (name, value) in [
             ("protocol_revision", self.protocol_revision.as_str()),
             ("raw_campaign_digest", self.raw_campaign_digest.as_str()),
-            ("reference_chain_receipt_id", self.reference_chain_receipt_id.as_str()),
-            ("reference_ancestry_receipt_id", self.reference_ancestry_receipt_id.as_str()),
-            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            (
+                "reference_chain_receipt_id",
+                self.reference_chain_receipt_id.as_str(),
+            ),
+            (
+                "reference_ancestry_receipt_id",
+                self.reference_ancestry_receipt_id.as_str(),
+            ),
+            (
+                "common_cause_analysis_receipt_id",
+                self.common_cause_analysis_receipt_id.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(format!("characterization record field {name} is missing"));
@@ -236,15 +265,15 @@ impl CharacterizationRecord {
             match test.disposition {
                 TestDisposition::Pass | TestDisposition::Fail => {
                     for (name, value) in [
-                        ("raw_observation_digest", test.raw_observation_digest.as_str()),
+                        (
+                            "raw_observation_digest",
+                            test.raw_observation_digest.as_str(),
+                        ),
                         ("result_digest", test.result_digest.as_str()),
                         ("reference_receipt_id", test.reference_receipt_id.as_str()),
                     ] {
                         if value.trim().is_empty() {
-                            errors.push(format!(
-                                "test {:?} is missing {name}",
-                                test.family
-                            ));
+                            errors.push(format!("test {:?} is missing {name}", test.family));
                         }
                     }
                     if test.disposition == TestDisposition::Fail {
@@ -264,7 +293,10 @@ impl CharacterizationRecord {
 
         for family in REQUIRED_CHARACTERIZATION_TESTS {
             if !seen.contains(&family) {
-                errors.push(format!("required characterization test {:?} is missing", family));
+                errors.push(format!(
+                    "required characterization test {:?} is missing",
+                    family
+                ));
             }
         }
         errors
@@ -293,9 +325,18 @@ impl EmbodimentTransferReceipt {
             ("target_record_id", self.target_record_id.as_str()),
             ("target_context_digest", self.target_context_digest.as_str()),
             ("transfer_model_digest", self.transfer_model_digest.as_str()),
-            ("independent_reference_receipt_id", self.independent_reference_receipt_id.as_str()),
-            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
-            ("heldout_validation_receipt_id", self.heldout_validation_receipt_id.as_str()),
+            (
+                "independent_reference_receipt_id",
+                self.independent_reference_receipt_id.as_str(),
+            ),
+            (
+                "common_cause_analysis_receipt_id",
+                self.common_cause_analysis_receipt_id.as_str(),
+            ),
+            (
+                "heldout_validation_receipt_id",
+                self.heldout_validation_receipt_id.as_str(),
+            ),
         ];
         fields
             .into_iter()
@@ -545,10 +586,12 @@ mod tests {
             assessment.disposition,
             EmbodimentDisposition::SensorObjectBaselineOnly
         );
-        assert!(assessment
-            .reasons
-            .iter()
-            .any(|reason| reason.contains("target context digest mismatch")));
+        assert!(
+            assessment
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("target context digest mismatch"))
+        );
     }
 
     #[test]
@@ -574,10 +617,12 @@ mod tests {
             assessment.disposition,
             EmbodimentDisposition::SensorObjectBaselineOnly
         );
-        assert!(assessment
-            .reasons
-            .iter()
-            .any(|reason| reason.contains("sensor object identities differ")));
+        assert!(
+            assessment
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("sensor object identities differ"))
+        );
     }
 
     #[test]
@@ -589,10 +634,12 @@ mod tests {
 
         let mut duplicate = source_record(&context);
         duplicate.tests.push(duplicate.tests[0].clone());
-        assert!(duplicate
-            .validate(&context)
-            .iter()
-            .any(|reason| reason.contains("duplicate characterization test")));
+        assert!(
+            duplicate
+                .validate(&context)
+                .iter()
+                .any(|reason| reason.contains("duplicate characterization test"))
+        );
     }
 
     #[test]
@@ -608,10 +655,7 @@ mod tests {
             &target_record(&target_context),
             &valid_receipt(),
         );
-        assert_eq!(
-            assessment.disposition,
-            EmbodimentDisposition::Rejected
-        );
+        assert_eq!(assessment.disposition, EmbodimentDisposition::Rejected);
 
         let mut not_applicable = source_record(&source_context);
         not_applicable.tests[0].disposition = TestDisposition::NotApplicable;
@@ -619,9 +663,11 @@ mod tests {
         not_applicable.tests[0].result_digest.clear();
         not_applicable.tests[0].reference_receipt_id.clear();
         let errors = not_applicable.validate(&source_context);
-        assert!(errors
-            .iter()
-            .any(|reason| reason.contains("NotApplicable without a rationale")));
+        assert!(
+            errors
+                .iter()
+                .any(|reason| reason.contains("NotApplicable without a rationale"))
+        );
     }
 
     #[test]
@@ -650,10 +696,7 @@ mod tests {
             &target_record(&target_context),
             &valid_receipt(),
         );
-        assert_eq!(
-            assessment.disposition,
-            EmbodimentDisposition::Rejected
-        );
+        assert_eq!(assessment.disposition, EmbodimentDisposition::Rejected);
     }
 
     #[test]
@@ -675,9 +718,11 @@ mod tests {
             assessment.disposition,
             EmbodimentDisposition::SensorObjectBaselineOnly
         );
-        assert!(assessment
-            .reasons
-            .iter()
-            .any(|reason| reason.contains("target record ID mismatch")));
+        assert!(
+            assessment
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("target record ID mismatch"))
+        );
     }
 }
