@@ -132,7 +132,8 @@ fn valid_digest(value: &str) -> bool {
 }
 
 fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String> {
-    if !nonempty(&bank.bank_id) || !nonempty(&profile.axis_id) || !nonempty(&profile.calibration_id) {
+    if !nonempty(&bank.bank_id) || !nonempty(&profile.axis_id) || !nonempty(&profile.calibration_id)
+    {
         return Err("bank, capability axis or calibration identity is missing".to_owned());
     }
     if !valid_digest(&bank.bank_digest)
@@ -181,10 +182,7 @@ fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String>
             ));
         }
         if item.common_anchor && !item.mandatory {
-            return Err(format!(
-                "common anchor {} must be mandatory",
-                item.item_id
-            ));
+            return Err(format!("common anchor {} must be mandatory", item.item_id));
         }
         if item.safety_critical && !item.mandatory {
             return Err(format!(
@@ -797,7 +795,10 @@ mod tests {
             ],
         )
         .unwrap();
-        assert_eq!(result.decision.stop_reason, Some(StopReason::BudgetExhausted));
+        assert_eq!(
+            result.decision.stop_reason,
+            Some(StopReason::BudgetExhausted)
+        );
         assert_eq!(result.decision.adaptive_administered, 0);
         assert_eq!(result.decision.stratum_coverage[0].administered, 0);
     }
