@@ -5,9 +5,11 @@
 //!   rustc --edition=2024 --test mk_static.rs -o /tmp/mk_static_tests
 //!   /tmp/mk_static_tests
 //!
-//! It is NOT the production Lorentzian solver, a Bach-tensor evaluator, or a
-//! complete scalar-conformal matter model. It covers only the stated static,
-//! spherical vacuum metric and null-geodesic observables for static observers.
+//! It is NOT the production Lorentzian solver, a general four-dimensional
+//! Bach-tensor implementation, or a complete scalar-conformal matter model.
+//! It covers the static spherical metric, selected null observables, a
+//! caller-bracketed simple-horizon root, and the published symmetry-reduced
+//! Bach scalar residual for the four-term static ansatz.
 //!
 //! Convention:
 //! ds^2 = -B(r) dt^2 + dr^2/B(r) + r^2 dOmega^2
