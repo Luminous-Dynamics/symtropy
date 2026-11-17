@@ -1186,7 +1186,8 @@ mod tests {
                 service.location_environment_digest = Some("different-environment".to_owned());
             }),
             (ComparisonField::SourceBoundary, |service| {
-                service.source_boundary_profile_digest = Some("different-source-boundary".to_owned());
+                service.source_boundary_profile_digest =
+                    Some("different-source-boundary".to_owned());
             }),
             (ComparisonField::UsefulServiceBoundary, |service| {
                 service.useful_service_boundary_profile_digest =
