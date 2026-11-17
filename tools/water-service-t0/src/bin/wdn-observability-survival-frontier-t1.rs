@@ -797,7 +797,12 @@ mod tests {
         let (input, schema, oracle) = fixture();
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
         assert_eq!(result["layout_count"], 12);
-        assert_eq!(result["matched_layout_count"], 12);
+        assert_eq!(
+            result["matched_layout_count"],
+            12,
+            "frozen-oracle mismatches: {}",
+            result["mismatches"]
+        );
         assert_eq!(result["mismatch_count"], 0);
         assert_eq!(result["qualification_status"], "NotRun");
     }
@@ -1091,7 +1096,12 @@ mod tests {
         let (input, schema, mut oracle) = fixture();
         oracle["layouts"][0]["monotonicity_violation_count"] = json!(1);
         let result = evaluate_all(&input, &schema, &oracle).unwrap();
-        assert_eq!(result["matched_layout_count"], 11);
+        assert_eq!(
+            result["matched_layout_count"],
+            11,
+            "altered-oracle mismatch details: {}",
+            result["mismatches"]
+        );
         assert_eq!(result["mismatch_count"], 1);
     }
 }
