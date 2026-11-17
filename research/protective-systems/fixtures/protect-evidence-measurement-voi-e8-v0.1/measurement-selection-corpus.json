@@ -35,7 +35,11 @@
     "quantity": "volumetric_flow_rate",
     "unit": "L/s",
     "valid_from": "2026-11-16T09:00:00Z",
-    "valid_to": "2026-11-16T13:00:00Z"
+    "valid_to": "2026-11-16T13:00:00Z",
+    "conflict_evidence_ids": [
+      "ev-sensor-a",
+      "ev-independent-e"
+    ]
   },
   "constraints": {
     "maximum_tests_per_plan": 3,
