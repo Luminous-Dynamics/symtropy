@@ -730,18 +730,53 @@ mod tests {
     }
 
     #[test]
-    fn missing_sensor_channel_is_not_labelled_as_a_direct_measurement() {
+    fn local_sensitivity_does_not_masquerade_as_unique_identifiability() {
         let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
         problem.admitted_native_channels[1] = false;
         problem.coupling_matrix = vec![0.8, 0.2, 0.0, 0.2, 0.6, 0.2, 0.0, 0.2, 0.8];
         let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
             .expect("partial channels");
+        assert_eq!(report.native_data_rank, 2);
+        assert_eq!(report.native_data_identifiable_cell_count, 0);
+        assert_eq!(report.inferred_cell_count, 0);
+        assert_eq!(report.underidentified_cell_count, 3);
+        assert_eq!(report.unsupported_cell_count, 0);
+        assert!(report.estimates.iter().all(|estimate| {
+            !estimate.native_data_identifiable
+                && estimate.support == FieldCellSupport::UnderidentifiedByNativeData
+                && estimate.latent_contact_intensity.is_some()
+        }));
+    }
+
+    #[test]
+    fn a_cell_can_be_identifiable_through_other_taxels_even_when_its_own_channel_is_missing() {
+        let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
+        problem.admitted_native_channels = vec![true, false, true];
+        // The admitted row at taxel 2 measures field cell 1. The null-space
+        // freedom remains only between field cells 0 and 2.
+        problem.coupling_matrix = vec![
+            1.0, 0.0, 1.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0,
+        ];
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("mechanically inferred unique component");
+        assert_eq!(report.native_data_rank, 2);
+        assert!(!report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 1);
+        assert!(report.estimates[1].native_data_identifiable);
         assert_eq!(
             report.estimates[1].support,
             FieldCellSupport::InferredThroughMechanicalCoupling
         );
-        assert_eq!(report.inferred_cell_count, 1);
-        assert_eq!(report.unsupported_cell_count, 0);
+        assert_eq!(
+            report.estimates[0].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
+        assert_eq!(
+            report.estimates[2].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
     }
 
     #[test]
@@ -772,6 +807,13 @@ mod tests {
             .expect("regularized estimate");
         assert_eq!(report.native_data_rank, 2);
         assert!(!report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 2);
+        assert!(!report.estimates[1].native_data_identifiable);
+        assert_eq!(
+            report.estimates[1].support,
+            FieldCellSupport::UnderidentifiedByNativeData
+        );
+        assert!(report.estimates[1].latent_contact_intensity.is_some());
         assert!(report.regularization_enabled);
     }
 
@@ -782,6 +824,7 @@ mod tests {
             .expect("fully observed field");
         assert_eq!(report.native_data_rank, 3);
         assert!(report.native_data_full_column_rank);
+        assert_eq!(report.native_data_identifiable_cell_count, 3);
         assert!(!report.regularization_enabled);
     }
 
