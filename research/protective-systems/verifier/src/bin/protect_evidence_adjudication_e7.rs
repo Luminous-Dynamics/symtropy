@@ -762,6 +762,10 @@ fn evaluate(
             valid_to: item.valid_to.clone(),
         })
         .collect::<Vec<_>>();
+    let mut independence_attestation_receipts = independence_attestation_receipts;
+    independence_attestation_receipts.sort_by(|left, right| {
+        left.attestation_id.cmp(&right.attestation_id)
+    });
     let mut evidence_source_receipts = corpus
         .evidence_artifacts
         .iter()
