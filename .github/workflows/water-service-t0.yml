@@ -8,6 +8,7 @@ on:
       - "Cargo.lock"
       - "research/water-service-engineering/**"
       - "docs/research/jw-water-cascade/**"
+      - "docs/research/jw-water-intake-t1/**"
       - ".github/workflows/water-service-t0.yml"
   pull_request:
     paths:
@@ -66,6 +67,18 @@ jobs:
             docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.schema.v0.1.json \
             docs/research/jw-water-cascade/jw_water_cascade_t0_source_manifest.v0.1.json \
             artifacts/water-service-t0/jw-water-cascade-t0-receipt.json
+      - name: Verify Watersearch T1 capture envelope (synthetic fixture)
+        id: verify_intake_t1
+        env:
+          JW_WATER_INTAKE_T1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin jw-water-intake-t1 -- \
+            docs/research/jw-water-intake-t1/watersearch_suburb_history.synthetic.v0.1.json \
+            docs/research/jw-water-intake-t1/response_headers.synthetic.v0.1.txt \
+            docs/research/jw-water-intake-t1/capture_manifest.synthetic.v0.1.json \
+            docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json \
+            artifacts/water-service-t0/jw-water-intake-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,12 +97,21 @@ jobs:
             docs/research/jw-water-cascade/jw_water_cascade_t0_oracle.schema.v0.1.json
             docs/research/jw-water-cascade/jw_water_cascade_t0_source_manifest.v0.1.json
             artifacts/water-service-t0/jw-water-cascade-t0-receipt.json
+            docs/research/jw-water-intake-t1/JW_WATERSEARCH_T1_INTAKE_PROTOCOL_V0_1.md
+            docs/research/jw-water-intake-t1/watersearch_suburb_history.synthetic.v0.1.json
+            docs/research/jw-water-intake-t1/response_headers.synthetic.v0.1.txt
+            docs/research/jw-water-intake-t1/capture_manifest.synthetic.v0.1.json
+            docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json
+            docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json
+            artifacts/water-service-t0/jw-water-intake-t1-receipt.json
           if-no-files-found: warn
       - name: Require an exact successful evaluator receipt
         if: always()
         env:
           EVALUATE_OUTCOME: ${{ steps.evaluate.outcome }}
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
+          INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
+          test "$INTAKE_OUTCOME" = "success"
