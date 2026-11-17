@@ -1123,12 +1123,17 @@ mod tests {
             KitchenCapabilityDispositionV1::Indeterminate
         );
         assert!(!report.admitted);
-        assert!(report.task_assessments[0].issues.iter().any(|issue| {
-            issue.code == KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile
-        }));
-        assert!(!report.request_issues.iter().any(|issue| {
-            issue.code == KitchenCapabilityIssueCodeV1::InvalidPowerSchedule
-        }));
+        assert!(
+            report.task_assessments[0].issues.iter().any(|issue| {
+                issue.code == KitchenCapabilityIssueCodeV1::MissingTaskPowerProfile
+            })
+        );
+        assert!(
+            !report
+                .request_issues
+                .iter()
+                .any(|issue| { issue.code == KitchenCapabilityIssueCodeV1::InvalidPowerSchedule })
+        );
     }
 
     #[test]
