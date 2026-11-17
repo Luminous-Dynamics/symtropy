@@ -1,0 +1,79 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "SYNTH-EV-BATTERY-LINEAGE-OUTCOME-001",
+  "evidence_class": "synthetic_fixture",
+  "cells": [
+    {
+      "cell_id": "CELL-SYN-001",
+      "configuration_ref": "CELL-CONFIG-SYN-R1",
+      "process_window_ref": "PROCESS-WINDOW-SYN-001",
+      "material_lineage": {
+        "sample_lineage_id": "MAT013-SAMPLE-SYN-001",
+        "mat013_schema_version": "0.1",
+        "sample_scale": "device",
+        "lineage_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_evidence_ref": "SYNTH-MAT013-EVIDENCE"
+      },
+      "process_structure_projection": {
+        "pspp_subject_id": "MAT-PSPP-SYN-001",
+        "pspp_schema_version": "0.1",
+        "sample_lineage_id": "MAT013-SAMPLE-SYN-001",
+        "realized_structure_ref": "MAT-STRUCTURE-SYN-001",
+        "conditioned_property_evidence_refs": [
+          "MAT-PROPERTY-SYN-001"
+        ],
+        "mat_uq_profile_ref": "MAT-UQ-SYN-001",
+        "process_window_ref": "PROCESS-WINDOW-SYN-001"
+      },
+      "interface_refs": [
+        {
+          "interface_subject_id": "MAT-INTERFACE-SYN-001",
+          "mat_interface_schema_version": "0.1",
+          "interface_class": "electrode_electrolyte_interface",
+          "condition_state_ref": "INTERFACE-CONDITION-SYN-001",
+          "evidence_refs": [
+            "INTERFACE-EVIDENCE-SYN-001"
+          ],
+          "mat_uq_profile_ref": "MAT-UQ-SYN-001"
+        }
+      ]
+    }
+  ],
+  "cell_tests": [
+    {
+      "test_id": "CELL-TEST-SYN-001",
+      "cell_id": "CELL-SYN-001",
+      "configuration_ref": "CELL-CONFIG-SYN-R1",
+      "protocol_evidence_ref": "SYNTH-TEST-PROTOCOL",
+      "metrology_evidence_ref": "SYNTH-METROLOGY",
+      "raw_data_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "result_evidence_class": "synthetic_fixture"
+    }
+  ],
+  "packs": [
+    {
+      "pack_id": "PACK-SYN-001",
+      "configuration_ref": "PACK-CONFIG-SYN-R1",
+      "topology_ref": "PACK-TOPOLOGY-SYN-001",
+      "cell_members": [
+        {
+          "cell_id": "CELL-SYN-001",
+          "cell_configuration_ref": "CELL-CONFIG-SYN-R1"
+        }
+      ]
+    }
+  ],
+  "mission_outcomes": [
+    {
+      "mission_id": "MISSION-SYN-001",
+      "pack_id": "PACK-SYN-001",
+      "duty_cycle_ref": "DUTY-CYCLE-SYN-001",
+      "test_campaign_ref": "MISSION-CAMPAIGN-SYN-001",
+      "system_boundary": "pack",
+      "outcome_evidence_ref": "SYNTH-MISSION-OUTCOME",
+      "metrology_evidence_ref": "SYNTH-PACK-METROLOGY",
+      "raw_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "synthetic_fixture"
+    }
+  ]
+}
