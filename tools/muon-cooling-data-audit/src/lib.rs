@@ -2,7 +2,7 @@
 
 use serde_json::{Value, json};
 use sha1::{Digest as Sha1Digest, Sha1};
-use sha2::Sha256;
+use sha2::{Digest as Sha2Digest, Sha256};
 use std::fs;
 use std::path::Path;
 
