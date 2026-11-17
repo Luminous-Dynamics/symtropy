@@ -177,6 +177,7 @@ pub enum SiteLedgerError {
     PreviousEventDigestMismatch,
     ConflictingEventId(String),
     ConflictingEventDigest(String),
+    EventIndexCorrupt,
     ActorRoleDenied,
     EmptyPackageIdentity,
     InvalidPackageDigest,
@@ -241,7 +242,7 @@ pub struct SiteStateLedger {
     last_sequence: u64,
     last_event_sha256: Option<String>,
     events: Vec<SiteEventEnvelope>,
-    events_by_id: BTreeMap<String, SiteEventEnvelope>,
+    events_by_id: BTreeMap<String, usize>,
     event_ids_by_digest: BTreeMap<String, String>,
     packages: BTreeMap<String, PackageProjection>,
     active_package_sha256: Option<String>,
@@ -262,7 +263,11 @@ impl SiteStateLedger {
     pub fn apply(&mut self, event: SiteEventEnvelope) -> Result<SiteApplyOutcome, SiteLedgerError> {
         validate_event_envelope(&event)?;
 
-        if let Some(existing) = self.events_by_id.get(&event.event_id) {
+        if let Some(index) = self.events_by_id.get(&event.event_id) {
+            let existing = self
+                .events
+                .get(*index)
+                .ok_or(SiteLedgerError::EventIndexCorrupt)?;
             return if existing == &event {
                 Ok(SiteApplyOutcome::DuplicateIgnored)
             } else {
@@ -292,19 +297,21 @@ impl SiteStateLedger {
             return Err(SiteLedgerError::PreviousEventDigestMismatch);
         }
 
-        // Stage all mutations. Invalid payloads never leave partial state.
-        let mut staged = self.clone();
-        staged.apply_payload(&event)?;
-        staged.last_sequence = event.sequence;
-        staged.last_event_sha256 = Some(event.event_sha256.clone());
-        staged
-            .event_ids_by_digest
+        // Prepare validates every precondition without mutating the ledger.
+        // Commit then touches only the affected package/attempt and appends one
+        // event. This avoids cloning the full history and site projection on
+        // every event (which made ingestion O(number_of_events²)).
+        let mutation = self.prepare_payload(&event)?;
+        let event_index = self.events.len();
+        self.commit_payload(mutation, &event);
+
+        self.last_sequence = event.sequence;
+        self.last_event_sha256 = Some(event.event_sha256.clone());
+        self.event_ids_by_digest
             .insert(event.event_sha256.clone(), event.event_id.clone());
-        staged
-            .events_by_id
-            .insert(event.event_id.clone(), event.clone());
-        staged.events.push(event);
-        *self = staged;
+        self.events_by_id
+            .insert(event.event_id.clone(), event_index);
+        self.events.push(event);
         Ok(SiteApplyOutcome::Applied)
     }
 
@@ -357,7 +364,10 @@ impl SiteStateLedger {
         &self.events
     }
 
-    fn apply_payload(&mut self, event: &SiteEventEnvelope) -> Result<(), SiteLedgerError> {
+    fn prepare_payload(
+        &self,
+        event: &SiteEventEnvelope,
+    ) -> Result<PreparedSiteMutation, SiteLedgerError> {
         match &event.payload {
             SiteEventPayload::WorkPackagePublished { package } => {
                 require_role(event.actor_role, SiteActorRole::DesignAuthority)?;
@@ -386,11 +396,6 @@ impl SiteStateLedger {
                         ));
                     }
                 }
-                if let Some(previous) = self.active_package_sha256.as_ref() {
-                    if let Some(previous_projection) = self.packages.get_mut(previous) {
-                        previous_projection.superseded_by = Some(package.package_sha256.clone());
-                    }
-                }
                 let entity_states = package
                     .entities
                     .iter()
@@ -401,16 +406,16 @@ impl SiteStateLedger {
                         )
                     })
                     .collect();
-                self.packages.insert(
-                    package.package_sha256.clone(),
-                    PackageProjection {
+                Ok(PreparedSiteMutation::PublishPackage {
+                    previous_package_sha256: self.active_package_sha256.clone(),
+                    package_sha256: package.package_sha256.clone(),
+                    projection: PackageProjection {
                         package: package.clone(),
                         superseded_by: None,
                         entity_states,
                         station_qualifications: BTreeMap::new(),
                     },
-                );
-                self.active_package_sha256 = Some(package.package_sha256.clone());
+                })
             }
             SiteEventPayload::StationQualified {
                 package_sha256,
@@ -426,20 +431,21 @@ impl SiteStateLedger {
                 if !is_sha256(calibration_sha256) {
                     return Err(SiteLedgerError::InvalidCalibrationDigest);
                 }
-                let package = self.current_package_mut(package_sha256)?;
+                let package = self.current_package(package_sha256)?;
                 if package.package.frame_sha256 != *frame_sha256
                     || package.package.transform_sha256 != *transform_sha256
                 {
                     return Err(SiteLedgerError::StationQualificationContextMismatch);
                 }
-                package.station_qualifications.insert(
-                    event.event_id.clone(),
-                    StationQualification {
+                Ok(PreparedSiteMutation::QualifyStation {
+                    package_sha256: package_sha256.clone(),
+                    qualification_event_id: event.event_id.clone(),
+                    qualification: StationQualification {
                         package_sha256: package_sha256.clone(),
                         station_id: station_id.clone(),
                         calibration_sha256: calibration_sha256.clone(),
                     },
-                );
+                })
             }
             SiteEventPayload::ExecutionStarted {
                 package_sha256,
@@ -454,7 +460,7 @@ impl SiteStateLedger {
                 if self.attempts.contains_key(attempt_id) {
                     return Err(SiteLedgerError::DuplicateAttemptId(attempt_id.clone()));
                 }
-                let package = self.current_package_mut(package_sha256)?;
+                let package = self.current_package(package_sha256)?;
                 if !package.entity_states.contains_key(entity_id) {
                     return Err(SiteLedgerError::UnknownDesignEntity(entity_id.clone()));
                 }
@@ -485,22 +491,18 @@ impl SiteStateLedger {
                 ) {
                     return Err(SiteLedgerError::EntityTransitionDenied(entity_id.clone()));
                 }
-                package.entity_states.insert(
-                    entity_id.clone(),
-                    SiteEntityState::ExecutionInProgress {
-                        attempt_id: attempt_id.clone(),
-                    },
-                );
-                self.attempts.insert(
-                    attempt_id.clone(),
-                    ExecutionAttempt {
+                Ok(PreparedSiteMutation::StartExecution {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: entity_id.clone(),
+                    attempt_id: attempt_id.clone(),
+                    attempt: ExecutionAttempt {
                         package_sha256: package_sha256.clone(),
                         entity_id: entity_id.clone(),
                         robot_id: event.actor_id.clone(),
                         robot_disposition: None,
                         referee_assessed: false,
                     },
-                );
+                })
             }
             SiteEventPayload::RobotObservationRecorded {
                 package_sha256,
@@ -515,26 +517,20 @@ impl SiteStateLedger {
                 }
                 let attempt = self
                     .attempts
-                    .get_mut(attempt_id)
+                    .get(attempt_id)
                     .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
-                if attempt.package_sha256 != *package_sha256 || attempt.entity_id != *entity_id {
-                    return Err(SiteLedgerError::AttemptContextMismatch(attempt_id.clone()));
-                }
-                if attempt.robot_id != event.actor_id {
-                    return Err(SiteLedgerError::AttemptActorMismatch(attempt_id.clone()));
-                }
+                validate_attempt_owner(attempt, package_sha256, entity_id, &event.actor_id)?;
                 if attempt.robot_disposition.is_some() {
                     return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
                 }
-                attempt.robot_disposition = Some(*disposition);
-                let package = self.current_package_mut(package_sha256)?;
-                package.entity_states.insert(
-                    entity_id.clone(),
-                    SiteEntityState::AwaitingIndependentMeasurement {
-                        attempt_id: attempt_id.clone(),
-                        robot_disposition: *disposition,
-                    },
-                );
+                let package = self.current_package(package_sha256)?;
+                ensure_attempt_is_in_progress(package, entity_id, attempt_id)?;
+                Ok(PreparedSiteMutation::RecordRobotObservation {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: entity_id.clone(),
+                    attempt_id: attempt_id.clone(),
+                    disposition: *disposition,
+                })
             }
             SiteEventPayload::ExecutionInterrupted {
                 package_sha256,
@@ -549,28 +545,20 @@ impl SiteStateLedger {
                 }
                 let attempt = self
                     .attempts
-                    .get_mut(attempt_id)
+                    .get(attempt_id)
                     .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
-                if attempt.package_sha256 != *package_sha256 || attempt.entity_id != *entity_id {
-                    return Err(SiteLedgerError::AttemptContextMismatch(attempt_id.clone()));
-                }
-                if attempt.robot_id != event.actor_id {
-                    return Err(SiteLedgerError::AttemptActorMismatch(attempt_id.clone()));
-                }
+                validate_attempt_owner(attempt, package_sha256, entity_id, &event.actor_id)?;
                 if attempt.robot_disposition.is_some() || attempt.referee_assessed {
                     return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
                 }
-                // Interruption is not a claim that work is absent or complete.
-                // It only advances the attempt to independent reconciliation.
-                attempt.robot_disposition = Some(RobotExecutionDisposition::Unknown);
-                let package = self.current_package_mut(package_sha256)?;
-                package.entity_states.insert(
-                    entity_id.clone(),
-                    SiteEntityState::AwaitingIndependentMeasurement {
-                        attempt_id: attempt_id.clone(),
-                        robot_disposition: RobotExecutionDisposition::Unknown,
-                    },
-                );
+                let package = self.current_package(package_sha256)?;
+                ensure_attempt_is_in_progress(package, entity_id, attempt_id)?;
+                Ok(PreparedSiteMutation::RecordRobotObservation {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: entity_id.clone(),
+                    attempt_id: attempt_id.clone(),
+                    disposition: RobotExecutionDisposition::Unknown,
+                })
             }
             SiteEventPayload::RefereeAssessmentRecorded {
                 package_sha256,
@@ -592,49 +580,44 @@ impl SiteStateLedger {
                 if attempt.referee_assessed {
                     return Err(SiteLedgerError::AttemptAlreadyAssessed(attempt_id.clone()));
                 }
+                let package = self.current_package(package_sha256)?;
+                ensure_attempt_is_awaiting_measurement(package, entity_id, attempt_id)?;
                 let outcome = evaluate_referee_assessment(
-                    self.packages
-                        .get(package_sha256)
-                        .ok_or_else(|| SiteLedgerError::UnknownPackage(package_sha256.clone()))?,
+                    package,
                     entity_id,
                     robot_disposition,
                     assessment,
                 )?;
-                let attempt = self
-                    .attempts
-                    .get_mut(attempt_id)
-                    .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
-                attempt.referee_assessed = true;
-                let package = self.current_package_mut(package_sha256)?;
-                package.entity_states.insert(
-                    entity_id.clone(),
-                    match outcome {
-                        ScoredRefereeOutcome::Accepted(receipt) => SiteEntityState::Accepted {
-                            attempt_id: attempt_id.clone(),
-                            referee_event_id: event.event_id.clone(),
-                            measurement_receipt_sha256: receipt,
-                        },
-                        ScoredRefereeOutcome::Rejected(receipt, reason) => {
-                            SiteEntityState::Rejected {
-                                attempt_id: attempt_id.clone(),
-                                referee_event_id: event.event_id.clone(),
-                                receipt_sha256: receipt,
-                                reason,
-                            }
-                        }
-                        ScoredRefereeOutcome::Absent(receipt) => SiteEntityState::PhysicallyAbsent {
-                            attempt_id: attempt_id.clone(),
-                            referee_event_id: event.event_id.clone(),
-                            receipt_sha256: receipt,
-                        },
-                        ScoredRefereeOutcome::Held(receipt, reason) => SiteEntityState::Held {
-                            attempt_id: attempt_id.clone(),
-                            referee_event_id: event.event_id.clone(),
-                            receipt_sha256: receipt,
-                            reason,
-                        },
+                let new_state = match outcome {
+                    ScoredRefereeOutcome::Accepted(receipt) => SiteEntityState::Accepted {
+                        attempt_id: attempt_id.clone(),
+                        referee_event_id: event.event_id.clone(),
+                        measurement_receipt_sha256: receipt,
                     },
-                );
+                    ScoredRefereeOutcome::Rejected(receipt, reason) => SiteEntityState::Rejected {
+                        attempt_id: attempt_id.clone(),
+                        referee_event_id: event.event_id.clone(),
+                        receipt_sha256: receipt,
+                        reason,
+                    },
+                    ScoredRefereeOutcome::Absent(receipt) => SiteEntityState::PhysicallyAbsent {
+                        attempt_id: attempt_id.clone(),
+                        referee_event_id: event.event_id.clone(),
+                        receipt_sha256: receipt,
+                    },
+                    ScoredRefereeOutcome::Held(receipt, reason) => SiteEntityState::Held {
+                        attempt_id: attempt_id.clone(),
+                        referee_event_id: event.event_id.clone(),
+                        receipt_sha256: receipt,
+                        reason,
+                    },
+                };
+                Ok(PreparedSiteMutation::RecordRefereeAssessment {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: entity_id.clone(),
+                    attempt_id: attempt_id.clone(),
+                    new_state,
+                })
             }
             SiteEventPayload::HumanWaiverIssued {
                 package_sha256,
@@ -642,7 +625,7 @@ impl SiteStateLedger {
             } => {
                 require_role(event.actor_role, SiteActorRole::SiteQualityAuthority)?;
                 validate_waiver(waiver, &event.actor_id)?;
-                let package = self.current_package_mut(package_sha256)?;
+                let package = self.current_package(package_sha256)?;
                 let state = package
                     .entity_states
                     .get(&waiver.design_entity_id)
@@ -660,30 +643,137 @@ impl SiteStateLedger {
                         waiver.design_entity_id.clone(),
                     ));
                 }
-                package.entity_states.insert(
-                    waiver.design_entity_id.clone(),
-                    SiteEntityState::Waived {
+                Ok(PreparedSiteMutation::IssueWaiver {
+                    package_sha256: package_sha256.clone(),
+                    entity_id: waiver.design_entity_id.clone(),
+                    new_state: SiteEntityState::Waived {
                         waiver_event_id: event.event_id.clone(),
                         authority_id: waiver.authority_id.clone(),
                         waiver_receipt_sha256: waiver.waiver_receipt_sha256.clone(),
                     },
-                );
+                })
             }
         }
-        Ok(())
     }
 
-    fn current_package_mut(
-        &mut self,
+    fn commit_payload(&mut self, mutation: PreparedSiteMutation, event: &SiteEventEnvelope) {
+        match mutation {
+            PreparedSiteMutation::PublishPackage {
+                previous_package_sha256,
+                package_sha256,
+                projection,
+            } => {
+                if let Some(previous) = previous_package_sha256 {
+                    self.packages
+                        .get_mut(&previous)
+                        .expect("prepared previous package remains present")
+                        .superseded_by = Some(package_sha256.clone());
+                }
+                self.packages.insert(package_sha256.clone(), projection);
+                self.active_package_sha256 = Some(package_sha256);
+            }
+            PreparedSiteMutation::QualifyStation {
+                package_sha256,
+                qualification_event_id,
+                qualification,
+            } => {
+                self.packages
+                    .get_mut(&package_sha256)
+                    .expect("prepared current package remains present")
+                    .station_qualifications
+                    .insert(qualification_event_id, qualification);
+            }
+            PreparedSiteMutation::StartExecution {
+                package_sha256,
+                entity_id,
+                attempt_id,
+                attempt,
+            } => {
+                self.packages
+                    .get_mut(&package_sha256)
+                    .expect("prepared current package remains present")
+                    .entity_states
+                    .insert(
+                        entity_id,
+                        SiteEntityState::ExecutionInProgress {
+                            attempt_id: attempt_id.clone(),
+                        },
+                    );
+                self.attempts.insert(attempt_id, attempt);
+            }
+            PreparedSiteMutation::RecordRobotObservation {
+                package_sha256,
+                entity_id,
+                attempt_id,
+                disposition,
+            } => {
+                self.attempts
+                    .get_mut(&attempt_id)
+                    .expect("prepared execution attempt remains present")
+                    .robot_disposition = Some(disposition);
+                self.packages
+                    .get_mut(&package_sha256)
+                    .expect("prepared current package remains present")
+                    .entity_states
+                    .insert(
+                        entity_id,
+                        SiteEntityState::AwaitingIndependentMeasurement {
+                            attempt_id,
+                            robot_disposition: disposition,
+                        },
+                    );
+            }
+            PreparedSiteMutation::RecordRefereeAssessment {
+                package_sha256,
+                entity_id,
+                attempt_id,
+                new_state,
+            } => {
+                self.attempts
+                    .get_mut(&attempt_id)
+                    .expect("prepared execution attempt remains present")
+                    .referee_assessed = true;
+                self.packages
+                    .get_mut(&package_sha256)
+                    .expect("prepared current package remains present")
+                    .entity_states
+                    .insert(entity_id, new_state);
+            }
+            PreparedSiteMutation::IssueWaiver {
+                package_sha256,
+                entity_id,
+                new_state,
+            } => {
+                self.packages
+                    .get_mut(&package_sha256)
+                    .expect("prepared current package remains present")
+                    .entity_states
+                    .insert(entity_id, new_state);
+            }
+        }
+
+        // The event is immutable in the prepared plan; this argument keeps the
+        // commit API explicit about which event is being committed and gives
+        // debug builds a consistency check without any recoverable failure.
+        debug_assert_eq!(
+            self.last_sequence.saturating_add(1),
+            event.sequence,
+            "commit must follow successful event-chain validation"
+        );
+    }
+
+    fn current_package(
+        &self,
         package_sha256: &str,
-    ) -> Result<&mut PackageProjection, SiteLedgerError> {
+    ) -> Result<&PackageProjection, SiteLedgerError> {
         if self.active_package_sha256.as_deref() != Some(package_sha256) {
             return Err(SiteLedgerError::InactivePackage(package_sha256.to_owned()));
         }
         self.packages
-            .get_mut(package_sha256)
+            .get(package_sha256)
             .ok_or_else(|| SiteLedgerError::UnknownPackage(package_sha256.to_owned()))
     }
+
 }
 
 #[derive(Clone, Debug)]
@@ -780,6 +870,93 @@ fn evaluate_referee_assessment(
                 ),
             }
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum PreparedSiteMutation {
+    PublishPackage {
+        previous_package_sha256: Option<String>,
+        package_sha256: String,
+        projection: PackageProjection,
+    },
+    QualifyStation {
+        package_sha256: String,
+        qualification_event_id: String,
+        qualification: StationQualification,
+    },
+    StartExecution {
+        package_sha256: String,
+        entity_id: String,
+        attempt_id: String,
+        attempt: ExecutionAttempt,
+    },
+    RecordRobotObservation {
+        package_sha256: String,
+        entity_id: String,
+        attempt_id: String,
+        disposition: RobotExecutionDisposition,
+    },
+    RecordRefereeAssessment {
+        package_sha256: String,
+        entity_id: String,
+        attempt_id: String,
+        new_state: SiteEntityState,
+    },
+    IssueWaiver {
+        package_sha256: String,
+        entity_id: String,
+        new_state: SiteEntityState,
+    },
+}
+
+fn validate_attempt_owner(
+    attempt: &ExecutionAttempt,
+    package_sha256: &str,
+    entity_id: &str,
+    actor_id: &str,
+) -> Result<(), SiteLedgerError> {
+    if attempt.package_sha256 != package_sha256 || attempt.entity_id != entity_id {
+        return Err(SiteLedgerError::AttemptContextMismatch(
+            attempt.entity_id.clone(),
+        ));
+    }
+    if attempt.robot_id != actor_id {
+        return Err(SiteLedgerError::AttemptActorMismatch(entity_id.to_owned()));
+    }
+    Ok(())
+}
+
+fn ensure_attempt_is_in_progress(
+    package: &PackageProjection,
+    entity_id: &str,
+    attempt_id: &str,
+) -> Result<(), SiteLedgerError> {
+    match package.entity_states.get(entity_id) {
+        Some(SiteEntityState::ExecutionInProgress { attempt_id: current })
+            if current == attempt_id =>
+        {
+            Ok(())
+        }
+        _ => Err(SiteLedgerError::AttemptContextMismatch(
+            attempt_id.to_owned(),
+        )),
+    }
+}
+
+fn ensure_attempt_is_awaiting_measurement(
+    package: &PackageProjection,
+    entity_id: &str,
+    attempt_id: &str,
+) -> Result<(), SiteLedgerError> {
+    match package.entity_states.get(entity_id) {
+        Some(SiteEntityState::AwaitingIndependentMeasurement {
+            attempt_id: current,
+            ..
+        }) if current == attempt_id => Ok(()),
+        _ => Err(SiteLedgerError::AttemptContextMismatch(
+            attempt_id.to_owned(),
+        )),
     }
 }
 
