@@ -101,7 +101,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        for crate in research/thermo-balance-lab research/autopoiesis-lab research/freeflow-structure-lab; do
+        for crate in research/thermo-balance-lab research/autopoiesis-lab research/freeflow-structure-lab research/truss-fem-lab; do
           if [ -f "$crate/Cargo.toml" ]; then
             cargo clippy --manifest-path "$crate/Cargo.toml" --all-targets -- -D warnings
           fi
@@ -111,7 +111,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        for crate in research/thermo-balance-lab research/autopoiesis-lab research/freeflow-structure-lab; do
+        for crate in research/thermo-balance-lab research/autopoiesis-lab research/freeflow-structure-lab research/truss-fem-lab; do
           if [ -f "$crate/Cargo.toml" ]; then
             cargo test --manifest-path "$crate/Cargo.toml" --all-targets
           fi
