@@ -1,5 +1,5 @@
 use aeroweift_experiment_design::{
-    AuthorizationState, DesignDisposition, EstimateSampleUnit, ExperimentCandidate,
+    AuthorizationState, DesignDisposition, DesignError, EstimateSampleUnit, ExperimentCandidate,
     ExperimentDesignPolicy, ExperimentModality, ExperimentObjective, GateEvidenceReceipt,
     GateEvidenceRole, HypothesisContrast, HypothesisGroup, RejectionReason, ResourceBudget,
     ResourceCost, SelectionEvidenceRole, SemanticEquivalence, UtilityEstimateReceipt,
