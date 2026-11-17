@@ -13,13 +13,16 @@ Each recipe task must have one explicit binding to:
 - declared input and output forms;
 - a scheduled resource already present in the task;
 - batch mass within any declared mass limits, where quantities are explicit mg/g/kg;
-- a task duration within the declared maximum continuous run time.
+- a task duration within the declared maximum continuous run time;
+- an explicit task power profile within that exact module revision's continuous, peak and surge limits.
 
-All mass comparisons use checked integer arithmetic at nanogram resolution. Volume and count units are not converted to mass. Missing limits or non-comparable quantities remain indeterminate.
+At request level, the evaluator also requires the power-plan task graph to exactly equal the validated recipe graph's mapped scheduling plan, and independently revalidates the submitted schedule with the existing household power-envelope verifier. This covers aggregate household background load, simultaneous task demand, continuous real-power limits, peak limits and surge duration.
+
+All mass comparisons use checked integer arithmetic at nanogram resolution. Volume and count units are not converted to mass. Missing module power limits or non-comparable quantities remain indeterminate; exceeded limits and an invalid schedule are blocked.
 
 ## Dispositions
 
-- within_declared_envelope: submitted declarations are internally consistent for this binding.
+- within_declared_envelope: submitted declarations are internally consistent for this binding and the household schedule passes the existing verifier.
 - indeterminate: a required declaration or comparison bound is missing.
 - blocked: a known mismatch, invalid record, duplicate or exceeded bound exists.
 
@@ -29,8 +32,8 @@ A report is admitted only if all tasks are within their declared envelope and th
 
 Run: cargo test -p symtropy-kitchen-planner --all-targets
 
-Tests consume the existing synthetic recipe and module fixtures plus the admission case manifest. Exact-head CI is required; the local authoring session has not compiled or executed this crate.
+Tests use existing synthetic recipe/module fixtures and synthetic task-power profiles. Exact-head CI is required; the local authoring session has not compiled or executed this crate.
 
 ## Claim ceiling
 
-The result is a structural and declared-envelope consistency check. It does not prove mechanical fitment, interoperability, electrical compatibility, food-contact suitability, sanitation efficacy, food safety, legal compliance, physical performance, product superiority or human usability.
+The result is a structural and declared-envelope consistency check. It does not prove mechanical fitment, interoperability, measured electrical behavior, food-contact suitability, sanitation efficacy, food safety, electrical/mechanical safety, legal compliance, physical performance, product superiority or human usability.
