@@ -691,7 +691,10 @@ pub fn evaluate_action_ontology_benchmark(
                 case.occurrence_weight,
                 &case.case_id,
             )?;
-            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+            let counts = summary
+                .groups
+                .iter_mut()
+                .find(|counts| counts.group == group)
                 .expect("every action group has a stable evaluation entry");
             checked_accumulate(
                 &mut counts.predicted_occurrences,
@@ -765,10 +768,9 @@ mod tests {
 
     #[test]
     fn every_recipe_action_kind_has_exactly_one_fixture_mapping() {
-        let bundle: ActionMappingFixtureBundle = serde_json::from_str(include_str!(
-            "../schemas/fixtures/action-ontology-v1.json"
-        ))
-        .expect("action ontology fixture bundle must deserialize");
+        let bundle: ActionMappingFixtureBundle =
+            serde_json::from_str(include_str!("../schemas/fixtures/action-ontology-v1.json"))
+                .expect("action ontology fixture bundle must deserialize");
         let fixture_kinds: Vec<_> = bundle
             .mappings
             .iter()
@@ -798,9 +800,12 @@ mod tests {
             rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled);
         binding.mapping.core = Some(ActionCoreV1::Preparing);
         let report = validate_action_ontology_binding(RecipeActionKindV1::Other, &binding);
-        assert!(report.violations.iter().any(|entry| {
-            entry.code == ActionOntologyViolationCodeV1::InvalidUnmappedBinding
-        }));
+        assert!(
+            report
+                .violations
+                .iter()
+                .any(|entry| entry.code == ActionOntologyViolationCodeV1::InvalidUnmappedBinding)
+        );
     }
 
     #[test]
@@ -960,17 +965,17 @@ mod tests {
     fn other_action_stays_unmapped_without_human_review() {
         let binding =
             rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Modelled);
-        assert!(validate_action_ontology_binding(RecipeActionKindV1::Other, &binding).is_valid());
+        assert!(
+            validate_action_ontology_binding(RecipeActionKindV1::Other, &binding).is_valid()
+        );
         assert_eq!(binding.mapping.core, None);
         assert_eq!(binding.mapping.group, None);
     }
 
     #[test]
     fn human_reviewed_mapping_can_bind_an_other_action_with_provenance() {
-        let mut binding = rule_based_action_binding(
-            RecipeActionKindV1::Other,
-            RecipeEvidenceClassV1::Declared,
-        );
+        let mut binding =
+            rule_based_action_binding(RecipeActionKindV1::Other, RecipeEvidenceClassV1::Declared);
         binding.mapping = ActionOntologyMappingV1 {
             method: ActionMappingMethodV1::HumanReviewed,
             core: Some(ActionCoreV1::Preparing),
@@ -982,10 +987,8 @@ mod tests {
 
     #[test]
     fn a_rule_mapping_cannot_silently_change_its_group() {
-        let mut binding = rule_based_action_binding(
-            RecipeActionKindV1::Chop,
-            RecipeEvidenceClassV1::Declared,
-        );
+        let mut binding =
+            rule_based_action_binding(RecipeActionKindV1::Chop, RecipeEvidenceClassV1::Declared);
         binding.mapping.group = Some(ActionGroupV1::Dice);
         binding.mapping.core = Some(ActionCoreV1::Cutting);
         assert!(
