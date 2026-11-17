@@ -1114,6 +1114,21 @@ mod tests {
                 hierarchical.refinement.pairs, direct.pairs,
                 "generated pair/slab records diverged at {subdivisions} subdivisions"
             );
+            let direct_pair_ids: BTreeSet<_> = direct
+                .pairs
+                .iter()
+                .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                .collect();
+            let coarse_pair_ids: BTreeSet<_> = hierarchical
+                .coarse
+                .pairs
+                .iter()
+                .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                .collect();
+            assert!(
+                direct_pair_ids.is_subset(&coarse_pair_ids),
+                "one-slab coarse SAP omitted a multi-slab direct SAP pair"
+            );
             assert_eq!(
                 hierarchical.refinement.coarse_candidate_pairs,
                 hierarchical.coarse.pairs.len() as u64
