@@ -322,3 +322,4 @@ The tool intentionally does not calculate spoil mass, swell, excavation power, t
 
 Tracked implementation: [#5980 LUNAR-EXCAVATION-ACCOUNTING-001](https://github.com/Luminous-Dynamics/symtropy/issues/5980).  
 Observability work: [#5983 LUNAR-SUBSURFACE-OBSERVABILITY-001](https://github.com/Luminous-Dynamics/symtropy/issues/5983).
+Terrestrial physical analogue: [#5988 LUNAR-SUBSURFACE-EARTH-ANALOG-001](https://github.com/Luminous-Dynamics/symtropy/issues/5988).
