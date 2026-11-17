@@ -80,6 +80,17 @@ jobs:
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json \
             docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json \
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
+      - name: Evaluate paired WaterLoop matched-service T1 contract
+        id: evaluate_matched_service_t1
+        env:
+          WATERLOOP_MATCHED_SERVICE_T1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin waterloop-matched-service-t1 -- \
+            research/water-service-engineering/waterloop-matched-service-t1-input.v0.1.json \
+            research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json \
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json \
+            artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -109,6 +120,12 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-plan.v0.1.json
             research/water-service-engineering/waterloop-matched-service-plan.schema.v0.1.json
             research/water-service-engineering/waterloop-matched-service-run.schema.v0.1.json
+            research/water-service-engineering/WATERLOOP_MATCHED_SERVICE_T1_EVALUATOR_PROTOCOL_V0_1.md
+            research/water-service-engineering/waterloop-matched-service-t1-input.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json
+            research/water-service-engineering/waterloop-matched-service-t1-oracle.schema.v0.1.json
+            artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
           if-no-files-found: warn
       - name: Set up Python for matched-service protocol validation
         uses: actions/setup-python@v5
@@ -156,6 +173,41 @@ jobs:
           if len(plan["arms"]) != 2 or {arm["role"] for arm in plan["arms"]} != {"control", "treatment"}:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_CONTROL_TREATMENT_ARMS_INCOMPLETE")
           print("WATERLOOP_MATCHED_SERVICE_SCHEMA_PASS: design-only; 12 channels; no physical or savings claims")
+
+          t1_input_schema = json.loads((root / "waterloop-matched-service-t1-input.schema.v0.1.json").read_text())
+          t1_input = json.loads((root / "waterloop-matched-service-t1-input.v0.1.json").read_text())
+          t1_oracle_schema = json.loads((root / "waterloop-matched-service-t1-oracle.schema.v0.1.json").read_text())
+          t1_oracle = json.loads((root / "waterloop-matched-service-t1-oracle.v0.1.json").read_text())
+          for name, schema in [("t1_input", t1_input_schema), ("t1_oracle", t1_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("t1_input", t1_input_schema, t1_input),
+              ("t1_oracle", t1_oracle_schema, t1_oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WATERLOOP_MATCHED_SERVICE_T1_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          if t1_input["evidence_class"] != "synthetic_only" or t1_input["minimum_paired_blocks"] != 6:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_CEILING_FAIL")
+          if t1_input["frozen_plan_blob_sha"] != "3b64690fa02ac47b3bc430a22b1392c65583bba7":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PLAN_IDENTITY_FAIL")
+          if len(t1_input["cases"]) != 13 or len(t1_oracle["cases"]) != 13:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CASE_COUNT_FAIL")
+          if {x["case_id"] for x in t1_input["cases"]} != {x["case_id"] for x in t1_oracle["cases"]}:
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ORACLE_CASE_SET_FAIL")
+          if any(len(case["blocks"]) < 6 for case in t1_input["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PAIRED_BLOCK_FLOOR_FAIL")
+          if any(case["physical_qualification_status"] != "NotRun" or case["statistical_inference_status"] != "NotRun" or case["claim_eligibility"] != "NotEligible" for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_GUARD_BREACH")
+          if any(case["probability_interpretation"] if "probability_interpretation" in case else False for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PROBABILITY_CLAIM_BREACH")
+          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 13 cases; six paired blocks; synthetic-only; no physical or statistical claim")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -164,8 +216,10 @@ jobs:
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           MATCHED_SERVICE_PLAN_OUTCOME: ${{ steps.validate_matched_service.outcome }}
+          MATCHED_SERVICE_T1_OUTCOME: ${{ steps.evaluate_matched_service_t1.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$MATCHED_SERVICE_PLAN_OUTCOME" = "success"
+          test "$MATCHED_SERVICE_T1_OUTCOME" = "success"
