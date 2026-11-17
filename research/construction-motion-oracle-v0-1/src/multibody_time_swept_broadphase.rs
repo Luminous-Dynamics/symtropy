@@ -1139,4 +1139,81 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn randomized_clockless_hierarchical_sap_matches_direct_for_mixed_time_spans() {
+        for initial_seed in 0..12_u64 {
+            let mut seed = 0x5a17_0000_u64.wrapping_add(initial_seed);
+            let mut next = || {
+                seed = seed
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1);
+                (seed >> 32) as i64
+            };
+            let mut bodies = Vec::new();
+
+            for index in 0..40_usize {
+                let cluster = index % 4;
+                let center_x = if cluster == 0 {
+                    (next().rem_euclid(200)) as f64
+                } else {
+                    (next().rem_euclid(4_000) - 2_000) as f64
+                };
+                let center_y = (next().rem_euclid(2_000) - 1_000) as f64;
+                let center_z = (next().rem_euclid(600) - 300) as f64;
+                let half_length = (next().rem_euclid(80) + 1) as f64;
+                let radius = (next().rem_euclid(20) + 1) as f64 / 4.0;
+                let capsule = Capsule::new(
+                    p(center_x, center_y - half_length, center_z),
+                    p(center_x, center_y + half_length, center_z),
+                    radius,
+                )
+                .unwrap();
+                let start_ms = 10_000 + next().rem_euclid(3_000) as u64;
+                let duration_ms = 1 + next().rem_euclid(2_000) as u64;
+                let motion = CapsuleMotionSpan {
+                    capsule_at_start: capsule,
+                    translation: p(
+                        (next().rem_euclid(400) - 200) as f64,
+                        (next().rem_euclid(400) - 200) as f64,
+                        (next().rem_euclid(200) - 100) as f64,
+                    ),
+                    start_ms,
+                    end_ms: start_ms + duration_ms,
+                    site_epoch: "site-epoch-7".into(),
+                    frame_id: "site-frame".into(),
+                    clock_domain_id: "site-clock".into(),
+                    clock_uncertainty_ms: 0,
+                };
+                bodies.push(body(&format!("seed-{initial_seed}-body-{index:02}"), motion));
+            }
+
+            for subdivisions in [1, 2, 4, 8, 16] {
+                let hierarchical =
+                    time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+                let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+                assert_eq!(
+                    hierarchical.refinement.pairs,
+                    direct.pairs,
+                    "randomized complete candidate records diverged for seed {initial_seed} at {subdivisions} slabs"
+                );
+                let coarse_ids: BTreeSet<_> = hierarchical
+                    .coarse
+                    .pairs
+                    .iter()
+                    .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+                    .collect();
+                for direct_pair in &direct.pairs {
+                    assert!(
+                        coarse_ids.contains(&(
+                            direct_pair.first_body_id.clone(),
+                            direct_pair.second_body_id.clone()
+                        )),
+                        "coarse SAP omitted randomized direct candidate for seed {initial_seed}"
+                    );
+                }
+            }
+        }
+    }
+
 }
