@@ -255,16 +255,45 @@ Use cryptographic digests for artifact integrity. Non-cryptographic HDC fingerpr
 
 ## 9. External references and competitive baselines
 
-- Performance-driven generative design review (153 studies; documents interoperability, scale, validation and reproducibility gaps): https://doi.org/10.3390/buildings15244556
-- 2025 comparison of model-based optimization and metaheuristics on an expensive building-performance problem; reports stronger robustness and hypervolume for model-based optimization in that case: https://doi.org/10.1016/j.enbuild.2025.115562
-- 20 Oct 2026 stage-adaptive, uncertainty-informed building design optimization paper; reports 93.8% fewer simulations than exhaustive evaluation in its study. Treat as a task-specific comparator, not a universal target: https://doi.org/10.1016/j.enbuild.2026.118417
-- 1 Nov 2026 review of fast building simulation (765 studies); emphasizes application-specific end-to-end latency and uncertainty-aware validation: https://doi.org/10.1016/j.enbuild.2026.118152
+### Strong optimization baselines
+
+Do not use NSGA-II as the sole or presumed strongest comparator for expensive building-performance optimization.
+
+- Zorn et al. (1 June 2025), *Optimizing an expensive multi-objective building performance problem*, compared RBFMOpt and TPE against NSGA-II, NSGA-III, MHACO, MOEA/D and related baselines. RBFMOpt and TPE had stronger robustness and achieved hypervolume in that case; RBFMOpt reached useful solutions in fewer than 100 expensive evaluations. Reproduce the accessible benchmark and compare on the same candidate/evaluation budget before generalizing: https://doi.org/10.1016/j.enbuild.2025.115562
+- Talami, Costa & Stouffs (online 20 October 2026), *A fast, interpretable and uncertainty-informed design-support framework for multi-objective building performance optimization*, combines physics simulation, RBF surrogate-assisted search, uncertainty quantification and bipartite-modularity clustering. Its Nottingham office case reports 93.8% fewer simulations than exhaustive search with its own performance/uncertainty settings. This is a strong integration comparator, not a universal performance guarantee: https://doi.org/10.1016/j.enbuild.2026.118417
+- Mandatory search arms for HoloFrac's later design loop: RBFMOpt; TPE; NSGA-II/III; MOEA/D where appropriate; surrogate-assisted NSGA-III; stage-adaptive RBF + uncertainty + graph clustering; and high-fidelity exhaustive evaluation on tractable fixtures. Tune each under the same development budget and keep the held-out evaluation set untouched.
+- A 2026 stage-adaptive study's LLM-generated stakeholder personas are simulated decision agents, not evidence of real resident participation. Measure human agency separately with actual consented participants; reuse the Sol-Atlas resident preference/decision receipts rather than inventing a scalar preference model.
+
+### Industry capability baselines (checked 17 November 2026)
+
+The product comparison owner is Sol-Atlas [HIGHVELD-KEEP-INDUSTRY-001 #617](https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/617); HoloFrac should provide a measured component for that matched comparison, not create a competing feature-count survey.
+
+- **Autodesk Forma Building Design:** the 4 November 2026 update documents Indoor Daylight (public beta), parking layout with accessible/EV markings and aisle dimensions, furniture in plan/3D, DXF import and DWG export. Compare on a matched schematic building task and verify exact edition/region/access at test time: https://blogs.autodesk.com/forma/2026/11/04/whats-new-in-forma-building-design-indoor-daylight-parking-furniture-and-autocad-workflows/
+- **TestFit Generative Design:** its documented 5.2 update adds zoning-data ingestion and unit/parking mix goals to its solve workflow. Compare actual zoning-data availability and candidate outputs for the same jurisdiction/site: https://www.testfit.io/blog/testfit-5-2-better-data-brings-better-generative-design
+- **nTop:** nTop 5.23 expanded simulation to CFD on implicit bodies without body-fitted volume meshes, alongside structural and other multiphysics workflows. HoloFrac must not claim to replace its implicit geometry or CFD engines: https://support.ntop.com/hc/en-us/articles/39936980909715-nTop-CFD-and-Simulation-Updates
+- **Autodesk Fusion Generative Design:** a relevant manufacturing-constrained engineering baseline for components, not a full architectural workflow: https://help.autodesk.com/view/fusion360/ENU/?contextId=GD-OVERVIEW
+
+### What HoloFrac should attempt to outperform
+
+The proposed advantage is not raw CAD, daylight, CFD, FEA, zoning or floor-plan generation. The testable hypothesis is a reduction in cross-tool information loss and rework through:
+
+1. typed multiscale spatial memory with source IDs and relation direction preserved;
+2. intent-to-design lineage and hard/soft requirement traceability;
+3. fast retrieval of affected rooms, services, structural interfaces and analyses after a change;
+4. reliable evidence-currentness/invalidation, with zero false-current decisions on seeded changes;
+5. uncertainty-aware selection of the next high-fidelity simulation;
+6. multiple feasible, human-steerable alternatives without forcing incomparable preferences into a single score.
+
+Primary comparative measures should include time to first feasible candidate, design/task requirement coverage, time to update after a change, affected-analysis recall/precision, stale-analysis detection, hard-constraint false-PASS, IFC/IDS and geometry round-trip loss, solver calls, human interventions, compute energy and total workflow cost. Keep each measure separate and disclose unavailable product capability as unassessed/not-comparable rather than absent.
+
+### Research and standards references
+
+- Performance-driven generative design review (153 studies; fragmented metrics, interoperability, validation and reproducibility): https://doi.org/10.3390/buildings15244556
+- Fast building simulation review (765 studies; calls for application-specific end-to-end latency and uncertainty-aware validation): https://doi.org/10.1016/j.enbuild.2026.118152
 - MSD floor-plan dataset and paper: https://arxiv.org/abs/2407.10121 and https://archilyse.standfest.science/modified-swiss-dwellings
 - IFC 4.3 / ISO 16739 and buildingSMART IDS: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/ and https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
 - ASHRAE Standard 140 resources: https://data.ashrae.org/standard140/index.html
 - BOPTEST building-operations benchmark: https://ibpsa.github.io/project1-boptest/
-- Autodesk Fusion Generative Design: https://help.autodesk.com/view/fusion360/ENU/?contextId=GD-OVERVIEW
-- nTop simulation capabilities: https://www.ntop.com/software/capabilities/simulation/
 - GHRR DATE 2026 paper: https://doi.org/10.23919/DATE69613.2026.11539261
 
 ## 10. First implementation sequence
