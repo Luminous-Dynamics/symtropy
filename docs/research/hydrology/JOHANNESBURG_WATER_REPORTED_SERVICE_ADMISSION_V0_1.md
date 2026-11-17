@@ -144,3 +144,16 @@ Do not use only the most severe outages; include ordinary and missing-report day
 ## 8. Nonclaims
 
 No full data acquisition, source-rights clearance, row-level quality review, raw board archival, household service validation, utility endorsement, or current water-quality/hydrology claim is complete in this note. The source remains a candidate until immutable release bytes, licence state, manifest and source-board cross-checks are admitted.
+
+## 2B. Latest release and expanded endpoint semantics — checked 17 November 2026
+
+A fresh call to `GET /api/v1/releases` returned latest release `2026-11-17-ee99662f`. The API documentation describes each release as date/hash identified and says it carries the last board-read time, span of boards covered, status scale, carry-forward cap and record counts. A method change on the same as-at time can replace the release for that same as-at time, so the full manifest and payload hash still need to be archived to freeze a dataset.
+
+The currently served API documentation also gives a Melville history example with release `2026-11-16-2823321c` and 624 rows. Its caveat is important: rows are suburb × linked supply × SAST day, a suburb must be read across all linked supplies, and a no-report gap stays in every denominator. It warns that a JW supply report is not evidence for every street's tap.
+
+The notices endpoint offers another distinct label: it compares a completion time stated in a JW notice with the first later board that reports the asset back as supplying fairly or better and off bypass. This is a *reported return-to-status* interval. It is not a field-verified restoration time or a household-specific restoration.
+
+Direct docs: https://watersearch.co.za/api  
+Latest release endpoint: https://watersearch.co.za/api/v1/releases
+
+The license remains provisional in the current API documentation: CC BY 4.0 for the compilation/readings, credit Johannesburg Water as the source, and the publisher explicitly says the license is provisional until the website is public. Record the licence field and `X-Licence` header on each acquired response and re-check before redistribution.
