@@ -1137,13 +1137,14 @@ mod tests {
     }
 
     #[test]
-    fn batch_mass_overflow_is_indeterminate_not_a_false_mismatch() {
+    fn very_large_supported_quantity_is_compared_exactly() {
         let mut request = fixture_request();
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = u64::MAX;
-        assert_eq!(
-            disposition(&request),
-            KitchenCapabilityDispositionV1::Indeterminate
-        );
+        let report = evaluate_kitchen_capability_admission(&request);
+        assert_eq!(report.disposition, KitchenCapabilityDispositionV1::Blocked);
+        assert!(report.task_assessments[0].issues.iter().any(|issue| {
+            issue.code == KitchenCapabilityIssueCodeV1::BatchAboveMaximum
+        }));
     }
 
     #[test]
