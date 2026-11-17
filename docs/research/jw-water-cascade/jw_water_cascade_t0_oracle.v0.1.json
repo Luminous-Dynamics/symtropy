@@ -20,7 +20,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -39,7 +41,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -59,7 +63,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -78,7 +84,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -97,7 +105,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -119,7 +129,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -140,7 +152,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -159,7 +173,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -174,11 +190,13 @@
         "censoring": "NOT_APPLICABLE",
         "duration_hours_lower_bound": null,
         "asset_join": "EXACT_SUPPLY_MATCH",
-        "temporal_join": "REPORTED_RETURN_ORDERED_AFTER_NOTICE",
+        "temporal_join": "DATE_INTERVAL_ORDERED_AFTER_NOTICE",
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": 30,
+        "notice_delay_upper_bound_hours": 54
       }
     },
     {
@@ -197,7 +215,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -216,7 +236,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -235,7 +257,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -254,7 +278,9 @@
         "dependency_conclusion": "UNKNOWN_NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -273,7 +299,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "SYNTHETIC_LOCAL_PRESSURE_FLOW_ONLY",
         "claim_result": "RETAIN_SYNTHETIC_CEILING",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     },
     {
@@ -292,7 +320,9 @@
         "dependency_conclusion": "NO_CAUSAL_CLAIM",
         "point_of_use_conclusion": "NOT_MEASURED",
         "claim_result": "REJECT_FIELD_CLAIM",
-        "claim_ceiling": "synthetic_contract_only"
+        "claim_ceiling": "synthetic_contract_only",
+        "notice_delay_lower_bound_hours": null,
+        "notice_delay_upper_bound_hours": null
       }
     }
   ]
