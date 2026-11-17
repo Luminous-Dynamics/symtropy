@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let generation_started = Instant::now();
         let points = generate_geometry_fixture(family, 65_536, 0x484f_4c4f_4652_4143)?;
         let generator_micros = generation_started.elapsed().as_secs_f64() * 1_000_000.0;
-        let report = estimate_box_counting_dimension(&points, &resolutions, 0, 5)?;
+        let report = estimate_box_counting_dimension(&points, &resolutions, 2, 5)?;
         let profile = report
             .scale_counts
             .iter()
