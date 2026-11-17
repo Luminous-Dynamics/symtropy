@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/water-observability/wdn_observability_survival_frontier_input.schema.v0.1.json",
+  "title": "WDN observability survival frontier input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "required_state_ids",
+    "domain_types",
+    "max_failure_order",
+    "max_components_per_layout",
+    "max_combinations_per_layout",
+    "layouts"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-observability-survival-frontier-t1-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-OBSERVABILITY-SURVIVAL-FRONTIER-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_state_ids": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain_types": {
+      "const": [
+        "physical_interface",
+        "calibration_lineage",
+        "power_supply",
+        "communications_path",
+        "clock_domain",
+        "measurement_principle"
+      ]
+    },
+    "max_failure_order": {
+      "const": 2
+    },
+    "max_components_per_layout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "max_combinations_per_layout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "layouts": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "layout_id",
+          "sensors"
+        ],
+        "properties": {
+          "layout_id": {
+            "type": "string",
+            "pattern": "^SURV-T1-[0-9]{3}-"
+          },
+          "sensors": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "sensor_id",
+                "state_id",
+                "measurement_principle",
+                "condition",
+                "binding_status",
+                "calibration_status",
+                "time_status",
+                "failure_domains"
+              ],
+              "properties": {
+                "sensor_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "state_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_principle": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "condition": {
+                  "enum": [
+                    "healthy",
+                    "failed"
+                  ]
+                },
+                "binding_status": {
+                  "enum": [
+                    "valid",
+                    "invalid"
+                  ]
+                },
+                "calibration_status": {
+                  "enum": [
+                    "current",
+                    "stale",
+                    "missing"
+                  ]
+                },
+                "time_status": {
+                  "enum": [
+                    "current",
+                    "invalid"
+                  ]
+                },
+                "failure_domains": {
+                  "type": "array",
+                  "minItems": 6,
+                  "maxItems": 6,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "domain_type",
+                      "domain_id"
+                    ],
+                    "properties": {
+                      "domain_type": {
+                        "enum": [
+                          "physical_interface",
+                          "calibration_lineage",
+                          "power_supply",
+                          "communications_path",
+                          "clock_domain",
+                          "measurement_principle"
+                        ]
+                      },
+                      "domain_id": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

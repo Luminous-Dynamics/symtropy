@@ -93,6 +93,17 @@ jobs:
             docs/research/water-observability/wdn_observability_t0_input.schema.v0.1.json \
             docs/research/water-observability/wdn_observability_t0_oracle.v0.1.json \
             artifacts/water-service-t0/wdn-observability-t0-receipt.json
+      - name: Evaluate combinatorial observability survival frontier T1
+        id: evaluate_survival_frontier
+        env:
+          WATER_OBSERVABILITY_SURVIVAL_FRONTIER_T1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin wdn-observability-survival-frontier-t1 -- \
+            docs/research/water-observability/wdn_observability_survival_frontier_input.v0.1.json \
+            docs/research/water-observability/wdn_observability_survival_frontier_input.schema.v0.1.json \
+            docs/research/water-observability/wdn_observability_survival_frontier_oracle.v0.1.json \
+            artifacts/water-service-t0/wdn-observability-survival-frontier-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -124,6 +135,12 @@ jobs:
             docs/research/water-observability/wdn_observability_t0_oracle.v0.1.json
             docs/research/water-observability/wdn_observability_t0_oracle.schema.v0.1.json
             artifacts/water-service-t0/wdn-observability-t0-receipt.json
+            docs/research/water-observability/WDN_OBSERVABILITY_SURVIVAL_FRONTIER_T1_PROTOCOL_V0_1.md
+            docs/research/water-observability/wdn_observability_survival_frontier_input.v0.1.json
+            docs/research/water-observability/wdn_observability_survival_frontier_input.schema.v0.1.json
+            docs/research/water-observability/wdn_observability_survival_frontier_oracle.v0.1.json
+            docs/research/water-observability/wdn_observability_survival_frontier_oracle.schema.v0.1.json
+            artifacts/water-service-t0/wdn-observability-survival-frontier-t1-receipt.json
           if-no-files-found: warn
       - name: Set up Python for observability schema validation
         uses: actions/setup-python@v5
@@ -172,6 +189,44 @@ jobs:
           if any(case.get("qualification_status") not in (None, "NotRun") for case in cases):
               raise SystemExit("WDN_OBSERVABILITY_NO_QUALIFICATION_CLAIM_ALLOWED")
           print("WDN_OBSERVABILITY_SCHEMA_PASS: 12 scenarios, 48 state expectations, synthetic-only")
+
+          frontier_schema = json.loads((root / "wdn_observability_survival_frontier_input.schema.v0.1.json").read_text())
+          frontier = json.loads((root / "wdn_observability_survival_frontier_input.v0.1.json").read_text())
+          frontier_oracle_schema = json.loads((root / "wdn_observability_survival_frontier_oracle.schema.v0.1.json").read_text())
+          frontier_oracle = json.loads((root / "wdn_observability_survival_frontier_oracle.v0.1.json").read_text())
+          for name, schema in [("survival_input", frontier_schema), ("survival_oracle", frontier_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("survival_input", frontier_schema, frontier),
+              ("survival_oracle", frontier_oracle_schema, frontier_oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WDN_SURVIVAL_FRONTIER_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          layouts = frontier["layouts"]
+          expected = frontier_oracle["layouts"]
+          if len(layouts) != 12 or len(expected) != 12:
+              raise SystemExit("WDN_SURVIVAL_FRONTIER_LAYOUT_COUNT_FAIL")
+          if {x["layout_id"] for x in layouts} != {x["layout_id"] for x in expected}:
+              raise SystemExit("WDN_SURVIVAL_FRONTIER_ORACLE_LAYOUT_SET_MISMATCH")
+          for row in expected:
+              n = row["component_count"]
+              expected_counts = [1, n, n * (n - 1) // 2]
+              if [x["combination_count"] for x in row["combinations_by_order"]] != expected_counts:
+                  raise SystemExit(f"WDN_SURVIVAL_FRONTIER_COMBINATION_COUNT_FAIL: {row['layout_id']}")
+              if row["monotonicity_check"] != "pass" or row["monotonicity_violation_count"] != 0:
+                  raise SystemExit(f"WDN_SURVIVAL_FRONTIER_MONOTONICITY_FAIL: {row['layout_id']}")
+              if row["probability_interpretation"] != "none_unweighted_combinatorial_counts":
+                  raise SystemExit(f"WDN_SURVIVAL_FRONTIER_PROBABILITY_CLAIM_FAIL: {row['layout_id']}")
+          if frontier["max_failure_order"] != 2 or frontier["evidence_class"] != "synthetic_only":
+              raise SystemExit("WDN_SURVIVAL_FRONTIER_CLAIM_CEILING_FAIL")
+          print("WDN_SURVIVAL_FRONTIER_SCHEMA_PASS: 12 layouts; exact order 0..2 combinations; no probabilities")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -180,8 +235,10 @@ jobs:
           CASCADE_OUTCOME: ${{ steps.evaluate_cascade.outcome }}
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           OBSERVABILITY_OUTCOME: ${{ steps.evaluate_observability.outcome }}
+          SURVIVAL_FRONTIER_OUTCOME: ${{ steps.evaluate_survival_frontier.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$OBSERVABILITY_OUTCOME" = "success"
+          test "$SURVIVAL_FRONTIER_OUTCOME" = "success"
