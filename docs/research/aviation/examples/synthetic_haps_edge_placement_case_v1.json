@@ -223,7 +223,7 @@
       "haps_total_waste_heat_w": 99,
       "haps_backhaul_mbps": 0,
       "total_system_power_w": 110,
-      "priority_weighted_response_ms": 865,
+      "priority_weighted_response_ms": 1165,
       "violations": [
         "haps_compute_capacity_exceeded:2.55>2.2",
         "haps_node_power_exceeded:110>90",
@@ -269,7 +269,7 @@
       "haps_total_waste_heat_w": 65,
       "haps_backhaul_mbps": 2,
       "total_system_power_w": 113,
-      "priority_weighted_response_ms": 155,
+      "priority_weighted_response_ms": 695,
       "violations": []
     },
     "minimum_system_power_feasible": {
@@ -309,7 +309,7 @@
       "haps_total_waste_heat_w": 49,
       "haps_backhaul_mbps": 8,
       "total_system_power_w": 93,
-      "priority_weighted_response_ms": 765,
+      "priority_weighted_response_ms": 1225,
       "violations": []
     },
     "minimum_system_power_objective_value_w": 93,
