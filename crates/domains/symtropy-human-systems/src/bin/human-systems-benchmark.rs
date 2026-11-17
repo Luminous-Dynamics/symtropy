@@ -18,7 +18,7 @@ use symtropy_human_systems::intervention::{
 };
 use symtropy_human_systems::observation::{
     EstimatorView, ObservationEvent, ObservationQuantity, ScenarioId, ScorerEventTruth,
-    generate_scenario,
+    generate_scenario, ObservationStatus,
 };
 use symtropy_human_systems::sampling_rate::{
     FIXTURE_DURATION_SECONDS, canonical_rate_profiles, sample_ideal_lowpass,
@@ -99,7 +99,13 @@ fn encode_event(event: &ObservationEvent) -> String {
         .value
         .map(|value| format!("{value:.17}"))
         .unwrap_or_else(|| "-".to_owned());
-    let status = format!("{:?}", event.status);
+    let status = match event.status {
+        ObservationStatus::Observed => "Observed",
+        ObservationStatus::Missing(_) => "Missing",
+        ObservationStatus::Quantized => "Quantized",
+        ObservationStatus::ClippedLow => "ClippedLow",
+        ObservationStatus::ClippedHigh => "ClippedHigh",
+    };
 
     format!(
         "E\t{}\t{}\t{}\t{}\t{:.17}\t{:.17}\t{}\t{}\t{}\t{}\n",
@@ -468,7 +474,7 @@ fn candidate_main() -> io::Result<()> {
                 Some(value)
             }
             ("ClippedLow", Some(_)) | ("ClippedHigh", Some(_)) => last_observed,
-            (missing, None) if missing.starts_with("Missing(") => last_observed,
+            ("Missing", None) => last_observed,
             _ => return Err(invalid_data("status and optional value are inconsistent")),
         };
 
@@ -538,5 +544,25 @@ mod tests {
 
         assert_eq!(payload.lines().next(), Some(WIRE_MAGIC));
         assert!(!payload.contains(ScenarioId::IndistinguishableWorlds.as_str()));
+    }
+}
+
+
+#[cfg(test)]
+mod missingness_tests {
+    use super::*;
+
+    #[test]
+    fn estimator_wire_hides_scorer_only_missingness_mechanism() {
+        let generated = generate_scenario(ScenarioId::MnarStateDependentDropout, BASE_SEED);
+        let payload = encode_estimator_view(&generated.estimator_view);
+
+        assert!(payload.contains("\tMissing\t"));
+        assert!(!payload.contains("MnarLatentState"));
+        assert!(!payload.contains("Mcar"));
+        assert!(!payload.contains("MarActivityLinked"));
+        assert!(!payload.contains("IndependentSensorOutage"));
+        assert!(!payload.contains("CommonCauseOutage"));
+        assert!(!payload.contains("Missing("));
     }
 }
