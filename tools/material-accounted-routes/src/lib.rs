@@ -534,7 +534,11 @@ mod tests {
             .unwrap();
         row.subject_ref = "process:similar-looking-name".into();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
     }
 
@@ -556,7 +560,11 @@ mod tests {
             .unwrap();
         receipts[index_b].receipt_ref = receipts[index_a].receipt_ref.clone();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
     }
 
@@ -571,12 +579,23 @@ mod tests {
             .find(|row| row.case_id == case.case_id && row.gate == Gate::Inspection)
             .unwrap();
         row.source_digest = "not-a-digest".into();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
 
-        let row = receipts.iter_mut().find(|row| row.case_id == case.case_id && row.gate == Gate::Inspection).unwrap();
+        let row = receipts
+            .iter_mut()
+            .find(|row| row.case_id == case.case_id && row.gate == Gate::Inspection)
+            .unwrap();
         row.source_digest = "-".into();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Indeterminate);
     }
 
@@ -600,7 +619,11 @@ mod tests {
             .unwrap();
         row.status = "GREEN_ENOUGH".into();
         let case = cases.iter().find(|case| case.case_id == "baseline_exact_closed").unwrap();
-        let own: Vec<_> = receipts.iter().filter(|row| row.case_id == case.case_id).cloned().collect();
+        let own: Vec<_> = receipts
+            .iter()
+            .filter(|row| row.case_id == case.case_id)
+            .cloned()
+            .collect();
         assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
     }
 }
