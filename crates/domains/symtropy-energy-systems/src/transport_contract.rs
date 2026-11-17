@@ -1169,7 +1169,8 @@ mod tests {
 
     #[test]
     fn mismatch_in_each_service_and_boundary_dimension_is_not_comparable() {
-        let mutations: [(ComparisonField, fn(&mut UsefulServiceContract)); 7] = [
+        type ServiceMutation = (ComparisonField, fn(&mut UsefulServiceContract));
+        let mutations: [ServiceMutation; 7] = [
             (ComparisonField::ServiceKind, |service| {
                 service.kind = UsefulServiceKind::Heat;
             }),
@@ -1331,7 +1332,7 @@ mod tests {
         );
 
         assert!(matches!(
-            assess_matched_service(&[only.clone()], &policy()),
+            assess_matched_service(std::slice::from_ref(&only), &policy()),
             Err(TransportContractError::InsufficientCandidates { count: 1 })
         ));
         assert!(matches!(
