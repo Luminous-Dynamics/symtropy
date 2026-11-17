@@ -774,7 +774,9 @@ fn build_power_aware_earliest_gap(
                         {
                             existing_events.insert(event_time);
                         }
-                        if let Some(event_time) = existing.start_ms.checked_add(segment.end_offset_ms) {
+                        if let Some(event_time) =
+                            existing.start_ms.checked_add(segment.end_offset_ms)
+                        {
                             existing_events.insert(event_time);
                         }
                     }
