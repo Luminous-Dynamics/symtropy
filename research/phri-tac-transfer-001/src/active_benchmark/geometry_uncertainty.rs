@@ -773,7 +773,7 @@ mod tests {
     #[test]
     fn local_area_position_and_basis_jacobians_match_central_finite_difference() {
         let geometry = geometry();
-        let field = [10_000.0, 1_000.0, 500.0];
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
 
         let _area = covariance_from_single_local_parameter(
             &geometry,
