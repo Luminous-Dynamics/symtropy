@@ -127,8 +127,8 @@
       "expected_disposition": "indeterminate"
     },
     {
-      "case_id": "batch-mass-arithmetic-overflow",
-      "expected_disposition": "indeterminate"
+      "case_id": "very-large-integer-mass-compared-without-overflow",
+      "expected_disposition": "blocked"
     }
   ]
 }
