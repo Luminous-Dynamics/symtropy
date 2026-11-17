@@ -1,0 +1,13 @@
+[package]
+name = "covariance-error-envelope-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "A posteriori backward/forward error envelopes for dense coordinate covariance"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
