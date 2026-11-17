@@ -53,6 +53,17 @@ fn table_dashes_are_source_model_domain_rejections_not_physical_infeasibility_cl
 }
 
 #[test]
+fn rejects_a_force_scale_that_does_not_match_the_source_table_column() {
+    let corrupted = CORPUS.replacen(
+        "H300_A02_DH003,300000,3000,2,1000000000,0.54,table_reproduced",
+        "H300_A02_DH003,300000,3000,2,10000000000,0.54,table_reproduced",
+        1,
+    );
+    assert_ne!(corrupted, CORPUS);
+    assert!(parse_fixtures(&corrupted).is_err());
+}
+
+#[test]
 fn rejects_missing_duplicate_and_unexpected_fixtures() {
     let short = CORPUS.lines().take(36).collect::<Vec<_>>().join("\n");
     assert!(parse_fixtures(&short).is_err());
