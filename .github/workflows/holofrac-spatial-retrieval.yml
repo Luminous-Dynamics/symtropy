@@ -41,3 +41,13 @@ jobs:
 
       - name: Run Clippy
         run: cargo clippy --manifest-path research/holofrac-retrieval/Cargo.toml --all-targets -- -D warnings
+
+      - name: Smoke-run deterministic benchmark fixture
+        run: |
+          echo "rustc:"
+          rustc --version --verbose
+          echo "host:"
+          uname -a
+          grep -m1 "model name" /proc/cpuinfo || true
+          echo "benchmark:"
+          HOLOFRAC_SOURCE_SHA="$GITHUB_SHA" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml
