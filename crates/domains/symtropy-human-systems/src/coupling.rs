@@ -374,10 +374,7 @@ fn validate_mapping(
     if !mapping.reviewed {
         return Err(CouplingError::UnreviewedMapping);
     }
-    if !mapping.scale.is_finite()
-        || mapping.scale == 0.0
-        || !mapping.offset.is_finite()
-    {
+    if !mapping.scale.is_finite() || mapping.scale == 0.0 || !mapping.offset.is_finite() {
         return Err(CouplingError::InvalidMapping);
     }
     if source.dimension != destination.dimension {
@@ -420,8 +417,8 @@ fn validate_balance(
     destination_class: PortClass,
     balance: Option<&BalanceSpec>,
 ) -> Result<(), CouplingError> {
-    let has_conserved_flow = source_class == PortClass::ConservedFlux
-        || destination_class == PortClass::ConservedFlux;
+    let has_conserved_flow =
+        source_class == PortClass::ConservedFlux || destination_class == PortClass::ConservedFlux;
     match (has_conserved_flow, balance) {
         (true, None) => Err(CouplingError::MissingBalanceContract),
         (false, Some(_)) => Err(CouplingError::UnexpectedBalanceContract),
@@ -619,10 +616,7 @@ mod tests {
                 balance: None,
             }],
         );
-        assert_eq!(
-            graph.validate(),
-            Err(CouplingError::IncompatibleDimensions)
-        );
+        assert_eq!(graph.validate(), Err(CouplingError::IncompatibleDimensions));
     }
 
     #[test]
@@ -676,10 +670,7 @@ mod tests {
                 balance: None,
             }],
         );
-        assert_eq!(
-            graph.validate(),
-            Err(CouplingError::MissingBalanceContract)
-        );
+        assert_eq!(graph.validate(), Err(CouplingError::MissingBalanceContract));
     }
 
     #[test]
@@ -697,10 +688,7 @@ mod tests {
                 balance: None,
             }],
         );
-        assert_eq!(
-            graph.validate(),
-            Err(CouplingError::PortDirectionMismatch)
-        );
+        assert_eq!(graph.validate(), Err(CouplingError::PortDirectionMismatch));
     }
 
     #[test]
