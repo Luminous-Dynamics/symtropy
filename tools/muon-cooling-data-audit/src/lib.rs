@@ -445,26 +445,45 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
 
     let ipac = manifest.pointer("/published_bdsim_references/ipac26_mop1048");
     let ipac_valid = ipac.is_some_and(|reference| {
-        reference.get("doi").and_then(Value::as_str)
-            == Some("10.18429/JACoW-IPAC2026-MOP1048")
+        reference.get("doi").and_then(Value::as_str) == Some("10.18429/JACoW-IPAC2026-MOP1048")
             && reference.get("url").and_then(Value::as_str)
                 == Some("https://www.ipac26.org/prepress/pdf/MOP1048.pdf")
             && reference.get("channel_length_m").and_then(Value::as_f64) == Some(100.0)
-            && reference.get("reference_momentum_mev_c").and_then(Value::as_f64) == Some(200.0)
-            && reference.get("six_d_emittance_reduction_factor_approx").and_then(Value::as_f64) == Some(2.3)
-            && reference.get("transmission_fraction_approx").and_then(Value::as_f64) == Some(0.93)
+            && reference
+                .get("reference_momentum_mev_c")
+                .and_then(Value::as_f64)
+                == Some(200.0)
+            && reference
+                .get("six_d_emittance_reduction_factor_approx")
+                .and_then(Value::as_f64)
+                == Some(2.3)
+            && reference
+                .get("transmission_fraction_approx")
+                .and_then(Value::as_f64)
+                == Some(0.93)
             && reference.get("muon_decay_enabled").and_then(Value::as_bool) == Some(false)
-            && reference.get("input_asset_identity_to_pinned_lowemittancebeam_dat").and_then(Value::as_str) == Some("not_verified")
+            && reference
+                .get("input_asset_identity_to_pinned_lowemittancebeam_dat")
+                .and_then(Value::as_str)
+                == Some("not_verified")
     });
     if !ipac_valid {
         errors.push("IPAC'26 MOP1048 must preserve the published 100 m, 200 MeV/c, approximately 2.3x, approximately 93%, decay-disabled and input-identity-not-verified status".to_owned());
     }
 
-    if manifest.pointer("/benchmark_alignment/wg4_102_coil_model_vs_published_muoncooler").and_then(Value::as_str)
+    if manifest
+        .pointer("/benchmark_alignment/wg4_102_coil_model_vs_published_muoncooler")
+        .and_then(Value::as_str)
         != Some("not_equivalent")
-        || manifest.pointer("/benchmark_alignment/pinned_lowemittancebeam_dat_vs_ipac26_initial_distribution").and_then(Value::as_str)
+        || manifest
+            .pointer(
+                "/benchmark_alignment/pinned_lowemittancebeam_dat_vs_ipac26_initial_distribution",
+            )
+            .and_then(Value::as_str)
             != Some("not_verified")
-        || manifest.pointer("/benchmark_alignment/cross_code_equivalence").and_then(Value::as_str)
+        || manifest
+            .pointer("/benchmark_alignment/cross_code_equivalence")
+            .and_then(Value::as_str)
             != Some("not_established")
     {
         errors.push("published BDSIM studies, pinned WG4 input and G4Beamline source must retain separate evidence identities".to_owned());
@@ -925,8 +944,7 @@ mod tests {
     fn negative_control_bdsim_component_cannot_be_relabelled_as_full_channel() {
         let bytes = fixture();
         let mut manifest = manifest_for(&bytes);
-        manifest["bdsim_muoncooler_implementation"]["example_scope"] =
-            json!("100 m full channel");
+        manifest["bdsim_muoncooler_implementation"]["example_scope"] = json!("100 m full channel");
         assert!(audit_bytes(&manifest, &bytes).is_err());
     }
 
@@ -943,8 +961,8 @@ mod tests {
     fn negative_control_unverified_ipac_input_identity_cannot_be_promoted() {
         let bytes = fixture();
         let mut manifest = manifest_for(&bytes);
-        manifest["published_bdsim_references"]["ipac26_mop1048"]
-            ["input_asset_identity_to_pinned_lowemittancebeam_dat"] = json!("verified");
+        manifest["published_bdsim_references"]["ipac26_mop1048"]["input_asset_identity_to_pinned_lowemittancebeam_dat"] =
+            json!("verified");
         assert!(audit_bytes(&manifest, &bytes).is_err());
     }
 
