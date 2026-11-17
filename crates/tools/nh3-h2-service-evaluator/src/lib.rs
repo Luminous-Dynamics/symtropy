@@ -126,6 +126,14 @@ struct EnergyMeter {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
+struct CustomerFlowPoint {
+    elapsed_ms: f64,
+    accepted_h2_flow_g_per_hour: f64,
+    purity_fraction: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct DynamicService {
     claimed_response_measurand: String,
     actual_evidence_layer: String,
@@ -140,6 +148,13 @@ struct DynamicService {
     clock_sync_ref: Option<String>,
     product_flow_measurement_ref: Option<String>,
     customer_boundary_ref: Option<String>,
+    clock_sync_uncertainty_ms: Option<f64>,
+    maximum_clock_sync_uncertainty_ms: Option<f64>,
+    accepted_flow_target_g_per_hour: Option<f64>,
+    settling_band_fraction: Option<f64>,
+    settling_dwell_ms: Option<f64>,
+    expanded_flow_uncertainty_fraction: Option<f64>,
+    customer_flow_trace: Option<Vec<CustomerFlowPoint>>,
     minimum_transient_purity_observed: Option<f64>,
     product_flow_overshoot_fraction: Option<f64>,
     offspec_duration_ms: Option<f64>,
@@ -337,6 +352,114 @@ fn validate_dynamic_service(
         return None;
     }
 
+    let (
+        clock_uncertainty,
+        maximum_clock_uncertainty,
+        target_flow,
+        settling_band,
+        settling_dwell,
+        flow_uncertainty,
+        trace,
+    ) = match (
+        dynamic.clock_sync_uncertainty_ms,
+        dynamic.maximum_clock_sync_uncertainty_ms,
+        dynamic.accepted_flow_target_g_per_hour,
+        dynamic.settling_band_fraction,
+        dynamic.settling_dwell_ms,
+        dynamic.expanded_flow_uncertainty_fraction,
+        dynamic.customer_flow_trace.as_deref(),
+    ) {
+        (
+            Some(clock_u),
+            Some(clock_max),
+            Some(target),
+            Some(band),
+            Some(dwell),
+            Some(flow_u),
+            Some(trace),
+        ) => (clock_u, clock_max, target, band, dwell, flow_u, trace),
+        _ => {
+            blocked.push(
+                "customer delivery trace lacks clock uncertainty, target flow, settling band, dwell, measurement uncertainty or time-series points".to_owned(),
+            );
+            return None;
+        }
+    };
+
+    if !clock_uncertainty.is_finite()
+        || !maximum_clock_uncertainty.is_finite()
+        || maximum_clock_uncertainty <= 0.0
+        || clock_uncertainty < 0.0
+        || !target_flow.is_finite()
+        || target_flow <= 0.0
+        || !settling_band.is_finite()
+        || settling_band <= 0.0
+        || settling_band > 0.5
+        || !settling_dwell.is_finite()
+        || settling_dwell <= 0.0
+        || !flow_uncertainty.is_finite()
+        || flow_uncertainty < 0.0
+    {
+        rejected.push("dynamic service settling contract contains invalid flow, timing or uncertainty values".to_owned());
+        return None;
+    }
+    if clock_uncertainty > maximum_clock_uncertainty {
+        blocked.push("clock synchronization uncertainty exceeds the declared customer-response limit".to_owned());
+    }
+    if flow_uncertainty > settling_band / 3.0 {
+        blocked.push("expanded H2-flow measurement uncertainty exceeds one-third of the settling band".to_owned());
+    }
+    if trace.len() < 2 {
+        blocked.push("customer-boundary H2 flow trace needs at least two time-series samples".to_owned());
+        return None;
+    }
+
+    for point in trace {
+        if !point.elapsed_ms.is_finite()
+            || point.elapsed_ms < times[0]
+            || !valid_nonnegative(point.accepted_h2_flow_g_per_hour)
+            || !point.purity_fraction.is_finite()
+            || point.purity_fraction <= 0.0
+            || point.purity_fraction > 1.0
+        {
+            rejected.push("customer H2 flow trace contains invalid time, flow or purity values".to_owned());
+            return None;
+        }
+    }
+    if trace.windows(2).any(|window| window[1].elapsed_ms <= window[0].elapsed_ms) {
+        rejected.push("customer H2 flow trace timestamps must be strictly increasing".to_owned());
+        return None;
+    }
+
+    let lower_flow = target_flow * (1.0 - settling_band);
+    let upper_flow = target_flow * (1.0 + settling_band);
+    let earliest_settled = trace.iter().enumerate().find_map(|(index, point)| {
+        let observed_duration = trace.last()?.elapsed_ms - point.elapsed_ms;
+        if point.elapsed_ms < times[6] || observed_duration < settling_dwell {
+            return None;
+        }
+        let remains_in_band = trace[index..].iter().all(|sample| {
+            sample.accepted_h2_flow_g_per_hour >= lower_flow
+                && sample.accepted_h2_flow_g_per_hour <= upper_flow
+                && sample.purity_fraction >= product.minimum_transient_purity_fraction
+        });
+        remains_in_band.then_some(point.elapsed_ms)
+    });
+
+    let Some(settled_at_ms) = earliest_settled else {
+        rejected.push(
+            "customer H2 flow trace does not remain within the accepted flow/purity band for the required dwell".to_owned(),
+        );
+        return None;
+    };
+
+    let claimed_settled_at_ms = times[7];
+    if (claimed_settled_at_ms - settled_at_ms).abs() > clock_uncertainty {
+        rejected.push(
+            "claimed customer-delivery settling timestamp does not match the trace-derived settling time within clock uncertainty".to_owned(),
+        );
+    }
+
     match (
         dynamic.minimum_transient_purity_observed,
         dynamic.product_flow_overshoot_fraction,
@@ -371,7 +494,7 @@ fn validate_dynamic_service(
         ),
     }
 
-    Some(times[7] - times[0])
+    Some(settled_at_ms - times[0])
 }
 
 fn evaluate_scenario(
@@ -991,6 +1114,62 @@ mod tests {
         assert_eq!(
             scenario_for(&report, "rejected-stoichiometric-h2-overclaim").disposition,
             "REJECTED"
+        );
+    }
+
+
+    #[test]
+    fn customer_response_requires_a_trace_verified_settling_dwell() {
+        let report = audit_manifest_json(FIXTURE).expect("manifest should audit");
+        let result = scenario_for(&report, "synthetic-plasma-h2-service-positive");
+        assert_eq!(result.disposition, "SYNTHETIC_ACCOUNTING_PASS");
+        assert_eq!(result.customer_delivery_settling_ms, Some(3200.0));
+    }
+
+    #[test]
+    fn claimed_settling_before_trace_enters_band_is_rejected() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["dynamic_service"]["customer_delivery_settled_ms"] =
+            json!(2800.0);
+        let report = audit_manifest_json(&value.to_string()).unwrap();
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "REJECTED"
+        );
+    }
+
+    #[test]
+    fn flow_that_leaves_the_band_after_dwell_does_not_settle() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["dynamic_service"]["customer_flow_trace"][5]
+            ["accepted_h2_flow_g_per_hour"] = json!(80.0);
+        let report = audit_manifest_json(&value.to_string()).unwrap();
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "REJECTED"
+        );
+    }
+
+    #[test]
+    fn excessive_clock_uncertainty_blocks_customer_response_claim() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["dynamic_service"]["clock_sync_uncertainty_ms"] = json!(20.0);
+        let report = audit_manifest_json(&value.to_string()).unwrap();
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "BLOCKED"
+        );
+    }
+
+    #[test]
+    fn flow_measurement_uncertainty_must_resolve_the_settling_band() {
+        let mut value = fixture_value();
+        value["scenarios"][0]["dynamic_service"]["expanded_flow_uncertainty_fraction"] =
+            json!(0.03);
+        let report = audit_manifest_json(&value.to_string()).unwrap();
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "BLOCKED"
         );
     }
 
