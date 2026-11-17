@@ -174,7 +174,8 @@
           "dependency_evidence_ids",
           "cost",
           "duration_minutes",
-          "outcomes"
+          "outcomes",
+          "independence_group_id"
         ],
         "properties": {
           "candidate_id": {
@@ -265,6 +266,10 @@
                 }
               }
             }
+          },
+          "independence_group_id": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }
