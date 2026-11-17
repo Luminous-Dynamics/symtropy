@@ -234,3 +234,48 @@ References:
 - WG4 cooling demonstrator snapshot: https://github.com/MuonCollider-WG4/cooling_demonstrator/tree/2026-11-09-prerelease
 - BDSIM native userfile column/unit contract: https://www.pp.rhul.ac.uk/bdsim/manual/model_control.html
 - G4Beamline physics-process controls: https://beamdocs.fnal.gov/AD/DocDB/0079/007950/001/G4beamlineUsersGuide.pdf
+
+
+## 16. RCS emittance surrogate: current predictive baseline
+
+A relevant public RCS surrogate was inspected as part of the benchmark survey:
+
+- Repository: https://github.com/amorimd/rcs-stability-surrogate-model
+- Notebook commit: \`561483c4a5791bbf30498e2a951c525e1ec6d157\`
+- Model bundle: \`model/surrogate_bundle.joblib\`
+- Method: 12 independent gradient-boosted regressors predicting four RCS × three emittance-plane outputs from five simulation parameters.
+- Dataset in the notebook: 5,777 complete parameter combinations; one million macroparticles and 2,000 wakefield slices are fixed in the scanned dataset.
+- Reported random split: 4,621 training and 1,156 test configurations; the notebook uses shuffled 5-fold CV for a 100-candidate randomized search.
+- Reported best mean CV R²: 0.7102; tuning time: 26.7 minutes in the recorded environment; one example inference: 42.8 ms.
+
+The notebook's tuned random-test metrics are:
+
+| Output | Test log-space R² | Median relative error |
+|---|---:|---:|
+| RCS1 horizontal | 0.991342 | 0.744355% |
+| RCS2 horizontal | 0.990868 | 2.194864% |
+| RCS3 horizontal | 0.985592 | 4.688508% |
+| RCS4 horizontal | 0.981105 | 10.412090% |
+| RCS1 vertical | 0.864799 | 0.578124% |
+| RCS2 vertical | 0.888431 | 0.951478% |
+| RCS3 vertical | 0.896096 | 1.625644% |
+| RCS4 vertical | 0.913431 | 3.132891% |
+| RCS1 longitudinal | 0.953659 | 0.165660% |
+| RCS2 longitudinal | 0.929252 | 0.271967% |
+| RCS3 longitudinal | 0.931513 | 0.476022% |
+| RCS4 longitudinal | 0.884865 | 0.979411% |
+
+These results are useful and should be respected as a concrete interpolation baseline. They are not evidence of generalisation beyond the scanned parameter distribution: the notebook uses a random train/test split and shuffled KFold, while the raw Xsuite/PyHEADTAIL run directories are not included in the inspected repository snapshot. The model bundle is joblib/pickle serialization; do not load or execute it in CI until the artifact's provenance, dependency environment and license/redistribution status are established.
+
+The current benchmark therefore adds the missing validation dimensions rather than claiming that a different regression architecture is already better:
+- grouped parameter holdouts (chromaticity, offset, damper and wakefield scaling);
+- boundary and out-of-domain detection;
+- explicit prediction uncertainty and abstention;
+- per-output p50/p95/max error, log-RMSE and physical-unit error;
+- physical/decision consistency and no false-safe classifications;
+- leave-one-configuration/lattice-family-out transfer only when source run data is admitted;
+- matched latency, training cost and high-fidelity simulation-call budgets.
+
+The dedicated execution owner is issue [#5748 — RCS surrogate validation](https://github.com/Luminous-Dynamics/symtropy/issues/5748). The proposed 2% median / 10% p95 relative-error gates and 90% interval coverage targets in that issue are target thresholds for future blind testing, not results achieved by the current model.
+
+**Positioning:** the existing surrogate is a fast in-domain predictor. The research opportunity is an uncertainty-aware, provenance-bound, physics-adjudicated surrogate that knows when it is outside its evidence domain and routes those cases to the specialist Xsuite/PyHEADTAIL workflow.
