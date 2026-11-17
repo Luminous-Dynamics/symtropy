@@ -562,7 +562,7 @@
       "false_dispatch_count": 0,
       "repair_completed_count": 1,
       "independent_post_repair_verification_count": 1,
-      "verified_repair_count": 0,
+      "verified_repair_count": 1,
       "recurrence_count": 0,
       "localization_asset_mismatch_count": 0,
       "observed_flow_reduction_lps": 8,
