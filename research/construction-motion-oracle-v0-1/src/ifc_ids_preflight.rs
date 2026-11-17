@@ -77,6 +77,9 @@ pub struct IfcSourceEntity {
     pub required_ids_properties: Vec<String>,
     /// Property/attribute identifiers actually delivered by the IFC reader.
     pub delivered_ids_properties: Vec<String>,
+    /// Digest of the IDS engine's complete applicability decision for this
+    /// entity, including the matched rule set (even when that set is empty).
+    pub ids_applicability_receipt_sha256: String,
     /// IDS specification rule identifiers applicable to this entity.
     pub applicable_ids_requirement_ids: Vec<String>,
     /// Full IDS engine evaluations. A property name being present does not
@@ -94,6 +97,9 @@ pub struct IfcIdsWorkPackageInput {
     pub source_schema_release: String,
     pub ids_spec_sha256: String,
     pub ids_version: String,
+    /// Exact IDS evaluation engine build; receipt digests are not interpretable
+    /// or reproducible without identifying the evaluator implementation.
+    pub ids_engine_build_sha256: String,
     pub design_revision_sha256: String,
     pub frame_id: String,
     pub frame_sha256: String,
@@ -114,6 +120,8 @@ pub struct SourceEntityBinding {
     pub ifc_global_id: String,
     pub geometry_sha256: String,
     pub required_ids_properties: Vec<String>,
+    pub ids_applicability_receipt_sha256: String,
+    pub applicable_ids_requirement_ids: Vec<String>,
     pub ids_requirement_evaluations: Vec<IdsRequirementEvaluation>,
 }
 
@@ -137,6 +145,7 @@ pub enum IfcIdsPreflightError {
     UnsupportedIfcSchema(String),
     InvalidIdsSpecDigest,
     UnsupportedIdsVersion(String),
+    InvalidIdsEngineBuildDigest,
     InvalidDesignRevisionDigest,
     InvalidFrameIdentity,
     InvalidFrameDigest,
@@ -154,6 +163,7 @@ pub enum IfcIdsPreflightError {
     InvalidGlobalId(String),
     DuplicateGlobalId(String),
     InvalidGeometryDigest(String),
+    InvalidIdsApplicabilityReceipt { global_id: String },
     DuplicateRequiredIdsProperty { global_id: String, property: String },
     DuplicateDeliveredIdsProperty { global_id: String, property: String },
     EmptyIdsPropertyIdentifier { global_id: String },
@@ -198,6 +208,9 @@ pub fn preflight_ifc_ids_work_package(
         errors.push(IfcIdsPreflightError::UnsupportedIdsVersion(
             input.ids_version.clone(),
         ));
+    }
+    if !is_sha256(&input.ids_engine_build_sha256) {
+        errors.push(IfcIdsPreflightError::InvalidIdsEngineBuildDigest);
     }
     if !is_sha256(&input.design_revision_sha256) {
         errors.push(IfcIdsPreflightError::InvalidDesignRevisionDigest);
@@ -286,6 +299,11 @@ pub fn preflight_ifc_ids_work_package(
             errors.push(IfcIdsPreflightError::InvalidGeometryDigest(
                 source_entity.global_id.clone(),
             ));
+        }
+        if !is_sha256(&source_entity.ids_applicability_receipt_sha256) {
+            errors.push(IfcIdsPreflightError::InvalidIdsApplicabilityReceipt {
+                global_id: source_entity.global_id.clone(),
+            });
         }
 
         let mut required = BTreeSet::new();
@@ -387,6 +405,12 @@ pub fn preflight_ifc_ids_work_package(
             ifc_global_id: source_entity.global_id.clone(),
             geometry_sha256: source_entity.geometry_sha256.clone(),
             required_ids_properties: source_entity.required_ids_properties.clone(),
+            ids_applicability_receipt_sha256: source_entity
+                .ids_applicability_receipt_sha256
+                .clone(),
+            applicable_ids_requirement_ids: source_entity
+                .applicable_ids_requirement_ids
+                .clone(),
             ids_requirement_evaluations: source_entity.ids_requirement_evaluations.clone(),
         });
     }
@@ -428,6 +452,7 @@ pub fn preflight_ifc_ids_work_package(
             source_schema_release: input.source_schema_release.clone(),
             ids_spec_sha256: input.ids_spec_sha256,
             ids_version: input.ids_version.clone(),
+            ids_engine_build_sha256: input.ids_engine_build_sha256,
             design_revision_sha256: input.design_revision_sha256,
             frame_id: input.frame_id,
             frame_sha256: input.frame_sha256,
@@ -509,6 +534,7 @@ mod tests {
             source_schema_release: SUPPORTED_IFC_SCHEMA_RELEASE.into(),
             ids_spec_sha256: digest('3'),
             ids_version: SUPPORTED_IDS_VERSION.into(),
+            ids_engine_build_sha256: digest('f'),
             design_revision_sha256: digest('4'),
             frame_id: "site-level-02".into(),
             frame_sha256: digest('5'),
@@ -550,6 +576,7 @@ mod tests {
                         "Pset_WallCommon.IsExternal".into(),
                         "Pset_Layout.MarkingClass".into(),
                     ],
+                    ids_applicability_receipt_sha256: digest('e'),
                     applicable_ids_requirement_ids: vec![
                         "layout-marking-class".into(),
                         "wall-external-classification".into(),
@@ -574,6 +601,7 @@ mod tests {
                     geometry_sha256: digest('a'),
                     required_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
                     delivered_ids_properties: vec!["Pset_Layout.MarkingClass".into()],
+                    ids_applicability_receipt_sha256: digest('f'),
                     applicable_ids_requirement_ids: vec!["layout-marking-class".into()],
                     ids_requirement_evaluations: vec![IdsRequirementEvaluation {
                         requirement_id: "layout-marking-class".into(),
@@ -665,6 +693,7 @@ mod tests {
             geometry_sha256: digest('b'),
             required_ids_properties: Vec::new(),
             delivered_ids_properties: Vec::new(),
+            ids_applicability_receipt_sha256: digest('1'),
             applicable_ids_requirement_ids: Vec::new(),
             ids_requirement_evaluations: Vec::new(),
             in_work_scope: false,
@@ -1216,6 +1245,33 @@ mod tests {
             preflight_ifc_ids_work_package(unsupported)
                 .unwrap_err()
                 .contains(&IfcIdsPreflightError::UnsupportedLengthUnit("yard".into()))
+        );
+    }
+
+
+    #[test]
+    fn ids_applicability_decision_requires_a_receipt_even_for_an_empty_rule_set() {
+        let mut input = valid_input();
+        input.entities[0].applicable_ids_requirement_ids.clear();
+        input.entities[0].ids_requirement_evaluations.clear();
+        input.entities[0].ids_applicability_receipt_sha256 = "missing".into();
+        assert!(
+            preflight_ifc_ids_work_package(input)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidIdsApplicabilityReceipt {
+                    global_id: global_id('A'),
+                })
+        );
+    }
+
+    #[test]
+    fn ids_engine_build_must_be_bound_to_the_work_package() {
+        let mut input = valid_input();
+        input.ids_engine_build_sha256 = "unknown-engine".into();
+        assert!(
+            preflight_ifc_ids_work_package(input)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidIdsEngineBuildDigest)
         );
     }
 
