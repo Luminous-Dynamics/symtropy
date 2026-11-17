@@ -373,7 +373,8 @@ fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u64, KitchenOutcomeIss
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidWaterScale);
     }
-    value.value
+    value
+        .value
         .checked_mul(base / divisor)
         .filter(|value| *value <= JSON_SAFE_INTEGER_MAX)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
@@ -389,7 +390,8 @@ fn energy_microwatt_hours(value: ExactKitchenEnergyV1) -> Result<u64, KitchenOut
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidEnergyScale);
     }
-    value.value
+    value
+        .value
         .checked_mul(base / divisor)
         .filter(|value| *value <= JSON_SAFE_INTEGER_MAX)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
@@ -1587,10 +1589,16 @@ mod tests {
             quantity.decimal_places = 0;
         }
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::Indeterminate);
+        assert_eq!(
+            report.disposition,
+            KitchenOutcomeDispositionV1::Indeterminate
+        );
         assert!(!report.complete);
-        assert!(report.issues.iter().any(|issue| {
-            issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
-        }));
+        assert!(
+            report
+                .issues
+                .iter()
+                .any(|issue| { issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow })
+        );
     }
 }
