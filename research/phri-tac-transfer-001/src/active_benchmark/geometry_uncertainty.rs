@@ -770,6 +770,8 @@ mod tests {
         let mut uncertainty = model(&geometry);
         // Correlate x/y translation errors. For a normal force, these produce
         // coupled My/Mx errors about a fixed external origin.
+        uncertainty.common_rigid_pose_covariance_row_major[0] = 1.0e-6;
+        uncertainty.common_rigid_pose_covariance_row_major[7] = 1.0e-6;
         uncertainty.common_rigid_pose_covariance_row_major[1] = 0.5e-6;
         uncertainty.common_rigid_pose_covariance_row_major[6] = 0.5e-6;
         let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &uncertainty)
