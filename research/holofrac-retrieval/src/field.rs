@@ -4,6 +4,7 @@
 //! The exact sampled field and classical interpolation baselines remain the
 //! correctness references. HDC is used only for associative recall.
 
+use std::collections::HashSet;
 use std::time::Instant;
 
 use symtropy_hdc_core::{BipolarBundle, BipolarHV, EncoderSpec, HdcError, ItemMemory, LevelEncoder};
@@ -39,6 +40,7 @@ pub enum FieldError {
     EmptySamples,
     InvalidRange,
     SampleOutsideRange,
+    DuplicateEncodedPosition,
     InvalidGrid,
     Hdc(HdcError),
 }
@@ -49,6 +51,9 @@ impl std::fmt::Display for FieldError {
             Self::EmptySamples => f.write_str("continuous field requires at least one sample"),
             Self::InvalidRange => f.write_str("field coordinate/value range must be finite with max > min"),
             Self::SampleOutsideRange => f.write_str("field sample or query lies outside declared coordinate/value ranges"),
+            Self::DuplicateEncodedPosition => {
+                f.write_str("two field samples quantize to the same encoded spatial position")
+            }
             Self::InvalidGrid => f.write_str("regular field grid requires at least two samples per axis"),
             Self::Hdc(error) => write!(f, "continuous spatial VSA error: {error}"),
         }
@@ -113,12 +118,20 @@ impl SpatialFieldMemory {
         let y_role = item_memory.role("continuous-field-y-role");
 
         let mut bundle = BipolarBundle::new(spec.dimension);
+        let mut encoded_positions = HashSet::with_capacity(samples.len());
         for sample in samples {
             if !x_range.contains(sample.x)
                 || !y_range.contains(sample.y)
                 || !value_range.contains(sample.value)
             {
                 return Err(FieldError::SampleOutsideRange);
+            }
+            let position_key = (
+                x_encoder.quantize(sample.x, x_range.min, x_range.max)?,
+                y_encoder.quantize(sample.y, y_range.min, y_range.max)?,
+            );
+            if !encoded_positions.insert(position_key) {
+                return Err(FieldError::DuplicateEncodedPosition);
             }
             let position = encode_position(
                 &x_encoder,
@@ -472,6 +485,32 @@ mod tests {
                 FieldRange { min: 0.0, max: 1.0 },
             ),
             Err(FieldError::SampleOutsideRange)
+        ));
+    }
+
+    #[test]
+    fn coordinate_quantization_collisions_are_rejected() {
+        let samples = [
+            FieldSample {
+                x: 0.2000,
+                y: 0.5,
+                value: 0.3,
+            },
+            FieldSample {
+                x: 0.2001,
+                y: 0.5,
+                value: 0.8,
+            },
+        ];
+        assert!(matches!(
+            SpatialFieldMemory::build(
+                &samples,
+                spec(2_048, 5),
+                FieldRange { min: 0.0, max: 1.0 },
+                FieldRange { min: 0.0, max: 1.0 },
+                FieldRange { min: 0.0, max: 1.0 },
+            ),
+            Err(FieldError::DuplicateEncodedPosition)
         ));
     }
 
