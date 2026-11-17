@@ -237,6 +237,7 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
     ];
     let allowed_study_types = [
         "paper_reported_prototype",
+        "paper_reported_model",
         "government_demonstration",
         "industry_demonstration",
         "industry_pilot",
@@ -318,8 +319,8 @@ mod tests {
     fn frozen_jsonl_records_match_the_json_manifest_exactly() {
         let document = corpus();
         let summary = validate_frozen_artifacts(&document, BASELINES_JSONL).unwrap();
-        assert_eq!(summary.records, 8);
-        assert_eq!(summary.measurements, 40);
+        assert_eq!(summary.records, 9);
+        assert_eq!(summary.measurements, 42);
     }
 
     #[test]
@@ -343,8 +344,8 @@ mod tests {
     #[test]
     fn frozen_v01_corpus_validates_with_six_source_records() {
         let summary = validate_document(&corpus()).unwrap();
-        assert_eq!(summary.records, 8);
-        assert_eq!(summary.measurements, 40);
+        assert_eq!(summary.records, 9);
+        assert_eq!(summary.measurements, 42);
     }
 
     #[test]
@@ -441,6 +442,28 @@ mod tests {
             .unwrap()
             .iter()
             .any(|x| x.as_str().unwrap().contains("excludes misalignment")));
+    }
+
+    #[test]
+    fn keeps_acoustic_cavitation_limit_as_model_not_received_power() {
+        let document = corpus();
+        let record = document["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["id"] == "li-2026-underwater-acoustic-cavitation-limit")
+            .unwrap();
+        let metric = record["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|metric| metric["name"] == "cavitation_constrained_transmit_acoustic_power_ceiling")
+            .unwrap();
+        assert_eq!(metric["evidence_kind"], "source_reported_simulation");
+        assert!(metric["boundary"]
+            .as_str()
+            .unwrap()
+            .contains("not transmitter electrical input, receiver power"));
     }
 
     #[test]
