@@ -37,3 +37,16 @@ That fraction is a deterministic stress-test scenario statistic, not a physical 
 The next extension should be a bounded two-member cut-set search and explicit joint/connector removal, with the search budget and every omitted scenario reported.
 
 The damage module also provides a bounded two-member-removal campaign. It selects evenly spaced ranks from the complete lexicographic pair space, caps execution at 1,024 scenarios, and reports total pairs, attempted scenarios and every omitted pair. The deterministic sample is a screening campaign—not exhaustive analysis and not a probability estimate. For any safety-relevant use, identify physically justified failure combinations and perform mission-specific progressive-damage analysis.
+
+## Member stability screen
+
+The `stability` module adds per-member:
+- axial yield utilization using the supplied yield strength;
+- weak-axis radius of gyration and effective slenderness;
+- ideal Euler critical load using an explicit effective-length factor;
+- elastic Euler utilization for compressive members only when the Euler stress is below the supplied yield strength;
+- explicit classification for the nominal elastic-Euler range versus yield/inelastic regime.
+
+Each member receives declared section properties (E, A, weak-axis I, yield strength and K factor). The CLI uses an illustrative uniform section solely to exercise the screen.
+
+This is not a design-code check. It excludes global frame buckling, beam-column interaction, bending/shear/torsion, joint restraint/compliance, initial crookedness, residual stress, plasticity, local buckling, load interaction, fatigue, fracture and safety factors. The K factor and section properties must be substantiated for any real design.
