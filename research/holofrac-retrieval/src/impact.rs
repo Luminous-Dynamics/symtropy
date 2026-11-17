@@ -358,6 +358,84 @@ pub fn run_impact_benchmark(
     })
 }
 
+#[derive(Clone, Debug)]
+pub struct SharedCauseImpactBenchmarkReport {
+    pub project_count: usize,
+    pub artifact_count: usize,
+    pub dependency_count: usize,
+    pub evidence_count: usize,
+    pub changed_source_count: usize,
+    pub shared_cause_changed: bool,
+    pub affected_artifact_count: usize,
+    pub stale_evidence_count: usize,
+    pub retained_evidence_count: usize,
+    pub graph_build_micros: f64,
+    pub closure_micros: f64,
+    pub evidence_revalidation_avoided: usize,
+}
+
+/// Benchmark shared-cause invalidation and local selective invalidation over
+/// identical project DAGs. Each project's geometry depends on one shared site
+/// input and one project-local parameter.
+pub fn run_shared_cause_impact_benchmark(
+    project_count: usize,
+    shared_cause_changed: bool,
+) -> Result<SharedCauseImpactBenchmarkReport, ImpactError> {
+    if project_count == 0 {
+        return Err(ImpactError::EmptyChangeSet);
+    }
+
+    let graph_started = Instant::now();
+    let mut graph = EvidenceDependencyGraph::new();
+    graph.add_artifact("shared-site-input", ArtifactKind::DesignParameter)?;
+    for project in 0..project_count {
+        let prefix = format!("project-{project:08}");
+        let parameter = format!("{prefix}-parameter");
+        let geometry = format!("{prefix}-geometry");
+        let solver_input = format!("{prefix}-solver-input");
+        let solver_run = format!("{prefix}-solver-run");
+        let evidence = format!("{prefix}-evidence");
+
+        graph.add_artifact(parameter.clone(), ArtifactKind::DesignParameter)?;
+        graph.add_artifact(geometry.clone(), ArtifactKind::Geometry)?;
+        graph.add_artifact(solver_input.clone(), ArtifactKind::SolverInput)?;
+        graph.add_artifact(solver_run.clone(), ArtifactKind::SolverRun)?;
+        graph.add_artifact(evidence.clone(), ArtifactKind::EvidenceReceipt)?;
+
+        graph.add_dependency(geometry.clone(), "shared-site-input");
+        graph.add_dependency(geometry.clone(), parameter);
+        graph.add_dependency(solver_input.clone(), geometry);
+        graph.add_dependency(solver_run.clone(), solver_input);
+        graph.add_dependency(evidence.clone(), solver_run);
+    }
+    let graph_build_micros = graph_started.elapsed().as_secs_f64() * 1_000_000.0;
+    graph.declare_complete();
+
+    let changed_ids = if shared_cause_changed {
+        vec!["shared-site-input".to_owned()]
+    } else {
+        vec!["project-00000000-parameter".to_owned()]
+    };
+    let closure_started = Instant::now();
+    let report = graph.impact_closure(&changed_ids)?;
+    let closure_micros = closure_started.elapsed().as_secs_f64() * 1_000_000.0;
+
+    Ok(SharedCauseImpactBenchmarkReport {
+        project_count,
+        artifact_count: graph.artifact_count(),
+        dependency_count: graph.dependency_count(),
+        evidence_count: graph.evidence_count(),
+        changed_source_count: changed_ids.len(),
+        shared_cause_changed,
+        affected_artifact_count: report.affected_artifact_ids.len(),
+        stale_evidence_count: report.stale_evidence_ids.len(),
+        retained_evidence_count: report.unaffected_evidence_ids.len(),
+        graph_build_micros,
+        closure_micros,
+        evidence_revalidation_avoided: report.evidence_revalidation_avoided,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -622,6 +700,17 @@ mod tests {
                 .collect::<BTreeSet<_>>(),
             oracle_affected
         );
+    }
+
+    #[test]
+    fn shared_cause_change_invalidates_all_projects_but_local_change_is_selective() {
+        let shared = run_shared_cause_impact_benchmark(32, true).unwrap();
+        let local = run_shared_cause_impact_benchmark(32, false).unwrap();
+        assert_eq!(shared.stale_evidence_count, 32);
+        assert_eq!(shared.retained_evidence_count, 0);
+        assert_eq!(local.stale_evidence_count, 1);
+        assert_eq!(local.retained_evidence_count, 31);
+        assert_eq!(local.evidence_revalidation_avoided, 31);
     }
 
     #[test]
