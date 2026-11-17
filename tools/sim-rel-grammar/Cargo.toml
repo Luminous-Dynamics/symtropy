@@ -1,0 +1,13 @@
+[package]
+name = "sim-rel-grammar"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Dependency-free bounded grammar induction and identifiability research harness"
+
+[workspace]
+
+[[bin]]
+name = "sim-rel-grammar"
+path = "src/main.rs"

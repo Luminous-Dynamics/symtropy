@@ -1,0 +1,74 @@
+name: SIM-REL-002 Bounded Grammar
+
+on:
+  push:
+    branches: ["main", "research/sim-rel-*"]
+    paths:
+      - "tools/sim-rel-grammar/**"
+      - "docs/research/SIM_REL_002_BOUNDED_GRAMMAR_PROTOCOL_2026-10-29.md"
+      - ".github/workflows/sim-rel-grammar.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/sim-rel-grammar/**"
+      - "docs/research/SIM_REL_002_BOUNDED_GRAMMAR_PROTOCOL_2026-10-29.md"
+      - ".github/workflows/sim-rel-grammar.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  qualify:
+    name: Grammar unit tests and exact-head receipt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Isolate Cargo build output from the exact-head checkout
+        run: echo "CARGO_TARGET_DIR=$RUNNER_TEMP/sim-rel-002-cargo-target" >> "$GITHUB_ENV"
+
+      - name: Set up Rust (repository-pinned version)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Verify formatting
+        run: cargo fmt --manifest-path tools/sim-rel-grammar/Cargo.toml -- --check
+
+      - name: Run grammar and integrity tests
+        run: cargo test --locked --manifest-path tools/sim-rel-grammar/Cargo.toml --bin sim-rel-grammar
+
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path tools/sim-rel-grammar/Cargo.toml --bin sim-rel-grammar -- -D warnings
+
+      - name: Generate receipt on the exact source checkout
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          cargo run --locked --manifest-path tools/sim-rel-grammar/Cargo.toml --bin sim-rel-grammar -- \
+            --problems tools/sim-rel-grammar/fixtures/problems-v0.tsv \
+            --truth tools/sim-rel-grammar/fixtures/evaluator-truth-v0.tsv \
+            --expected-head "$EXPECTED_HEAD" \
+            --max-depth 2 \
+            --out "$RUNNER_TEMP/sim-rel-002-receipt.json"
+          jq -e --arg expected "$EXPECTED_HEAD" '
+            .exact_head == $expected
+            and .unique_semantic_candidates == 109
+            and (.cases | length) == 18
+            and all(.policy_summaries[]; .in_grammar_target_retention_rate == 1)
+          ' "$RUNNER_TEMP/sim-rel-002-receipt.json"
+
+      - name: Retain exact-head receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-rel-002-receipt-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/sim-rel-002-receipt.json
+          if-no-files-found: error
+          retention-days: 30
