@@ -157,6 +157,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
         probability_uninformative: 0.10,
         estimate_confidence_level: 0.95,
         estimate_method_sha256: digest('f'),
+        utility_vector_sha256: digest('e'),
         utility_estimate_evidence: None,
         estimator_build_sha256: digest('e'),
         cost_units: 20,
@@ -184,7 +185,7 @@ fn candidate(id: &str) -> ExperimentCandidate {
         development_data_manifest_sha256: digest('b'),
         prior_manifest_sha256: digest('c'),
         uncertainty_set_manifest_sha256: digest('d'),
-        utility_vector_sha256: digest('e'),
+        utility_vector_sha256: result.utility_vector_sha256.clone(),
     });
     add_gate_evidence_receipt(
         &mut result,
@@ -1295,5 +1296,16 @@ fn utility_estimate_provenance_requires_distinct_frozen_input_manifests() {
     let result = select_experiments(&[item], &policy()).unwrap();
     assert!(result.pareto_front.is_empty());
     assert!(reason(&result, "malformed-utility-inputs")
+        .contains(&RejectionReason::MissingEvidenceReceipt));
+}
+
+
+#[test]
+fn utility_receipt_cannot_be_replayed_with_a_different_reported_utility_vector() {
+    let mut item = candidate("utility-vector-splice");
+    item.expected_uncertainty_reduction = 0.99;
+    let result = select_experiments(&[item], &policy()).unwrap();
+    assert!(result.pareto_front.is_empty());
+    assert!(reason(&result, "utility-vector-splice")
         .contains(&RejectionReason::MissingEvidenceReceipt));
 }
