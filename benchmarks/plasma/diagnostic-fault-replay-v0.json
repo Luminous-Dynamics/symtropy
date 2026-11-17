@@ -1,0 +1,206 @@
+{
+  "schema_version": "luminous.plasma-diagnostic-fault-replay-benchmark.v0.1",
+  "benchmark_id": "PLASMA-DIAG-FAULT-REPLAY-001",
+  "evidence_class": "SYNTHETIC_FAULT_REPLAY",
+  "physical_measurements": false,
+  "claim_ceiling": "FAULT_PATTERN_ONLY_NO_DIAGNOSTIC_ACCURACY_OR_REAL_FAILURE_RATE_CLAIM",
+  "cases": [
+    {
+      "case_id": "nominal-three-channel-replay",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-nominal-001",
+          "shot_id": "synthetic-shot-001",
+          "regime_profile_id": "synthetic-profile-cmod-like-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "density", "diagnostic_system_id": "interferometer"},
+            {"channel_id": "temperature", "diagnostic_system_id": "thomson"},
+            {"channel_id": "radiated_power", "diagnostic_system_id": "bolometer"}
+          ]
+        },
+        "schedule": {"schedule_id": "nominal-schedule", "faults": []},
+        "points": [
+          {"point_id": "t0", "time_ns": 0},
+          {"point_id": "t1", "time_ns": 25},
+          {"point_id": "t2", "time_ns": 50},
+          {"point_id": "t3", "time_ns": 75}
+        ]
+      }
+    },
+    {
+      "case_id": "single-channel-dropout-with-half-open-boundary",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-dropout-002",
+          "shot_id": "synthetic-shot-002",
+          "regime_profile_id": "synthetic-profile-cmod-like-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "density", "diagnostic_system_id": "interferometer"},
+            {"channel_id": "temperature", "diagnostic_system_id": "thomson"}
+          ]
+        },
+        "schedule": {
+          "schedule_id": "single-dropout",
+          "faults": [
+            {
+              "fault_id": "density-dropout",
+              "target": {"scope": "channel", "channel_id": "density"},
+              "mode": "dropout",
+              "start_time_ns": 20,
+              "end_time_ns": 60
+            }
+          ]
+        },
+        "points": [
+          {"point_id": "before", "time_ns": 19},
+          {"point_id": "at-start", "time_ns": 20},
+          {"point_id": "inside", "time_ns": 59},
+          {"point_id": "at-end", "time_ns": 60}
+        ]
+      }
+    },
+    {
+      "case_id": "correlated-diagnostic-system-failure",
+      "expected_disposition": "COMPLETED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-common-cause-003",
+          "shot_id": "synthetic-shot-003",
+          "regime_profile_id": "synthetic-profile-diii-d-like-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "te-core", "diagnostic_system_id": "thomson"},
+            {"channel_id": "te-edge", "diagnostic_system_id": "thomson"},
+            {"channel_id": "ip", "diagnostic_system_id": "magnetics"}
+          ]
+        },
+        "schedule": {
+          "schedule_id": "common-cause-thomson-loss",
+          "faults": [
+            {
+              "fault_id": "thomson-system-dropout",
+              "target": {"scope": "diagnostic_system", "system_id": "thomson"},
+              "mode": "dropout",
+              "start_time_ns": 30,
+              "end_time_ns": 70
+            }
+          ]
+        },
+        "points": [
+          {"point_id": "t0", "time_ns": 0},
+          {"point_id": "t30", "time_ns": 30},
+          {"point_id": "t50", "time_ns": 50},
+          {"point_id": "t70", "time_ns": 70}
+        ]
+      }
+    },
+    {
+      "case_id": "unknown-channel-target",
+      "expected_disposition": "REFUSED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-unknown-target-004",
+          "shot_id": "synthetic-shot-004",
+          "regime_profile_id": "synthetic-profile-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "density", "diagnostic_system_id": "interferometer"}
+          ]
+        },
+        "schedule": {
+          "schedule_id": "unknown-target",
+          "faults": [
+            {
+              "fault_id": "fault-unknown-channel",
+              "target": {"scope": "channel", "channel_id": "missing-channel"},
+              "mode": "dropout",
+              "start_time_ns": 10,
+              "end_time_ns": 20
+            }
+          ]
+        },
+        "points": [{"point_id": "t0", "time_ns": 0}]
+      }
+    },
+    {
+      "case_id": "overlapping-common-cause-and-channel-fault",
+      "expected_disposition": "REFUSED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-conflict-005",
+          "shot_id": "synthetic-shot-005",
+          "regime_profile_id": "synthetic-profile-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "te-core", "diagnostic_system_id": "thomson"},
+            {"channel_id": "te-edge", "diagnostic_system_id": "thomson"}
+          ]
+        },
+        "schedule": {
+          "schedule_id": "overlap-conflict",
+          "faults": [
+            {
+              "fault_id": "channel-dropout",
+              "target": {"scope": "channel", "channel_id": "te-core"},
+              "mode": "dropout",
+              "start_time_ns": 10,
+              "end_time_ns": 40
+            },
+            {
+              "fault_id": "system-delay",
+              "target": {"scope": "diagnostic_system", "system_id": "thomson"},
+              "mode": "delay",
+              "start_time_ns": 30,
+              "end_time_ns": 60
+            }
+          ]
+        },
+        "points": [{"point_id": "t0", "time_ns": 0}]
+      }
+    },
+    {
+      "case_id": "fault-window-outside-scenario",
+      "expected_disposition": "REFUSED",
+      "request": {
+        "schema_version": "luminous.plasma-diagnostic-fault-replay.v0.1",
+        "scenario": {
+          "scenario_id": "synthetic-out-of-window-006",
+          "shot_id": "synthetic-shot-006",
+          "regime_profile_id": "synthetic-profile-v0",
+          "clock_domain": "shot-relative-ns",
+          "duration_ns": 100,
+          "channels": [
+            {"channel_id": "density", "diagnostic_system_id": "interferometer"}
+          ]
+        },
+        "schedule": {
+          "schedule_id": "out-of-window",
+          "faults": [
+            {
+              "fault_id": "fault-beyond-duration",
+              "target": {"scope": "channel", "channel_id": "density"},
+              "mode": "dropout",
+              "start_time_ns": 90,
+              "end_time_ns": 101
+            }
+          ]
+        },
+        "points": [{"point_id": "t0", "time_ns": 0}]
+      }
+    }
+  ]
+}
