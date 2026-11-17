@@ -363,6 +363,74 @@ mod tests {
     }
 
     #[test]
+    fn cantilever_tip_deflection_matches_second_principal_bending_plane() {
+        let length = 2.0;
+        let force = 1_000.0;
+        let beam = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(length, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let k = beam.local_stiffness_matrix();
+        let mut reduced = [[0.0; 6]; 6];
+        let mut rhs = [0.0; 6];
+        for (row, reduced_row) in reduced.iter_mut().enumerate() {
+            for (column, value) in reduced_row.iter_mut().enumerate() {
+                *value = k[row + 6][column + 6];
+            }
+        }
+        // Tip local-z force bends about local y.
+        rhs[2] = force;
+        let tip = solve_dense_6(reduced, rhs);
+        let expected_deflection = force * length.powi(3)
+            / (3.0 * material().youngs_modulus_pa * section().second_moment_y_m4);
+        let expected_rotation = -force * length.powi(2)
+            / (2.0 * material().youngs_modulus_pa * section().second_moment_y_m4);
+        assert!((tip[2] - expected_deflection).abs() / expected_deflection < 1.0e-10);
+        assert!((tip[4] - expected_rotation).abs() / expected_rotation.abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn all_six_rigid_body_modes_have_zero_element_strain_energy() {
+        let length = 2.5;
+        let beam = BeamElement3D::new(
+            Vec3::new(0.0, 0.0, 0.0),
+            Vec3::new(length, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, 1.0),
+            material(),
+            section(),
+        )
+        .unwrap();
+        let stiffness = beam.local_stiffness_matrix();
+
+        let rigid_modes = [
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -length, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, length, 0.0, 0.0, 0.0, 1.0],
+        ];
+
+        for mode in rigid_modes {
+            let response = stiffness.map(|row| {
+                row.iter()
+                    .zip(mode.iter())
+                    .map(|(stiffness, displacement)| stiffness * displacement)
+                    .sum::<f64>()
+            });
+            let residual = response
+                .iter()
+                .map(|value| value.abs())
+                .fold(0.0_f64, f64::max);
+            assert!(residual < 1.0e-7);
+        }
+    }
+
+    #[test]
     fn local_frame_is_right_handed_and_orientation_hint_is_projected() {
         let beam = BeamElement3D::new(
             Vec3::new(1.0, 2.0, 3.0),
