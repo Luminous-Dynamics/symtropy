@@ -435,6 +435,32 @@ impl CanonicalWriterV1 {
         self.field(label, &bytes);
         Ok(())
     }
+
+    fn matrix6(&mut self, label: &str, matrix: &Matrix6) -> Result<(), ReceiverErrorV1> {
+        let mut bytes = Vec::with_capacity(36 * 8);
+        for row in matrix {
+            for value in row {
+                if !value.is_finite() {
+                    return Err(ReceiverErrorV1::NonFiniteInput);
+                }
+                bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+            }
+        }
+        self.field(label, &bytes);
+        Ok(())
+    }
+
+    fn vector6(&mut self, label: &str, vector: &Vector6) -> Result<(), ReceiverErrorV1> {
+        let mut bytes = Vec::with_capacity(6 * 8);
+        for value in vector {
+            if !value.is_finite() {
+                return Err(ReceiverErrorV1::NonFiniteInput);
+            }
+            bytes.extend_from_slice(&value.to_bits().to_le_bytes());
+        }
+        self.field(label, &bytes);
+        Ok(())
+    }
 }
 
 fn hash_domain(domain: &str, payload: &[u8]) -> String {
@@ -555,6 +581,24 @@ fn canonical_fixture_hash(
     for (index, generator) in fixture.declared_generators_y.iter().enumerate() {
         writer.matrix3(&format!("declared-generator-y-{index}-v1"), generator)?;
     }
+
+    let step = &fixture.step_map_witness;
+    writer.text("step-model-id-v1", &step.model_id);
+    writer.number("step-first-mass-kg-v1", step.masses_kg[0])?;
+    writer.number("step-second-mass-kg-v1", step.masses_kg[1])?;
+    writer.number("step-link-length-m-v1", step.link_length_m)?;
+    writer.number("step-time-step-s-v1", step.time_step_s)?;
+    writer.matrix6("step-coordinate-basis-s-v1", &step.coordinate_basis_s)?;
+    writer.vector6("step-initial-position-q-v1", &step.initial_position_q)?;
+    writer.vector6("step-initial-velocity-q-v1", &step.initial_velocity_q)?;
+    writer.vector6("step-force-covector-q-v1", &step.force_covector_q)?;
+    writer.vector6("step-position-next-q-v1", &step.position_next_q)?;
+    writer.vector6("step-velocity-next-q-v1", &step.velocity_next_q)?;
+    writer.vector6("step-midpoint-velocity-q-v1", &step.midpoint_velocity_q)?;
+    writer.number("step-multiplier-v1", step.multiplier)?;
+    writer.vector6("step-position-next-y-v1", &step.position_next_y)?;
+    writer.vector6("step-velocity-next-y-v1", &step.velocity_next_y)?;
+    writer.vector6("step-midpoint-velocity-y-v1", &step.midpoint_velocity_y)?;
     Ok(hash_domain("luminous.physical-fixture.v1", &writer.bytes))
 }
 
