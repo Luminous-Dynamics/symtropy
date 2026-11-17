@@ -30,6 +30,9 @@ pub struct MassNormalizedBenchmarkSpec {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MassNormalizedBenchmarkReceipt {
+    /// Deterministic FNV-1a input digest for regression/replay identity only.
+    /// This is not a cryptographic integrity primitive.
+    pub input_digest_non_security: u64,
     pub node_count: usize,
     pub member_count: usize,
     pub total_member_length_m: f64,
@@ -75,6 +78,56 @@ impl fmt::Display for BenchmarkError {
     }
 }
 impl Error for BenchmarkError {}
+
+/// Deterministic FNV-1a digest over the exact benchmark inputs.
+/// This is for same-input regression identity, not cryptographic integrity.
+fn benchmark_input_digest(
+    model: &TrussModel,
+    boundary: &BoundaryConditions,
+    spec: MassNormalizedBenchmarkSpec,
+) -> u64 {
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    fn mix(hash: &mut u64, bytes: &[u8]) {
+        for byte in bytes {
+            *hash ^= u64::from(*byte);
+            *hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        }
+    }
+
+    for value in [
+        spec.member_mass_budget_kg,
+        spec.material_density_kg_m3,
+        spec.youngs_modulus_pa,
+        spec.yield_strength_pa,
+        spec.effective_length_factor,
+    ] {
+        mix(&mut hash, &value.to_bits().to_le_bytes());
+    }
+    mix(&mut hash, &(spec.pair_removal_budget as u64).to_le_bytes());
+    mix(&mut hash, &(model.nodes.len() as u64).to_le_bytes());
+    mix(&mut hash, &(model.members.len() as u64).to_le_bytes());
+
+    for (index, node) in model.nodes.iter().enumerate() {
+        mix(&mut hash, &(index as u64).to_le_bytes());
+        for coordinate in [node.x, node.y, node.z] {
+            mix(&mut hash, &coordinate.to_bits().to_le_bytes());
+        }
+    }
+    for (index, member) in model.members.iter().enumerate() {
+        mix(&mut hash, &(index as u64).to_le_bytes());
+        mix(&mut hash, &(member.from as u64).to_le_bytes());
+        mix(&mut hash, &(member.to as u64).to_le_bytes());
+    }
+    for node in 0..boundary.fixed_dofs.len() {
+        for is_fixed in boundary.fixed_dofs[node] {
+            mix(&mut hash, &[u8::from(is_fixed)]);
+        }
+        for force in boundary.nodal_forces_n[node] {
+            mix(&mut hash, &force.to_bits().to_le_bytes());
+        }
+    }
+    hash
+}
 
 /// Compute the uniform member cross-section area required to hit a mass
 /// budget for the supplied member lengths and material density.
@@ -212,6 +265,7 @@ pub fn evaluate_mass_normalized_candidate(
     }
 
     Ok(MassNormalizedBenchmarkReceipt {
+        input_digest_non_security: benchmark_input_digest(model, boundary, spec),
         node_count: model.nodes.len(),
         member_count: model.members.len(),
         total_member_length_m,
@@ -446,6 +500,19 @@ mod tests {
         assert!((baseline.computed_member_mass_kg - interior_hub.computed_member_mass_kg).abs() < 1e-10);
         assert!(baseline.maximum_node_displacement_m.is_finite());
         assert!(interior_hub.maximum_node_displacement_m.is_finite());
+    }
+
+    #[test]
+    fn benchmark_input_digest_is_stable_and_load_sensitive() {
+        let pair = matched_tetrahedron_pair(1.0, [0.0, 0.0, -100.0]).unwrap();
+        let base = benchmark_input_digest(&pair.baseline.model, &pair.baseline.boundary, spec());
+        let replay = benchmark_input_digest(&pair.baseline.model, &pair.baseline.boundary, spec());
+        assert_eq!(base, replay);
+
+        let mut changed_boundary = pair.baseline.boundary.clone();
+        changed_boundary.nodal_forces_n[3][2] = -101.0;
+        let changed = benchmark_input_digest(&pair.baseline.model, &changed_boundary, spec());
+        assert_ne!(base, changed);
     }
 
     #[test]
