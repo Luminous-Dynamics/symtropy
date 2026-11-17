@@ -91,7 +91,8 @@ For up to the policy cap of 24 admissible options, the evaluator constructs an e
 
 Consequently:
 - a witness meeting the required count can establish COVERED_WITH_REQUIRED_DIVERSITY;
-- a complete inventory with multiple admissible options that all share a critical dependency can establish COVERED_BUT_CORRELATED for the two-option V0 case;
+- a complete inventory with multiple admissible options whose exact maximum independent set is smaller than the admissible inventory establishes COVERED_BUT_CORRELATED;
+- when every admitted option is independent but the complete inventory contains fewer options than required, V0 returns INSUFFICIENT_INDEPENDENT_OPTIONS. This is a determinate shortage, not a correlation finding or unknown;
 - when the greedy witness is too small but a larger set might exist, V0 returns INDETERMINATE rather than overclaim.
 
 This deliberately avoids presenting an NP-hard maximum-independent-set result as an inexpensive heuristic.
@@ -101,6 +102,7 @@ This deliberately avoids presenting an NP-hard maximum-independent-set result as
 - COVERED_WITH_REQUIRED_DIVERSITY
 - COVERED_SINGLE_OPTION
 - COVERED_BUT_CORRELATED
+- INSUFFICIENT_INDEPENDENT_OPTIONS
 - NO_ADMISSIBLE_OPTION
 - INDETERMINATE
 - REAUTHORIZATION_REQUIRED
@@ -130,7 +132,8 @@ The Rust suite includes:
 - option permutation invariance;
 - a greedy-order trap where a first-fit witness finds one option but the exact solver finds the two-option independent set;
 - options whose only dependencies are exempt common platform domains do not count as independent;
-- deterministic lexicographic tie-breaking among equal-size maximum sets;
+- deterministic lexicographic tie-breaking among equal-size maximum sets where two distinct maximum sets actually exist;
+- complete but too-small independent inventory is distinguished from common-mode correlation;
 - option counts above the exact-search cap return a non-exact lower-bound witness and abstain when it cannot prove required diversity;
 - policy attempts to raise the exact-search cap above 24 are rejected;
 - duplicate option, receipt and dependency identities;
@@ -182,4 +185,4 @@ References:
 A passing result proves only that supplied synthetic option/evidence declarations satisfy a frozen recoverability policy. It does not prove physical maneuverability, actual aircraft energy, real separation, ground-risk safety, route feasibility in an unmodeled environment, operational authorization, flight safety, certification or permission to execute a contingency.
 
 
-The current synthetic-first suite has **50 Rust test definitions**. The exact diversity solver is tested against a greedy-order trap, exempt-only dependencies, lexicographic ties, above-cap abstention and policy-cap rejection. All fixtures remain synthetic; the exact solver establishes graph-theoretic dependency diversity under supplied inventories, not physical independence or operational safety.
+The current synthetic-first suite has **50 Rust tests**. The exact diversity solver is tested against a greedy-order trap, exempt-only dependencies, a genuine equal-cardinality lexicographic tie, a determinate insufficient-option case, above-cap abstention and policy-cap rejection. All fixtures remain synthetic; the exact solver establishes graph-theoretic dependency diversity under supplied inventories, not physical independence or operational safety.
