@@ -13,13 +13,13 @@ use std::collections::BTreeSet;
 pub const KITCHEN_OUTCOME_ACCOUNTING_SCHEMA_VERSION: u32 = 1;
 pub const KITCHEN_OUTCOME_ACCOUNTING_CLAIM_CEILING: &str = "Deterministic arithmetic and evidence completeness for submitted kitchen flow records only; not proof of measurement truth, food safety, sanitation, sensory quality, energy savings, or product superiority.";
 
-const NANO_PER_MILLIGRAM: u128 = 1_000_000;
-const NANO_PER_GRAM: u128 = 1_000_000_000;
-const NANO_PER_KILOGRAM: u128 = 1_000_000_000_000;
-const NANO_LITRES_PER_MILLILITRE: u128 = 1_000_000;
-const NANO_LITRES_PER_LITRE: u128 = 1_000_000_000;
-const MICRO_WH_PER_WH: u128 = 1_000_000;
-const MICRO_WH_PER_KWH: u128 = 1_000_000_000;
+const NANO_PER_MILLIGRAM: u64 = 1_000_000;
+const NANO_PER_GRAM: u64 = 1_000_000_000;
+const NANO_PER_KILOGRAM: u64 = 1_000_000_000_000;
+const NANO_LITRES_PER_MILLILITRE: u64 = 1_000_000;
+const NANO_LITRES_PER_LITRE: u64 = 1_000_000_000;
+const MICRO_WH_PER_WH: u64 = 1_000_000;
+const MICRO_WH_PER_KWH: u64 = 1_000_000_000;
 const PPM_SCALE: u128 = 1_000_000;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
@@ -226,7 +226,7 @@ pub enum KitchenOutcomeDispositionV1 {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ExactPerServingRatioV1 {
-    pub numerator: u128,
+    pub numerator: u64,
     pub denominator_servings: u64,
 }
 
@@ -240,14 +240,14 @@ pub struct KitchenOutcomeAccountingReportV1 {
     pub disposition: KitchenOutcomeDispositionV1,
     pub complete: bool,
     pub claim_eligible: bool,
-    pub input_mass_nanograms: Option<u128>,
-    pub output_mass_nanograms: Option<u128>,
-    pub accepted_edible_mass_nanograms: Option<u128>,
-    pub unaccounted_mass_nanograms: Option<u128>,
+    pub input_mass_nanograms: Option<u64>,
+    pub output_mass_nanograms: Option<u64>,
+    pub accepted_edible_mass_nanograms: Option<u64>,
+    pub unaccounted_mass_nanograms: Option<u64>,
     pub unaccounted_mass_fraction_ppm: Option<u64>,
-    pub water_nanolitres: Option<u128>,
+    pub water_nanolitres: Option<u64>,
     pub water_nanolitres_per_accepted_serving: Option<ExactPerServingRatioV1>,
-    pub electricity_microwatt_hours: Option<u128>,
+    pub electricity_microwatt_hours: Option<u64>,
     pub electricity_microwatt_hours_per_accepted_serving: Option<ExactPerServingRatioV1>,
     pub evidence_refs: Vec<String>,
     pub not_applicable_refs: Vec<String>,
@@ -325,29 +325,29 @@ fn validate_evidence(
     result
 }
 
-fn decimal_divisor(decimal_places: u8) -> Option<u128> {
+fn decimal_divisor(decimal_places: u8) -> Option<u64> {
     if decimal_places > 6 {
         return None;
     }
-    10_u128.checked_pow(u32::from(decimal_places))
+    10_u64.checked_pow(u32::from(decimal_places))
 }
 
 fn exact_units(
     value: u64,
     decimal_places: u8,
-    base: u128,
-) -> Result<u128, KitchenOutcomeIssueCodeV1> {
+    base: u64,
+) -> Result<u64, KitchenOutcomeIssueCodeV1> {
     let divisor =
         decimal_divisor(decimal_places).ok_or(KitchenOutcomeIssueCodeV1::InvalidMassScale)?;
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidMassScale);
     }
-    u128::from(value)
+    value
         .checked_mul(base / divisor)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
 
-fn mass_nanograms(value: ExactKitchenMassV1) -> Result<u128, KitchenOutcomeIssueCodeV1> {
+fn mass_nanograms(value: ExactKitchenMassV1) -> Result<u64, KitchenOutcomeIssueCodeV1> {
     let base = match value.unit {
         KitchenMassUnitV1::Milligram => NANO_PER_MILLIGRAM,
         KitchenMassUnitV1::Gram => NANO_PER_GRAM,
@@ -356,7 +356,7 @@ fn mass_nanograms(value: ExactKitchenMassV1) -> Result<u128, KitchenOutcomeIssue
     exact_units(value.value, value.decimal_places, base)
 }
 
-fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u128, KitchenOutcomeIssueCodeV1> {
+fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u64, KitchenOutcomeIssueCodeV1> {
     let base = match value.unit {
         KitchenWaterUnitV1::Millilitre => NANO_LITRES_PER_MILLILITRE,
         KitchenWaterUnitV1::Litre => NANO_LITRES_PER_LITRE,
@@ -366,12 +366,12 @@ fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u128, KitchenOutcomeIs
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidWaterScale);
     }
-    u128::from(value.value)
+    value.value
         .checked_mul(base / divisor)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
 
-fn energy_microwatt_hours(value: ExactKitchenEnergyV1) -> Result<u128, KitchenOutcomeIssueCodeV1> {
+fn energy_microwatt_hours(value: ExactKitchenEnergyV1) -> Result<u64, KitchenOutcomeIssueCodeV1> {
     let base = match value.unit {
         KitchenEnergyUnitV1::WattHour => MICRO_WH_PER_WH,
         KitchenEnergyUnitV1::KilowattHour => MICRO_WH_PER_KWH,
@@ -381,7 +381,7 @@ fn energy_microwatt_hours(value: ExactKitchenEnergyV1) -> Result<u128, KitchenOu
     if base % divisor != 0 {
         return Err(KitchenOutcomeIssueCodeV1::InvalidEnergyScale);
     }
-    u128::from(value.value)
+    value.value
         .checked_mul(base / divisor)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
@@ -410,12 +410,12 @@ fn observe_mass(
     not_applicable: &mut Vec<String>,
     unknown: &mut Vec<String>,
     claimable: &mut bool,
-) -> (Option<u128>, Option<u128>, Option<u128>, bool) {
+) -> (Option<u64>, Option<u64>, Option<u64>, bool) {
     let expected: BTreeSet<&str> = expected_ids.iter().map(String::as_str).collect();
     let mut seen = BTreeSet::new();
-    let mut input_total = 0_u128;
-    let mut output_total = 0_u128;
-    let mut accepted_total = 0_u128;
+    let mut input_total = 0_u64;
+    let mut output_total = 0_u64;
+    let mut accepted_total = 0_u64;
     let mut input_seen = false;
     let mut output_seen = false;
     let mut accepted_seen = false;
@@ -617,10 +617,10 @@ fn observe_water(
     not_applicable: &mut Vec<String>,
     unknown: &mut Vec<String>,
     claimable: &mut bool,
-) -> (Option<u128>, bool) {
+) -> (Option<u64>, bool) {
     let expected: BTreeSet<KitchenFlowStageV1> = required.iter().copied().collect();
     let mut seen = BTreeSet::new();
-    let mut total = 0_u128;
+    let mut total = 0_u64;
     let mut complete = true;
 
     for term in terms {
@@ -727,10 +727,10 @@ fn observe_electricity(
     not_applicable: &mut Vec<String>,
     unknown: &mut Vec<String>,
     claimable: &mut bool,
-) -> (Option<u128>, bool) {
+) -> (Option<u64>, bool) {
     let expected: BTreeSet<KitchenFlowStageV1> = required.iter().copied().collect();
     let mut seen = BTreeSet::new();
-    let mut total = 0_u128;
+    let mut total = 0_u64;
     let mut complete = true;
 
     for term in terms {
@@ -990,15 +990,8 @@ pub fn evaluate_kitchen_outcome_accounting(
             let missing_mass = input - output;
             residual = Some(missing_mass);
             if input > 0 {
-                match missing_mass.checked_mul(PPM_SCALE) {
-                    Some(scaled) => residual_ppm = Some((scaled / input) as u64),
-                    None => add_issue(
-                        &mut issues,
-                        KitchenOutcomeIssueCodeV1::ArithmeticOverflow,
-                        None,
-                        "mass-balance fraction overflowed checked arithmetic",
-                    ),
-                }
+                let scaled = u128::from(missing_mass) * PPM_SCALE;
+                residual_ppm = Some((scaled / u128::from(input)) as u64);
             } else {
                 add_issue(
                     &mut issues,
@@ -1558,45 +1551,20 @@ mod tests {
     }
 
     #[test]
-    fn mass_balance_ratio_overflow_is_reported_not_wrapped() {
+    fn mass_value_outside_u64_report_range_is_indeterminate() {
         let mut request = request();
-        request.expected_mass_term_ids.clear();
-        request.mass_terms.clear();
-        for index in 0..19 {
-            let id = format!("input-{index}");
-            request.expected_mass_term_ids.push(id.clone());
-            request.mass_terms.push(mass_term(
-                &id,
-                KitchenMassDirectionV1::Input,
-                KitchenMassCategoryV1::Ingredient,
-                ExactKitchenMassV1 {
-                    value: u64::MAX,
-                    decimal_places: 0,
-                    unit: KitchenMassUnitV1::Kilogram,
-                },
-            ));
+        if let KitchenFlowObservationV1::Observed { quantity, .. } =
+            &mut request.mass_terms[0].observation
+        {
+            quantity.value = u64::MAX;
+            quantity.unit = KitchenMassUnitV1::Kilogram;
+            quantity.decimal_places = 0;
         }
-        request.expected_mass_term_ids.push("accepted".to_owned());
-        request.mass_terms.push(mass_term(
-            "accepted",
-            KitchenMassDirectionV1::Output,
-            KitchenMassCategoryV1::AcceptedEdible,
-            ExactKitchenMassV1 {
-                value: 1,
-                decimal_places: 0,
-                unit: KitchenMassUnitV1::Gram,
-            },
-        ));
         let report = evaluate_kitchen_outcome_accounting(&request);
-        assert_eq!(
-            report.disposition,
-            KitchenOutcomeDispositionV1::Indeterminate
-        );
-        assert!(
-            report
-                .issues
-                .iter()
-                .any(|issue| { issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow })
-        );
+        assert_eq!(report.disposition, KitchenOutcomeDispositionV1::Indeterminate);
+        assert!(!report.complete);
+        assert!(report.issues.iter().any(|issue| {
+            issue.code == KitchenOutcomeIssueCodeV1::ArithmeticOverflow
+        }));
     }
 }
