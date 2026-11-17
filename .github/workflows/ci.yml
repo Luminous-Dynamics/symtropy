@@ -4,7 +4,8 @@ on:
   push:
     branches: [ "main", "stabilize/*" ]
   pull_request:
-    branches: [ "main" ]
+    # Execute the same strict suite for dependent feature-branch PRs.
+    branches: [ "main", "feat/*" ]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
