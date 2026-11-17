@@ -706,7 +706,6 @@ pub fn simulate_network_adaptive(
 
     let oracle = scenario.spectral_oracle()?;
     let initial_total = scenario.conserved_total();
-    let initial_energy = scenario.quadratic_energy(&scenario.initial);
     let positivity_required = scenario.initial.iter().all(|value| *value >= 0.0);
 
     let mut state = scenario.initial.clone();
