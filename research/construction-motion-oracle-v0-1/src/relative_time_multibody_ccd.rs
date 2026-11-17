@@ -12,8 +12,9 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
-    ClockUncertaintyError, clock_uncertainty_aware_capsule_query,
+    Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
+    ClockUncertaintyError, MultiBodyBroadphaseError, MultiBodyBroadphaseReport,
+    TimedCapsuleBody, clock_uncertainty_aware_capsule_query, time_swept_capsule_broadphase,
 };
 
 const DRIFT_PPM_DENOMINATOR: u128 = 1_000_000;
@@ -545,6 +546,439 @@ fn unresolved_pair(
         unresolved_reason: Some(reason),
         query_result: None,
     }
+}
+
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OuterEnvelopeFailure {
+    InvalidTimeInterval,
+    TimestampUnderflow,
+    TimestampOverflow,
+    NonFiniteExpansion,
+    InvalidExpandedCapsule,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RelativeTimeBroadphaseUnresolvedReason {
+    FirstBodyMapping(ClockMappingFailure),
+    SecondBodyMapping(ClockMappingFailure),
+    FirstOuterEnvelope(OuterEnvelopeFailure),
+    SecondOuterEnvelope(OuterEnvelopeFailure),
+    PairwiseClockQuery(RelativeTimePairUnresolvedReason),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RelativeTimeBroadphasePairDisposition {
+    /// The conservative SAP broad phase emitted this pair and the independent
+    /// pairwise clock-uncertainty oracle was run.
+    PairwiseChecked,
+    /// The widened time windows are disjoint.
+    NoPossibleTemporalOverlap,
+    /// No outer-AABB candidate was emitted for this pair. This is a numeric
+    /// broad-phase disposition, not a formal directed-rounding certificate.
+    OuterAabbPruned,
+    /// Mapping, envelope construction or pairwise checking was unresolved.
+    Unresolved,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelativeTimeBroadphasePairReceipt {
+    pub first_body_id: String,
+    pub second_body_id: String,
+    pub disposition: RelativeTimeBroadphasePairDisposition,
+    pub candidate_slab_indices: Vec<u32>,
+    pub pairwise_result: Option<RelativeTimePairReceipt>,
+    pub unresolved_reason: Option<RelativeTimeBroadphaseUnresolvedReason>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RelativeTimeBroadphaseConfig {
+    pub clock_mapping: RelativeTimeMultiBodyConfig,
+    pub subdivision_count: u32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RelativeTimeBroadphaseError {
+    InvalidSubdivisionCount,
+    NoBodies,
+    TooManyBodies,
+    EmptyBodyId,
+    DuplicateBodyId,
+    EmptyTargetIdentity,
+    PairCountOverflow,
+    PairBudgetExceeded,
+    Broadphase(MultiBodyBroadphaseError),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelativeTimeBroadphaseReport {
+    pub site_epoch: String,
+    pub frame_id: String,
+    pub site_clock_domain_id: String,
+    pub body_count: usize,
+    pub reference_pair_count: u64,
+    pub broadphase_candidate_pairs: u64,
+    pub pairwise_checked_pairs: u64,
+    pub outer_aabb_pruned_pairs: u64,
+    pub no_possible_temporal_overlap_pairs: u64,
+    pub unresolved_pairs: u64,
+    pub body_mappings: Vec<BodyClockMappingReceipt>,
+    pub body_envelope_failures: Vec<(String, OuterEnvelopeFailure)>,
+    pub broadphase: Option<MultiBodyBroadphaseReport>,
+    pub pairs: Vec<RelativeTimeBroadphasePairReceipt>,
+}
+
+struct OuterEnvelopeBody {
+    body_id: String,
+    mapped: MappedBody,
+    envelope_span: Option<CapsuleMotionSpan>,
+    envelope_failure: Option<OuterEnvelopeFailure>,
+}
+
+/// Generate candidate pairs after mapping independent robot clocks into a
+/// common site clock. Every input body pair receives a receipt.
+///
+/// For each body, the pairwise clock-uncertainty outer model is converted into
+/// a zero-clock-uncertainty capsule span: its half-open interval is widened,
+/// its starting capsule is rebased to the widened start, and its radius is
+/// expanded by the declared maximum affine position error. The existing exact-
+/// clock multi-body sweep-and-prune then operates on those outer spans.
+///
+/// Emitted pairs are checked with the independent pairwise clock-uncertainty
+/// oracle. A pair omitted by the numeric SAP broad phase is reported only as
+/// OuterAabbPruned; the existing eight-ULP bounds expansion is a numerical
+/// guard, not a formally directed-rounded proof. Invalid clock mappings or
+/// unrepresentable outer envelopes never participate in pruning and keep all
+/// touching body pairs Unresolved.
+pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
+    bodies: &[ClockDomainCapsuleBody],
+    config: &RelativeTimeBroadphaseConfig,
+) -> Result<RelativeTimeBroadphaseReport, RelativeTimeBroadphaseError> {
+    if bodies.is_empty() {
+        return Err(RelativeTimeBroadphaseError::NoBodies);
+    }
+    if bodies.len() > MAX_RELATIVE_TIME_BODIES {
+        return Err(RelativeTimeBroadphaseError::TooManyBodies);
+    }
+    if config.subdivision_count == 0 || !config.subdivision_count.is_power_of_two() {
+        return Err(RelativeTimeBroadphaseError::InvalidSubdivisionCount);
+    }
+    for value in [
+        config.clock_mapping.site_epoch.as_str(),
+        config.clock_mapping.frame_id.as_str(),
+        config.clock_mapping.site_clock_domain_id.as_str(),
+    ] {
+        if value.trim().is_empty() {
+            return Err(RelativeTimeBroadphaseError::EmptyTargetIdentity);
+        }
+    }
+
+    let body_count = bodies.len() as u64;
+    let reference_pair_count = body_count
+        .checked_mul(body_count.saturating_sub(1))
+        .and_then(|value| value.checked_div(2))
+        .ok_or(RelativeTimeBroadphaseError::PairCountOverflow)?;
+    if config.clock_mapping.max_pair_checks > MAX_RELATIVE_TIME_PAIR_CHECKS
+        || reference_pair_count > config.clock_mapping.max_pair_checks
+    {
+        return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
+    }
+
+    let mut ids = BTreeSet::new();
+    for body in bodies {
+        if body.body_id.trim().is_empty() {
+            return Err(RelativeTimeBroadphaseError::EmptyBodyId);
+        }
+        if !ids.insert(body.body_id.as_str()) {
+            return Err(RelativeTimeBroadphaseError::DuplicateBodyId);
+        }
+    }
+
+    let mut ordered: Vec<&ClockDomainCapsuleBody> = bodies.iter().collect();
+    ordered.sort_by(|left, right| left.body_id.cmp(&right.body_id));
+    let mut mapped_bodies = Vec::with_capacity(ordered.len());
+    for body in ordered {
+        let mapped = map_body_clock(body, &config.clock_mapping);
+        let (envelope_span, envelope_failure) = match mapped.span.as_ref() {
+            Some(span) => match build_clock_uncertainty_outer_span(span) {
+                Ok(envelope) => (Some(envelope), None),
+                Err(error) => (None, Some(error)),
+            },
+            None => (None, None),
+        };
+        mapped_bodies.push(OuterEnvelopeBody {
+            body_id: body.body_id.clone(),
+            mapped,
+            envelope_span,
+            envelope_failure,
+        });
+    }
+
+    let outer_bodies: Vec<TimedCapsuleBody> = mapped_bodies
+        .iter()
+        .filter_map(|body| {
+            body.envelope_span
+                .as_ref()
+                .map(|motion| TimedCapsuleBody {
+                    body_id: body.body_id.clone(),
+                    motion: motion.clone(),
+                })
+        })
+        .collect();
+
+    let broadphase = if outer_bodies.len() >= 2 {
+        Some(
+            time_swept_capsule_broadphase(&outer_bodies, config.subdivision_count)
+                .map_err(RelativeTimeBroadphaseError::Broadphase)?,
+        )
+    } else {
+        None
+    };
+
+    let mut candidate_slabs = BTreeMap::<(String, String), Vec<u32>>::new();
+    if let Some(report) = broadphase.as_ref() {
+        for candidate in &report.pairs {
+            candidate_slabs.insert(
+                (
+                    candidate.first_body_id.clone(),
+                    candidate.second_body_id.clone(),
+                ),
+                candidate
+                    .candidate_slabs
+                    .iter()
+                    .map(|slab| slab.slab_index)
+                    .collect(),
+            );
+        }
+    }
+
+    let mut output = RelativeTimeBroadphaseReport {
+        site_epoch: config.clock_mapping.site_epoch.clone(),
+        frame_id: config.clock_mapping.frame_id.clone(),
+        site_clock_domain_id: config.clock_mapping.site_clock_domain_id.clone(),
+        body_count: bodies.len(),
+        reference_pair_count,
+        broadphase_candidate_pairs: candidate_slabs.len() as u64,
+        pairwise_checked_pairs: 0,
+        outer_aabb_pruned_pairs: 0,
+        no_possible_temporal_overlap_pairs: 0,
+        unresolved_pairs: 0,
+        body_mappings: mapped_bodies
+            .iter()
+            .map(|body| body.mapped.receipt.clone())
+            .collect(),
+        body_envelope_failures: mapped_bodies
+            .iter()
+            .filter_map(|body| {
+                body.envelope_failure
+                    .map(|failure| (body.body_id.clone(), failure))
+            })
+            .collect(),
+        broadphase,
+        pairs: Vec::with_capacity(reference_pair_count as usize),
+    };
+
+    for first_index in 0..mapped_bodies.len() {
+        for second_index in (first_index + 1)..mapped_bodies.len() {
+            let first = &mapped_bodies[first_index];
+            let second = &mapped_bodies[second_index];
+            let key = (first.body_id.clone(), second.body_id.clone());
+
+            let receipt = if let Some(failure) = first.mapped.failure.as_ref() {
+                unresolved_broadphase_pair(
+                    first,
+                    second,
+                    Vec::new(),
+                    RelativeTimeBroadphaseUnresolvedReason::FirstBodyMapping(failure.clone()),
+                )
+            } else if let Some(failure) = second.mapped.failure.as_ref() {
+                unresolved_broadphase_pair(
+                    first,
+                    second,
+                    Vec::new(),
+                    RelativeTimeBroadphaseUnresolvedReason::SecondBodyMapping(failure.clone()),
+                )
+            } else if let Some(failure) = first.envelope_failure {
+                unresolved_broadphase_pair(
+                    first,
+                    second,
+                    Vec::new(),
+                    RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(failure),
+                )
+            } else if let Some(failure) = second.envelope_failure {
+                unresolved_broadphase_pair(
+                    first,
+                    second,
+                    Vec::new(),
+                    RelativeTimeBroadphaseUnresolvedReason::SecondOuterEnvelope(failure),
+                )
+            } else {
+                let Some(first_envelope) = first.envelope_span.as_ref() else {
+                    output.unresolved_pairs += 1;
+                    output.pairs.push(unresolved_broadphase_pair(
+                        first,
+                        second,
+                        Vec::new(),
+                        RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(
+                            OuterEnvelopeFailure::InvalidTimeInterval,
+                        ),
+                    ));
+                    continue;
+                };
+                let Some(second_envelope) = second.envelope_span.as_ref() else {
+                    output.unresolved_pairs += 1;
+                    output.pairs.push(unresolved_broadphase_pair(
+                        first,
+                        second,
+                        Vec::new(),
+                        RelativeTimeBroadphaseUnresolvedReason::SecondOuterEnvelope(
+                            OuterEnvelopeFailure::InvalidTimeInterval,
+                        ),
+                    ));
+                    continue;
+                };
+
+                if first_envelope.start_ms.max(second_envelope.start_ms)
+                    >= first_envelope.end_ms.min(second_envelope.end_ms)
+                {
+                    output.no_possible_temporal_overlap_pairs += 1;
+                    RelativeTimeBroadphasePairReceipt {
+                        first_body_id: first.body_id.clone(),
+                        second_body_id: second.body_id.clone(),
+                        disposition: RelativeTimeBroadphasePairDisposition::NoPossibleTemporalOverlap,
+                        candidate_slab_indices: Vec::new(),
+                        pairwise_result: None,
+                        unresolved_reason: None,
+                    }
+                } else if let Some(slabs) = candidate_slabs.get(&key) {
+                    output.pairwise_checked_pairs += 1;
+                    let pairwise = evaluate_pair(&first.mapped, &second.mapped);
+                    let unresolved_reason = if pairwise.disposition
+                        == RelativeTimePairDisposition::Unresolved
+                    {
+                        pairwise
+                            .unresolved_reason
+                            .clone()
+                            .map(RelativeTimeBroadphaseUnresolvedReason::PairwiseClockQuery)
+                    } else {
+                        None
+                    };
+                    if unresolved_reason.is_some() {
+                        output.unresolved_pairs += 1;
+                    }
+                    RelativeTimeBroadphasePairReceipt {
+                        first_body_id: first.body_id.clone(),
+                        second_body_id: second.body_id.clone(),
+                        disposition: if unresolved_reason.is_some() {
+                            RelativeTimeBroadphasePairDisposition::Unresolved
+                        } else {
+                            RelativeTimeBroadphasePairDisposition::PairwiseChecked
+                        },
+                        candidate_slab_indices: slabs.clone(),
+                        pairwise_result: Some(pairwise),
+                        unresolved_reason,
+                    }
+                } else {
+                    output.outer_aabb_pruned_pairs += 1;
+                    RelativeTimeBroadphasePairReceipt {
+                        first_body_id: first.body_id.clone(),
+                        second_body_id: second.body_id.clone(),
+                        disposition: RelativeTimeBroadphasePairDisposition::OuterAabbPruned,
+                        candidate_slab_indices: Vec::new(),
+                        pairwise_result: None,
+                        unresolved_reason: None,
+                    }
+                }
+            };
+
+            if receipt.disposition == RelativeTimeBroadphasePairDisposition::Unresolved {
+                output.unresolved_pairs += 1;
+            }
+            output.pairs.push(receipt);
+        }
+    }
+    Ok(output)
+}
+
+fn unresolved_broadphase_pair(
+    first: &OuterEnvelopeBody,
+    second: &OuterEnvelopeBody,
+    candidate_slab_indices: Vec<u32>,
+    reason: RelativeTimeBroadphaseUnresolvedReason,
+) -> RelativeTimeBroadphasePairReceipt {
+    RelativeTimeBroadphasePairReceipt {
+        first_body_id: first.body_id.clone(),
+        second_body_id: second.body_id.clone(),
+        disposition: RelativeTimeBroadphasePairDisposition::Unresolved,
+        candidate_slab_indices,
+        pairwise_result: None,
+        unresolved_reason: Some(reason),
+    }
+}
+
+/// Build a zero-uncertainty span that encloses the complete clock-offset
+/// uncertainty tube represented by the pairwise oracle:
+/// widened interval [start-epsilon, end+epsilon), linear extrapolation at both
+/// ends, and capsule radius expanded by |translation|*epsilon/duration.
+fn build_clock_uncertainty_outer_span(
+    span: &CapsuleMotionSpan,
+) -> Result<CapsuleMotionSpan, OuterEnvelopeFailure> {
+    if span.start_ms >= span.end_ms {
+        return Err(OuterEnvelopeFailure::InvalidTimeInterval);
+    }
+    if span.clock_uncertainty_ms == 0 {
+        return Ok(span.clone());
+    }
+
+    let widened_start = span
+        .start_ms
+        .checked_sub(span.clock_uncertainty_ms)
+        .ok_or(OuterEnvelopeFailure::TimestampUnderflow)?;
+    let widened_end = span
+        .end_ms
+        .checked_add(span.clock_uncertainty_ms)
+        .ok_or(OuterEnvelopeFailure::TimestampOverflow)?;
+    if widened_start >= widened_end {
+        return Err(OuterEnvelopeFailure::InvalidTimeInterval);
+    }
+
+    let duration = (span.end_ms - span.start_ms) as f64;
+    let uncertainty_fraction = span.clock_uncertainty_ms as f64 / duration;
+    let translation_norm = span
+        .translation
+        .x
+        .hypot(span.translation.y)
+        .hypot(span.translation.z);
+    let margin = translation_norm * uncertainty_fraction;
+    let expanded_radius = span.capsule_at_start.radius_mm + margin;
+    let widened_duration_fraction = 1.0 + 2.0 * uncertainty_fraction;
+    let start_shift = span.translation.scale(-uncertainty_fraction);
+    let widened_translation = span.translation.scale(widened_duration_fraction);
+    let start = span.capsule_at_start.start.add(start_shift);
+    let end = span.capsule_at_start.end.add(start_shift);
+    if !margin.is_finite()
+        || !expanded_radius.is_finite()
+        || !widened_duration_fraction.is_finite()
+        || !finite_vec3(start)
+        || !finite_vec3(end)
+        || !finite_vec3(widened_translation)
+    {
+        return Err(OuterEnvelopeFailure::NonFiniteExpansion);
+    }
+    let capsule = Capsule::new(start, end, expanded_radius)
+        .map_err(|_| OuterEnvelopeFailure::InvalidExpandedCapsule)?;
+
+    let mut outer = span.clone();
+    outer.capsule_at_start = capsule;
+    outer.translation = widened_translation;
+    outer.start_ms = widened_start;
+    outer.end_ms = widened_end;
+    outer.clock_uncertainty_ms = 0;
+    Ok(outer)
+}
+
+fn finite_vec3(value: crate::Vec3) -> bool {
+    value.x.is_finite() && value.y.is_finite() && value.z.is_finite()
 }
 
 #[cfg(test)]
