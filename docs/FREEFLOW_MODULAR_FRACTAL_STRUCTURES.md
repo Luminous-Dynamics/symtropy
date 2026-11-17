@@ -609,3 +609,9 @@ The next structural solver milestone is tracked in [Symtropy issue #5768](https:
 ### Compute-aware damage-screen budgets
 
 The bounded two-member removal campaign now uses both a hard 1,024-scenario ceiling and an approximate dense-solve work budget proportional to the cube of the number of free degrees of freedom. The applied sample is bounded by the request, available pairs, the hard scenario ceiling and the work budget. Every receipt reports requested, applied and omitted scenarios. This is an execution-budget guard, not a reliability metric; sampled pair ranks remain deterministic and are not a probability distribution.
+
+
+### Physical connector validation workstream
+
+A separate exploratory coupon programme is now tracked in [issue #5771](https://github.com/Luminous-Dynamics/symtropy/issues/5771). It stages non-load-bearing fit prototypes, quasi-static connector characterization, repeated mate/unmate wear testing, and later cyclic/fatigue/NDE work. The minimum record includes specimen identity, process/material batch, as-built metrology, calibration, raw synchronized force/displacement data, post-test inspection and all failed/aborted specimens. This is a future physical work plan; no coupons have been fabricated or tested in this software-only increment.
+
