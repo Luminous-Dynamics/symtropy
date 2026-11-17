@@ -225,11 +225,11 @@
       "total_system_power_w": 110,
       "priority_weighted_response_ms": 1165,
       "violations": [
-        "haps_compute_capacity_exceeded:2.55>2.2",
-        "haps_node_power_exceeded:110>90",
-        "haps_node_heat_exceeded:99>70",
-        "haps_incremental_power_exceeded:110>90",
-        "haps_heat_rejection_exceeded:99>70"
+        "compute:haps",
+        "node_power:haps",
+        "node_heat:haps",
+        "haps_power",
+        "haps_heat"
       ]
     },
     "lowest_latency_feasible": {
