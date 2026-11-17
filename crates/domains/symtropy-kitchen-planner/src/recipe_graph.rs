@@ -505,6 +505,7 @@ pub fn recipe_graph_to_kitchen_plan(
 mod tests {
     use super::*;
     use crate::TaskDependencyV1;
+    use serde::Deserialize;
 
     #[derive(Deserialize)]
     struct RecipeTaskGraphFixtureBundle {
