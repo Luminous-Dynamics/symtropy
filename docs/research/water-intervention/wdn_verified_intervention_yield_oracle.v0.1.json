@@ -540,7 +540,7 @@
           "independent_confirmation": true,
           "repair_completed": true,
           "independent_post_repair_verification": true,
-          "observed_flow_reduction_lps": 0.3999999999999986,
+          "observed_flow_reduction_lps": 0.4,
           "lower_bound_flow_reduction_lps": 0,
           "crew_hours": 5,
           "repair_cost_minor": 45000,
