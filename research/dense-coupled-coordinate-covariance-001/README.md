@@ -46,7 +46,7 @@ It compares lifted positions/velocities, both multiplier vectors, squared-link r
 
 The new machine-readable step vector is `fixtures/dense_coupled_chain_rattle_step_case_v0.2.json`, with its own Draft 2020-12 schema. It pins the solver profile and per-observable tolerances.
 
-**Qualification status:** the code and regression are authored, but only an exact-head Rust 1.96 run can establish whether the direct dense solve compiles and passes. The prior exact-head run passed the rank-diagnostics target but stopped at formatting before the new RATTLE tests; the formatter corrections were applied. No dense step-map pass is claimed until the latest run completes.
+**Qualification status:** the exact Rust 1.96 run on code head `f45a5e3` passed formatting, all 27 warning-denied tests, and the optimized deterministic replay. The dense-step comparison is therefore qualified for this frozen force-free open-chain fixture and the two tested basis changes. The later branch commits add only the v0.2 fixture/schema and README (no solver-code changes). This does not qualify forced RATTLE, pHDAE equivalence, contact/friction or long-horizon drift.
 
 ## Competitive benchmark ladder
 
