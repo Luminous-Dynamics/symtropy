@@ -36,11 +36,30 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
     writeln!(&mut output, "  \"source_commit\": {},", json_string(source_commit)).unwrap();
     writeln!(&mut output, "  \"corpus_sha256\": {},", json_string(corpus_sha256)).unwrap();
     writeln!(&mut output, "  \"case_count\": {},", report.cases.len()).unwrap();
-    writeln!(&mut output, "  \"table_reproduced_count\": {},", report.table_reproduced_count).unwrap();
-    writeln!(&mut output, "  \"outside_source_domain_count\": {},", report.outside_source_domain_count).unwrap();
+    writeln!(
+        &mut output,
+        "  \"table_reproduced_count\": {},",
+        report.table_reproduced_count
+    )
+    .unwrap();
+    writeln!(
+        &mut output,
+        "  \"outside_source_domain_count\": {},",
+        report.outside_source_domain_count
+    )
+    .unwrap();
     writeln!(&mut output, "  \"max_relative_error\": {:.15e},", report.max_relative_error).unwrap();
     writeln!(&mut output, "  \"result\": \"pass\",").unwrap();
-    writeln!(&mut output, "  \"claim_ceiling\": \"Source-arithmetic reproduction of Birch (1982) Eqs. 35/44/53/54 and rounded Table 4 only; no physical qualification.\",").unwrap();
+    let claim_ceiling = concat!(
+        "Source-arithmetic reproduction of Birch (1982) Eqs. 35/44/53/54 ",
+        "and rounded Table 4 only; no physical qualification."
+    );
+    writeln!(
+        &mut output,
+        "  \"claim_ceiling\": {},",
+        json_string(claim_ceiling)
+    )
+    .unwrap();
     writeln!(&mut output, "  \"cases\": [").unwrap();
 
     for (index, case) in report.cases.iter().enumerate() {
@@ -49,8 +68,18 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
         writeln!(&mut output, "      \"case_id\": {},", json_string(&case.case_id)).unwrap();
         writeln!(&mut output, "      \"status\": {},", json_string(case.status.as_str())).unwrap();
         writeln!(&mut output, "      \"turn_angle_rad\": {:.15e},", case.turn_angle_rad).unwrap();
-        writeln!(&mut output, "      \"turn_angle_limit_rad\": {:.15e},", case.turn_angle_limit_rad).unwrap();
-        match (case.orbital_speed_mps, case.predicted_force_n, case.table_force_n, case.relative_error) {
+        writeln!(
+            &mut output,
+            "      \"turn_angle_limit_rad\": {:.15e},",
+            case.turn_angle_limit_rad
+        )
+        .unwrap();
+        match (
+            case.orbital_speed_mps,
+            case.predicted_force_n,
+            case.table_force_n,
+            case.relative_error,
+        ) {
             (Some(speed), Some(force), Some(table_force), Some(error)) => {
                 writeln!(&mut output, "      \"orbital_speed_mps\": {:.15e},", speed).unwrap();
                 writeln!(&mut output, "      \"predicted_force_n\": {:.15e},", force).unwrap();
@@ -75,7 +104,10 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 4 || args[0] != "--source-commit" || args[2] != "--corpus-sha256" {
-        return Err("usage: ors-skyhook-reference --source-commit <40-char-sha> --corpus-sha256 <64-char-sha>".to_owned());
+        return Err(
+            "usage: ors-skyhook-reference --source-commit <40-char-sha> --corpus-sha256 <64-char-sha>"
+                .to_owned(),
+        );
     }
     if !valid_hex(&args[1], 40) {
         return Err("source commit must be a 40-character lowercase hexadecimal SHA".to_owned());
