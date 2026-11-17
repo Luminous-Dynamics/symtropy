@@ -210,7 +210,7 @@ fn generate_episode(
     // serpentine so InputOrder reproduces a fixed-raster comparator. All
     // candidates on one lane share a pass identity; a target cannot accrue
     // repeated independent observations from consecutive frames on that lane.
-    let pass_angles = [-1.40, -0.85, -0.30, 0.30, 0.85, 1.40];
+    let pass_angles: [f64; 6] = [-1.40, -0.85, -0.30, 0.30, 0.85, 1.40];
     let footprint_half_width_m = 4.7 * layout_scale;
     let footprint_half_height_m = 3.8 * layout_scale;
     let mut candidates = Vec::with_capacity(CANDIDATE_COUNT);
