@@ -17,6 +17,9 @@ use std::fmt;
 pub type Vector3 = [f64; 3];
 pub type Matrix3 = [[f64; 3]; 3];
 pub type Jacobian2x3 = [[f64; 3]; 2];
+pub type Vector6 = [f64; 6];
+pub type Matrix6 = [[f64; 6]; 6];
+pub type Jacobian3x6 = [[f64; 6]; 3];
 
 pub const RECEIVER_SCHEMA_VERSION: &str = "luminous.symmetry_physical_receiver.v0.1";
 pub const RECEIVER_PROFILE_ID: &str = "symtropy-dense-3d-receiver-profile-v0.1";
@@ -103,6 +106,25 @@ pub enum ReceiverErrorV1 {
         defect_bits: u64,
     },
     CotangentNormNotPreserved {
+        defect_bits: u64,
+    },
+    InvalidStepMapWitness,
+    StepMapConditionOutOfEnvelope {
+        estimate_bits: u64,
+    },
+    StepKinematicsViolation {
+        defect_bits: u64,
+    },
+    StepConstraintViolation {
+        defect_bits: u64,
+    },
+    StepMomentumBalanceViolation {
+        defect_bits: u64,
+    },
+    StepEnergyWorkViolation {
+        defect_bits: u64,
+    },
+    StepCoordinateLiftViolation {
         defect_bits: u64,
     },
     ReceiptSerializationFailure,
@@ -196,6 +218,31 @@ pub struct HandoffEnvelopeV1 {
     pub claim_boundary: Value,
 }
 
+/// Frozen input/output witness for one constrained midpoint step.
+///
+/// The receiver checks the discrete equations in both the canonical and dense
+/// generalized-coordinate representations. It does not rerun the Newton
+/// iteration or trust the solver's convergence flag.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StepMapWitnessV1 {
+    pub model_id: String,
+    pub masses_kg: [f64; 2],
+    pub link_length_m: f64,
+    pub time_step_s: f64,
+    pub coordinate_basis_s: Matrix6,
+    pub initial_position_q: Vector6,
+    pub initial_velocity_q: Vector6,
+    pub force_covector_q: Vector6,
+    pub position_next_q: Vector6,
+    pub velocity_next_q: Vector6,
+    pub midpoint_velocity_q: Vector6,
+    pub multiplier: f64,
+    pub position_next_y: Vector6,
+    pub velocity_next_y: Vector6,
+    pub midpoint_velocity_y: Vector6,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PhysicalFixtureV1 {
@@ -211,6 +258,7 @@ pub struct PhysicalFixtureV1 {
     pub declared_momentum_covector_y: Vector3,
     pub declared_constraint_jacobian_y: Jacobian2x3,
     pub declared_generators_y: Vec<Matrix3>,
+    pub step_map_witness: StepMapWitnessV1,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -261,8 +309,25 @@ pub struct ReceiverObligationsV1 {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct StepMapDiagnosticsV1 {
+    pub basis_condition_inf_estimate: f64,
+    pub canonical_kinematics_relative_defect: f64,
+    pub dense_kinematics_relative_defect: f64,
+    pub dense_lift_relative_defect: f64,
+    pub canonical_midpoint_constraint_relative_defect: f64,
+    pub dense_midpoint_constraint_relative_defect: f64,
+    pub canonical_momentum_balance_relative_defect: f64,
+    pub dense_momentum_balance_relative_defect: f64,
+    pub canonical_discrete_constraint_identity_relative_defect: f64,
+    pub dense_discrete_constraint_identity_relative_defect: f64,
+    pub canonical_energy_work_relative_defect: f64,
+    pub dense_energy_work_relative_defect: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ReceiverDiagnosticsV1 {
     pub transform_condition_inf_estimate: f64,
+    pub step_map: StepMapDiagnosticsV1,
     pub mass_metric_relative_symmetry_defect: f64,
     pub mass_congruence_relative_defect: f64,
     pub force_covector_relative_defect: f64,
@@ -1264,6 +1329,20 @@ fn out_of_envelope_receipt(
         tangent_norm_relative_defect: 0.0,
         force_dual_norm_relative_defect: 0.0,
         momentum_dual_norm_relative_defect: 0.0,
+        step_map: StepMapDiagnosticsV1 {
+            basis_condition_inf_estimate: 0.0,
+            canonical_kinematics_relative_defect: 0.0,
+            dense_kinematics_relative_defect: 0.0,
+            dense_lift_relative_defect: 0.0,
+            canonical_midpoint_constraint_relative_defect: 0.0,
+            dense_midpoint_constraint_relative_defect: 0.0,
+            canonical_momentum_balance_relative_defect: 0.0,
+            dense_momentum_balance_relative_defect: 0.0,
+            canonical_discrete_constraint_identity_relative_defect: 0.0,
+            dense_discrete_constraint_identity_relative_defect: 0.0,
+            canonical_energy_work_relative_defect: 0.0,
+            dense_energy_work_relative_defect: 0.0,
+        },
     };
     let payload = ReceiverReceiptPayloadV1 {
         schema_version: RECEIVER_SCHEMA_VERSION.to_owned(),
