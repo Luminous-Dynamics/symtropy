@@ -111,7 +111,7 @@ fn parse_canonical_utc_seconds(value: &str) -> Option<i64> {
     if day < 1 || day > days_in_month {
         return None;
     }
-    let adjusted_year = year - i64::from(month <= 2);
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
     let era = if adjusted_year >= 0 {
         adjusted_year
     } else {
