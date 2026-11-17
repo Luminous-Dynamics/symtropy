@@ -240,6 +240,7 @@ pub enum FieldWrenchReferenceRelationship {
 pub struct TractionFieldEstimate {
     pub estimate_digest: String,
     pub sample_identity: String,
+    pub native_observation_set_digest: String,
     pub local_traction_pa: Vec<f64>,
     pub standard_uncertainties_pa: Vec<f64>,
     pub uncertainty_method_digest: String,
@@ -258,6 +259,7 @@ impl TractionFieldEstimate {
         for (name, value) in [
             ("estimate_digest", self.estimate_digest.as_str()),
             ("sample_identity", self.sample_identity.as_str()),
+            ("native_observation_set_digest", self.native_observation_set_digest.as_str()),
             ("uncertainty_method_digest", self.uncertainty_method_digest.as_str()),
             (
                 "uncertainty_reference_ancestry_receipt_id",
@@ -274,6 +276,9 @@ impl TractionFieldEstimate {
         }
         if self.sample_identity != binding.sample_identity {
             return Err("traction-field estimate sample identity does not match the wrench sample".to_owned());
+        }
+        if self.native_observation_set_digest != binding.native_observation_set_digest {
+            return Err("traction-field estimate does not bind the exact native observation set".to_owned());
         }
         if self.local_traction_pa.len() != operator.parameter_count
             || self.local_traction_pa.iter().any(|value| !value.is_finite())
@@ -1115,6 +1120,7 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
     let field_estimate = TractionFieldEstimate {
         estimate_digest: "sha256:synthetic-field-estimate".to_owned(),
         sample_identity: "sample:synthetic-001".to_owned(),
+        native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
         local_traction_pa: field.clone(),
         standard_uncertainties_pa: vec![25.0; field.len()],
         uncertainty_method_digest: "sha256:synthetic-field-uncertainty-method".to_owned(),
@@ -1204,6 +1210,7 @@ mod tests {
         TractionFieldEstimate {
             estimate_digest: "sha256:traction-field-estimate".to_owned(),
             sample_identity: "sample:001".to_owned(),
+            native_observation_set_digest: "sha256:native-observations".to_owned(),
             local_traction_pa: values.to_vec(),
             standard_uncertainties_pa: vec![10.0; values.len()],
             uncertainty_method_digest: "sha256:field-uncertainty-method".to_owned(),
@@ -1461,7 +1468,7 @@ mod tests {
         bad_timing.timestamp_alignment_uncertainty_ns = 1_000_000;
         let report = assess_wrench_consistency(
             &operator,
-            &field,
+            &traction_field_estimate(&field),
             &observation_from_field(&operator, &field),
             &bad_timing,
             &binding(),
@@ -1496,7 +1503,7 @@ mod tests {
             WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
         );
         let distance = report.mahalanobis_distance.expect("joint distance");
-        assert!((distance - 1.154700538).abs() < 1.0e-6);
+        assert!((distance - 1.143324).abs() < 1.0e-5);
     }
 
     #[test]
@@ -1526,6 +1533,112 @@ mod tests {
             3.0,
         );
         assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
+    }
+
+    #[test]
+    fn tactile_field_covariance_is_propagated_into_the_six_axis_residual() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let estimate = traction_field_estimate(&field);
+        let observation = observation_from_field(&operator, &field);
+        let report = assess_wrench_consistency(
+            &operator,
+            &estimate,
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        let contribution = report
+            .field_uncertainty_contribution_covariance_row_major
+            .expect("field covariance contribution");
+        let total = report
+            .residual_covariance_row_major
+            .expect("combined residual covariance");
+        assert_eq!(contribution.len(), 36);
+        assert_eq!(total.len(), 36);
+        assert!(contribution.iter().any(|value| *value > 0.0));
+        for index in 0..36 {
+            assert!((total[index] - observation.covariance.matrix_row_major[index] - contribution[index]).abs() < 1.0e-12);
+        }
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
+        );
+    }
+
+    #[test]
+    fn shared_or_unknown_field_uncertainty_cannot_be_added_as_independent_covariance() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let observation = observation_from_field(&operator, &field);
+
+        let mut shared = traction_field_estimate(&field);
+        shared.relationship_to_wrench_reference =
+            FieldWrenchReferenceRelationship::SharedReferenceOrCalibration;
+        let shared_report = assess_wrench_consistency(
+            &operator,
+            &shared,
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(
+            shared_report.disposition,
+            WrenchConsistencyDisposition::FieldUncertaintyUnresolved
+        );
+
+        let mut correlated = traction_field_estimate(&field);
+        correlated.covariance_structure = FieldCovarianceStructure::CorrelatedOrUnknown;
+        let correlated_report = assess_wrench_consistency(
+            &operator,
+            &correlated,
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(
+            correlated_report.disposition,
+            WrenchConsistencyDisposition::FieldUncertaintyUnresolved
+        );
+    }
+
+    #[test]
+    fn field_uncertainty_must_bind_the_exact_native_sample_and_observation_set() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let observation = observation_from_field(&operator, &field);
+        let mut wrong_native = traction_field_estimate(&field);
+        wrong_native.native_observation_set_digest = "sha256:different-native".to_owned();
+        let report = assess_wrench_consistency(
+            &operator,
+            &wrong_native,
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::FieldUncertaintyUnresolved
+        );
+
+        let mut wrong_sample = traction_field_estimate(&field);
+        wrong_sample.sample_identity = "sample:different".to_owned();
+        let report = assess_wrench_consistency(
+            &operator,
+            &wrong_sample,
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::FieldUncertaintyUnresolved
+        );
     }
 
     #[test]
