@@ -812,6 +812,69 @@ mod tests {
     }
 
     #[test]
+    fn publisher_capture_integrity_does_not_auto_admit_pending_rights() {
+        let (body, headers, manifest_bytes, bundle) = fixture();
+        let mut body_value: Value = serde_json::from_slice(&body).unwrap();
+        body_value["release"] = json!("2026-11-17-deadbeef");
+        body_value["licence"] = json!(
+            "CC BY 4.0. Credit Johannesburg Water for the underlying facts."
+        );
+        let publisher_body = serde_json::to_vec_pretty(&body_value).unwrap();
+
+        let publisher_licence =
+            "CC BY 4.0. Credit Johannesburg Water for the underlying facts.";
+        let publisher_headers = String::from_utf8(headers)
+            .unwrap()
+            .replace("SYNTHETIC-ONLY", publisher_licence)
+            .into_bytes();
+
+        let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
+        manifest["capture_mode"] = json!("publisher_capture");
+        manifest["evidence_class"] = json!("publisher_reported_asset_status");
+        manifest["source"]["url"] =
+            json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
+        manifest["capture"]["final_url"] =
+            json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
+        manifest["capture"]["headers"]["x-licence"] = json!(publisher_licence);
+        manifest["rights_review"]["status"] = json!("pending");
+        let pending_manifest =
+            refresh_manifest(&publisher_body, &publisher_headers, &mut manifest);
+
+        let pending = validate_capture(
+            &publisher_body,
+            &publisher_headers,
+            &pending_manifest,
+            &bundle["schema"],
+        )
+        .unwrap();
+        assert_eq!(pending["integrity_status"], "PASS");
+        assert_eq!(pending["evidence_class"], "publisher_reported_asset_status");
+        assert_eq!(pending["admission_status"], "pending_rights_review");
+        assert_eq!(pending["household_tap_status"], "not_established");
+
+        manifest["rights_review"]["status"] = json!("approved");
+        manifest["rights_review"]["review_reference"] =
+            json!("synthetic-review-reference-only");
+        let approved_manifest =
+            refresh_manifest(&publisher_body, &publisher_headers, &mut manifest);
+        let approved = validate_capture(
+            &publisher_body,
+            &publisher_headers,
+            &approved_manifest,
+            &bundle["schema"],
+        )
+        .unwrap();
+        assert_eq!(
+            approved["admission_status"],
+            "rights_review_marked_approved_source_integrity_checked"
+        );
+        assert_eq!(
+            approved["claim_ceiling"],
+            "publisher_reported_asset_status_only"
+        );
+    }
+
+    #[test]
     fn release_ids_are_date_bound_and_hash_suffixed() {
         let mut parts = "2026-11-17-ee99662f".split('-');
         let date = format!(
