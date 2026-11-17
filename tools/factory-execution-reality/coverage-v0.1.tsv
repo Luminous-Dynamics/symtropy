@@ -18,3 +18,11 @@ COV-MES-09	S09	MES-A	origin:MES-A	ALL	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	
 COV-PLC-09	S09	PLC-CNC-A;PLC-CNC-B;PLC-CLEAN-A	origin:PLC	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-PLC-01;CAL-PLC-02;CAL-CLEAN-01	MAP-01	-	100	Machine and process-cycle observations support route chronology.
 COV-RTLS-09	S09	RTLS-01	origin:RTLS-01	CELL-CNC-A;CELL-CNC-B;CELL-CLEAN-A	2026-11-01T09:20:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Location evidence covers the route.
 COV-QA-09	S09	QMS-A	origin:QMS-A	QA-LAB	2026-11-01T09:28:00Z	2026-11-01T09:30:00Z	ADEQUATE	CAL-QA-01	MAP-01	-	-	First-article failure is within current inspection coverage.
+COV-PLC-01	S01	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:05:00Z	2026-11-01T08:12:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Machine cycle is covered despite the missing MES registration.
+COV-RTLS-01	S01	RTLS-01	origin:RTLS-01	CELL-CNC-B	2026-11-01T08:05:00Z	2026-11-01T08:12:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Independent zone evidence supports the observed route.
+COV-MES-02	S02	MES-A	origin:MES-A	ALL	2026-11-01T08:15:00Z	2026-11-01T08:25:00Z	ADEQUATE	-	MAP-01	-	-	MES registration coverage for the claimed finish event.
+COV-RTLS-04	S04	RTLS-02	origin:RTLS-02	CELL-CNC-B	2026-11-01T08:35:00Z	2026-11-01T08:45:00Z	ADEQUATE	CAL-RTLS-02	MAP-01	0.25	1000	RTLS identity evidence is in coverage but conflicts with barcode product binding.
+COV-SCAN-04	S04	SCAN-A	origin:SCAN-A	CELL-CNC-B	2026-11-01T08:35:00Z	2026-11-01T08:45:00Z	ADEQUATE	CAL-SCAN-01	MAP-01	-	-	Barcode scan evidence is in coverage for the identity conflict.
+COV-MES-05	S05	MES-A	origin:MES-A	ALL	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	-	MAP-01	-	-	MES registration is available at decision time.
+COV-PLC-05	S05	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Late-ingested machine event is available before the decision epoch.
+COV-CLEAN-09	S09	PLC-CLEAN-A	origin:PLC-CLEAN-A	CELL-CLEAN-A	2026-11-01T09:23:00Z	2026-11-01T09:26:00Z	ADEQUATE	CAL-CLEAN-01	MAP-01	-	100	Clean operation is observed before the failed first-article inspection.
