@@ -182,7 +182,7 @@ fn parse_trace(
         if !matches!(row[2].as_str(), "SATISFIED" | "NOT_APPLICABLE" | "UNSUPPORTED" | "UNKNOWN") {
             return Err(format!("reference-trace-v0.1.tsv: line {line}: invalid disposition"));
         }
-        if !matches!(row[6].as_str(), "CURRENT" | "STALE" | "UNKNOWN") {
+        if !matches!(row[7].as_str(), "CURRENT" | "STALE" | "UNKNOWN") {
             return Err(format!("reference-trace-v0.1.tsv: line {line}: invalid evidence state"));
         }
         let entry = TraceEntry {
