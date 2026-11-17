@@ -97,7 +97,7 @@ cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin 
 
 The gate validates the Draft 2020-12 lifecycle registry schema, unique profile identities, compatibility references, the no-auto-upgrade policy, pinned root bytes/blob identities/SHA-256 values and the local DataCite/OGC/OpenLineage schema identifiers.
 
-**27 unit tests are written**, including:
+**29 unit tests are written**, including:
 - final vs draft vs deprecated vs retired vs unknown state;
 - missing/invalid schema digest abstention;
 - incomplete dependency bundle restricting a final profile to selected-profile-only;
