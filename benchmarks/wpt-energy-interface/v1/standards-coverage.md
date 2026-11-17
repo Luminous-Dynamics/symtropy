@@ -1,0 +1,16 @@
+# Standards coverage and research extension matrix
+
+This is a preliminary scope map, not a clause-by-clause compliance assessment.
+
+| Document | Published scope relevant to this programme | Interface profile treatment |
+|---|---|---|
+| IEC PAS 61980-5:2024 | Off-board equipment for dynamic magnetic-field WPT to vehicles in motion; operating conditions, power transfer, electrical safety and EMC | Reuse relevant equipment/safety concepts. Do not claim compliance from this schema |
+| IEC PAS 61980-6:2025 | Communications and positioning activities for dynamic magnetic-field WPT | Map identity, freshness, positioning and session events; its published scope lists bidirectional transfer as under consideration |
+| IEC PAS 61980-4:2025 | Stationary high-power magnetic-field WPT interoperability and safety | Keep stationary high-power profile distinct from dynamic-roadway profile |
+| IEC/IEEE 63184:2025 | Human exposure assessment methods for stationary inductive WPT from 3 kHz to 30 MHz, including instrumentation and computational assessment | Map applicable measurement/evaluation evidence for in-scope stationary systems; do not treat it as a dynamic-roadway or out-of-band exposure standard |
+| SAE J2954_202408 | Stationary light-duty, forward grid-to-vehicle WPT scope | Do not infer dynamic or reverse-flow compliance |
+| ISO/PAS 5474-6:2025 | Vehicle-side static/dynamic MF-WPT for heavy-duty applications; modular multi-secondary exclusions remain relevant | Keep multi-secondary modular arrangements explicit as a research extension |
+
+The 30 October 2026 primary-only DWC architecture paper is a research baseline, not a normative standards source: Dimitriadou et al., Wireless Power Transfer 13:e031, DOI 10.48130/wpt-0026-0023. It motivates an additional communication-independence and local-control profile, but its FEM/co-simulation evidence is not evidence of hardware interoperability or standards conformance.
+
+The schema is a proposed interoperability reference, not a substitute for normative requirements, jurisdictional safety rules, EMC assessment, exposure limits or certification testing. A profile-specific coverage map and clause-by-clause assessment must be produced before making any conformity statement.

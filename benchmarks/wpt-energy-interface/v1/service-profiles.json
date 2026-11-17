@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "claim": "These are proposed typed service profiles, not standards definitions.",
+  "profiles": [
+    {
+      "service_type": "BATTERY_DC",
+      "service_quantity": "ELECTRICAL_DC_ENERGY",
+      "unit": "J",
+      "measurement_method": "DC_REAL_POWER_INTEGRATION",
+      "useful_boundary": "battery DC terminals",
+      "integration": "integral of synchronized DC real power at the battery-side terminals",
+      "excluded_substitutions": [
+        "state-of-charge estimate without a calibrated energy model",
+        "rectifier output when battery-side boundary is claimed"
+      ]
+    },
+    {
+      "service_type": "SHAFT_MECHANICAL",
+      "service_quantity": "MECHANICAL_SHAFT_WORK",
+      "unit": "J",
+      "measurement_method": "TORQUE_SPEED_INTEGRATION",
+      "useful_boundary": "declared mechanical shaft",
+      "integration": "integral of measured torque multiplied by angular velocity",
+      "excluded_substitutions": [
+        "motor electrical input power",
+        "unmeasured nominal torque or speed"
+      ]
+    },
+    {
+      "service_type": "PROCESS_HEAT",
+      "service_quantity": "THERMAL_PROCESS_ENERGY",
+      "unit": "J",
+      "measurement_method": "CALORIMETRY_OR_ENTHALPY",
+      "useful_boundary": "declared thermal control volume / process interface",
+      "integration": "calibrated heat-flow integration or independently validated enthalpy change",
+      "excluded_substitutions": [
+        "heater electrical input energy",
+        "ambient temperature rise without a declared thermal model"
+      ]
+    },
+    {
+      "service_type": "OPTICAL_RADIANT",
+      "service_quantity": "OPTICAL_RADIANT_ENERGY",
+      "unit": "J",
+      "measurement_method": "OPTICAL_RADIOMETRY",
+      "useful_boundary": "declared optical receiver plane or process aperture",
+      "integration": "integral of calibrated radiant optical power across the declared aperture",
+      "excluded_substitutions": [
+        "laser electrical input energy",
+        "unmeasured nominal optical conversion efficiency"
+      ]
+    },
+    {
+      "service_type": "CHEMICAL_PROCESS",
+      "service_quantity": "CHEMICAL_FREE_ENERGY_CHANGE",
+      "unit": "J",
+      "measurement_method": "REACTION_EXTENT_AND_CHEMICAL_POTENTIAL",
+      "useful_boundary": "declared chemical process control volume and state boundary",
+      "integration": "compute the signed chemical free-energy change from measured reaction extent and chemical potentials under declared temperature, pressure and composition; apply the declared STORED or RELEASED sign convention before reporting nonnegative useful service energy",
+      "excluded_substitutions": [
+        "electrical input energy alone",
+        "nominal reaction yield without a state-function and uncertainty model"
+      ],
+      "chemical_energy_mode": {
+        "required": true,
+        "values": [
+          "STORED",
+          "RELEASED"
+        ],
+        "sign_convention": {
+          "STORED": "positive useful output equals the positive increase in the declared chemical free-energy state for the forward reaction extent",
+          "RELEASED": "positive useful output equals the magnitude of the negative change in the declared chemical free-energy state for the forward reaction extent"
+        }
+      }
+    }
+  ]
+}
