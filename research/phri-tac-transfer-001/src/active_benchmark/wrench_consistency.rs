@@ -578,8 +578,15 @@ pub fn transform_geometry_to_reference(
 /// six-axis wrench in newtons and newton-metres.
 pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperator, String> {
     validate_geometry(geometry)?;
-    let parameter_count = geometry.taxels.len() * 3;
-    let mut coefficients = vec![0.0; 6 * parameter_count];
+    let parameter_count = geometry
+        .taxels
+        .len()
+        .checked_mul(3)
+        .ok_or_else(|| "taxel traction parameter count overflows usize".to_owned())?;
+    let coefficient_count = parameter_count
+        .checked_mul(6)
+        .ok_or_else(|| "six-axis wrench operator size overflows usize".to_owned())?;
+    let mut coefficients = vec![0.0; coefficient_count];
 
     for (taxel_index, taxel) in geometry.taxels.iter().enumerate() {
         let arm = taxel.application_point_m.subtract(geometry.wrench_origin_m);
@@ -596,13 +603,19 @@ pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperat
                 moment_per_pascal.y,
                 moment_per_pascal.z,
             ];
-            for row in 0..6 {
-                coefficients[row * parameter_count + parameter] = wrench_components[row];
+            if wrench_components.iter().any(|value| !value.is_finite()) {
+                return Err(format!(
+                    "taxel {} produces non-finite force/moment coefficients",
+                    taxel.taxel_id
+                ));
+            }
+            for (row, component) in wrench_components.iter().enumerate() {
+                coefficients[row * parameter_count + parameter] = *component;
             }
         }
     }
 
-    Ok(WrenchOperator {
+    let operator = WrenchOperator {
         geometry_digest: geometry.geometry_digest.clone(),
         reference_frame_digest: geometry.reference_frame_digest.clone(),
         contact_boundary_digest: geometry.contact_boundary_digest.clone(),
@@ -613,7 +626,9 @@ pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperat
             .collect(),
         parameter_count,
         coefficients,
-    })
+    };
+    validate_operator(&operator)?;
+    Ok(operator)
 }
 
 fn validate_operator(operator: &WrenchOperator) -> Result<(), String> {
@@ -658,6 +673,9 @@ pub fn integrate_tactile_field(
             &operator.coefficients[start..start + operator.parameter_count],
             local_traction_pa,
         );
+    }
+    if values.iter().any(|value| !value.is_finite()) {
+        return Err("integrated tactile wrench overflowed to a non-finite value".to_owned());
     }
     Ok(WrenchVector {
         force_n: Vec3 {
@@ -981,6 +999,12 @@ pub fn assess_wrench_consistency(
     ];
     let whitened = whiten_wrench_residual(&covariance_cholesky, &raw_residual);
     let distance = dot(&whitened, &whitened).sqrt();
+    if whitened.iter().any(|value| !value.is_finite()) || !distance.is_finite() {
+        return base(
+            WrenchConsistencyDisposition::InvalidObservation,
+            vec!["whitened wrench residual or Mahalanobis distance is non-finite".to_owned()],
+        );
+    }
     let disposition = if distance <= maximum_mahalanobis_distance {
         WrenchConsistencyDisposition::ConsistentWithinDeclaredUncertainty
     } else {
@@ -1764,4 +1788,55 @@ mod tests {
         let operator = build_wrench_operator(&geometry()).unwrap();
         assert!(integrate_tactile_field(&operator, &[1.0, 2.0]).is_err());
     }
+    #[test]
+    fn geometry_operator_rejects_finite_inputs_that_overflow_force_or_moment_coefficients() {
+        let mut huge_area = geometry();
+        huge_area.taxels[0].area_m2 = f64::MAX;
+        assert!(build_wrench_operator(&huge_area).is_err());
+
+        let mut huge_moment_arm = geometry();
+        huge_moment_arm.taxels[0].application_point_m.x = 1.0e308;
+        huge_moment_arm.taxels[0].area_m2 = 1.0e308;
+        assert!(build_wrench_operator(&huge_moment_arm).is_err());
+    }
+
+    #[test]
+    fn forged_operator_and_nonfinite_integrated_wrench_fail_closed() {
+        let valid = build_wrench_operator(&geometry()).expect("geometry");
+        let mut malformed = valid.clone();
+        malformed.coefficients.pop();
+        assert!(integrate_tactile_field(&malformed, &field()).is_err());
+
+        let mut overflowing = valid;
+        overflowing.coefficients[0] = f64::MAX;
+        let mut extreme_field = field();
+        extreme_field[0] = 2.0;
+        assert!(integrate_tactile_field(&overflowing, &extreme_field).is_err());
+    }
+
+    #[test]
+    fn overflowed_whitened_residual_is_invalid_not_a_mismatch_or_pass() {
+        let operator = build_wrench_operator(&geometry()).expect("geometry");
+        let field = field();
+        let mut observation = observation_from_field(&operator, &field);
+        observation.force_n.z = -f64::MAX;
+        observation.covariance.matrix_row_major = vec![0.0; 36];
+        for index in 0..6 {
+            observation.covariance.matrix_row_major[index * 6 + index] = f64::MIN_POSITIVE;
+        }
+        let report = assess_wrench_consistency(
+            &operator,
+            &traction_field_estimate(&field),
+            &observation,
+            &evidence(),
+            &binding(),
+            3.0,
+        );
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::InvalidObservation
+        );
+    }
+
+
 }
