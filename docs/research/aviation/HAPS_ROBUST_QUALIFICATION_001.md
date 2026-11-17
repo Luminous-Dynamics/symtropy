@@ -106,6 +106,15 @@ Preserve weather autocorrelation, synoptic regime, altitude correlations and geo
 
 Use model-specific time scales and demonstrate numerical time-step convergence for solar/battery dispatch, battery/motor thermal transients, wind-relative station-keeping, beam acquisition/reacquisition and fleet handover. Do not force one sample rate across all physics.
 
+## Machine-readable cases and arithmetic controls
+
+The versioned [HAPS energy case schema](schemas/haps_energy_case_v1.schema.json) defines a provenance-aware time-series contract. Two fixtures pin down both the positive and negative control:
+
+- [Synthetic day/night surplus-export case](examples/synthetic_haps_daynight_surplus_case_v1.json): 14,076.72 Wh solar generation; 5,040 Wh own-load demand; 4,444.444... Wh battery charge input; 2,520 Wh battery discharge output; 1,500 Wh source-side export; 1,200 Wh receiver-useful energy; 3,200 Wh ending SoC; no own-load deficit; the daily cycle closes.
+- [Synthetic rejection of battery-funded export](examples/synthetic_haps_reject_battery_funded_export_v1.json): 1,200 Wh own-load demand served from 1,333.333... Wh stored-energy withdrawal; 2,400 Wh requested receiver energy is unserved; zero source export and zero receiver energy; 1,666.667 Wh ending SoC remains above the 1,000 Wh reserve but below initial SoC, so the daily cycle and export-service admission both fail.
+
+Both fixtures are synthetic arithmetic oracles, not aircraft profiles or measured performance. The interval contiguity, horizon sum, initial SoC/reserve bounds and ledger equations are semantic invariants in addition to JSON Schema validation. The current Symthaea Rust screen in PR #12674 evaluates an exact 24-hour profile; the case schema can represent longer horizons, but no multi-day execution implementation or validation is claimed yet.
+
 ## 5. Qualification gates
 
 | Gate | Evidence | Permitted claim |
