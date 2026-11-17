@@ -753,7 +753,6 @@ mod tests {
         );
         assert!(parse_topology(&topology, routes).is_err());
     }
-}
 
     #[test]
     fn unknown_qualification_is_unknown_and_expands_optimistic_bound() {
