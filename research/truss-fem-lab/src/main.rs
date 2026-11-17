@@ -1,4 +1,5 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
+use symtropy_truss_fem_lab::damage::single_member_removal_campaign;
 use symtropy_truss_fem_lab::{BoundaryConditions, TrussMaterial, TrussModel};
 
 fn main() {
@@ -46,5 +47,16 @@ fn main() {
         .fold(0.0_f64, f64::max);
     println!("max_node_displacement_m={:.12e}", max_displacement);
     println!("max_abs_axial_stress_pa={:.12e}", max_stress);
+
+    let damage = single_member_removal_campaign(&model, material, &boundary)
+        .expect("intact model must solve before damage campaign");
+    println!("single_member_removals={}", damage.total_removals());
+    println!("single_member_stable={}", damage.stable_removals);
+    println!("single_member_mechanisms={}", damage.mechanism_removals);
+    println!("single_member_other_failures={}", damage.other_failures);
+    println!(
+        "single_member_solvability_fraction={:.6}",
+        damage.single_removal_solvability_fraction()
+    );
     println!("claim_ceiling=ideal pin-jointed linear-elastic truss reference only");
 }
