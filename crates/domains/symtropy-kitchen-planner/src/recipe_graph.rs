@@ -9,6 +9,9 @@
 //! the embedded KitchenTaskV1 scheduling fields exactly.
 
 use crate::{KitchenPlanV1, KitchenTaskV1, KITCHEN_PLAN_SCHEMA_VERSION, validate_plan};
+use crate::action_ontology::{
+    ActionOntologyBindingV1, validate_action_ontology_binding,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
@@ -117,10 +120,16 @@ pub enum RecipeActionKindV1 {
     Dice,
     Grate,
     Shred,
+    Pour,
+    Sprinkle,
+    Stir,
     Mix,
     Knead,
     Blend,
     Emulsify,
+    Pick,
+    Place,
+    Move,
     Saute,
     Boil,
     Simmer,
@@ -146,6 +155,10 @@ pub struct RecipeTaskNodeV1 {
     pub output_refs: Vec<String>,
     /// Reference only; raw source instructions are not embedded or recopied.
     pub instruction_ref: Option<String>,
+    /// Optional hierarchical action-core binding. Missing means no ontology
+    /// enrichment has been performed; it is never inferred from lexical similarity.
+    #[serde(default)]
+    pub ontology_binding: Option<ActionOntologyBindingV1>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -182,6 +195,7 @@ pub enum RecipeGraphViolationCodeV1 {
     RejectedByHumanReview,
     ClaimCeilingMismatch,
     InvalidSchedulePlan,
+    InvalidActionOntologyBinding,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -417,6 +431,19 @@ pub fn validate_recipe_task_graph(
             );
         }
 
+        if let Some(binding) = &node.ontology_binding {
+            let report = validate_action_ontology_binding(node.action_kind, binding);
+            for entry in report.violations {
+                add_violation(
+                    &mut violations,
+                    RecipeGraphViolationCodeV1::InvalidActionOntologyBinding,
+                    Some(recipe_id),
+                    Some(task_id),
+                    format!("{:?}: {}", entry.code, entry.detail),
+                );
+            }
+        }
+
         let mut ingredient_uses = BTreeSet::new();
         for usage in &node.ingredient_inputs {
             if !ingredient_ids.contains(usage.ingredient_id.as_str()) {
@@ -581,6 +608,7 @@ mod tests {
                     }],
                     output_refs: vec!["prepared-onion".to_owned()],
                     instruction_ref: None,
+                    ontology_binding: None,
                 },
                 RecipeTaskNodeV1 {
                     schedule: KitchenTaskV1 {
@@ -607,6 +635,7 @@ mod tests {
                     }],
                     output_refs: vec!["sweated-onion".to_owned()],
                     instruction_ref: Some("instruction-ref:synthetic-step-2".to_owned()),
+                    ontology_binding: None,
                 },
             ],
             claim_ceiling: RECIPE_GRAPH_CLAIM_CEILING.to_owned(),
