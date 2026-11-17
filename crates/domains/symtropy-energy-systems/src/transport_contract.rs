@@ -1160,6 +1160,74 @@ mod tests {
     }
 
     #[test]
+    fn mismatch_in_each_service_and_boundary_dimension_is_not_comparable() {
+        let mutations: [(ComparisonField, fn(&mut UsefulServiceContract)); 7] = [
+            (ComparisonField::ServiceKind, |service| {
+                service.kind = UsefulServiceKind::Heat;
+            }),
+            (ComparisonField::QualityProfile, |service| {
+                service.quality_profile_digest = Some("different-quality".to_owned());
+            }),
+            (ComparisonField::DutyCycle, |service| {
+                service.duty_cycle_digest = Some("different-duty".to_owned());
+            }),
+            (ComparisonField::Scenario, |service| {
+                service.scenario_digest = Some("different-scenario".to_owned());
+            }),
+            (ComparisonField::LocationEnvironment, |service| {
+                service.location_environment_digest = Some("different-environment".to_owned());
+            }),
+            (ComparisonField::SourceBoundary, |service| {
+                service.source_boundary_profile_digest = Some("different-source-boundary".to_owned());
+            }),
+            (ComparisonField::UsefulServiceBoundary, |service| {
+                service.useful_service_boundary_profile_digest =
+                    Some("different-useful-boundary".to_owned());
+            }),
+        ];
+
+        for (field, mutate) in mutations {
+            let first = candidate(
+                "a",
+                primitive(
+                    "wire-a",
+                    "source",
+                    "load",
+                    EnergyCarrier::Electrical,
+                    TransportMechanism::Conduction,
+                    TransportMedium::Conductor,
+                ),
+                service("service-a"),
+            );
+            let mut changed_service = service("service-b");
+            mutate(&mut changed_service);
+            let second = candidate(
+                "b",
+                primitive(
+                    "wire-b",
+                    "source",
+                    "load",
+                    EnergyCarrier::Electrical,
+                    TransportMechanism::Conduction,
+                    TransportMedium::Conductor,
+                ),
+                changed_service,
+            );
+
+            let assessment = assess_matched_service(&[first, second], &policy()).unwrap();
+            assert_eq!(
+                assessment.status(),
+                MatchedServiceComparisonStatus::NotComparable,
+                "expected mismatch in {field:?}"
+            );
+            assert!(assessment.reasons().iter().any(|reason| matches!(
+                reason,
+                MatchedServiceReason::MismatchedField { field: actual } if *actual == field
+            )));
+        }
+    }
+
+    #[test]
     fn evidence_outside_caller_policy_is_unresolved() {
         let mut untrusted = primitive(
             "wire",
