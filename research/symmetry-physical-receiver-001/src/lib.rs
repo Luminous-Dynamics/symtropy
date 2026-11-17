@@ -320,6 +320,8 @@ pub struct StepMapDiagnosticsV1 {
     pub dense_momentum_balance_relative_defect: f64,
     pub canonical_discrete_constraint_identity_relative_defect: f64,
     pub dense_discrete_constraint_identity_relative_defect: f64,
+    pub canonical_link_length_relative_defect: f64,
+    pub dense_link_length_relative_defect: f64,
     pub canonical_energy_work_relative_defect: f64,
     pub dense_energy_work_relative_defect: f64,
 }
@@ -1303,6 +1305,8 @@ fn verify_step_map_witness(
         dense_momentum_balance_relative_defect: 0.0,
         canonical_discrete_constraint_identity_relative_defect: 0.0,
         dense_discrete_constraint_identity_relative_defect: 0.0,
+        canonical_link_length_relative_defect: 0.0,
+        dense_link_length_relative_defect: 0.0,
         canonical_energy_work_relative_defect: 0.0,
         dense_energy_work_relative_defect: 0.0,
     };
@@ -1451,6 +1455,10 @@ fn verify_step_map_witness(
         step_norm3(&r1_y),
         witness.link_length_m,
     );
+    diagnostics.canonical_link_length_relative_defect =
+        initial_length_defect.max(final_length_defect);
+    diagnostics.dense_link_length_relative_defect =
+        dense_initial_length_defect.max(dense_final_length_defect);
 
     let maximum_defect = [
         diagnostics.canonical_kinematics_relative_defect,
@@ -1462,6 +1470,8 @@ fn verify_step_map_witness(
         diagnostics.dense_momentum_balance_relative_defect,
         diagnostics.canonical_discrete_constraint_identity_relative_defect,
         diagnostics.dense_discrete_constraint_identity_relative_defect,
+        diagnostics.canonical_link_length_relative_defect,
+        diagnostics.dense_link_length_relative_defect,
         diagnostics.canonical_energy_work_relative_defect,
         diagnostics.dense_energy_work_relative_defect,
         initial_length_defect,
@@ -1557,6 +1567,8 @@ fn default_step_map_diagnostics(condition_estimate: f64) -> StepMapDiagnosticsV1
         dense_momentum_balance_relative_defect: 0.0,
         canonical_discrete_constraint_identity_relative_defect: 0.0,
         dense_discrete_constraint_identity_relative_defect: 0.0,
+        canonical_link_length_relative_defect: 0.0,
+        dense_link_length_relative_defect: 0.0,
         canonical_energy_work_relative_defect: 0.0,
         dense_energy_work_relative_defect: 0.0,
     }
@@ -1829,7 +1841,7 @@ pub fn verify_package(
         constraint_jacobian: ObligationStatusV1::Pass,
         generator_metric_isometry: ObligationStatusV1::Pass,
         discrete_step_equivariance: step_status,
-        physical_observables: step_status,
+        physical_observables: ObligationStatusV1::Inconclusive,
         numerical_error_envelope: ObligationStatusV1::Inconclusive,
         full_task_semantics: ObligationStatusV1::Pass,
     };
@@ -2461,7 +2473,7 @@ mod tests {
         );
         assert_eq!(
             receipt.payload.obligations.physical_observables,
-            ObligationStatusV1::Pass
+            ObligationStatusV1::Inconclusive
         );
         assert_eq!(
             receipt.payload.obligations.numerical_error_envelope,
