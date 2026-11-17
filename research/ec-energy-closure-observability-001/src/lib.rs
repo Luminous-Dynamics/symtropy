@@ -488,16 +488,16 @@ pub fn integrated_energy_balance_ratio(
         if !ids.insert(interval.interval_id) {
             return Err(IntegratedEbrError::DuplicateIntervalId);
         }
-        if !interval.available_energy_w_m2.is_finite()
-            || !interval.turbulent_energy_w_m2.is_finite()
-        {
-            return Err(IntegratedEbrError::NonFiniteFlux);
-        }
         if interval.gap_fill_state == GapFillState::GapFilled
             && gap_policy == GapFillPolicy::ObservedOnly
         {
             excluded_gap_filled += 1;
             continue;
+        }
+        if !interval.available_energy_w_m2.is_finite()
+            || !interval.turbulent_energy_w_m2.is_finite()
+        {
+            return Err(IntegratedEbrError::NonFiniteFlux);
         }
         included_intervals.push(interval);
     }
@@ -975,6 +975,38 @@ mod tests {
         assert_eq!(result.excluded_gap_filled_intervals, 0);
         assert_eq!(result.window_start_unix_seconds, 0);
         assert_eq!(result.window_end_unix_seconds, 3600);
+    }
+
+    #[test]
+    fn observed_only_ebr_ignores_unusable_values_in_excluded_gapfilled_intervals() {
+        let intervals = [
+            IntegratedEnergyInterval {
+                interval_id: 1,
+                interval_start_unix_seconds: 0,
+                duration_seconds: 1800,
+                available_energy_w_m2: 100.0,
+                turbulent_energy_w_m2: 80.0,
+                gap_fill_state: GapFillState::Observed,
+            },
+            IntegratedEnergyInterval {
+                interval_id: 2,
+                interval_start_unix_seconds: 1800,
+                duration_seconds: 1800,
+                available_energy_w_m2: f64::NAN,
+                turbulent_energy_w_m2: f64::INFINITY,
+                gap_fill_state: GapFillState::GapFilled,
+            },
+        ];
+        let observed_only =
+            integrated_energy_balance_ratio(&intervals, GapFillPolicy::ObservedOnly).unwrap();
+        assert_eq!(observed_only.energy_balance_ratio, 0.8);
+        assert_eq!(observed_only.included_intervals, 1);
+        assert_eq!(observed_only.excluded_gap_filled_intervals, 1);
+
+        assert_eq!(
+            integrated_energy_balance_ratio(&intervals, GapFillPolicy::IncludeGapFilled),
+            Err(IntegratedEbrError::NonFiniteFlux)
+        );
     }
 
     #[test]
