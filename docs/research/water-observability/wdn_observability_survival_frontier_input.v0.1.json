@@ -1,0 +1,2046 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "wdn-observability-survival-frontier-t1-v0.1",
+  "benchmark_id": "WATER-OBSERVABILITY-SURVIVAL-FRONTIER-001",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "unweighted_combinatorial_sensor_layout_resilience_only",
+  "required_state_ids": [
+    "pressure:JHB-N1",
+    "pressure:JHB-N2",
+    "pressure:JHB-N3",
+    "pressure:JHB-N4"
+  ],
+  "domain_types": [
+    "physical_interface",
+    "calibration_lineage",
+    "power_supply",
+    "communications_path",
+    "clock_domain",
+    "measurement_principle"
+  ],
+  "max_failure_order": 2,
+  "max_components_per_layout": 48,
+  "max_combinations_per_layout": 2000,
+  "layouts": [
+    {
+      "layout_id": "SURV-T1-001-independent-single-channel",
+      "sensors": [
+        {
+          "sensor_id": "I1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-002-shared-power-domain",
+      "sensors": [
+        {
+          "sensor_id": "P1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-N1-SHARED"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "A1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-A1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-A1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "PWR-N1-SHARED"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-A1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-A1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-A1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "P2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "P3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "P4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-003-independent-pressure-acoustic-backup",
+      "sensors": [
+        {
+          "sensor_id": "P1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "A1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-A1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-A1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-A1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-A1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-A1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-A1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-004-shared-gateway-domain",
+      "sensors": [
+        {
+          "sensor_id": "P1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-N1-SHARED"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "A1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-A1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-A1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-A1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "GW-N1-SHARED"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-A1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-A1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-005-shared-process-interface",
+      "sensors": [
+        {
+          "sensor_id": "P1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "TAP-N1-SHARED"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "A1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "TAP-N1-SHARED"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-A1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-A1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-A1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-A1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-A1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-006-common-clock-high-fanout",
+      "sensors": [
+        {
+          "sensor_id": "CLK1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CLK1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-CLK1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CLK1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CLK1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-SITE-WIDE"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CLK1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CLK2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CLK2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-CLK2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CLK2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CLK2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-SITE-WIDE"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CLK2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CLK3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CLK3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-CLK3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CLK3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CLK3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-SITE-WIDE"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CLK3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CLK4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CLK4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-CLK4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CLK4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CLK4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "CLK-SITE-WIDE"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CLK4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-007-high-fanout-calibration-domain",
+      "sensors": [
+        {
+          "sensor_id": "CAL1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CAL1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SITE-WIDE"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CAL1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CAL1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-CAL1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CAL1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CAL2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CAL2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SITE-WIDE"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CAL2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CAL2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-CAL2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CAL2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CAL3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CAL3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SITE-WIDE"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CAL3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CAL3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-CAL3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CAL3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "CAL4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-CAL4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "CAL-SITE-WIDE"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-CAL4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-CAL4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-CAL4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-CAL4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-008-distinct-measurement-principles",
+      "sensors": [
+        {
+          "sensor_id": "P1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-P1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-P1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-P1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-P1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-P1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-P1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "V1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "vibration",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-V1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-V1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-V1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-V1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-V1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-V1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-009-stale-channel-excluded",
+      "sensors": [
+        {
+          "sensor_id": "STALE1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "stale",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-STALE1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-STALE1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-STALE1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-STALE1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-STALE1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-STALE1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "LIVE1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-LIVE1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-LIVE1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-LIVE1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-LIVE1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-LIVE1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-LIVE1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-010-invalid-binding-excluded",
+      "sensors": [
+        {
+          "sensor_id": "BAD1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "invalid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-BAD1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-BAD1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-BAD1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-BAD1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-BAD1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-BAD1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "GOOD1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-GOOD1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-GOOD1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-GOOD1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-GOOD1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-GOOD1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-GOOD1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-011-two-device-minimum-cut",
+      "sensors": [
+        {
+          "sensor_id": "DUAL1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-DUAL1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-DUAL1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-DUAL1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-DUAL1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-DUAL1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-DUAL1"
+            }
+          ]
+        },
+        {
+          "sensor_id": "DUAL2",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "acoustic",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-DUAL2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-DUAL2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-DUAL2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-DUAL2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-DUAL2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-DUAL2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "N4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-N4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-N4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-N4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-N4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-N4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-N4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "layout_id": "SURV-T1-012-order-permutation-invariance",
+      "sensors": [
+        {
+          "sensor_id": "I4",
+          "state_id": "pressure:JHB-N4",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I4"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I4"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I4"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I4"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I4"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I4"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I3",
+          "state_id": "pressure:JHB-N3",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I3"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I3"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I3"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I3"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I3"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I3"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I2",
+          "state_id": "pressure:JHB-N2",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I2"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I2"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I2"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I2"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I2"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I2"
+            }
+          ]
+        },
+        {
+          "sensor_id": "I1",
+          "state_id": "pressure:JHB-N1",
+          "measurement_principle": "pressure",
+          "condition": "healthy",
+          "binding_status": "valid",
+          "calibration_status": "current",
+          "time_status": "current",
+          "failure_domains": [
+            {
+              "domain_type": "physical_interface",
+              "domain_id": "DOM-physical_interface-I1"
+            },
+            {
+              "domain_type": "calibration_lineage",
+              "domain_id": "DOM-calibration_lineage-I1"
+            },
+            {
+              "domain_type": "power_supply",
+              "domain_id": "DOM-power_supply-I1"
+            },
+            {
+              "domain_type": "communications_path",
+              "domain_id": "DOM-communications_path-I1"
+            },
+            {
+              "domain_type": "clock_domain",
+              "domain_id": "DOM-clock_domain-I1"
+            },
+            {
+              "domain_type": "measurement_principle",
+              "domain_id": "DOM-measurement_principle-I1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
