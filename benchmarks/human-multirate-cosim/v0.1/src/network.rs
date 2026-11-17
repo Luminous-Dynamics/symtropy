@@ -147,8 +147,7 @@ impl NetworkScenario {
         let mut modal_coefficients = vec![0.0; n];
         for mode in 0..n {
             for node in 0..n {
-                modal_coefficients[mode] +=
-                    eigenvectors[node][mode] * transformed_initial[node];
+                modal_coefficients[mode] += eigenvectors[node][mode] * transformed_initial[node];
             }
         }
 
@@ -291,22 +290,43 @@ pub enum NetworkError {
 impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidNodeCount => write!(f, "network needs at least two nodes and matching initial states"),
+            Self::InvalidNodeCount => write!(
+                f,
+                "network needs at least two nodes and matching initial states"
+            ),
             Self::InvalidHorizon => write!(f, "network horizon must be finite and positive"),
-            Self::InvalidCapacity { node } => write!(f, "capacity at node {node} must be finite and positive"),
-            Self::NonFiniteInitialState { node } => write!(f, "initial state at node {node} must be finite"),
+            Self::InvalidCapacity { node } => {
+                write!(f, "capacity at node {node} must be finite and positive")
+            }
+            Self::NonFiniteInitialState { node } => {
+                write!(f, "initial state at node {node} must be finite")
+            }
             Self::UnknownNode { edge } => write!(f, "edge {edge} references an unknown node"),
             Self::SelfEdge { edge } => write!(f, "edge {edge} cannot connect a node to itself"),
-            Self::InvalidConductance { edge } => write!(f, "conductance on edge {edge} must be finite and nonnegative"),
-            Self::DuplicateEdge { left, right } => write!(f, "duplicate undirected edge ({left}, {right})"),
+            Self::InvalidConductance { edge } => write!(
+                f,
+                "conductance on edge {edge} must be finite and nonnegative"
+            ),
+            Self::DuplicateEdge { left, right } => {
+                write!(f, "duplicate undirected edge ({left}, {right})")
+            }
             Self::InvalidOracleTime => write!(f, "oracle time must be finite and nonnegative"),
             Self::NonFiniteOracleState => write!(f, "spectral oracle produced a non-finite state"),
-            Self::NonPositiveSemidefiniteLaplacian => write!(f, "weighted Laplacian is not positive semidefinite within tolerance"),
-            Self::SpectralEigensolverDidNotConverge => write!(f, "symmetric Jacobi eigensolver did not converge"),
+            Self::NonPositiveSemidefiniteLaplacian => write!(
+                f,
+                "weighted Laplacian is not positive semidefinite within tolerance"
+            ),
+            Self::SpectralEigensolverDidNotConverge => {
+                write!(f, "symmetric Jacobi eigensolver did not converge")
+            }
             Self::InvalidStep => write!(f, "communication step must be finite and positive"),
-            Self::StepDoesNotDivideHorizon => write!(f, "communication step must divide the horizon"),
+            Self::StepDoesNotDivideHorizon => {
+                write!(f, "communication step must divide the horizon")
+            }
             Self::ExcessiveStepCount => write!(f, "network step count exceeds the safety limit"),
-            Self::SingularLinearSystem => write!(f, "implicit network reference system is singular"),
+            Self::SingularLinearSystem => {
+                write!(f, "implicit network reference system is singular")
+            }
             Self::NonFiniteState { step } => write!(f, "non-finite network state at step {step}"),
         }
     }
@@ -363,7 +383,11 @@ pub fn simulate_network(
                     increments[edge.left] -= flux / scenario.capacities[edge.left];
                     increments[edge.right] += flux / scenario.capacities[edge.right];
                 }
-                state.iter().zip(increments.iter()).map(|(value, delta)| value + delta).collect()
+                state
+                    .iter()
+                    .zip(increments.iter())
+                    .map(|(value, delta)| value + delta)
+                    .collect()
             }
             NetworkMethod::SerialForwardEdgeSweep => {
                 let mut next = state.clone();
@@ -380,15 +404,28 @@ pub fn simulate_network(
                 next
             }
             NetworkMethod::ImplicitMidpointReference => {
-                let lhs = build_shifted_matrix(&scenario.capacities, &laplacian, 0.5 * communication_step);
-                let rhs_matrix = build_shifted_matrix(&scenario.capacities, &laplacian, -0.5 * communication_step);
+                let lhs = build_shifted_matrix(
+                    &scenario.capacities,
+                    &laplacian,
+                    0.5 * communication_step,
+                );
+                let rhs_matrix = build_shifted_matrix(
+                    &scenario.capacities,
+                    &laplacian,
+                    -0.5 * communication_step,
+                );
                 let rhs = matrix_vector_product(&rhs_matrix, &state);
                 solve_dense(lhs, rhs)?
             }
             NetworkMethod::BackwardEulerReference => {
-                let lhs = build_shifted_matrix(&scenario.capacities, &laplacian, communication_step);
-                let rhs: Vec<f64> = scenario.capacities.iter().zip(state.iter())
-                    .map(|(capacity, value)| capacity * value).collect();
+                let lhs =
+                    build_shifted_matrix(&scenario.capacities, &laplacian, communication_step);
+                let rhs: Vec<f64> = scenario
+                    .capacities
+                    .iter()
+                    .zip(state.iter())
+                    .map(|(capacity, value)| capacity * value)
+                    .collect();
                 solve_dense(lhs, rhs)?
             }
         };
@@ -407,8 +444,12 @@ pub fn simulate_network(
             error_samples += 1;
         }
 
-        let total: f64 = scenario.capacities.iter().zip(state.iter())
-            .map(|(capacity, value)| capacity * value).sum();
+        let total: f64 = scenario
+            .capacities
+            .iter()
+            .zip(state.iter())
+            .map(|(capacity, value)| capacity * value)
+            .sum();
         max_abs_total_residual = max_abs_total_residual.max((total - initial_total).abs());
 
         let energy = scenario.quadratic_energy(&state);
@@ -434,22 +475,13 @@ pub fn simulate_network(
     })
 }
 
-fn apply_edge_flux(
-    scenario: &NetworkScenario,
-    state: &mut [f64],
-    edge: Edge,
-    step: f64,
-) {
+fn apply_edge_flux(scenario: &NetworkScenario, state: &mut [f64], edge: Edge, step: f64) {
     let flux = edge.conductance * (state[edge.left] - state[edge.right]) * step;
     state[edge.left] -= flux / scenario.capacities[edge.left];
     state[edge.right] += flux / scenario.capacities[edge.right];
 }
 
-fn build_shifted_matrix(
-    capacities: &[f64],
-    laplacian: &[Vec<f64>],
-    scale: f64,
-) -> Vec<Vec<f64>> {
+fn build_shifted_matrix(capacities: &[f64], laplacian: &[Vec<f64>], scale: f64) -> Vec<Vec<f64>> {
     let n = capacities.len();
     let mut matrix = vec![vec![0.0; n]; n];
     for i in 0..n {
@@ -462,7 +494,8 @@ fn build_shifted_matrix(
 }
 
 fn matrix_vector_product(matrix: &[Vec<f64>], vector: &[f64]) -> Vec<f64> {
-    matrix.iter()
+    matrix
+        .iter()
         .map(|row| row.iter().zip(vector.iter()).map(|(a, b)| a * b).sum())
         .collect()
 }
@@ -510,9 +543,7 @@ fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Result<Vec<f64>,
 
 /// Jacobi diagonalization for a real symmetric matrix.
 /// Eigenvectors are returned by columns of the matrix.
-fn symmetric_eigen(
-    mut matrix: Vec<Vec<f64>>,
-) -> Result<(Vec<f64>, Vec<Vec<f64>>), NetworkError> {
+fn symmetric_eigen(mut matrix: Vec<Vec<f64>>) -> Result<(Vec<f64>, Vec<Vec<f64>>), NetworkError> {
     let n = matrix.len();
     let mut vectors = vec![vec![0.0; n]; n];
     for i in 0..n {
@@ -598,8 +629,16 @@ mod tests {
             capacities: vec![1.0, 2.0, 4.0],
             initial: vec![1.0, 0.2, 0.0],
             edges: vec![
-                Edge { left: 0, right: 1, conductance: 0.8 },
-                Edge { left: 1, right: 2, conductance: 0.2 },
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 0.8,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 0.2,
+                },
             ],
             horizon: 4.0,
         }
@@ -617,8 +656,12 @@ mod tests {
         let total = scenario.conserved_total();
         for time in [0.0, 0.1, 0.5, 1.0, 2.0, 4.0, 20.0] {
             let state = oracle.state_at(time).unwrap();
-            let candidate: f64 = scenario.capacities.iter().zip(state.iter())
-                .map(|(capacity, value)| capacity * value).sum();
+            let candidate: f64 = scenario
+                .capacities
+                .iter()
+                .zip(state.iter())
+                .map(|(capacity, value)| capacity * value)
+                .sum();
             assert!((candidate - total).abs() < 1.0e-10);
             assert!(state.iter().all(|value| *value >= -1.0e-12));
         }
@@ -630,7 +673,9 @@ mod tests {
         let oracle = scenario.spectral_oracle().unwrap();
         let mut previous = scenario.quadratic_energy(&scenario.initial);
         for index in 1..=100 {
-            let state = oracle.state_at(index as f64 * scenario.horizon / 100.0).unwrap();
+            let state = oracle
+                .state_at(index as f64 * scenario.horizon / 100.0)
+                .unwrap();
             let energy = scenario.quadratic_energy(&state);
             assert!(energy <= previous + 1.0e-11);
             previous = energy;
@@ -640,7 +685,8 @@ mod tests {
     #[test]
     fn jacobi_shared_flux_preserves_total_at_a_stable_step() {
         let scenario = chain();
-        let score = simulate_network(&scenario, NetworkMethod::JacobiSharedFluxEuler, 0.01).unwrap();
+        let score =
+            simulate_network(&scenario, NetworkMethod::JacobiSharedFluxEuler, 0.01).unwrap();
         assert!(score.max_abs_total_residual < 1.0e-11);
         assert!(score.max_quadratic_energy_increase < 1.0e-11);
         assert!(score.positive_states);
@@ -649,24 +695,32 @@ mod tests {
     #[test]
     fn sequential_edge_order_changes_trajectory_but_preserves_total() {
         let scenario = chain();
-        let forward = simulate_network(&scenario, NetworkMethod::SerialForwardEdgeSweep, 0.5).unwrap();
-        let reverse = simulate_network(&scenario, NetworkMethod::SerialReverseEdgeSweep, 0.5).unwrap();
+        let forward =
+            simulate_network(&scenario, NetworkMethod::SerialForwardEdgeSweep, 0.5).unwrap();
+        let reverse =
+            simulate_network(&scenario, NetworkMethod::SerialReverseEdgeSweep, 0.5).unwrap();
         assert!(forward.max_abs_total_residual < 1.0e-11);
         assert!(reverse.max_abs_total_residual < 1.0e-11);
-        let difference: f64 = forward.final_state.iter().zip(reverse.final_state.iter())
-            .map(|(a, b)| (a - b).abs()).sum();
+        let difference: f64 = forward
+            .final_state
+            .iter()
+            .zip(reverse.final_state.iter())
+            .map(|(a, b)| (a - b).abs())
+            .sum();
         assert!(difference > 1.0e-8);
     }
 
     #[test]
     fn implicit_references_preserve_total_and_positive_state_on_large_step() {
         let scenario = chain();
-        let backward = simulate_network(&scenario, NetworkMethod::BackwardEulerReference, 4.0).unwrap();
+        let backward =
+            simulate_network(&scenario, NetworkMethod::BackwardEulerReference, 4.0).unwrap();
         assert!(backward.max_abs_total_residual < 1.0e-10);
         assert!(backward.positive_states);
         assert!(backward.min_state >= -1.0e-12);
 
-        let midpoint = simulate_network(&scenario, NetworkMethod::ImplicitMidpointReference, 4.0).unwrap();
+        let midpoint =
+            simulate_network(&scenario, NetworkMethod::ImplicitMidpointReference, 4.0).unwrap();
         assert!(midpoint.max_abs_total_residual < 1.0e-10);
     }
 
@@ -687,13 +741,25 @@ mod tests {
             capacities: vec![1.0, 2.0, 3.0, 4.0],
             initial: vec![1.0, 0.0, 0.5, 0.25],
             edges: vec![
-                Edge { left: 0, right: 1, conductance: 1.0 },
-                Edge { left: 2, right: 3, conductance: 0.5 },
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 2,
+                    right: 3,
+                    conductance: 0.5,
+                },
             ],
             horizon: 2.0,
         };
         let oracle = scenario.spectral_oracle().unwrap();
-        let zero_modes = oracle.eigenvalues().iter().filter(|value| value.abs() < 1.0e-10).count();
+        let zero_modes = oracle
+            .eigenvalues()
+            .iter()
+            .filter(|value| value.abs() < 1.0e-10)
+            .count();
         assert_eq!(zero_modes, 2);
     }
 
