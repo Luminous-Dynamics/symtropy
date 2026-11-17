@@ -218,6 +218,11 @@ pub enum ExcitationDesignError {
     DuplicateSelectedSensor(u32),
     SensorBudgetExceeded,
     NoProfiles,
+    InvalidPulseGrid,
+    UnknownPulseNode { node: usize },
+    InvalidPulseAmplitude,
+    InvalidPulseDuration,
+    PulseProfileIdOverflow,
 }
 
 impl fmt::Display for ExcitationDesignError {
@@ -281,11 +286,176 @@ impl fmt::Display for ExcitationDesignError {
             }
             Self::SensorBudgetExceeded => write!(f, "selected sensors exceed the declared budget"),
             Self::NoProfiles => write!(f, "at least one input profile is required"),
+            Self::InvalidPulseGrid => {
+                write!(f, "pulse grid requires non-empty nodes, amplitudes and durations")
+            }
+            Self::UnknownPulseNode { node } => {
+                write!(f, "pulse candidate references unknown graph node {node}")
+            }
+            Self::InvalidPulseAmplitude => {
+                write!(f, "pulse amplitudes must be finite and non-zero")
+            }
+            Self::InvalidPulseDuration => {
+                write!(f, "pulse durations must be finite and positive")
+            }
+            Self::PulseProfileIdOverflow => {
+                write!(f, "pulse profile ID range overflows the supported integer")
+            }
         }
     }
 }
 
 impl std::error::Error for ExcitationDesignError {}
+
+/// Why a pulse candidate was excluded by a hard experiment constraint.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PulseRejectionReason {
+    MaximumAmplitudeExceeded,
+    IntegratedSquaredInputExceeded,
+}
+
+/// A rejected pulse remains visible in the catalogue rather than disappearing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RejectedPulseCandidate {
+    pub profile_id: u32,
+    pub node: usize,
+    pub amplitude: f64,
+    pub duration: f64,
+    pub reason: PulseRejectionReason,
+}
+
+/// Deterministic single-node pulse catalogue. Feasible profiles and rejected
+/// candidates retain the same stable ID sequence.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PulseCatalogue {
+    pub profiles: Vec<InputProfile>,
+    pub rejected: Vec<RejectedPulseCandidate>,
+}
+
+/// Enumerate every single-node pulse in a finite design grid.
+///
+/// Candidates are ordered deterministically by node, amplitude, and duration.
+/// The returned catalogue retains candidates rejected by the amplitude or
+/// integrated squared-input budget. This is exact finite-grid enumeration,
+/// not continuous optimal control.
+pub fn enumerate_single_node_pulses(
+    scenario: &ExperimentDesignScenario,
+    nodes: &[usize],
+    amplitudes: &[f64],
+    durations: &[f64],
+    first_profile_id: u32,
+) -> Result<PulseCatalogue, ExcitationDesignError> {
+    scenario.validate()?;
+    if nodes.is_empty() || amplitudes.is_empty() || durations.is_empty() {
+        return Err(ExcitationDesignError::InvalidPulseGrid);
+    }
+
+    let dimension = scenario.models[0].network.capacities.len();
+    let mut ordered_nodes = nodes.to_vec();
+    ordered_nodes.sort_unstable();
+    if ordered_nodes.iter().any(|node| *node >= dimension) {
+        let node = *ordered_nodes.iter().find(|node| **node >= dimension).unwrap();
+        return Err(ExcitationDesignError::UnknownPulseNode { node });
+    }
+    if ordered_nodes.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(ExcitationDesignError::InvalidPulseGrid);
+    }
+
+    let mut ordered_amplitudes = amplitudes.to_vec();
+    if ordered_amplitudes
+        .iter()
+        .any(|value| !value.is_finite() || *value == 0.0)
+    {
+        return Err(ExcitationDesignError::InvalidPulseAmplitude);
+    }
+    ordered_amplitudes.sort_by(f64::total_cmp);
+    if ordered_amplitudes.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(ExcitationDesignError::InvalidPulseGrid);
+    }
+
+    let mut ordered_durations = durations.to_vec();
+    if ordered_durations
+        .iter()
+        .any(|value| !value.is_finite() || *value <= 0.0 || *value > scenario.horizon())
+    {
+        return Err(ExcitationDesignError::InvalidPulseDuration);
+    }
+    ordered_durations.sort_by(f64::total_cmp);
+    if ordered_durations.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(ExcitationDesignError::InvalidPulseGrid);
+    }
+
+    let candidate_count = ordered_nodes
+        .len()
+        .checked_mul(ordered_amplitudes.len())
+        .and_then(|count| count.checked_mul(ordered_durations.len()))
+        .ok_or(ExcitationDesignError::PulseProfileIdOverflow)?;
+    if candidate_count > 0
+        && first_profile_id
+            .checked_add((candidate_count - 1) as u32)
+            .is_none()
+    {
+        return Err(ExcitationDesignError::PulseProfileIdOverflow);
+    }
+
+    let mut profiles = Vec::new();
+    let mut rejected = Vec::new();
+    let mut candidate_index = 0_u32;
+    for node in ordered_nodes {
+        for amplitude in &ordered_amplitudes {
+            for duration in &ordered_durations {
+                let profile_id = first_profile_id
+                    .checked_add(candidate_index)
+                    .ok_or(ExcitationDesignError::PulseProfileIdOverflow)?;
+                candidate_index += 1;
+                let energy = amplitude * amplitude * duration;
+
+                if amplitude.abs() > scenario.max_abs_forcing + FEASIBILITY_TOLERANCE {
+                    rejected.push(RejectedPulseCandidate {
+                        profile_id,
+                        node,
+                        amplitude: *amplitude,
+                        duration: *duration,
+                        reason: PulseRejectionReason::MaximumAmplitudeExceeded,
+                    });
+                    continue;
+                }
+                if energy > scenario.input_energy_budget + FEASIBILITY_TOLERANCE {
+                    rejected.push(RejectedPulseCandidate {
+                        profile_id,
+                        node,
+                        amplitude: *amplitude,
+                        duration: *duration,
+                        reason: PulseRejectionReason::IntegratedSquaredInputExceeded,
+                    });
+                    continue;
+                }
+
+                let mut forcing = vec![0.0; dimension];
+                forcing[node] = *amplitude;
+                let mut segments = vec![ForcingSegment {
+                    start_time: 0.0,
+                    end_time: *duration,
+                    forcing,
+                }];
+                if *duration < scenario.horizon() {
+                    segments.push(ForcingSegment {
+                        start_time: *duration,
+                        end_time: scenario.horizon(),
+                        forcing: vec![0.0; dimension],
+                    });
+                }
+                profiles.push(InputProfile {
+                    id: profile_id,
+                    label: "single_node_pulse_grid",
+                    segments,
+                });
+            }
+        }
+    }
+
+    Ok(PulseCatalogue { profiles, rejected })
+}
 
 /// Evaluate one bounded waveform and sensor subset against every candidate model.
 pub fn evaluate_input_profile(
