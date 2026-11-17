@@ -7,15 +7,17 @@
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 
-const REQUIRED_DIMENSIONS: [&str; 5] = [
+const REQUIRED_DIMENSIONS: [&str; 7] = [
     "manufacturing_site_jurisdictions",
     "destination_market_jurisdictions",
+    "supplier_site_jurisdictions",
     "component_origin_jurisdictions",
+    "transformation_jurisdictions",
     "data_processing_jurisdictions",
     "service_jurisdictions",
 ];
 
-const REQUIRED_CONTROLS: [&str; 15] = [
+const REQUIRED_CONTROLS: [&str; 18] = [
     "proposal_as_law",
     "wrong_destination_market",
     "wrong_product_category",
@@ -31,6 +33,9 @@ const REQUIRED_CONTROLS: [&str; 15] = [
     "responsible_party_mismatch",
     "effective_window_mismatch",
     "local_content_claim_without_method",
+    "obligation_dimension_mismatch",
+    "supplier_site_jurisdiction_omitted",
+    "transformation_jurisdiction_missing",
 ];
 
 fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
@@ -74,6 +79,38 @@ fn require_not(value: &Value, key: &str, path: &str, forbidden: &str) -> Result<
         ));
     }
     Ok(())
+}
+
+fn require_dimension_member(
+    context: &Value,
+    dimension: &str,
+    jurisdiction: &str,
+    path: &str,
+) -> Result<(), String> {
+    let values = array(
+        field(context, dimension, path)?,
+        &format!("{path}.{dimension}"),
+    )?;
+    let found = values.iter().any(|value| value.as_str() == Some(jurisdiction));
+    if !found {
+        return Err(format!(
+            "{path}.{dimension}: jurisdiction {jurisdiction} is not declared in this dimension"
+        ));
+    }
+    Ok(())
+}
+
+fn obligation_dimension_field(dimension: &str) -> Option<&'static str> {
+    match dimension {
+        "manufacturing_site" => Some("manufacturing_site_jurisdictions"),
+        "destination_market" => Some("destination_market_jurisdictions"),
+        "supplier_site" => Some("supplier_site_jurisdictions"),
+        "component_origin" => Some("component_origin_jurisdictions"),
+        "transformation" => Some("transformation_jurisdictions"),
+        "data_processing" => Some("data_processing_jurisdictions"),
+        "service_lifecycle" => Some("service_jurisdictions"),
+        _ => None,
+    }
 }
 
 fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, String), String> {
@@ -135,6 +172,16 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     }
 
     let site = field(profile, "manufacturing_site", &path)?;
+    let site_jurisdiction = string(
+        field(site, "site_jurisdiction", &format!("{path}.manufacturing_site"))?,
+        &format!("{path}.manufacturing_site.site_jurisdiction"),
+    )?;
+    require_dimension_member(
+        context,
+        "manufacturing_site_jurisdictions",
+        site_jurisdiction,
+        &format!("{path}.deployment_context"),
+    )?;
     require_string(
         site,
         "site_evidence_class",
@@ -153,6 +200,16 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     }
     for (j, market) in market_access.iter().enumerate() {
         let mpath = format!("{path}.market_access[{j}]");
+        let destination = string(
+            field(market, "destination_jurisdiction", &mpath)?,
+            &format!("{mpath}.destination_jurisdiction"),
+        )?;
+        require_dimension_member(
+            context,
+            "destination_market_jurisdictions",
+            destination,
+            &format!("{path}.deployment_context"),
+        )?;
         require_not(
             market,
             "approval_status",
@@ -181,6 +238,45 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     }
     for (j, component) in components.iter().enumerate() {
         let cpath = format!("{path}.supply_chain.components[{j}]");
+        let supplier_site = string(
+            field(component, "supplier_site_jurisdiction", &cpath)?,
+            &format!("{cpath}.supplier_site_jurisdiction"),
+        )?;
+        require_dimension_member(
+            context,
+            "supplier_site_jurisdictions",
+            supplier_site,
+            &format!("{path}.deployment_context"),
+        )?;
+        let material_origin = string(
+            field(component, "material_origin_jurisdiction", &cpath)?,
+            &format!("{cpath}.material_origin_jurisdiction"),
+        )?;
+        require_dimension_member(
+            context,
+            "component_origin_jurisdictions",
+            material_origin,
+            &format!("{path}.deployment_context"),
+        )?;
+        let transformation_sites = array(
+            field(component, "transformation_jurisdictions", &cpath)?,
+            &format!("{cpath}.transformation_jurisdictions"),
+        )?;
+        if transformation_sites.is_empty() {
+            return Err(format!("{cpath}.transformation_jurisdictions: empty list"));
+        }
+        for (k, value) in transformation_sites.iter().enumerate() {
+            let jurisdiction = string(
+                value,
+                &format!("{cpath}.transformation_jurisdictions[{k}]"),
+            )?;
+            require_dimension_member(
+                context,
+                "transformation_jurisdictions",
+                jurisdiction,
+                &format!("{path}.deployment_context"),
+            )?;
+        }
         require_not(
             component,
             "origin_evidence_status",
@@ -242,6 +338,23 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     )?;
     for (j, obligation) in obligations.iter().enumerate() {
         let opath = format!("{path}.obligations[{j}]");
+        let jurisdiction = string(
+            field(obligation, "jurisdiction", &opath)?,
+            &format!("{opath}.jurisdiction"),
+        )?;
+        let declared_dimension = string(
+            field(obligation, "jurisdiction_dimension", &opath)?,
+            &format!("{opath}.jurisdiction_dimension"),
+        )?;
+        let dimension_field = obligation_dimension_field(declared_dimension).ok_or_else(|| {
+            format!("{opath}.jurisdiction_dimension: unsupported dimension {declared_dimension}")
+        })?;
+        require_dimension_member(
+            context,
+            dimension_field,
+            jurisdiction,
+            &format!("{path}.deployment_context"),
+        )?;
         require_string(obligation, "source_status", &opath, "synthetic_fixture")?;
         require_string(obligation, "disposition", &opath, "unknown")?;
         require_string(obligation, "reviewer_status", &opath, "not_reviewed")?;
@@ -546,10 +659,46 @@ mod tests {
     }
 
     #[test]
+    fn rejects_obligation_jurisdiction_in_the_wrong_dimension() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["jurisdiction_dimension"] =
+            Value::String("destination_market".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_supplier_site_missing_from_supplier_dimension() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["supply_chain"]["components"][0]["supplier_site_jurisdiction"] =
+            Value::String("urn:luminous:synthetic:jurisdiction:transform-1-1".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_transformation_site_missing_from_transformation_dimension() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["supply_chain"]["components"][0]["transformation_jurisdictions"][0] =
+            Value::String("urn:luminous:synthetic:jurisdiction:market-1".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_market_access_reference_not_in_destination_dimension() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["market_access"][0]["destination_jurisdiction"] =
+            Value::String("urn:luminous:synthetic:jurisdiction:site-1".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
     fn accepts_frozen_synthetic_corpus() {
         let report = audit_corpus(FIXTURE).expect("synthetic corpus is structurally valid");
         assert_eq!(report["profile_count"], 4);
-        assert_eq!(report["negative_control_count"], 15);
+        assert_eq!(report["negative_control_count"], 18);
         assert_eq!(report["production_authorization"], false);
         assert_eq!(report["legal_or_market_approval"], false);
     }
