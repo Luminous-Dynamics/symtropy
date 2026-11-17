@@ -425,13 +425,13 @@ score. It checks scope compatibility before comparing values, requires an
 explicit claim/time-bound independence attestation, and treats every known or
 unknown dependency edge as a barrier to an independent-source claim.
 Copied reports, shared sensors and shared calibration do not increase the
-independent-source count. Unknown dependence is not independence.
+independent-source count. Unknown dependence is not independence. The gate does not authenticate the attester, verify calibration certificates, or prove real-world source separation; the report marks this as a synthetic attestation/dependency check only.
 
 The E7 replay uses both a decision-time cutoff and a valid-time instant.
 Late-arriving evidence is omitted from earlier as-of views. A revocation
 recorded later but effective earlier changes later views without rewriting
 what was knowable at the earlier decision time. Source identity/digest, rights
-ceiling, independence-attestation basis/attester and lifecycle event receipts
+ceiling, attested-independence basis/attester and lifecycle event receipts
 are preserved in the report.
 
 The baseline synthetic fixture contains 12 evidence artifacts, 12 assertions,
