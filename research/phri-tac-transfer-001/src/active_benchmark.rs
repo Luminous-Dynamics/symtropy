@@ -20,6 +20,7 @@ pub mod observability_design;
 pub mod operating_envelope;
 pub mod self_test;
 pub mod temporal_integrity;
+pub mod wrench_consistency;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
