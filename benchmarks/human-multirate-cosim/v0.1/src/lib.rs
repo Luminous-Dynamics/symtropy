@@ -150,7 +150,10 @@ impl fmt::Display for SimError {
                 write!(f, "adaptive step/tolerance configuration is invalid")
             }
             Self::AdaptiveStepUnderflow => {
-                write!(f, "adaptive solver reached the minimum step without an acceptable step")
+                write!(
+                    f,
+                    "adaptive solver reached the minimum step without an acceptable step"
+                )
             }
             Self::AdaptiveAttemptLimitReached => {
                 write!(f, "adaptive solver exceeded its attempt limit")
@@ -309,7 +312,6 @@ pub fn simulate(
     })
 }
 
-
 /// Controls for adaptive conservative shared-flux Euler subcycling.
 ///
 /// Tolerances bound the local step-doubling estimate, not the global trajectory
@@ -341,12 +343,7 @@ pub struct AdaptiveScore {
 }
 
 /// One explicit Euler step using one shared interface transfer.
-fn shared_flux_euler(
-    scenario: Scenario,
-    a: f64,
-    b: f64,
-    step: f64,
-) -> (f64, f64) {
+fn shared_flux_euler(scenario: Scenario, a: f64, b: f64, step: f64) -> (f64, f64) {
     let flux = scenario.conductance * (a - b) * step;
     (
         a - flux / scenario.capacity_a,
@@ -418,12 +415,7 @@ pub fn simulate_adaptive_conservative_flux(
 
         let coarse = shared_flux_euler(scenario, a, b, attempted_step);
         let first_half = shared_flux_euler(scenario, a, b, attempted_step * 0.5);
-        let fine = shared_flux_euler(
-            scenario,
-            first_half.0,
-            first_half.1,
-            attempted_step * 0.5,
-        );
+        let fine = shared_flux_euler(scenario, first_half.0, first_half.1, attempted_step * 0.5);
 
         let finite = coarse.0.is_finite()
             && coarse.1.is_finite()
@@ -431,18 +423,16 @@ pub fn simulate_adaptive_conservative_flux(
             && fine.1.is_finite();
 
         let error_norm = if finite {
-            let scale_a = config.absolute_tolerance
-                + config.relative_tolerance * a.abs().max(fine.0.abs());
-            let scale_b = config.absolute_tolerance
-                + config.relative_tolerance * b.abs().max(fine.1.abs());
-            ((fine.0 - coarse.0).abs() / scale_a)
-                .max((fine.1 - coarse.1).abs() / scale_b)
+            let scale_a =
+                config.absolute_tolerance + config.relative_tolerance * a.abs().max(fine.0.abs());
+            let scale_b =
+                config.absolute_tolerance + config.relative_tolerance * b.abs().max(fine.1.abs());
+            ((fine.0 - coarse.0).abs() / scale_a).max((fine.1 - coarse.1).abs() / scale_b)
         } else {
             f64::INFINITY
         };
 
-        let positivity_ok = !positivity_required
-            || (fine.0 >= 0.0 && fine.1 >= 0.0);
+        let positivity_ok = !positivity_required || (fine.0 >= 0.0 && fine.1 >= 0.0);
         let accepted = finite && error_norm <= 1.0 && positivity_ok;
 
         if accepted {
@@ -450,8 +440,7 @@ pub fn simulate_adaptive_conservative_flux(
             b = fine.1;
             time += attempted_step;
             accepted_steps += 1;
-            max_accepted_local_error_norm =
-                max_accepted_local_error_norm.max(error_norm);
+            max_accepted_local_error_norm = max_accepted_local_error_norm.max(error_norm);
             min_accepted_step = min_accepted_step.min(attempted_step);
             max_accepted_step = max_accepted_step.max(attempted_step);
 
