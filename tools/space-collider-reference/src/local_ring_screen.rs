@@ -301,6 +301,14 @@ fn render_report_json() -> Result<String, String> {
     let fcc_power_relative_difference =
         (fcc_hh_comparator.proton_sr_power_mw_at_reference_current - 2.4) / 2.4;
 
+    // 2025 updated FCC-hh Nb3Sn reference: 76.9 km arcs inside a 90.7 km
+    // ring, with 0.83 dipole packing within the arcs and 14 T arc field.
+    let fcc_2025_ringwide_fill_fraction = 0.83 * 76.9 / 90.7;
+    let fcc_2025_comparator =
+        calculate_case(90.7, 14.0, fcc_2025_ringwide_fill_fraction)?;
+    let fcc_2025_energy_relative_difference =
+        (fcc_2025_comparator.proton_cm_energy_tev - 85.0) / 85.0;
+
     Ok(format!(
         concat!(
             "{{",
@@ -327,6 +335,19 @@ fn render_report_json() -> Result<String, String> {
             "\"synchrotron_power_relative_difference_vs_source\":{:.9e},",
             "\"comparison_status\":\"unadjusted_screening_residual_retained_not_calibrated_away\"",
             "}},",
+            "\"fcc_hh_2025_updated_reference_comparator\":{{",
+            "\"source_circumference_km\":90.7,",
+            "\"source_arc_length_km\":76.9,",
+            "\"source_arc_cell_dipole_packing_fraction\":0.83,",
+            "\"derived_ringwide_effective_fill_fraction\":{:.9},",
+            "\"source_dipole_field_t\":14.0,",
+            "\"source_centre_of_mass_energy_tev\":85.0,",
+            "\"screened_rigidity_only_centre_of_mass_energy_tev\":{:.9},",
+            "\"energy_relative_difference_vs_source\":{:.9e},",
+            "\"screened_proton_synchrotron_power_mw_per_beam_at_0p5_a\":{:.9},",
+            "\"source_sr_power_reported_per_ring_mw\":1.2,",
+            "\"power_comparison_status\":\"not_directly_compared_source_is_per_ring_screen_is_per_beam\"",
+            "}},",
             "\"nlasg_muon_profile\":{{",
             "\"source_reference\":\"FERMILAB-PUB-26-0741-TD / arXiv:2611.06680, 5 November 2026\",",
             "\"source_centre_of_mass_energy_tev\":10.0,",
@@ -342,6 +363,7 @@ fn render_report_json() -> Result<String, String> {
             "\"assumptions\":[",
             "\"Effective bending radius rho = ringwide_effective_fill * circumference / (2 pi); host-body mean radius is not used.\",",
             "\"The FCC 0.80 packing fraction applies within its 82 km arcs; converting to full-ring effective bend fraction gives 0.80*82/97.75 = 0.6710997, approximated as 0.67 in the common comparison matrix.\",",
+            "\"The updated 2025 FCC-hh reference uses 0.83 packing within 76.9 km arcs inside a 90.7 km ring at 14 T; its source SR power is labeled per ring and is not directly compared with the model's per-beam screen.\",",
             "\"Symmetric head-on beams; proton and muon rigidity are compared at equal charge magnitude; energies are ultra-relativistic approximations.\",",
             "\"Proton synchrotron power uses a declared 0.5 A reference current and the classical isomagnetic U0 relation; it is not a lattice radiation-integral result.\",",
             "\"Muon injection and synchrotron power use 1.8e12 muons per bunch and 5 Hz as a common NLASG source profile; continuous exponential-decay average only.\",",
@@ -359,6 +381,10 @@ fn render_report_json() -> Result<String, String> {
         fcc_hh_comparator.proton_sr_power_mw_at_reference_current,
         fcc_energy_relative_difference,
         fcc_power_relative_difference,
+        fcc_2025_ringwide_fill_fraction,
+        fcc_2025_comparator.proton_cm_energy_tev,
+        fcc_2025_energy_relative_difference,
+        fcc_2025_comparator.proton_sr_power_mw_at_reference_current,
         rows.join(","),
     ))
 }
@@ -427,6 +453,18 @@ mod tests {
     }
 
     #[test]
+    fn updated_2025_fcc_reference_energy_is_reproduced_with_ringwide_fill() {
+        let fill = 0.83 * 76.9 / 90.7;
+        let case = calculate_case(90.7, 14.0, fill).expect("valid updated FCC reference");
+        close(case.proton_cm_energy_tev, 85.271_381_294, 1.0e-9);
+        close(
+            case.proton_sr_power_mw_at_reference_current,
+            1.266_329_615,
+            1.0e-9,
+        );
+    }
+
+    #[test]
     fn render_contains_all_twelve_cases_and_preserves_claim_ceiling() {
         let report = render_report_json().expect("valid local-ring report");
         assert!(report.contains("\"comparison_matrix_count\":12"));
@@ -437,6 +475,8 @@ mod tests {
         assert!(report.contains(fill_semantics));
         assert!(report.contains("\"derived_ringwide_effective_fill_fraction\":0.671099744"));
         assert!(report.contains("\"fill_sensitivity_cases\""));
+        assert!(report.contains("\"fcc_hh_2025_updated_reference_comparator\""));
+        assert!(report.contains("\"power_comparison_status\":\"not_directly_compared_source_is_per_ring_screen_is_per_beam\""));
         assert!(report.contains("\"circumference_km\":100.000000"));
         assert!(
             report.contains("\"field_evidence_label\":\"hts_stretch_case_not_production_ready\"")
