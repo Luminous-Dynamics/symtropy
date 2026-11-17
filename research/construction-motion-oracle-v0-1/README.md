@@ -88,3 +88,17 @@ The timed adapter accepts two capsule motion spans whose start and end timestamp
 - The current version rejects non-zero declared clock uncertainty as `ClockUncertaintyUnmodeled`. It does not invent clock synchronization or widen the geometry/time model.
 
 This remains a fixed-orientation linear-translation geometry primitive. It is not an asynchronous multi-clock solver, articulated robot collision system or safety function. See [#5478](https://github.com/Luminous-Dynamics/symtropy/issues/5478).
+
+## Multi-body time-swept broad phase
+
+The multi-body owner in `multibody_time_swept_broadphase.rs` consumes absolute-time `CapsuleMotionSpan` records with unique body IDs and common site epoch, frame and exact monotonic clock domain.
+
+It partitions the global horizon into deterministic dyadic slabs. In each slab it builds each active body's outward-rounded swept AABB, chooses the axis with greatest endpoint spread (stable X/Y/Z tie order), and performs sweep-and-prune. Coarse spatial overlaps are then checked for positive time co-activity and both body bounds are rebuilt on the *same common interval* before a pair candidate is emitted. Candidate pairs and slab receipts are sorted deterministically.
+
+The report distinguishes coarse spatial pairs, time-coherent pairs and final candidate pairs. Each pair records active duration, candidate duration, candidate-time fraction and the exact slab intervals. This is useful for diagnosing broad-phase selectivity without confusing a pair candidate with a collision result.
+
+Bounds are widened by eight representable floating-point steps on every face to reduce inward rounding in this software broad phase. This is a numerical guard, not a formal directed-rounding proof. Input spans must be finite and use zero declared clock uncertainty; non-zero uncertainty abstains through the absolute-time validator.
+
+The Rust benchmark measures sparse scaling at 16/64/256/1,024/4,096/10,000 bodies, plus clustered, dense and long-thin strata through 1,024 bodies. A whole-horizon all-pairs AABB reference is measured for sparse cases through 1,024 bodies. Report all density strata: dense candidate generation is inherently quadratic when nearly every pair overlaps.
+
+The owner is broad phase only. Every emitted pair still needs the existing timed narrow-phase oracle; no emitted pair means only that this supported conservative AABB method did not identify a candidate under the supplied geometry/time model. Rotation, articulated trajectories, non-zero clock uncertainty and dynamic-human safety remain out of scope. See [#5482](https://github.com/Luminous-Dynamics/symtropy/issues/5482).

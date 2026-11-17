@@ -6,6 +6,7 @@
 
 mod capsule;
 mod co_translation_ccd;
+mod multibody_time_swept_broadphase;
 mod timed_co_translation_ccd;
 mod translation_ccd;
 pub use capsule::{
@@ -18,6 +19,11 @@ pub use co_translation_ccd::{
     co_translating_capsule_capsule_collision, co_translating_capsule_swept_aabb_candidate,
     co_translating_capsule_time_sliced_aabb_candidates, co_translating_capsule_vs_capsule,
     endpoints_only_co_translating_capsule_collision,
+};
+pub use multibody_time_swept_broadphase::{
+    CandidateSlab, MAX_BODY_SLAB_CELLS, MAX_TIME_SLABS, MultiBodyBroadphaseError,
+    MultiBodyBroadphaseReport, SlabMetrics, SweepAxis, TimedCapsuleBody, TimedCapsulePairCandidate,
+    time_swept_capsule_broadphase,
 };
 pub use timed_co_translation_ccd::{
     CapsuleMotionSpan, TimedCcdError, TimedCoTranslatingClosestApproach,
