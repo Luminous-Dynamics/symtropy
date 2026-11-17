@@ -170,6 +170,29 @@
           "if": {
             "properties": {
               "relation": {
+                "enum": [
+                  "exact",
+                  "approximate",
+                  "greater_than"
+                ]
+              }
+            },
+            "required": [
+              "relation"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "value_upper"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "relation": {
                 "const": "range"
               }
             },
@@ -185,25 +208,6 @@
               "value_upper": {
                 "type": "number"
               }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "relation": {
-                "const": "greater_than"
-              }
-            },
-            "required": [
-              "relation"
-            ]
-          },
-          "then": {
-            "not": {
-              "required": [
-                "value_upper"
-              ]
             }
           }
         }
@@ -240,7 +244,8 @@
           "enum": [
             "paper_reported_prototype",
             "government_demonstration",
-            "industry_pilot"
+            "industry_pilot",
+            "industry_demonstration"
           ]
         },
         "comparison_group": {
