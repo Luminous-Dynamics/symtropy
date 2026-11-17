@@ -144,7 +144,11 @@
         "timebase aligned",
         "uncertainty within declared budget"
       ],
-      "module_ids": []
+      "module_ids": [
+        "SRC-100",
+        "PRE-100",
+        "EQ-100"
+      ]
     },
     {
       "tag": "FT-102",
@@ -155,7 +159,9 @@
         "timebase aligned",
         "use-profile identity present"
       ],
-      "module_ids": []
+      "module_ids": [
+        "DIST-100"
+      ]
     },
     {
       "tag": "FT-103",
@@ -166,7 +172,12 @@
         "timebase aligned",
         "uncertainty within declared budget"
       ],
-      "module_ids": []
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "LT-101",
@@ -176,7 +187,9 @@
         "calibration current",
         "tank geometry revision bound"
       ],
-      "module_ids": []
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "tag": "TT-101",
@@ -186,7 +199,9 @@
         "calibration current",
         "timebase aligned"
       ],
-      "module_ids": []
+      "module_ids": [
+        "EQ-100"
+      ]
     },
     {
       "tag": "PT-101",
@@ -197,7 +212,14 @@
         "pressure reference identified",
         "service pressure limit declared"
       ],
-      "module_ids": []
+      "module_ids": [
+        "PRE-100",
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "DIST-100"
+      ]
     },
     {
       "tag": "AI-101",
@@ -207,7 +229,12 @@
         "capability and calibration admitted",
         "no sensor substitutes for independent quality decision"
       ],
-      "module_ids": []
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "SP-101",
@@ -217,7 +244,10 @@
         "sample ID linked to batch",
         "method/revision/calibration recorded"
       ],
-      "module_ids": []
+      "module_ids": [
+        "SRC-100",
+        "PRE-100"
+      ]
     },
     {
       "tag": "SP-102",
@@ -227,7 +257,12 @@
         "sample ID linked to batch",
         "method/revision/calibration recorded"
       ],
-      "module_ids": []
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100"
+      ]
     },
     {
       "tag": "SP-103",
@@ -237,7 +272,9 @@
         "sample ID linked to batch",
         "independent quality assessment reference required"
       ],
-      "module_ids": []
+      "module_ids": [
+        "HOLD-100"
+      ]
     },
     {
       "tag": "SP-104",
@@ -247,7 +284,13 @@
         "sample ID linked to batch",
         "method/revision/calibration recorded"
       ],
-      "module_ids": []
+      "module_ids": [
+        "TR-A-100",
+        "TR-B-100",
+        "TR-C-100",
+        "TR-D-100",
+        "HOLD-100"
+      ]
     }
   ],
   "safety_invariants": [
