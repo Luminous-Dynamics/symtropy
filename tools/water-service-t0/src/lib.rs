@@ -2,7 +2,7 @@
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const INPUT_CASE_COUNT: usize = 23;
+pub const INPUT_CASE_COUNT: usize = 28;
 pub const ORACLE_SCHEMA_VERSION: &str = "water-service-t0-oracle-v0.1";
 pub const CLAIM_CEILING: &str =
     "arithmetic_and_contract_semantics_only_no_physical_or_health_claim";
@@ -376,6 +376,167 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
                 "recovery_claim_allowed": false
             }))
         }
+        "PW-T0-009-gross-treatment-throughput-not-service-credit" => {
+            let gross = number(i, &["gross_treatment_output_l"])?;
+            let qualified = number(i, &["qualified_delivered_l"])?;
+            let recovered = number(i, &["measured_recovered_use_l"])?;
+            let mains = number(i, &["measured_mains_displacement_l"])?;
+            let quality = boolean(i, &["quality_evidence_current"])?;
+            let control = boolean(i, &["matched_control_profile"])?;
+            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0) {
+                return Err(format!("{id}: negative service-credit quantity"));
+            }
+            if qualified > gross || recovered > qualified {
+                return Err(format!("{id}: service-credit quantities exceed their upstream boundary"));
+            }
+            let eligible = quality && control;
+            let credit = if eligible { qualified.min(recovered).min(mains) } else { 0.0 };
+            let disposition = if !quality {
+                "INDETERMINATE_QUALITY_EVIDENCE"
+            } else if !control {
+                "INDETERMINATE_CONTROL_PROFILE"
+            } else if credit == 0.0 {
+                "NO_RECOVERED_USE"
+            } else if credit < gross {
+                "CREDIT_CAPPED_BY_EVIDENCED_SERVICE"
+            } else {
+                "SERVICE_CREDIT_BOUNDED"
+            };
+            Ok(json!({
+                "gross_treatment_output_l": gross,
+                "qualified_delivered_l": qualified,
+                "measured_recovered_use_l": recovered,
+                "measured_mains_displacement_l": mains,
+                "credited_net_mains_displacement_l": credit,
+                "service_credit_disposition": disposition,
+                "gross_output_is_not_credit": gross != credit
+            }))
+        }
+        "PW-T0-010-quality-not-qualified-no-credit" => {
+            let gross = number(i, &["gross_treatment_output_l"])?;
+            let qualified = number(i, &["qualified_delivered_l"])?;
+            let recovered = number(i, &["measured_recovered_use_l"])?;
+            let mains = number(i, &["measured_mains_displacement_l"])?;
+            let quality = boolean(i, &["quality_evidence_current"])?;
+            let control = boolean(i, &["matched_control_profile"])?;
+            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0)
+                || qualified > gross
+                || recovered > qualified
+            {
+                return Err(format!("{id}: invalid service-credit boundary"));
+            }
+            let credit = if quality && control { qualified.min(recovered).min(mains) } else { 0.0 };
+            Ok(json!({
+                "credited_net_mains_displacement_l": credit,
+                "service_credit_disposition": if !quality {
+                    "INDETERMINATE_QUALITY_EVIDENCE"
+                } else if !control {
+                    "INDETERMINATE_CONTROL_PROFILE"
+                } else {
+                    "CREDIT_ASSESSABLE"
+                },
+                "release_allowed": false
+            }))
+        }
+        "PW-T0-011-no-reuse-control-no-credit" => {
+            let gross = number(i, &["gross_treatment_output_l"])?;
+            let qualified = number(i, &["qualified_delivered_l"])?;
+            let recovered = number(i, &["measured_recovered_use_l"])?;
+            let mains = number(i, &["measured_mains_displacement_l"])?;
+            let quality = boolean(i, &["quality_evidence_current"])?;
+            let control = boolean(i, &["matched_control_profile"])?;
+            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0)
+                || qualified > gross
+                || recovered > qualified
+            {
+                return Err(format!("{id}: invalid service-credit boundary"));
+            }
+            let credit = if quality && control { qualified.min(recovered).min(mains) } else { 0.0 };
+            Ok(json!({
+                "credited_net_mains_displacement_l": credit,
+                "service_credit_disposition": if !quality {
+                    "INDETERMINATE_QUALITY_EVIDENCE"
+                } else if !control {
+                    "INDETERMINATE_CONTROL_PROFILE"
+                } else {
+                    "CREDIT_ASSESSABLE"
+                },
+                "release_allowed": false
+            }))
+        }
+        "PW-T0-012-recovered-output-unused-no-credit" => {
+            let gross = number(i, &["gross_treatment_output_l"])?;
+            let qualified = number(i, &["qualified_delivered_l"])?;
+            let recovered = number(i, &["measured_recovered_use_l"])?;
+            let mains = number(i, &["measured_mains_displacement_l"])?;
+            let quality = boolean(i, &["quality_evidence_current"])?;
+            let control = boolean(i, &["matched_control_profile"])?;
+            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0)
+                || qualified > gross
+                || recovered > qualified
+            {
+                return Err(format!("{id}: invalid service-credit boundary"));
+            }
+            let credit = if quality && control { qualified.min(recovered).min(mains) } else { 0.0 };
+            Ok(json!({
+                "gross_treatment_output_l": gross,
+                "measured_recovered_use_l": recovered,
+                "credited_net_mains_displacement_l": credit,
+                "service_credit_disposition": if !quality {
+                    "INDETERMINATE_QUALITY_EVIDENCE"
+                } else if !control {
+                    "INDETERMINATE_CONTROL_PROFILE"
+                } else if recovered == 0.0 {
+                    "NO_RECOVERED_USE"
+                } else {
+                    "CREDIT_ASSESSABLE"
+                }
+            }))
+        }
+        "PW-T0-013-double-counted-shared-stream-rejected" => {
+            let shared_available = number(i, &["shared_source_available_l"])?;
+            let claims = at(i, &["end_use_claims"])?
+                .as_array()
+                .ok_or_else(|| format!("{id}: end_use_claims must be an array"))?;
+            if shared_available < 0.0 || claims.is_empty() {
+                return Err(format!("{id}: invalid shared-source profile"));
+            }
+            let mut meter_ids = BTreeSet::new();
+            let mut duplicate_meter_identity = false;
+            let mut claimed_total = 0.0;
+            for (index, claim) in claims.iter().enumerate() {
+                let context = format!("{id}.end_use_claims[{index}]");
+                let meter = string(claim, &["recovered_use_meter_id"])?;
+                if !meter_ids.insert(meter) {
+                    duplicate_meter_identity = true;
+                }
+                let qualified = number(claim, &["qualified_delivered_l"])?;
+                let recovered = number(claim, &["measured_recovered_use_l"])?;
+                let mains = number(claim, &["measured_mains_displacement_l"])?;
+                let quality = boolean(claim, &["quality_evidence_current"])?;
+                let control = boolean(claim, &["matched_control_profile"])?;
+                if [qualified, recovered, mains].iter().any(|value| *value < 0.0)
+                    || recovered > qualified
+                {
+                    return Err(format!("{context}: invalid end-use credit boundary"));
+                }
+                if quality && control {
+                    claimed_total += qualified.min(recovered).min(mains);
+                }
+            }
+            let rejected = duplicate_meter_identity || claimed_total > shared_available;
+            Ok(json!({
+                "shared_source_available_l": shared_available,
+                "claimed_credit_l": claimed_total,
+                "duplicate_meter_identity": duplicate_meter_identity,
+                "credited_net_mains_displacement_l": if rejected { 0.0 } else { claimed_total },
+                "service_credit_disposition": if rejected {
+                    "DOUBLE_COUNT_OR_SOURCE_OVERCLAIM_REJECTED"
+                } else {
+                    "SHARED_SOURCE_CREDIT_BOUNDED"
+                }
+            }))
+        }
         _ => Err(format!("unrecognized potable treatment case: {id}")),
     }
 }
@@ -552,7 +713,7 @@ pub fn evaluate(
         "network diagnostics manifest",
     )?;
 
-    if pump.len() != 9 || potable.len() != 8 || diagnostics.len() != 6 {
+    if pump.len() != 9 || potable.len() != 13 || diagnostics.len() != 6 {
         return Err(format!(
             "unexpected family counts: pump={}, potable={}, diagnostics={}",
             pump.len(),
@@ -689,7 +850,7 @@ mod tests {
     }
 
     #[test]
-    fn all_23_inputs_match_separate_frozen_oracle() {
+    fn all_28_inputs_match_separate_frozen_oracle() {
         let result = evaluate(
             &load("inputs"),
             &load("manifest"),
@@ -697,8 +858,8 @@ mod tests {
             &load("oracle"),
         )
         .expect("evaluation must complete");
-        assert_eq!(result["result_count"], 23);
-        assert_eq!(result["matched_case_count"], 23);
+        assert_eq!(result["result_count"], 28);
+        assert_eq!(result["matched_case_count"], 28);
         assert_eq!(result["verification_state"], "MatchedFrozenOracle");
         assert_eq!(result["mismatches"].as_array().unwrap().len(), 0);
     }
@@ -773,7 +934,7 @@ mod tests {
         )
         .expect("mismatch should produce an evaluation receipt");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 22);
+        assert_eq!(result["matched_case_count"], 27);
         assert_eq!(result["mismatches"].as_array().unwrap().len(), 1);
     }
 
