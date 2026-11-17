@@ -8,8 +8,9 @@ on:
     branches:
       - research/power-fabric-service-comparison-v0.1
     paths:
-      - "docs/research/power-fabric/data/transport-modality-baselines.*.json"
+      - "docs/research/power-fabric/data/transport-modality-baselines.*"
       - "docs/research/power-fabric/data/transport-modality-baselines.schema.json"
+      - "docs/research/power-fabric/data/transport-modality-baseline-record.schema.json"
       - "tools/power-fabric-baseline-validator/**"
       - ".github/workflows/power-fabric-modality-baselines.yml"
 
