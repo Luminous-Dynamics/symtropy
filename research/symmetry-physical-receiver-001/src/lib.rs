@@ -1934,6 +1934,8 @@ fn out_of_envelope_receipt(
             dense_momentum_balance_relative_defect: 0.0,
             canonical_discrete_constraint_identity_relative_defect: 0.0,
             dense_discrete_constraint_identity_relative_defect: 0.0,
+            canonical_link_length_relative_defect: 0.0,
+            dense_link_length_relative_defect: 0.0,
             canonical_energy_work_relative_defect: 0.0,
             dense_energy_work_relative_defect: 0.0,
         },
