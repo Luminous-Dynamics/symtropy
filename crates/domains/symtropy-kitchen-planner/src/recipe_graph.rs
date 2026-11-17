@@ -628,10 +628,7 @@ pub fn recipe_graph_to_kitchen_plan(
 mod tests {
     use super::*;
     use crate::TaskDependencyV1;
-    use crate::action_ontology::{
-        ActionGroupV1,
-        rule_based_action_binding,
-    };
+    use crate::action_ontology::{ActionGroupV1, rule_based_action_binding};
     use serde::Deserialize;
 
     #[derive(Deserialize)]
