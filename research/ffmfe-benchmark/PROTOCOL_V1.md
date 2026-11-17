@@ -277,3 +277,9 @@ These are research targets, not achieved values, code requirements or universal 
 The truss reference now includes a separate global audit of force balance, moment balance and the linear strain-energy / half-external-work identity. The mass-normalized benchmark receipt includes these diagnostics and an FNV-1a input digest. The digest is a non-security regression identifier; exported evidence still requires cryptographic hashes.
 
 A first 12-DOF Euler-Bernoulli 3D beam element kernel is also present. Its closed-form cantilever test and transformation invariants are part of the beam-frame development gate, but the kernel is not yet a global beam/frame solver and does not fulfil L4.
+
+## 16. Robust-design follow-on
+
+Uncertainty propagation and robust multiobjective design are tracked in Symtropy issue #5813. The current protocol requires deterministic bounded/interval screening before probabilistic reliability claims. Distribution assumptions, correlations, provenance and calibration status must be explicit. Probabilistic estimates require physical data, convergence diagnostics, full failure accounting and uncertainty intervals. A deterministic removal-scenario fraction is not a reliability probability.
+
+Symthaea's role is to prioritize simulations and coupons by expected decision-uncertainty reduction/value of information. It must not replace physical calibration or independent engineering qualification.
