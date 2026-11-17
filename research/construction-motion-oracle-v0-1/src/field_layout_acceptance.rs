@@ -286,10 +286,10 @@ pub fn score_field_layout_run(
             waiver.authority_role.as_str(),
             waiver.reason.as_str(),
             waiver.scope.as_str(),
-            waiver.waiver_receipt_sha256.as_str(),
         ]
         .into_iter()
         .any(|value| value.trim().is_empty())
+            || !is_sha256(&waiver.waiver_receipt_sha256)
         {
             return Err(FieldAcceptanceError::InvalidWaiver(
                 waiver.design_entity_id.clone(),
@@ -902,7 +902,7 @@ mod tests {
             authority_role: "site-quality-manager".into(),
             reason: "approved alternate marking method".into(),
             scope: "point-1 only".into(),
-            waiver_receipt_sha256: "waiver-digest".into(),
+            waiver_receipt_sha256: digest('b'),
         };
         let result = score_field_layout_run(
             &manifest(&["point-1"]),
