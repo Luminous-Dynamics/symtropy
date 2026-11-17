@@ -833,8 +833,7 @@ pub fn run_factorization_profile(
         index.role_codebook.len() * dimension * std::mem::size_of::<i8>();
     let role_slot_reference_bytes = fact_count * 5 * std::mem::size_of::<usize>();
     let role_postings_fact_id_bytes = fact_count * 5 * std::mem::size_of::<usize>();
-    let role_postings_header_bytes =
-        index.role_codebook.len() * std::mem::size_of::<Vec<usize>>();
+    let role_postings_header_bytes = index.role_codebook.len() * std::mem::size_of::<Vec<usize>>();
     let holistic_vector_payload_bytes =
         fact_count * dimension * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>());
     let role_slot_reuse_ratio = 1.0 - index.role_codebook.len() as f64 / (fact_count * 5) as f64;
