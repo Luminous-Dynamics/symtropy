@@ -619,6 +619,9 @@ pub struct RelativeTimeBroadphaseReport {
     pub broadphase_candidate_pairs: u64,
     pub refinement_subdivision_count: u32,
     pub refinement_tested_pair_slabs: u64,
+    pub refinement_body_slab_bounds_built: u64,
+    pub refinement_cached_bounds_fast_rejects: u64,
+    pub refinement_common_interval_rebuilds: u64,
     pub pairwise_checked_pairs: u64,
     /// Aggregate count for valid-body pairs omitted by the conservative
     /// space-time SAP broad phase (both temporal and spatial pruning).
@@ -757,6 +760,15 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     let refinement_tested_pair_slabs = hierarchical
         .as_ref()
         .map_or(0, |report| report.refinement.tested_pair_slabs);
+    let refinement_body_slab_bounds_built = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.body_slab_bounds_built);
+    let refinement_cached_bounds_fast_rejects = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.cached_bounds_fast_rejects);
+    let refinement_common_interval_rebuilds = hierarchical
+        .as_ref()
+        .map_or(0, |report| report.refinement.common_interval_rebuilds);
     let valid_outer_envelope_bodies = outer_bodies.len() as u64;
     let valid_outer_pair_count = valid_outer_envelope_bodies
         .checked_mul(valid_outer_envelope_bodies.saturating_sub(1))
@@ -783,6 +795,9 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
         broadphase_candidate_pairs,
         refinement_subdivision_count: config.subdivision_count,
         refinement_tested_pair_slabs,
+        refinement_body_slab_bounds_built,
+        refinement_cached_bounds_fast_rejects,
+        refinement_common_interval_rebuilds,
         pairwise_checked_pairs: 0,
         outer_space_time_pruned_pairs,
         unresolved_pairs: unresolved_body_pairs,
