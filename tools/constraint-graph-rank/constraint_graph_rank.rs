@@ -207,9 +207,7 @@ fn symmetric_eigenvalues(
             }
         }
 
-        if largest_off_diagonal
-            <= 8.0 * f64::EPSILON * diagonal_scale.max(f64::MIN_POSITIVE)
-        {
+        if largest_off_diagonal <= 8.0 * f64::EPSILON * diagonal_scale.max(f64::MIN_POSITIVE) {
             break;
         }
 
@@ -354,8 +352,7 @@ pub fn assess_multiplier_jacobian(
         geometry_tolerance: policy.geometry_tolerance,
     };
     let mut result = assess_symmetric_psd(normal, dimension, squared_policy)?;
-    result.reciprocal_condition_indicator =
-        result.reciprocal_condition_indicator.sqrt();
+    result.reciprocal_condition_indicator = result.reciprocal_condition_indicator.sqrt();
     Ok(result)
 }
 
@@ -403,8 +400,7 @@ impl ConstraintGraph3 {
                 }
             }
             if let Some(prior) = edges[..index].iter().find(|prior| {
-                (prior.from_body_id == edge.from_body_id
-                    && prior.to_body_id == edge.to_body_id)
+                (prior.from_body_id == edge.from_body_id && prior.to_body_id == edge.to_body_id)
                     || (prior.from_body_id == edge.to_body_id
                         && prior.to_body_id == edge.from_body_id)
             }) {
@@ -454,12 +450,12 @@ impl ConstraintGraph3 {
 
     fn validate_positions(&self) -> Result<(), GraphError> {
         for edge in &self.edges {
-            let from_index = self
-                .body_index(edge.from_body_id)
-                .ok_or(GraphError::MissingEndpoint {
-                    edge_id: edge.id,
-                    body_id: edge.from_body_id,
-                })?;
+            let from_index =
+                self.body_index(edge.from_body_id)
+                    .ok_or(GraphError::MissingEndpoint {
+                        edge_id: edge.id,
+                        body_id: edge.from_body_id,
+                    })?;
             let to_index = self
                 .body_index(edge.to_body_id)
                 .ok_or(GraphError::MissingEndpoint {
@@ -490,41 +486,37 @@ impl ConstraintGraph3 {
 
         for edge in &self.edges {
             edge_ids.push(edge.id);
-            let from = self.body_index(edge.from_body_id).ok_or(
-                GraphError::MissingEndpoint {
+            let from = self
+                .body_index(edge.from_body_id)
+                .ok_or(GraphError::MissingEndpoint {
                     edge_id: edge.id,
                     body_id: edge.from_body_id,
-                },
-            )?;
-            let to = self.body_index(edge.to_body_id).ok_or(
-                GraphError::MissingEndpoint {
+                })?;
+            let to = self
+                .body_index(edge.to_body_id)
+                .ok_or(GraphError::MissingEndpoint {
                     edge_id: edge.id,
                     body_id: edge.to_body_id,
-                },
-            )?;
-            let relative_position =
-                sub(self.bodies[to].position, self.bodies[from].position);
+                })?;
+            let relative_position = sub(self.bodies[to].position, self.bodies[from].position);
             signed_residuals.push(norm(relative_position) - edge.length);
         }
 
         for row in 0..edge_count {
             let edge_row = self.edges[row];
-            let row_from = self.body_index(edge_row.from_body_id).ok_or(
-                GraphError::MissingEndpoint {
-                    edge_id: edge_row.id,
-                    body_id: edge_row.from_body_id,
-                },
-            )?;
-            let row_to = self.body_index(edge_row.to_body_id).ok_or(
-                GraphError::MissingEndpoint {
-                    edge_id: edge_row.id,
-                    body_id: edge_row.to_body_id,
-                },
-            )?;
-            let row_vector = sub(
-                self.bodies[row_to].position,
-                self.bodies[row_from].position,
-            );
+            let row_from =
+                self.body_index(edge_row.from_body_id)
+                    .ok_or(GraphError::MissingEndpoint {
+                        edge_id: edge_row.id,
+                        body_id: edge_row.from_body_id,
+                    })?;
+            let row_to =
+                self.body_index(edge_row.to_body_id)
+                    .ok_or(GraphError::MissingEndpoint {
+                        edge_id: edge_row.id,
+                        body_id: edge_row.to_body_id,
+                    })?;
+            let row_vector = sub(self.bodies[row_to].position, self.bodies[row_from].position);
 
             for column in 0..edge_count {
                 let edge_column = self.edges[column];
@@ -534,12 +526,12 @@ impl ConstraintGraph3 {
                         body_id: edge_column.from_body_id,
                     },
                 )?;
-                let column_to = self.body_index(edge_column.to_body_id).ok_or(
-                    GraphError::MissingEndpoint {
-                        edge_id: edge_column.id,
-                        body_id: edge_column.to_body_id,
-                    },
-                )?;
+                let column_to =
+                    self.body_index(edge_column.to_body_id)
+                        .ok_or(GraphError::MissingEndpoint {
+                            edge_id: edge_column.id,
+                            body_id: edge_column.to_body_id,
+                        })?;
                 let column_vector = sub(
                     self.bodies[column_to].position,
                     self.bodies[column_from].position,
@@ -606,9 +598,21 @@ mod tests {
         let q1 = [1.0, 0.0, 0.0];
         let q2 = [1.0 + theta.cos(), theta.sin(), 0.0];
         let bodies = [
-            GraphBody { id: 10, mass: 1.3, position: q0 },
-            GraphBody { id: 20, mass: 2.1, position: q1 },
-            GraphBody { id: 30, mass: 0.8, position: q2 },
+            GraphBody {
+                id: 10,
+                mass: 1.3,
+                position: q0,
+            },
+            GraphBody {
+                id: 20,
+                mass: 2.1,
+                position: q1,
+            },
+            GraphBody {
+                id: 30,
+                mass: 0.8,
+                position: q2,
+            },
         ];
         let edges = vec![
             DistanceEdge {
@@ -632,9 +636,21 @@ mod tests {
         let q1 = [1.0, 0.0, 0.0];
         let q2 = [1.0 + theta.cos(), theta.sin(), 0.0];
         let bodies = [
-            GraphBody { id: 10, mass: 1.3, position: q0 },
-            GraphBody { id: 20, mass: 2.1, position: q1 },
-            GraphBody { id: 30, mass: 0.8, position: q2 },
+            GraphBody {
+                id: 10,
+                mass: 1.3,
+                position: q0,
+            },
+            GraphBody {
+                id: 20,
+                mass: 2.1,
+                position: q1,
+            },
+            GraphBody {
+                id: 30,
+                mass: 0.8,
+                position: q2,
+            },
         ];
         let edges = vec![
             DistanceEdge {
@@ -703,11 +719,17 @@ mod tests {
         assert!(indicators[6] > 1.0e-12);
         assert!(indicators[7] > 1.0e-12);
         assert_eq!(
-            closed_triangle(1.0e-4, 222).assess_geometry().unwrap().status,
+            closed_triangle(1.0e-4, 222)
+                .assess_geometry()
+                .unwrap()
+                .status,
             GeometryStatus::IllConditioned
         );
         assert_eq!(
-            closed_triangle(1.0e-6, 223).assess_geometry().unwrap().status,
+            closed_triangle(1.0e-6, 223)
+                .assess_geometry()
+                .unwrap()
+                .status,
             GeometryStatus::RankDeficient
         );
     }
@@ -723,14 +745,41 @@ mod tests {
     #[test]
     fn infeasible_triangle_lengths_are_rejected_before_geometry_solve() {
         let bodies = [
-            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
-            GraphBody { id: 20, mass: 1.0, position: [1.0, 0.0, 0.0] },
-            GraphBody { id: 30, mass: 1.0, position: [2.0, 0.0, 0.0] },
+            GraphBody {
+                id: 10,
+                mass: 1.0,
+                position: [0.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 20,
+                mass: 1.0,
+                position: [1.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 30,
+                mass: 1.0,
+                position: [2.0, 0.0, 0.0],
+            },
         ];
         let edges = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
-            DistanceEdge { id: 3, from_body_id: 30, to_body_id: 10, length: 2.1 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 2,
+                from_body_id: 20,
+                to_body_id: 30,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 3,
+                from_body_id: 30,
+                to_body_id: 10,
+                length: 2.1,
+            },
         ];
         assert_eq!(
             ConstraintGraph3::new(1, bodies, edges, RankPolicy::default()).unwrap_err(),
@@ -743,20 +792,13 @@ mod tests {
         let base = closed_triangle(0.37, 13);
         let mut edges = base.edges().to_vec();
         edges.reverse();
-        let permuted = ConstraintGraph3::new(
-            14,
-            *base.bodies(),
-            edges,
-            RankPolicy::default(),
-        )
-        .unwrap();
+        let permuted =
+            ConstraintGraph3::new(14, *base.bodies(), edges, RankPolicy::default()).unwrap();
         let a = base.assess_geometry().unwrap();
         let b = permuted.assess_geometry().unwrap();
         assert_eq!(a.edge_ids, b.edge_ids);
         for index in 0..3 {
-            assert!(
-                (a.eigenvalues[index] - b.eigenvalues[index]).abs() < 1.0e-13
-            );
+            assert!((a.eigenvalues[index] - b.eigenvalues[index]).abs() < 1.0e-13);
         }
     }
 
@@ -766,20 +808,13 @@ mod tests {
         let mut edges = base.edges().to_vec();
         edges[0].from_body_id = base.edges()[0].to_body_id;
         edges[0].to_body_id = base.edges()[0].from_body_id;
-        let reversed = ConstraintGraph3::new(
-            16,
-            *base.bodies(),
-            edges,
-            RankPolicy::default(),
-        )
-        .unwrap();
+        let reversed =
+            ConstraintGraph3::new(16, *base.bodies(), edges, RankPolicy::default()).unwrap();
         let a = base.assess_geometry().unwrap();
         let b = reversed.assess_geometry().unwrap();
         assert_eq!(a.numerical_rank, b.numerical_rank);
         for index in 0..3 {
-            assert!(
-                (a.eigenvalues[index] - b.eigenvalues[index]).abs() < 2.0e-13
-            );
+            assert!((a.eigenvalues[index] - b.eigenvalues[index]).abs() < 2.0e-13);
         }
     }
 
@@ -799,28 +834,21 @@ mod tests {
                 .unwrap();
         assert_eq!(baseline.numerical_rank, rotated.numerical_rank);
         assert!(
-            (baseline.reciprocal_condition_indicator
-                - rotated.reciprocal_condition_indicator)
+            (baseline.reciprocal_condition_indicator - rotated.reciprocal_condition_indicator)
                 .abs()
                 < 2.0e-13
         );
         for index in 0..3 {
-            assert!(
-                (baseline.eigenvalues[index] - rotated.eigenvalues[index]).abs()
-                    < 2.0e-12
-            );
+            assert!((baseline.eigenvalues[index] - rotated.eigenvalues[index]).abs() < 2.0e-12);
         }
     }
 
     #[test]
     fn multiplier_jacobian_condition_is_distinct_from_geometric_rank() {
         let policy = RankPolicy::default();
-        let well_conditioned = assess_multiplier_jacobian(
-            [[1.0, 0.1, 0.0], [-0.2, 0.9, 0.0], [0.0; 3]],
-            2,
-            policy,
-        )
-        .unwrap();
+        let well_conditioned =
+            assess_multiplier_jacobian([[1.0, 0.1, 0.0], [-0.2, 0.9, 0.0], [0.0; 3]], 2, policy)
+                .unwrap();
         let nearly_singular = assess_multiplier_jacobian(
             [[1.0, 1.0, 0.0], [1.0, 1.0 + 1.0e-10, 0.0], [0.0; 3]],
             2,
@@ -835,22 +863,38 @@ mod tests {
     #[test]
     fn duplicate_undirected_edges_and_missing_endpoints_fail_closed() {
         let bodies = [
-            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
-            GraphBody { id: 20, mass: 2.0, position: [1.0, 0.0, 0.0] },
-            GraphBody { id: 30, mass: 3.0, position: [2.0, 0.0, 0.0] },
+            GraphBody {
+                id: 10,
+                mass: 1.0,
+                position: [0.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 20,
+                mass: 2.0,
+                position: [1.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 30,
+                mass: 3.0,
+                position: [2.0, 0.0, 0.0],
+            },
         ];
         let duplicate_pair = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 10, length: 1.0 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 2,
+                from_body_id: 20,
+                to_body_id: 10,
+                length: 1.0,
+            },
         ];
         assert_eq!(
-            ConstraintGraph3::new(
-                1,
-                bodies,
-                duplicate_pair,
-                RankPolicy::default()
-            )
-            .unwrap_err(),
+            ConstraintGraph3::new(1, bodies, duplicate_pair, RankPolicy::default()).unwrap_err(),
             GraphError::DuplicateUndirectedEdge {
                 edge_id: 2,
                 other_edge_id: 1
@@ -858,17 +902,21 @@ mod tests {
         );
 
         let missing_endpoint = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 99, length: 1.0 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 2,
+                from_body_id: 20,
+                to_body_id: 99,
+                length: 1.0,
+            },
         ];
         assert_eq!(
-            ConstraintGraph3::new(
-                1,
-                bodies,
-                missing_endpoint,
-                RankPolicy::default()
-            )
-            .unwrap_err(),
+            ConstraintGraph3::new(1, bodies, missing_endpoint, RankPolicy::default()).unwrap_err(),
             GraphError::MissingEndpoint {
                 edge_id: 2,
                 body_id: 99
@@ -879,13 +927,35 @@ mod tests {
     #[test]
     fn inconsistent_edge_geometry_nonfinite_body_and_invalid_policy_fail_closed() {
         let bodies = [
-            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
-            GraphBody { id: 20, mass: 1.0, position: [1.0, 0.0, 0.0] },
-            GraphBody { id: 30, mass: 1.0, position: [2.0, 0.0, 0.0] },
+            GraphBody {
+                id: 10,
+                mass: 1.0,
+                position: [0.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 20,
+                mass: 1.0,
+                position: [1.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 30,
+                mass: 1.0,
+                position: [2.0, 0.0, 0.0],
+            },
         ];
         let edges = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.1 },
-            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.1,
+            },
+            DistanceEdge {
+                id: 2,
+                from_body_id: 20,
+                to_body_id: 30,
+                length: 1.0,
+            },
         ];
         assert_eq!(
             ConstraintGraph3::new(1, bodies, edges, RankPolicy::default()).unwrap_err(),
@@ -905,8 +975,18 @@ mod tests {
                 1,
                 nonfinite,
                 vec![
-                    DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-                    DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+                    DistanceEdge {
+                        id: 1,
+                        from_body_id: 10,
+                        to_body_id: 20,
+                        length: 1.0
+                    },
+                    DistanceEdge {
+                        id: 2,
+                        from_body_id: 20,
+                        to_body_id: 30,
+                        length: 1.0
+                    },
                 ],
                 RankPolicy::default()
             )
@@ -943,16 +1023,12 @@ mod tests {
         .unwrap();
         assert_eq!(baseline.numerical_rank, permuted.numerical_rank);
         assert!(
-            (baseline.reciprocal_condition_indicator
-                - permuted.reciprocal_condition_indicator)
+            (baseline.reciprocal_condition_indicator - permuted.reciprocal_condition_indicator)
                 .abs()
                 < 2.0e-13
         );
         for index in 0..3 {
-            assert!(
-                (baseline.eigenvalues[index] - permuted.eigenvalues[index]).abs()
-                    < 2.0e-12
-            );
+            assert!((baseline.eigenvalues[index] - permuted.eigenvalues[index]).abs() < 2.0e-12);
         }
     }
 
@@ -963,14 +1039,16 @@ mod tests {
         for row in 0..3 {
             for column in 0..3 {
                 assert!(
-                    (receipt.gram_matrix[row][column]
-                        - receipt.gram_matrix[column][row])
-                        .abs()
+                    (receipt.gram_matrix[row][column] - receipt.gram_matrix[column][row]).abs()
                         < 2.0e-14
                 );
             }
         }
-        assert!(receipt.eigenvalues.iter().take(3).all(|value| *value >= 0.0));
+        assert!(receipt
+            .eigenvalues
+            .iter()
+            .take(3)
+            .all(|value| *value >= 0.0));
     }
 
     #[test]
@@ -981,20 +1059,14 @@ mod tests {
         for body in &mut bodies {
             body.mass *= 17.0;
         }
-        let scaled = ConstraintGraph3::new(
-            26,
-            bodies,
-            base.edges().to_vec(),
-            RankPolicy::default(),
-        )
-        .unwrap()
-        .assess_geometry()
-        .unwrap();
+        let scaled =
+            ConstraintGraph3::new(26, bodies, base.edges().to_vec(), RankPolicy::default())
+                .unwrap()
+                .assess_geometry()
+                .unwrap();
         assert_eq!(baseline.numerical_rank, scaled.numerical_rank);
         assert!(
-            (baseline.reciprocal_condition_indicator
-                - scaled.reciprocal_condition_indicator)
-                .abs()
+            (baseline.reciprocal_condition_indicator - scaled.reciprocal_condition_indicator).abs()
                 < 2.0e-13
         );
     }
@@ -1002,13 +1074,35 @@ mod tests {
     #[test]
     fn invalid_ids_edges_masses_and_lengths_fail_closed() {
         let body = [
-            GraphBody { id: 10, mass: 1.0, position: [0.0, 0.0, 0.0] },
-            GraphBody { id: 20, mass: 1.0, position: [1.0, 0.0, 0.0] },
-            GraphBody { id: 30, mass: 1.0, position: [2.0, 0.0, 0.0] },
+            GraphBody {
+                id: 10,
+                mass: 1.0,
+                position: [0.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 20,
+                mass: 1.0,
+                position: [1.0, 0.0, 0.0],
+            },
+            GraphBody {
+                id: 30,
+                mass: 1.0,
+                position: [2.0, 0.0, 0.0],
+            },
         ];
         let duplicate_edges = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-            DistanceEdge { id: 1, from_body_id: 20, to_body_id: 30, length: 1.0 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 20,
+                to_body_id: 30,
+                length: 1.0,
+            },
         ];
         assert_eq!(
             ConstraintGraph3::new(1, body, duplicate_edges, RankPolicy::default()).unwrap_err(),
@@ -1016,8 +1110,18 @@ mod tests {
         );
 
         let self_edge = vec![
-            DistanceEdge { id: 1, from_body_id: 10, to_body_id: 10, length: 1.0 },
-            DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+            DistanceEdge {
+                id: 1,
+                from_body_id: 10,
+                to_body_id: 10,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 2,
+                from_body_id: 20,
+                to_body_id: 30,
+                length: 1.0,
+            },
         ];
         assert_eq!(
             ConstraintGraph3::new(1, body, self_edge, RankPolicy::default()).unwrap_err(),
@@ -1025,7 +1129,10 @@ mod tests {
         );
 
         let invalid_mass = [
-            GraphBody { mass: 0.0, ..body[0] },
+            GraphBody {
+                mass: 0.0,
+                ..body[0]
+            },
             body[1],
             body[2],
         ];
@@ -1034,8 +1141,18 @@ mod tests {
                 1,
                 invalid_mass,
                 vec![
-                    DistanceEdge { id: 1, from_body_id: 10, to_body_id: 20, length: 1.0 },
-                    DistanceEdge { id: 2, from_body_id: 20, to_body_id: 30, length: 1.0 },
+                    DistanceEdge {
+                        id: 1,
+                        from_body_id: 10,
+                        to_body_id: 20,
+                        length: 1.0
+                    },
+                    DistanceEdge {
+                        id: 2,
+                        from_body_id: 20,
+                        to_body_id: 30,
+                        length: 1.0
+                    },
                 ],
                 RankPolicy::default(),
             )
@@ -1056,22 +1173,44 @@ fn main() {
         let q1 = [1.0, 0.0, 0.0];
         let q2 = [1.0 + angle.cos(), angle.sin(), 0.0];
         let bodies = [
-            GraphBody { id: 10, mass: 1.3, position: q0 },
-            GraphBody { id: 20, mass: 2.1, position: q1 },
-            GraphBody { id: 30, mass: 0.8, position: q2 },
+            GraphBody {
+                id: 10,
+                mass: 1.3,
+                position: q0,
+            },
+            GraphBody {
+                id: 20,
+                mass: 2.1,
+                position: q1,
+            },
+            GraphBody {
+                id: 30,
+                mass: 0.8,
+                position: q2,
+            },
         ];
         let edges = vec![
-            DistanceEdge { id: 101, from_body_id: 10, to_body_id: 20, length: 1.0 },
-            DistanceEdge { id: 202, from_body_id: 20, to_body_id: 30, length: 1.0 },
-            DistanceEdge { id: 303, from_body_id: 30, to_body_id: 10, length: norm(q2) },
+            DistanceEdge {
+                id: 101,
+                from_body_id: 10,
+                to_body_id: 20,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 202,
+                from_body_id: 20,
+                to_body_id: 30,
+                length: 1.0,
+            },
+            DistanceEdge {
+                id: 303,
+                from_body_id: 30,
+                to_body_id: 10,
+                length: norm(q2),
+            },
         ];
-        let graph = ConstraintGraph3::new(
-            500 + index as u64,
-            bodies,
-            edges,
-            RankPolicy::default(),
-        )
-        .expect("rank-stress triangle must be geometrically feasible");
+        let graph = ConstraintGraph3::new(500 + index as u64, bodies, edges, RankPolicy::default())
+            .expect("rank-stress triangle must be geometrically feasible");
         let receipt = graph.assess_geometry().expect("Gram matrix must be finite");
         println!(
             "{:.17e},{:?},{},{:.17e},{:.17e},{:.17e},{:.17e}",
