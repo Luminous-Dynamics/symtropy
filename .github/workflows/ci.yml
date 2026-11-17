@@ -90,8 +90,34 @@ jobs:
         cargo fmt --manifest-path tools/material-accounted-routes/Cargo.toml -- --check
         cargo clippy --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets -- -D warnings
         cargo test --manifest-path tools/material-accounted-routes/Cargo.toml --all-targets
-        cargo run --manifest-path tools/material-accounted-routes/Cargo.toml --bin material-accounted-routes > /tmp/material-accounted-routes-report.tsv
-        test "$(wc -l < /tmp/material-accounted-routes-report.tsv)" -eq 32
+        mkdir -p stage0-evidence
+        cargo run --manifest-path tools/material-accounted-routes/Cargo.toml --bin material-accounted-routes > stage0-evidence/report.tsv
+        test "$(wc -l < stage0-evidence/report.tsv)" -eq 32
+        {
+          echo "workflow_run_id=${GITHUB_RUN_ID}"
+          echo "workflow_attempt=${GITHUB_RUN_ATTEMPT}"
+          echo "checkout_sha=$(git rev-parse HEAD)"
+          echo "source_head_sha=${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "base_sha=${{ github.event.pull_request.base.sha || 'unknown' }}"
+          echo "rustc=$(rustc --version)"
+          echo "cargo=$(cargo --version)"
+          echo "case_count=$(($(wc -l < tools/material-accounted-routes/fixtures/cases-v0.1.tsv) - 1))"
+          echo "receipt_count=$(($(wc -l < tools/material-accounted-routes/fixtures/receipts-v0.1.tsv) - 1))"
+          echo "report_line_count=$(wc -l < stage0-evidence/report.tsv)"
+        } > stage0-evidence/manifest.txt
+        sha256sum \
+          tools/material-accounted-routes/fixtures/cases-v0.1.tsv \
+          tools/material-accounted-routes/fixtures/receipts-v0.1.tsv \
+          stage0-evidence/report.tsv >> stage0-evidence/manifest.txt
+
+    - name: Upload Material-Accounted Routes Stage 0 evidence
+      if: runner.os == 'Linux' && success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: material-accounted-routes-stage0-${{ github.sha }}
+        path: stage0-evidence/
+        if-no-files-found: error
+        retention-days: 30
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
