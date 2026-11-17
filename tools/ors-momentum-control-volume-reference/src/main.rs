@@ -218,6 +218,8 @@ mod tests {
         assert_eq!(first, second);
         assert!(first.contains("\"case_count\": 6"));
         assert!(first.contains("\"port_count\": 14"));
+        assert!(first.contains("\"frame_id\": \"INERTIAL_SYNTHETIC\""));
+        assert!(first.contains("\"epoch_s\": 0.000000000000000e0"));
         assert!(first.contains("\"cases_corpus_sha256\":"));
         assert!(first.contains("\"ports_corpus_sha256\":"));
         assert!(first.contains("\"result\": \"pass\""));
