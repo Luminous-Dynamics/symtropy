@@ -158,7 +158,8 @@
               "workflow",
               "cleaning",
               "lifecycle",
-              "safety"
+              "safety",
+              "robotics"
             ]
           },
           "operation": {
@@ -458,7 +459,8 @@
               "action_ontology_external",
               "kitchen_r_external",
               "behavior_1k_external",
-              "safevla_bench_external"
+              "safevla_bench_external",
+              "robocasa365_external"
             ]
           },
           "status": {
