@@ -1,0 +1,181 @@
+{
+  "schema_version": "0.1.0",
+  "reproduction_id": "EC-ENERGY-CLOSURE-REPRO-001/v0.1",
+  "claim_ceiling": "Metadata-only reproduction manifest. No archive bytes or raw source data have been retrieved or ingested in this task. Published summary values are rounded comparison targets, not exact row-level oracles. File-level licenses remain unverified until exact record metadata, README and contributor terms are inspected. No energy-balance correction, whole-system first-law closure, entropy production, exergy, biological or model-superiority claim follows from this manifest.",
+  "article": {
+    "title": "Bridging the Energy Balance Gap in Eddy-Covariance Measurements: Insights From Standardized Network Data",
+    "doi": "10.1111/gcb.70892",
+    "journal": "Global Change Biology 32(5), e70892",
+    "first_published": "2026-05-04",
+    "sites": 84,
+    "network_counts": {
+      "ICOS": 38,
+      "NEON": 46
+    }
+  },
+  "records": [
+    {
+      "record_id": "ZENODO-19608436",
+      "role": "processed_analysis_data",
+      "doi": "10.5281/zenodo.19608436",
+      "title": "EBC_data: processed energy balance closure datasets from ICOS and NEON eddy-covariance networks",
+      "record_type": "dataset",
+      "version": "1.0.0",
+      "published_date": "2026-04-16",
+      "access_state": "record_metadata_public_files_not_retrieved",
+      "license_state": "not_verified",
+      "license_note": "The indexed record shows an Open dataset and file metadata, but the accessible extraction did not expose a verifiable license value for the record/files. Do not infer licensing from the article's open-access status or Zenodo's default license. Inspect exact record metadata, README and embedded rights/attribution before processing or redistribution.",
+      "network_or_scope": "84 processed tower sites: 38 ICOS and 46 NEON; includes non-gap-filled and gap-filled half-hourly EBC metrics and intermediate series for biomass heat storage, photosynthetic energy uptake and corrected radiation. Raw source inputs are not redistributed in this record.",
+      "files": [
+        {
+          "filename": "EBC_data.7z",
+          "size_bytes": 273100000,
+          "published_md5": "c6252cecac4d46d856196f0a565026e5",
+          "sha256": null,
+          "retrieval_state": "not_retrieved"
+        },
+        {
+          "filename": "EBC_data_README.md",
+          "size_bytes": 9800,
+          "published_md5": "e072368b147941bbf28fea85f9d71114",
+          "sha256": null,
+          "retrieval_state": "not_retrieved"
+        }
+      ],
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Retrieve exact v1.0.0 record metadata and files; verify published MD5s and locally computed SHA-256; inspect EBC_data_README.md for file inventory, units, signs, time zone, quality flags, gap filling, site IDs and source lineage; confirm file-level licence and attribution."
+    },
+    {
+      "record_id": "ZENODO-19631582",
+      "role": "original_analysis_software",
+      "doi": "10.5281/zenodo.19631582",
+      "title": "EBC_code: R pipeline for energy balance closure analysis of ICOS and NEON eddy-covariance data",
+      "record_type": "software",
+      "version": "not_verified",
+      "published_date": "not_verified",
+      "access_state": "record_metadata_public_files_not_retrieved",
+      "license_state": "not_verified",
+      "license_note": "The article and CORDIS project index identify this DOI as the analysis software record, but exact version, deposited files, license and dependency specification have not been retrieved. Do not infer a code license from the article or dataset record.",
+      "network_or_scope": "Original R analysis code supporting the 2026 paper; intended as the first reproduction baseline, not the Rust reference kernel.",
+      "files": [],
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Retrieve exact Zenodo record metadata, version, source files and checksums; inspect license and NOTICE; pin R version, packages, platform and any external helper scripts; preserve the original code unchanged for baseline reproduction."
+    },
+    {
+      "record_id": "ICOS-S6HM-CP8Q",
+      "role": "raw_source_data",
+      "doi": "10.18160/S6HM-CP8Q",
+      "title": "ICOS Carbon Portal source dataset cited by the article",
+      "record_type": "dataset",
+      "version": "source_release_to_verify",
+      "published_date": "not_verified",
+      "access_state": "not_verified",
+      "license_state": "source_specific_license_review_required",
+      "license_note": "Raw inputs are not included in the processed EBC_data archive. Access, terms, acknowledgements and exact product/version must be checked at the ICOS source record for the 38 selected tower sites.",
+      "network_or_scope": "Original ICOS eddy-covariance inputs; article uses 38 ICOS sites.",
+      "files": [],
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Resolve the source DOI to exact site/product releases and versions; inspect data use and attribution requirements; verify source variables, processing version, quality flags, time zone, gap-fill state and site identifiers against the processed archive."
+    },
+    {
+      "record_id": "NEON-R7ZP-Y487",
+      "role": "raw_source_data",
+      "doi": "10.48443/r7zp-y487",
+      "title": "NEON data portal source dataset cited by the article",
+      "record_type": "dataset",
+      "version": "source_release_to_verify",
+      "published_date": "not_verified",
+      "access_state": "not_verified",
+      "license_state": "source_specific_license_review_required",
+      "license_note": "Raw inputs are not included in the processed EBC_data archive. Access, product DOI, release, terms and attribution must be checked at the NEON source record; do not substitute current products for the article's exact source snapshot.",
+      "network_or_scope": "Original NEON eddy-covariance inputs; article uses 46 NEON sites.",
+      "files": [],
+      "downloaded": false,
+      "data_ingested": false,
+      "next_gate": "Resolve the source DOI to exact site/product releases; inspect DOI, release, data-use/citation requirements, time range, QA and gap-fill variables; reconcile selected site identifiers against the processed archive."
+    }
+  ],
+  "published_targets": [
+    {
+      "target_id": "T-AE1-RMA",
+      "estimand": "Pooled half-hourly RMA slope TE~AE1",
+      "statistic": "mean and median with 95% CI",
+      "reported_value": "mean 0.70 ± 0.01; median 0.68; 95% CI 0.67–0.73",
+      "units_or_scale": "dimensionless RMA slope",
+      "population": "84 ICOS/NEON sites as reported in article",
+      "interpretation": "Rounded reproduction target from the paper; verify exact aggregation and rounding method from original code and article tables."
+    },
+    {
+      "target_id": "T-AE2-RMA",
+      "estimand": "Pooled half-hourly RMA slope TE~AE2",
+      "statistic": "mean reported closure",
+      "reported_value": "mean 0.73 ± 0.01",
+      "units_or_scale": "dimensionless RMA slope",
+      "population": "84 ICOS/NEON sites as reported in article",
+      "interpretation": "Rounded reproduction target; not an exact fixture or acceptance threshold."
+    },
+    {
+      "target_id": "T-AE6-RMA",
+      "estimand": "Pooled half-hourly RMA slope TE~AE6",
+      "statistic": "mean, median and 95% CI",
+      "reported_value": "mean 0.85 ± 0.01; median 0.83; 95% CI 0.82–0.88",
+      "units_or_scale": "dimensionless RMA slope",
+      "population": "84 ICOS/NEON sites as reported in article",
+      "interpretation": "Rounded reproduction target; preserve site heterogeneity and overclosure rather than optimizing to 1."
+    },
+    {
+      "target_id": "T-AE6-USTAR",
+      "estimand": "AE6 with low-turbulence/u* filtered TE",
+      "statistic": "mean incremental improvement, IQR, site count",
+      "reported_value": "overall improvement about 16%; IQR 11%–20%; n=79; maximum site gains approach 40%",
+      "units_or_scale": "relative improvement in RMA-based EBC as reported",
+      "population": "79 sites for complete term and u* comparison",
+      "interpretation": "Rounded summary target; verify source code's site inclusion and relative-improvement denominator."
+    }
+  ],
+  "reproduction_gates": [
+    {
+      "gate_id": "R0_RECORD_IDENTITY",
+      "status": "pending",
+      "description": "Pin exact DOI records, versions, metadata, file names/sizes/checksums and related identifiers."
+    },
+    {
+      "gate_id": "R1_RIGHTS",
+      "status": "pending",
+      "description": "Verify data and code file-level licenses, contributor terms, raw source terms and acknowledgements."
+    },
+    {
+      "gate_id": "R2_ARCHIVE",
+      "status": "not_started",
+      "description": "Retrieve the processed archive/README; MD5 verification and SHA-256 computation not yet performed."
+    },
+    {
+      "gate_id": "R3_CODE",
+      "status": "not_started",
+      "description": "Retrieve original R software, its files and exact dependency/runtime environment."
+    },
+    {
+      "gate_id": "R4_CROSSWALK",
+      "status": "not_started",
+      "description": "Reconcile sites, variables, units, signs, times, QC, gap filling and non-/gap-filled data."
+    },
+    {
+      "gate_id": "R5_PUBLISHED_REPLAY",
+      "status": "not_started",
+      "description": "Reproduce published AE1–AE6, u* and integrated EBR results using the original R pipeline."
+    },
+    {
+      "gate_id": "R6_RUST_CROSSCHECK",
+      "status": "not_started",
+      "description": "Cross-check a bounded subset with the independent Rust kernel after source semantics are verified."
+    },
+    {
+      "gate_id": "R7_UNCERTAINTY",
+      "status": "not_started",
+      "description": "Reproduce paper CI/aggregation procedures and then run separately labelled site/time dependence sensitivity under #5953."
+    }
+  ]
+}
