@@ -18,6 +18,7 @@ pub mod hyphal_highway;
 pub mod hyphal_spectroscopy;
 pub mod isotope_transfer;
 pub mod legacy_accounting;
+pub mod multimodal_imaging;
 pub mod network_evidence;
 pub mod observation_evidence;
 pub mod pareto_front;
