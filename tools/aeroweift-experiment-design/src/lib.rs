@@ -404,6 +404,9 @@ pub struct ExperimentDesignPolicy {
     pub minimum_estimate_confidence_level: f64,
     /// Exact estimator build required by the frozen policy.
     pub required_estimator_build_sha256: String,
+    /// Owner namespace authorized by policy to issue utility-estimate receipts.
+    /// Cryptographic authentication and issuer authority remain external.
+    pub expected_utility_estimator_issuer_id: String,
     /// Exact estimate method required by the frozen policy.
     pub required_estimate_method_sha256: String,
     /// Modalities that require affirmative external authorization under this campaign.
@@ -546,6 +549,7 @@ fn validate_policy(policy: &ExperimentDesignPolicy) -> Result<(), DesignError> {
         || !is_sha256(&policy.adaptive_data_manifest_sha256)
         || policy.minimum_estimate_independent_units == 0
         || !is_sha256(&policy.required_estimator_build_sha256)
+        || policy.expected_utility_estimator_issuer_id.trim().is_empty()
         || !is_sha256(&policy.required_estimate_method_sha256)
         || !bounded_unit_interval(policy.minimum_estimate_confidence_level)
         || policy.minimum_estimate_confidence_level == 0.0
@@ -577,7 +581,7 @@ fn gate_receipt_matches_scope(
     policy: &ExperimentDesignPolicy,
 ) -> bool {
     !receipt.receipt_id.trim().is_empty()
-        && !receipt.issuer_id.trim().is_empty()
+        && receipt.issuer_id == policy.expected_utility_estimator_issuer_id
         && is_sha256(&receipt.payload_sha256)
         && receipt.campaign_sha256 == candidate.campaign_sha256
         && receipt.model_scope_sha256 == candidate.model_scope_sha256
