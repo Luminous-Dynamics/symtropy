@@ -7,8 +7,9 @@ use std::error::Error;
 
 const BASELINES: &str =
     include_str!("../../../docs/research/power-fabric/data/transport-modality-baselines.v0.1.json");
-const BASELINES_JSONL: &str =
-    include_str!("../../../docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl");
+const BASELINES_JSONL: &str = include_str!(
+    "../../../docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl"
+);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineSummary {
@@ -61,7 +62,9 @@ fn validate_publication_date(value: &str, label: &str) -> Result<(), String> {
         .enumerate()
         .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit());
     if !valid_shape || !digits_only {
-        return Err(format!("{label}: publication_date must be YYYY-MM or YYYY-MM-DD"));
+        return Err(format!(
+            "{label}: publication_date must be YYYY-MM or YYYY-MM-DD"
+        ));
     }
     let month = value[5..7]
         .parse::<u8>()
@@ -129,13 +132,17 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
     match relation.as_str() {
         "exact" | "approximate" | "greater_than" | "less_than" => {
             if upper.is_some() {
-                return Err(format!("{label}: {relation} measurements must not have value_upper"));
+                return Err(format!(
+                    "{label}: {relation} measurements must not have value_upper"
+                ));
             }
         }
         "range" => {
             let upper = upper.ok_or_else(|| format!("{label}: range requires value_upper"))?;
             if !upper.is_finite() || upper <= value {
-                return Err(format!("{label}: range upper bound must be finite and greater than lower"));
+                return Err(format!(
+                    "{label}: range upper bound must be finite and greater than lower"
+                ));
             }
         }
         _ => return Err(format!("{label}: unsupported relation {relation}")),
@@ -150,7 +157,9 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
         "source_reported_simulation",
     ];
     if !allowed_evidence_kinds.contains(&evidence_kind.as_str()) {
-        return Err(format!("{label}: unsupported evidence_kind {evidence_kind}"));
+        return Err(format!(
+            "{label}: unsupported evidence_kind {evidence_kind}"
+        ));
     }
     non_empty_string(measurement, "measurement_plane", label)?;
     let boundary = non_empty_string(measurement, "boundary", label)?;
@@ -163,7 +172,9 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
     }
     non_empty_string_array(measurement, "conditions", label)?;
     if name.contains("efficiency") && boundary.trim().is_empty() {
-        return Err(format!("{label}: efficiency must have an explicit boundary"));
+        return Err(format!(
+            "{label}: efficiency must have an explicit boundary"
+        ));
     }
     Ok(())
 }
@@ -177,7 +188,10 @@ fn parse_jsonl_records(raw: &str) -> Result<Vec<Value>, String> {
         let record: Value = serde_json::from_str(line)
             .map_err(|error| format!("JSONL line {} is invalid: {error}", index + 1))?;
         if !record.is_object() {
-            return Err(format!("JSONL line {} must contain one record object", index + 1));
+            return Err(format!(
+                "JSONL line {} must contain one record object",
+                index + 1
+            ));
         }
         records.push(record);
     }
@@ -187,10 +201,7 @@ fn parse_jsonl_records(raw: &str) -> Result<Vec<Value>, String> {
     Ok(records)
 }
 
-pub fn validate_frozen_artifacts(
-    document: &Value,
-    jsonl: &str,
-) -> Result<BaselineSummary, String> {
+pub fn validate_frozen_artifacts(document: &Value, jsonl: &str) -> Result<BaselineSummary, String> {
     let manifest_records = field(document, "records", "root")?;
     let jsonl_records = parse_jsonl_records(jsonl)?;
     if manifest_records.as_array() != Some(&jsonl_records) {
@@ -213,10 +224,11 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
     if field(policy, "global_efficiency_ranking", "comparison_policy")?.as_bool() != Some(false) {
         return Err("comparison_policy: global efficiency ranking must be disabled".to_owned());
     }
-    let required_dimensions =
-        field(policy, "required_match_dimensions", "comparison_policy")?
-            .as_array()
-            .ok_or_else(|| "comparison_policy: required_match_dimensions must be an array".to_owned())?;
+    let required_dimensions = field(policy, "required_match_dimensions", "comparison_policy")?
+        .as_array()
+        .ok_or_else(|| {
+            "comparison_policy: required_match_dimensions must be an array".to_owned()
+        })?;
     if required_dimensions.is_empty() {
         return Err("comparison_policy: required match dimensions must not be empty".to_owned());
     }
@@ -327,18 +339,22 @@ mod tests {
     fn rejects_a_jsonl_file_with_malformed_record_data() {
         let document = corpus();
         let malformed = "{ not valid json }\\n";
-        assert!(validate_frozen_artifacts(&document, malformed)
-            .unwrap_err()
-            .contains("invalid"));
+        assert!(
+            validate_frozen_artifacts(&document, malformed)
+                .unwrap_err()
+                .contains("invalid")
+        );
     }
 
     #[test]
     fn rejects_jsonl_manifest_drift() {
         let document = corpus();
         let drifted = BASELINES_JSONL.replace("riekerk-2026-50kw-ipt", "changed-id");
-        assert!(validate_frozen_artifacts(&document, &drifted)
-            .unwrap_err()
-            .contains("differ"));
+        assert!(
+            validate_frozen_artifacts(&document, &drifted)
+                .unwrap_err()
+                .contains("differ")
+        );
     }
 
     #[test]
@@ -352,8 +368,14 @@ mod tests {
     fn distinct_lpt_boundaries_have_distinct_comparison_groups() {
         let document = corpus();
         let records = document["records"].as_array().unwrap();
-        let ntt = records.iter().find(|r| r["id"] == "ntt-mhi-2025-1km-laser").unwrap();
-        let yigit = records.iter().find(|r| r["id"] == "yigit-2026-20m-laser").unwrap();
+        let ntt = records
+            .iter()
+            .find(|r| r["id"] == "ntt-mhi-2025-1km-laser")
+            .unwrap();
+        let yigit = records
+            .iter()
+            .find(|r| r["id"] == "yigit-2026-20m-laser")
+            .unwrap();
         assert_ne!(ntt["comparison_group"], yigit["comparison_group"]);
     }
 
@@ -373,7 +395,10 @@ mod tests {
         let ntt = records.iter().find(|r| r["id"] == "ntt-mhi-2025-1km-laser").unwrap();
         let yigit = records.iter().find(|r| r["id"] == "yigit-2026-20m-laser").unwrap();
         assert_ne!(ntt["comparison_group"], yigit["comparison_group"]);
-        assert_eq!(document["comparison_policy"]["global_efficiency_ranking"], false);
+        assert_eq!(
+            document["comparison_policy"]["global_efficiency_ranking"],
+            false
+        );
     }
 
     #[test]
@@ -389,13 +414,28 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .find(|measurement| measurement["name"] == "laser_electrical_to_optical_efficiency_parameter")
+            .find(|measurement| {
+                measurement["name"] == "laser_electrical_to_optical_efficiency_parameter"
+            })
             .unwrap();
         assert_eq!(laser["evidence_kind"], "source_declared_parameter");
-        assert!(laser["boundary"].as_str().unwrap().contains("not presented as a complete"));
-        assert!(record["known_unknowns"].as_array().unwrap().iter().any(|x| {
-            x.as_str().unwrap().contains("No independently metered useful battery-terminal energy")
-        }));
+        assert!(
+            laser["boundary"]
+                .as_str()
+                .unwrap()
+                .contains("not presented as a complete")
+        );
+        assert!(
+            record["known_unknowns"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| {
+                    x.as_str()
+                        .unwrap()
+                        .contains("No independently metered useful battery-terminal energy")
+                })
+        );
     }
 
     #[test]
@@ -437,11 +477,13 @@ mod tests {
             .unwrap();
         assert_eq!(simulated["evidence_kind"], "source_reported_simulation");
         assert_eq!(measured["evidence_kind"], "source_reported_measurement");
-        assert!(record["known_unknowns"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|x| x.as_str().unwrap().contains("excludes misalignment")));
+        assert!(
+            record["known_unknowns"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|x| x.as_str().unwrap().contains("excludes misalignment"))
+        );
     }
 
     #[test]
@@ -457,13 +499,17 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .find(|metric| metric["name"] == "cavitation_constrained_transmit_acoustic_power_ceiling")
+            .find(|metric| {
+                metric["name"] == "cavitation_constrained_transmit_acoustic_power_ceiling"
+            })
             .unwrap();
         assert_eq!(metric["evidence_kind"], "source_reported_simulation");
-        assert!(metric["boundary"]
-            .as_str()
-            .unwrap()
-            .contains("not transmitter electrical input, receiver power"));
+        assert!(
+            metric["boundary"]
+                .as_str()
+                .unwrap()
+                .contains("not transmitter electrical input, receiver power")
+        );
     }
 
     #[test]
@@ -471,42 +517,69 @@ mod tests {
         let mut document = corpus();
         let duplicate = document["records"][0].clone();
         document["records"].as_array_mut().unwrap().push(duplicate);
-        assert!(validate_document(&document).unwrap_err().contains("duplicate record id"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("duplicate record id")
+        );
     }
 
     #[test]
     fn rejects_missing_measurement_plane() {
         let mut document = corpus();
         document["records"][0]["measurements"][0]["measurement_plane"] = json!("");
-        assert!(validate_document(&document).unwrap_err().contains("measurement_plane"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("measurement_plane")
+        );
     }
 
     #[test]
     fn rejects_range_without_upper_bound() {
         let mut document = corpus();
-        document["records"][0]["measurements"][0].as_object_mut().unwrap().remove("value_upper");
-        assert!(validate_document(&document).unwrap_err().contains("range requires value_upper"));
+        document["records"][0]["measurements"][0]
+            .as_object_mut()
+            .unwrap()
+            .remove("value_upper");
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("range requires value_upper")
+        );
     }
 
     #[test]
     fn rejects_greater_than_with_an_upper_bound() {
         let mut document = corpus();
         document["records"][2]["measurements"][0]["value_upper"] = json!(900.0);
-        assert!(validate_document(&document).unwrap_err().contains("greater_than"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("greater_than")
+        );
     }
 
     #[test]
     fn rejects_efficiency_without_a_declared_boundary() {
         let mut document = corpus();
         document["records"][1]["measurements"][2]["boundary"] = json!(" ");
-        assert!(validate_document(&document).unwrap_err().contains("boundary"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("boundary")
+        );
     }
 
     #[test]
     fn rejects_unknowns_that_were_silently_omitted() {
         let mut document = corpus();
         document["records"][3]["known_unknowns"] = json!([]);
-        assert!(validate_document(&document).unwrap_err().contains("known_unknowns"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("known_unknowns")
+        );
     }
 
     #[test]
@@ -520,21 +593,33 @@ mod tests {
     fn rejects_global_efficiency_ranking() {
         let mut document = corpus();
         document["comparison_policy"]["global_efficiency_ranking"] = json!(true);
-        assert!(validate_document(&document).unwrap_err().contains("global efficiency ranking"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("global efficiency ranking")
+        );
     }
 
     #[test]
     fn rejects_non_source_claim_status_promotion() {
         let mut document = corpus();
         document["records"][0]["reproduction_status"] = json!("independently_verified");
-        assert!(validate_document(&document).unwrap_err().contains("overstates evidence"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("overstates evidence")
+        );
     }
 
     #[test]
     fn rejects_unknown_relation_labels() {
         let mut document = corpus();
         document["records"][0]["measurements"][0]["relation"] = json!("roughly");
-        assert!(validate_document(&document).unwrap_err().contains("invalid relation"));
+        assert!(
+            validate_document(&document)
+                .unwrap_err()
+                .contains("invalid relation")
+        );
     }
 
     #[test]
