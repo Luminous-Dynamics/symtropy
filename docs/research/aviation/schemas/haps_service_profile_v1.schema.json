@@ -12,6 +12,7 @@
     "data_origin",
     "claim_ceiling",
     "service",
+    "network_contract",
     "coverage",
     "operating_envelope",
     "platform_portfolio",
@@ -415,6 +416,59 @@
         "type": "string"
       },
       "uniqueItems": true
+    },
+    "network_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "access_modes",
+        "candidate_backhaul_modes",
+        "edge_compute_required",
+        "drone_data_relay_required",
+        "platform_crosslink_required",
+        "terrestrial_gateway_required"
+      ],
+      "properties": {
+        "access_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "direct_to_device",
+              "fixed_user_terminal",
+              "drone_terminal",
+              "sensor_terminal"
+            ]
+          }
+        },
+        "candidate_backhaul_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "terrestrial_gateway",
+              "microwave",
+              "free_space_optical",
+              "satellite",
+              "unknown"
+            ]
+          }
+        },
+        "edge_compute_required": {
+          "type": "boolean"
+        },
+        "drone_data_relay_required": {
+          "type": "boolean"
+        },
+        "platform_crosslink_required": {
+          "type": "boolean"
+        },
+        "terrestrial_gateway_required": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "$defs": {
