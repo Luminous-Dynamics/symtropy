@@ -141,3 +141,12 @@ The full time-resolved service semantics, scenario families, South African regul
 The initial WaterLoop implementation adds eight synthetic known-answer cases (026–033) to the shared T0 evaluator. It does not calculate tariffs or infer income. The evaluator reports cost arithmetic separately from actual service equivalence and keeps its qualification status NotRun.
 
 The T0 household-economics suite now has nine synthetic cases (026–034). It explicitly separates cost/service comparison from resident affordability: missing/unauthorised income abstains only the water-spend burden, while cost-per-useful-volume remains reportable. The tariff bill's billing-period days must match the system-cost period or bill-delta comparisons abstain.
+
+
+## Modular household non-potable WaterLoop architecture
+
+The source-aware, serviceable reference design basis is now documented in [WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md), tracked by [#5822](https://github.com/Luminous-Dynamics/symtropy/issues/5822).
+
+The v0.1 baseline is bathroom-only greywater, with laundry and roof rainwater as separately gated optional modules. Kitchen/dishwasher, toilet/blackwater and pool/spa sources are excluded. The design defines modular treatment selection, mass/energy/storage sizing equations, safe control states, fail-closed release, maintainable BOM classes, T1 bench and endurance tests, and South African approval gates.
+
+No single treatment train is selected: 2026 evidence shows feed variability and treatment trade-offs. The design remains pre-prototype and does not claim treatment efficacy, water quality, regulatory conformity or field readiness.
