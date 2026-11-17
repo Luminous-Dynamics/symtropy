@@ -1,0 +1,372 @@
+{
+  "schema_version": "protect-evidence-adjudication-e7/0.1",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "EVIDENCE_CONFLICT_AND_REPLAY_ONLY",
+  "decision_time_default": "2026-11-16T12:00:00Z",
+  "valid_at_default": "2026-11-16T11:30:00Z",
+  "claim": {
+    "claim_id": "water-main-1-flow-rate",
+    "subject_id": "water-main-1",
+    "configuration_digest": "sha256:config-A",
+    "quantity": "volumetric_flow_rate",
+    "unit": "L/s",
+    "method_id": "flowmeter-v1",
+    "absolute_tolerance": 0.15,
+    "valid_from": "2026-11-16T09:00:00Z",
+    "valid_to": "2026-11-16T13:00:00Z"
+  },
+  "evidence_artifacts": [
+    {
+      "evidence_id": "ev-sensor-a",
+      "source_identity": "sensor-A/operator-A",
+      "source_digest": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:20:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-copy-a",
+      "source_identity": "vendor-copy-A",
+      "source_digest": "a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:25:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-vendor-b",
+      "source_identity": "vendor-B/sensor-A-feed",
+      "source_digest": "a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:30:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-calibration-c",
+      "source_identity": "sensor-C/shared-calibration-lab",
+      "source_digest": "a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:35:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-unknown-d",
+      "source_identity": "sensor-D/unknown-dependencies",
+      "source_digest": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:40:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-independent-e",
+      "source_identity": "independent-lab-E/sensor-E",
+      "source_digest": "a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:45:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-revocable-g",
+      "source_identity": "sensor-G/revocable-report",
+      "source_digest": "a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:50:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-config-b",
+      "source_identity": "sensor-H/config-B",
+      "source_digest": "a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:55:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-unit-i",
+      "source_identity": "sensor-I/alternate-unit",
+      "source_digest": "a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:56:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-method-j",
+      "source_identity": "simulation-J/alternate-method",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T10:57:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-late-f",
+      "source_identity": "sensor-F/late-arriving-report",
+      "source_digest": "abababababababababababababababababababababababababababababababab",
+      "state": "VALID",
+      "recorded_at": "2026-11-16T14:30:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    },
+    {
+      "evidence_id": "ev-invalid-k",
+      "source_identity": "sensor-K/unknown-status",
+      "source_digest": "acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac",
+      "state": "UNKNOWN",
+      "recorded_at": "2026-11-16T10:58:00Z",
+      "rights_status": "SYNTHETIC_OPEN_FIXTURE",
+      "permitted_use": "SYNTHETIC_TEST_ONLY"
+    }
+  ],
+  "assertions": [
+    {
+      "assertion_id": "as-sensor-a",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-sensor-a",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:15:00Z",
+      "recorded_at": "2026-11-16T10:20:00Z"
+    },
+    {
+      "assertion_id": "as-copy-a",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-copy-a",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:15:00Z",
+      "recorded_at": "2026-11-16T10:25:00Z"
+    },
+    {
+      "assertion_id": "as-vendor-b",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-vendor-b",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5.1,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:20:00Z",
+      "recorded_at": "2026-11-16T10:30:00Z"
+    },
+    {
+      "assertion_id": "as-calibration-c",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-calibration-c",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5.2,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:25:00Z",
+      "recorded_at": "2026-11-16T10:35:00Z"
+    },
+    {
+      "assertion_id": "as-unknown-d",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-unknown-d",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5.3,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:30:00Z",
+      "recorded_at": "2026-11-16T10:40:00Z"
+    },
+    {
+      "assertion_id": "as-independent-e",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-independent-e",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 7,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:35:00Z",
+      "recorded_at": "2026-11-16T10:45:00Z"
+    },
+    {
+      "assertion_id": "as-revocable-g",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-revocable-g",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5.4,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:40:00Z",
+      "recorded_at": "2026-11-16T10:50:00Z"
+    },
+    {
+      "assertion_id": "as-config-b",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-config-b",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-B",
+      "quantity": "volumetric_flow_rate",
+      "value": 100,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:50:00Z",
+      "recorded_at": "2026-11-16T10:55:00Z"
+    },
+    {
+      "assertion_id": "as-unit-i",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-unit-i",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 18,
+      "unit": "m3/h",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:51:00Z",
+      "recorded_at": "2026-11-16T10:56:00Z"
+    },
+    {
+      "assertion_id": "as-method-j",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-method-j",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 8,
+      "unit": "L/s",
+      "method_id": "simulation-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:52:00Z",
+      "recorded_at": "2026-11-16T10:57:00Z"
+    },
+    {
+      "assertion_id": "as-late-f",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-late-f",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 6.8,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:55:00Z",
+      "recorded_at": "2026-11-16T14:30:00Z"
+    },
+    {
+      "assertion_id": "as-invalid-k",
+      "claim_id": "water-main-1-flow-rate",
+      "evidence_id": "ev-invalid-k",
+      "subject_id": "water-main-1",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "value": 5,
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z",
+      "observed_at": "2026-11-16T10:56:00Z",
+      "recorded_at": "2026-11-16T10:58:00Z"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependent_evidence_id": "ev-copy-a",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "COPIED_FROM"
+    },
+    {
+      "dependent_evidence_id": "ev-vendor-b",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "SHARED_SENSOR"
+    },
+    {
+      "dependent_evidence_id": "ev-calibration-c",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "SHARED_CALIBRATION"
+    },
+    {
+      "dependent_evidence_id": "ev-unknown-d",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "UNKNOWN_DEPENDENCE"
+    },
+    {
+      "dependent_evidence_id": "ev-revocable-g",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "SHARED_SENSOR"
+    },
+    {
+      "dependent_evidence_id": "ev-late-f",
+      "upstream_evidence_id": "ev-sensor-a",
+      "relation": "UNKNOWN_DEPENDENCE"
+    }
+  ],
+  "independence_attestations": [
+    {
+      "attestation_id": "ind-flow-001",
+      "claim_id": "water-main-1-flow-rate",
+      "configuration_digest": "sha256:config-A",
+      "quantity": "volumetric_flow_rate",
+      "unit": "L/s",
+      "method_id": "flowmeter-v1",
+      "evidence_ids": [
+        "ev-sensor-a",
+        "ev-independent-e"
+      ],
+      "status": "VERIFIED_INDEPENDENT",
+      "basis": "Separate sensor hardware, separate calibration chain, separate operator, and a documented independent metrology review; synthetic fixture assertion only.",
+      "attested_by": "synthetic-independent-metrology-reviewer",
+      "recorded_at": "2026-11-16T11:00:00Z",
+      "valid_from": "2026-11-16T09:00:00Z",
+      "valid_to": "2026-11-16T13:00:00Z"
+    }
+  ],
+  "lifecycle_events": [
+    {
+      "event_id": "revoke-g-001",
+      "event_type": "REVOKE",
+      "evidence_id": "ev-revocable-g",
+      "effective_at": "2026-11-16T10:00:00Z",
+      "recorded_at": "2026-11-16T16:00:00Z",
+      "reason_code": "CALIBRATION_CERTIFICATE_REVOKED"
+    }
+  ]
+}
