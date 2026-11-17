@@ -22,6 +22,7 @@ pub mod operating_envelope;
 pub mod self_test;
 pub mod temporal_integrity;
 pub mod wrench_consistency;
+pub mod wrench_scaling_campaign;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
