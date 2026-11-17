@@ -57,7 +57,8 @@ impl PolicySummary {
                 let weight = weights[progress.target_id.as_str()];
                 let fraction = progress
                     .qualifying_passes
-                    .min(progress.required_independent_passes) as f64
+                    .min(progress.required_independent_passes)
+                    as f64
                     / progress.required_independent_passes as f64;
                 weight * fraction
             })
