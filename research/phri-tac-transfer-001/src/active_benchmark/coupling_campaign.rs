@@ -28,6 +28,7 @@ const RESPONSE_NOISE_SCALE: f64 = 1.0e-4;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub enum CouplingExcitationDesign {
     IsolatedSingleTaxel,
+    CyclicSparseOrthogonal,
     RandomDenseMultiPoint,
     RepeatedCommonMode,
 }
@@ -128,6 +129,23 @@ fn common_mode_patterns(pattern_count: usize) -> Vec<f64> {
     vec![1.0; pattern_count * TAXEL_COUNT]
 }
 
+fn cyclic_sparse_orthogonal_patterns() -> Vec<f64> {
+    // The assumed local kernel has support radius one within each module.
+    // Give each taxel a nonnegative one-hot signature in a three-pattern
+    // cycle, resetting the cycle at module boundaries. Every three adjacent
+    // source taxels therefore have linearly independent design columns.
+    let mut stimuli = vec![0.0; 3 * TAXEL_COUNT];
+    let mut module_local_positions = std::collections::BTreeMap::<u32, usize>::new();
+    for taxel in 0..TAXEL_COUNT {
+        let position = module_local_positions.entry(MODULE_IDS[taxel]).or_default();
+        let pattern = *position % 3;
+        stimuli[pattern * TAXEL_COUNT + taxel] = 1.0;
+        *position += 1;
+    }
+    stimuli
+}
+
+
 fn apply_kernel(
     stimuli: &[f64],
     pattern_count: usize,
@@ -175,6 +193,9 @@ fn training_design(
         CouplingExcitationDesign::IsolatedSingleTaxel => {
             let stimuli = isolated_patterns();
             (stimuli, TAXEL_COUNT)
+        }
+        CouplingExcitationDesign::CyclicSparseOrthogonal => {
+            (cyclic_sparse_orthogonal_patterns(), 3)
         }
         CouplingExcitationDesign::RandomDenseMultiPoint => {
             let stimuli = random_patterns(
@@ -293,6 +314,7 @@ fn summarize(
         replicate_count: results.len(),
         training_pattern_count: match design {
             CouplingExcitationDesign::IsolatedSingleTaxel => TAXEL_COUNT,
+            CouplingExcitationDesign::CyclicSparseOrthogonal => 3,
             CouplingExcitationDesign::RandomDenseMultiPoint
             | CouplingExcitationDesign::RepeatedCommonMode => RANDOM_TRAINING_PATTERNS,
         },
@@ -340,6 +362,7 @@ pub fn run_coupling_design_campaign(
 
     let designs = [
         CouplingExcitationDesign::IsolatedSingleTaxel,
+        CouplingExcitationDesign::CyclicSparseOrthogonal,
         CouplingExcitationDesign::RandomDenseMultiPoint,
         CouplingExcitationDesign::RepeatedCommonMode,
     ];
@@ -386,35 +409,46 @@ mod tests {
     }
 
     #[test]
-    fn isolated_and_random_patterns_identify_while_common_mode_fails_closed() {
+    fn sparse_orthogonal_codes_identify_local_rows_with_fewer_pattern_trials() {
         let report = run_coupling_design_campaign(20261117, 50).expect("campaign");
         assert_eq!(report.taxel_count, 7);
         assert_eq!(report.module_count, 2);
         assert_eq!(report.replicate_count, 50);
-        assert_eq!(report.results.len(), 3);
+        assert_eq!(report.results.len(), 4);
 
         let isolated = &report.results[0];
-        let randomized = &report.results[1];
-        let common_mode = &report.results[2];
+        let coded = &report.results[1];
+        let randomized = &report.results[2];
+        let common_mode = &report.results[3];
 
-        assert_eq!(isolated.mean_identified_output_rows, TAXEL_COUNT as f64);
-        assert_eq!(randomized.mean_identified_output_rows, TAXEL_COUNT as f64);
+        for identified in [isolated, coded, randomized] {
+            assert_eq!(identified.mean_identified_output_rows, TAXEL_COUNT as f64);
+            assert_eq!(identified.mean_underidentified_output_rows, 0.0);
+            assert!(identified.mean_coefficient_rmse.unwrap() < 1.0e-3);
+            assert!(identified.mean_heldout_response_rmse.unwrap() < 1.0e-3);
+        }
         assert_eq!(common_mode.mean_identified_output_rows, 0.0);
         assert_eq!(common_mode.mean_underidentified_output_rows, TAXEL_COUNT as f64);
 
         assert_eq!(isolated.training_pattern_count, TAXEL_COUNT);
+        assert_eq!(coded.training_pattern_count, 3);
+        assert_eq!(coded.mean_active_taxel_site_excitations, TAXEL_COUNT as f64);
+        assert_eq!(isolated.mean_active_taxel_site_excitations, TAXEL_COUNT as f64);
+        assert!(
+            coded.training_pattern_count < isolated.training_pattern_count,
+            "sparse orthogonal coding should require fewer physical pattern trials than isolated impulses"
+        );
+        assert!(
+            coded.paired_heldout_rmse_delta_mean_vs_isolated.unwrap().abs() < 1.0e-3,
+            "coded and isolated designs should have matched held-out response quality under this synthetic model"
+        );
+
         assert_eq!(randomized.training_pattern_count, RANDOM_TRAINING_PATTERNS);
         assert!(
-            randomized.training_pattern_count < isolated.training_pattern_count,
-            "dense randomized patterns should require fewer pattern trials than isolated probes"
-        );
-        assert!(
             randomized.mean_active_taxel_site_excitations
-                > isolated.mean_active_taxel_site_excitations,
-            "fewer pattern trials must not be confused with fewer active taxel-site stimuli"
+                > coded.mean_active_taxel_site_excitations,
+            "dense randomized codes must report their greater total active taxel-site excitation burden"
         );
-        assert!(randomized.mean_coefficient_rmse.unwrap() < 1.0e-3);
-        assert!(randomized.mean_heldout_response_rmse.unwrap() < 1.0e-3);
         assert!(common_mode.mean_coefficient_rmse.is_none());
         assert!(common_mode.mean_heldout_response_rmse.is_none());
     }
