@@ -254,3 +254,44 @@ Every gate produces an exact revision, input manifest, receipts, failed/unknown 
 ## 12. Nonclaims
 
 No hardware prototype, pressure safety, food safety, sensory preference, market demand, savings, service life, repair support, energy improvement or SOTA superiority is established by this document.
+
+
+
+## 14. Benchmark alignment: recipe grounding, temporal planning and power-aware execution
+
+Our benchmark should be comparable with external research, not merely with Luminous's own synthetic fixtures.
+
+### External benchmark anchors
+
+- **Recipe2Plan (Findings of EMNLP 2025):** evaluates multi-dish concurrent cooking plans with action durations and temporal intervals between steps. Its central lesson is that aggressive local parallelization can violate downstream timing constraints. Reproduce its public dataset and evaluation protocol before comparative claims: https://aclanthology.org/2025.findings-emnlp.229/ and https://github.com/WilliamZR/Recipe2Plan
+- **A Benchmark for Recipe Understanding in Artificial Agents (LREC-COLING 2024):** provides recipes, procedural action representations, qualitative and quantitative kitchen simulators, and a standardized evaluation of mapping recipe language into executable actions: https://aclanthology.org/2024.lrec-main.3/
+
+Recipe understanding is not schedule optimality; schedule feasibility is not physical food quality; simulator success is not hardware qualification.
+
+### Comparison ladder
+
+1. Human practitioner reference plan.
+2. Serial topological baseline.
+3. Existing earliest-gap resource scheduler.
+4. Power-envelope verified scheduler.
+5. Recipe2Plan-compatible temporal multitasking evaluation.
+6. LREC-style recipe grounding evaluation.
+7. Exact solver on small instances for proven lower bounds and optimality gaps.
+
+A solver timeout or feasible-but-unproven result must not be reported as an optimality proof.
+
+### Benchmark tiers
+
+| Tier | Workload | Required evidence |
+|---|---|---|
+| T0 | Synthetic task graphs, 1–500 tasks | Deterministic fixtures, independent verifier, runtime and failures |
+| T1 | Recipe2Plan-compatible recipes | Temporal-window satisfaction, success rate, makespan and intervention count |
+| T2 | LREC-style natural-language recipe grounding | Action grounding precision/recall, graph validity, practitioner corrections and rights |
+| T3 | Household power-envelope schedules | Peak and sustained real power, overloads, surge windows and background demand |
+| T4 | Instrumented cooking sessions | Time-to-plate, user labor, energy/water, edible yield and blinded food-quality outcomes |
+
+Report schedule-feasibility rate over all submitted plans. Report makespan gap only where a proven lower bound exists. Include replan latency, schedule stability under perturbation, peak draw, energy, human corrections and quality outcomes. Keep safety/feasibility, recipe grounding, efficiency, physical food quality and human craft as separate dimensions rather than one opaque score.
+
+### Claims boundary
+
+These are benchmark targets and comparison families, not results. No superiority over Recipe2Plan, LREC, CP-SAT, human practitioners or appliance incumbents is established. Freeze dataset rights, split, mapping, protocol and verifier before comparison.
