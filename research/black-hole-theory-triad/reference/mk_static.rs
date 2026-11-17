@@ -32,6 +32,9 @@ pub enum DomainError {
     InvalidObserverDomain,
     UnphysicalShadowAngle,
     OutsideStaticRegion,
+    InvalidRootBracket,
+    RootNotBracketed,
+    RootDidNotConverge,
 }
 
 fn finite(x: f64) -> bool {
@@ -169,6 +172,24 @@ mod tests {
         assert!((roots[0] - 3.0).abs() < 1e-13);
         let b = critical_impact_parameter(SCHWARZSCHILD, roots[0]).unwrap();
         assert!((b - 3.0 * 3.0_f64.sqrt()).abs() < 1e-13);
+    }
+
+    #[test]
+    fn bracketed_horizon_root_recovers_schwarzschild_horizon() {
+        let root = bracketed_horizon_root(SCHWARZSCHILD, 1.0, 3.0, 1e-13, 128).unwrap();
+        assert!((root - 2.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn horizon_root_requires_a_valid_sign_changing_bracket() {
+        assert_eq!(
+            bracketed_horizon_root(SCHWARZSCHILD, 3.0, 4.0, 1e-12, 64),
+            Err(DomainError::RootNotBracketed)
+        );
+        assert_eq!(
+            bracketed_horizon_root(SCHWARZSCHILD, 0.0, 3.0, 1e-12, 64),
+            Err(DomainError::InvalidRootBracket)
+        );
     }
 
     #[test]
