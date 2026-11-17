@@ -73,7 +73,7 @@ P0 does not imply provenance completeness. P1 does not imply metrology qualifica
 
 ## Rust implementation
 
-The standalone reference is research/asteroid-optical-isru-v0.2/portable_evidence.rs.
+The standalone reference is research/asteroid-optical-isru-v0.2/portable_evidence.rs. Its regression suite now includes authority-receipt resolution and authority-attribution negative controls.
 
 It implements typed Entity/Activity/Agent nodes, PROV relation-role checks, a provenance connectivity check, typed optical/QCM/proxy/product claims, explicit calibration dispositions, a separate fantasy collection, P0-P4 findings, and a minimal flattened JSON-LD exporter with the published RO-Crate 1.3 context plus PROV-O, QUDT and the Luminous namespace.
 
