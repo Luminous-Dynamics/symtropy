@@ -166,9 +166,13 @@ fn inconsistent(message: impl Into<String>) -> Evaluation {
     Evaluation { status: EvaluationStatus::Inconsistent, items: Vec::new(), error: Some(message.into()) }
 }
 
-fn validate_snapshot(
-    snapshot: &MissionSnapshot,
-) -> Result<(BTreeSet<String>, BTreeMap<String, WipDisposition>, BTreeMap<String, AccessState>), String> {
+struct SnapshotIndex {
+    accepted_packages: BTreeSet<String>,
+    wip_by_package: BTreeMap<String, WipDisposition>,
+    access_by_target: BTreeMap<String, AccessState>,
+}
+
+fn validate_snapshot(snapshot: &MissionSnapshot) -> Result<SnapshotIndex, String> {
     let mut accepted_packages = BTreeSet::new();
     let mut accepted_units = BTreeSet::new();
 
@@ -237,7 +241,11 @@ fn validate_snapshot(
         }
     }
 
-    Ok((accepted_packages, wip_by_package, access_by_target))
+    Ok(SnapshotIndex {
+        accepted_packages,
+        wip_by_package,
+        access_by_target,
+    })
 }
 
 fn push_candidate(
@@ -286,10 +294,13 @@ fn push_candidate(
 /// Derive a deterministic package set from admitted accepted outputs, WIP and
 /// scoped access observations. Robot self-reports are intentionally ignored.
 pub fn evaluate(snapshot: &MissionSnapshot) -> Evaluation {
-    let (accepted, wip, access) = match validate_snapshot(snapshot) {
+    let index = match validate_snapshot(snapshot) {
         Ok(validated) => validated,
         Err(error) => return inconsistent(error),
     };
+    let accepted = index.accepted_packages;
+    let wip = index.wip_by_package;
+    let access = index.access_by_target;
 
     if accepted.contains(&PackageKey::FinalCheck.id()) {
         return Evaluation { status: EvaluationStatus::Complete, items: Vec::new(), error: None };
