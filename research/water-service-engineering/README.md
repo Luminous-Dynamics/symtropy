@@ -145,7 +145,7 @@ The T0 household-economics suite now has nine synthetic cases (026–034). It ex
 
 ## Modular household non-potable WaterLoop architecture
 
-The source-aware, serviceable reference design basis is now documented in [WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md), tracked by [#5822](https://github.com/Luminous-Dynamics/symtropy/issues/5822).
+The source-aware, serviceable reference design basis is now documented in [WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md](WATERLOOP_MODULAR_ARCHITECTURE_V0_1.md), tracked by [#5822](https://github.com/Luminous-Dynamics/symtropy/issues/5822). The matching machine-readable interface/control contract is [waterloop-modular-architecture-v0.1.json](waterloop-modular-architecture-v0.1.json).
 
 The v0.1 baseline is bathroom-only greywater, with laundry and roof rainwater as separately gated optional modules. Kitchen/dishwasher, toilet/blackwater and pool/spa sources are excluded. The design defines modular treatment selection, mass/energy/storage sizing equations, safe control states, fail-closed release, maintainable BOM classes, T1 bench and endurance tests, and South African approval gates.
 
