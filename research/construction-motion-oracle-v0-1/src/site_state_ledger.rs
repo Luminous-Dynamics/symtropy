@@ -178,6 +178,7 @@ pub enum SiteLedgerError {
     EmptyAttemptId,
     DuplicateAttemptId(String),
     AttemptContextMismatch(String),
+    AttemptActorMismatch(String),
     AttemptAlreadyObserved(String),
     AttemptNotObserved(String),
     AttemptAlreadyAssessed(String),
@@ -204,6 +205,7 @@ struct StationQualification {
 struct ExecutionAttempt {
     package_sha256: String,
     entity_id: String,
+    robot_id: String,
     robot_disposition: Option<RobotExecutionDisposition>,
     referee_assessed: bool,
 }
@@ -463,6 +465,7 @@ impl SiteStateLedger {
                     ExecutionAttempt {
                         package_sha256: package_sha256.clone(),
                         entity_id: entity_id.clone(),
+                        robot_id: event.actor_id.clone(),
                         robot_disposition: None,
                         referee_assessed: false,
                     },
@@ -485,6 +488,9 @@ impl SiteStateLedger {
                     .ok_or_else(|| SiteLedgerError::AttemptContextMismatch(attempt_id.clone()))?;
                 if attempt.package_sha256 != *package_sha256 || attempt.entity_id != *entity_id {
                     return Err(SiteLedgerError::AttemptContextMismatch(attempt_id.clone()));
+                }
+                if attempt.robot_id != event.actor_id {
+                    return Err(SiteLedgerError::AttemptActorMismatch(attempt_id.clone()));
                 }
                 if attempt.robot_disposition.is_some() {
                     return Err(SiteLedgerError::AttemptAlreadyObserved(attempt_id.clone()));
@@ -1236,4 +1242,34 @@ mod tests {
         ));
         assert_eq!(ledger.accepted_count(&package_digest), Some(0));
     }
+
+    #[test]
+    fn robot_observation_must_match_the_robot_that_started_the_attempt() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let wrong_robot = event(
+            "event-robot-wrong",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-2",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        assert_eq!(
+            ledger.apply(wrong_robot),
+            Err(SiteLedgerError::AttemptActorMismatch("attempt-1".into()))
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+        assert!(matches!(
+            ledger.entity_state(&package_digest, "line-1"),
+            Some(SiteEntityState::ExecutionInProgress { .. })
+        ));
+    }
+
 }
