@@ -12,6 +12,11 @@ pub const EXPECTED_PORT_COUNT: usize = 14;
 pub const MASS_BALANCE_REL_TOLERANCE: f64 = 1.0e-12;
 pub const MASS_BALANCE_ABS_TOLERANCE_KG_S: f64 = 1.0e-12;
 pub const MAX_PORT_COUNT_PER_CASE: usize = 1_024;
+const EXPECTED_CASE_HEADER: &str = concat!(
+    "case_id,frame_id,epoch_s,mass_accumulation_kg_s,",
+    "momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,",
+    "other_external_force_x_n,other_external_force_y_n,other_external_force_z_n"
+);
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vector3 {
@@ -150,9 +155,7 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
     let case_header = case_lines
         .next()
         .ok_or_else(|| "empty scenario corpus".to_owned())?;
-    if case_header
-        != "case_id,frame_id,epoch_s,mass_accumulation_kg_s,momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,other_external_force_x_n,other_external_force_y_n,other_external_force_z_n"
-    {
+    if case_header != EXPECTED_CASE_HEADER {
         return Err("unexpected scenario corpus header".to_owned());
     }
 
@@ -171,8 +174,10 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
             return Err(format!("scenario line {}: invalid case or frame ID", line_index + 2));
         }
         let epoch_s = parse_number(fields[2], &format!("scenario line {} epoch", line_index + 2))?;
-        let mass_accumulation_kg_s =
-            parse_number(fields[3], &format!("scenario line {} mass accumulation", line_index + 2))?;
+        let mass_accumulation_kg_s = parse_number(
+            fields[3],
+            &format!("scenario line {} mass accumulation", line_index + 2),
+        )?;
         let momentum_accumulation_n = parse_vector(
             &fields[4..7],
             &format!("scenario line {} momentum accumulation", line_index + 2),
@@ -347,8 +352,8 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         || mass_balance_residual_kg_s.abs() > mass_balance_tolerance_kg_s
     {
         return Err(format!(
-            "{}: mass balance mismatch or non-finite accumulation (residual {:.6e} kg/s, tolerance {:.6e} kg/s)",
-            scenario.case_id, mass_balance_residual_kg_s, mass_balance_tolerance_kg_s
+            "{}: mass balance mismatch or non-finite accumulation",
+            scenario.case_id
         ));
     }
 
@@ -543,7 +548,9 @@ mod tests {
 
     #[test]
     fn non_support_external_force_is_removed_before_solving_support_reaction() {
-        let result = evaluate_scenario(&scenario("OTHER_FORCE_ISOLATION")).expect("external force case");
+        let external_force_case = scenario("OTHER_FORCE_ISOLATION");
+        let result =
+            evaluate_scenario(&external_force_case).expect("external force case");
         close_vec(
             result.advective_momentum_flux_n,
             Vector3::new(-6.0, 8.0, 0.0),
@@ -809,7 +816,10 @@ mod tests {
 
     #[test]
     fn parser_rejects_non_finite_or_invalid_direction_rows() {
-        let bad_number = CASES.replace("STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0", "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,NaN,0,0,0,0,0,0,0");
+        let bad_number = CASES.replace(
+            "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0",
+            "STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,NaN,0,0,0,0,0,0,0",
+        );
         assert!(parse_corpus(&bad_number, PORTS).is_err());
         let bad_direction = PORTS.replace("Inflow", "Sideways");
         assert!(parse_corpus(CASES, &bad_direction).is_err());
