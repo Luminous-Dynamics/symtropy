@@ -675,7 +675,7 @@ fn refine_time_swept_capsule_candidates(
         .pairs
         .iter()
         .zip(pair_body_indices.iter())
-        .zip(candidate_slabs_by_pair.into_iter())
+        .zip(candidate_slabs_by_pair)
     {
         if candidate_slabs.is_empty() {
             continue;
