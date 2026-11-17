@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/wdn-cross-population-protocol.schema.v0.1.json",
+  "title": "WDN cross-population benchmark protocol v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "tracking_issue",
+    "parent_benchmark",
+    "status",
+    "no_pooled_leaderboard",
+    "claim_ceiling",
+    "global_rules",
+    "task_contract",
+    "baseline_ladder",
+    "populations",
+    "comparison_requirements",
+    "admission"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "wdn-cross-population-protocol-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WDN-CROSSPOP-COMPARE-001"
+    },
+    "tracking_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "parent_benchmark": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "const": "metadata_only_no_data_admitted"
+    },
+    "no_pooled_leaderboard": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "global_rules": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "string"
+      }
+    },
+    "task_contract": {
+      "type": "object",
+      "required": [
+        "T1_detection",
+        "T2_localization",
+        "T3_characterization"
+      ],
+      "additionalProperties": false
+    },
+    "baseline_ladder": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "baseline_id",
+          "name",
+          "required_for",
+          "notes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "populations": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "population_class",
+          "native_resolution",
+          "known_scale",
+          "label_granularity",
+          "allowed_tasks",
+          "split_policy",
+          "prohibited_claims",
+          "intake_status",
+          "files_acquired",
+          "archive_sha256",
+          "split_manifest"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "comparison_requirements": {
+      "type": "object",
+      "required": [
+        "per_population_reporting",
+        "cross_population_pooled_metric_allowed",
+        "required_transfer_matrix",
+        "observability_report",
+        "T1_metrics",
+        "T2_metrics",
+        "T3_metrics",
+        "targets_not_achieved"
+      ],
+      "additionalProperties": false
+    },
+    "admission": {
+      "type": "object",
+      "required": [
+        "dataset_files_acquired",
+        "dataset_digests_created",
+        "split_manifests_created",
+        "model_performance_claimed"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
