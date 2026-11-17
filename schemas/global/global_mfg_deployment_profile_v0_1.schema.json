@@ -30,7 +30,7 @@
     },
     "negative_controls": {
       "type": "array",
-      "minItems": 18,
+      "minItems": 20,
       "items": {
         "$ref": "#/$defs/negative_control"
       }
@@ -647,7 +647,8 @@
         "conformity_route",
         "required_evidence_refs",
         "reviewer_ref",
-        "jurisdiction_dimension"
+        "jurisdiction_dimension",
+        "jurisdiction_level"
       ],
       "properties": {
         "obligation_id": {
@@ -711,7 +712,10 @@
             "transition_start_date",
             "transition_end_date",
             "expiry_date",
-            "source_language"
+            "source_language",
+            "translation_status",
+            "translation_language",
+            "translation_artifact_ref"
           ],
           "properties": {
             "issuer": {
@@ -785,6 +789,27 @@
             "source_language": {
               "type": "string",
               "minLength": 2
+            },
+            "translation_status": {
+              "type": "string",
+              "enum": [
+                "not_translated",
+                "official_translation",
+                "working_translation",
+                "translation_pending",
+                "unknown"
+              ]
+            },
+            "translation_language": {
+              "type": "string",
+              "minLength": 2
+            },
+            "translation_artifact_ref": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "minLength": 3
             }
           }
         },
@@ -888,6 +913,19 @@
             "data_processing",
             "service_lifecycle"
           ]
+        },
+        "jurisdiction_level": {
+          "type": "string",
+          "enum": [
+            "supranational",
+            "national",
+            "subnational",
+            "local_authority",
+            "customs_territory",
+            "trade_agreement_scope",
+            "data_residency_zone",
+            "synthetic"
+          ]
         }
       }
     },
@@ -925,7 +963,9 @@
             "local_content_claim_without_method",
             "obligation_dimension_mismatch",
             "supplier_site_jurisdiction_omitted",
-            "transformation_jurisdiction_missing"
+            "transformation_jurisdiction_missing",
+            "jurisdiction_level_mismatch",
+            "translation_status_without_artifact"
           ]
         },
         "expected_disposition": {
