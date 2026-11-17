@@ -315,6 +315,48 @@
       "current_owner": "Symtropy plant mechanisms; Symthaea candidate cognition/control; keep biological neural control distinct from computational cognition."
     },
     {
+      "id": "SYS-BLOOD",
+      "name": "blood_hematology_hemostasis_substance_transport",
+      "level": "L0-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "red_cell_mass",
+        "hemoglobin",
+        "oxygen_content",
+        "carbon_dioxide_content",
+        "plasma_substance",
+        "coagulation_state"
+      ],
+      "coupled_to": [
+        "SYS-CARDIO",
+        "SYS-RESP",
+        "SYS-LIVER",
+        "SYS-RENAL",
+        "SYS-IMMUNE"
+      ],
+      "current_owner": "Symtropy plant model when admitted; no integrated hematology model currently claimed."
+    },
+    {
+      "id": "SYS-TISSUE",
+      "name": "tissue_microenvironment_and_perfusion",
+      "level": "L2-L3",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "interstitial_concentration",
+        "oxygen_tension",
+        "perfusion",
+        "extracellular_matrix_state",
+        "local_cell_population"
+      ],
+      "coupled_to": [
+        "SYS-BLOOD",
+        "SYS-IMMUNE",
+        "SYS-METAB",
+        "SYS-THERMO"
+      ],
+      "current_owner": "Symtropy spatial/tissue model when admitted; not covered by generic rigid-body physics."
+    },
+    {
       "id": "SYS-IMMUNE",
       "name": "immune_inflammatory_hematopoietic_lymphatic",
       "level": "L0-L4",
@@ -504,7 +546,8 @@
         "SYS-CARDIO"
       ],
       "to": [
-        "SYS-BLOOD_TISSUE"
+        "SYS-BLOOD",
+        "SYS-TISSUE"
       ],
       "mechanism": "ventilation_perfusion_gas_transport",
       "balance": "oxygen_and_carbon_dioxide_mass",
@@ -702,5 +745,39 @@
     "https://models.physiomeproject.org/",
     "https://www.biogearsengine.com/documentation/index.html",
     "https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53088700/Tutorial%2B1%2B-%2BIntro%2Bto%2BMusculoskeletal%2BModeling"
-  ]
+  ],
+  "groups": {
+    "ALL_SUBSYSTEMS": [
+      "SYS-CARDIO",
+      "SYS-RESP",
+      "SYS-RENAL",
+      "SYS-GI",
+      "SYS-LIVER",
+      "SYS-PANCREAS",
+      "SYS-METAB",
+      "SYS-ENDO",
+      "SYS-NEURAL",
+      "SYS-BLOOD",
+      "SYS-TISSUE",
+      "SYS-IMMUNE",
+      "SYS-THERMO",
+      "SYS-MUSCLE",
+      "SYS-CIRCADIAN",
+      "SYS-REPRO",
+      "SYS-MICROBIOME",
+      "SYS-OBS",
+      "SYS-COGNITION",
+      "SYS-ENV"
+    ],
+    "ENVIRONMENT": [
+      "SYS-ENV"
+    ],
+    "BEHAVIOUR": [
+      "SYS-COGNITION"
+    ],
+    "SYS_BLOOD_TISSUE": [
+      "SYS-BLOOD",
+      "SYS-TISSUE"
+    ]
+  }
 }
