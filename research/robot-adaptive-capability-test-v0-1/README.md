@@ -27,8 +27,11 @@ Do not pool different capability axes into one theta. Do not calibrate or update
 
 - All safety-critical controls are mandatory and selected first.
 - Common anchor items are mandatory and administered before adaptive items.
+- Each item explicitly declares whether it contributes to the single capability axis. Gate-only safety controls default to excluded from the Rasch estimate; common anchors must measure the declared axis.
+- A failed safety-critical gate or explicit unsafe violation stops the adaptive run.
+- Unknown observations stop with EvidenceRequired; they are preserved as Unknown and never converted to binary failure or success.
+- InvalidEvidence is rejected rather than admitted as a scored response.
 - Declared minimum counts for content strata are enforced before precision stopping.
-- Unknown or invalid item/response/calibration identity is rejected.
 - Budget exhaustion and bank exhaustion are explicit outcomes, not precision success.
 - Every response sequence is replayed; a result is rejected if it does not match the selector's actual next item.
 
@@ -51,9 +54,9 @@ The selector's evaluator-side theta, item difficulty, expected information and f
 - Item bank ID and digest.
 - Capability axis ID.
 - Calibration ID and digest shared by bank and profile.
-- Independently calibrated item difficulty, stratum, and mandatory/anchor/safety-critical flags.
+- Independently calibrated item difficulty, stratum, mandatory/anchor/safety-critical flags, and a per-item capability-axis scoring flag.
 - Fixed prior, target posterior standard error, adaptive item budget and minimum stratum counts.
-- Ordered binary outcomes supplied by the independent task evaluator.
+- Ordered evaluator outcomes: Success, Failure, Unknown, UnsafeViolation or InvalidEvidence. Only valid binary outcomes from items marked for the declared capability axis update Rasch theta.
 
 The current implementation requires canonical lowercase 64-character SHA-256 identity strings. Digests are opaque bindings; this crate does not compute or authenticate them.
 
@@ -70,7 +73,7 @@ No third-party dependencies are required.
 
 ## Tests
 
-The synthetic suite covers mandatory ordering, common anchors, adaptive difficulty selection, exact tie-breaking, stratum quotas, precision and budget stops, bank exhaustion, bad IDs/digests, response chronology, replayable selection history, distinct axes and response-history effects.
+The synthetic suite covers mandatory ordering, common anchors, adaptive difficulty selection, exact tie-breaking, stratum quotas, precision and budget stops, bank exhaustion, budget/coverage interaction, bad IDs/digests, response chronology, replayable selection history, distinct axes and response-history effects. It also verifies that gate-only safety controls do not move the capability estimate, safety failures stop adaptation, Unknown requires new evidence, and inadmissible evidence is rejected.
 
 All fixtures are synthetic known-answer development tests. They do not calibrate a real item bank, qualify a robot, establish a physical capability score or demonstrate trial-cost savings.
 
@@ -82,4 +85,5 @@ All fixtures are synthetic known-answer development tests. They do not calibrate
 - Adaptive selection can bias comparison; fixed confirmation is mandatory.
 - The prior and item difficulty scale are model assumptions; theta is not a physical unit.
 - Safety-critical items cannot be skipped based on posterior precision.
+- Gate-only controls are deliberately excluded from a capability-axis estimate unless their item metadata explicitly declares otherwise.
 - Small synthetic tests do not establish calibration invariance across robot morphologies or sites.
