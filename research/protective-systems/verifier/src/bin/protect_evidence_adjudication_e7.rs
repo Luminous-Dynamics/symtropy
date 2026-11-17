@@ -588,6 +588,8 @@ fn evaluate(
     decision_time: &str,
     valid_at: &str,
 ) -> Result<AdjudicationReport, String> {
+    validate_timestamps(corpus)?;
+    validate_structure(corpus)?;
     canonical_utc(decision_time, "decision_time")?;
     canonical_utc(valid_at, "valid_at")?;
     if !valid_interval_contains(
@@ -656,6 +658,7 @@ fn evaluate(
     excluded.sort_by(|left, right| left.assertion_id.cmp(&right.assertion_id));
     incomparable.sort_by(|left, right| left.assertion_id.cmp(&right.assertion_id));
 
+    comparable.sort_by(|left, right| left.assertion_id.cmp(&right.assertion_id));
     let mut pairwise = Vec::new();
     let mut conflicted_assertions = BTreeSet::new();
     let mut conflicted_evidence = BTreeSet::new();
@@ -762,8 +765,6 @@ fn evaluate(
 
 fn default_report() -> Result<AdjudicationReport, String> {
     let corpus = parse_corpus()?;
-    validate_timestamps(&corpus)?;
-    validate_structure(&corpus)?;
     evaluate(
         &corpus,
         &corpus.decision_time_default,
@@ -1157,6 +1158,29 @@ mod tests {
             "ABSTAIN_NO_ADMISSIBLE_COMPARABLE_ASSERTIONS"
         );
         assert!(report.conflict_sets.is_empty());
+    }
+
+    #[test]
+    fn assertion_and_dependency_input_order_do_not_change_the_replay_result() {
+        let mut original = corpus();
+        let baseline = evaluate(
+            &original,
+            "2026-11-16T12:00:00Z",
+            "2026-11-16T11:30:00Z",
+        )
+        .expect("baseline");
+        original.assertions.reverse();
+        original.dependencies.reverse();
+        original.evidence_artifacts.reverse();
+        original.independence_attestations.reverse();
+        original.lifecycle_events.reverse();
+        let reordered = evaluate(
+            &original,
+            "2026-11-16T12:00:00Z",
+            "2026-11-16T11:30:00Z",
+        )
+        .expect("reordered corpus");
+        assert_eq!(baseline, reordered);
     }
 
     #[test]
