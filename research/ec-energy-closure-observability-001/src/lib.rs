@@ -425,6 +425,10 @@ pub struct IntegratedEbrResult {
     pub energy_balance_ratio: f64,
     pub available_energy_j_m2: f64,
     pub turbulent_energy_j_m2: f64,
+    /// Start of the retained, continuous integration window (Unix seconds).
+    pub window_start_unix_seconds: i64,
+    /// End-exclusive boundary of the retained, continuous integration window.
+    pub window_end_unix_seconds: i64,
     pub included_intervals: usize,
     pub excluded_gap_filled_intervals: usize,
 }
@@ -539,10 +543,21 @@ pub fn integrated_energy_balance_ratio(
         return Err(IntegratedEbrError::NonFiniteResult);
     }
 
+    let first = included_intervals.first().ok_or(IntegratedEbrError::NoEligibleIntervals)?;
+    let last = included_intervals.last().ok_or(IntegratedEbrError::NoEligibleIntervals)?;
+    let last_duration = i64::try_from(last.duration_seconds)
+        .map_err(|_| IntegratedEbrError::IntervalTimeOverflow)?;
+    let window_end = last
+        .interval_start_unix_seconds
+        .checked_add(last_duration)
+        .ok_or(IntegratedEbrError::IntervalTimeOverflow)?;
+
     Ok(IntegratedEbrResult {
         energy_balance_ratio: ratio,
         available_energy_j_m2,
         turbulent_energy_j_m2,
+        window_start_unix_seconds: first.interval_start_unix_seconds,
+        window_end_unix_seconds: window_end,
         included_intervals: included,
         excluded_gap_filled_intervals: excluded_gap_filled,
     })
@@ -924,6 +939,8 @@ mod tests {
         assert!((result.energy_balance_ratio - 0.8).abs() < 1e-12);
         assert_eq!(result.included_intervals, 1);
         assert_eq!(result.excluded_gap_filled_intervals, 1);
+        assert_eq!(result.window_start_unix_seconds, 0);
+        assert_eq!(result.window_end_unix_seconds, 1800);
     }
 
     #[test]
@@ -951,6 +968,8 @@ mod tests {
         assert!((result.energy_balance_ratio - 0.9).abs() < 1e-12);
         assert_eq!(result.included_intervals, 2);
         assert_eq!(result.excluded_gap_filled_intervals, 0);
+        assert_eq!(result.window_start_unix_seconds, 0);
+        assert_eq!(result.window_end_unix_seconds, 3600);
     }
 
     #[test]
