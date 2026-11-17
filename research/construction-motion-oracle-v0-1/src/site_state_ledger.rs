@@ -173,6 +173,7 @@ pub enum SiteLedgerError {
     EmptyEntityId,
     DuplicatePackageEntityId(String),
     DuplicatePackageDigest(String),
+    PackageHasUnresolvedAttempts(String),
     InvalidAcceptanceProfile,
     UnknownPackage(String),
     InactivePackage(String),
@@ -354,6 +355,23 @@ impl SiteStateLedger {
                     return Err(SiteLedgerError::DuplicatePackageDigest(
                         package.package_sha256.clone(),
                     ));
+                }
+                if let Some(previous) = self.active_package_sha256.as_ref() {
+                    let previous_projection = self
+                        .packages
+                        .get(previous)
+                        .ok_or_else(|| SiteLedgerError::UnknownPackage(previous.clone()))?;
+                    if previous_projection.entity_states.values().any(|state| {
+                        matches!(
+                            state,
+                            SiteEntityState::ExecutionInProgress { .. }
+                                | SiteEntityState::AwaitingIndependentMeasurement { .. }
+                        )
+                    }) {
+                        return Err(SiteLedgerError::PackageHasUnresolvedAttempts(
+                            previous.clone(),
+                        ));
+                    }
                 }
                 if let Some(previous) = self.active_package_sha256.as_ref() {
                     if let Some(previous_projection) = self.packages.get_mut(previous) {
@@ -1492,4 +1510,78 @@ mod tests {
         ));
         assert_eq!(ledger.accepted_count(&package_digest), Some(0));
     }
+
+    #[test]
+    fn package_revision_cannot_supersede_an_unresolved_physical_attempt() {
+        let (mut ledger, old_package, _) = setup_started_attempt();
+        let new_package = package('f', &["line-1", "point-1"]);
+        let new_digest = new_package.package_sha256.clone();
+        let publish = event(
+            "event-publish-while-executing",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: new_package,
+            },
+        );
+        assert_eq!(
+            ledger.apply(publish),
+            Err(SiteLedgerError::PackageHasUnresolvedAttempts(
+                old_package.clone()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), 3);
+        assert_eq!(ledger.active_package_sha256(), Some(old_package.as_str()));
+        assert_eq!(ledger.package_is_current(&old_package), Some(true));
+        assert_eq!(ledger.package_is_current(&new_digest), None);
+    }
+
+    #[test]
+    fn package_revision_waits_for_referee_reconciliation_after_robot_observation() {
+        let (mut ledger, old_package, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: old_package.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let new_package = package('f', &["line-1", "point-1"]);
+        let publish = event(
+            "event-publish-while-awaiting-referee",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "design-authority",
+            SiteActorRole::DesignAuthority,
+            SiteEventPayload::WorkPackagePublished {
+                package: new_package,
+            },
+        );
+        assert_eq!(
+            ledger.apply(publish),
+            Err(SiteLedgerError::PackageHasUnresolvedAttempts(
+                old_package.clone()
+            ))
+        );
+        assert_eq!(ledger.last_sequence(), 4);
+        assert_eq!(ledger.active_package_sha256(), Some(old_package.as_str()));
+        assert!(matches!(
+            ledger.entity_state(&old_package, "line-1"),
+            Some(SiteEntityState::AwaitingIndependentMeasurement { .. })
+        ));
+    }
+
 }
