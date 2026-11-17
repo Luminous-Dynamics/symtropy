@@ -11,9 +11,9 @@ This is a dependency-free, standalone Rust reference for the observation-side ar
 - Positive-sink normalization and explicit signed storage releases.
 - Turbulent energy H + LE with separate unfiltered, full-QC and friction-velocity-filtered dispositions.
 - Reduced-major-axis (RMA) regression of turbulent energy against available energy.
-- Duration-weighted integrated energy-balance ratio (EBR) with explicit gap-fill policy.
+- Duration-weighted integrated energy-balance ratio (EBR) with explicit gap-fill policy and contiguous interval validation.
 - Signed residual reporting; no clamping of overclosure or automatic residual allocation.
-- Unit tests for formula progression, missingness, signs, quality policy, RMA, integrated EBR and overclosure.
+- Unit tests for formula progression, missingness, signs, quality policy, RMA, integrated EBR, continuity, and overclosure.
 
 ## Published reference semantics
 
