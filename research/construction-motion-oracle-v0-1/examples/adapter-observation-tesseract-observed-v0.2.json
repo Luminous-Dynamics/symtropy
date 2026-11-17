@@ -1,0 +1,70 @@
+{
+  "schema_version": "construction-motion-adapter-observation/0.2",
+  "run_id": "synthetic-tesseract-lvs-continuous-001",
+  "case": {
+    "case_id": "line-thin-barrier-0001",
+    "case_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "backend": {
+    "backend_name": "Tesseract",
+    "backend_version": "0.35.0",
+    "backend_commit_sha": "0123456789abcdef0123456789abcdef01234567",
+    "build_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "runtime": "standalone",
+    "collision_plugin": "BulletCastBVHManager"
+  },
+  "scene": {
+    "robot_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "tool_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "obstacle_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "geometry_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "frame_id": "site-world",
+    "transform_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "trajectory_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "interpolation_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "collision_matrix_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "margin_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "query": {
+    "mode": "LVS_CONTINUOUS",
+    "scope": "robot_world",
+    "obstacle_motion": "static",
+    "geometry_representation": "convex_hull",
+    "longest_valid_segment_mm": 25.0,
+    "contact_tolerance_mm": 0.1
+  },
+  "capability_probe": {
+    "probe_id": "tesseract-bullet-cast-bvh-continuous-v1",
+    "status": "EXECUTED",
+    "runtime_api": "BulletCastBVHManager::contactTest",
+    "probe_log_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+  },
+  "execution": {
+    "disposition": "OBSERVED",
+    "observation": {
+      "collision_found": true,
+      "minimum_distance_mm": -0.25,
+      "contact_count": 1,
+      "backend_contact_time_parameter": 0.5
+    },
+    "metrics": {
+      "latency_ns": 83000,
+      "peak_rss_bytes": 12582912,
+      "allocated_bytes": 4096,
+      "broad_phase_candidates": 1,
+      "narrow_phase_queries": 1,
+      "manager_clone_count": 0,
+      "evaluator_count": 1
+    }
+  },
+  "environment": {
+    "operating_system": "Linux 6.x",
+    "architecture": "x86_64",
+    "cpu_model": "synthetic-reference-cpu",
+    "thread_count": 1,
+    "allocator": "system",
+    "build_profile": "release"
+  },
+  "raw_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+}
