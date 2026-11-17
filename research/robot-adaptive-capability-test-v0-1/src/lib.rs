@@ -215,7 +215,9 @@ fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String>
                 item.item_id
             ));
         }
-        *counts_by_stratum.entry(item.stratum.as_str()).or_default() += 1;
+        if item.contributes_to_capability_estimate {
+            *counts_by_stratum.entry(item.stratum.as_str()).or_default() += 1;
+        }
     }
 
     let mut quota_strata = BTreeSet::new();
@@ -565,6 +567,7 @@ fn decide_validated(
                 .filter(|item| {
                     item.stratum == quota.stratum
                         && !item.mandatory
+                        && item.contributes_to_capability_estimate
                         && !administered.contains(&item.item_id)
                 })
                 .collect();
@@ -1001,6 +1004,27 @@ mod tests {
         );
         assert_eq!(result.decision.adaptive_administered, 0);
         assert_eq!(result.decision.stratum_coverage[0].administered, 0);
+    }
+
+    #[test]
+    fn stratum_quota_requires_axis_scored_items() {
+        let mut test_profile = profile();
+        test_profile.minimum_per_stratum = vec![StratumMinimum {
+            stratum: "payload-shift".to_owned(),
+            minimum_count: 1,
+        }];
+        let mut test_bank = bank();
+        let mut gate_only = item(
+            "payload-gate-only",
+            "payload-shift",
+            0.0,
+            false,
+            false,
+            false,
+        );
+        gate_only.contributes_to_capability_estimate = false;
+        test_bank.items.push(gate_only);
+        assert!(evaluate_run(&test_bank, &test_profile, &[]).is_err());
     }
 
     #[test]
