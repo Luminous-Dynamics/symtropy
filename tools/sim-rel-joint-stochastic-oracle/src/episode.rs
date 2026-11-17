@@ -159,7 +159,6 @@ pub enum EpisodeError {
 ///
 /// The hidden state is evaluator/provider-owned. Consumers receive cloned
 /// EpisodeView values and cannot read or mutate the hidden tuple.
-#[derive(Clone, Debug)]
 pub struct EpisodeProvider {
     episode_id: String,
     kernel: JointKernel,
@@ -388,7 +387,6 @@ fn valid_episode_id(value: &str) -> bool {
 }
 
 /// Deterministic, non-cryptographic SplitMix64 simulation stream.
-#[derive(Clone, Debug)]
 struct SplitMix64 {
     state: u64,
 }
@@ -683,6 +681,34 @@ mod tests {
         let second_receipt = second.submit_action("measure").unwrap();
         assert_eq!(first_receipt, second_receipt);
         assert_eq!(first.view(), second.view());
+    }
+
+    #[test]
+    fn rejected_unknown_request_does_not_advance_the_private_random_stream() {
+        let mut with_rejection = new_provider(stochastic_kernel(), 1234);
+        let mut without_rejection = new_provider(stochastic_kernel(), 1234);
+
+        assert_eq!(
+            with_rejection
+                .submit_action("not-an-action")
+                .unwrap()
+                .disposition,
+            AttemptDisposition::RejectedUnknownAction
+        );
+
+        let after_rejection = with_rejection.submit_action("measure").unwrap();
+        let direct = without_rejection.submit_action("measure").unwrap();
+        assert_eq!(after_rejection.disposition, direct.disposition);
+        assert_eq!(with_rejection.view().observations, without_rejection.view().observations);
+    }
+
+    #[test]
+    fn transition_row_accessor_rejects_out_of_range_hidden_tuple_indices() {
+        let kernel = deterministic_kernel(false);
+        assert!(kernel.transition_row(1, 0, 0, 0).is_none());
+        assert!(kernel.transition_row(0, 1, 0, 0).is_none());
+        assert!(kernel.transition_row(0, 0, 1, 0).is_none());
+        assert!(kernel.transition_row(0, 0, 0, 1).is_none());
     }
 
     #[test]
