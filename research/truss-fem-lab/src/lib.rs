@@ -7,6 +7,7 @@ pub mod beam_element;
 pub mod benchmark;
 pub mod damage;
 pub mod interfaces;
+pub mod frame_analysis;
 pub mod stability;
 pub mod verification;
 
