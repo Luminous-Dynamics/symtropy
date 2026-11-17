@@ -442,8 +442,16 @@ pub fn propagate_geometry_wrench_uncertainty(
             global_jacobian[4][axis] = translation_moment.y;
             global_jacobian[5][axis] = translation_moment.z;
         }
-        let rotation_force = vec_cross(unit_axis(axis), force);
-        let rotation_moment = vec_cross(unit_axis(axis), moment);
+        let rotation_axis = unit_axis(axis);
+        let rotation_force = vec_cross(rotation_axis, force);
+        let mut rotation_moment = vec_cross(rotation_axis, moment);
+        if model.wrench_origin_attachment == WrenchOriginAttachment::FixedInReferenceFrame {
+            // Left-perturb the sensor pose about the reference-frame origin while
+            // keeping the external wrench origin fixed. When O != 0, the
+            // moment derivative is θ×M + (θ×O)×F, not merely θ×M.
+            let origin_rotation = vec_cross(rotation_axis, geometry.wrench_origin_m);
+            rotation_moment = vec_add(rotation_moment, vec_cross(origin_rotation, force));
+        }
         global_jacobian[0][axis + 3] = rotation_force.x;
         global_jacobian[1][axis + 3] = rotation_force.y;
         global_jacobian[2][axis + 3] = rotation_force.z;
@@ -1245,6 +1253,35 @@ mod tests {
         ]
     }
 
+    fn perturb_global_pose(
+        geometry: &mut TaxelGeometrySet,
+        attachment: WrenchOriginAttachment,
+        parameter_index: usize,
+        delta: f64,
+    ) {
+        if parameter_index < 3 {
+            let translation = vec_scale(unit_axis(parameter_index), delta);
+            for taxel in &mut geometry.taxels {
+                taxel.application_point_m = vec_add(taxel.application_point_m, translation);
+            }
+            if attachment == WrenchOriginAttachment::SensorBodyAttached {
+                geometry.wrench_origin_m = vec_add(geometry.wrench_origin_m, translation);
+            }
+            return;
+        }
+
+        let rotation = vec_scale(unit_axis(parameter_index - 3), delta);
+        for taxel in &mut geometry.taxels {
+            taxel.application_point_m = rotate_small_angle(taxel.application_point_m, rotation);
+            taxel.normal = rotate_small_angle(taxel.normal, rotation);
+            taxel.tangent_u = rotate_small_angle(taxel.tangent_u, rotation);
+            taxel.tangent_v = rotate_small_angle(taxel.tangent_v, rotation);
+        }
+        if attachment == WrenchOriginAttachment::SensorBodyAttached {
+            geometry.wrench_origin_m = rotate_small_angle(geometry.wrench_origin_m, rotation);
+        }
+    }
+
     fn finite_difference(
         geometry: &TaxelGeometrySet,
         field: &[f64],
@@ -1346,6 +1383,65 @@ mod tests {
             1.0e-3,
         );
         assert!(orientation[0][0] > 0.0);
+    }
+
+    #[test]
+    fn fixed_nonzero_wrench_origin_rotation_jacobian_matches_central_finite_difference() {
+        let mut geometry = geometry();
+        geometry.wrench_origin_m = Vec3 {
+            x: 0.013,
+            y: -0.009,
+            z: 0.006,
+        };
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
+        let sigma = 2.0e-4;
+        let epsilon = 1.0e-6;
+
+        for rotation_axis in 0..3 {
+            let mut uncertainty = model(&geometry);
+            uncertainty.wrench_origin_attachment = WrenchOriginAttachment::FixedInReferenceFrame;
+            uncertainty.local_taxels.iter_mut().for_each(|taxel| {
+                taxel.area_m2 = 0.0;
+                taxel.application_point_m = Vec3::default();
+                taxel.orientation_rad = Vec3::default();
+            });
+            uncertainty.common_rigid_pose_covariance_row_major.fill(0.0);
+            for axis in 0..6 {
+                uncertainty.common_rigid_pose_covariance_row_major[axis * 6 + axis] = 1.0e-24;
+            }
+            let parameter_index = rotation_axis + 3;
+            uncertainty.common_rigid_pose_covariance_row_major
+                [parameter_index * 6 + parameter_index] = sigma * sigma;
+
+            let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &uncertainty)
+                .expect("fixed-origin pose covariance");
+            let covariance = report.global_pose_covariance_row_major.unwrap();
+            let derivative = finite_difference(
+                &geometry,
+                &field.local_traction_pa,
+                |sample, delta| {
+                    perturb_global_pose(
+                        sample,
+                        WrenchOriginAttachment::FixedInReferenceFrame,
+                        parameter_index,
+                        delta,
+                    )
+                },
+                epsilon,
+            );
+
+            for row in 0..6 {
+                for column in 0..6 {
+                    let expected = derivative[row] * derivative[column] * sigma * sigma;
+                    let actual = covariance[row * 6 + column];
+                    let tolerance = expected.abs().max(actual.abs()).max(1.0e-16) * 2.0e-4;
+                    assert!(
+                        (actual - expected).abs() <= tolerance,
+                        "fixed-origin rotation axis {rotation_axis} covariance mismatch at ({row}, {column}): analytic={actual}, finite-difference={expected}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
