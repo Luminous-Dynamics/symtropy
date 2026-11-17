@@ -124,11 +124,13 @@ fn benchmark_input_digest(
         mix(&mut hash, &(member.from as u64).to_le_bytes());
         mix(&mut hash, &(member.to as u64).to_le_bytes());
     }
-    for node in 0..boundary.fixed_dofs.len() {
-        for is_fixed in boundary.fixed_dofs[node] {
-            mix(&mut hash, &[u8::from(is_fixed)]);
+    for (fixed_dofs, force_components) in
+        boundary.fixed_dofs.iter().zip(boundary.nodal_forces_n.iter())
+    {
+        for is_fixed in fixed_dofs {
+            mix(&mut hash, &[u8::from(*is_fixed)]);
         }
-        for force in boundary.nodal_forces_n[node] {
+        for force in force_components {
             mix(&mut hash, &force.to_bits().to_le_bytes());
         }
     }
