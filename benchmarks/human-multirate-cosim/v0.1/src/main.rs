@@ -5,6 +5,10 @@ use human_multirate_cosim::{
         simulate_network, simulate_network_adaptive, simulate_network_topology_events,
     },
     simulate, simulate_adaptive_conservative_flux,
+    sensor_design::{
+        PlacementCriterion, SensorCandidate, SensorDesignScenario,
+        enumerate_placements, enumerate_robust_placements,
+    },
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -231,6 +235,84 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         event_score.final_state.first().copied().unwrap_or_default(),
         event_score.final_state.last().copied().unwrap_or_default(),
     );
+
+    let sensor_scenario = SensorDesignScenario {
+        name: "three_node_graph_sensor_design",
+        network: NetworkScenario {
+            name: "three_node_equal_chain_sensor_design",
+            capacities: vec![1.0, 1.0, 1.0],
+            initial: vec![1.0, 0.0, 0.2],
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 1.0,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 1.0,
+                },
+            ],
+            horizon: 2.0,
+        },
+        candidates: vec![
+            SensorCandidate {
+                id: 10,
+                node: 0,
+                cost: 1.0,
+                common_cause_group: Some(100),
+            },
+            SensorCandidate {
+                id: 20,
+                node: 1,
+                cost: 1.0,
+                common_cause_group: None,
+            },
+            SensorCandidate {
+                id: 30,
+                node: 2,
+                cost: 1.0,
+                common_cause_group: Some(100),
+            },
+        ],
+        noise_covariance: vec![
+            vec![1.0, 0.4, 0.2],
+            vec![0.4, 1.0, 0.4],
+            vec![0.2, 0.4, 1.0],
+        ],
+        observation_times: vec![0.0, 0.2, 0.5, 1.0],
+        sensor_budget: 2.0,
+    };
+    for criterion in [
+        PlacementCriterion::EOptimal,
+        PlacementCriterion::DOptimal,
+        PlacementCriterion::AOptimal,
+    ] {
+        let tournament = enumerate_placements(&sensor_scenario, criterion)?;
+        if let Some(best) = tournament.best {
+            println!(
+                "sensor_design,{:?},{:?},{:.6},{},{:.12e},{:.12e},{:?}",
+                criterion,
+                best.selected_sensor_ids,
+                best.total_cost,
+                best.observability_rank,
+                best.minimum_information_eigenvalue,
+                best.maximum_information_eigenvalue,
+                best.condition_number,
+            );
+        }
+    }
+    let robust = enumerate_robust_placements(&sensor_scenario)?;
+    if let Some(best) = robust.best {
+        println!(
+            "sensor_design,robust_common_cause,{:?},{:.6},{},{:.12e}",
+            best.nominal.selected_sensor_ids,
+            best.nominal.total_cost,
+            best.worst_case_rank,
+            best.worst_case_minimum_information_eigenvalue,
+        );
+    }
 
     Ok(())
 }
