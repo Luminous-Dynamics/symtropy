@@ -1283,6 +1283,52 @@ mod tests {
     }
 
     #[test]
+    fn seeded_monte_carlo_matches_first_order_geometry_covariance_in_small_error_regime() {
+        let geometry = geometry();
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
+        let model = model(&geometry);
+        let report = validate_geometry_uq_against_monte_carlo(
+            &geometry,
+            &field,
+            &model,
+            20261117,
+            20_000,
+        )
+        .expect("Monte Carlo geometry covariance validation");
+        assert_eq!(report.replicate_count, 20_000);
+        assert!(report.relative_covariance_frobenius_error < 0.12);
+        assert_eq!(report.linearized_covariance_row_major.len(), 36);
+        assert_eq!(report.empirical_covariance_row_major.len(), 36);
+        assert!(report
+            .empirical_mean_bias_from_nominal
+            .iter()
+            .all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn geometry_monte_carlo_rejects_insufficient_replicates_and_invalid_seed() {
+        let geometry = geometry();
+        let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
+        let model = model(&geometry);
+        assert!(validate_geometry_uq_against_monte_carlo(
+            &geometry,
+            &field,
+            &model,
+            1,
+            1_999,
+        )
+        .is_err());
+        assert!(validate_geometry_uq_against_monte_carlo(
+            &geometry,
+            &field,
+            &model,
+            0,
+            2_000,
+        )
+        .is_err());
+    }
+
+    #[test]
     fn geometry_context_and_parameter_validation_fail_closed() {
         let geometry = geometry();
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
