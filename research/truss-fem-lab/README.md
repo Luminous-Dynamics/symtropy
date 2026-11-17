@@ -76,3 +76,13 @@ The benchmark module derives one uniform solid-round member section from a decla
 The receipt reports computed member mass, area/inertia, maximum displacement/stress, equilibrium residual, yield/Euler utilization, and damage-screen counts.
 
 **Comparability rule:** callers must use the same structural envelope, supports, load cases, material model, density, mass accounting boundary, evaluation budgets and numerical tolerances for all candidate designs. The current mass budget excludes joints, nodes, fasteners, services, manufacturing waste, inspection, assembly and lifecycle costs. It is not a whole-system mass comparison.
+
+## Matched topology fixture
+
+The benchmark module also builds a reproducible pair:
+- a regular tetrahedral frame with six outer members;
+- the same external tetrahedron with one internal hub and four additional spokes.
+
+Both candidates share the same external envelope, outer support coordinates and applied load. The evaluator can assign the same total straight-member mass budget and derive a different uniform circular-member area for each candidate. This is a small benchmark harness fixture, not evidence that the interior-hub design is better. Its purpose is to ensure that added connectivity is compared under equal member mass rather than equal section area.
+
+The comparison still excludes hub/connector/fastener mass and does not represent a full modular structure lifecycle.
