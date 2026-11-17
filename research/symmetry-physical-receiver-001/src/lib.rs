@@ -1224,9 +1224,7 @@ pub fn verify_package(
     sign_receipt(payload)
 }
 
-fn sign_receipt(
-    payload: ReceiverReceiptPayloadV1,
-) -> Result<ReceiverReceiptV1, ReceiverErrorV1> {
+fn sign_receipt(payload: ReceiverReceiptPayloadV1) -> Result<ReceiverReceiptV1, ReceiverErrorV1> {
     let receipt_bytes =
         serde_json::to_vec(&payload).map_err(|_| ReceiverErrorV1::ReceiptSerializationFailure)?;
     let receipt_hash = hash_domain("luminous.receiver-owned-receipt.v1", &receipt_bytes);
@@ -1648,17 +1646,17 @@ mod tests {
     #[test]
     fn out_of_envelope_transform_returns_inconclusive_not_a_false_failure_or_pass() {
         let mut package = build_package();
-        package.physical_fixture.transform_s = [
-            [1.0e-5, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
-        package.envelope.physical_problem.coordinate_change.transform_sha256 =
-            canonical_matrix3_hash(
-                "luminous.transform-s.v1",
-                &package.physical_fixture.transform_s,
-            )
-            .unwrap();
+        package.physical_fixture.transform_s =
+            [[1.0e-5, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        package
+            .envelope
+            .physical_problem
+            .coordinate_change
+            .transform_sha256 = canonical_matrix3_hash(
+            "luminous.transform-s.v1",
+            &package.physical_fixture.transform_s,
+        )
+        .unwrap();
         package.envelope.physical_problem.fixture_sha256 =
             canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
 
@@ -1683,8 +1681,11 @@ mod tests {
     #[test]
     fn transformed_metric_digest_is_bound_to_exact_recomputed_congruence() {
         let mut package = build_package();
-        package.envelope.physical_problem.coordinate_change.transformed_mass_metric_sha256 =
-            "0".repeat(64);
+        package
+            .envelope
+            .physical_problem
+            .coordinate_change
+            .transformed_mass_metric_sha256 = "0".repeat(64);
         package.envelope.physical_problem.fixture_sha256 =
             canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
         assert_eq!(
