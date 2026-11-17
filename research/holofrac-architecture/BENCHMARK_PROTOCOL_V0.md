@@ -297,6 +297,10 @@ After reproducing every baseline, target one or more of the following on held-ou
 - at least 20% fewer high-fidelity simulations than the strongest matched model-based/surrogate baseline at non-inferior feasible hypervolume, with calibrated uncertainty and no hard-constraint regression;
 - no reduction in hard spatial/access/egress feasibility to obtain energy, mass or cost improvements;
 - 100% of ranked candidates linked to exact input snapshots, solver configurations, failed-run records and replayable receipts.
+- H8 continuous fields: require a measured Pareto trade-off against scalar-grid, nearest-neighbour, bilinear and RBF baselines; an HDC field is useful only if it meets the same declared error budget with a materially better memory/latency/compositional-retrieval trade-off. Do not target raw accuracy superiority over bilinear interpolation by default.
+- H8 physical-field transfer: reproduce the November 2026 adaptive sparse-PCE reference first (reported holdout R² >= 0.99 for EUI and >= 0.93 for annual heating demand on its four Irish archetypes); compare under the same archetype splits and high-fidelity simulation budget before proposing a better target: https://doi.org/10.1016/j.enbuild.2026.118098
+- H9 dependency closure: 100% agreement with an independent reachability oracle and zero false-current classifications. Stretch target: p95 closure under 100 ms for a 100,000-artifact DAG on a pinned and disclosed host, with updates and common-cause cut sets included; confirm the measured baseline before treating this as a release gate.
+- H9 selective revalidation: retain unaffected evidence only under a declared-complete dependency inventory, and revalidate exactly the affected evidence set. Incomplete or uncertain dependency coverage must conservatively invalidate all scoped evidence.
 
 These are go/no-go aspirations for the research programme, not claims about current performance. Report confidence intervals across seeds and tasks; do not claim a win from one fixture.
 
