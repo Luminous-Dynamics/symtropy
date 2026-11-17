@@ -21,7 +21,7 @@ use symtropy_human_systems::observation::{
     generate_scenario,
 };
 use symtropy_human_systems::sampling_rate::{
-    canonical_rate_profiles, sample_ideal_lowpass, FIXTURE_DURATION_SECONDS,
+    FIXTURE_DURATION_SECONDS, canonical_rate_profiles, sample_ideal_lowpass,
 };
 
 const WIRE_MAGIC: &str = "HUMAN-ESTIMATOR-V1";
@@ -526,7 +526,6 @@ fn format_metric(value: Option<f64>) -> String {
 fn invalid_data(message: impl Into<String>) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message.into())
 }
-
 
 #[cfg(test)]
 mod tests {
