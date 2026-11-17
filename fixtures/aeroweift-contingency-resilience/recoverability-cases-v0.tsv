@@ -29,6 +29,7 @@ common-platform-exemption|exempt-airframe|COVERED_WITH_REQUIRED_DIVERSITY
 failed-exempt-domain|failed-airframe|NO_ADMISSIBLE_OPTION
 greedy-witness-under-required-count|witness-too-small|INDETERMINATE
 one-option-with-partial-inventory|partial-one-option|INDETERMINATE
+one-option-complete-inventory-requires-two|single-option|INSUFFICIENT_INDEPENDENT_OPTIONS
 option-order-permutation|permute|SAME_RESULT
 duplicate-option-id|duplicate-option|DUPLICATE_OPTION_ID
 duplicate-receipt-id|duplicate-receipt|DUPLICATE_RECEIPT_ID
@@ -39,5 +40,5 @@ reauthorization-gap-for-diversity|second-option-auth|REAUTHORIZATION_REQUIRED
 greedy-trap-exact-pair-found|a-blocker-b-left-c-right|COVERED_WITH_REQUIRED_DIVERSITY
 only-exempt-common-dependencies|airframe-only|COVERED_BUT_CORRELATED
 option-count-above-exact-cap|non-exact-lower-bound|INDETERMINATE
-maximum-set-lexicographic-tie|canonical-witness|SAME_RESULT
+maximum-set-lexicographic-tie|two-equal-size-maximum-sets|CANONICAL_LEXICOGRAPHIC_WITNESS
 exact-search-cap-over-24|policy-cap|INVALID_POLICY
