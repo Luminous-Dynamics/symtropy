@@ -23,7 +23,7 @@ It reports cost per **unique released output**, never per process completion or 
 - Batch reference, currency, price date and amount unit must match the case exactly. No FX or unit conversion is guessed.
 - Cost intervals use integer minor-unit lower/upper bounds; the evaluator emits exact numerator/denominator pairs, not rounded floating-point prices.
 - Zero released outputs produce ZERO_RELEASED and no finite unit-cost ratio.
-- Each case declares a positive started-unit count, and every started unit must have exactly one final disposition bound to that exact batch. Output identities, release references and cost-item identities must be unique within an exact case; counterfactual cases may reuse the same source/unit identifiers.
+- Each case declares a positive started-unit count, and every started unit must have exactly one final disposition bound to that exact batch. Output identities and cost-item identities must be unique within an exact case; counterfactual cases may reuse the same source/unit identifiers. A release evidence reference may be shared across distinct units only where its external scope actually covers them; this prototype does not authenticate that scope.
 - The component report preserves both cost category and evidence class; estimated, quoted, paid, public, measured and synthetic evidence are not conflated. Dates are calendar-validated, and cost amounts must be unsigned decimal integers.
 - Amounts are already attributed to the exact batch; the prototype does not calculate depreciation, NRE amortization, asset life, utilization or repeated-run allocation. Those must be evidenced and supplied by an upstream accounting policy.\n- The evaluator does not authenticate sources or release products.
 
