@@ -1,0 +1,706 @@
+{
+  "schema_version": "human-multiscale-coupling-register/0.1",
+  "status": "research_register_not_runtime_schema",
+  "claim_ceiling": "Architecture and gap analysis only; no complete human physiology or clinical validity claim.",
+  "owner_map": {
+    "symtropy": "Authoritative physical world, environment, admitted plant/physiology submodels, event-time integration, physical exposure and scorer-side synthetic truth.",
+    "symthaea": "Inference over authorized observations, uncertainty, system identification, active sensing, candidate cognitive/behavioral policies and abstention.",
+    "neutral_boundary": "Versioned typed subsystem ports and plant-event exchange; sensor observations remain a separate stream adapted to Symthaea issue 12407."
+  },
+  "status_definitions": {
+    "implemented_bounded": "A named limited mechanism is implemented; do not infer broader system capability.",
+    "reference_research": "Published equations, data or external software are identified, but not a qualified Symtropy subsystem.",
+    "absent_unqualified": "No integrated validated implementation is currently claimed."
+  },
+  "levels": [
+    {
+      "id": "L0",
+      "name": "molecular_biochemical",
+      "methods": [
+        "reaction_network",
+        "ODE",
+        "stochastic_kinetics",
+        "SBML"
+      ],
+      "emergent_phenomena": [
+        "feedback",
+        "oscillation",
+        "pathway_adaptation"
+      ]
+    },
+    {
+      "id": "L1",
+      "name": "subcellular_cellular",
+      "methods": [
+        "ODE",
+        "PDE",
+        "stochastic_network",
+        "logical_model"
+      ],
+      "emergent_phenomena": [
+        "excitability",
+        "differentiation",
+        "secretion",
+        "cell_state_transition"
+      ]
+    },
+    {
+      "id": "L2",
+      "name": "cell_population_tissue",
+      "methods": [
+        "PDE",
+        "agent_based",
+        "cellular_automata",
+        "finite_element",
+        "hybrid"
+      ],
+      "emergent_phenomena": [
+        "pattern_formation",
+        "repair",
+        "inflammation",
+        "remodelling",
+        "collective_mechanics"
+      ]
+    },
+    {
+      "id": "L3",
+      "name": "organ",
+      "methods": [
+        "lumped_parameter",
+        "ODE",
+        "PDE",
+        "continuum_mechanics"
+      ],
+      "emergent_phenomena": [
+        "organ_function",
+        "local_regulation"
+      ]
+    },
+    {
+      "id": "L4",
+      "name": "organ_system_whole_body",
+      "methods": [
+        "coupled_ODE",
+        "transport_network",
+        "hybrid_discrete_event"
+      ],
+      "emergent_phenomena": [
+        "homeostasis",
+        "compensation",
+        "cross_organ_tradeoffs"
+      ]
+    },
+    {
+      "id": "L5",
+      "name": "organism_embodied_person",
+      "methods": [
+        "multi_rate_hybrid_dynamical_system",
+        "reduced_order_model"
+      ],
+      "emergent_phenomena": [
+        "adaptation",
+        "recovery",
+        "whole_person_perturbation_response"
+      ]
+    },
+    {
+      "id": "L6",
+      "name": "cognitive_behavioural_agent",
+      "methods": [
+        "state_estimation",
+        "active_inference",
+        "decision_process",
+        "temporal_model"
+      ],
+      "emergent_phenomena": [
+        "belief_conditioned_action",
+        "task_switching"
+      ]
+    },
+    {
+      "id": "L7",
+      "name": "environment_social_context",
+      "methods": [
+        "spatial_physics",
+        "event_system",
+        "network_model",
+        "population_model"
+      ],
+      "emergent_phenomena": [
+        "exposure",
+        "interaction",
+        "collective_outcomes"
+      ]
+    }
+  ],
+  "subsystems": [
+    {
+      "id": "SYS-CARDIO",
+      "name": "cardiovascular_vascular_microcirculation",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "pressure",
+        "flow",
+        "volume",
+        "vascular_resistance",
+        "perfusion"
+      ],
+      "coupled_to": [
+        "SYS-RESP",
+        "SYS-RENAL",
+        "SYS-ENDO",
+        "SYS-THERMO",
+        "SYS-METAB"
+      ],
+      "current_owner": "Symtropy plant model when implemented; Symthaea estimates from observations."
+    },
+    {
+      "id": "SYS-RESP",
+      "name": "respiratory_gas_exchange",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "ventilation",
+        "lung_volume",
+        "oxygen_transfer",
+        "carbon_dioxide_transfer",
+        "blood_gases"
+      ],
+      "coupled_to": [
+        "SYS-CARDIO",
+        "SYS-METAB",
+        "SYS-NEURAL"
+      ],
+      "current_owner": "Symtropy plant model when implemented; Symthaea estimates from observations."
+    },
+    {
+      "id": "SYS-RENAL",
+      "name": "renal_fluid_electrolyte_acid_base",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "filtration",
+        "water_flux",
+        "sodium_flux",
+        "potassium_flux",
+        "acid_base_state",
+        "clearance"
+      ],
+      "coupled_to": [
+        "SYS-CARDIO",
+        "SYS-ENDO",
+        "SYS-GI",
+        "SYS-BLOOD"
+      ],
+      "current_owner": "Symtropy plant model when implemented; Symthaea estimates from observations."
+    },
+    {
+      "id": "SYS-GI",
+      "name": "gastrointestinal_absorption",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "nutrient_absorption",
+        "water_absorption",
+        "gut_barrier",
+        "substrate_flux"
+      ],
+      "coupled_to": [
+        "SYS-LIVER",
+        "SYS-PANCREAS",
+        "SYS-MICROBIOME",
+        "SYS-IMMUNE"
+      ],
+      "current_owner": "Symtropy plant model when implemented; Symthaea estimates from observations."
+    },
+    {
+      "id": "SYS-LIVER",
+      "name": "hepatic_processing",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "substrate_processing",
+        "metabolite_flux",
+        "drug_biotransformation",
+        "plasma_protein_output"
+      ],
+      "coupled_to": [
+        "SYS-GI",
+        "SYS-METAB",
+        "SYS-RENAL",
+        "SYS-BLOOD"
+      ],
+      "current_owner": "Symtropy plant model when implemented."
+    },
+    {
+      "id": "SYS-PANCREAS",
+      "name": "pancreatic_glucose_regulation",
+      "level": "L3-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "insulin_signal",
+        "glucagon_signal",
+        "glucose_regulation"
+      ],
+      "coupled_to": [
+        "SYS-GI",
+        "SYS-METAB",
+        "SYS-LIVER",
+        "SYS-ENDO"
+      ],
+      "current_owner": "Symtropy plant model when implemented."
+    },
+    {
+      "id": "SYS-METAB",
+      "name": "whole_body_energy_glucose_adipose_muscle",
+      "level": "L1-L5",
+      "status": "reference_research",
+      "primary_ports": [
+        "glucose",
+        "glycogen",
+        "substrate_flux",
+        "energy_demand",
+        "heat_generation"
+      ],
+      "coupled_to": [
+        "SYS-PANCREAS",
+        "SYS-LIVER",
+        "SYS-MUSCLE",
+        "SYS-ENDO",
+        "SYS-CIRCADIAN"
+      ],
+      "current_owner": "Symtropy plant model; Symthaea physiology crate currently provides only bounded calculations."
+    },
+    {
+      "id": "SYS-ENDO",
+      "name": "endocrine_neuroendocrine_feedback",
+      "level": "L0-L5",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "hormone_concentration",
+        "secretion_rate",
+        "receptor_response",
+        "feedback_signal"
+      ],
+      "coupled_to": [
+        "SYS-RENAL",
+        "SYS-CARDIO",
+        "SYS-METAB",
+        "SYS-NEURAL",
+        "SYS-IMMUNE",
+        "SYS-CIRCADIAN"
+      ],
+      "current_owner": "Symtropy physiological mechanism; not Symthaea neuromodulator scalar proxies."
+    },
+    {
+      "id": "SYS-NEURAL",
+      "name": "nervous_autonomic_hypothalamic_regulation",
+      "level": "L1-L6",
+      "status": "reference_research",
+      "primary_ports": [
+        "neural_drive",
+        "autonomic_tone",
+        "reflex_signal",
+        "controller_state"
+      ],
+      "coupled_to": [
+        "SYS-CARDIO",
+        "SYS-RESP",
+        "SYS-GI",
+        "SYS-ENDO",
+        "SYS-IMMUNE",
+        "SYS-THERMO"
+      ],
+      "current_owner": "Symtropy plant mechanisms; Symthaea candidate cognition/control; keep biological neural control distinct from computational cognition."
+    },
+    {
+      "id": "SYS-IMMUNE",
+      "name": "immune_inflammatory_hematopoietic_lymphatic",
+      "level": "L0-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "cell_population",
+        "cytokine_signal",
+        "immune_activation",
+        "blood_cell_flux",
+        "lymph_flux"
+      ],
+      "coupled_to": [
+        "SYS-GI",
+        "SYS-LIVER",
+        "SYS-CARDIO",
+        "SYS-ENDO",
+        "SYS-TISSUE"
+      ],
+      "current_owner": "Symtropy plant model when admitted; no current integrated immune model claimed."
+    },
+    {
+      "id": "SYS-THERMO",
+      "name": "thermoregulation_skin_sweating",
+      "level": "L2-L5",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "core_heat",
+        "skin_heat",
+        "sweat_flux",
+        "skin_perfusion",
+        "heat_exchange"
+      ],
+      "coupled_to": [
+        "SYS-CARDIO",
+        "SYS-RENAL",
+        "SYS-MUSCLE",
+        "ENVIRONMENT"
+      ],
+      "current_owner": "Symtropy environment/heat exchange plus admitted human physiology model."
+    },
+    {
+      "id": "SYS-MUSCLE",
+      "name": "musculoskeletal_neuromuscular_connective_tissue",
+      "level": "L2-L5",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "joint_state",
+        "muscle_activation",
+        "muscle_force",
+        "tendon_strain",
+        "mechanical_work"
+      ],
+      "coupled_to": [
+        "SYS-NEURAL",
+        "SYS-CARDIO",
+        "SYS-RESP",
+        "SYS-METAB",
+        "SYS-THERMO"
+      ],
+      "current_owner": "Symtropy physical environment and external musculoskeletal solver adapter; Symthaea policy proposes actions."
+    },
+    {
+      "id": "SYS-CIRCADIAN",
+      "name": "sleep_circadian_recovery",
+      "level": "L3-L6",
+      "status": "implemented_bounded",
+      "primary_ports": [
+        "process_s",
+        "process_c",
+        "circadian_phase",
+        "light_input",
+        "sleep_wake_event"
+      ],
+      "coupled_to": [
+        "SYS-NEURAL",
+        "SYS-ENDO",
+        "SYS-METAB",
+        "ENVIRONMENT",
+        "BEHAVIOUR"
+      ],
+      "current_owner": "Symtropy bounded sleep reference and separate light-response track; no whole-body sleep validity claim."
+    },
+    {
+      "id": "SYS-REPRO",
+      "name": "reproductive_physiology",
+      "level": "L0-L5",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "reproductive_hormone",
+        "cycle_state",
+        "developmental_state"
+      ],
+      "coupled_to": [
+        "SYS-ENDO",
+        "SYS-CARDIO",
+        "SYS-RENAL",
+        "SYS-IMMUNE",
+        "SYS-METAB"
+      ],
+      "current_owner": "Context-specific Symtropy plant modules only after evidence and appropriate scope."
+    },
+    {
+      "id": "SYS-MICROBIOME",
+      "name": "microbiome_host_microbe",
+      "level": "L0-L4",
+      "status": "absent_unqualified",
+      "primary_ports": [
+        "community_state",
+        "microbial_metabolite",
+        "barrier_signal"
+      ],
+      "coupled_to": [
+        "SYS-GI",
+        "SYS-LIVER",
+        "SYS-IMMUNE",
+        "SYS-ENDO"
+      ],
+      "current_owner": "Later Symtropy plant model; high uncertainty and data-dependence."
+    },
+    {
+      "id": "SYS-OBS",
+      "name": "sensory_measurement_observation_process",
+      "level": "L2-L7",
+      "status": "implemented_bounded",
+      "primary_ports": [
+        "value",
+        "unit",
+        "observed_mask",
+        "precision",
+        "modality",
+        "capture_time",
+        "available_time",
+        "clock_domain",
+        "sensor_health"
+      ],
+      "coupled_to": [
+        "ALL_SUBSYSTEMS",
+        "SYMTHAEA"
+      ],
+      "current_owner": "Symtropy HOBS owns synthetic observation generation; Symthaea #12407 owns FEP observation semantics."
+    },
+    {
+      "id": "SYS-COGNITION",
+      "name": "cognition_interoception_behaviour",
+      "level": "L6",
+      "status": "reference_research",
+      "primary_ports": [
+        "belief",
+        "uncertainty",
+        "goal",
+        "policy",
+        "action_request",
+        "abstention"
+      ],
+      "coupled_to": [
+        "SYS-OBS",
+        "ALL_SUBSYSTEMS",
+        "ENVIRONMENT"
+      ],
+      "current_owner": "Symthaea candidate agent. Do not claim validated human cognition."
+    },
+    {
+      "id": "SYS-ENV",
+      "name": "environment_social_context",
+      "level": "L7",
+      "status": "reference_research",
+      "primary_ports": [
+        "ambient_temperature",
+        "lighting_spectrum",
+        "air_state",
+        "task_demand",
+        "food_water_availability",
+        "social_event"
+      ],
+      "coupled_to": [
+        "ALL_SUBSYSTEMS",
+        "BEHAVIOUR"
+      ],
+      "current_owner": "Symtropy spatial/environment world."
+    }
+  ],
+  "coupling_edges": [
+    {
+      "id": "CPL-O2-CO2",
+      "from": [
+        "SYS-RESP",
+        "SYS-CARDIO"
+      ],
+      "to": [
+        "SYS-BLOOD_TISSUE"
+      ],
+      "mechanism": "ventilation_perfusion_gas_transport",
+      "balance": "oxygen_and_carbon_dioxide_mass",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-CARDIO-RENAL",
+      "from": [
+        "SYS-CARDIO"
+      ],
+      "to": [
+        "SYS-RENAL"
+      ],
+      "mechanism": "renal_perfusion_pressure_volume_feedback",
+      "balance": "blood_and_fluid_volume",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-RENAL-ENDO",
+      "from": [
+        "SYS-ENDO"
+      ],
+      "to": [
+        "SYS-RENAL",
+        "SYS-CARDIO"
+      ],
+      "mechanism": "RAAS_and_water_electrolyte_regulation",
+      "balance": "water_sodium_potassium_and_pressure",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-GI-LIVER-PANCREAS",
+      "from": [
+        "SYS-GI"
+      ],
+      "to": [
+        "SYS-LIVER",
+        "SYS-PANCREAS",
+        "SYS-METAB"
+      ],
+      "mechanism": "nutrient_absorption_portal_transport_glucose_regulation",
+      "balance": "substrate_and_energy",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-LIVER-RENAL",
+      "from": [
+        "SYS-LIVER",
+        "SYS-RENAL"
+      ],
+      "to": [
+        "SYS-BLOOD"
+      ],
+      "mechanism": "metabolite_drug_and_waste_transport",
+      "balance": "substance_mass",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-MUSCLE-WORK",
+      "from": [
+        "SYS-MUSCLE"
+      ],
+      "to": [
+        "SYS-CARDIO",
+        "SYS-RESP",
+        "SYS-METAB",
+        "SYS-THERMO"
+      ],
+      "mechanism": "mechanical_work_oxygen_demand_substrate_use_heat_generation",
+      "balance": "mechanical_and_metabolic_energy",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-IMMUNE-SYSTEMIC",
+      "from": [
+        "SYS-IMMUNE"
+      ],
+      "to": [
+        "SYS-CARDIO",
+        "SYS-ENDO",
+        "SYS-METAB",
+        "SYS-TISSUE"
+      ],
+      "mechanism": "cytokine_signalling_cell_trafficking_acute_phase",
+      "balance": "signal_kinetics_and_cell_flux",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-THERMO-FLUID",
+      "from": [
+        "SYS-THERMO"
+      ],
+      "to": [
+        "SYS-CARDIO",
+        "SYS-RENAL"
+      ],
+      "mechanism": "heat_exchange_skin_perfusion_sweat_and_fluid_loss",
+      "balance": "heat_and_water",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-CIRCADIAN",
+      "from": [
+        "SYS-CIRCADIAN"
+      ],
+      "to": [
+        "SYS-NEURAL",
+        "SYS-ENDO",
+        "SYS-METAB",
+        "BEHAVIOUR"
+      ],
+      "mechanism": "phase_gated_sleep_and_time_dependent_regulation",
+      "balance": "phase_time_and_signal_kinetics",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-MICROBIOME",
+      "from": [
+        "SYS-MICROBIOME"
+      ],
+      "to": [
+        "SYS-GI",
+        "SYS-LIVER",
+        "SYS-IMMUNE"
+      ],
+      "mechanism": "microbial_metabolites_barrier_and_immune_signals",
+      "balance": "metabolite_mass_and_signal_kinetics",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-AUTONOMIC",
+      "from": [
+        "SYS-NEURAL"
+      ],
+      "to": [
+        "SYS-CARDIO",
+        "SYS-RESP",
+        "SYS-GI",
+        "SYS-ENDO",
+        "SYS-THERMO"
+      ],
+      "mechanism": "autonomic_and_reflex_control",
+      "balance": "control_signal_and_response_dynamics",
+      "status": "proposed"
+    },
+    {
+      "id": "CPL-ACTION-EXPOSURE",
+      "from": [
+        "SYS-COGNITION",
+        "ENVIRONMENT"
+      ],
+      "to": [
+        "SYS-MUSCLE",
+        "SYS-CIRCADIAN",
+        "SYS-METAB",
+        "SYS-THERMO",
+        "SYS-OBS"
+      ],
+      "mechanism": "assignment_delivery_physical_exposure_observation_response",
+      "balance": "event_time_and_energy_material_exposure",
+      "status": "event_semantics_fixture_exists"
+    }
+  ],
+  "port_contract_required_fields": [
+    "port_id_and_semantic_version",
+    "quantity_and_physical_interpretation",
+    "unit_and_conversion_rule",
+    "direction_and_sign_convention",
+    "valid_range_and_domain",
+    "event_time_and_clock_domain",
+    "update_rate_solver_and_interpolation_policy",
+    "uncertainty_and_parameter_provenance",
+    "conservation_or_balance_semantics",
+    "late_duplicate_and_missing_event_policy",
+    "source_model_revision_and_validation_receipts"
+  ],
+  "benchmark_axes": [
+    "dimensional_consistency",
+    "mass_energy_volume_charge_balance_residuals",
+    "positivity_and_physical_range_violations",
+    "single_model_analytic_error_and_solver_convergence",
+    "coupling_interval_and_update_order_sensitivity",
+    "parameter_recovery_and_identifiability",
+    "trajectory_response_and_recovery_error",
+    "observation_missingness_delay_and_sampling_shift",
+    "calibration_and_selective_risk",
+    "cross_domain_lower_quantile_performance",
+    "p50_p95_p99_latency_memory_energy_and_adaptation_cost"
+  ],
+  "references": [
+    "https://www.nature.com/articles/s41563-026-02784-3",
+    "https://doi.org/10.1146/annurev-physiol-040225-113230",
+    "https://www.cellml.org/specifications/cellml_2.0",
+    "https://sbml.org/documents/specifications/",
+    "https://models.physiomeproject.org/",
+    "https://www.biogearsengine.com/documentation/index.html",
+    "https://opensimconfluence.atlassian.net/wiki/spaces/OpenSim/pages/53088700/Tutorial%2B1%2B-%2BIntro%2Bto%2BMusculoskeletal%2BModeling"
+  ]
+}
