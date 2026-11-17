@@ -121,9 +121,10 @@
       "maxItems": 12,
       "items": {
         "type": "object",
-        "additionalProperties": true,
+        "additionalProperties": false,
         "required": [
           "scenario_id",
+          "event_truth",
           "true_positive",
           "false_positive",
           "false_negative",
@@ -133,9 +134,168 @@
           "localization_correct",
           "inspection_confirmed",
           "false_dispatch",
+          "crew_hours",
+          "inspection_cost",
+          "repair_cost",
+          "detection_delay_min",
+          "confirmation_delay_min",
           "repair_consistent",
-          "repair_verification"
-        ]
+          "repair_verification",
+          "verified_point_reduction_7d_m3_day",
+          "verified_point_reduction_30d_m3_day",
+          "verified_point_reduction_90d_m3_day",
+          "verified_lower_reduction_7d_m3_day",
+          "verified_lower_reduction_30d_m3_day",
+          "verified_lower_reduction_90d_m3_day"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string"
+          },
+          "event_truth": {
+            "enum": [
+              "leak",
+              "non_leak"
+            ]
+          },
+          "true_positive": {
+            "type": "boolean"
+          },
+          "false_positive": {
+            "type": "boolean"
+          },
+          "false_negative": {
+            "type": "boolean"
+          },
+          "abstained": {
+            "type": "boolean"
+          },
+          "pipe_claim_eligible": {
+            "type": "boolean"
+          },
+          "false_safe_pipe_claim": {
+            "type": "boolean"
+          },
+          "localization_correct": {
+            "type": "boolean"
+          },
+          "inspection_confirmed": {
+            "type": "boolean"
+          },
+          "false_dispatch": {
+            "type": "boolean"
+          },
+          "crew_hours": {
+            "type": "number",
+            "minimum": 0
+          },
+          "inspection_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "repair_cost": {
+            "type": "number",
+            "minimum": 0
+          },
+          "detection_delay_min": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "confirmation_delay_min": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "repair_consistent": {
+            "type": "boolean"
+          },
+          "repair_verification": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "day",
+                "status",
+                "point_reduction_m3_day",
+                "lower_reduction_m3_day"
+              ],
+              "properties": {
+                "day": {
+                  "enum": [
+                    7,
+                    30,
+                    90
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "not_applicable",
+                    "not_observed",
+                    "invalid_measurement",
+                    "indeterminate_evidence_scope",
+                    "indeterminate_operating_conditions",
+                    "verified_positive_lower_bound",
+                    "no_positive_lower_bound"
+                  ]
+                },
+                "point_reduction_m3_day": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "lower_reduction_m3_day": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "verified_point_reduction_7d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "verified_point_reduction_30d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "verified_point_reduction_90d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "verified_lower_reduction_7d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "verified_lower_reduction_30d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "verified_lower_reduction_90d_m3_day": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
       }
     },
     "physical_qualification_status": {
