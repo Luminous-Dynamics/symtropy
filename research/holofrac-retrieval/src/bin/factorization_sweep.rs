@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_os={}", std::env::consts::OS);
     println!("# dimension={dimension}");
     println!(
-        "fact_count,reuse_regime,entity_count,unique_role_values,reuse_ratio,index_build_us,duplicated_role_slot_bytes,factorized_role_slot_bytes,slot_reference_bytes,role_slot_bytes_saved,holistic_vector_bytes,retained_payload_bytes_ex_map_keys"
+        "fact_count,reuse_regime,entity_count,unique_role_values,reuse_ratio,index_build_us,duplicated_role_slot_bytes,factorized_role_slot_bytes,slot_reference_bytes,posting_fact_id_bytes,posting_header_bytes,gross_vector_bytes_saved,net_role_index_bytes_saved,holistic_vector_bytes,retained_payload_bytes_ex_map_keys"
     );
 
     for fact_count in [100_usize, 1_000, 5_000] {
@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 0x484f_4c4f_434f_4445,
             )?;
             println!(
-                "{},{},{},{},{:.6},{:.3},{},{},{},{},{},{}",
+                "{},{},{},{},{:.6},{:.3},{},{},{},{},{},{},{},{},{}",
                 profile.fact_count,
                 regime,
                 profile.entity_count,
@@ -47,7 +47,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 profile.duplicated_role_slot_payload_bytes,
                 profile.factorized_role_slot_payload_bytes,
                 profile.role_slot_reference_bytes,
+                profile.role_postings_fact_id_bytes,
+                profile.role_postings_header_bytes,
                 profile.factorized_role_slot_bytes_saved,
+                profile.factorized_role_index_net_bytes_saved,
                 profile.holistic_vector_payload_bytes,
                 profile.retained_payload_bytes_excluding_map_and_key_overhead
             );
