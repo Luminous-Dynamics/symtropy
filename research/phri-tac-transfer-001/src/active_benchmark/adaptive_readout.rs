@@ -217,6 +217,10 @@ fn candidate_order(
     }
 }
 
+fn macro_tile_coordinate(coordinate: usize, extent: usize) -> usize {
+    (((coordinate as u128) * 4) / extent as u128).min(3) as usize
+}
+
 fn sort_candidates(
     problem: &AdaptiveAcquisitionProblem,
     policy: AcquisitionPolicy,
@@ -252,8 +256,8 @@ fn sort_candidates(
             let mut tiles: BTreeMap<usize, Vec<CandidateOrder>> = BTreeMap::new();
             for candidate in ordered {
                 let source = &problem.candidates[candidate.index];
-                let tile_x = source.grid_x * 4 / problem.grid_width;
-                let tile_y = source.grid_y * 4 / problem.grid_height;
+                let tile_x = macro_tile_coordinate(source.grid_x, problem.grid_width);
+                let tile_y = macro_tile_coordinate(source.grid_y, problem.grid_height);
                 let tile_id = tile_y * 4 + tile_x;
                 tiles.entry(tile_id).or_default().push(candidate);
             }
@@ -261,7 +265,8 @@ fn sort_candidates(
             let mut stratified = Vec::new();
             let mut remainder = Vec::new();
             for (tile_id, candidates) in tiles {
-                let mut random_state = (problem.seed ^ ((tile_id as u64 + 1) * 0x9E37_79B9_7F4A_7C15)).max(1);
+                let tile_seed = (tile_id as u64 + 1).wrapping_mul(0x9E37_79B9_7F4A_7C15);
+                let mut random_state = (problem.seed ^ tile_seed).max(1);
                 let mut keyed: Vec<_> = candidates
                     .into_iter()
                     .map(|candidate| (next_random(&mut random_state), candidate))
@@ -1048,8 +1053,8 @@ mod tests {
             .iter()
             .map(|index| {
                 let candidate = &input.candidates[*index];
-                (candidate.grid_y * 4 / input.grid_height) * 4
-                    + candidate.grid_x * 4 / input.grid_width
+                macro_tile_coordinate(candidate.grid_y, input.grid_height) * 4
+                    + macro_tile_coordinate(candidate.grid_x, input.grid_width)
             })
             .collect();
         assert_eq!(macro_tiles.len(), DEFAULT_READOUT_BUDGET);
