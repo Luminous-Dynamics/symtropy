@@ -34,7 +34,7 @@ The v0.1 binding pins:
 - sensor identity/revision, mount identity/revision and calibration bundle digest;
 - observation bundle digest and exact target set;
 - frame-relative candidate position and view angle;
-- cost model identity/revision/digest and resource estimates.
+- acquisition/energy/risk cost model identity, revision, digest and estimates. Travel cost is deliberately excluded from the candidate record because it depends on the previous route state; #5857 must compute transition cost as it builds the route.
 
 The contract does not assume that a source timestamp is UTC. Clock mapping, knowledge-time and temporal supersession remain with the relevant time/evidence owners.
 
