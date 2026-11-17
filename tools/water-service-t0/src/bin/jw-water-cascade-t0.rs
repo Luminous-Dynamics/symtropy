@@ -219,7 +219,7 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
     let context = id.to_owned();
     let family = string(case, "family", &context)?;
     let status_values = status_vector(case)?;
-    let mut disposition = "UNCLASSIFIED";
+    let disposition;
     let mut reported_episode_count: Option<usize> = None;
     let mut no_board_gap: Option<usize> = None;
     let mut censoring = "NOT_APPLICABLE";
@@ -485,12 +485,9 @@ fn run(args: &[String]) -> Result<Value, String> {
     {
         return Err("T0 evidence class must remain synthetic_only".to_owned());
     }
-    if string(
-        &field(&input, "source_context", "input")?,
-        "time_zone",
-        "source_context",
-    )? != "Africa/Johannesburg"
-    {
+    let source_context = field(&input, "source_context", "input")?;
+    if string(source_context, "time_zone", "source_context")? != "Africa/Johannesburg" {
+
         return Err("notice valid-day interval requires Africa/Johannesburg time zone".to_owned());
     }
     validate_schema_markers(&input_schema, &oracle_schema)?;
