@@ -314,6 +314,95 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::adaptive_readout::run_synthetic_readout_example(
+                20261117,
+            ) {
+                Ok(example) => {
+                    println!("adaptive_readout_example=synthetic_1024_taxel_v0_1");
+                    match serde_json::to_string(&example) {
+                        Ok(scorecard_json) => {
+                            println!("adaptive_readout_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("adaptive_readout_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    for score in &example.observable_event_scores {
+                        println!(
+                            "adaptive_readout_case=predicted_event policy={:?} reads={} unknown={} unavailable={} observed_fraction={:.4} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={} speedup_vs_full={:?}",
+                            score.policy,
+                            score.selected_taxel_count,
+                            score.unknown_taxel_count,
+                            score.unavailable_taxel_count,
+                            score.observed_taxel_fraction,
+                            score.active_contact_recall,
+                            score.urgent_event_recall,
+                            score.estimated_total_latency_ns,
+                            score.estimated_total_energy_nj,
+                            score.speedup_vs_full_raster,
+                        );
+                    }
+                    for score in &example.off_prediction_region_event_scores {
+                        println!(
+                            "adaptive_readout_case=off_prediction_event policy={:?} reads={} unknown={} unavailable={} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={}",
+                            score.policy,
+                            score.selected_taxel_count,
+                            score.unknown_taxel_count,
+                            score.unavailable_taxel_count,
+                            score.active_contact_recall,
+                            score.urgent_event_recall,
+                            score.estimated_total_latency_ns,
+                            score.estimated_total_energy_nj,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("adaptive_readout_example=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
+            match phri_tac_transfer_oracle::active_benchmark::adaptive_readout::run_adaptive_readout_campaign(
+                20261117, 50,
+            ) {
+                Ok(campaign) => {
+                    println!("adaptive_readout_campaign=paired_synthetic_50_seed_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("adaptive_readout_campaign_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("adaptive_readout_campaign_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    for result in campaign.results {
+                        println!(
+                            "adaptive_readout_policy={:?} budget={} replicates={} active_recall_mean={:.4} active_recall_min={:.4} predicted_event_recall_mean={:.4} predicted_event_recall_min={:.4} off_prediction_event_recall_mean={:.4} off_event_miss_replicates={} observed_fraction_mean={:.4} unknown_mean={:.1} unavailable_mean={:.1} latency_mean_ns={:.0} latency_p95_ns={} energy_mean_nj={:.0} speedup_mean={:.3}",
+                            result.policy,
+                            result.read_budget,
+                            result.replicate_count,
+                            result.mean_active_contact_recall,
+                            result.minimum_active_contact_recall,
+                            result.mean_predicted_region_event_recall,
+                            result.minimum_predicted_region_event_recall,
+                            result.mean_off_prediction_event_recall,
+                            result.off_prediction_event_miss_replicates,
+                            result.mean_observed_taxel_fraction,
+                            result.mean_unknown_taxel_count,
+                            result.mean_unavailable_taxel_count,
+                            result.mean_latency_ns,
+                            result.p95_latency_ns,
+                            result.mean_energy_nj,
+                            result.mean_speedup_vs_full_raster,
+                        );
+                    }
+                }
+                Err(error) => {
+                    eprintln!("adaptive_readout_campaign=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {

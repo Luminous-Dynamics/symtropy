@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
+pub mod adaptive_readout;
 pub mod coupling_campaign;
 pub mod coupling_identification;
 pub mod field_campaign;
