@@ -302,6 +302,46 @@ pub struct RasterMissionPlan {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct CameraSensorModel {
+    pub horizontal_fov_rad: f64,
+    pub vertical_fov_rad: f64,
+    pub horizontal_pixels: u32,
+    pub vertical_pixels: u32,
+    pub maximum_gsd_m_per_pixel: f64,
+    pub gsd_uncertainty_m_per_pixel: f64,
+    /// RGB exposure time or IR detector integration time, in seconds.
+    pub integration_time_s: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CameraFlightEnvelopeSpec {
+    pub rgb: CameraSensorModel,
+    pub ir: CameraSensorModel,
+    pub requested_height_m: f64,
+    pub minimum_height_m: f64,
+    pub maximum_height_m: f64,
+    pub maximum_motion_blur_pixels: f64,
+    pub requested_maximum_ground_speed_m_per_s: f64,
+    pub ground_speed_uncertainty_m_per_s: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CameraFlightEnvelope {
+    pub selected_height_m: f64,
+    pub gsd_limit_height_m: f64,
+    pub rgb_gsd_horizontal_m_per_pixel: f64,
+    pub rgb_gsd_vertical_m_per_pixel: f64,
+    pub ir_gsd_horizontal_m_per_pixel: f64,
+    pub ir_gsd_vertical_m_per_pixel: f64,
+    pub common_footprint_half_width_m: f64,
+    pub common_footprint_half_height_m: f64,
+    pub rgb_motion_blur_speed_limit_m_per_s: f64,
+    pub ir_motion_blur_speed_limit_m_per_s: f64,
+    /// Commanded speed ceiling after subtracting the declared speed uncertainty.
+    pub maximum_commanded_speed_m_per_s: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct MissionEnergyEnvelope {
     pub mission_id: String,
     pub model_id: String,
@@ -799,6 +839,165 @@ fn separated_view_count(views: &BTreeMap<String, f64>, minimum_separation: f64) 
 fn angular_separation(left: f64, right: f64) -> f64 {
     let difference = (left - right).abs().rem_euclid(std::f64::consts::TAU);
     difference.min(std::f64::consts::TAU - difference)
+}
+
+fn validate_camera_model(model: &CameraSensorModel) -> Result<(), String> {
+    if !model.horizontal_fov_rad.is_finite()
+        || model.horizontal_fov_rad <= 0.0
+        || model.horizontal_fov_rad >= std::f64::consts::PI
+        || !model.vertical_fov_rad.is_finite()
+        || model.vertical_fov_rad <= 0.0
+        || model.vertical_fov_rad >= std::f64::consts::PI
+        || model.horizontal_pixels == 0
+        || model.vertical_pixels == 0
+        || !model.maximum_gsd_m_per_pixel.is_finite()
+        || model.maximum_gsd_m_per_pixel <= 0.0
+        || !finite_nonnegative(model.gsd_uncertainty_m_per_pixel)
+        || model.gsd_uncertainty_m_per_pixel >= model.maximum_gsd_m_per_pixel
+        || !model.integration_time_s.is_finite()
+        || model.integration_time_s <= 0.0
+    {
+        return Err("camera model contains invalid FOV, resolution, GSD or integration time".to_owned());
+    }
+    Ok(())
+}
+
+fn gsd_at_height(height_m: f64, fov_rad: f64, pixels: u32) -> f64 {
+    2.0 * height_m * (fov_rad * 0.5).tan() / f64::from(pixels)
+}
+
+fn gsd_height_limit(model: &CameraSensorModel) -> f64 {
+    let allowed_gsd = model.maximum_gsd_m_per_pixel - model.gsd_uncertainty_m_per_pixel;
+    let horizontal_height =
+        allowed_gsd * f64::from(model.horizontal_pixels) / (2.0 * (model.horizontal_fov_rad * 0.5).tan());
+    let vertical_height =
+        allowed_gsd * f64::from(model.vertical_pixels) / (2.0 * (model.vertical_fov_rad * 0.5).tan());
+    horizontal_height.min(vertical_height)
+}
+
+fn motion_blur_speed_limit(
+    model: &CameraSensorModel,
+    horizontal_gsd: f64,
+    vertical_gsd: f64,
+    maximum_blur_pixels: f64,
+) -> Option<f64> {
+    let conservative_gsd = horizontal_gsd
+        .min(vertical_gsd)
+        - model.gsd_uncertainty_m_per_pixel;
+    if !conservative_gsd.is_finite() || conservative_gsd <= 0.0 {
+        return None;
+    }
+    let speed = maximum_blur_pixels * conservative_gsd / model.integration_time_s;
+    speed.is_finite().then_some(speed)
+}
+
+/// Choose a common RGB/IR altitude and speed envelope from camera acquisition
+/// constraints. Assumes the camera pair is co-mounted, boresight-aligned and
+/// uses the same ground-speed vector; actual calibration/pose validation stays
+/// with the sensor and physical-evidence owners.
+pub fn compute_camera_flight_envelope(
+    spec: &CameraFlightEnvelopeSpec,
+) -> Result<CameraFlightEnvelope, String> {
+    validate_camera_model(&spec.rgb)?;
+    validate_camera_model(&spec.ir)?;
+    if !spec.requested_height_m.is_finite()
+        || !spec.minimum_height_m.is_finite()
+        || !spec.maximum_height_m.is_finite()
+        || spec.minimum_height_m <= 0.0
+        || spec.maximum_height_m < spec.minimum_height_m
+        || !spec.maximum_motion_blur_pixels.is_finite()
+        || spec.maximum_motion_blur_pixels <= 0.0
+        || !spec.requested_maximum_ground_speed_m_per_s.is_finite()
+        || spec.requested_maximum_ground_speed_m_per_s <= 0.0
+        || !finite_nonnegative(spec.ground_speed_uncertainty_m_per_s)
+    {
+        return Err("camera flight envelope contains invalid altitude, speed or blur limits".to_owned());
+    }
+
+    let gsd_limit_height_m = gsd_height_limit(&spec.rgb)
+        .min(gsd_height_limit(&spec.ir))
+        .min(spec.maximum_height_m);
+    if !gsd_limit_height_m.is_finite() || gsd_limit_height_m < spec.minimum_height_m {
+        return Err("no altitude satisfies both RGB and IR GSD limits inside the allowed height range".to_owned());
+    }
+    let selected_height_m = spec
+        .requested_height_m
+        .clamp(spec.minimum_height_m, spec.maximum_height_m)
+        .min(gsd_limit_height_m);
+
+    let rgb_gsd_horizontal = gsd_at_height(
+        selected_height_m,
+        spec.rgb.horizontal_fov_rad,
+        spec.rgb.horizontal_pixels,
+    );
+    let rgb_gsd_vertical = gsd_at_height(
+        selected_height_m,
+        spec.rgb.vertical_fov_rad,
+        spec.rgb.vertical_pixels,
+    );
+    let ir_gsd_horizontal = gsd_at_height(
+        selected_height_m,
+        spec.ir.horizontal_fov_rad,
+        spec.ir.horizontal_pixels,
+    );
+    let ir_gsd_vertical = gsd_at_height(
+        selected_height_m,
+        spec.ir.vertical_fov_rad,
+        spec.ir.vertical_pixels,
+    );
+
+    let rgb_horizontal_upper = rgb_gsd_horizontal + spec.rgb.gsd_uncertainty_m_per_pixel;
+    let rgb_vertical_upper = rgb_gsd_vertical + spec.rgb.gsd_uncertainty_m_per_pixel;
+    let ir_horizontal_upper = ir_gsd_horizontal + spec.ir.gsd_uncertainty_m_per_pixel;
+    let ir_vertical_upper = ir_gsd_vertical + spec.ir.gsd_uncertainty_m_per_pixel;
+    if rgb_horizontal_upper > spec.rgb.maximum_gsd_m_per_pixel
+        || rgb_vertical_upper > spec.rgb.maximum_gsd_m_per_pixel
+        || ir_horizontal_upper > spec.ir.maximum_gsd_m_per_pixel
+        || ir_vertical_upper > spec.ir.maximum_gsd_m_per_pixel
+    {
+        return Err("selected altitude violates a conservative RGB or IR GSD limit".to_owned());
+    }
+
+    let rgb_speed_limit = motion_blur_speed_limit(
+        &spec.rgb,
+        rgb_gsd_horizontal,
+        rgb_gsd_vertical,
+        spec.maximum_motion_blur_pixels,
+    )
+    .ok_or_else(|| "RGB GSD uncertainty leaves no positive motion-blur speed envelope".to_owned())?;
+    let ir_speed_limit = motion_blur_speed_limit(
+        &spec.ir,
+        ir_gsd_horizontal,
+        ir_gsd_vertical,
+        spec.maximum_motion_blur_pixels,
+    )
+    .ok_or_else(|| "IR GSD uncertainty leaves no positive motion-blur speed envelope".to_owned())?;
+    let maximum_commanded_speed = rgb_speed_limit
+        .min(ir_speed_limit)
+        .min(spec.requested_maximum_ground_speed_m_per_s)
+        - spec.ground_speed_uncertainty_m_per_s;
+    if !maximum_commanded_speed.is_finite() || maximum_commanded_speed <= 0.0 {
+        return Err("speed uncertainty consumes the entire camera blur-limited speed envelope".to_owned());
+    }
+
+    let rgb_half_width = selected_height_m * (spec.rgb.horizontal_fov_rad * 0.5).tan();
+    let rgb_half_height = selected_height_m * (spec.rgb.vertical_fov_rad * 0.5).tan();
+    let ir_half_width = selected_height_m * (spec.ir.horizontal_fov_rad * 0.5).tan();
+    let ir_half_height = selected_height_m * (spec.ir.vertical_fov_rad * 0.5).tan();
+
+    Ok(CameraFlightEnvelope {
+        selected_height_m,
+        gsd_limit_height_m,
+        rgb_gsd_horizontal_m_per_pixel: rgb_gsd_horizontal,
+        rgb_gsd_vertical_m_per_pixel: rgb_gsd_vertical,
+        ir_gsd_horizontal_m_per_pixel: ir_gsd_horizontal,
+        ir_gsd_vertical_m_per_pixel: ir_gsd_vertical,
+        common_footprint_half_width_m: rgb_half_width.min(ir_half_width),
+        common_footprint_half_height_m: rgb_half_height.min(ir_half_height),
+        rgb_motion_blur_speed_limit_m_per_s: rgb_speed_limit,
+        ir_motion_blur_speed_limit_m_per_s: ir_speed_limit,
+        maximum_commanded_speed_m_per_s: maximum_commanded_speed,
+    })
 }
 
 fn axis_centers(
