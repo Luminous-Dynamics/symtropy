@@ -375,3 +375,16 @@ Do not maximize a single graph complexity, cycle count, or stiffness-to-mass sco
 - accessibility, privacy, sensory controllability and occupant-authored expression.
 
 An FFMFS candidate only wins when it improves a preregistered, practically meaningful objective against conventional trusses/spaceframes, topology optimization, graded lattices, TPMS and modular voxel assemblies under matched materials, loads, process constraints and evaluation budget.
+
+
+
+### 6. Bounded two-member cut-set screening
+
+The truss reference lab now includes a second damage campaign. It selects evenly spaced ranks from the complete unordered member-pair space, with a hard 1,024-scenario execution cap. The receipt reports:
+- total possible member pairs;
+- requested and applied scenario budget;
+- every omitted scenario count;
+- stable responses, singular mechanisms and other failures;
+- original member indices for each tested pair.
+
+This is a deterministic screening sample, not exhaustive analysis and not a probability estimate. The next stage should prioritize physically credible failures from connector topology, load path, manufacturing defects and inspection data, and then use a validated progressive-damage model. No safety-critical reliability claim follows from the current linear-elastic model.
