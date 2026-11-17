@@ -1,5 +1,5 @@
 use robotics_candidate_evidence_envelope::{
-    CandidateBinding, CandidateEvidenceEnvelope, CandidateEligibility, EvidenceDomain,
+    CandidateBinding, CandidateEligibility, CandidateEvidenceEnvelope, EvidenceDomain,
     EvidenceReceipt, EvidenceStatus, SCHEMA_VERSION, validate_candidate_envelope,
 };
 
@@ -84,42 +84,62 @@ fn fixture_binding() -> CandidateBinding {
 }
 
 fn fixture_receipts(binding: &CandidateBinding) -> Vec<EvidenceReceipt> {
-    let receipt = |domain: EvidenceDomain, record_id: &str, result_sha256: &str| {
-        EvidenceReceipt {
-            domain,
-            timebase_id: binding.timebase_id.clone(),
-            timebase_revision: binding.timebase_revision.clone(),
-            record_id: record_id.to_owned(),
-            issuer_id: format!("evaluator-{domain:?}"),
-            issuer_revision: "evaluator-r1".to_owned(),
-            profile_id: format!("profile-{domain:?}"),
-            profile_revision: "profile-r2".to_owned(),
-            status: EvidenceStatus::Qualified,
-            binding_sha256: A.to_owned(),
-            result_sha256: result_sha256.to_owned(),
-            source_bundle_sha256: match domain {
-                EvidenceDomain::GeometryCoverage | EvidenceDomain::SensorQuality => {
-                    binding.observation_bundle_sha256.clone()
-                }
-                EvidenceDomain::Calibration => binding.calibration_bundle_sha256.clone(),
-            },
-            issued_at_ns: match domain {
-                EvidenceDomain::GeometryCoverage | EvidenceDomain::SensorQuality => 2_500,
-                EvidenceDomain::Calibration => 800,
-            },
-            valid_from_ns: (domain == EvidenceDomain::Calibration).then_some(500),
-            valid_until_ns: (domain == EvidenceDomain::Calibration).then_some(3_000),
-            covered_target_ids: if domain == EvidenceDomain::GeometryCoverage {
-                binding.target_ids.clone()
-            } else {
-                Vec::new()
-            },
-        }
-    };
-
     vec![
-        receipt(EvidenceDomain::GeometryCoverage, "geometry-record-01", B),
-        receipt(EvidenceDomain::SensorQuality, "sensor-record-01", C),
-        receipt(EvidenceDomain::Calibration, "calibration-record-01", D),
+        build_receipt(
+            binding,
+            EvidenceDomain::GeometryCoverage,
+            "geometry-record-01",
+            B,
+        ),
+        build_receipt(
+            binding,
+            EvidenceDomain::SensorQuality,
+            "sensor-record-01",
+            C,
+        ),
+        build_receipt(
+            binding,
+            EvidenceDomain::Calibration,
+            "calibration-record-01",
+            D,
+        ),
     ]
+}
+
+fn build_receipt(
+    binding: &CandidateBinding,
+    domain: EvidenceDomain,
+    record_id: &str,
+    result_sha256: &str,
+) -> EvidenceReceipt {
+    EvidenceReceipt {
+        domain,
+        timebase_id: binding.timebase_id.clone(),
+        timebase_revision: binding.timebase_revision.clone(),
+        record_id: record_id.to_owned(),
+        issuer_id: format!("evaluator-{domain:?}"),
+        issuer_revision: "evaluator-r1".to_owned(),
+        profile_id: format!("profile-{domain:?}"),
+        profile_revision: "profile-r2".to_owned(),
+        status: EvidenceStatus::Qualified,
+        binding_sha256: A.to_owned(),
+        result_sha256: result_sha256.to_owned(),
+        source_bundle_sha256: match domain {
+            EvidenceDomain::GeometryCoverage | EvidenceDomain::SensorQuality => {
+                binding.observation_bundle_sha256.clone()
+            }
+            EvidenceDomain::Calibration => binding.calibration_bundle_sha256.clone(),
+        },
+        issued_at_ns: match domain {
+            EvidenceDomain::GeometryCoverage | EvidenceDomain::SensorQuality => 2_500,
+            EvidenceDomain::Calibration => 800,
+        },
+        valid_from_ns: (domain == EvidenceDomain::Calibration).then_some(500),
+        valid_until_ns: (domain == EvidenceDomain::Calibration).then_some(3_000),
+        covered_target_ids: if domain == EvidenceDomain::GeometryCoverage {
+            binding.target_ids.clone()
+        } else {
+            Vec::new()
+        },
+    }
 }
