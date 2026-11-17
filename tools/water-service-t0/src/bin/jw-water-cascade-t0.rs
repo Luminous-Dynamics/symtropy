@@ -607,11 +607,11 @@ fn run(args: &[String]) -> Result<Value, String> {
         "case_results": results
     });
     let output = Path::new(&args[5]);
-    if let Some(parent) = output.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)
-                .map_err(|error| format!("cannot create receipt directory: {error}"))?;
-        }
+    if let Some(parent) = output.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("cannot create receipt directory: {error}"))?;
     }
     fs::write(
         output,
