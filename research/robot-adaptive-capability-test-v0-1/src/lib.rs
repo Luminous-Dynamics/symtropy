@@ -452,6 +452,18 @@ fn decide_validated(
     for quota in quotas {
         let count = counts.get(&quota.stratum).copied().unwrap_or(0);
         if count < quota.minimum_count {
+            if adaptive_administered >= profile.max_adaptive_items {
+                return Ok(Decision {
+                    selected: None,
+                    stop_reason: Some(StopReason::BudgetExhausted),
+                    theta_map: theta,
+                    posterior_sem: sem,
+                    mandatory_total,
+                    mandatory_administered,
+                    adaptive_administered,
+                    stratum_coverage,
+                });
+            }
             let candidates: Vec<&ChallengeItem> = bank
                 .items
                 .iter()
@@ -756,6 +768,38 @@ mod tests {
         let selected = result.decision.selected.unwrap();
         assert_eq!(selected.item_id, "payload-item");
         assert_eq!(selected.reason, SelectionReason::StratumMinimum);
+    }
+
+    #[test]
+    fn stratum_minimum_cannot_exceed_adaptive_budget() {
+        let mut test_profile = profile();
+        test_profile.max_adaptive_items = 0;
+        test_profile.target_posterior_sem = 10.0;
+        test_profile.minimum_per_stratum = vec![StratumMinimum {
+            stratum: "payload-shift".to_owned(),
+            minimum_count: 1,
+        }];
+        let mut test_bank = bank();
+        test_bank.items.push(item(
+            "payload-item",
+            "payload-shift",
+            0.0,
+            false,
+            false,
+            false,
+        ));
+        let result = evaluate_run(
+            &test_bank,
+            &test_profile,
+            &[
+                response(0, "safety-negative", true),
+                response(1, "anchor-common", true),
+            ],
+        )
+        .unwrap();
+        assert_eq!(result.decision.stop_reason, Some(StopReason::BudgetExhausted));
+        assert_eq!(result.decision.adaptive_administered, 0);
+        assert_eq!(result.decision.stratum_coverage[0].administered, 0);
     }
 
     #[test]
