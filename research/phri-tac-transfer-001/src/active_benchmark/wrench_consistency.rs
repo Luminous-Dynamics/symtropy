@@ -130,6 +130,28 @@ pub enum ReferenceIndependenceDisposition {
     Unresolved,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct WrenchObservationBinding {
+    pub sample_identity: String,
+    pub native_observation_set_digest: String,
+    pub wrench_observation_digest: String,
+}
+
+impl WrenchObservationBinding {
+    fn validate(&self) -> Result<(), String> {
+        for (name, value) in [
+            ("sample_identity", self.sample_identity.as_str()),
+            ("native_observation_set_digest", self.native_observation_set_digest.as_str()),
+            ("wrench_observation_digest", self.wrench_observation_digest.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(format!("wrench observation binding field {name} is missing"));
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct WrenchReferenceEvidence {
     pub native_observation_set_digest: String,
@@ -424,9 +446,7 @@ impl WrenchReferenceEvidence {
     fn validate(
         &self,
         operator: &WrenchOperator,
-        expected_sample_identity: &str,
-        native_observation_set_digest: &str,
-        wrench_observation_digest: &str,
+        binding: &WrenchObservationBinding,
     ) -> Result<(), String> {
         for (name, value) in [
             (
@@ -472,11 +492,12 @@ impl WrenchReferenceEvidence {
                     .to_owned(),
             );
         }
-        if self.sample_identity != expected_sample_identity {
+        binding.validate()?;
+        if self.sample_identity != binding.sample_identity {
             return Err("wrench evidence sample identity does not match the native tactile sample".to_owned());
         }
-        if self.native_observation_set_digest != native_observation_set_digest
-            || self.wrench_observation_digest != wrench_observation_digest
+        if self.native_observation_set_digest != binding.native_observation_set_digest
+            || self.wrench_observation_digest != binding.wrench_observation_digest
         {
             return Err(
                 "wrench evidence does not bind the exact native and wrench observation sets"
@@ -511,15 +532,12 @@ fn cholesky_wrench_covariance(
         return Err("wrench covariance must contain 36 finite row-major values".to_owned());
     }
     let mut matrix = [[0.0; 6]; 6];
-    for row in 0..6 {
-        for column in 0..6 {
-            matrix[row][column] = covariance.matrix_row_major[row * 6 + column];
-            let transpose = covariance.matrix_row_major[column * 6 + row];
-            let scale = matrix[row][column]
-                .abs()
-                .max(transpose.abs())
-                .max(f64::MIN_POSITIVE);
-            if (matrix[row][column] - transpose).abs() > 1.0e-12 * scale {
+    for (row_index, matrix_row) in matrix.iter_mut().enumerate() {
+        for (column_index, value) in matrix_row.iter_mut().enumerate() {
+            *value = covariance.matrix_row_major[row_index * 6 + column_index];
+            let transpose = covariance.matrix_row_major[column_index * 6 + row_index];
+            let scale = value.abs().max(transpose.abs()).max(f64::MIN_POSITIVE);
+            if (*value - transpose).abs() > 1.0e-12 * scale {
                 return Err("wrench covariance must be symmetric".to_owned());
             }
         }
@@ -562,9 +580,7 @@ pub fn assess_wrench_consistency(
     local_traction_pa: &[f64],
     observed: &WrenchObservation,
     evidence: &WrenchReferenceEvidence,
-    expected_sample_identity: &str,
-    native_observation_set_digest: &str,
-    wrench_observation_digest: &str,
+    binding: &WrenchObservationBinding,
     maximum_mahalanobis_distance: f64,
 ) -> WrenchConsistencyReport {
     let base = |disposition, reasons| WrenchConsistencyReport {
@@ -586,18 +602,13 @@ pub fn assess_wrench_consistency(
             vec!["maximum Mahalanobis-distance threshold must be finite and positive".to_owned()],
         );
     }
-    if evidence.sample_identity != expected_sample_identity {
+    if evidence.sample_identity != binding.sample_identity {
         return base(
             WrenchConsistencyDisposition::SampleOrBoundaryMismatch,
             vec!["wrench evidence sample identity does not match the native tactile sample".to_owned()],
         );
     }
-    if let Err(error) = evidence.validate(
-        operator,
-        expected_sample_identity,
-        native_observation_set_digest,
-        wrench_observation_digest,
-    ) {
+    if let Err(error) = evidence.validate(operator, binding) {
         let geometry_or_sample = error.contains("frame/contact boundary");
         return base(
             if geometry_or_sample {
@@ -669,8 +680,7 @@ pub fn compare_field_identifiability(
     native_design_matrix: &[f64],
     native_row_count: usize,
     reference_evidence: &WrenchReferenceEvidence,
-    wrench_observation_digest: &str,
-    expected_sample_identity: &str,
+    binding: &WrenchObservationBinding,
     tolerance: f64,
 ) -> Result<WrenchIdentifiabilityReport, String> {
     if !tolerance.is_finite() || tolerance <= 0.0 {
@@ -685,12 +695,7 @@ pub fn compare_field_identifiability(
     {
         return Err("native design matrix dimensions or values are invalid".to_owned());
     }
-    reference_evidence.validate(
-        operator,
-        expected_sample_identity,
-        native_observation_set_digest,
-        wrench_observation_digest,
-    )?;
+    reference_evidence.validate(operator, binding)?;
 
     let parameter_count = operator.parameter_count;
     let native_basis = row_space_basis(
@@ -810,6 +815,11 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
         moment_nm: predicted.moment_nm,
         covariance: WrenchCovariance6 { matrix_row_major: covariance },
     };
+    let binding = WrenchObservationBinding {
+        sample_identity: "sample:synthetic-001".to_owned(),
+        native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
+        wrench_observation_digest: "sha256:synthetic-wrench-observation".to_owned(),
+    };
     let evidence = WrenchReferenceEvidence {
         native_observation_set_digest: "sha256:synthetic-native-observations".to_owned(),
         wrench_observation_digest: "sha256:synthetic-wrench-observation".to_owned(),
@@ -829,9 +839,7 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
         &field,
         &observed,
         &evidence,
-        "sample:synthetic-001",
-        "sha256:synthetic-native-observations",
-        "sha256:synthetic-wrench-observation",
+        &binding,
         3.0,
     );
     let mut native = vec![0.0; 3 * operator.parameter_count];
@@ -844,8 +852,7 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
         &native,
         3,
         &evidence,
-        "sha256:synthetic-wrench-observation",
-        "sample:synthetic-001",
+        &binding,
         1.0e-10,
     )?;
 
@@ -894,6 +901,14 @@ mod tests {
                     tangent_v,
                 })
                 .collect(),
+        }
+    }
+
+    fn binding() -> WrenchObservationBinding {
+        WrenchObservationBinding {
+            sample_identity: "sample:001".to_owned(),
+            native_observation_set_digest: "sha256:native-observations".to_owned(),
+            wrench_observation_digest: "sha256:wrench-observation".to_owned(),
         }
     }
 
@@ -975,8 +990,7 @@ mod tests {
             &native,
             3,
             &evidence(),
-            "sha256:wrench-observation",
-            "sample:001",
+            &binding(),
             1.0e-10,
         )
         .expect("identifiability report");
@@ -1006,9 +1020,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -1024,9 +1036,7 @@ mod tests {
             &field,
             &observation,
             &shared,
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -1041,9 +1051,7 @@ mod tests {
             &field,
             &observation,
             &wrong_frame,
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -1063,9 +1071,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(report.disposition, WrenchConsistencyDisposition::Mismatch);
@@ -1077,9 +1083,7 @@ mod tests {
             &field,
             &observation_from_field(&operator, &field),
             &bad_timing,
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(
@@ -1103,9 +1107,7 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             1.2,
         );
         assert_eq!(
@@ -1127,9 +1129,7 @@ mod tests {
             &field,
             &asymmetric,
             &evidence(),
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
@@ -1141,9 +1141,7 @@ mod tests {
             &field,
             &non_positive_definite,
             &evidence(),
-            "sample:001",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &binding(),
             3.0,
         );
         assert_eq!(report.disposition, WrenchConsistencyDisposition::InvalidObservation);
@@ -1159,9 +1157,11 @@ mod tests {
             &field,
             &observation,
             &evidence(),
-            "sample:different",
-            "sha256:native-observations",
-            "sha256:wrench-observation",
+            &WrenchObservationBinding {
+                sample_identity: "sample:different".to_owned(),
+                native_observation_set_digest: "sha256:native-observations".to_owned(),
+                wrench_observation_digest: "sha256:wrench-observation".to_owned(),
+            },
             3.0,
         );
         assert_eq!(
