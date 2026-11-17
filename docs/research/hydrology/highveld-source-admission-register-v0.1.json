@@ -310,7 +310,9 @@
       "provider_release_examples": [
         "2026-11-16-892a6573 (GET /api/v1/supplies, supply register)",
         "2026-11-17-ee99662f (GET /api/v1/suburbs/melville/history, daily suburb-supply history)",
-        "2026-11-15-b7c711ba (GET /api/v1/supplies/hursthill-2-reservoir/history?from=2026-02-01&to=2026-02-13 and /outages)"
+        "2026-11-15-b7c711ba (GET /api/v1/supplies/hursthill-2-reservoir/history?from=2026-02-01&to=2026-02-13 and /outages)",
+        "2026-11-17-ee99662f (GET /api/v1/releases, latest release manifest observed 17 November 2026)",
+        "2026-11-16-2823321c (current API documentation example for GET /api/v1/suburbs/melville/history; docs state 624 rows for Melville)"
       ],
       "evidence_ceiling": "publisher-reported utility asset status and notices; useful for reported service-interruption context, event labels and outage/recovery chronology only. It is not direct customer-tap pressure/flow, household interruption, pipe-failure ground truth, actual water quantity, water-quality evidence or verified restoration at the dwelling.",
       "known_limitations": [
@@ -324,7 +326,9 @@
         "Outage episodes may be censored; duration is a minimum when no end is reported. The publisher's outage algorithm may bridge up to four no-board days between two outage reports; preserve this derived-rule version and do not treat it as physical restoration evidence.",
         "The publisher exposes dated release IDs and bulk CSV/JSONL releases with row counts and SHA-256 checksums; exact bulk row counts and checksum files remain not acquired.",
         "Daily release snapshots may change as notices/board parsing or corrections change; retain immutable release id, retrieval timestamp and byte hash.",
-        "A live sample of Hursthill 2 history/outages was observed in release 2026-11-15-b7c711ba. The daily history and derived outage endpoint can summarize missing-board days differently; preserve both products and their rule metadata rather than treating the outage duration as a simple count of bad daily rows."
+        "A live sample of Hursthill 2 history/outages was observed in release 2026-11-15-b7c711ba. The daily history and derived outage endpoint can summarize missing-board days differently; preserve both products and their rule metadata rather than treating the outage duration as a simple count of bad daily rows.",
+        "The current API documentation example for Melville reports 624 rows and release ID 2026-11-16-2823321c. Its caveat says each row is a suburb × linked supply × SAST day; all linked supplies must be read together, and no_report remains in every denominator. These are daily publisher records, not tap records.",
+        "The notice endpoint compares a JW-announced completion time to the first subsequent board reporting the supply back as supplying fairly or better and off bypass; it remains a publisher-reported return-to-status, not independently verified restoration at a customer's tap."
       ],
       "next_action": "Acquire one dated bulk release and its manifest/checksums after licence status is confirmed; preserve source-board URLs, publisher release id, SAST semantics, no_report gaps, bypass, scheduled closure, censored outage and rule revision. Build an explicitly reported-service dataset separate from DWS observed flow and household tap measurements; cross-check selected episodes against original JW notices/boards before using as event labels.",
       "verified_live_api_sample_observations": [
@@ -366,6 +370,18 @@
             }
           ],
           "interpretation": "Publisher-derived outage episodes with explicit censoring and no-board-day counts under its documented C41 convention; neither episode is an independently observed tap outage."
+        },
+        {
+          "endpoint": "/api/v1/releases",
+          "observed_at": "2026-11-17",
+          "release_id": "2026-11-17-ee99662f",
+          "observations": [
+            "API returned a latest-release identifier with date/hash format",
+            "API release metadata is described as including last board-read time, board coverage span, status scale, carry-forward cap and counts",
+            "API docs say dated releases are immutable by as-at date/content hash, except that a method change on the same as-at time replaces that same-time release"
+          ],
+          "acquisition_status": "live_response_snippet_observed_not_archived_or_hashed",
+          "interpretation": "Release identity and method metadata are available for reproducible acquisition; the bulk release payload and checksum manifest remain not acquired."
         }
       ]
     }
