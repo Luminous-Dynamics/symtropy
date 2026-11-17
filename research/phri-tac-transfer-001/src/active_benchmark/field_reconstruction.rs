@@ -122,12 +122,18 @@ fn validate_problem(
         || problem.coupling_matrix.len() != matrix_len
         || problem.admitted_native_channels.len() != n
     {
-        return Err("field problem requires a nonempty square coupling matrix and matching channel vectors".to_owned());
+        return Err(
+            "field problem requires a nonempty square coupling matrix and matching channel vectors"
+                .to_owned(),
+        );
     }
     if problem.forward_model_digest.trim().is_empty() {
         return Err("forward-model digest must not be empty".to_owned());
     }
-    if problem.native_response.iter().any(|value| !value.is_finite())
+    if problem
+        .native_response
+        .iter()
+        .any(|value| !value.is_finite())
         || problem
             .coupling_matrix
             .iter()
@@ -146,16 +152,19 @@ fn validate_problem(
     {
         return Err("solver configuration requires positive iteration/tolerance and nonnegative finite sensitivity epsilon".to_owned());
     }
-    if !problem.admitted_native_channels.iter().any(|admitted| *admitted) {
-        return Err("field reconstruction requires at least one admitted native channel".to_owned());
+    if !problem
+        .admitted_native_channels
+        .iter()
+        .any(|admitted| *admitted)
+    {
+        return Err(
+            "field reconstruction requires at least one admitted native channel".to_owned(),
+        );
     }
 
     let mut seen_edges = std::collections::BTreeSet::new();
     for edge in &problem.spatial_edges {
-        if edge.left_taxel >= n
-            || edge.right_taxel >= n
-            || edge.left_taxel == edge.right_taxel
-        {
+        if edge.left_taxel >= n || edge.right_taxel >= n || edge.left_taxel == edge.right_taxel {
             return Err("spatial edge contains an invalid taxel index".to_owned());
         }
         let normalized = if edge.left_taxel < edge.right_taxel {
@@ -188,8 +197,7 @@ fn build_quadratic(
             let k_left = problem.coupling_matrix[row * n + left];
             rhs[left] += k_left * problem.native_response[row];
             for right in 0..n {
-                hessian[left * n + right] +=
-                    k_left * problem.coupling_matrix[row * n + right];
+                hessian[left * n + right] += k_left * problem.coupling_matrix[row * n + right];
             }
         }
     }
@@ -205,8 +213,7 @@ fn build_quadratic(
         hessian[right * n + left] -= lambda;
     }
 
-    if hessian.iter().any(|value| !value.is_finite())
-        || rhs.iter().any(|value| !value.is_finite())
+    if hessian.iter().any(|value| !value.is_finite()) || rhs.iter().any(|value| !value.is_finite())
     {
         return Err("normal-equation construction produced non-finite values".to_owned());
     }
@@ -224,7 +231,10 @@ fn build_quadratic(
         .fold(0.0_f64, f64::max);
 
     if !lipschitz_upper_bound.is_finite() || lipschitz_upper_bound <= f64::EPSILON {
-        return Err("admitted channels and forward model provide no invertible field information".to_owned());
+        return Err(
+            "admitted channels and forward model provide no invertible field information"
+                .to_owned(),
+        );
     }
 
     Ok(QuadraticProblem {
@@ -250,20 +260,14 @@ fn gradient(problem: &QuadraticProblem, field: &[f64]) -> Vec<f64> {
         .collect()
 }
 
-fn objective(
-    problem: &FieldReconstructionProblem,
-    field: &[f64],
-    n: usize,
-) -> f64 {
+fn objective(problem: &FieldReconstructionProblem, field: &[f64], n: usize) -> f64 {
     let mut residual_sum = 0.0;
     for row in 0..n {
         if !problem.admitted_native_channels[row] {
             continue;
         }
         let prediction = (0..n)
-            .map(|column| {
-                problem.coupling_matrix[row * n + column] * field[column]
-            })
+            .map(|column| problem.coupling_matrix[row * n + column] * field[column])
             .sum::<f64>();
         let residual = prediction - problem.native_response[row];
         residual_sum += residual * residual;
@@ -281,11 +285,7 @@ fn objective(
     0.5 * residual_sum + 0.5 * problem.smoothness_penalty * smoothness_sum
 }
 
-fn predicted_response(
-    coupling_matrix: &[f64],
-    field: &[f64],
-    n: usize,
-) -> Vec<f64> {
+fn predicted_response(coupling_matrix: &[f64], field: &[f64], n: usize) -> Vec<f64> {
     (0..n)
         .map(|row| {
             coupling_matrix[row * n..(row + 1) * n]
@@ -364,8 +364,7 @@ pub fn reconstruct_contact_field(
         return Err("projected solver produced a non-finite or negative field value".to_owned());
     }
 
-    let predicted_native_response =
-        predicted_response(&problem.coupling_matrix, &field, n);
+    let predicted_native_response = predicted_response(&problem.coupling_matrix, &field, n);
     let mut residual_sum = 0.0;
     let mut admitted_count = 0;
     for (row, predicted) in predicted_native_response.iter().enumerate() {
@@ -380,12 +379,7 @@ pub fn reconstruct_contact_field(
     let mut unsupported_cell_count = 0;
     let estimates: Vec<_> = (0..n)
         .map(|taxel_index| {
-            let support = cell_support(
-                problem,
-                n,
-                taxel_index,
-                config.sensitivity_epsilon,
-            );
+            let support = cell_support(problem, n, taxel_index, config.sensitivity_epsilon);
             let latent_contact_intensity = match support {
                 FieldCellSupport::NativeChannelAvailable => Some(field[taxel_index]),
                 FieldCellSupport::InferredThroughMechanicalCoupling => {
@@ -451,9 +445,12 @@ mod tests {
         .expect("identity inverse");
         assert!(report.converged);
         assert_eq!(report.admitted_native_channel_count, 5);
-        assert!(report.estimates.iter().all(|cell| {
-            cell.support == FieldCellSupport::NativeChannelAvailable
-        }));
+        assert!(
+            report
+                .estimates
+                .iter()
+                .all(|cell| { cell.support == FieldCellSupport::NativeChannelAvailable })
+        );
         for (estimate, truth) in report.estimates.iter().zip(expected) {
             let value = estimate.latent_contact_intensity.expect("supported cell");
             assert!((value - truth).abs() < 1.0e-7);
@@ -466,10 +463,7 @@ mod tests {
         // Symmetric, strictly diagonally dominant tridiagonal kernel.
         let n = 4;
         let matrix = vec![
-            0.8, 0.2, 0.0, 0.0,
-            0.2, 0.6, 0.2, 0.0,
-            0.0, 0.2, 0.6, 0.2,
-            0.0, 0.0, 0.2, 0.8,
+            0.8, 0.2, 0.0, 0.0, 0.2, 0.6, 0.2, 0.0, 0.0, 0.2, 0.6, 0.2, 0.0, 0.0, 0.2, 0.8,
         ];
         let truth = vec![1.0, 0.0, 0.75, 0.25];
         let response = (0..n)
@@ -481,11 +475,8 @@ mod tests {
             .collect();
         let mut problem = identity_problem(response);
         problem.coupling_matrix = matrix;
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("coupled inverse");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("coupled inverse");
         assert!(report.converged);
         for (estimate, expected) in report.estimates.iter().zip(truth) {
             assert!(
@@ -498,11 +489,8 @@ mod tests {
     #[test]
     fn projection_prevents_negative_contact_intensity() {
         let problem = identity_problem(vec![-0.5, 0.2, -1.0]);
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("nonnegative projection");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("nonnegative projection");
         assert!(report.converged);
         assert_eq!(
             report
@@ -518,16 +506,9 @@ mod tests {
     fn missing_sensor_channel_is_not_labelled_as_a_direct_measurement() {
         let mut problem = identity_problem(vec![0.2, 0.4, 0.6]);
         problem.admitted_native_channels[1] = false;
-        problem.coupling_matrix = vec![
-            0.8, 0.2, 0.0,
-            0.2, 0.6, 0.2,
-            0.0, 0.2, 0.8,
-        ];
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("partial channels");
+        problem.coupling_matrix = vec![0.8, 0.2, 0.0, 0.2, 0.6, 0.2, 0.0, 0.2, 0.8];
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("partial channels");
         assert_eq!(
             report.estimates[1].support,
             FieldCellSupport::InferredThroughMechanicalCoupling
@@ -540,16 +521,9 @@ mod tests {
     fn unsupported_field_cell_returns_none_not_a_neighbor_fabricated_value() {
         let mut problem = identity_problem(vec![0.4, 0.0, 0.0]);
         problem.admitted_native_channels = vec![true, false, false];
-        problem.coupling_matrix = vec![
-            1.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
-        ];
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("partially observable field");
+        problem.coupling_matrix = vec![1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("partially observable field");
         assert_eq!(
             report.estimates[1].support,
             FieldCellSupport::NoObservableSupport
@@ -576,11 +550,8 @@ mod tests {
             },
         ];
         problem.smoothness_penalty = 0.1;
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("graph regularized inverse");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("graph regularized inverse");
         assert!(report.converged);
         // There is no edge between taxels 1 and 2: the seam is not smoothed.
         let left_seam_value = report.estimates[1].latent_contact_intensity.unwrap();
@@ -592,44 +563,39 @@ mod tests {
     fn no_admitted_channels_is_rejected() {
         let mut problem = identity_problem(vec![0.1, 0.2]);
         problem.admitted_native_channels = vec![false, false];
-        assert!(reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default()
-        )
-        .is_err());
+        assert!(
+            reconstruct_contact_field(&problem, &FieldReconstructionConfig::default()).is_err()
+        );
     }
 
     #[test]
     fn invalid_matrix_graph_and_solver_parameters_fail_closed() {
         let mut problem = identity_problem(vec![0.1, 0.2]);
         problem.coupling_matrix.pop();
-        assert!(reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default()
-        )
-        .is_err());
+        assert!(
+            reconstruct_contact_field(&problem, &FieldReconstructionConfig::default()).is_err()
+        );
 
         let mut problem = identity_problem(vec![0.1, 0.2]);
         problem.spatial_edges.push(SpatialEdge {
             left_taxel: 0,
             right_taxel: 0,
         });
-        assert!(reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default()
-        )
-        .is_err());
+        assert!(
+            reconstruct_contact_field(&problem, &FieldReconstructionConfig::default()).is_err()
+        );
 
         let mut problem = identity_problem(vec![0.1, 0.2]);
-        problem.spatial_edges = vec![SpatialEdge {
-            left_taxel: 0,
-            right_taxel: 1,
-        }; 2];
-        assert!(reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default()
-        )
-        .is_err());
+        problem.spatial_edges = vec![
+            SpatialEdge {
+                left_taxel: 0,
+                right_taxel: 1,
+            };
+            2
+        ];
+        assert!(
+            reconstruct_contact_field(&problem, &FieldReconstructionConfig::default()).is_err()
+        );
 
         let problem = identity_problem(vec![0.1, 0.2]);
         let config = FieldReconstructionConfig {
