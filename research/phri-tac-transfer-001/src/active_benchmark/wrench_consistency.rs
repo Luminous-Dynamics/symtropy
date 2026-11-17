@@ -936,6 +936,7 @@ mod tests {
             3,
             &evidence(),
             "sha256:wrench-observation",
+            "sample:001",
             1.0e-10,
         )
         .expect("identifiability report");
