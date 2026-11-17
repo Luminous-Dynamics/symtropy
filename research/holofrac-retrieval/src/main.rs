@@ -10,12 +10,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# target_os={}", std::env::consts::OS);
     println!("# facts={}", graph.facts().len());
     println!("# graph_digest_non_security={}", graph.digest_non_security()?);
-    println!("dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_index_bytes_estimate,f32_index_bytes_estimate,encoder_fingerprint_non_security");
+    println!("dimension,facts,positive_queries,bipolar_top1_hits,f32_top1_hits,reversed_queries,bipolar_reversed_false_accepts,f32_reversed_false_accepts,index_build_us,query_encode_us,bipolar_search_us,f32_search_us,bipolar_end_to_end_us,f32_end_to_end_us,exact_oracle_us,metadata_lookup_us,bipolar_only_payload_bytes,f32_only_payload_bytes,dual_view_payload_bytes,encoder_fingerprint_non_security");
 
     for dimension in [2_048, 4_096, 8_192, 16_384] {
         let report = run_benchmark(&graph, dimension, 0x484f_4c4f_4652_4143)?;
         println!(
-            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{}",
+            "{},{},{},{},{},{},{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{}",
             report.dimension,
             report.fact_count,
             report.positive_queries,
@@ -34,6 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             report.mean_metadata_lookup_micros,
             report.bipolar_index_bytes_estimate,
             report.f32_index_bytes_estimate,
+            report.dual_view_index_bytes_estimate,
             report.encoder_fingerprint_non_security
         );
 
