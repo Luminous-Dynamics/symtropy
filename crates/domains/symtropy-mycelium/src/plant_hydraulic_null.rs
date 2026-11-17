@@ -270,7 +270,7 @@ fn validate_inputs(inputs: PlantHydraulicInputs) -> Result<(), PlantHydraulicErr
     Ok(())
 }
 
-fn stomatal_open_fraction(
+pub(crate) fn stomatal_open_fraction(
     leaf_potential_mpa: f64,
     open_threshold_mpa: f64,
     closed_threshold_mpa: f64,
