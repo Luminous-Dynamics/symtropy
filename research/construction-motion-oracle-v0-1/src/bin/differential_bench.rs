@@ -1088,7 +1088,7 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
                     / hierarchical_p50.as_nanos().max(1) as f64;
 
                 println!(
-                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     distribution.label(),
                     count,
                     subdivisions,
