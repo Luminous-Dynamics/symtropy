@@ -11,7 +11,7 @@
 //! serial baseline before reporting that its heuristics found no schedule.
 
 use crate::{
-    KitchenPlanV1, KitchenScheduleReceiptV1, ScheduleError, build_schedule, build_serial_baseline,
+    KitchenPlanV1, KitchenScheduleReceiptV1, build_schedule, build_serial_baseline,
     validate_schedule,
 };
 use serde::{Deserialize, Serialize};
@@ -477,8 +477,9 @@ pub fn validate_power_envelope(
     let mut index = 0;
     while index < events.len() {
         let event_time = events[index].at_ms;
-        if let Some(previous) = previous_time {
-            if event_time > previous {
+        if let Some(previous) = previous_time
+            && event_time > previous
+        {
                 let interval_ms = event_time - previous;
                 let nonnegative_power = current_power_w.max(0);
                 let Ok(power_w) = u64::try_from(nonnegative_power) else {
@@ -492,8 +493,9 @@ pub fn validate_power_envelope(
                 };
                 peak_power_w = peak_power_w.max(power_w);
 
-                if power_w > input.envelope.surge_real_power_limit_w {
-                    if !peak_exceeded_reported {
+                if power_w > input.envelope.surge_real_power_limit_w
+                    && !peak_exceeded_reported
+                {
                         violation(
                             &mut report.violations,
                             PowerConstraintViolationCode::PeakPowerExceedsSurgeLimit,
@@ -504,8 +506,6 @@ pub fn validate_power_envelope(
                             ),
                         );
                         peak_exceeded_reported = true;
-                    }
-                }
 
                 if power_w > input.envelope.continuous_real_power_limit_w {
                     surge_run_ms = surge_run_ms.saturating_add(interval_ms);
@@ -527,7 +527,6 @@ pub fn validate_power_envelope(
                 } else {
                     surge_run_ms = 0;
                 }
-            }
         }
 
         let mut grouped_delta = 0_i128;
