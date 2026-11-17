@@ -33,7 +33,13 @@ Every observation carries an explicit evidence kind: source-reported measurement
 
 The 2026 review literature identifies near-field transfer as the present leader in practical output power and efficiency, while direct wireless conversion and standardized energy/information interfaces are key research directions. It also notes that far-field approaches have not yet matched near-field efficiency and output power. [Nature Reviews Electrical Engineering, 2 April 2026](https://www.nature.com/articles/s44287-026-00279-6). A 2026 empirical survey screens 133 IPT/CPT experimental papers from 2020–2025, useful as a source register but not a single matched leaderboard. [Electronics 2026 survey](https://doi.org/10.3390/electronics15081575).
 
-### Optical UAV control baseline: do not mistake pointing validation for an energy result\n\nSfasciamuro et al. (24 July 2026) experimentally validate the pointing/sensing/control chain of a UAV laser power-transfer architecture. The paper reports camera/checkerboard spot calibration error below 2%; outdoor coarse pointing error of 10–80 cm at an average target distance of about 15 m; and an ~80 m fine-steering test in which 50 mm Y-axis commands produced 2–9% step residuals and ~6 mm cross-axis drift. It fits the IR spot diameter as approximately 1.236 mm/m × distance + 9.93 mm, with R²=0.996.\n\nThe paper states a 30% laser electrical-to-optical efficiency and 20% PV optical-to-electrical efficiency for its current system chain, but these are source-declared parameters—not a reported battery-side end-to-end measured result. The article explicitly neglects the electronics between PV cell output and battery input. It also says that full bandwidth, settling-time and disturbance-rejection characterization was not part of the campaign. We therefore place it in an optical UAV pointing/control comparison group, not in the efficiency leaderboard. [Aerospace 2026, DOI 10.3390/aerospace13080664](https://doi.org/10.3390/aerospace13080664).\n\n## Rules for a valid comparison
+### Optical UAV control baseline: do not mistake pointing validation for an energy result\n\nSfasciamuro et al. (24 July 2026) experimentally validate the pointing/sensing/control chain of a UAV laser power-transfer architecture. The paper reports camera/checkerboard spot calibration error below 2%; outdoor coarse pointing error of 10–80 cm at an average target distance of about 15 m; and an ~80 m fine-steering test in which 50 mm Y-axis commands produced 2–9% step residuals and ~6 mm cross-axis drift. It fits the IR spot diameter as approximately 1.236 mm/m × distance + 9.93 mm, with R²=0.996.\n\nThe paper states a 30% laser electrical-to-optical efficiency and 20% PV optical-to-electrical efficiency for its current system chain, but these are source-declared parameters—not a reported battery-side end-to-end measured result. The article explicitly neglects the electronics between PV cell output and battery input. It also says that full bandwidth, settling-time and disturbance-rejection characterization was not part of the campaign. We therefore place it in an optical UAV pointing/control comparison group, not in the efficiency leaderboard. [Aerospace 2026, DOI 10.3390/aerospace13080664](https://doi.org/10.3390/aerospace13080664).\n\n### Optical UAV pointing/control evidence
+
+Sfasciamuro et al. (24 July 2026) experimentally validate the pointing and sensing architecture for UAV laser power transfer. Reported results include spot-centre/diameter calibration error below 2%; outdoor coarse pointing error of 10–80 cm at an average UAV distance of about 15 m; and an approximately 80 m fine-steering test with 50 mm Y-axis commands, 2–9% residual error and ~6 mm cross-axis drift. The measured infrared spot-diameter fit is approximately 1.236 mm/m × distance + 9.93 mm, with R²=0.996.
+
+The paper states 30% laser and 20% photovoltaic efficiencies for its current system chain. These are source-declared parameters, not a measured battery-side end-to-end efficiency. It explicitly neglects downstream power-conditioning electronics between PV cell output and battery input. Full bandwidth, settling-time and disturbance-rejection characterization was also outside the experimental campaign. This is therefore a distinct optical UAV pointing/control comparison group, not an efficiency result. [Aerospace 2026, DOI 10.3390/aerospace13080664](https://doi.org/10.3390/aerospace13080664).
+
+## Rules for a valid comparison
 
 A future comparison must match at least the service and quality profile, duty cycle, distance or route, environment, source meter plane, useful-output meter plane, conversion stages and uncertainty method.
 
@@ -48,12 +54,12 @@ Only measured or independently qualified data with matched boundaries may enter 
 
 ## Validation
 
-The JSON manifest and JSONL corpus contain the same six records; the validator rejects any byte-parsed semantic drift between the two. The standalone Rust validator at `tools/power-fabric-baseline-validator` checks:
-- unique record IDs and distinct initial comparison groups;
+The JSON manifest and JSONL corpus contain the same seven records; the validator rejects any byte-parsed semantic drift between the two. The standalone Rust validator at `tools/power-fabric-baseline-validator` checks:
+- unique record IDs and explicit comparison groups (multiple future reproductions may share a group);
 - modality and study-type enums;
 - source identity, HTTPS URLs and publication-date shape;
 - non-empty service/medium/application definitions;
-- numeric measurements, units, measurement planes and boundaries;
+- numeric observations, units, measurement planes, boundaries and evidence kinds;
 - valid exact/approximate/greater-than/less-than/range semantics and evidence provenance;
 - explicit known unknowns;
 - source-claim-only evidence status;
