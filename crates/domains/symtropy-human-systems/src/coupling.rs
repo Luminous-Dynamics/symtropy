@@ -406,7 +406,6 @@ fn validate_mapping(
     Ok(())
 }
 
-
 fn approximately_equal(left: f64, right: f64) -> bool {
     let scale = 1.0_f64.max(left.abs()).max(right.abs());
     (left - right).abs() <= 1.0e-12 * scale
