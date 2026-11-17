@@ -45,7 +45,8 @@
         "hybrid_fixed_wing",
         "hybrid_vtol",
         "glider_or_solar_assisted",
-        "solar_haps"
+        "solar_haps",
+        "buoyant_haps"
       ]
     },
     "data_origin": {
@@ -384,6 +385,54 @@
     "supersedes_candidate_revision": {
       "type": "integer",
       "minimum": 1
+    },
+    "lift_class": {
+      "enum": [
+        "heavier_than_air",
+        "buoyant",
+        "hybrid",
+        "unknown"
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "source_kind",
+          "claim_scope",
+          "independence"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_kind": {
+            "enum": [
+              "manufacturer",
+              "operator",
+              "independent_media",
+              "peer_reviewed",
+              "authority"
+            ]
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "independence": {
+            "enum": [
+              "independently_measured",
+              "source_attributed",
+              "not_established"
+            ]
+          }
+        }
+      }
     }
   }
 }
