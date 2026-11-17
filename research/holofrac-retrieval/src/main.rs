@@ -57,7 +57,7 @@ fn run_partial_queries(
     for (label, query) in queries {
         let report = index.rank_partial_query(graph, &encoder, &query, 5)?;
         println!(
-            "# partial_query={},{},{},{},{},{:.3},{:.3},{:.3},{},{},{},{},{:.3},{},{},{},{:.3},{:.3},{:.3}",
+            "# partial_query={},{},{},{},{},{:.3},{:.3},{:.3},{},{},{},{},{:.3},{},{},{:.3},{:.3},{:.3}",
             label,
             report.query_slot_count,
             report.exact_match_count,
