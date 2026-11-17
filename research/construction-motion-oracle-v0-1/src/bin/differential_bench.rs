@@ -621,21 +621,153 @@ fn run_multibody_broadphase_benchmarks() {
     }
 }
 
+#[derive(Clone, Copy)]
+enum ClockBroadphaseDistribution {
+    Sparse,
+    Clustered,
+    Dense,
+    LongThin,
+    TimeStaggered,
+    HighDrift,
+}
+
+impl ClockBroadphaseDistribution {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Sparse => "sparse",
+            Self::Clustered => "clustered",
+            Self::Dense => "dense",
+            Self::LongThin => "long-thin",
+            Self::TimeStaggered => "time-staggered",
+            Self::HighDrift => "high-drift",
+        }
+    }
+}
+
 fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
+    build_clock_mapped_bodies_with_distribution(count, ClockBroadphaseDistribution::Sparse)
+}
+
+fn build_clock_mapped_bodies_with_distribution(
+    count: usize,
+    distribution: ClockBroadphaseDistribution,
+) -> Vec<ClockDomainCapsuleBody> {
     let base_ms = 1_000_000_u64;
     (0..count)
         .map(|index| {
             let i = index as f64;
-            let x = i * 40.0;
-            let y = (index % 17) as f64 * 20.0;
+            let (
+                x,
+                y,
+                half_length,
+                radius,
+                translation_x,
+                translation_y,
+                start_offset_ms,
+                duration_ms,
+                offset_bound_ms,
+                drift_bound_ppm,
+                horizontal,
+            ) = match distribution {
+                ClockBroadphaseDistribution::Sparse => (
+                    i * 40.0,
+                    (index % 17) as f64 * 20.0,
+                    5.0,
+                    0.5,
+                    if index % 2 == 0 { 4.0 } else { -4.0 },
+                    0.0,
+                    0_u64,
+                    1_000_u64,
+                    2_i64,
+                    20_u64,
+                    false,
+                ),
+                ClockBroadphaseDistribution::Clustered => (
+                    (index % 16) as f64 * 3.0,
+                    ((index / 16) % 16) as f64 * 3.0,
+                    2.0,
+                    0.75,
+                    if index % 2 == 0 { 8.0 } else { -8.0 },
+                    0.0,
+                    0,
+                    1_000,
+                    4,
+                    100,
+                    false,
+                ),
+                ClockBroadphaseDistribution::Dense => (
+                    0.0,
+                    0.0,
+                    2.0,
+                    1.0,
+                    if index % 2 == 0 { 1.0 } else { -1.0 },
+                    0.0,
+                    0,
+                    1_000,
+                    4,
+                    100,
+                    false,
+                ),
+                ClockBroadphaseDistribution::LongThin => (
+                    i * 15.0,
+                    (index % 11) as f64 * 5.0,
+                    25.0,
+                    0.5,
+                    0.0,
+                    5.0,
+                    0,
+                    1_000,
+                    4,
+                    100,
+                    true,
+                ),
+                ClockBroadphaseDistribution::TimeStaggered => (
+                    0.0,
+                    0.0,
+                    3.0,
+                    0.75,
+                    if index % 2 == 0 { 2.0 } else { -2.0 },
+                    0.0,
+                    (index % 8) as u64 * 200,
+                    250,
+                    0,
+                    0,
+                    false,
+                ),
+                ClockBroadphaseDistribution::HighDrift => (
+                    i * 12.0,
+                    (index % 13) as f64 * 8.0,
+                    4.0,
+                    0.5,
+                    if index % 2 == 0 { 4.0 } else { -4.0 },
+                    0.0,
+                    0,
+                    1_000,
+                    50,
+                    100_000,
+                    false,
+                ),
+            };
             let clock = format!("robot-clock-{index:05}");
-            let capsule = Capsule::new(Vec3::new(x, y - 5.0, 0.0), Vec3::new(x, y + 5.0, 0.0), 0.5)
-                .expect("benchmark capsule is finite");
+            let (start, end) = if horizontal {
+                (
+                    Vec3::new(x - half_length, y, 0.0),
+                    Vec3::new(x + half_length, y, 0.0),
+                )
+            } else {
+                (
+                    Vec3::new(x, y - half_length, 0.0),
+                    Vec3::new(x, y + half_length, 0.0),
+                )
+            };
+            let capsule = Capsule::new(start, end, radius).expect("benchmark capsule is finite");
+            let start_ms = base_ms + start_offset_ms;
+            let end_ms = start_ms + duration_ms;
             let motion = CapsuleMotionSpan {
                 capsule_at_start: capsule,
-                translation: Vec3::new(if index % 2 == 0 { 4.0 } else { -4.0 }, 0.0, 0.0),
-                start_ms: base_ms,
-                end_ms: base_ms + 1_000,
+                translation: Vec3::new(translation_x, translation_y, 0.0),
+                start_ms,
+                end_ms,
                 site_epoch: "benchmark-site-epoch".into(),
                 frame_id: "benchmark-site-world".into(),
                 clock_domain_id: clock.clone(),
@@ -647,12 +779,12 @@ fn build_clock_mapped_bodies(count: usize) -> Vec<ClockDomainCapsuleBody> {
                 site_epoch: "benchmark-site-epoch".into(),
                 mapping_id: format!("mapping-{index:05}"),
                 evidence_ref: format!("synthetic://clock-evidence/{index:05}"),
-                reference_source_time_ms: base_ms + 500,
-                offset_min_ms: -2,
-                offset_max_ms: 2,
-                drift_bound_ppm: Some(20),
+                reference_source_time_ms: start_ms + duration_ms / 2,
+                offset_min_ms: -offset_bound_ms,
+                offset_max_ms: offset_bound_ms,
+                drift_bound_ppm: Some(drift_bound_ppm),
                 valid_from_source_ms: base_ms,
-                valid_until_source_ms: base_ms + 1_000,
+                valid_until_source_ms: base_ms + 100_000,
             };
             ClockDomainCapsuleBody {
                 body_id: format!("robot-{index:05}"),
@@ -702,67 +834,92 @@ fn run_relative_time_multibody_benchmarks() {
 
 fn run_relative_time_multibody_broadphase_benchmarks() {
     println!(
-        "relative_time_multibody_broadphase,body_count,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,unresolved,p50_us,p95_us,p99_us"
+        "relative_time_multibody_broadphase,distribution,body_count,reference_pairs,candidates,pairwise_checks,outer_pruned,unresolved,noncontact_candidates,p50_us,p95_us,p99_us"
     );
-    for count in [8_usize, 16, 32, 64, 128, 256, 512] {
-        let bodies = build_clock_mapped_bodies(count);
-        let config = RelativeTimeBroadphaseConfig {
-            clock_mapping: RelativeTimeMultiBodyConfig {
-                site_epoch: "benchmark-site-epoch".into(),
-                frame_id: "benchmark-site-world".into(),
-                site_clock_domain_id: "benchmark-site-clock".into(),
-                max_pair_checks: 524_288,
-            },
-            subdivision_count: 8,
+
+    let distributions = [
+        ClockBroadphaseDistribution::Sparse,
+        ClockBroadphaseDistribution::Clustered,
+        ClockBroadphaseDistribution::Dense,
+        ClockBroadphaseDistribution::LongThin,
+        ClockBroadphaseDistribution::TimeStaggered,
+        ClockBroadphaseDistribution::HighDrift,
+    ];
+    for distribution in distributions {
+        let counts: &[usize] = if matches!(distribution, ClockBroadphaseDistribution::Sparse) {
+            &[8, 16, 32, 64, 128, 256, 512]
+        } else {
+            &[32, 64, 128, 256]
         };
-        let mut durations = Vec::with_capacity(21);
-        for _ in 0..21 {
-            let start = Instant::now();
-            black_box(
-                evaluate_relative_time_multibody_ccd_with_broadphase(
-                    black_box(&bodies),
-                    black_box(&config),
-                )
-                .expect("bounded multi-clock broadphase inputs are valid"),
-            );
-            durations.push(start.elapsed());
-        }
-        durations.sort_unstable();
-        let report = evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &config)
-            .expect("bounded multi-clock broadphase inputs are valid");
-
-        if count <= 64 {
-            let reference = evaluate_relative_time_multibody_ccd(&bodies, &config.clock_mapping)
-                .expect("bounded exhaustive reference inputs are valid");
-            for pair in reference.pairs.iter().filter(|pair| {
-                matches!(
-                    pair.disposition,
-                    construction_motion_oracle::RelativeTimePairDisposition::ExactContact
-                        | construction_motion_oracle::RelativeTimePairDisposition::BoundaryCandidateUnresolved
-                        | construction_motion_oracle::RelativeTimePairDisposition::PotentialContactUnresolved
-                )
-            }) {
-                assert!(
-                    report.pairs.iter().any(|candidate| {
-                        candidate.first_body_id == pair.first_body_id
-                            && candidate.second_body_id == pair.second_body_id
-                    }),
-                    "clock-aware broad phase pruned a reference potential pair"
+        for count in counts {
+            let bodies = build_clock_mapped_bodies_with_distribution(*count, distribution);
+            let config = RelativeTimeBroadphaseConfig {
+                clock_mapping: RelativeTimeMultiBodyConfig {
+                    site_epoch: "benchmark-site-epoch".into(),
+                    frame_id: "benchmark-site-world".into(),
+                    site_clock_domain_id: "benchmark-site-clock".into(),
+                    max_pair_checks: 524_288,
+                },
+                subdivision_count: 8,
+            };
+            let samples = if matches!(distribution, ClockBroadphaseDistribution::Dense) && *count >= 128 {
+                7
+            } else {
+                15
+            };
+            let mut durations = Vec::with_capacity(samples);
+            for _ in 0..samples {
+                let start = Instant::now();
+                black_box(
+                    evaluate_relative_time_multibody_ccd_with_broadphase(
+                        black_box(&bodies),
+                        black_box(&config),
+                    )
+                    .expect("bounded multi-clock broadphase inputs are valid"),
                 );
+                durations.push(start.elapsed());
             }
-        }
+            durations.sort_unstable();
+            let report = evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &config)
+                .expect("bounded multi-clock broadphase inputs are valid");
 
-        println!(
-            "sparse,{count},{},{},{},{},{},{},{},{},{}",
-            report.reference_pair_count,
-            report.valid_outer_envelope_bodies,
-            report.broadphase_candidate_pairs,
-            report.pairwise_checked_pairs,
-            report.outer_space_time_pruned_pairs,
-            report.unresolved_pairs,
-            percentile(&durations, 50).as_micros(),
-            percentile(&durations, 95).as_micros(),
-            percentile(&durations, 99).as_micros(),
-        );
+            if *count <= 64 {
+                let reference =
+                    evaluate_relative_time_multibody_ccd(&bodies, &config.clock_mapping)
+                        .expect("bounded exhaustive reference inputs are valid");
+                for pair in reference.pairs.iter().filter(|pair| {
+                    matches!(
+                        pair.disposition,
+                        construction_motion_oracle::RelativeTimePairDisposition::ExactContact
+                            | construction_motion_oracle::RelativeTimePairDisposition::BoundaryCandidateUnresolved
+                            | construction_motion_oracle::RelativeTimePairDisposition::PotentialContactUnresolved
+                    )
+                }) {
+                    assert!(
+                        report.pairs.iter().any(|candidate| {
+                            candidate.first_body_id == pair.first_body_id
+                                && candidate.second_body_id == pair.second_body_id
+                        }),
+                        "clock-aware broad phase pruned a reference potential pair in {}",
+                        distribution.label()
+                    );
+                }
+            }
+
+            println!(
+                "{},{},{},{},{},{},{},{},{},{},{},{}",
+                distribution.label(),
+                count,
+                report.reference_pair_count,
+                report.broadphase_candidate_pairs,
+                report.pairwise_checked_pairs,
+                report.outer_space_time_pruned_pairs,
+                report.unresolved_pairs,
+                report.pairwise_noncontact_candidates,
+                percentile(&durations, 50).as_micros(),
+                percentile(&durations, 95).as_micros(),
+                percentile(&durations, 99).as_micros(),
+            );
+        }
     }
 }
