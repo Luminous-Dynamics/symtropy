@@ -19,7 +19,7 @@ fn main() {
         receipts,
     };
 
-    match validate_candidate_envelope(&envelope) {
+    match validate_candidate_envelope(&envelope, A) {
         Ok(result) => {
             println!("suite=ROBOTICS-CANDIDATE-EVIDENCE-ENVELOPE-001");
             println!("schema={SCHEMA_VERSION}");
