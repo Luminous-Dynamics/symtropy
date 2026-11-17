@@ -543,8 +543,12 @@ pub fn integrated_energy_balance_ratio(
         return Err(IntegratedEbrError::NonFiniteResult);
     }
 
-    let first = included_intervals.first().ok_or(IntegratedEbrError::NoEligibleIntervals)?;
-    let last = included_intervals.last().ok_or(IntegratedEbrError::NoEligibleIntervals)?;
+    let first = included_intervals
+        .first()
+        .ok_or(IntegratedEbrError::NoEligibleIntervals)?;
+    let last = included_intervals
+        .last()
+        .ok_or(IntegratedEbrError::NoEligibleIntervals)?;
     let last_duration = i64::try_from(last.duration_seconds)
         .map_err(|_| IntegratedEbrError::IntervalTimeOverflow)?;
     let window_end = last
