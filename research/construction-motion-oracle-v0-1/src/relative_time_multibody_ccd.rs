@@ -9,7 +9,7 @@
 //! It does not estimate or synchronize clocks. Missing, stale, or mismatched
 //! mappings create explicit UNRESOLVED pair receipts rather than guessed times.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     Capsule, CapsuleMotionSpan, ClockUncertaintyCcdResult, ClockUncertaintyDisposition,
@@ -863,9 +863,6 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
                     } else {
                         None
                     };
-                    if unresolved_reason.is_some() {
-                        output.unresolved_pairs += 1;
-                    }
                     RelativeTimeBroadphasePairReceipt {
                         first_body_id: first.body_id.clone(),
                         second_body_id: second.body_id.clone(),
@@ -1319,4 +1316,179 @@ mod tests {
         // ceil(3 ms * 1.0005 rate) + ceil(1,000 ms * 500 ppm) = 4 + 1.
         assert_eq!(report.body_mappings[0].total_uncertainty_ms, Some(5));
     }
+
+    fn broadphase_config() -> RelativeTimeBroadphaseConfig {
+        RelativeTimeBroadphaseConfig {
+            clock_mapping: config(),
+            subdivision_count: 8,
+        }
+    }
+
+    #[test]
+    fn broadphase_keeps_all_exhaustive_potential_pairs() {
+        let bodies = [
+            body(
+                "robot-a",
+                span(-10.0, 20.0, 1_000, 2_000, "clock-a"),
+                Some(mapping("clock-a", -10, 10, 100)),
+            ),
+            body(
+                "robot-b",
+                span(10.0, -20.0, 1_000, 2_000, "clock-b"),
+                Some(mapping("clock-b", -10, 10, 100)),
+            ),
+            body(
+                "robot-c",
+                span(10_000.0, 0.0, 1_000, 2_000, "clock-c"),
+                Some(mapping("clock-c", -10, 10, 100)),
+            ),
+            body(
+                "robot-d",
+                span(20_000.0, 0.0, 1_000, 2_000, "clock-d"),
+                Some(mapping("clock-d", -10, 10, 100)),
+            ),
+        ];
+
+        let reference = evaluate_relative_time_multibody_ccd(&bodies, &config()).unwrap();
+        let accelerated =
+            evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config())
+                .unwrap();
+        let candidates: BTreeSet<_> = accelerated
+            .pairs
+            .iter()
+            .filter(|pair| {
+                pair.disposition == RelativeTimeBroadphasePairDisposition::PairwiseChecked
+            })
+            .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+            .collect();
+
+        for pair in reference.pairs.iter().filter(|pair| {
+            matches!(
+                pair.disposition,
+                RelativeTimePairDisposition::ExactContact
+                    | RelativeTimePairDisposition::BoundaryCandidateUnresolved
+                    | RelativeTimePairDisposition::PotentialContactUnresolved
+            )
+        }) {
+            assert!(
+                candidates.contains(&(pair.first_body_id.clone(), pair.second_body_id.clone())),
+                "broad phase pruned exhaustive potential pair {} / {}",
+                pair.first_body_id,
+                pair.second_body_id
+            );
+        }
+        assert!(candidates.contains(&("robot-a".into(), "robot-b".into())));
+        assert!(accelerated.outer_aabb_pruned_pairs > 0);
+        assert_eq!(
+            accelerated.reference_pair_count,
+            accelerated.pairs.len() as u64
+        );
+    }
+
+    #[test]
+    fn sparse_scene_is_pruned_without_losing_any_pair_receipts() {
+        let bodies: Vec<_> = (0..32)
+            .map(|index| {
+                let id = format!("robot-{index:03}");
+                let x = index as f64 * 1_000.0;
+                body(
+                    &id,
+                    span(x, 0.0, 1_000, 2_000, &format!("clock-{index:03}")),
+                    Some(mapping(&format!("clock-{index:03}"), -5, 5, 20)),
+                )
+            })
+            .collect();
+        let report =
+            evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config())
+                .unwrap();
+        assert_eq!(report.reference_pair_count, 496);
+        assert_eq!(report.pairs.len(), 496);
+        assert_eq!(report.broadphase_candidate_pairs, 0);
+        assert_eq!(report.outer_aabb_pruned_pairs, 496);
+        assert_eq!(report.unresolved_pairs, 0);
+    }
+
+    #[test]
+    fn missing_mapping_and_unrepresentable_outer_envelope_are_never_pruned() {
+        let missing = [
+            body("a", span(0.0, 0.0, 1_000, 2_000, "clock-a"), None),
+            body(
+                "b",
+                span(10.0, 0.0, 1_000, 2_000, "clock-b"),
+                Some(mapping("clock-b", 0, 0, 0)),
+            ),
+        ];
+        let missing_report =
+            evaluate_relative_time_multibody_ccd_with_broadphase(&missing, &broadphase_config())
+                .unwrap();
+        assert_eq!(missing_report.unresolved_pairs, 1);
+        assert_eq!(
+            missing_report.pairs[0].disposition,
+            RelativeTimeBroadphasePairDisposition::Unresolved
+        );
+
+        let mut at_zero = span(0.0, 0.0, 0, 1_000, "clock-a");
+        at_zero.clock_uncertainty_ms = 10;
+        let unrepresentable = [
+            body(
+                "a",
+                at_zero,
+                Some(QualifiedClockMapping {
+                    reference_source_time_ms: 500,
+                    valid_from_source_ms: 0,
+                    valid_until_source_ms: 2_000,
+                    ..mapping("clock-a", 0, 0, 0)
+                }),
+            ),
+            body(
+                "b",
+                span(10.0, 0.0, 1_000, 2_000, "clock-b"),
+                Some(mapping("clock-b", 0, 0, 0)),
+            ),
+        ];
+        let report = evaluate_relative_time_multibody_ccd_with_broadphase(
+            &unrepresentable,
+            &broadphase_config(),
+        )
+        .unwrap();
+        assert_eq!(report.unresolved_pairs, 1);
+        assert_eq!(
+            report.pairs[0].unresolved_reason,
+            Some(RelativeTimeBroadphaseUnresolvedReason::FirstOuterEnvelope(
+                OuterEnvelopeFailure::TimestampUnderflow
+            ))
+        );
+    }
+
+    #[test]
+    fn clock_outer_span_contains_endpoint_offset_trajectories() {
+        let source = span(0.0, 100.0, 1_000, 2_000, "clock-a");
+        let mut uncertain = source.clone();
+        uncertain.clock_uncertainty_ms = 50;
+        let outer = build_clock_uncertainty_outer_span(&uncertain).unwrap();
+        assert_eq!(outer.start_ms, 950);
+        assert_eq!(outer.end_ms, 2_050);
+        assert_eq!(outer.clock_uncertainty_ms, 0);
+        assert!((outer.capsule_at_start.start.x + 5.0).abs() < 1.0e-9);
+        assert!((outer.capsule_at_start.radius_mm - 5.5).abs() < 1.0e-9);
+
+        for site_time in [950_u64, 1_000, 1_250, 1_500, 1_999, 2_049] {
+            let fraction = (site_time - outer.start_ms) as f64
+                / (outer.end_ms - outer.start_ms) as f64;
+            let outer_center = outer.capsule_at_start.start.x
+                + outer.translation.x * fraction;
+            for offset in [-50_i64, 0, 50] {
+                let source_time = site_time as i64 - offset;
+                let source_fraction = (source_time - 1_000) as f64 / 1_000.0;
+                let actual_center = source.translation.x * source_fraction;
+                assert!(
+                    (actual_center - outer_center).abs()
+                        <= outer.capsule_at_start.radius_mm - source.capsule_at_start.radius_mm
+                            + 1.0e-9,
+                    "clock-offset pose escaped outer capsule at t={site_time}, offset={offset}"
+                );
+            }
+        }
+    }
+
 }
