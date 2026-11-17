@@ -382,15 +382,14 @@ pub fn time_swept_capsule_broadphase(
             return Err(MultiBodyBroadphaseError::TimeArithmeticOverflow);
         }
         let active_duration_ms = active_overlap_end_ms - active_overlap_start_ms;
-        let candidate_duration_u128 = candidate_slabs.iter().try_fold(
-            0_u128,
-            |total, candidate| {
+        let candidate_duration_u128 = candidate_slabs
+            .iter()
+            .try_fold(0_u128, |total, candidate| {
                 total.checked_add(u128::from(
                     candidate.overlap_end_ms - candidate.overlap_start_ms,
                 ))
-            },
-        )
-        .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
+            })
+            .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
         let candidate_duration_ms = u64::try_from(candidate_duration_u128)
             .map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?;
         if candidate_duration_ms > active_duration_ms {
@@ -440,8 +439,7 @@ fn slab_boundary(
         / u128::from(subdivision_count);
     horizon_start_ms
         .checked_add(
-            u64::try_from(offset)
-                .map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?,
+            u64::try_from(offset).map_err(|_| MultiBodyBroadphaseError::TimeArithmeticOverflow)?,
         )
         .ok_or(MultiBodyBroadphaseError::TimeArithmeticOverflow)
 }
@@ -491,11 +489,9 @@ fn swept_bounds(
 
 fn map_capsule_error(error: CapsuleError) -> MultiBodyBroadphaseError {
     match error {
-        CapsuleError::InvalidRadius => {
-            MultiBodyBroadphaseError::Timed(TimedCcdError::Geometry(
-                crate::TranslationCcdError::InvalidRadius,
-            ))
-        }
+        CapsuleError::InvalidRadius => MultiBodyBroadphaseError::Timed(TimedCcdError::Geometry(
+            crate::TranslationCcdError::InvalidRadius,
+        )),
         CapsuleError::NonFiniteCoordinate => MultiBodyBroadphaseError::GeometryOverflow,
     }
 }
@@ -658,10 +654,7 @@ mod tests {
         // Their coarse per-span swept boxes overlap, and they are co-active
         // on [40,60). Rebased common-interval boxes also overlap.
         assert_eq!(report.pairs.len(), 1);
-        assert_eq!(
-            report.pairs[0].candidate_slabs[0].overlap_start_ms,
-            40
-        );
+        assert_eq!(report.pairs[0].candidate_slabs[0].overlap_start_ms, 40);
         assert_eq!(report.pairs[0].candidate_slabs[0].overlap_end_ms, 60);
         assert_eq!(report.pairs[0].active_duration_ms, 20);
     }
@@ -698,36 +691,34 @@ mod tests {
     fn axis_choice_is_deterministic_and_non_x_axis_is_supported() {
         let report = time_swept_capsule_broadphase(
             &[
-                body("a", CapsuleMotionSpan {
-                    capsule_at_start: Capsule::new(
-                        p(0.0, -1.0, 0.0),
-                        p(0.0, 1.0, 0.0),
-                        0.5,
-                    )
-                    .unwrap(),
-                    translation: p(0.0, 100.0, 0.0),
-                    start_ms: 0,
-                    end_ms: 100,
-                    site_epoch: "site-epoch-7".into(),
-                    frame_id: "site-frame".into(),
-                    clock_domain_id: "site-clock".into(),
-                    clock_uncertainty_ms: 0,
-                }),
-                body("b", CapsuleMotionSpan {
-                    capsule_at_start: Capsule::new(
-                        p(0.0, 0.0, -1.0),
-                        p(0.0, 0.0, 1.0),
-                        0.5,
-                    )
-                    .unwrap(),
-                    translation: p(0.0, -100.0, 0.0),
-                    start_ms: 0,
-                    end_ms: 100,
-                    site_epoch: "site-epoch-7".into(),
-                    frame_id: "site-frame".into(),
-                    clock_domain_id: "site-clock".into(),
-                    clock_uncertainty_ms: 0,
-                }),
+                body(
+                    "a",
+                    CapsuleMotionSpan {
+                        capsule_at_start: Capsule::new(p(0.0, -1.0, 0.0), p(0.0, 1.0, 0.0), 0.5)
+                            .unwrap(),
+                        translation: p(0.0, 100.0, 0.0),
+                        start_ms: 0,
+                        end_ms: 100,
+                        site_epoch: "site-epoch-7".into(),
+                        frame_id: "site-frame".into(),
+                        clock_domain_id: "site-clock".into(),
+                        clock_uncertainty_ms: 0,
+                    },
+                ),
+                body(
+                    "b",
+                    CapsuleMotionSpan {
+                        capsule_at_start: Capsule::new(p(0.0, 0.0, -1.0), p(0.0, 0.0, 1.0), 0.5)
+                            .unwrap(),
+                        translation: p(0.0, -100.0, 0.0),
+                        start_ms: 0,
+                        end_ms: 100,
+                        site_epoch: "site-epoch-7".into(),
+                        frame_id: "site-frame".into(),
+                        clock_domain_id: "site-clock".into(),
+                        clock_uncertainty_ms: 0,
+                    },
+                ),
             ],
             4,
         )
@@ -793,7 +784,8 @@ mod tests {
                     let slab_start =
                         slab_boundary(horizon_start, duration, slab, subdivision_count).unwrap();
                     let slab_end =
-                        slab_boundary(horizon_start, duration, slab + 1, subdivision_count).unwrap();
+                        slab_boundary(horizon_start, duration, slab + 1, subdivision_count)
+                            .unwrap();
                     if slab_start >= slab_end {
                         continue;
                     }
@@ -860,9 +852,11 @@ mod tests {
             time_swept_capsule_broadphase(&[body("a", motion.clone())], 3),
             Err(MultiBodyBroadphaseError::InvalidSubdivisionCount)
         );
-        let many = vec![body("a", motion); (MAX_BODY_SLAB_CELLS / 2 + 1) as usize];
+        let many: Vec<_> = (0..1_025)
+            .map(|index| body(&format!("body-{index}"), motion.clone()))
+            .collect();
         assert_eq!(
-            time_swept_capsule_broadphase(&many, 2),
+            time_swept_capsule_broadphase(&many, MAX_TIME_SLABS),
             Err(MultiBodyBroadphaseError::TooManyBodySlabCells)
         );
     }
