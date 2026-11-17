@@ -11,7 +11,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# source_sha={source_sha}");
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
-    println!("family,points,expected_dimension,estimated_dimension,absolute_error,fit_r2,log_count_rmse,fit_start_resolution,fit_end_resolution,fit_scales,min_window_dimension,max_window_dimension,window_dimension_spread,mean_translation_count_spread,generator_us,scale_profile");
+    println!(
+        "family,points,expected_dimension,estimated_dimension,absolute_error,fit_r2,log_count_rmse,fit_start_resolution,fit_end_resolution,fit_scales,min_window_dimension,max_window_dimension,window_dimension_spread,mean_translation_count_spread,generator_us,scale_profile"
+    );
 
     let resolutions = standard_resolutions();
     for family in GeometryFamily::ALL {
