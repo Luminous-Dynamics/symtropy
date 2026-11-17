@@ -792,7 +792,7 @@ fn build_clock_mapped_bodies_with_distribution(
 
 fn run_relative_time_multibody_comparison_benchmarks() {
     println!(
-        "distribution,body_count,subdivisions,reference_pairs,outer_bodies,candidates,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
+        "distribution,body_count,subdivisions,reference_pairs,outer_bodies,coarse_candidates,refined_candidates,refinement_pair_slabs,pairwise_checks,outer_pruned,reference_unresolved,broadphase_unresolved,noncontact_candidates,ref_p50_us,ref_p95_us,ref_p99_us,bp_p50_us,bp_p95_us,bp_p99_us,p50_speedup"
     );
 
     let distributions = [
@@ -949,7 +949,9 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                     subdivision_count,
                     reference_report.pair_checks,
                     broadphase_report.valid_outer_envelope_bodies,
+                    broadphase_report.coarse_broadphase_candidate_pairs,
                     broadphase_report.broadphase_candidate_pairs,
+                    broadphase_report.refinement_tested_pair_slabs,
                     broadphase_report.pairwise_checked_pairs,
                     broadphase_report.outer_space_time_pruned_pairs,
                     reference_report.unresolved_pairs,
