@@ -641,7 +641,7 @@ mod tests {
         let report = time_swept_capsule_broadphase(
             &[
                 body("a", span(0.0, 0.0, 40.0, 0, 60)),
-                body("b", span(10.0, 0.0, -40.0, 40, 100)),
+                body("b", span(30.0, 0.0, -40.0, 40, 100)),
             ],
             1,
         )
