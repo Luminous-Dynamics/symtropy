@@ -97,10 +97,7 @@ fn validate_problem(
     config: &CouplingIdentificationConfig,
 ) -> Result<(usize, usize, usize, usize), String> {
     let n = problem.taxel_count;
-    if n == 0
-        || problem.module_ids.len() != n
-        || problem.admitted_output_channels.len() != n
-    {
+    if n == 0 || problem.module_ids.len() != n || problem.admitted_output_channels.len() != n {
         return Err("coupling problem requires matching nonempty taxel metadata".to_owned());
     }
     if problem.forward_profile_digest.trim().is_empty() {
@@ -112,7 +109,11 @@ fn validate_problem(
     if !config.rank_tolerance.is_finite() || config.rank_tolerance <= 0.0 {
         return Err("QR rank tolerance must be finite and positive".to_owned());
     }
-    if !problem.admitted_output_channels.iter().any(|admitted| *admitted) {
+    if !problem
+        .admitted_output_channels
+        .iter()
+        .any(|admitted| *admitted)
+    {
         return Err("at least one output channel must be admitted".to_owned());
     }
     if problem.training_stimuli.is_empty()
@@ -154,15 +155,16 @@ fn validate_problem(
         return Err("held-out stimulus and response pattern counts differ".to_owned());
     }
 
-    let module_count = problem.module_ids.iter().copied().collect::<BTreeSet<_>>().len();
+    let module_count = problem
+        .module_ids
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .len();
     Ok((n, training_patterns, heldout_patterns, module_count))
 }
 
-fn local_sources(
-    output_taxel: usize,
-    module_ids: &[u32],
-    support_radius: usize,
-) -> Vec<usize> {
+fn local_sources(output_taxel: usize, module_ids: &[u32], support_radius: usize) -> Vec<usize> {
     (0..module_ids.len())
         .filter(|source_taxel| {
             module_ids[*source_taxel] == module_ids[output_taxel]
@@ -243,9 +245,7 @@ fn fit_row_least_squares(
     }
 
     let response: Vec<_> = (0..training_pattern_count)
-        .map(|pattern| {
-            problem.training_responses[pattern * problem.taxel_count + output_taxel]
-        })
+        .map(|pattern| problem.training_responses[pattern * problem.taxel_count + output_taxel])
         .collect();
     let projected: Vec<_> = q_columns
         .iter()
@@ -268,9 +268,7 @@ fn fit_row_least_squares(
         .fold(f64::INFINITY, f64::min);
     let condition_proxy = largest_diagonal / smallest_diagonal;
 
-    if coefficients.iter().any(|value| !value.is_finite())
-        || !condition_proxy.is_finite()
-    {
+    if coefficients.iter().any(|value| !value.is_finite()) || !condition_proxy.is_finite() {
         return Err("least-squares solve produced non-finite coefficients".to_owned());
     }
 
@@ -295,9 +293,7 @@ fn prediction_rmse(
             let predicted = source_taxels
                 .iter()
                 .zip(coefficients)
-                .map(|(source, coefficient)| {
-                    stimuli[pattern * taxel_count + source] * coefficient
-                })
+                .map(|(source, coefficient)| stimuli[pattern * taxel_count + source] * coefficient)
                 .sum::<f64>();
             let residual = predicted - responses[pattern * taxel_count + output_taxel];
             residual * residual
@@ -312,8 +308,7 @@ pub fn identify_coupling_operator(
     problem: &CouplingIdentificationProblem,
     config: &CouplingIdentificationConfig,
 ) -> Result<CouplingIdentificationReport, String> {
-    let (n, training_patterns, heldout_patterns, module_count) =
-        validate_problem(problem, config)?;
+    let (n, training_patterns, heldout_patterns, module_count) = validate_problem(problem, config)?;
     let mut rows = Vec::with_capacity(n);
     let mut identified_output_row_count = 0;
     let mut underidentified_output_row_count = 0;
@@ -343,13 +338,8 @@ pub fn identify_coupling_operator(
 
         let sources = local_sources(output_taxel, &problem.module_ids, problem.support_radius);
         let required_rank = sources.len();
-        let fit = fit_row_least_squares(
-            problem,
-            output_taxel,
-            &sources,
-            training_patterns,
-            config,
-        )?;
+        let fit =
+            fit_row_least_squares(problem, output_taxel, &sources, training_patterns, config)?;
         required_coefficient_count += required_rank;
 
         match fit.coefficients {
@@ -457,12 +447,7 @@ mod tests {
             .collect()
     }
 
-    fn kernel(
-        taxel_count: usize,
-        module_ids: &[u32],
-        diagonal: f64,
-        neighbor: f64,
-    ) -> Vec<f64> {
+    fn kernel(taxel_count: usize, module_ids: &[u32], diagonal: f64, neighbor: f64) -> Vec<f64> {
         let mut result = vec![0.0; taxel_count * taxel_count];
         for output in 0..taxel_count {
             result[output * taxel_count + output] = diagonal;
@@ -516,11 +501,8 @@ mod tests {
             admitted_output_channels: vec![true; taxel_count],
             forward_profile_digest: "sha256:local-kernel-profile".to_owned(),
         };
-        let report = identify_coupling_operator(
-            &problem,
-            &CouplingIdentificationConfig::default(),
-        )
-        .expect("known local kernel");
+        let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())
+            .expect("known local kernel");
         assert_eq!(report.identified_output_row_count, taxel_count);
         assert_eq!(report.underidentified_output_row_count, 0);
         assert!(report.maximum_heldout_rmse.unwrap() < 1.0e-9);
@@ -563,11 +545,8 @@ mod tests {
             admitted_output_channels: vec![true; taxel_count],
             forward_profile_digest: "sha256:rank-deficient-patterns".to_owned(),
         };
-        let report = identify_coupling_operator(
-            &problem,
-            &CouplingIdentificationConfig::default(),
-        )
-        .expect("rank-deficient design");
+        let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())
+            .expect("rank-deficient design");
         assert_eq!(report.underidentified_output_row_count, 3);
         assert!(report.rows.iter().all(|row| {
             row.disposition == CouplingRowDisposition::UnderidentifiedByTrainingPatterns
@@ -595,11 +574,8 @@ mod tests {
             admitted_output_channels: vec![true; taxel_count],
             forward_profile_digest: "sha256:cross-seam-negative-control".to_owned(),
         };
-        let report = identify_coupling_operator(
-            &problem,
-            &CouplingIdentificationConfig::default(),
-        )
-        .expect("cross seam model mismatch");
+        let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())
+            .expect("cross seam model mismatch");
         assert!(report.maximum_heldout_rmse.unwrap() > 0.01);
         assert!(!report.rows[1].source_taxel_indices.contains(&2));
     }
@@ -622,11 +598,8 @@ mod tests {
             admitted_output_channels: vec![true, false, true],
             forward_profile_digest: "sha256:excluded-output".to_owned(),
         };
-        let report = identify_coupling_operator(
-            &problem,
-            &CouplingIdentificationConfig::default(),
-        )
-        .expect("excluded output");
+        let report = identify_coupling_operator(&problem, &CouplingIdentificationConfig::default())
+            .expect("excluded output");
         assert_eq!(report.excluded_output_row_count, 1);
         assert_eq!(
             report.rows[1].disposition,
@@ -655,26 +628,23 @@ mod tests {
         };
         let mut malformed = base.clone();
         malformed.heldout_stimuli.pop();
-        assert!(identify_coupling_operator(
-            &malformed,
-            &CouplingIdentificationConfig::default()
-        )
-        .is_err());
+        assert!(
+            identify_coupling_operator(&malformed, &CouplingIdentificationConfig::default())
+                .is_err()
+        );
 
         let mut negative = base.clone();
         negative.training_stimuli[0] = -0.1;
-        assert!(identify_coupling_operator(
-            &negative,
-            &CouplingIdentificationConfig::default()
-        )
-        .is_err());
+        assert!(
+            identify_coupling_operator(&negative, &CouplingIdentificationConfig::default())
+                .is_err()
+        );
 
         let mut nonfinite = base;
         nonfinite.heldout_responses[0] = f64::NAN;
-        assert!(identify_coupling_operator(
-            &nonfinite,
-            &CouplingIdentificationConfig::default()
-        )
-        .is_err());
+        assert!(
+            identify_coupling_operator(&nonfinite, &CouplingIdentificationConfig::default())
+                .is_err()
+        );
     }
 }

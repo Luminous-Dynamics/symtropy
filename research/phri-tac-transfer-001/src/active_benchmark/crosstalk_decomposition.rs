@@ -95,9 +95,13 @@ fn validate_operator(operator: &LinearStageOperator, name: &str) -> Vec<String> 
     if operator.input_dimension == 0 || operator.output_dimension == 0 {
         errors.push(format!("{name} operator dimensions must be nonzero"));
     }
-    let expected = operator.input_dimension.checked_mul(operator.output_dimension);
+    let expected = operator
+        .input_dimension
+        .checked_mul(operator.output_dimension);
     if expected != Some(operator.coefficients.len()) {
-        errors.push(format!("{name} operator coefficient dimensions do not match"));
+        errors.push(format!(
+            "{name} operator coefficient dimensions do not match"
+        ));
     }
     if operator.coefficients.iter().any(|value| !value.is_finite()) {
         errors.push(format!("{name} operator contains non-finite coefficients"));
@@ -120,15 +124,23 @@ fn validate_observations(
     if observations.input_dimension != operator.input_dimension
         || observations.output_dimension != operator.output_dimension
     {
-        errors.push(format!("{name} observation dimensions do not match the operator"));
+        errors.push(format!(
+            "{name} observation dimensions do not match the operator"
+        ));
     }
     if observations.pattern_count == 0
         || observations.inputs.len()
-            != observations.pattern_count.saturating_mul(observations.input_dimension)
+            != observations
+                .pattern_count
+                .saturating_mul(observations.input_dimension)
         || observations.outputs.len()
-            != observations.pattern_count.saturating_mul(observations.output_dimension)
+            != observations
+                .pattern_count
+                .saturating_mul(observations.output_dimension)
     {
-        errors.push(format!("{name} observation arrays do not match pattern dimensions"));
+        errors.push(format!(
+            "{name} observation arrays do not match pattern dimensions"
+        ));
     }
     if observations.inputs.iter().any(|value| !value.is_finite())
         || observations.outputs.iter().any(|value| !value.is_finite())
@@ -138,13 +150,21 @@ fn validate_observations(
     if observations.observation_digest.trim().is_empty() {
         errors.push(format!("{name} observation digest is missing"));
     }
-    if observations.independent_reference_receipt_id.trim().is_empty() {
+    if observations
+        .independent_reference_receipt_id
+        .trim()
+        .is_empty()
+    {
         errors.push(format!("{name} independent reference receipt is missing"));
     }
     if observations.reference_ancestry_receipt_id.trim().is_empty() {
         errors.push(format!("{name} reference ancestry receipt is missing"));
     }
-    if observations.common_cause_analysis_receipt_id.trim().is_empty() {
+    if observations
+        .common_cause_analysis_receipt_id
+        .trim()
+        .is_empty()
+    {
         errors.push(format!("{name} common-cause analysis receipt is missing"));
     }
     if observations.stage_context_digest != operator.context_digest {
@@ -167,22 +187,44 @@ fn validate_end_to_end(
     }
     if observations.pattern_count == 0
         || observations.contact_inputs.len()
-            != observations.pattern_count.saturating_mul(observations.input_dimension)
+            != observations
+                .pattern_count
+                .saturating_mul(observations.input_dimension)
         || observations.readout_outputs.len()
-            != observations.pattern_count.saturating_mul(observations.output_dimension)
+            != observations
+                .pattern_count
+                .saturating_mul(observations.output_dimension)
     {
         errors.push("end-to-end observation arrays do not match pattern dimensions".to_owned());
     }
-    if observations.contact_inputs.iter().any(|value| !value.is_finite())
-        || observations.readout_outputs.iter().any(|value| !value.is_finite())
+    if observations
+        .contact_inputs
+        .iter()
+        .any(|value| !value.is_finite())
+        || observations
+            .readout_outputs
+            .iter()
+            .any(|value| !value.is_finite())
     {
         errors.push("end-to-end observations contain non-finite values".to_owned());
     }
     for (name, value) in [
-        ("observation digest", observations.observation_digest.as_str()),
-        ("independent reference receipt", observations.independent_reference_receipt_id.as_str()),
-        ("reference ancestry receipt", observations.reference_ancestry_receipt_id.as_str()),
-        ("common-cause analysis receipt", observations.common_cause_analysis_receipt_id.as_str()),
+        (
+            "observation digest",
+            observations.observation_digest.as_str(),
+        ),
+        (
+            "independent reference receipt",
+            observations.independent_reference_receipt_id.as_str(),
+        ),
+        (
+            "reference ancestry receipt",
+            observations.reference_ancestry_receipt_id.as_str(),
+        ),
+        (
+            "common-cause analysis receipt",
+            observations.common_cause_analysis_receipt_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             errors.push(format!("end-to-end {name} is missing"));
@@ -305,10 +347,7 @@ fn compose_operators(
     product
 }
 
-fn end_to_end_rmse(
-    observations: &EndToEndObservationSet,
-    composed: &[f64],
-) -> f64 {
+fn end_to_end_rmse(observations: &EndToEndObservationSet, composed: &[f64]) -> f64 {
     let n = observations.input_dimension;
     let out = observations.output_dimension;
     let mut squared_error = 0.0;
@@ -316,8 +355,7 @@ fn end_to_end_rmse(
         for row in 0..out {
             let predicted = (0..n)
                 .map(|column| {
-                    composed[row * n + column]
-                        * observations.contact_inputs[pattern * n + column]
+                    composed[row * n + column] * observations.contact_inputs[pattern * n + column]
                 })
                 .sum::<f64>();
             let residual = predicted - observations.readout_outputs[pattern * out + row];
@@ -348,9 +386,14 @@ pub fn assess_stage_decomposition(
         reasons.push("residual tolerance must be finite and nonnegative".to_owned());
     }
     if mechanical.output_dimension != electrical.input_dimension {
-        reasons.push("mechanical output dimension must equal electrical input dimension".to_owned());
+        reasons
+            .push("mechanical output dimension must equal electrical input dimension".to_owned());
     }
-    reasons.extend(validate_end_to_end(end_to_end_observations, mechanical, electrical));
+    reasons.extend(validate_end_to_end(
+        end_to_end_observations,
+        mechanical,
+        electrical,
+    ));
     if !reasons.is_empty() {
         return DecompositionAssessment {
             disposition: DecompositionDisposition::Rejected,
@@ -370,7 +413,9 @@ pub fn assess_stage_decomposition(
             mechanical_stage_fit: None,
             electrical_stage_fit: None,
             end_to_end_rmse: Some(total_rmse),
-            reasons: vec!["composed E*M operator exceeds end-to-end held-out residual tolerance".to_owned()],
+            reasons: vec![
+                "composed E*M operator exceeds end-to-end held-out residual tolerance".to_owned(),
+            ],
             claim_class: "synthetic_stage_decomposition_contract_only",
         };
     }
@@ -390,11 +435,8 @@ pub fn assess_stage_decomposition(
         };
     };
 
-    let mut stage_reasons = validate_observations(
-        mechanical_observations,
-        mechanical,
-        "mechanical",
-    );
+    let mut stage_reasons =
+        validate_observations(mechanical_observations, mechanical, "mechanical");
     stage_reasons.extend(validate_observations(
         electrical_observations,
         electrical,
@@ -413,9 +455,15 @@ pub fn assess_stage_decomposition(
     }
 
     let ancestry_ids = [
-        mechanical_observations.reference_ancestry_receipt_id.as_str(),
-        electrical_observations.reference_ancestry_receipt_id.as_str(),
-        end_to_end_observations.reference_ancestry_receipt_id.as_str(),
+        mechanical_observations
+            .reference_ancestry_receipt_id
+            .as_str(),
+        electrical_observations
+            .reference_ancestry_receipt_id
+            .as_str(),
+        end_to_end_observations
+            .reference_ancestry_receipt_id
+            .as_str(),
     ];
     if ancestry_ids[0] == ancestry_ids[1]
         || ancestry_ids[0] == ancestry_ids[2]
@@ -433,16 +481,8 @@ pub fn assess_stage_decomposition(
         };
     }
 
-    let mechanical_fit = stage_fit(
-        mechanical_observations,
-        mechanical,
-        rank_tolerance,
-    );
-    let electrical_fit = stage_fit(
-        electrical_observations,
-        electrical,
-        rank_tolerance,
-    );
+    let mechanical_fit = stage_fit(mechanical_observations, mechanical, rank_tolerance);
+    let electrical_fit = stage_fit(electrical_observations, electrical, rank_tolerance);
 
     if !mechanical_fit.full_column_rank || !electrical_fit.full_column_rank {
         return DecompositionAssessment {
@@ -466,7 +506,8 @@ pub fn assess_stage_decomposition(
             electrical_stage_fit: Some(electrical_fit),
             end_to_end_rmse: Some(total_rmse),
             reasons: vec![
-                "one or both stage-specific operators exceed their held-out residual tolerance".to_owned(),
+                "one or both stage-specific operators exceed their held-out residual tolerance"
+                    .to_owned(),
             ],
             claim_class: "synthetic_stage_decomposition_contract_only",
         };
@@ -655,12 +696,8 @@ mod tests {
             "ancestry:mechanical",
             "mechanical",
         );
-        let electrical_observations = observations(
-            &electrical,
-            inputs(),
-            "ancestry:electrical",
-            "electrical",
-        );
+        let electrical_observations =
+            observations(&electrical, inputs(), "ancestry:electrical", "electrical");
         let end = end_to_end(&mechanical, &electrical, inputs());
         let result = assess_stage_decomposition(
             &mechanical,
@@ -682,18 +719,10 @@ mod tests {
     fn shared_reference_ancestry_prevents_stage_separation_claim() {
         let mechanical = diagonal_mechanical();
         let electrical = diagonal_electrical();
-        let mechanical_observations = observations(
-            &mechanical,
-            inputs(),
-            "ancestry:shared",
-            "mechanical",
-        );
-        let electrical_observations = observations(
-            &electrical,
-            inputs(),
-            "ancestry:shared",
-            "electrical",
-        );
+        let mechanical_observations =
+            observations(&mechanical, inputs(), "ancestry:shared", "mechanical");
+        let electrical_observations =
+            observations(&electrical, inputs(), "ancestry:shared", "electrical");
         let end = end_to_end(&mechanical, &electrical, inputs());
         let result = assess_stage_decomposition(
             &mechanical,
@@ -724,12 +753,8 @@ mod tests {
             "ancestry:mechanical",
             "mechanical",
         );
-        let electrical_observations = observations(
-            &electrical,
-            inputs(),
-            "ancestry:electrical",
-            "electrical",
-        );
+        let electrical_observations =
+            observations(&electrical, inputs(), "ancestry:electrical", "electrical");
         let end = end_to_end(&true_mechanical, &electrical, inputs());
         let result = assess_stage_decomposition(
             &mechanical,
@@ -740,9 +765,6 @@ mod tests {
             1.0e-10,
             1.0e-8,
         );
-        assert_eq!(
-            result.disposition,
-            DecompositionDisposition::ModelMismatch
-        );
+        assert_eq!(result.disposition, DecompositionDisposition::ModelMismatch);
     }
 }
