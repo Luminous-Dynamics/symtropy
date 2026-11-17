@@ -1,0 +1,148 @@
+# Black-hole theory laboratory: benchmark protocol v1
+
+**Status:** proposed benchmark contract; thresholds are targets, not achieved results.  
+**Parent:** [BH-THEORY-TRIAD-001](../README.md)  
+**Date:** 2026-11-17
+
+## 1. Objective
+
+Measure time-to-verified-scientific-accuracy across complete model-to-observable pipelines. A fast ray tracer attached to an unverified metric is not a superior gravity solver. A model that cannot state its action, matter coupling, frame, boundary conditions, observer and uncertainty must abstain from model ranking.
+
+The benchmark compares GR, declared GR-EFT truncations, pure Weyl-squared gravity, explicitly specified scalar-conformal gravity, and named quadratic scalar-tensor theories. Chain Theory remains a separate discrete-foundation workstream until it supplies a controlled continuum map and field equations.
+
+## 2. Paradigm shifts
+
+1. **Theory identity as a type, not a label.** Every run carries action hash, equations, matter action, conformal frame, units, gauge, boundary conditions, solution branch and observer tetrad. "Weyl" is not a sufficient model identifier.
+2. **Observables before pictures.** Fit closure quantities / visibility-domain data where available; reconstructed images are downstream products with their own priors and uncertainty. Never score a theory on a hand-picked image alone.
+3. **Derive geometry and matter motion together.** Null propagation may be conformally invariant under stated conditions; massive matter generally is not. Scalar-coupled matter must follow its own action, not an assumed metric geodesic.
+4. **Numerical correctness before speed.** Independent field-equation residuals, analytic limits, convergence order and invariant drift gate every performance result.
+5. **Predictive discrimination, not retrospective curve fitting.** Freeze nuisance models and priors, seal holdouts, preregister scoring, include a null/abstention option, and publish failed runs.
+6. **Compute as an experimental-design resource.** Select the next calculation by expected reduction in model uncertainty per wall-clock, memory and energy cost.
+7. **Failure is data.** Singular charts, nonphysical branches, unstable modes, ill-conditioned inversions and non-identifiability must be emitted as typed outcomes, not silently filtered.
+
+## 3. Benchmark ladder and target gates
+
+These are proposed acceptance targets for the laboratory, not claims about current code.
+
+| Gate | Test | Initial target | Stretch target |
+|---|---|---:|---:|
+| B0 Identity | Run manifest completeness | 100% required fields | Signed, content-addressed run capsule |
+| B1 Analytic | Schwarzschild / exact limits | Relative error <= 1e-10 on well-conditioned fixtures | <= 1e-12 |
+| B2 Field equations | Independent tensor residual | Convergence demonstrated; residual below declared discretization error | Two independent implementations agree within 3 sigma |
+| B3 Geometry | Curvature, horizons, extremality | Root and invariant convergence under refinement | Certified root isolation and interval bounds |
+| B4 Dynamics | Geodesic / action-derived trajectories | Conserved-quantity drift <= 1e-8 on reference orbits | <= 1e-10 without hiding stiffness |
+| B5 Optics | Shadow / caustic / ray-bundle | Refinement-stable observables; error budget published | Adaptive cost near-linear on matched cases |
+| B6 Perturbations | QNM poles, residues, retarded response | Independent reference agreement within stated truncation error | Uniform high-spin validation to a/M=0.99 where equations permit |
+| B7 Inference | Coverage / predictive score | 90% and 95% interval coverage tested on simulations | Calibration robust to nuisance and prior shifts |
+| B8 Generalization | Sealed OOD cases | False-acceptance measured; abstention allowed | Pre-registered blind prediction replicated externally |
+| B9 Efficiency | Time, memory, energy per qualified result | Full cost ledger | Best verified accuracy per joule and engineering hour |
+
+### Required reporting
+
+- Absolute and relative error, observed convergence order, and conditioning.
+- Wall-clock, CPU/GPU hours, peak memory, energy if measurable.
+- Solver tolerances, failed steps, rejected roots and all abstentions.
+- Coverage, calibration curves, proper scoring rules (e.g. log score / CRPS where applicable).
+- False-positive model selection rate on synthetic truth-known cases.
+- Exact source-data digests, code revision and reproducible command.
+
+Do not collapse these into one opaque leaderboard score. Report a Pareto frontier and a separate qualification status.
+
+## 4. Matched benchmark suites
+
+### Suite A — analytic and tensor controls
+- Schwarzschild and Kerr limits in GR.
+- Mannheim–Kazanas static solution with convention-pinned parameters.
+- Independent Bach-tensor evaluation for pure Weyl-squared vacuum.
+- Coordinate transformation checks for scalar invariants.
+- Horizon multiplicity and extremality checks with bracketed roots.
+- Dimensional analysis and conformal-frame negative controls.
+
+### Suite B — trajectories and optics
+- Circular photon orbit and critical impact parameter.
+- Finite-radius observer tetrads; no implicit observer at infinity for non-asymptotically-flat metrics.
+- Null geodesic, lens map, caustic and photon-ring convergence.
+- Timelike trajectories derived from each matter action.
+- Plasma/radiative-transfer nuisance models held fixed across theory comparisons.
+
+### Suite C — perturbations and response
+- Test-scalar spectrum is labelled test-scalar, never gravitational ringdown.
+- For fourth-order gravity, identify the actual perturbation variables, constraints, extra modes and boundary conditions.
+- Compare complex poles and residues, not frequencies alone.
+- Check retarded response, stability and mode completeness where feasible.
+
+### Suite D — inference and observational discrimination
+- Synthetic injection/recovery with known truth.
+- Blind theory recovery with identical data and nuisance assumptions.
+- Visibility / closure-domain scoring before image-domain scoring.
+- Prior predictive checks and prior sensitivity.
+- Sealed epochs / sources; no post-hoc tuning against holdout.
+- Model-class misspecification test: the system must be able to say "none of the candidates".
+
+### Suite E — foundations bridge
+- Chain Theory finite arithmetic reproduction with exact source and version pins.
+- Independent reproduction of every finite claim before continuum interpretation.
+- Positivity, normalization, unitarity / channel consistency, entropy inequalities and composition checks as applicable.
+- Controlled continuum scaling with finite-size effects and universality analysis.
+- Only after a continuum geometry and dynamics are derived: compare curvature, causal structure and black-hole observables.
+
+## 5. Current external comparator map
+
+| Capability | Relevant comparator | What we must match before claiming improvement |
+|---|---|---|
+| Adaptive stationary-metric shadow inference | Liu et al., PRD 114 (2026), DOI 10.1103/66x9-zj16 | Accuracy, scaling, posterior calibration, nuisance handling |
+| Calibration-robust M87* morphology | Lai et al., Nature 659 (2026), DOI 10.1038/s41586-026-11241-9 | Closure-invariant likelihood and uncertainty propagation |
+| Kerr ray tracing | AART | Matched geodesics, lens maps, performance and convergence |
+| Perturbations / self-force | BHPT Toolkit | Teukolsky, MST, QNM and flux reference fixtures |
+| Numerical relativity | SXS / SpEC, Einstein Toolkit, SpECTRE | Matched initial data, convergence and waveform error |
+| GW inference | Bilby / pyRing and LVK public analyses | Injection recovery, calibration and posterior coverage |
+| Rotating Weyl geometry | Published Kerr-Weyl solution and thermodynamic analyses | Independent horizon, ergoregion and extremality reproduction |
+
+Comparisons must be capability-specific. No single package is the baseline for every layer.
+
+## 6. First blind challenge: M87* closure-domain discrimination
+
+**Question:** Can any candidate model produce a statistically distinguishable, predictive improvement over GR once source, plasma, calibration and instrument uncertainties are treated consistently?
+
+Protocol:
+1. Freeze candidate actions, parameter priors, matter/radiation model and instrument likelihood before unsealing the evaluation data.
+2. Use closure invariants / robust closure quantities where available; document exactly which observables are calibration-independent and which nuisance effects remain.
+3. Generate matched synthetic datasets from each candidate plus out-of-family controls.
+4. Measure injection recovery, parameter bias, interval coverage, false selection and abstention.
+5. Evaluate held-out epochs or sources without retuning.
+6. Publish likelihood code, synthetic truth, digests and a machine-readable result capsule.
+
+**No model wins by matching the 42.2 microarcsecond ring diameter alone.** That observable constrains a combination of mass, distance, spin, inclination, emission and gravity assumptions; it does not uniquely identify a theory.
+
+## 7. Chain Theory firewall
+
+Chain Theory is not yet a metric theory in this comparison. Maintain a separate staged bridge:
+- C0: exact finite claims and arithmetic independently reproduced.
+- C1: finite quantum consistency and composition.
+- C2: derive a coarse-grained state space and observables without assuming spacetime.
+- C3: demonstrate a controlled continuum limit and identify emergent causal structure.
+- C4: derive an effective metric / field equations with quantified corrections.
+- C5: only then enter the black-hole suites.
+
+Failure at any stage is a useful result. Do not map graph distance to spacetime distance by analogy.
+
+## 8. Immediate implementation sequence
+
+1. Extend the existing static Mannheim–Kazanas reference kernel with bracketed horizon-root classification and dimensional/convention fixtures.
+2. Add independent tensor residual fixtures; do not call the metric validated until the Bach equations are evaluated independently.
+3. Add finite-observer optical comparisons and cross-check the analytic photon-sphere fixtures.
+4. Reproduce the published rotating Weyl horizons / ergoregions before attempting a full rotating ray tracer.
+5. Build the closure-domain synthetic inference harness only by composing existing Symtropy observation and inference infrastructure; do not create a parallel imaging stack.
+6. Keep Chain Theory's finite-to-continuum bridge in Symthaea and link only qualified artifacts.
+
+## 9. Claim discipline
+
+- "Implemented" means code is present.
+- "Structurally checked" means source and invariants were inspected.
+- "Arithmetic checked" is not a numerical solver test.
+- "Test authored" is not "test executed".
+- "CI pending" is not pass.
+- "Physical / observational validation" requires independent data and controls.
+- Better-than-SOTA requires a matched baseline, same hardware/data/tolerances, uncertainty and full cost ledger.
+
+The project's north-star metric is **verified scientific information gained per unit compute and human effort**, subject to hard correctness and calibration gates.
