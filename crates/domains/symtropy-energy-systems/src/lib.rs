@@ -18,6 +18,7 @@ mod duty_cycle;
 mod fuel;
 mod module_contract;
 mod service_graph;
+mod transport_contract;
 
 pub use batch_evaluation::{FuelBatchEvaluation, evaluate_fuel_batch};
 pub use duty_cycle::{
@@ -39,6 +40,13 @@ pub use service_graph::{
     LoadSourceCoverage, ServiceEdge, ServiceEdgeKind, ServiceGraph, ServiceGraphError,
     ServiceNode, ServiceNodeKind, SourceMapAssessment, SourcePath, StaleModuleConfiguration,
     PathWitnessPolicy,
+};
+pub use transport_contract::{
+    assess_matched_service, ComparisonField, ConversionStage, EnergyCarrier,
+    MatchedServiceAssessment, MatchedServiceComparisonStatus, MatchedServiceReason,
+    StorageState, TransportContractError, TransportMechanism, TransportMedium,
+    TransportPathCandidate, TransportPathContract, TransportPrimitive,
+    TransportPrimitiveSpec, UsefulServiceContract, UsefulServiceKind, UsefulServiceSpec,
 };
 
 /// Errors returned when an input is non-finite, physically out of range, or
