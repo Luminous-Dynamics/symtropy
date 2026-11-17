@@ -27,9 +27,10 @@ pub use co_translation_ccd::{
     endpoints_only_co_translating_capsule_collision,
 };
 pub use multibody_time_swept_broadphase::{
-    CandidateSlab, MAX_BODY_SLAB_CELLS, MAX_TIME_SLABS, MultiBodyBroadphaseError,
-    MultiBodyBroadphaseReport, SlabMetrics, SweepAxis, TimedCapsuleBody, TimedCapsulePairCandidate,
-    time_swept_capsule_broadphase,
+    CandidateRefinementReport, CandidateSlab, HierarchicalMultiBodyBroadphaseReport,
+    MAX_BODY_SLAB_CELLS, MAX_TIME_SLABS, MultiBodyBroadphaseError, MultiBodyBroadphaseReport,
+    SlabMetrics, SweepAxis, TimedCapsuleBody, TimedCapsulePairCandidate,
+    time_swept_capsule_broadphase, time_swept_capsule_broadphase_hierarchical,
 };
 pub use relative_time_multibody_ccd::{
     BodyClockMappingReceipt, ClockDomainCapsuleBody, ClockMappingDisposition, ClockMappingFailure,
