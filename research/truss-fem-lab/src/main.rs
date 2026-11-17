@@ -5,6 +5,9 @@ use symtropy_truss_fem_lab::benchmark::{
 use symtropy_truss_fem_lab::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
 };
+use symtropy_truss_fem_lab::interfaces::{
+    analyze_with_joint_end_stiffness, JointEndStiffness,
+};
 use symtropy_truss_fem_lab::stability::{
     screen_member_stability, MemberStabilityProperties,
 };
@@ -83,6 +86,46 @@ fn main() {
         "euler_outside_nominal_range_count={}",
         stability.euler_outside_nominal_range_count
     );
+
+    let joint_properties = vec![
+        JointEndStiffness {
+            from_axial_n_per_m: 1.0e9,
+            to_axial_n_per_m: 1.0e9,
+        };
+        model.members.len()
+    ];
+    let compliant = analyze_with_joint_end_stiffness(
+        &model,
+        material,
+        &boundary,
+        &joint_properties,
+    )
+    .expect("finite positive connector stiffness should produce a compliant analysis");
+    let compliant_max_displacement = compliant
+        .node_displacements_m
+        .iter()
+        .map(|v| (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt())
+        .fold(0.0_f64, f64::max);
+    let maximum_joint_slip = compliant
+        .members
+        .iter()
+        .map(|member| member.from_joint_slip_m.abs().max(member.to_joint_slip_m.abs()))
+        .fold(0.0_f64, f64::max);
+    let total_joint_energy: f64 = compliant
+        .members
+        .iter()
+        .map(|member| member.joint_strain_energy_j)
+        .sum();
+    println!(
+        "finite_joint_max_displacement_m={:.12e}",
+        compliant_max_displacement
+    );
+    println!(
+        "finite_joint_displacement_ratio={:.9}",
+        compliant_max_displacement / max_displacement
+    );
+    println!("maximum_end_joint_slip_m={:.12e}", maximum_joint_slip);
+    println!("total_joint_strain_energy_j={:.12e}", total_joint_energy);
 
     let damage = single_member_removal_campaign(&model, material, &boundary)
         .expect("intact model must solve before damage campaign");
