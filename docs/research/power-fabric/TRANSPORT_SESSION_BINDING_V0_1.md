@@ -45,4 +45,6 @@ The intended implementation location is the existing `wpt-energy-interface-valid
 
 ## Claim ceiling
 
+The synthetic optical-to-battery path explicitly contains an electrical feed and electro-optic conversion, a free-space optical propagation primitive, and a photovoltaic/rectifier-side conversion followed by receiver-side electrical conduction. This is still only a metadata example; the declared conversion stages are not measurements or physical evidence.
+
 The sidecar schema records a metadata binding only. It does not prove that a physical path exists, that an optical beam is present, that a coil is energized, that a service has been delivered, that a receiver is safe or authorized, or that the system meets any standard. It is not permission to energize.
