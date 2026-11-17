@@ -704,8 +704,8 @@ impl TetrahedralAssembly {
             bounds_min,
             bounds_max,
             same_build_digest_non_security: self.digest_non_security(),
-            ideal_attachment_contract: "regular tetrahedral children attach through three shared non-collinear vertices; ideal pin-joint model",
-            claim_ceiling: "geometry/topology only; no strength, safety, manufacturing, or flight qualification",
+            ideal_attachment_contract: "child cells share three non-collinear vertices in ideal pin-joint geometry",
+            claim_ceiling: "geometry/topology only; not strength, safety, or flight qualification",
         })
     }
 
