@@ -113,7 +113,7 @@
       "code_data_release_doi": "10.5281/zenodo.21105704",
       "code_data_release": "TomBuckleyLab/stomatal-model-GCB v1.0",
       "release_license_status": "Zenodo record does not populate a license field; paper is CC BY-NC-ND. The equation-level clean-room implementation does not copy source code or data. Inspect artifacts and resolve reuse rights before any ingestion or redistribution.",
-      "admission_status": "equation_level_clean_room_reference_implemented; published_data_and_code_reproduction_not_run",
+      "admission_status": "equation_level_clean_room_reference_implemented; source_code_and_dataset_reproduction_tracked_separately",
       "implementation": {
         "module": "crates/domains/symtropy-mycelium/src/plant_stomatal_buckley_2026.rs",
         "scope": "Eq 3a/3b, C3 A_m relation and VPD-to-delta_w boundary conversion",
@@ -126,6 +126,22 @@
           "cross_species_validation",
           "SOTA_superiority"
         ]
+      },
+      "reproduction_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/5815",
+      "source_admission": {
+        "zenodo_doi": "10.5281/zenodo.21105704",
+        "zenodo_release": "v1.0",
+        "zenodo_file": "TomBuckleyLab/stomatal-model-GCB-v1.0.zip",
+        "zenodo_file_md5": "d1994a22e8e689e837c29dd0da6b93d9",
+        "zenodo_license_field": "unpopulated",
+        "related_git_tag": "https://github.com/TomBuckleyLab/stomatal-model-GCB/tree/v1.0",
+        "data_availability": {
+          "dataset_1_and_4": "Zenodo release",
+          "dataset_2": "https://figshare.com/articles/dataset/Optimal_stomatal_behaviour_around_the_world/1304289",
+          "dataset_3": "https://doi.org/10.15486/ngt/1781004"
+        },
+        "article_license": "CC BY-NC-ND",
+        "permission_status": "no_external_code_or_data_ingested; individual code/data rights and reuse permission not yet admitted"
       }
     }
   ],
