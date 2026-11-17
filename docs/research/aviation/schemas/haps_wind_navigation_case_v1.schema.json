@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-wind-navigation-case:v1",
+  "title": "HAPS wind navigation case v1",
+  "description": "A provenance- and forecast-time-aware wind-field case contract for HAPS station-keeping and service-aware path-planning benchmarks. It describes data and boundaries; it does not implement an atmospheric or vehicle-dynamics model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "revision",
+    "evidence_class",
+    "claim_ceiling",
+    "platform_lift_family",
+    "mission",
+    "weather_source",
+    "forecast_definition",
+    "wind_samples",
+    "platform_control",
+    "baseline_policies",
+    "required_metrics",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-wind-navigation-case/v1"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic",
+        "reanalysis_hindcast",
+        "operational_forecast",
+        "measured_telemetry",
+        "mixed"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_data_contract",
+        "offline_hindcast",
+        "forecast_replay",
+        "telemetry_replay"
+      ]
+    },
+    "platform_lift_family": {
+      "enum": [
+        "buoyant_free_balloon",
+        "buoyant_airship",
+        "solar_fixed_wing_haps"
+      ]
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_region",
+        "evaluation_duration_s",
+        "altitude_bounds_m",
+        "maximum_coverage_gap_s"
+      ],
+      "properties": {
+        "target_region": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "center_latitude_deg",
+            "center_longitude_deg",
+            "radius_km"
+          ],
+          "properties": {
+            "center_latitude_deg": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "center_longitude_deg": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "radius_km": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "evaluation_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "altitude_bounds_m": {
+          "$ref": "#/$defs/range"
+        },
+        "maximum_coverage_gap_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "service_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "weather_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_name",
+        "dataset_version",
+        "source_kind",
+        "source_uri",
+        "source_digest",
+        "rights_or_license_ref",
+        "coordinate_frame",
+        "vertical_reference",
+        "horizontal_grid_resolution_deg",
+        "time_cadence_s",
+        "interpolation_method"
+      ],
+      "properties": {
+        "dataset_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataset_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_kind": {
+          "enum": [
+            "synthetic_generator",
+            "reanalysis",
+            "numerical_weather_prediction",
+            "radiosonde",
+            "on_vehicle_sensor",
+            "campaign_measurement"
+          ]
+        },
+        "source_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "source_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_or_license_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coordinate_frame": {
+          "enum": [
+            "earth_fixed_east_north_up",
+            "earth_fixed_east_north_down",
+            "other_declared"
+          ]
+        },
+        "vertical_reference": {
+          "enum": [
+            "geometric_altitude_m",
+            "geopotential_height_m",
+            "pressure_level_hpa",
+            "other_declared"
+          ]
+        },
+        "horizontal_grid_resolution_deg": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "time_cadence_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "interpolation_method": {
+          "enum": [
+            "nearest",
+            "linear_2d",
+            "linear_3d_4d",
+            "cubic",
+            "owner_defined",
+            "none"
+          ]
+        }
+      }
+    },
+    "forecast_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "data_kind",
+        "initialization_time_utc",
+        "valid_time_basis",
+        "forecast_horizons_s",
+        "ensemble_member_count",
+        "available_at_decision_time",
+        "reanalysis_not_used_as_live_forecast"
+      ],
+      "properties": {
+        "data_kind": {
+          "enum": [
+            "synthetic",
+            "analysis_or_reanalysis",
+            "deterministic_forecast",
+            "ensemble_forecast",
+            "observation"
+          ]
+        },
+        "initialization_time_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "valid_time_basis": {
+          "enum": [
+            "valid_time",
+            "analysis_time",
+            "observation_time"
+          ]
+        },
+        "forecast_horizons_s": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ensemble_member_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "available_at_decision_time": {
+          "type": "boolean"
+        },
+        "reanalysis_not_used_as_live_forecast": {
+          "const": true
+        }
+      }
+    },
+    "wind_samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "valid_offset_s",
+          "altitude_m",
+          "latitude_deg",
+          "longitude_deg",
+          "eastward_wind_mps",
+          "northward_wind_mps",
+          "upward_wind_mps",
+          "ensemble_member_id",
+          "sample_class"
+        ],
+        "properties": {
+          "valid_offset_s": {
+            "type": "number",
+            "minimum": 0
+          },
+          "altitude_m": {
+            "type": "number"
+          },
+          "latitude_deg": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "longitude_deg": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "eastward_wind_mps": {
+            "type": "number"
+          },
+          "northward_wind_mps": {
+            "type": "number"
+          },
+          "upward_wind_mps": {
+            "type": "number"
+          },
+          "ensemble_member_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sample_class": {
+            "enum": [
+              "synthetic",
+              "forecast",
+              "analysis",
+              "reanalysis",
+              "measured",
+              "missing"
+            ]
+          }
+        }
+      }
+    },
+    "platform_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lift_family",
+        "vertical_control_model_ref",
+        "lateral_control_model_ref",
+        "propulsion_energy_model_ref",
+        "altitude_actuation_energy_model_ref",
+        "authority_status",
+        "unknowns"
+      ],
+      "properties": {
+        "lift_family": {
+          "enum": [
+            "buoyant_free_balloon",
+            "buoyant_airship",
+            "solar_fixed_wing_haps"
+          ]
+        },
+        "vertical_control_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lateral_control_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "propulsion_energy_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "altitude_actuation_energy_model_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authority_status": {
+          "enum": [
+            "validated",
+            "modelled",
+            "unknown"
+          ]
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "baseline_policies": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "passive_drift",
+          "fixed_altitude",
+          "rule_based_layer_switching",
+          "greedy",
+          "astar",
+          "simultaneous_optimistic_optimization",
+          "reinforcement_learning",
+          "model_predictive_control",
+          "robust_ensemble_mpc"
+        ]
+      }
+    },
+    "required_metrics": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "east_north_vector_mae",
+          "wind_speed_error",
+          "wind_direction_error",
+          "crps_or_equivalent",
+          "forecast_interval_coverage",
+          "forecast_regret",
+          "fraction_time_inside_target_radius",
+          "coverage_area_hours",
+          "p95_target_distance_km",
+          "maximum_service_gap_s",
+          "station_keeping_energy_wh",
+          "altitude_actuation_energy_wh",
+          "battery_reserve_margin_wh",
+          "planner_runtime_p95_ms",
+          "out_of_domain_rate"
+        ]
+      }
+    },
+    "source_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      }
+    }
+  },
+  "$comment": "Semantic requirements beyond JSON Schema: range minimum <= maximum; time offsets align with valid-time semantics; each wind sample retains source and ensemble identity; coordinate transform and vertical interpolation uncertainty are bounded; reanalysis is not a forecast available to a historical controller; sample age and missing data are explicit; no interpolation silently extrapolates beyond source domain; control and energy claims require matching platform-specific model receipts; an unknown actuation model prohibits energy-optimality claims."
+}
