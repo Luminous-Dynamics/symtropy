@@ -26,3 +26,7 @@ COV-SCAN-04	S04	SCAN-A	origin:SCAN-A	CELL-CNC-B	2026-11-01T08:35:00Z	2026-11-01T
 COV-MES-05	S05	MES-A	origin:MES-A	ALL	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	-	MAP-01	-	-	MES registration is available at decision time.
 COV-PLC-05	S05	PLC-CNC-B	origin:PLC-CNC-B	CELL-CNC-B	2026-11-01T08:45:00Z	2026-11-01T09:05:00Z	ADEQUATE	CAL-PLC-02	MAP-01	-	100	Late-ingested machine event is available before the decision epoch.
 COV-CLEAN-09	S09	PLC-CLEAN-A	origin:PLC-CLEAN-A	CELL-CLEAN-A	2026-11-01T09:23:00Z	2026-11-01T09:26:00Z	ADEQUATE	CAL-CLEAN-01	MAP-01	-	100	Clean operation is observed before the failed first-article inspection.
+COV-MES-HF-10	S10	MES-A	origin:MES-A	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	-	MAP-01	-	-	Visible pre-event WIP status for the paired-prefix control.
+COV-RTLS-HF-10	S10	RTLS-01	origin:RTLS-01	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Visible pre-event location sample for the paired-prefix control.
+COV-MES-HF-11	S11	MES-A	origin:MES-A	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	-	MAP-01	-	-	Same pre-event WIP status as the paired scenario.
+COV-RTLS-HF-11	S11	RTLS-01	origin:RTLS-01	QA-LAB	2026-11-01T09:38:00Z	2026-11-01T09:40:00Z	ADEQUATE	CAL-RTLS-01	MAP-01	0.25	1000	Same pre-event location sample as the paired scenario.
