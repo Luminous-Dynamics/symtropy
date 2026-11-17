@@ -939,8 +939,8 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                 let broadphase_p50 = percentile(&broadphase_durations, 50);
                 let broadphase_p95 = percentile(&broadphase_durations, 95);
                 let broadphase_p99 = percentile(&broadphase_durations, 99);
-                let speedup = reference_p50.as_nanos() as f64
-                    / broadphase_p50.as_nanos().max(1) as f64;
+                let speedup =
+                    reference_p50.as_nanos() as f64 / broadphase_p50.as_nanos().max(1) as f64;
 
                 println!(
                     "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
