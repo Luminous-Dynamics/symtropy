@@ -98,3 +98,7 @@ The verification module separately checks:
 - the existing maximum free-DOF residual.
 
 This is an equilibrium/energy consistency audit of the numerical result. It does not validate the structural idealization, boundary conditions, omitted physics or material/connector properties. It assumes nodal forces and reactions act at node coordinates and does not include applied nodal couples.
+
+## Reproducible benchmark input identity
+
+Each mass-normalized receipt includes an FNV-1a digest over the exact model geometry, member connectivity, support flags, nodal force vectors and benchmark specification. The field is explicitly named non-security: it supports same-input regression/replay identity but is not a cryptographic signature or tamper-evident evidence seal. For externally auditable evidence, export the complete input and output files and hash them with a modern cryptographic digest in the evidence pipeline.
