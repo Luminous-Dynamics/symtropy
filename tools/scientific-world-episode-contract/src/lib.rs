@@ -450,6 +450,8 @@ pub struct BranchContext {
     pub episode_id: String,
     /// Exact world-model code/content digest.
     pub world_model_digest: String,
+    /// Exact world-generation recipe digest.
+    pub world_recipe_digest: String,
     /// Exact selected model/profile digest.
     pub model_profile_digest: String,
     /// Exact initial-state digest.
@@ -460,6 +462,14 @@ pub struct BranchContext {
     pub policy_digest: String,
     /// Exact recurrent-state digest.
     pub recurrent_state_digest: String,
+    /// Exact policy memory-state digest.
+    pub memory_state_digest: String,
+    /// Exact tool/connector contract digest.
+    pub tool_contract_digest: String,
+    /// Exact clock-profile digest.
+    pub clock_profile_digest: String,
+    /// Exact time-origin digest.
+    pub time_origin_digest: String,
     /// Exact candidate-action-set digest.
     pub candidate_action_set_digest: String,
     /// Exact resource-budget digest.
@@ -556,11 +566,16 @@ fn validate_branch_context(context: &BranchContext) -> Result<(), ContractError>
     }
     for digest in [
         context.world_model_digest.as_str(),
+        context.world_recipe_digest.as_str(),
         context.model_profile_digest.as_str(),
         context.initial_state_digest.as_str(),
         context.observation_history_digest.as_str(),
         context.policy_digest.as_str(),
         context.recurrent_state_digest.as_str(),
+        context.memory_state_digest.as_str(),
+        context.tool_contract_digest.as_str(),
+        context.clock_profile_digest.as_str(),
+        context.time_origin_digest.as_str(),
         context.candidate_action_set_digest.as_str(),
         context.budget_digest.as_str(),
         context.actor_policy_digest.as_str(),
@@ -641,11 +656,16 @@ mod tests {
         BranchContext {
             episode_id: "episode-00000001".to_owned(),
             world_model_digest: digest('a'),
+            world_recipe_digest: digest('8'),
             model_profile_digest: digest('b'),
             initial_state_digest: digest('c'),
             observation_history_digest: digest('d'),
             policy_digest: digest('e'),
             recurrent_state_digest: digest('f'),
+            memory_state_digest: digest('6'),
+            tool_contract_digest: digest('7'),
+            clock_profile_digest: digest('8'),
+            time_origin_digest: digest('9'),
             candidate_action_set_digest: digest('1'),
             budget_digest: digest('2'),
             actor_policy_digest: digest('3'),
