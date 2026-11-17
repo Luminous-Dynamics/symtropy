@@ -282,6 +282,38 @@ fn main() -> ExitCode {
                     return ExitCode::FAILURE;
                 }
             }
+            match phri_tac_transfer_oracle::active_benchmark::wrench_consistency::run_synthetic_wrench_example() {
+                Ok(example) => {
+                    println!("wrench_consistency_example=synthetic_v0_1");
+                    match serde_json::to_string(&example) {
+                        Ok(scorecard_json) => {
+                            println!("wrench_consistency_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("wrench_consistency_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
+                    println!(
+                        "wrench_consistency={:?} native_rank={} wrench_rank={} combined_rank={} incremental_wrench_rank={} native_null={} combined_null={} native_identifiable_scalars={} combined_identifiable_scalars={} fully_identifiable_taxels={}/{}",
+                        example.consistency.disposition,
+                        example.identifiability.native_observation_rank,
+                        example.identifiability.wrench_constraint_rank,
+                        example.identifiability.combined_rank,
+                        example.identifiability.incremental_rank_from_wrench,
+                        example.identifiability.native_null_space_dimension,
+                        example.identifiability.combined_null_space_dimension,
+                        example.identifiability.native_identifiable_scalar_count,
+                        example.identifiability.combined_identifiable_scalar_count,
+                        example.identifiability.taxels_fully_identifiable_combined,
+                        example.identifiability.per_taxel.len(),
+                    );
+                }
+                Err(error) => {
+                    eprintln!("wrench_consistency_example=invalid: {error}");
+                    return ExitCode::FAILURE;
+                }
+            }
             ExitCode::SUCCESS
         }
         Err(error) => {
