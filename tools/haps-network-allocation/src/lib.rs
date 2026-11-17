@@ -306,6 +306,18 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
             "unsupported time_basis".to_owned(),
         ));
     }
+    if !matches!(
+        trace.source.source_kind.as_str(),
+        "synthetic_generator"
+            | "operator_traffic_trace"
+            | "network_telemetry"
+            | "traffic_forecast"
+            | "reanalysis"
+    ) {
+        return Err(AllocationError::InvalidTrace(
+            "unsupported traffic source_kind".to_owned(),
+        ));
+    }
     if !trace.source.reanalysis_not_used_as_live_forecast {
         return Err(AllocationError::InvalidTrace(
             "reanalysis/live-forecast leakage guard must be true".to_owned(),
@@ -365,6 +377,15 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
             || !(-180.0..=180.0).contains(&cell.longitude_deg)
             || !cell.priority_weight.is_finite()
             || cell.priority_weight <= 0.0
+            || !matches!(
+                cell.service_class.as_str(),
+                "public_broadband"
+                    | "emergency"
+                    | "health"
+                    | "critical_infrastructure"
+                    | "iot"
+                    | "other"
+            )
         {
             return Err(AllocationError::InvalidTrace(format!(
                 "cell {} has invalid identity, coordinates or priority",
@@ -792,7 +813,7 @@ mod tests {
     fn static_assignment_is_selected_only_from_training_days() {
         let trace = fixture_trace();
         let assignment = select_static_assignment(&trace, 15, 2).unwrap();
-        assert_eq!(assignment, vec!["cell-east", "cell-north"]);
+        assert_eq!(assignment, vec!["cell-east".to_owned(), "cell-north".to_owned()]);
         let report = evaluate_window(
             &trace,
             15,
@@ -834,6 +855,46 @@ mod tests {
             / static_report.totals.critical_excess_served_mbps_intervals;
         assert!((relative_gain - 40.0 / 234.0).abs() < 1e-12);
         assert!(relative_gain > 0.17);
+    }
+
+    #[test]
+    fn static_assignment_does_not_read_holdout_days() {
+        let mut trace = fixture_trace();
+        let original = select_static_assignment(&trace, 15, 2).unwrap();
+
+        for interval in trace.intervals.iter_mut().skip(15) {
+            for load in &mut interval.cell_loads {
+                if load.cell_id == "cell-south" || load.cell_id == "cell-west" {
+                    load.offered_load_mbps = 10_000.0;
+                    load.terrestrial_available_mbps = 0.0;
+                }
+            }
+        }
+
+        let after_holdout_change = select_static_assignment(&trace, 15, 2).unwrap();
+        assert_eq!(original, after_holdout_change);
+    }
+
+    #[test]
+    fn parser_rejects_missing_required_nullable_source_field() {
+        let mut value: Value =
+            serde_json::from_str(TRAFFIC_TRACE).expect("traffic fixture JSON parses");
+        value["source"]
+            .as_object_mut()
+            .expect("source object")
+            .remove("source_uri");
+        let bytes = serde_json::to_vec(&value).expect("mutated fixture serializes");
+        assert!(matches!(
+            parse_trace_json(&bytes),
+            Err(AllocationError::MissingField(_))
+        ));
+    }
+
+    #[test]
+    fn parser_rejects_unknown_service_class() {
+        let mut trace = fixture_trace();
+        trace.cells[0].service_class = "unrecognized".to_owned();
+        assert!(validate_trace(&trace).is_err());
     }
 
     #[test]
@@ -881,7 +942,7 @@ mod tests {
             AllocationPolicy::CriticalExcessWeightedGreedy,
         )
         .unwrap();
-        assert_eq!(report.intervals[0].selected_cell_ids, vec!["cell-a"]);
+        assert_eq!(report.intervals[0].selected_cell_ids, vec!["cell-a".to_owned()]);
     }
 
     #[test]
