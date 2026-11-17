@@ -2,7 +2,7 @@
 
 **Owner:** Symtropy FACTORY-EXECUTION-REALITY-001 [#5758](https://github.com/Luminous-Dynamics/symtropy/issues/5758)  
 **Fixture generation:** pump-valve-observed-route-v0.1  
-**Status:** synthetic route and event fixtures authored; Rust reconciler and CI qualification not yet implemented.
+**Status:** synthetic route/event fixture plus dependency-free Rust coverage/chronology contract checker authored; exact-head CI qualification pending. No physical reconciliation or location inference is claimed.
 
 ## Research question
 
@@ -36,6 +36,8 @@ Possible product/release outcomes are distinct: ACCEPTED, REJECTED, UNKNOWN, BLO
 - scenarios-v0.1.tsv: 12 event-reconciliation cases, including paired hidden-future controls.
 - observations-v0.1.tsv: synthetic MES, RTLS, machine-cycle, scan and inspection observations. Event time and ingest/observation time are separate.
 - coverage-v0.1.tsv: declared sensor coverage, calibration state and location uncertainty windows.
+- Cargo.toml, src/lib.rs, src/main.rs: coverage/identity/map/calibration/time validator, route-contract check and paired-future prefix verifier.
+- .github/workflows/factory-execution-reality.yml: focused formatting, Clippy, unit-test and deterministic replay gate.
 - This is a public development corpus with its expected dispositions exposed. It is not a blind evaluation set.
 
 All identities and event data are synthetic. Fixture references are identifiers, not cryptographic hashes or claims about actual equipment.
@@ -110,6 +112,19 @@ These are research hypotheses, not physical accuracy claims or safety thresholds
 ## Reuse
 
 Compose with Symtropy #5411 (reconfiguration chronology), #5432 (matched routes), #5520 (selective repair/inspection), #5622 (context grounding), #5704 (qualified path dependencies), #5729 (process-model obligation assurance), and Mycelix #1243 (source derivation). Do not duplicate their owners' systems.
+
+## Run state
+
+Run the input contract checker with:
+
+```sh
+cargo fmt --manifest-path tools/factory-execution-reality/Cargo.toml -- --check
+cargo clippy --manifest-path tools/factory-execution-reality/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path tools/factory-execution-reality/Cargo.toml --all-targets
+cargo run --quiet --manifest-path tools/factory-execution-reality/Cargo.toml --bin factory-execution-reality
+```
+
+This executable verifies the declared input/coverage/time contract and paired observable prefixes. It does not infer actual physical execution, perform location estimation, resolve conflicting genealogy, or decide product acceptance.
 
 ## Claim boundary
 
