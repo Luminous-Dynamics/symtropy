@@ -1,0 +1,21 @@
+{
+  "fixture_bundle_id": "kitchen-capability-admission-v1",
+  "status": "synthetic_only_not_physical_qualification",
+  "cases": [
+    { "case_id": "explicit-exact-match", "expected_disposition": "within_declared_envelope" },
+    { "case_id": "stale-module-revision", "expected_disposition": "blocked" },
+    { "case_id": "action-group-mismatch", "expected_disposition": "blocked" },
+    { "case_id": "unsupported-input-form", "expected_disposition": "blocked" },
+    { "case_id": "scheduled-resource-mismatch", "expected_disposition": "blocked" },
+    { "case_id": "missing-action-ontology", "expected_disposition": "indeterminate" },
+    { "case_id": "unmapped-action", "expected_disposition": "indeterminate" },
+    { "case_id": "batch-above-maximum", "expected_disposition": "blocked" },
+    { "case_id": "batch-below-minimum", "expected_disposition": "blocked" },
+    { "case_id": "volume-is-not-mass", "expected_disposition": "indeterminate" },
+    { "case_id": "missing-maximum-run-time", "expected_disposition": "indeterminate" },
+    { "case_id": "maximum-run-time-exceeded", "expected_disposition": "blocked" },
+    { "case_id": "missing-task-binding", "expected_disposition": "indeterminate" },
+    { "case_id": "duplicate-task-binding", "expected_disposition": "blocked" },
+    { "case_id": "invalid-module-claim-ceiling", "expected_disposition": "blocked" }
+  ]
+}
