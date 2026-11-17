@@ -17,6 +17,7 @@ pub mod field_campaign;
 pub mod field_reconstruction;
 pub mod model_forms;
 pub mod observability_design;
+pub mod temporal_integrity;
 
 const PARAMS: usize = 8;
 const STRATA: usize = 4;
