@@ -460,7 +460,9 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
             let mains = number(i, &["measured_mains_displacement_l"])?;
             let quality = boolean(i, &["quality_evidence_current"])?;
             let control = boolean(i, &["matched_control_profile"])?;
-            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0)
+            if [gross, qualified, recovered, mains]
+                .iter()
+                .any(|value| *value < 0.0)
                 || qualified > gross
                 || recovered > qualified
             {
@@ -490,13 +492,19 @@ fn compute_potable(case: &Value) -> Result<Value, String> {
             let mains = number(i, &["measured_mains_displacement_l"])?;
             let quality = boolean(i, &["quality_evidence_current"])?;
             let control = boolean(i, &["matched_control_profile"])?;
-            if [gross, qualified, recovered, mains].iter().any(|value| *value < 0.0)
+            if [gross, qualified, recovered, mains]
+                .iter()
+                .any(|value| *value < 0.0)
                 || qualified > gross
                 || recovered > qualified
             {
                 return Err(format!("{id}: invalid service-credit boundary"));
             }
-            let credit = if quality && control { qualified.min(recovered).min(mains) } else { 0.0 };
+            let credit = if quality && control {
+                qualified.min(recovered).min(mains)
+            } else {
+                0.0
+            };
             Ok(json!({
                 "gross_treatment_output_l": gross,
                 "measured_recovered_use_l": recovered,
