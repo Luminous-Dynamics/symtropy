@@ -265,6 +265,11 @@ impl SpatialGraph {
     /// in a separate evidence pipeline when cryptographic integrity is needed.
     pub fn digest_non_security(&self) -> Result<u64, GraphError> {
         self.validate()?;
+        Ok(self.digest_validated())
+    }
+
+    /// Hash canonical source content after the caller has validated the graph.
+    fn digest_validated(&self) -> u64 {
         let mut hash = StableHash64::new();
         hash.write_u32(GRAPH_SCHEMA_VERSION);
 
@@ -284,7 +289,7 @@ impl SpatialGraph {
             hash_bytes(&mut hash, fact.relation.as_str().as_bytes());
             hash_bytes(&mut hash, fact.object.as_bytes());
         }
-        Ok(hash.finish())
+        hash.finish()
     }
 }
 
@@ -397,9 +402,9 @@ impl SpatialIndex {
         graph: &SpatialGraph,
         encoder: &HoloFracEncoder,
     ) -> Result<(Self, f64), HoloFracError> {
-        graph.validate()?;
-        let source_graph_digest_non_security = graph.digest_non_security()?;
         let started = Instant::now();
+        graph.validate()?;
+        let source_graph_digest_non_security = graph.digest_validated();
 
         let mut facts = Vec::with_capacity(graph.facts.len());
         for fact in &graph.facts {
@@ -409,8 +414,7 @@ impl SpatialIndex {
             });
         }
 
-        let mut canonical_keys = graph.canonical_facts();
-        canonical_keys.sort();
+        let canonical_keys = graph.canonical_facts();
 
         let index = Self {
             source_graph_digest_non_security,
@@ -581,7 +585,6 @@ pub fn run_benchmark(
     dimension: usize,
     seed: u64,
 ) -> Result<BenchmarkReport, HoloFracError> {
-    graph.validate()?;
     if graph.facts.is_empty() {
         return Err(HoloFracError::Graph(GraphError(
             "benchmark graph must contain at least one fact",
@@ -595,8 +598,8 @@ pub fn run_benchmark(
         scalar_levels: 257,
     };
     let encoder = HoloFracEncoder::new(spec)?;
-    let graph_digest_non_security = graph.digest_non_security()?;
     let (index, index_build_micros) = SpatialIndex::build(graph, &encoder)?;
+    let graph_digest_non_security = index.source_graph_digest_non_security;
 
     let mut queries = Vec::with_capacity(graph.facts.len() * 2);
     for fact in &graph.facts {
