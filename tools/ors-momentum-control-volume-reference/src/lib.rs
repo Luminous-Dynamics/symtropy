@@ -404,9 +404,9 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         ));
     }
 
-    let required_external_resultant_n = scenario.momentum_accumulation_n + advective_momentum_flux_n;
-    let support_on_stream_force_n =
-        required_external_resultant_n - scenario.other_external_force_n;
+    let required_external_resultant_n =
+        scenario.momentum_accumulation_n + advective_momentum_flux_n;
+    let support_on_stream_force_n = required_external_resultant_n - scenario.other_external_force_n;
     let stream_on_support_reaction_n = support_on_stream_force_n.scale(-1.0);
     let reaction_closure_residual_n = support_on_stream_force_n + stream_on_support_reaction_n;
 
