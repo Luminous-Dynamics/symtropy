@@ -6,23 +6,23 @@ Status: standalone, dependency-free Rust reference planner; synthetic-only.
 
 ## Paradigm
 
-A conventional coverage planner asks: "Which route covers the area?"
+The generic evidence-request decision is owned upstream by Symthaea #12046. Its request planner determines which evidence would resolve a decision-relevant uncertainty and supplies the requirement and priority.
 
-An evidence-first planner asks: "Given what is already independently qualified, which next observation closes the most remaining evidence deficit within the available time and energy budget?"
+This crate starts **after** that decision: given an approved finite set of robotics evidence requirements and an upstream-qualified set of candidate viewpoints/actions, which physically feasible sequence best satisfies those requirements within the declared time and energy budgets?
 
-This crate implements a small, deterministic planning primitive for that second question. It can be composed with the PV, AUV, manipulation, or surveying evaluators without granting any of them additional authority.
+It is a robot-domain route/action ordering adapter. It does not decide which institutional claim needs evidence, generate new evidence requests, collect data, authorize disclosure, accept mission stages, or independently qualify a measurement. It composes with the PV, AUV, manipulator and surveying evaluators without granting any of them additional authority.
 
 ## Model
 
-- **Evidence targets** declare the number of required independent passes, minimum view-angle separation, and relative importance.
+- **Evidence targets** declare the number of required independent passes, minimum view-angle separation, and an upstream-supplied priority weight. The weight is consumed as provided; this crate does not estimate decision value or change the request priority.
 - **Existing passes** represent evidence already independently qualified by an upstream evaluator.
 - **Candidates** represent possible next acquisitions. A candidate's covered-target list must come from upstream geometry evaluation; its quality must come from upstream sensor/evidence preflight.
 - **Candidate qualification is fail-closed**: only `Qualified` candidates may be selected. `NotQualified`, `Unknown`, and `InvalidEvidence` are counted and excluded.
 - **Independence** requires a new pass identity and the minimum angular separation from every already-qualified pass for that target.
-- **Greedy objective** selects the candidate with greatest normalized weighted marginal evidence gain per time-equivalent cost. Each qualifying pass contributes target weight divided by that target's required pass count, so targets requiring more independent views are not overweighted merely because they need more passes. The cost includes estimated travel time, acquisition time, explicit risk penalty, and an explicit Wh-to-seconds utility weight.
+- **Greedy objective** orders the approved target set by normalized marginal completion gain per time-equivalent cost. Each qualifying pass contributes upstream-supplied target weight divided by that target's required pass count, so targets requiring more independent views are not overweighted merely because they need more passes. The cost includes estimated travel time, acquisition time, explicit risk penalty, and an explicit Wh-to-seconds utility weight.
 - **Budgets** constrain actual estimated elapsed time and energy independently. The planner stops with Partial/Blocked rather than relaxing evidence requirements.
 
-The candidate list is not a motion plan. Travel time is Euclidean distance divided by a supplied nominal speed; no obstacles, dynamics, acceleration, wind, collision avoidance, geofencing, or flight authorization are modeled.
+The candidate list is not a motion plan. Travel time is Euclidean distance divided by a supplied nominal speed; no obstacles, dynamics, acceleration, wind, collision avoidance, geofencing, or flight authorization are modeled. This package does not replace Symthaea #12046 request selection or Symtropy #5657 mission-stage evidence transitions.
 
 ## Benchmark design
 
