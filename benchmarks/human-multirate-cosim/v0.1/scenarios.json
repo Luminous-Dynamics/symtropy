@@ -227,7 +227,8 @@
       "serial_forward_edge_sweep",
       "serial_reverse_edge_sweep",
       "implicit_midpoint_reference",
-      "backward_euler_reference"
+      "backward_euler_reference",
+      "adaptive_jacobi_shared_flux"
     ],
     "metrics": [
       "max_abs_state_error",
@@ -250,6 +251,21 @@
       "spectral_oracle_eigenvalues",
       "analytic_modal_trajectory"
     ],
-    "claim_ceiling": "Numerical software qualification for these synthetic graph systems only."
+    "claim_ceiling": "Numerical software qualification for these synthetic graph systems only.",
+    "adaptive_config": {
+      "initial_step": "network_horizon",
+      "min_step": 1e-8,
+      "max_step": "network_horizon",
+      "absolute_tolerance": 1e-7,
+      "relative_tolerance": 0.000001,
+      "max_attempts": 100000,
+      "error_estimator": "one_full_step_vs_two_half_steps",
+      "accepted_state": "two_half_step_result",
+      "guards": [
+        "all_nodes_nonnegative_when_initially_nonnegative",
+        "quadratic_energy_nonincrease_with_roundoff_slack"
+      ],
+      "claim": "local error tolerance is not a global error guarantee; score global error independently against the spectral oracle"
+    }
   }
 }
