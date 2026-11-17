@@ -312,3 +312,66 @@ The second proof should add an independently checked truss/beam analysis and sim
 ## Decision
 
 Proceed with a small, measurable geometry grammar and module-interface research track. Prioritize secondary and reconfigurable structures before occupied primary structures. Treat occupant expression and sensory/accessibility choice as functional requirements. Keep structural integrity, environmental protection and life-safety systems independently qualified.
+
+
+
+## Engineering increment — adaptive connector budgets and damage tolerance (2026-11-17)
+
+### 1. Connector capacity is now a generative constraint
+
+The face-attached tetrahedral generator now treats max_ports_per_node as a hard constraint during growth. Before committing a child cell, it checks all three shared face vertices. If any would exceed the interface port budget, that attachment is rejected and counted as a blocked face.
+
+This replaces the earlier post-hoc-only check. The generator can return fewer cells than the full binary recursion upper bound; that is intentional. A smaller design that respects the connector family is preferable to an impossible hub.
+
+Acceptance:
+- zero nodes exceed the configured port budget;
+- all blocked faces are counted;
+- generated graph remains connected;
+- each accepted child retains a valid three-point parent-face attachment;
+- cell/member/node count relationships are checked against the adaptive grammar;
+- deterministic same-build digest includes the blocked-face count.
+
+### 2. Tolerance analysis is a separate engineering gate
+
+The connector-fit module computes the worst-case radial clearance envelope from pin and bore dimensional bands. It rejects interference/insufficient clearance and excessive play. A linear stack reports both arithmetic worst-case sum and root-sum-square (RSS) estimate. RSS is not a guaranteed bound; it assumes independent centered contributions and must not replace worst-case tolerance analysis where safety or interchangeability requires it.
+
+Next improvement: add datum schemes, positional/angular tolerances, thermal expansion, wear, coating and assembly-force models, then validate the predicted fit with physical metrology and repeated assembly cycles.
+
+### 3. Kinematic solvability is not damage tolerance
+
+The companion research/truss-fem-lab is a reference linear-elastic pin-jointed truss solver. The new damage module runs a frozen baseline load case and removes each member in turn. Each removal is classified as:
+- still solvable, with a response envelope;
+- a singular-stiffness / kinematic-mechanism outcome;
+- another typed analysis failure.
+
+Its single-removal solvability fraction is a deterministic scenario fraction, not a probability of physical survival. It must be paired with load spectra, material/joint uncertainty, failure distributions, fatigue, fracture, inspection intervals and physical tests before reliability claims.
+
+### 4. New benchmark dimensions
+
+The structural programme now needs to evaluate:
+
+| Dimension | Measure | Why it matters |
+|---|---|---|
+| Interface feasibility | port count, angular separation, pin/bore clearance, assembly force | avoids connector congestion and impossible fit |
+| Kinematic robustness | full rank / singularity under supports and member knockouts | distinguishes connected geometry from stable frameworks |
+| Damage tolerance | single-member removal envelope and multi-member cut-set response | reveals cascading loss of load path |
+| Repairability | isolate, unload, remove, replace and retest time | measures lifecycle maintainability |
+| Manufacturing variation | tolerance-stack failure rate and as-built deviation | bridges nominal CAD and real production |
+| Robotic assembly | grasp/align/insert/lock/verify success and tool changes | measures actual autonomous buildability |
+| Occupant agency | accessible options for privacy, sensory control and expressive infill | evaluates space as lived environment, not just structure |
+
+The next damage step after single-member removal should be a bounded search over two-member combinations, ranked by load-path criticality, with a fixed scenario budget and no survivor-only reporting.
+
+### 5. Revised design objective
+
+Do not maximize a single graph complexity, cycle count, or stiffness-to-mass score. Evaluate a constrained Pareto family across:
+
+- structural response and reserve capacity;
+- connector standardization and tolerance feasibility;
+- manufacturing yield and inspection access;
+- assembly, disassembly, repair and reuse effort;
+- launch/stowed volume where space-bound;
+- utility routing and isolation;
+- accessibility, privacy, sensory controllability and occupant-authored expression.
+
+An FFMFS candidate only wins when it improves a preregistered, practically meaningful objective against conventional trusses/spaceframes, topology optimization, graded lattices, TPMS and modular voxel assemblies under matched materials, loads, process constraints and evaluation budget.
