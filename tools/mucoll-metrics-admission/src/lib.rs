@@ -200,6 +200,7 @@ pub fn audit_bytes(
     }
 
     let samples = report.pointer("/samples").and_then(Value::as_object);
+    let null_sample = Value::Null;
     let (sample_label, sample) = match samples {
         Some(samples) if samples.len() == 1 => samples.iter().next().unwrap(),
         Some(samples) => {
@@ -207,7 +208,7 @@ pub fn audit_bytes(
                 "aggregate report must contain exactly one sample; found {}",
                 samples.len()
             ));
-            ("", &Value::Null)
+            ("", &null_sample)
         }
         None => {
             errors.push("samples must be an object".to_owned());
@@ -248,7 +249,8 @@ pub fn audit_bytes(
         .cloned()
         .unwrap_or_default();
     let mut admitted_studies = Vec::new();
-    let mut observed_paths = BTreeSet::new();
+    let mut observed_fragment_names = BTreeSet::new();
+    let mut observed_input_path: Option<String> = None;
     for study_name in expected_studies.iter().filter_map(Value::as_str) {
         match admit_study(
             study_name,
@@ -256,7 +258,8 @@ pub fn audit_bytes(
             fragments.get(study_name),
             input_bytes.len() as u64,
             event_count,
-            &mut observed_paths,
+            &mut observed_fragment_names,
+            &mut observed_input_path,
             &mut errors,
         ) {
             Some(study) => admitted_studies.push(study),
@@ -445,7 +448,8 @@ fn admit_study(
     fragment_bytes: Option<&Vec<u8>>,
     reco_input_bytes: u64,
     expected_event_count: Option<u64>,
-    observed_paths: &mut BTreeSet<String>,
+    observed_fragment_names: &mut BTreeSet<String>,
+    observed_input_path: &mut Option<String>,
     errors: &mut Vec<String>,
 ) -> Option<Value> {
     let Some(study) = studies_value.and_then(|value| value.get(study_name)) else {
@@ -474,7 +478,7 @@ fn admit_study(
     if fragment_name.is_none_or(|name| !safe_basename(name)) {
         errors.push(format!("study {study_name:?} fragment name must be a safe basename"));
     } else if let Some(name) = fragment_name {
-        if !observed_paths.insert(name.to_owned()) {
+        if !observed_fragment_names.insert(name.to_owned()) {
             errors.push(format!("fragment basename {name:?} is reused by multiple studies"));
         }
     }
@@ -498,8 +502,12 @@ fn admit_study(
     if input_path.is_none_or(str::is_empty) {
         errors.push(format!("fragment {study_name:?} input path is required"));
     } else if let Some(path) = input_path {
-        if !observed_paths.insert(format!("input:{path}")) {
-            // Repeated input path is expected only when it identifies the same RECO input.
+        match observed_input_path {
+            Some(observed) if observed != path => errors.push(format!(
+                "fragment {study_name:?} refers to a different RECO input path"
+            )),
+            None => *observed_input_path = Some(path.to_owned()),
+            _ => {}
         }
     }
     if fragment.pointer("/input/bytes").and_then(Value::as_u64) != Some(reco_input_bytes) {
