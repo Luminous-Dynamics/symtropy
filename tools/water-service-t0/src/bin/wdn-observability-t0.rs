@@ -569,7 +569,11 @@ fn evaluate_all(inputs: &Value, schema: &Value, oracle: &Value) -> Result<Value,
     }
     let schema_properties = field(schema, "properties", "input schema")?;
     if string(
-        field(schema_properties, "schema_version", "input schema properties")?,
+        field(
+            schema_properties,
+            "schema_version",
+            "input schema properties",
+        )?,
         "const",
         "input schema properties.schema_version",
     )? != INPUT_VERSION
