@@ -289,6 +289,14 @@ fn render_report_json() -> Result<String, String> {
         }
     }
     let fcc_hh_comparator = calculate_case(97.75, 16.0, 0.67)?;
+    // FCC source geometry reports an 82 km arc with 0.80 dipole packing
+    // inside the arcs. Convert that arc-cell value to a ring-wide bending
+    // fraction before comparing it with the effective rho = f*C/(2*pi).
+    let fcc_hh_ringwide_fill_fraction = 0.80 * 82.0 / 97.75;
+    let fill_sensitivity_rows = [0.60, 0.67, fcc_hh_ringwide_fill_fraction, 0.75]
+        .into_iter()
+        .map(|fill| calculate_case(97.75, 16.0, fill).map(render_case_json))
+        .collect::<Result<Vec<_>, _>>()?;
     let fcc_energy_relative_difference = (fcc_hh_comparator.proton_cm_energy_tev - 100.0) / 100.0;
     let fcc_power_relative_difference =
         (fcc_hh_comparator.proton_sr_power_mw_at_reference_current - 2.4) / 2.4;
@@ -299,8 +307,15 @@ fn render_report_json() -> Result<String, String> {
             "\"evidence_class\":\"local_ring_rigidity_and_species_scaling_screen\",",
             "\"comparison_matrix_count\":{},",
             "\"dipole_fill_fraction\":0.67,",
+            "\"dipole_fill_fraction_semantics\":\"ring-wide effective bending length divided by full ring circumference; not arc-cell packing fraction\",",
             "\"circumference_cases_km\":[50.0,100.0,150.0],",
             "\"field_cases_t\":[8.33,14.0,16.0,20.0],",
+            "\"fcc_hh_fill_derivation\":{{",
+            "\"source_arc_length_km\":82.0,",
+            "\"source_arc_cell_dipole_packing_fraction\":0.80,",
+            "\"derived_ringwide_effective_fill_fraction\":{:.9}",
+            "}},",
+            "\"fill_sensitivity_cases\":[{}],",
             "\"fcc_hh_geometry_comparator\":{{",
             "\"source_circumference_km\":97.75,",
             "\"source_centre_of_mass_energy_tev\":100.0,",
@@ -325,7 +340,8 @@ fn render_report_json() -> Result<String, String> {
             "}},",
             "\"cases\":[{}],",
             "\"assumptions\":[",
-            "\"Effective bending radius rho = dipole_fill_fraction * circumference / (2 pi); host-body mean radius is not used.\",",
+            "\"Effective bending radius rho = ringwide_effective_fill * circumference / (2 pi); host-body mean radius is not used.\",",
+            "\"The FCC 0.80 packing fraction applies within its 82 km arcs; converting to full-ring effective bend fraction gives 0.80*82/97.75 = 0.6710997, approximated as 0.67 in the common comparison matrix.\",",
             "\"Symmetric head-on beams; proton and muon rigidity are compared at equal charge magnitude; energies are ultra-relativistic approximations.\",",
             "\"Proton synchrotron power uses a declared 0.5 A reference current and the classical isomagnetic U0 relation; it is not a lattice radiation-integral result.\",",
             "\"Muon injection and synchrotron power use 1.8e12 muons per bunch and 5 Hz as a common NLASG source profile; continuous exponential-decay average only.\",",
@@ -337,6 +353,8 @@ fn render_report_json() -> Result<String, String> {
             "}}"
         ),
         rows.len(),
+        fcc_hh_ringwide_fill_fraction,
+        fill_sensitivity_rows.join(","),
         fcc_hh_comparator.proton_cm_energy_tev,
         fcc_hh_comparator.proton_sr_power_mw_at_reference_current,
         fcc_energy_relative_difference,
@@ -412,6 +430,9 @@ mod tests {
     fn render_contains_all_twelve_cases_and_preserves_claim_ceiling() {
         let report = render_report_json().expect("valid local-ring report");
         assert!(report.contains("\"comparison_matrix_count\":12"));
+        assert!(report.contains("\"dipole_fill_fraction_semantics\":\"ring-wide effective bending length"));
+        assert!(report.contains("\"derived_ringwide_effective_fill_fraction\":0.671099744"));
+        assert!(report.contains("\"fill_sensitivity_cases\""));
         assert!(report.contains("\"circumference_km\":100.000000"));
         assert!(
             report.contains("\"field_evidence_label\":\"hts_stretch_case_not_production_ready\"")
