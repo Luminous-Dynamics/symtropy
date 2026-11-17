@@ -1,0 +1,113 @@
+{
+  "schema_version": "construction-field-layout-run-observation/0.1",
+  "run_id": "synthetic-field-layout-example-001",
+  "task_profile": {
+    "profile_id": "simple-layout-precision-development",
+    "task_family": "simple_layout",
+    "acceptance_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "strata": ["synthetic", "straight-line", "independent-referee"]
+  },
+  "design_work_package": {
+    "package_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "design_revision_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "frame_id": "synthetic-site-frame",
+    "transform_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "entity_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "entity_count": 1
+  },
+  "platform": {
+    "manufacturer": "Synthetic",
+    "system_name": "Reference Layout Robot",
+    "serial_id": "SYNTHETIC-UNIT-001",
+    "firmware_version": "synthetic-0.1",
+    "software_version": "synthetic-0.1",
+    "build_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "operating_mode": "precision-line",
+    "positioning_method": "independent-fixture",
+    "tracker_or_total_station_model": "Synthetic reference instrument",
+    "prism_or_reflector_model": "Synthetic reflector",
+    "stationing_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sensor_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "tool_config_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "payload_config_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "collision_model_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+  },
+  "site": {
+    "site_id": "synthetic-site",
+    "lab_id": "lab-synthetic",
+    "serial_unit_id": "unit-synthetic",
+    "operator_id": "operator-synthetic",
+    "session_id": "session-synthetic-001",
+    "surface_profile": "synthetic-flat-slab",
+    "environment_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "obstacle_profile_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "start_time_utc": "2026-11-17T10:00:00Z",
+    "end_time_utc": "2026-11-17T10:15:00Z"
+  },
+  "metrology": {
+    "reference_instrument_id": "synthetic-independent-reference",
+    "reference_instrument_model": "Synthetic measurement fixture",
+    "calibration_record_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "reference_chain_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "independent_of_robot_control": true,
+    "expanded_uncertainty_u95_mm": {
+      "x": 0.2,
+      "y": 0.2,
+      "z": 0.5
+    },
+    "uncertainty_budget_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "control_network_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "execution": {
+    "robot_claimed_disposition": "COMPLETE",
+    "execution_disposition": "OBSERVED",
+    "attempted_entity_count": 1,
+    "intervention_count": 0,
+    "fault_event_count": 0,
+    "station_verification_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "event_log_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "accounting": {
+    "crew_hours": {
+      "bim_vdc": 0.25,
+      "coordination": 0.1,
+      "survey_control": 0.2,
+      "setup_calibration": 0.15,
+      "stationing": 0.1,
+      "execution_supervision": 0.1,
+      "inspection": 0.1,
+      "recovery": 0,
+      "rework": 0.05,
+      "other": 0
+    },
+    "elapsed_minutes": 15,
+    "equipment_energy_wh": 8.5,
+    "consumable_cost_minor_units": 120,
+    "rework_hours": 0.05,
+    "waiting_hours": 0,
+    "battery_or_ink_events": 0
+  },
+  "entity_observations": [
+    {
+      "design_entity_id": "LINE-0001",
+      "entity_type": "line",
+      "robot_claimed_state": "PRINTED",
+      "referee_state": "REJECTED",
+      "measurement_disposition": "MEASURED",
+      "residual_mm": {
+        "x": 1.4,
+        "y": -1.1,
+        "z": 0
+      },
+      "reference_u95_mm": {
+        "x": 0.2,
+        "y": 0.2,
+        "z": 0.5
+      },
+      "measurement_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "acceptance_reason": "Synthetic example: independently measured residual exceeds the illustrative 1.0 mm precision threshold.",
+      "rework_event_id": "REWORK-0001"
+    }
+  ],
+  "raw_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+}
