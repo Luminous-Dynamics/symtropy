@@ -387,8 +387,9 @@ mod tests {
     use super::*;
     use crate::active_benchmark::wrench_consistency::{
         ReferenceIndependenceDisposition as WrenchReferenceIndependence, TaxelGeometry,
-        TaxelGeometrySet, Vec3, WrenchObservation, WrenchReferenceEvidence,
-        assess_wrench_consistency, build_wrench_operator, integrate_tactile_field,
+        TaxelGeometrySet, Vec3, WrenchCovariance6, WrenchObservation,
+        WrenchObservationBinding, WrenchReferenceEvidence, assess_wrench_consistency,
+        build_wrench_operator, integrate_tactile_field,
     };
 
     fn evidence() -> FrictionQualificationEvidence {
