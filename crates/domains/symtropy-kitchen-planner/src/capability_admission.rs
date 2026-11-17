@@ -1142,9 +1142,12 @@ mod tests {
         request.recipe.tasks[0].ingredient_inputs[0].quantity.value = u64::MAX;
         let report = evaluate_kitchen_capability_admission(&request);
         assert_eq!(report.disposition, KitchenCapabilityDispositionV1::Blocked);
-        assert!(report.task_assessments[0].issues.iter().any(|issue| {
-            issue.code == KitchenCapabilityIssueCodeV1::BatchAboveMaximum
-        }));
+        assert!(
+            report.task_assessments[0]
+                .issues
+                .iter()
+                .any(|issue| { issue.code == KitchenCapabilityIssueCodeV1::BatchAboveMaximum })
+        );
     }
 
     #[test]
