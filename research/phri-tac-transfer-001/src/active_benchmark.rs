@@ -12,6 +12,7 @@
 
 pub mod adversarial;
 pub mod field_reconstruction;
+pub mod field_campaign;
 pub mod model_forms;
 
 const PARAMS: usize = 8;
