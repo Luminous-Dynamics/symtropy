@@ -187,7 +187,12 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &cpath,
             "independently_verified",
         )?;
-        require_string(component, "customs_classification_status", &cpath, "unknown")?;
+        require_string(
+            component,
+            "customs_classification_status",
+            &cpath,
+            "unknown",
+        )?;
         require_string(component, "preference_claim_status", &cpath, "unknown")?;
         require_string(component, "local_content_status", &cpath, "unknown")?;
         for key in [
@@ -196,7 +201,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             "local_content_method_ref",
         ] {
             if !field(component, key, &cpath)?.is_null() {
-                return Err(format!("{cpath}.{key}: synthetic fixture cannot claim customs/origin/local-content evidence"));
+                return Err(format!(
+                    "{cpath}.{key}: synthetic fixture cannot claim customs/origin/local-content evidence"
+                ));
             }
         }
     }
@@ -244,11 +251,15 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             &format!("{opath}.required_evidence_refs"),
         )?;
         if !required_evidence.is_empty() {
-            return Err(format!("{opath}.required_evidence_refs: synthetic fixture cannot claim real evidence"));
+            return Err(format!(
+                "{opath}.required_evidence_refs: synthetic fixture cannot claim real evidence"
+            ));
         }
         for key in ["responsible_party_ref", "reviewer_ref"] {
             if !field(obligation, key, &opath)?.is_null() {
-                return Err(format!("{opath}.{key}: synthetic fixture cannot identify a real responsible party or reviewer"));
+                return Err(format!(
+                    "{opath}.{key}: synthetic fixture cannot identify a real responsible party or reviewer"
+                ));
             }
         }
         let source = field(obligation, "source", &opath)?;
@@ -261,7 +272,12 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
                 "{opath}.source.source_digest: synthetic sentinel required"
             ));
         }
-        require_string(source, "source_language", &format!("{opath}.source"), "undetermined")?;
+        require_string(
+            source,
+            "source_language",
+            &format!("{opath}.source"),
+            "undetermined",
+        )?;
         for date_key in [
             "publication_date",
             "entry_into_force_date",
@@ -487,8 +503,8 @@ mod tests {
     #[test]
     fn rejects_customs_eligibility_from_unknown_classification() {
         let mut fixture = fixture_value();
-        fixture["profiles"][0]["supply_chain"]["components"][0]
-            ["customs_classification_status"] = Value::String("verified".to_owned());
+        fixture["profiles"][0]["supply_chain"]["components"][0]["customs_classification_status"] =
+            Value::String("verified".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
     }
@@ -496,8 +512,8 @@ mod tests {
     #[test]
     fn rejects_unsubstantiated_preference_claim() {
         let mut fixture = fixture_value();
-        fixture["profiles"][0]["supply_chain"]["components"][0]
-            ["preference_claim_status"] = Value::String("verified_eligible".to_owned());
+        fixture["profiles"][0]["supply_chain"]["components"][0]["preference_claim_status"] =
+            Value::String("verified_eligible".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
     }
