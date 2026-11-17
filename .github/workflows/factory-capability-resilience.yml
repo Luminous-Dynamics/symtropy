@@ -37,4 +37,4 @@ jobs:
         shell: bash
         run: |
           test "$(wc -l < /tmp/factory-capability-resilience.tsv)" -eq 15
-          awk -F '\\t' '$1 == "S00" && $5 == 3 && $6 == 3 { baseline=1 } $1 == "S08" && $3 == "partner_d" && $5 == 3 && $6 == 3 { unknown=1 } $1 == "S13" && $2 != "" && $7 == "false" { rejected=1 } END { exit !(baseline && unknown && rejected) }' /tmp/factory-capability-resilience.tsv
+          awk -F '\t' '$1 == "S00" && $5 == 3 && $6 == 3 { baseline=1 } $1 == "S08" && $3 == "partner_d" && $5 == 3 && $6 == 3 { unknown=1 } $1 == "S13" && $2 != "" && $7 == "false" { rejected=1 } END { exit !(baseline && unknown && rejected) }' /tmp/factory-capability-resilience.tsv
