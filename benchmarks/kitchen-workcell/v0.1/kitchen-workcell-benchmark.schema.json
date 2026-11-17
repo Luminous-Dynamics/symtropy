@@ -14,7 +14,8 @@
     "metrics",
     "target_hypotheses",
     "runs",
-    "power_scheduler"
+    "power_scheduler",
+    "planner_baselines"
   ],
   "properties": {
     "schema_version": {
@@ -424,6 +425,67 @@
         "claim_boundary": {
           "type": "string",
           "minLength": 10
+        }
+      }
+    },
+    "planner_baselines": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "baseline_id",
+          "class",
+          "status",
+          "description",
+          "evaluation_role"
+        ],
+        "properties": {
+          "baseline_id": {
+            "type": "string"
+          },
+          "class": {
+            "enum": [
+              "human_practitioner",
+              "serial_greedy",
+              "resource_greedy",
+              "power_constrained",
+              "recipe2plan_external",
+              "recipe_grounding_external",
+              "exact_solver_lower_bound"
+            ]
+          },
+          "status": {
+            "enum": [
+              "existing_local",
+              "proposed_not_implemented",
+              "external_public_benchmark",
+              "not_acquired"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "implementation_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "dataset_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          },
+          "evaluation_role": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
