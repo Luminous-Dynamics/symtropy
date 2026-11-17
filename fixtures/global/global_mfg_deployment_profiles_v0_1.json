@@ -24,6 +24,14 @@
         ],
         "service_jurisdictions": [
           "urn:luminous:synthetic:jurisdiction:service-1"
+        ],
+        "supplier_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-1-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-1-b"
+        ],
+        "transformation_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:transform-1-1",
+          "urn:luminous:synthetic:jurisdiction:transform-1-2"
         ]
       },
       "global_core": {
@@ -110,7 +118,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-1-1"
+            ]
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -126,7 +137,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-1-2"
+            ]
           }
         ],
         "origin_claims": "not_established"
@@ -185,7 +199,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "manufacturing_site"
         },
         {
           "obligation_id": "SYNTH-OB-1-MARKET",
@@ -221,7 +236,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "destination_market"
         },
         {
           "obligation_id": "SYNTH-OB-1-DATA",
@@ -257,7 +273,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "data_processing"
         },
         {
           "obligation_id": "SYNTH-OB-1-SERVICE",
@@ -293,7 +310,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "service_lifecycle"
         }
       ],
       "claims": {
@@ -324,6 +342,14 @@
         ],
         "service_jurisdictions": [
           "urn:luminous:synthetic:jurisdiction:service-2"
+        ],
+        "supplier_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-2-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-2-b"
+        ],
+        "transformation_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:transform-2-1",
+          "urn:luminous:synthetic:jurisdiction:transform-2-2"
         ]
       },
       "global_core": {
@@ -411,7 +437,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-2-1"
+            ]
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -427,7 +456,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-2-2"
+            ]
           }
         ],
         "origin_claims": "not_established"
@@ -486,7 +518,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "manufacturing_site"
         },
         {
           "obligation_id": "SYNTH-OB-2-MARKET",
@@ -522,7 +555,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "destination_market"
         },
         {
           "obligation_id": "SYNTH-OB-2-DATA",
@@ -558,7 +592,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "data_processing"
         },
         {
           "obligation_id": "SYNTH-OB-2-SERVICE",
@@ -594,7 +629,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "service_lifecycle"
         }
       ],
       "claims": {
@@ -625,6 +661,14 @@
         ],
         "service_jurisdictions": [
           "urn:luminous:synthetic:jurisdiction:service-3"
+        ],
+        "supplier_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-3-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-3-b"
+        ],
+        "transformation_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:transform-3-1",
+          "urn:luminous:synthetic:jurisdiction:transform-3-2"
         ]
       },
       "global_core": {
@@ -712,7 +756,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-3-1"
+            ]
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -728,7 +775,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-3-2"
+            ]
           }
         ],
         "origin_claims": "not_established"
@@ -787,7 +837,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "manufacturing_site"
         },
         {
           "obligation_id": "SYNTH-OB-3-MARKET",
@@ -823,7 +874,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "destination_market"
         },
         {
           "obligation_id": "SYNTH-OB-3-DATA",
@@ -859,7 +911,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "data_processing"
         },
         {
           "obligation_id": "SYNTH-OB-3-SERVICE",
@@ -895,7 +948,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "service_lifecycle"
         }
       ],
       "claims": {
@@ -926,6 +980,14 @@
         ],
         "service_jurisdictions": [
           "urn:luminous:synthetic:jurisdiction:service-4"
+        ],
+        "supplier_site_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:supplier-4-a",
+          "urn:luminous:synthetic:jurisdiction:supplier-4-b"
+        ],
+        "transformation_jurisdictions": [
+          "urn:luminous:synthetic:jurisdiction:transform-4-1",
+          "urn:luminous:synthetic:jurisdiction:transform-4-2"
         ]
       },
       "global_core": {
@@ -1013,7 +1075,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-4-1"
+            ]
           },
           {
             "component_ref": "urn:luminous:synthetic:component:power-electronics",
@@ -1029,7 +1094,10 @@
             "origin_rule_ref": null,
             "preference_claim_status": "unknown",
             "local_content_method_ref": null,
-            "local_content_status": "unknown"
+            "local_content_status": "unknown",
+            "transformation_jurisdictions": [
+              "urn:luminous:synthetic:jurisdiction:transform-4-2"
+            ]
           }
         ],
         "origin_claims": "not_established"
@@ -1088,7 +1156,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "manufacturing_site"
         },
         {
           "obligation_id": "SYNTH-OB-4-MARKET",
@@ -1124,7 +1193,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "destination_market"
         },
         {
           "obligation_id": "SYNTH-OB-4-DATA",
@@ -1160,7 +1230,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "data_processing"
         },
         {
           "obligation_id": "SYNTH-OB-4-SERVICE",
@@ -1196,7 +1267,8 @@
           "responsible_party_ref": null,
           "conformity_route": "unknown",
           "required_evidence_refs": [],
-          "reviewer_ref": null
+          "reviewer_ref": null,
+          "jurisdiction_dimension": "service_lifecycle"
         }
       ],
       "claims": {
@@ -1297,6 +1369,24 @@
       "mutation": "local_content_claim_without_method",
       "expected_disposition": "REJECT_OR_ABSTAIN",
       "reason": "A local-content percentage or incentive claim is made without a named method, numerator, denominator and supporting evidence."
+    },
+    {
+      "case_id": "NC-16",
+      "mutation": "obligation_dimension_mismatch",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "An obligation's jurisdiction belongs to a different deployment dimension than its declared scope."
+    },
+    {
+      "case_id": "NC-17",
+      "mutation": "supplier_site_jurisdiction_omitted",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A component supplier/manufacturing location is missing from the profile's supplier-site jurisdiction set."
+    },
+    {
+      "case_id": "NC-18",
+      "mutation": "transformation_jurisdiction_missing",
+      "expected_disposition": "REJECT_OR_ABSTAIN",
+      "reason": "A legally relevant component transformation location is not represented in the profile's transformation jurisdiction set."
     }
   ]
 }
