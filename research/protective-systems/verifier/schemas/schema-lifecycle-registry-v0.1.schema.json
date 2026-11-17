@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/protective-schema-lifecycle-v0.1.schema.json",
+  "title": "Protective Systems Schema Lifecycle Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "registry_version",
+    "snapshot_date",
+    "policy",
+    "profiles",
+    "compatibility_observations"
+  ],
+  "properties": {
+    "registry_version": {
+      "const": "protective-schema-lifecycle/0.1"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "only_final_profiles_can_be_admitted",
+        "schema_digest_required",
+        "full_admission_requires_complete_dependency_bundle",
+        "full_admission_requires_validator_receipt",
+        "drafts_are_shadow_only",
+        "unknown_lifecycle_abstains",
+        "version_increment_implies_compatibility",
+        "historical_replay_requires_exact_profile_and_mapping_digest",
+        "automatic_upgrade"
+      ],
+      "properties": {
+        "only_final_profiles_can_be_admitted": {
+          "const": true
+        },
+        "schema_digest_required": {
+          "const": true
+        },
+        "full_admission_requires_complete_dependency_bundle": {
+          "const": true
+        },
+        "full_admission_requires_validator_receipt": {
+          "const": "PASS_EXACT_HEAD"
+        },
+        "drafts_are_shadow_only": {
+          "const": true
+        },
+        "unknown_lifecycle_abstains": {
+          "const": true
+        },
+        "version_increment_implies_compatibility": {
+          "const": false
+        },
+        "historical_replay_requires_exact_profile_and_mapping_digest": {
+          "const": true
+        },
+        "automatic_upgrade": {
+          "const": false
+        }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_id",
+          "standard",
+          "part",
+          "version",
+          "lifecycle",
+          "lifecycle_source",
+          "source_repository",
+          "source_ref",
+          "source_path",
+          "source_blob_sha1",
+          "local_snapshot_path",
+          "schema_sha256",
+          "byte_length",
+          "bundle_completeness",
+          "external_dependencies",
+          "validation_scope",
+          "validator_id",
+          "validator_receipt",
+          "mapping_manifest_version",
+          "promotion_note"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "standard": {
+            "type": "string",
+            "minLength": 1
+          },
+          "part": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "lifecycle": {
+            "enum": [
+              "FINAL",
+              "DRAFT",
+              "DEPRECATED",
+              "RETIRED",
+              "UNKNOWN"
+            ]
+          },
+          "lifecycle_source": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_blob_sha1": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([a-f0-9]{40})?$"
+          },
+          "local_snapshot_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "schema_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^([a-f0-9]{64})?$"
+          },
+          "byte_length": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "bundle_completeness": {
+            "enum": [
+              "COMPLETE_LOCAL_SCHEMA",
+              "PARTIAL_EXTERNAL_REFERENCES",
+              "NOT_BUNDLED",
+              "UNVERIFIED"
+            ]
+          },
+          "external_dependencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "validation_scope": {
+            "enum": [
+              "FULL_RUN_EVENT_JSON_SCHEMA",
+              "FULL_PROFILE_CONFORMANCE",
+              "SELECTED_PROFILE_RULES",
+              "NOT_VALIDATED"
+            ]
+          },
+          "validator_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "validator_receipt": {
+            "enum": [
+              "PASS_EXACT_HEAD",
+              "PENDING_EXACT_HEAD_CI",
+              "NONE",
+              "FAIL_EXACT_HEAD"
+            ]
+          },
+          "mapping_manifest_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "promotion_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "compatibility_observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from_profile",
+          "to_profile",
+          "compatibility",
+          "decision",
+          "reason"
+        ],
+        "properties": {
+          "from_profile": {
+            "type": "string"
+          },
+          "to_profile": {
+            "type": "string"
+          },
+          "compatibility": {
+            "enum": [
+              "EXACT_SAME_PROFILE",
+              "PATCH_COMPATIBLE",
+              "ADDITIVE_COMPATIBLE",
+              "LOSSY",
+              "SEMANTIC_BREAK",
+              "BREAKING",
+              "UNKNOWN",
+              "NOT_COMPARABLE_SEPARATE_PART"
+            ]
+          },
+          "decision": {
+            "enum": [
+              "NO_MIGRATION",
+              "SHADOW_ONLY",
+              "BLOCKED_DRAFT",
+              "REVIEW_REQUIRED",
+              "ABSTAIN"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -372,3 +372,33 @@ The OpenLineage E3 facet must match its embedded E1 analysis ID and
 The E4 prototype has 32 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
+
+
+## E6 schema lifecycle and adapter promotion gate
+
+The `protect-schema-evolution-e6` binary evaluates a dated registry of
+DataCite, OGC API - Records and OpenLineage profiles. It distinguishes
+upstream lifecycle (FINAL/DRAFT/DEPRECATED/RETIRED/UNKNOWN) from the actual
+validation scope and evidence required to admit an adapter profile.
+
+The gate keeps drafts in shadow mode, final standards with partial dependency
+bundles at selected-profile-only, full-schema profiles pending until an
+exact-head validator receipt, and deprecated profiles available only for
+historical replay. Version-number increases never imply compatibility and
+automatic upgrade is disabled.
+
+Pinned root snapshots live under
+`research/protective-systems/verifier/schemas/`; the dated profile registry
+is at `research/protective-systems/verifier/fixtures/schema-lifecycle-registry-v0.1.json`.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/protective-systems/verifier/Cargo.toml --all -- --check
+cargo clippy --manifest-path research/protective-systems/verifier/Cargo.toml --all-targets -- -D warnings
+cargo test --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-schema-evolution-e6
+cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-schema-evolution-e6
+```
+
+E6 has 34 Rust unit tests written; exact-head hosted formatting, compilation,
+Clippy, tests and executable evidence remain pending.

@@ -1,0 +1,49 @@
+---
+type: object
+required:
+  - id
+  - type
+  - geometry
+  - properties
+properties:
+  id:
+    oneOf:
+      - type: string
+      - type: integer
+    description: |-
+      A unique identifier of the catalog record.
+  type:
+    type: string
+    enum:
+      - Feature
+  time:
+    oneOf:
+      - type: object
+        nullable: true
+      - $ref: 'time.yaml'
+  geometry:
+    oneOf:
+      - type: object
+        nullable: true
+      - $ref: 'https://schemas.opengis.net/ogcapi/features/part1/1.0/openapi/schemas/geometryGeoJSON.yaml'
+  conformsTo:
+    type: array
+    description: |-
+      The extensions/conformance classes used in this record.
+    items:
+      type: string
+  properties:
+    oneOf:
+      - type: object
+        nullable: true
+      - allOf:
+        - type: object
+        - $ref: 'recordCommonProperties.yaml'
+  links:
+    type: array
+    items:
+      $ref: 'link.yaml'
+  linkTemplates:
+    type: array
+    items:
+      $ref: 'linkTemplate.yaml'
