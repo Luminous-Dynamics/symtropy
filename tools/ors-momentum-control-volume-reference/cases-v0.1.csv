@@ -1,0 +1,7 @@
+case_id,mass_accumulation_kg_s,momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,other_external_force_x_n,other_external_force_y_n,other_external_force_z_n
+STRAIGHT_THROUGH,0,0,0,0,0,0,0
+TURN_90_DEG,0,0,0,0,0,0,0
+UNSTEADY_STORAGE,1,2,-1,0.5,1,2,3
+MULTIPORT_3D,0,1,2,3,2,-1,4
+OTHER_FORCE_ISOLATION,0,0,0,0,-1,3,1
+NEAR_REVERSAL_179,0,0,0,0,0,0,0
