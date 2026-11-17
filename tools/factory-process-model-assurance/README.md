@@ -53,7 +53,7 @@ Task strata:
 - **S01–S08 structural extensions:** qualified workers, tooling/fixtures, AGV transport, maintenance calendars, sequence-dependent setup/segregation, material genealogy, inspection hold points, and calibration scope.
 - **C01–C05 compositional changes:** worker/resource interaction, transport plus sequencing, material/process/inspection coupling, version/time/source conflict, and non-anticipative future changes.
 
-Each task binds a base model revision, a source/change-request revision, effective and observed times, an exact product/process scope, expected obligation IDs, expected model-delta IDs, and forbidden side effects. A production-grade harness must reject source revision, identity, unit, timestamp and applicability mismatch.
+Files include `tasks-v0.1.tsv` (18 tasks), `obligations-v0.1.tsv` (29 typed obligation projections), and `mutations-v0.1.tsv` (16 semantic mutations). Every obligation and mutation target is cross-referenced against the obligation manifest. Task identifiers use `synthetic-ref:` handles, not fabricated SHA-256 digests. Each task binds a base model revision, a source/change-request revision, effective and observed times, an exact product/process scope, expected obligation IDs, expected model-delta IDs, and forbidden side effects. A production-grade harness must reject source revision, identity, unit, timestamp and applicability mismatch. The obligation manifest is a local verifier projection; canonical quantity, material, process, inspection and authority semantics remain with their existing owners.
 
 ## Semantic obligation contract
 
