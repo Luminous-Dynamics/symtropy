@@ -444,7 +444,7 @@ pub fn evaluate(
         }
     }
 
-    let mut cost_ids = BTreeSet::new();
+    let mut cost_ids: BTreeSet<(&str, &str)> = BTreeSet::new();
     for item in costs {
         if !cases_by_id.contains_key(item.case_id.as_str()) {
             return Err(format!("orphan cost item for unknown case: {}", item.case_id));
@@ -459,8 +459,11 @@ pub fn evaluate(
                 return Err(format!("cost item {}: invalid {label}", item.cost_item_id));
             }
         }
-        if !cost_ids.insert(item.cost_item_id.as_str()) {
-            return Err(format!("duplicate cost_item_id: {}", item.cost_item_id));
+        if !cost_ids.insert((item.case_id.as_str(), item.cost_item_id.as_str())) {
+            return Err(format!(
+                "duplicate cost_item_id within case {}: {}",
+                item.case_id, item.cost_item_id
+            ));
         }
         if !valid_currency(&item.currency) || !valid_date(&item.price_date) {
             return Err(format!("cost item {}: invalid currency or price date", item.cost_item_id));
@@ -498,8 +501,8 @@ pub fn evaluate(
         }
     }
 
-    let mut output_ids = BTreeSet::new();
-    let mut release_refs = BTreeSet::new();
+    let mut output_ids: BTreeSet<(&str, &str)> = BTreeSet::new();
+    let mut release_refs: BTreeSet<(&str, &str)> = BTreeSet::new();
     for output in outputs {
         if !cases_by_id.contains_key(output.case_id.as_str()) {
             return Err(format!("orphan output for unknown case: {}", output.case_id));
@@ -507,15 +510,15 @@ pub fn evaluate(
         if !valid_ref(&output.output_id) {
             return Err(format!("invalid output identity: {}", output.output_id));
         }
-        if !output_ids.insert(output.output_id.as_str()) {
-            return Err(format!("output identity reused across records: {}", output.output_id));
+        if !output_ids.insert((output.case_id.as_str(), output.output_id.as_str())) {
+            return Err(format!("output identity reused within case: {}", output.output_id));
         }
         if output.final_disposition.is_released() {
             if !valid_ref(&output.release_ref) {
                 return Err(format!("released output {} lacks a valid release reference", output.output_id));
             }
-            if !release_refs.insert(output.release_ref.as_str()) {
-                return Err(format!("release reference reused across outputs: {}", output.release_ref));
+            if !release_refs.insert((output.case_id.as_str(), output.release_ref.as_str())) {
+                return Err(format!("release reference reused within case: {}", output.release_ref));
             }
         } else if output.release_ref != "-" {
             return Err(format!("non-released output {} carries a release reference", output.output_id));
@@ -897,7 +900,17 @@ mod tests {
         let costs = parse_cost_items(COST_ITEMS).unwrap();
         assert!(evaluate(&cases, &costs, &outputs)
             .unwrap_err()
-            .contains("output identity reused"));
+            .contains("output identity reused within case"));
+    }
+
+    #[test]
+    fn counterfactual_cases_may_reuse_output_identity() {
+        let (cases, costs, mut outputs) = parsed();
+        let mut alternate = outputs[0].clone();
+        alternate.case_id = "out_of_scope_excluded".into();
+        alternate.release_ref = "release:counterfactual-alternate".into();
+        outputs.push(alternate);
+        assert!(evaluate(&cases, &costs, &outputs).is_ok());
     }
 
     #[test]
@@ -906,7 +919,17 @@ mod tests {
         costs[1].cost_item_id = costs[0].cost_item_id.clone();
         assert!(evaluate(&cases, &costs, &outputs)
             .unwrap_err()
-            .contains("duplicate cost_item_id"));
+            .contains("duplicate cost_item_id within case"));
+    }
+
+    #[test]
+    fn counterfactual_cases_may_reuse_cost_item_identity() {
+        let (cases, mut costs, outputs) = parsed();
+        let mut alternate = costs[0].clone();
+        alternate.case_id = "route_ineligible".into();
+        alternate.batch_ref = "batch:run-004".into();
+        costs.push(alternate);
+        assert!(evaluate(&cases, &costs, &outputs).is_ok());
     }
 
     #[test]
