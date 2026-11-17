@@ -1,0 +1,237 @@
+{
+  "schema_version": "waterloop-modular-icd-v0.1",
+  "status": "preliminary_not_for_construction_or_procurement",
+  "parent_issue": "Luminous-Dynamics/symtropy#5784",
+  "design_reference": "research/water-service-engineering/WATERLOOP_MODULAR_PLATFORM_DESIGN_V0_1.md",
+  "intended_use": {
+    "profile_id": "nonpotable-toilet-flushing-v0.1",
+    "potable_use": false,
+    "first_feed_sources": [
+      "shower",
+      "hand_basin"
+    ],
+    "excluded_sources": [
+      "toilet_blackwater",
+      "kitchen_grease",
+      "industrial_process",
+      "laundry_normal_operation"
+    ],
+    "laundry_status": "isolated_challenge_inlet_only"
+  },
+  "physical_zones": [
+    {
+      "zone_id": "Z01",
+      "name": "Source separation and capture",
+      "inputs": [
+        "shower_drain",
+        "hand_basin_drain"
+      ],
+      "outputs": [
+        "screened_greywater",
+        "screenings"
+      ],
+      "required_isolation": true
+    },
+    {
+      "zone_id": "Z02",
+      "name": "Equalisation and feed conditioning",
+      "inputs": [
+        "screened_greywater"
+      ],
+      "outputs": [
+        "conditioned_feed",
+        "overflow_or_expired_batch"
+      ],
+      "required_isolation": true
+    },
+    {
+      "zone_id": "Z03",
+      "name": "Replaceable treatment cassette",
+      "inputs": [
+        "conditioned_feed"
+      ],
+      "outputs": [
+        "cassette_treated_water",
+        "reject_backwash",
+        "drain"
+      ],
+      "required_isolation": true
+    },
+    {
+      "zone_id": "Z04",
+      "name": "Quarantine and sampling",
+      "inputs": [
+        "cassette_treated_water"
+      ],
+      "outputs": [
+        "quarantined_batch",
+        "failed_batch_to_authorized_waste"
+      ],
+      "required_isolation": true
+    },
+    {
+      "zone_id": "Z05",
+      "name": "Final barrier and use-specific distribution",
+      "inputs": [
+        "released_batch"
+      ],
+      "outputs": [
+        "toilet_flushing_test_fixture",
+        "distribution_drain"
+      ],
+      "required_isolation": true
+    },
+    {
+      "zone_id": "Z06",
+      "name": "Residual collection",
+      "inputs": [
+        "screenings",
+        "sediment",
+        "reject_backwash",
+        "cleaning_water",
+        "failed_batch"
+      ],
+      "outputs": [
+        "authorized_residual_handling"
+      ],
+      "required_isolation": true
+    }
+  ],
+  "module_interface": {
+    "module_id": "treatment_cassette",
+    "mechanical": {
+      "mount": "removable_keyed_cartridge_or_skid",
+      "envelope_dimensions_mm": null,
+      "mass_kg": null,
+      "orientation": "defined_per_cassette_revision",
+      "lifting_points": "to_be_engineered",
+      "drip_tray_required": true
+    },
+    "fluid_ports": [
+      {
+        "port_id": "P1",
+        "name": "feed_inlet",
+        "service": "greywater_feed",
+        "connection_type": "keyed_non_interchangeable",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      },
+      {
+        "port_id": "P2",
+        "name": "treated_outlet",
+        "service": "cassette_treated_water_to_quarantine_only",
+        "connection_type": "keyed_non_interchangeable",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      },
+      {
+        "port_id": "P3",
+        "name": "reject_backwash",
+        "service": "process_reject",
+        "connection_type": "keyed_non_interchangeable",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      },
+      {
+        "port_id": "P4",
+        "name": "drain_cleanout",
+        "service": "drain_cleaning_water",
+        "connection_type": "keyed_non_interchangeable",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      },
+      {
+        "port_id": "P5",
+        "name": "sample_feed",
+        "service": "sample_only",
+        "connection_type": "approved_sample_valve",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      },
+      {
+        "port_id": "P6",
+        "name": "sample_product",
+        "service": "sample_only",
+        "connection_type": "approved_sample_valve",
+        "nominal_size": null,
+        "pressure_range": null,
+        "flow_range": null
+      }
+    ],
+    "instrumentation": [
+      "module_feed_flow",
+      "module_product_flow",
+      "module_reject_flow",
+      "inlet_pressure",
+      "outlet_pressure",
+      "differential_pressure_when_applicable",
+      "module_energy",
+      "module_temperature_when_required",
+      "module_state",
+      "fault_code"
+    ],
+    "electrical": {
+      "supply_voltage": null,
+      "frequency_hz": null,
+      "maximum_power_w": null,
+      "protective_earth_required": true,
+      "overcurrent_protection": "qualified_electrical_design",
+      "isolation_disconnect_required": true
+    },
+    "data": {
+      "module_uid_required": true,
+      "hardware_revision_required": true,
+      "process_revision_required": true,
+      "firmware_revision_required": true,
+      "calibration_manifest_ref_required": true,
+      "feed_envelope_manifest_required": true,
+      "intended_use_profile_bound": true,
+      "fail_state_manifest_required": true
+    },
+    "operating_envelope": {
+      "feed_quality_min_max": "TBD from characterised source and approved test envelope",
+      "flow_min_max": "TBD from module qualification",
+      "pressure_min_max": "TBD from pump/module review",
+      "temperature_min_max": "TBD from manufacturer and process testing",
+      "raw_feed_max_residence_time": "TBD from source-specific storage trials",
+      "continuous_duty": "not assumed"
+    }
+  },
+  "physical_safety_constraints": [
+    "No direct potable-to-reclaimed cross-connection",
+    "No module bypass that feeds untreated water into quarantine release or reuse distribution",
+    "Potable make-up, if ever required, must use an approved physical air gap/break tank and backflow arrangement reviewed by the local authority/professional",
+    "Critical fault causes physical output isolation; software state alone is not the sole barrier",
+    "Feed, product, reject and drain connections are physically keyed or otherwise demonstrably resistant to misconnection",
+    "Pressure-containing components require compatible ratings, relief strategy and qualified design review",
+    "Ozone is excluded from A0 build pending an independent ozone/off-gas/exposure safety case"
+  ],
+  "acceptance_evidence": [
+    "mechanical fit and removal without opening contaminated vessels",
+    "port keying and misconnection challenge",
+    "static and dynamic leak integrity within approved test envelope",
+    "flow and pressure boundary measurement",
+    "zero flow-path cross-connection under seeded single-fault conditions",
+    "energy and all reject/overflow/cleaning flows metered",
+    "isolation on loss of control power and loss of critical evidence",
+    "configuration and module identity uniquely recorded"
+  ],
+  "unresolved_dimensions": [
+    "skid width/height/depth",
+    "vessel working and gross capacities",
+    "nominal process flow and duty cycle",
+    "pump curve, head and NPSH margin",
+    "membrane area and flux",
+    "UV reactor validated dose envelope",
+    "pipe nominal sizes and pressure class",
+    "electrical supply and protection details",
+    "material specifications and chemical compatibility"
+  ],
+  "no_procurement_authority": true,
+  "no_installation_authority": true
+}
