@@ -262,7 +262,7 @@ impl SpectralOracle {
 
             let eigenvalue = self.eigenvalues[mode];
             let decay = (-eigenvalue * duration).exp();
-            let forcing_integral = if eigenvalue.abs() <= 1.0e-14 {
+            let forcing_integral = if eigenvalue <= 0.0 {
                 duration
             } else {
                 -(-eigenvalue * duration).exp_m1() / eigenvalue
