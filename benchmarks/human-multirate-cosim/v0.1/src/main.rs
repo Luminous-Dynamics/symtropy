@@ -1,8 +1,8 @@
 use human_multirate_cosim::{
     AdaptiveConfig, Method, Scenario,
     network::{
-        AdaptiveNetworkConfig, Edge, NetworkMethod, NetworkScenario, simulate_network,
-        simulate_network_adaptive,
+        AdaptiveNetworkConfig, Edge, NetworkMethod, NetworkScenario, TopologyEvent,
+        simulate_network, simulate_network_adaptive, simulate_network_topology_events,
     },
     simulate, simulate_adaptive_conservative_flux,
 };
@@ -194,6 +194,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             adaptive.final_state.last().copied().unwrap_or_default(),
         );
     }
+
+    let event_scenario = &network_scenarios[0];
+    let topology_events = [TopologyEvent {
+        at_time: 2.0,
+        edges: vec![
+            Edge {
+                left: 0,
+                right: 1,
+                conductance: 0.1,
+            },
+            Edge {
+                left: 1,
+                right: 2,
+                conductance: 0.9,
+            },
+        ],
+    }];
+    let event_score = simulate_network_topology_events(
+        event_scenario,
+        &topology_events,
+        NetworkMethod::BackwardEulerReference,
+        0.1,
+    )?;
+    println!(
+        "{},piecewise_topology_event_backward_euler,0.1,{},{:.10},{:.12e},{:.12e},{:.12e},{:.12e},{:.12e},{},{:.12e},{:.12e}",
+        event_scenario.name,
+        event_score.total_steps,
+        event_score.max_spectral_stability_number,
+        event_score.max_abs_state_error,
+        event_score.rms_state_error,
+        event_score.max_abs_total_residual,
+        event_score.min_state,
+        event_score.max_state,
+        event_score.positive_states,
+        event_score.final_state.first().copied().unwrap_or_default(),
+        event_score.final_state.last().copied().unwrap_or_default(),
+    );
 
     Ok(())
 }
