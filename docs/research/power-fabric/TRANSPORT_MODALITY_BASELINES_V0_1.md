@@ -9,7 +9,7 @@
 
 ## Purpose and claim ceiling
 
-The register freezes nine public 2025–2026 source records and 42 observations without creating a universal wireless-power leaderboard. It keeps source boundaries, operating conditions, known unknowns and Luminous reproduction status visible. No record has been independently reproduced by Luminous.
+The register freezes ten public 2025–2026 source records and 46 observations without creating a universal wireless-power leaderboard. It keeps source boundaries, operating conditions, known unknowns and Luminous reproduction status visible. No record has been independently reproduced by Luminous.
 
 Each observation is classified as a source-reported measurement, source-reported derived value, source-declared parameter, source-reported model fit, source-reported simulation or public announcement claim. Unknown information remains unknown; no missing source or receiver boundary is set to zero.
 
@@ -23,11 +23,14 @@ Each observation is classified as a source-reported measurement, source-reported
 | Yigit 20 m LPT (2026) — https://doi.org/10.1016/j.optlastec.2026.115445 | ~99 W, 12.4% reported end-to-end LPT, 95.96% laser-driver stage | Driver-stage efficiency is not end-to-end efficiency; detailed meter planes need full-text reconstruction. |
 | Sfasciamuro UAV optical control (2026) — https://doi.org/10.3390/aerospace13080664 | <2% spot calibration error, 10–80 cm coarse pointing at ~15 m, 2–9% fine-steering residual at ~80 m, ~6 mm cross-axis drift; 30% laser / 20% PV source parameters | Pointing/control prototype, not battery-side energy demonstration; PV-to-battery conditioning is explicitly omitted. |
 | VINCI/Electreon A10 roadway pilot (2025) — https://www.vinci.com/en/newsroom/news/world-first-dynamic-wireless-charging-motorway | 1.5 km segment, >300 kW instantaneous and >200 kW average under optimal steady-state conditions | Power claim, not end-to-end efficiency; exact meter plane, averaging window and long-term availability are not provided in the announcement. |
+| Purdue/INDOT three-phase roadway testbed (2026) — https://doi.org/10.5703/1288284318633 | 50–190 kW to a retrofitted Class-8 truck at up to 65 mph; ~85% at rated power from roadway inverter DC bus to vehicle DC bus; 85 embedded coils | Government/Purdue field testbed. The ~85% boundary is not utility-grid-to-battery; raw synchronized data, uncertainty and calibration details remain to be independently reproduced. |
 | Santhakumar fault-tolerant roadway IPT (2026) — https://www.nature.com/articles/s41598-026-71194-x | 1 kW design, 800 W nominal lab output, ~50 ms reported experimental recovery, 650–750 W restored output, 90–92% normal / 88–90% degraded efficiency | Laboratory resilience prototype; paper excludes misalignment effects, mixes simulation/hardware results and has topology/rating ambiguities. |
 | Liao underwater ultrasonic (2025) — https://doi.org/10.24425/aoa.2025.154821 | 35 cm, 2.5 W transmitter, 433 mW into 1.2 kΩ, 17% reported efficiency | Wall-supply versus transducer-input boundary needs primary-paper verification. |
 | Li underwater acoustic cavitation model (2026) — https://doi.org/10.1016/j.apor.2026.105249 | 6.76 W modeled acoustic transmit-power ceiling at 40 kHz | Model-derived source-side constraint, not measured receiver power or a universal ocean limit. |
 
 ## Interpretation notes
+
+The Purdue/INDOT three-phase roadway testbed is now a separate dynamic-WPT reference. The report abstract records 50–190 kW delivery at up to 65 mph on an 85-coil US 52/US 231 test section; INDOT identifies approximately 85% at rated power from the roadway inverter DC bus to the vehicle DC bus. This boundary must not be promoted to grid-to-battery or whole-vehicle efficiency. The observation is source-reported and not yet independently reproduced by Luminous.
 
 Near-field IPT remains the practical efficiency and power leader in current implementations. The April 2026 Nature Reviews Electrical Engineering review identifies direct wireless conversion, primary-side control, simultaneous power/data and standardized energy-information interfaces as important research directions. It does not establish a global cross-modal leaderboard. https://www.nature.com/articles/s44287-026-00279-6
 
@@ -45,7 +48,7 @@ Numeric observations and uncertainty-aware feasibility belong to the existing #3
 
 ## Validation
 
-The JSON manifest and nine-line JSONL corpus must match exactly. The Rust validator has 22 authored unit tests for IDs, HTTPS source references, study/evidence kinds, units, relations, measurement planes, boundaries, unknowns, status ceilings and no global efficiency ranking. Structural fetch-back checks confirm 9 records, 42 observations and JSON/JSONL parity. Rust CI is a separate gate; queued is not pass.
+The JSON manifest and ten-line JSONL corpus must match exactly. The Rust validator has 22 authored unit tests for IDs, HTTPS source references, study/evidence kinds, units, relations, measurement planes, boundaries, unknowns, status ceilings and no global efficiency ranking. Structural fetch-back checks confirm 10 records, 46 observations and JSON/JSONL parity. Rust CI is a separate gate; queued is not pass.
 
 Reproduce with cargo fmt, cargo clippy, cargo test and cargo run against tools/power-fabric-baseline-validator/Cargo.toml.
 

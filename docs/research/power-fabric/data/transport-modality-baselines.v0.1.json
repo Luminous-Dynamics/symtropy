@@ -854,6 +854,93 @@
         "The paper does not independently establish environmental acceptability for all marine species, habitats, depths or acoustic duty cycles."
       ],
       "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "moncada-2026-purdue-indot-dwpt",
+      "modality": "dynamic_roadway_wpt",
+      "study_type": "government_demonstration",
+      "comparison_group": "dynamic-roadway-wpt-three-phase-roadway-dc-bus-to-vehicle-dc-bus",
+      "source": {
+        "title": "Receiver, Vehicle, and Roadway Systems for a Dynamic Wireless Power Transfer Roadway Testbed",
+        "publisher": "Purdue University. Joint Transportation Research Program",
+        "url": "https://doi.org/10.5703/1288284318633",
+        "publication_date": "2026-05-21",
+        "doi": "10.5703/1288284318633"
+      },
+      "service": {
+        "service_kind": "vehicle_traction_power_delivery",
+        "application": "dynamic three-phase inductive wireless power transfer from an instrumented roadway to a retrofitted Class-8 electrified truck",
+        "medium": "roadway-embedded near-field magnetic coupling"
+      },
+      "measurements": [
+        {
+          "name": "dynamic_power_delivery_range",
+          "value": 50,
+          "value_upper": 190,
+          "unit": "kilowatt",
+          "relation": "range",
+          "measurement_plane": "power delivered by the DWPT system to the vehicle as described in the final testbed report",
+          "boundary": "reported dynamic power delivery range; source-specific meter details and synchronized interval require full report extraction",
+          "source_reported": true,
+          "conditions": [
+            "85 transmitter coils embedded in existing rigid pavement on US 52/US 231 in West Lafayette, Indiana",
+            "retrofitted Class-8 Cummins electrified truck",
+            "field testbed operation"
+          ],
+          "evidence_kind": "source_reported_measurement"
+        },
+        {
+          "name": "maximum_test_vehicle_speed",
+          "value": 65,
+          "unit": "mile_per_hour",
+          "relation": "exact",
+          "measurement_plane": "vehicle speed during reported successful dynamic power delivery",
+          "boundary": "maximum reported test speed; not a duty-cycle, traffic-availability or route-average speed",
+          "source_reported": true,
+          "conditions": [
+            "dynamic wireless power transfer field testbed",
+            "retrofitted Class-8 vehicle"
+          ],
+          "evidence_kind": "source_reported_measurement"
+        },
+        {
+          "name": "roadway_dc_bus_to_vehicle_dc_bus_efficiency",
+          "value": 85,
+          "unit": "percent",
+          "relation": "approximate",
+          "measurement_plane": "DC bus of roadway inverters to DC bus of vehicle, as specified by INDOT's testbed FAQ",
+          "boundary": "rated-power roadway-inverter-DC-bus-to-vehicle-DC-bus efficiency; excludes utility/grid input upstream of the inverter DC bus and any vehicle-side battery/drivetrain conversion downstream of the vehicle DC bus",
+          "source_reported": true,
+          "conditions": [
+            "approximately rated power",
+            "Purdue-INDOT dynamic roadway testbed",
+            "INDOT states efficiency is approximately independent of vehicle speed for the transfer process"
+          ],
+          "evidence_kind": "source_reported_measurement"
+        },
+        {
+          "name": "installed_transmitter_coil_count",
+          "value": 85,
+          "unit": "coil",
+          "relation": "exact",
+          "measurement_plane": "transmitter coil count installed in the roadway test section",
+          "boundary": "infrastructure configuration count; not a power or efficiency metric",
+          "source_reported": true,
+          "conditions": [
+            "US 52/US 231 rigid pavement testbed"
+          ],
+          "evidence_kind": "source_declared_parameter"
+        }
+      ],
+      "known_unknowns": [
+        "The approximately 85% efficiency is explicitly roadway inverter DC-bus to vehicle DC-bus at rated power; it is not utility-grid-to-battery or well-to-service efficiency.",
+        "The public summary and INDOT FAQ do not provide the complete synchronized raw time series, uncertainty budget, calibration certificates or exact averaging window needed for independent reproduction.",
+        "The 50–190 kW delivered-power range is source-reported; the measurement boundary and per-run coupling conditions must be extracted from the full report before a tightly matched quantitative comparison.",
+        "The field testbed result does not by itself establish commercial roadway availability, seasonal durability, maintenance cost, pavement lifecycle, fleet economics or network-scale deployment.",
+        "No battery-terminal energy, state-of-charge trajectory, vehicle traction energy offset or full vehicle-side conversion loss is established by the published DC-bus efficiency figure.",
+        "No Luminous independent reproduction has been performed."
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
     }
   ]
 }

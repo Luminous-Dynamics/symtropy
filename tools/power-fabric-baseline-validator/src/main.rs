@@ -331,8 +331,8 @@ mod tests {
     fn frozen_jsonl_records_match_the_json_manifest_exactly() {
         let document = corpus();
         let summary = validate_frozen_artifacts(&document, BASELINES_JSONL).unwrap();
-        assert_eq!(summary.records, 9);
-        assert_eq!(summary.measurements, 42);
+        assert_eq!(summary.records, 10);
+        assert_eq!(summary.measurements, 46);
     }
 
     #[test]
@@ -360,8 +360,8 @@ mod tests {
     #[test]
     fn frozen_v01_corpus_validates_with_six_source_records() {
         let summary = validate_document(&corpus()).unwrap();
-        assert_eq!(summary.records, 9);
-        assert_eq!(summary.measurements, 42);
+        assert_eq!(summary.records, 10);
+        assert_eq!(summary.measurements, 46);
     }
 
     #[test]
