@@ -58,7 +58,7 @@ Event-peak ties are resolved at the earliest index in the event window. A dedica
 
 ### Proper probabilistic verification (cases 028–032)
 
-The 32-case synthetic corpus adds:
+The 37-case synthetic corpus adds:
 - empirical ensemble CRPS for continuous streamflow distributions, using the finite-ensemble empirical CDF formula;
 - binary threshold-event Brier score with a frozen event-definition identifier;
 - aggregate Brier score plus five fixed reliability bins (including explicit empty-bin nulls);
@@ -72,3 +72,6 @@ CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins ar
 The corpus adds CRPSS and Brier Skill Score against explicit reference forecasts. Each skill score uses the same verifying observation/event population and binds the reference forecast ID. Positive means better than the reference, zero means equal, negative means worse; values are not clipped. A zero/near-zero reference score makes skill Undefined while raw forecast/reference scores remain visible.
 
 This is the bridge from scoring a probabilistic forecast to asking whether it adds value over persistence, seasonal climatology or a predeclared operational reference. The evaluator does not generate or tune the reference forecast.
+
+
+The 37-case corpus now also includes negative CRPSS and negative Brier Skill Score controls. These prove that worse-than-reference forecasts remain negative; they are never clipped to zero or suppressed. The exact-zero reference CRPS case returns Undefined skill while still reporting both raw scores.
