@@ -659,8 +659,7 @@ fn build_power_aware_earliest_gap(
         }
 
         let mut candidate_start = lower;
-        let mut accepted = None;
-        loop {
+        let (accepted_task, _accepted_report) = loop {
             if upper.is_some_and(|latest| candidate_start > latest) {
                 return Err((
                     Some(format!(
@@ -743,8 +742,7 @@ fn build_power_aware_earliest_gap(
 
             let report = validate_power_envelope(&partial_input, &receipt);
             if report.is_valid() {
-                accepted = Some((candidate, report));
-                break;
+                break (candidate, report);
             }
             last_power_violations = report.violations;
 
@@ -806,13 +804,6 @@ fn build_power_aware_earliest_gap(
                 ));
             };
             candidate_start = next_start;
-        }
-
-        let Some((accepted_task, _accepted_report)) = accepted else {
-            return Err((
-                Some(format!("no power-feasible start found for task {task_id}")),
-                last_power_violations,
-            ));
         };
         scheduled.push(accepted_task);
     }
