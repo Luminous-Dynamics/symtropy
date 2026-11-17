@@ -313,10 +313,15 @@ pub fn assess_tactile_self_test(
     reasons.extend(mechanical_reasons);
 
     if electrical_disposition == ElectricalDiagnosticDisposition::Fail {
+        let measurement_disposition = if request.prior_measurement_qualification_active {
+            MeasurementQualificationDisposition::QualificationSuspended
+        } else {
+            MeasurementQualificationDisposition::RemainsUnqualified
+        };
         return SelfTestAssessment {
             electrical_disposition,
             mechanical_disposition,
-            measurement_disposition: MeasurementQualificationDisposition::QualificationSuspended,
+            measurement_disposition,
             sensorized_body_context_changed,
             readout_context_changed,
             reasons,
@@ -371,7 +376,18 @@ pub fn assess_tactile_self_test(
                 claim_class: "synthetic_self_test_disposition_only",
             };
         }
-        let witness = evidence.mechanical_witness.as_ref().expect("Pass requires witness evidence");
+        let Some(witness) = evidence.mechanical_witness.as_ref() else {
+            reasons.push("mechanical witness evidence disappeared before requalification".to_owned());
+            return SelfTestAssessment {
+                electrical_disposition,
+                mechanical_disposition,
+                measurement_disposition: MeasurementQualificationDisposition::ExternalRequalificationRequired,
+                sensorized_body_context_changed,
+                readout_context_changed,
+                reasons,
+                claim_class: "synthetic_self_test_disposition_only",
+            };
+        };
         match validate_requalification(
             request,
             witness,
