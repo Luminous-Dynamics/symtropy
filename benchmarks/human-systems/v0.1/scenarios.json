@@ -363,6 +363,43 @@
         "https://cds.climate.copernicus.eu/stac-browser/collections/reanalysis-era5-single-levels"
       ],
       "claim_ceiling": "real environmental forcing ingestion only; all physiological response is synthetic and not validated for humans"
+    },
+    {
+      "id": "SYN-017",
+      "name": "multirate_cosimulation_master_tournament",
+      "family": "federation_numerical_integrity",
+      "generator": "abstract two-compartment conservative exchange system with an independent exact exponential oracle; dimensionless state and arbitrary synthetic coefficients",
+      "candidate_observations": "component-local states and declared clock/communication events only; exact latent trajectories and balance oracle remain evaluator-only",
+      "faults": [
+        "timescale ratios from 1:1 through 1:1000",
+        "variable communication windows",
+        "stale partner outputs",
+        "coincident periodic clocks",
+        "discontinuous boundary events",
+        "component early return",
+        "state-restore capability unavailable",
+        "stiff coupling regime"
+      ],
+      "negative_controls": [
+        "unpaired source debit and destination credit",
+        "duplicate interface transfer",
+        "update-order-dependent flux recomputation",
+        "explicit shared-flux Euler beyond its declared stability region",
+        "commit component state beyond the accepted global time",
+        "accept iteration exhaustion as convergence",
+        "use rollback-dependent algorithm without state-restore capability"
+      ],
+      "scorer_checks": [
+        "state error against exact analytic trajectory",
+        "weighted-total conservation residual",
+        "communication-step refinement and convergence order",
+        "update-order sensitivity",
+        "global clock monotonicity and event ordering",
+        "rejected-step and rollback accounting",
+        "capability negotiation and unsupported-feature disposition",
+        "error/conservation/latency Pareto profile"
+      ],
+      "claim_ceiling": "synthetic numerical co-simulation algorithm qualification only; no physiological validation"
     }
   ]
 }
