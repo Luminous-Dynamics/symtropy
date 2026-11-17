@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CASE_COUNT: usize = 34;
+const CASE_COUNT: usize = 42;
 const SCHEMA_VERSION: &str = "waterloop-physical-t0-v0.1";
 const CLAIM_CEILING: &str = "synthetic_water_service_arithmetic_and_contract_semantics_only";
 
@@ -489,6 +489,348 @@ fn compute_water_economics(input: &Value) -> Result<Value, String> {
     }))
 }
 
+
+fn indeterminate_sizing(reason: &str, profile: Option<String>) -> Value {
+    json!({
+        "design_disposition": "INDETERMINATE",
+        "reason": reason,
+        "source_or_use_profile_id": profile,
+        "qualification_status": "NotRun",
+        "required_treatment_rate_l_per_h": null,
+        "maximum_treatment_rate_l_per_h": null,
+        "treatment_capacity_margin_l_per_h": null,
+        "idealized_equalization_working_volume_l": null,
+        "idealized_starting_inventory_l": null,
+        "period_mass_balance_residual_l": null,
+        "essential_daily_demand_l": null,
+        "autonomy_hours": null,
+        "reserve_fraction": null,
+        "usable_storage_volume_l": null,
+        "usable_fraction": null,
+        "gross_storage_volume_l": null,
+        "flow_l_per_min": null,
+        "total_dynamic_head_m": null,
+        "wire_to_water_efficiency": null,
+        "hydraulic_power_w": null,
+        "hydraulic_specific_energy_kwh_m3": null
+    })
+}
+
+fn compute_design_sizing(case_id: &str, input: &Value) -> Result<Value, String> {
+    if case_id == "WL-T0-042-sizing-synthetic-claim-promotion-reject" {
+        let evidence = text(input, "evidence_class")?;
+        let requested = text(input, "requested_claim_class")?;
+        if evidence == "synthetic_only"
+            && (requested == "process_qualification" || requested == "field_design_release")
+        {
+            return Ok(json!({
+                "design_disposition": "REJECT_CLAIM_PROMOTION",
+                "reason": "SYNTHETIC_SIZING_CANNOT_SUPPORT_PROCESS_OR_FIELD_QUALIFICATION",
+                "evidence_class": evidence,
+                "requested_claim_class": requested,
+                "qualification_status": "NotRun"
+            }));
+        }
+        return Ok(json!({
+            "design_disposition": "WITHIN_EVIDENCE_CEILING",
+            "reason": "CLAIM_WITHIN_DECLARED_SYNTHETIC_EVIDENCE_CLASS",
+            "evidence_class": evidence,
+            "requested_claim_class": requested,
+            "qualification_status": "NotRun"
+        }));
+    }
+
+    let profile = text(input, "profile_id")?;
+    if !boolean(input, "design_inputs_admitted")? {
+        return Ok(indeterminate_sizing(
+            "DESIGN_INPUTS_NOT_ADMITTED",
+            Some(profile),
+        ));
+    }
+
+    match case_id {
+        "WL-T0-035-sizing-raw-equalization-periodic"
+        | "WL-T0-036-sizing-treatment-capacity-insufficient" => {
+            let period_hours = positive(number(input, "period_hours")?, "period_hours")?;
+            let maximum_rate = positive(
+                number(input, "maximum_treatment_rate_l_per_h")?,
+                "maximum_treatment_rate_l_per_h",
+            )?;
+            let steps = field(input, "steps")?
+                .as_array()
+                .ok_or_else(|| "steps: expected array".to_owned())?;
+            if steps.is_empty() {
+                return Err("steps: must not be empty".to_owned());
+            }
+            let mut total_duration = 0.0;
+            let mut total_inflow = 0.0;
+            let mut available_hours = 0.0;
+            for (index, step) in steps.iter().enumerate() {
+                let duration = positive(
+                    number(step, "duration_hours")?,
+                    "duration_hours",
+                )?;
+                let inflow = nonnegative(
+                    number(step, "source_inflow_l")?,
+                    "source_inflow_l",
+                )?;
+                let available = boolean(step, "treatment_available")?;
+                total_duration += duration;
+                total_inflow += inflow;
+                if available {
+                    available_hours += duration;
+                }
+                if !total_duration.is_finite() || !total_inflow.is_finite() {
+                    return Err(format!("steps[{index}]: cumulative design input overflow"));
+                }
+            }
+            if !nearly_equal(total_duration, period_hours) {
+                return Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "STEP_DURATIONS_DO_NOT_MATCH_DECLARED_PERIOD",
+                    "profile_id": profile,
+                    "declared_period_hours": period_hours,
+                    "sum_step_duration_hours": total_duration,
+                    "required_treatment_rate_l_per_h": null,
+                    "idealized_equalization_working_volume_l": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            if available_hours <= 0.0 {
+                return Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "ZERO_TREATMENT_AVAILABILITY",
+                    "profile_id": profile,
+                    "period_hours": period_hours,
+                    "total_daily_inflow_l": total_inflow,
+                    "available_process_hours": available_hours,
+                    "required_treatment_rate_l_per_h": null,
+                    "idealized_equalization_working_volume_l": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            if total_inflow <= 0.0 {
+                return Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "NO_POSITIVE_SOURCE_VOLUME_IN_DESIGN_PERIOD",
+                    "profile_id": profile,
+                    "period_hours": period_hours,
+                    "total_daily_inflow_l": total_inflow,
+                    "available_process_hours": available_hours,
+                    "required_treatment_rate_l_per_h": null,
+                    "idealized_equalization_working_volume_l": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            let required_rate = total_inflow / available_hours;
+            let capacity_margin = maximum_rate - required_rate;
+            if required_rate > maximum_rate + 1.0e-9 {
+                return Ok(json!({
+                    "design_disposition": "INFEASIBLE",
+                    "reason": "MAX_TREATMENT_RATE_BELOW_REQUIRED_PERIODIC_THROUGHPUT",
+                    "profile_id": profile,
+                    "period_hours": period_hours,
+                    "total_daily_inflow_l": total_inflow,
+                    "available_process_hours": available_hours,
+                    "required_treatment_rate_l_per_h": required_rate,
+                    "maximum_treatment_rate_l_per_h": maximum_rate,
+                    "treatment_capacity_margin_l_per_h": capacity_margin,
+                    "idealized_equalization_working_volume_l": null,
+                    "idealized_starting_inventory_l": null,
+                    "period_mass_balance_residual_l": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            let mut cumulative = 0.0;
+            let mut minimum_cumulative = 0.0_f64;
+            let mut maximum_cumulative = 0.0_f64;
+            let mut total_process_outflow = 0.0;
+            for step in steps {
+                let duration = number(step, "duration_hours")?;
+                let inflow = number(step, "source_inflow_l")?;
+                let available = boolean(step, "treatment_available")?;
+                let process_outflow = if available {
+                    required_rate * duration
+                } else {
+                    0.0
+                };
+                cumulative += inflow - process_outflow;
+                total_process_outflow += process_outflow;
+                minimum_cumulative = minimum_cumulative.min(cumulative);
+                maximum_cumulative = maximum_cumulative.max(cumulative);
+            }
+            let residual = total_inflow - total_process_outflow;
+            if !nearly_equal(residual, 0.0) {
+                return Err("periodic sizing schedule failed internal mass balance".to_owned());
+            }
+            let working_volume = maximum_cumulative - minimum_cumulative;
+            let starting_inventory = (-minimum_cumulative).max(0.0);
+            Ok(json!({
+                "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+                "reason": "PERIODIC_FEED_AND_PROCESS_SCHEDULE_BALANCED",
+                "profile_id": profile,
+                "period_hours": period_hours,
+                "total_daily_inflow_l": total_inflow,
+                "available_process_hours": available_hours,
+                "required_treatment_rate_l_per_h": required_rate,
+                "maximum_treatment_rate_l_per_h": maximum_rate,
+                "treatment_capacity_margin_l_per_h": capacity_margin,
+                "idealized_equalization_working_volume_l": working_volume,
+                "idealized_starting_inventory_l": starting_inventory,
+                "period_process_outflow_l": total_process_outflow,
+                "period_mass_balance_residual_l": residual,
+                "sizing_assumptions": [
+                    "Discrete source inflow is treated as arriving within each declared interval before that interval's process draw.",
+                    "Process operates at the required average rate during declared available intervals.",
+                    "The schedule repeats periodically and total process outflow equals total source inflow.",
+                    "No freeboard, dead volume, fouling margin, safety factor, treatment loss, sludge, reject, purge or backwash allowance is included.",
+                    "The result is an idealized minimum working inventory, not a tank selection or fabrication volume."
+                ],
+                "qualification_status": "NotRun"
+            }))
+        }
+        "WL-T0-037-sizing-treated-service-autonomy" => {
+            let demand = positive(
+                number(input, "essential_daily_demand_l")?,
+                "essential_daily_demand_l",
+            )?;
+            let autonomy = positive(
+                number(input, "autonomy_hours")?,
+                "autonomy_hours",
+            )?;
+            let reserve = nonnegative(
+                number(input, "reserve_fraction")?,
+                "reserve_fraction",
+            )?;
+            let usable_fraction = positive(
+                number(input, "usable_fraction")?,
+                "usable_fraction",
+            )?;
+            if usable_fraction > 1.0 {
+                return Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "USABLE_FRACTION_EXCEEDS_ONE",
+                    "profile_id": profile,
+                    "usable_fraction": usable_fraction,
+                    "usable_storage_volume_l": null,
+                    "gross_storage_volume_l": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            let base_volume = demand * autonomy / 24.0;
+            let usable_volume = base_volume * (1.0 + reserve);
+            let gross_volume = usable_volume / usable_fraction;
+            Ok(json!({
+                "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+                "reason": "DECLARED_ESSENTIAL_DEMAND_AUTONOMY_AND_RESERVE",
+                "profile_id": profile,
+                "essential_daily_demand_l": demand,
+                "autonomy_hours": autonomy,
+                "reserve_fraction": reserve,
+                "usable_fraction": usable_fraction,
+                "base_autonomy_volume_l": base_volume,
+                "usable_storage_volume_l": usable_volume,
+                "gross_storage_volume_l": gross_volume,
+                "sizing_assumptions": [
+                    "Demand is constant at the declared daily average over the autonomy horizon.",
+                    "Reserve fraction is applied to the base autonomy volume.",
+                    "Usable fraction is an owner-supplied geometric/operational input.",
+                    "No water-quality or cross-use credit is created by storage sizing.",
+                    "Freeboard, dead zones, tank geometry, structural loading and code constraints are excluded."
+                ],
+                "qualification_status": "NotRun"
+            }))
+        }
+        "WL-T0-038-sizing-pump-hydraulic-energy"
+        | "WL-T0-039-sizing-pump-efficiency-invalid" => {
+            let flow_l_per_min = positive(number(input, "flow_l_per_min")?, "flow_l_per_min")?;
+            let head = positive(number(input, "total_dynamic_head_m")?, "total_dynamic_head_m")?;
+            let efficiency = positive(
+                number(input, "wire_to_water_efficiency")?,
+                "wire_to_water_efficiency",
+            )?;
+            let density = positive(number(input, "water_density_kg_m3")?, "water_density_kg_m3")?;
+            let gravity = positive(number(input, "gravity_m_s2")?, "gravity_m_s2")?;
+            if efficiency > 1.0 {
+                return Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "WIRE_TO_WATER_EFFICIENCY_EXCEEDS_ONE",
+                    "profile_id": profile,
+                    "flow_l_per_min": flow_l_per_min,
+                    "total_dynamic_head_m": head,
+                    "wire_to_water_efficiency": efficiency,
+                    "hydraulic_power_w": null,
+                    "hydraulic_specific_energy_kwh_m3": null,
+                    "qualification_status": "NotRun"
+                }));
+            }
+            let flow_m3_s = flow_l_per_min / 60_000.0;
+            let power = density * gravity * flow_m3_s * head / efficiency;
+            let specific_energy = density * gravity * head / (efficiency * 3_600_000.0);
+            Ok(json!({
+                "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+                "reason": "DECLARED_FLOW_HEAD_AND_WIRE_TO_WATER_EFFICIENCY",
+                "profile_id": profile,
+                "flow_l_per_min": flow_l_per_min,
+                "flow_m3_s": flow_m3_s,
+                "total_dynamic_head_m": head,
+                "wire_to_water_efficiency": efficiency,
+                "water_density_kg_m3": density,
+                "gravity_m_s2": gravity,
+                "hydraulic_power_w": power,
+                "hydraulic_specific_energy_kwh_m3": specific_energy,
+                "sizing_assumptions": [
+                    "Steady incompressible water flow at the declared density.",
+                    "Total dynamic head is supplied by the design owner and must include relevant static and dynamic losses.",
+                    "Wire-to-water efficiency is an explicitly supplied assumption, not a pump curve guarantee.",
+                    "No electrical auxiliary/standby loads or control losses are included.",
+                    "This calculation does not select or qualify a pump."
+                ],
+                "qualification_status": "NotRun"
+            }))
+        }
+        "WL-T0-040-sizing-zero-process-availability" => {
+            let steps = field(input, "steps")?
+                .as_array()
+                .ok_or_else(|| "steps: expected array".to_owned())?;
+            let available = steps.iter().try_fold(0.0, |total, step| {
+                let duration = positive(
+                    number(step, "duration_hours")?,
+                    "duration_hours",
+                )?;
+                if boolean(step, "treatment_available")? {
+                    Ok::<f64, String>(total + duration)
+                } else {
+                    Ok(total)
+                }
+            })?;
+            if available == 0.0 {
+                Ok(json!({
+                    "design_disposition": "REJECT",
+                    "reason": "ZERO_TREATMENT_AVAILABILITY",
+                    "available_process_hours": available,
+                    "required_treatment_rate_l_per_h": null,
+                    "qualification_status": "NotRun"
+                }))
+            } else {
+                Ok(json!({
+                    "design_disposition": "ADMITTED_PRELIMINARY_SIZING",
+                    "reason": "NONZERO_TREATMENT_AVAILABILITY",
+                    "available_process_hours": available,
+                    "qualification_status": "NotRun"
+                }))
+            }
+        }
+        "WL-T0-041-sizing-unadmitted-design-inputs" => {
+            Ok(indeterminate_sizing(
+                "DESIGN_INPUTS_NOT_ADMITTED",
+                Some(profile),
+            ))
+        }
+        _ => Err(format!("unsupported WaterLoop design sizing case: {case_id}")),
+    }
+}
+
 fn compute(case: &Value) -> Result<Value, String> {
     let id = case_id(case)?;
     let input = field(case, "inputs")?;
@@ -847,6 +1189,17 @@ fn compute(case: &Value) -> Result<Value, String> {
         | "WL-T0-032-economics-use-profile-mismatch"
         | "WL-T0-033-economics-low-cost-service-floor-failure"
         | "WL-T0-034-economics-tariff-billing-period-mismatch" => compute_water_economics(input),
+
+        "WL-T0-035-sizing-raw-equalization-periodic"
+        | "WL-T0-036-sizing-treatment-capacity-insufficient"
+        | "WL-T0-037-sizing-treated-service-autonomy"
+        | "WL-T0-038-sizing-pump-hydraulic-energy"
+        | "WL-T0-039-sizing-pump-efficiency-invalid"
+        | "WL-T0-040-sizing-zero-process-availability"
+        | "WL-T0-041-sizing-unadmitted-design-inputs" => compute_design_sizing(&id, input),
+        "WL-T0-042-sizing-synthetic-claim-promotion-reject" => {
+            compute_design_sizing(&id, input)
+        }
         _ => Err(format!("unsupported WaterLoop T0 case ID: {id}")),
     }
 }
