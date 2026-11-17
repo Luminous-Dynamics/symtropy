@@ -607,8 +607,12 @@ pub struct BenchmarkReport {
     pub mean_f32_end_to_end_micros: f64,
     pub mean_exact_oracle_micros: f64,
     pub mean_metadata_lookup_micros: f64,
+    /// Payload estimate for a bipolar-only vector index.
     pub bipolar_index_bytes_estimate: usize,
+    /// Payload estimate for an f32-only vector index.
     pub f32_index_bytes_estimate: usize,
+    /// Both representations are retained simultaneously by this research index.
+    pub dual_view_index_bytes_estimate: usize,
     pub outcomes: Vec<QueryOutcome>,
 }
 
@@ -698,6 +702,9 @@ pub fn run_benchmark(
         mean_metadata_lookup_micros,
         bipolar_index_bytes_estimate: graph.facts.len() * dimension * std::mem::size_of::<i8>(),
         f32_index_bytes_estimate: graph.facts.len() * dimension * std::mem::size_of::<f32>(),
+        dual_view_index_bytes_estimate: graph.facts.len()
+            * dimension
+            * (std::mem::size_of::<i8>() + std::mem::size_of::<f32>()),
         outcomes,
     })
 }
