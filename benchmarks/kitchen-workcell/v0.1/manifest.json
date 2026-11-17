@@ -899,6 +899,30 @@
       "denominator": "all recovery attempts, with failed attempts retained and right-censored separately",
       "method": "time from perturbation/failure trigger to independently verified restoration of the affected subgoal; report successful recovery median and failed/censored count.",
       "evidence_class": "measured"
+    },
+    {
+      "metric_id": "action_abstention_precision",
+      "unit": "fraction",
+      "denominator": "all verb instances for which the ontology abstains or marks unmapped",
+      "method": "Correctly abstained ambiguous/unsupported verbs divided by all abstentions, scored against human-adjudicated labels.",
+      "evidence_class": "assayed",
+      "notes": "A low coverage system can obtain high precision by abstaining; report coverage and group recall alongside this metric."
+    },
+    {
+      "metric_id": "action_verb_occurrence_weighted_coverage",
+      "unit": "fraction",
+      "denominator": "all action verb occurrences in the frozen recipe corpus",
+      "method": "Frequency-weighted fraction of verb occurrences mapped to a validated action core; report type-level unique-verb coverage separately.",
+      "evidence_class": "measured",
+      "notes": "Must use fixed corpus, language normalization, tokenization and split. Not directly comparable to the 2025 paper until its full protocol is reproduced."
+    },
+    {
+      "metric_id": "action_human_corrections_per_100_verbs",
+      "unit": "corrections per 100 verb instances",
+      "denominator": "all mapped or abstained verb instances presented for review",
+      "method": "Count adjudicator edits/rejections divided by verb instances, multiplied by 100.",
+      "evidence_class": "assayed",
+      "notes": "Blind reviewers to system identity; retain inter-annotator agreement and unresolved disagreements."
     }
   ],
   "target_hypotheses": [
@@ -1051,6 +1075,40 @@
         "failed episodes are omitted",
         "recovery is counted without independent subgoal verification",
         "simulation results are reported as physical robot qualification"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-QUALITY",
+      "metric_id": "action_group_precision",
+      "target": "On a frozen, rights-cleared, human-adjudicated recipe split, target at least 0.95 macro precision and 0.85 macro recall; preserve explicit abstention for unsupported or genuinely ambiguous verbs.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "unmapped verbs are removed from denominators",
+        "macro and micro metrics are conflated",
+        "model or cosine candidate is treated as deterministic evidence",
+        "annotator agreement is not reported"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-COVERAGE",
+      "metric_id": "action_verb_occurrence_weighted_coverage",
+      "target": "After reproducing the published Recipe1M+ normalization/protocol, target at least 0.85 frequency-weighted core coverage while maintaining at least 0.95 macro precision; do not compare against the published 0.765 figure until protocol parity is established.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "corpus/split rights are unclear",
+        "coverage rises by assigning ambiguous verbs without review",
+        "precision/recall or abstention quality is omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ACTION-ABSTENTION",
+      "metric_id": "action_abstention_precision",
+      "target": "Target 1.0 precision for explicit unmapped/abstain cases in the adjudicated test subset; unknown verbs must not acquire a device/robot action binding by default.",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "unmapped verbs are force-mapped",
+        "human review provenance is absent",
+        "a taxonomy binding is interpreted as low-level control authorization"
       ]
     }
   ],
