@@ -595,7 +595,10 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
+        assert_eq!(
+            evaluate_case(case, &own, &BTreeSet::new()).actual,
+            Disposition::Blocked
+        );
     }
 
     #[test]
@@ -626,7 +629,10 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Indeterminate);
+        assert_eq!(
+            evaluate_case(case, &own, &BTreeSet::new()).actual,
+            Disposition::Indeterminate
+        );
     }
 
     #[test]
@@ -643,17 +649,17 @@ mod tests {
         let cases = parse_cases(CASES).unwrap();
         let receipts = parse_receipts(RECEIPTS).unwrap();
         let report = evaluate(&cases, &receipts).unwrap();
-        let baseline = report
+        let original = report
             .iter()
-            .find(|row| row.case_id == "baseline_exact_closed")
+            .find(|row| row.case_id == "route_blocked")
             .unwrap();
         let reused = report
             .iter()
             .find(|row| row.case_id == "cross_case_receipt_reuse")
             .unwrap();
-        assert_eq!(baseline.actual, Disposition::Blocked);
+        assert_eq!(original.actual, Disposition::Blocked);
         assert_eq!(reused.actual, Disposition::Blocked);
-        assert!(baseline
+        assert!(original
             .blocked_reasons
             .iter()
             .any(|reason| reason.contains("reused across cases")));
