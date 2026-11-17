@@ -214,6 +214,20 @@ Every run emits a machine-readable receipt containing:
 
 The two false fields attest to run inputs; they do not prove model validity. They must be generated from the run manifest and checked in review.
 
+## Follow-on: qualify the co-simulation master algorithm
+
+The typed port graph and individually verified component models do not, by themselves, qualify the federation. FMI 3.0.2 supplies Model Exchange, Co-Simulation and Scheduled Execution interfaces, including clocks, event handling, intermediate updates and early return. The FMI specification deliberately leaves the co-simulation algorithm to the importer: global time advancement, data exchange, clock triggering and event handling belong to the master/importer.
+
+The follow-on benchmark is [HUMAN-MULTIRATE-CO-SIM-001 / #5871](https://github.com/Luminous-Dynamics/symtropy/issues/5871). It compares synchronous Jacobi, staggered Gauss-Seidel, paired shared-flux exchange, iterative/implicit coupling, waveform relaxation, adaptive communication steps and clocked execution on abstract synthetic systems with analytic or independent high-accuracy truth.
+
+The catalogue includes **SYN-017**, a two-compartment exact-oracle challenge. It measures state error, conservation residual, communication-step convergence, update-order sensitivity, event ordering, rollback cost and capability handling independently. This is a numerical software benchmark; the states and coefficients are dimensionless/arbitrary test fixtures, not physiological values.
+
+FMI references:
+- [FMI 3.0.2 specification](https://fmi-standard.org/docs/3.0.2/)
+- [FMI 3.0 Co-Simulation overview](https://fmi-standard.org/docs/3.0/)
+
+An FMI package or a successful FMU step is not evidence that the imported model is credible, that the master algorithm is stable, or that cross-model fluxes are conserved. Keep the FMI runtime optional; the core synthetic benchmark must run without an FMI dependency.
+
 ## First implementation sequence
 
 1. Freeze this protocol and the scenario catalogue.
