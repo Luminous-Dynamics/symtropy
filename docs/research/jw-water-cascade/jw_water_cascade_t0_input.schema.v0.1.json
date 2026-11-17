@@ -1,0 +1,380 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/jw-water-cascade/jw_water_cascade_t0_input.schema.v0.1.json",
+  "title": "Johannesburg Water Service Cascade T0 Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "source_context",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "JW-WATER-CASCADE-T0"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "source_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publisher_release_id",
+        "outage_method_id",
+        "time_zone",
+        "note"
+      ],
+      "properties": {
+        "publisher_release_id": {
+          "const": "SYNTHETIC-ONLY"
+        },
+        "outage_method_id": {
+          "const": "C41"
+        },
+        "time_zone": {
+          "const": "Africa/Johannesburg"
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supply_id",
+        "valid_date",
+        "status",
+        "bypass",
+        "scheduled_closure"
+      ],
+      "properties": {
+        "supply_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valid_date": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}$"
+        },
+        "status": {
+          "enum": [
+            "no_report",
+            "fair",
+            "low",
+            "warned",
+            "critical",
+            "no_water"
+          ]
+        },
+        "bypass": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "scheduled_closure": {
+          "type": "boolean"
+        }
+      }
+    },
+    "outage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_id",
+        "episode_count",
+        "no_board_days_between_severe_reports",
+        "reported_end_kind",
+        "duration_hours_lower_bound"
+      ],
+      "properties": {
+        "method_id": {
+          "const": "C41"
+        },
+        "episode_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "no_board_days_between_severe_reports": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reported_end_kind": {
+          "enum": [
+            "fair_off_bypass",
+            "split_at_bridge_cap",
+            "right_censored"
+          ]
+        },
+        "duration_hours_lower_bound": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "notice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supply_id",
+        "announced_completion_at",
+        "first_return_valid_date"
+      ],
+      "properties": {
+        "supply_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "announced_completion_at": {
+          "type": "string",
+          "pattern": "(Z|[+-][0-9]{2}:[0-9]{2})$"
+        },
+        "first_return_valid_date": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}$"
+        }
+      }
+    },
+    "hydrometric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "station_id",
+        "parameter",
+        "observed_at",
+        "time_basis",
+        "rating_curve_ref"
+      ],
+      "properties": {
+        "station_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parameter": {
+          "enum": [
+            "stage",
+            "discharge",
+            "rainfall"
+          ]
+        },
+        "observed_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_basis": {
+          "enum": [
+            "Africa/Johannesburg",
+            "UTC",
+            "unspecified"
+          ]
+        },
+        "rating_curve_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "pointOfUse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundary_id",
+        "observed_at",
+        "time_basis",
+        "measurement_kind",
+        "pressure_kpa",
+        "flow_lpm",
+        "evidence_class"
+      ],
+      "properties": {
+        "boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_basis": {
+          "enum": [
+            "Africa/Johannesburg",
+            "UTC",
+            "unspecified"
+          ]
+        },
+        "measurement_kind": {
+          "const": "fixture_pressure_flow"
+        },
+        "pressure_kpa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "flow_lpm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic_only",
+            "laboratory",
+            "field_instrumented"
+          ]
+        }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "source_ref",
+        "target_ref",
+        "evidence_ref"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "directly_measured",
+            "operator_documented",
+            "topology_derived_unverified",
+            "statistical_association",
+            "unknown"
+          ]
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "family",
+        "description",
+        "utility_reports",
+        "outage",
+        "notice",
+        "hydrometric",
+        "point_of_use",
+        "dependency",
+        "requested_claim"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^C[0-9]{2}_"
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "utility_reports": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/report"
+          }
+        },
+        "outage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/outage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/notice"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hydrometric": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hydrometric"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "point_of_use": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/pointOfUse"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dependency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/dependency"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requested_claim": {
+          "enum": [
+            "synthetic_contract_only",
+            "reported_asset_status",
+            "household_service",
+            "field_qualified"
+          ]
+        }
+      }
+    }
+  }
+}
