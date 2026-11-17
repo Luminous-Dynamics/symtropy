@@ -210,7 +210,7 @@ fn main() -> ExitCode {
                     println!("field_replicates={}", campaign.replicate_count);
                     for result in campaign.results {
                         println!(
-                            "field_estimator={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean_vs_independent={:.8} paired_delta_p95_vs_independent={:.8} sensitivity_support_mean={:.4} sensitivity_support_min={:.4} mean_native_rank={:.2} full_rank_replicates={} projected_gradient_residual_mean={:.3e} projected_gradient_residual_max={:.3e} converged_replicates={}/{}",
+                            "field_estimator={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean_vs_independent={:.8} paired_delta_p95_vs_independent={:.8} sensitivity_support_mean={:.4} sensitivity_support_min={:.4} mean_native_rank={:.2} full_rank_replicates={} sparsity_prior_enabled={} projected_gradient_residual_mean={:.3e} projected_gradient_residual_max={:.3e} converged_replicates={}/{}",
                             result.estimator_id,
                             result.mean_field_rmse,
                             result.p95_field_rmse,
@@ -221,6 +221,7 @@ fn main() -> ExitCode {
                             result.minimum_sensitivity_support_ratio,
                             result.mean_native_data_rank,
                             result.full_rank_replicates,
+                            result.sparsity_prior_enabled,
                             result.mean_projected_gradient_residual,
                             result.maximum_projected_gradient_residual,
                             result.converged_replicates,
