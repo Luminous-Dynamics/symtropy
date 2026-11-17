@@ -1,6 +1,7 @@
 use flight_pv_array_survey::{
-    ArrayIdentity, FlightFrame, IrImage, MissionEnergyEnvelope, ModuleBounds, RadiometricQc,
-    RasterPlanSpec, RgbImage, SurveyProfile, SweepAxis, assess_return_reserve, evaluate_survey,
+    ArrayIdentity, CameraFlightEnvelopeSpec, CameraSensorModel, FlightFrame, IrImage,
+    MissionEnergyEnvelope, ModuleBounds, RadiometricQc, RasterPlanSpec, RgbImage, SurveyProfile,
+    SweepAxis, assess_return_reserve, compute_camera_flight_envelope, evaluate_survey,
     generate_raster_plan,
 };
 
@@ -168,6 +169,33 @@ fn main() {
         maximum_emissivity: 0.99,
         maximum_rgb_ir_skew_s: 0.10,
     };
+    let camera_envelope = compute_camera_flight_envelope(&CameraFlightEnvelopeSpec {
+        rgb: CameraSensorModel {
+            horizontal_fov_rad: 1.0,
+            vertical_fov_rad: 0.7,
+            horizontal_pixels: 4000,
+            vertical_pixels: 3000,
+            maximum_gsd_m_per_pixel: 0.01,
+            gsd_uncertainty_m_per_pixel: 0.001,
+            integration_time_s: 0.002,
+        },
+        ir: CameraSensorModel {
+            horizontal_fov_rad: 0.8,
+            vertical_fov_rad: 0.6,
+            horizontal_pixels: 640,
+            vertical_pixels: 512,
+            maximum_gsd_m_per_pixel: 0.03,
+            gsd_uncertainty_m_per_pixel: 0.002,
+            integration_time_s: 0.004,
+        },
+        requested_height_m: 25.0,
+        minimum_height_m: 5.0,
+        maximum_height_m: 30.0,
+        maximum_motion_blur_pixels: 1.0,
+        requested_maximum_ground_speed_m_per_s: 5.0,
+        ground_speed_uncertainty_m_per_s: 0.2,
+    })
+    .expect("synthetic camera envelope should be valid");
     let raster_plan = generate_raster_plan(
         &profile,
         &RasterPlanSpec {
@@ -200,6 +228,11 @@ fn main() {
     println!("suite=FLIGHT-PV-ARRAY-SURVEY-001");
     println!("survey_disposition={:?}", survey.disposition);
     println!("p1_raster_waypoints={}", raster_plan.waypoints.len());
+    println!("p2_selected_height_m={:.3}", camera_envelope.selected_height_m);
+    println!(
+        "p2_maximum_commanded_speed_m_per_s={:.3}",
+        camera_envelope.maximum_commanded_speed_m_per_s
+    );
     println!(
         "p1_raster_route_length_lower_bound_m={:.3}",
         raster_plan.route_length_lower_bound_m
