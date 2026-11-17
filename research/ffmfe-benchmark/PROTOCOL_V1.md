@@ -289,3 +289,7 @@ Symthaea's role is to prioritize simulations and coupons by expected decision-un
 A 3D linear Euler-Bernoulli element kernel and a small global frame assembler are now authored in the standalone research crate. The frame solver assembles 12-DOF members into six-DOF-per-node static systems and assumes rigid six-DOF joints where members share a node. It audits global force/moment/energy consistency.
 
 This is a research progression toward L4, not L4 qualification yet. The implementation still lacks independently verified global eigenvalue buckling, geometric stiffness, connector releases/flexible six-DOF joint matrices, imperfections, Timoshenko shear and nonlinear/contact behavior. Current beam and frame analytical tests are authored but have not been run by exact-head CI. Do not report L4 as achieved until independent solver comparison, convergence, rotational joint characterization and global buckling verification are complete.
+
+### L4 research implementation status
+
+The branch now has a small assembled 3D Euler-Bernoulli static frame reference, with six DOFs per node and rigid six-DOF continuity at shared nodes. It has authored cantilever and two-member elbow fixtures and a global force/moment/energy audit. It is a first step toward L4, but the benchmark level is not complete: independent OpenSees/CalculiX comparison, convergence, flexible six-DOF connectors, geometric stiffness and global eigenvalue buckling are still required. No L4 claim is yet permitted.
