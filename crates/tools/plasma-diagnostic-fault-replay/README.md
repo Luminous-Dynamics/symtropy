@@ -71,3 +71,9 @@ let request = WaveformRequest {
 };
 let receipt = run_waveform_replay(&request)?;
 ```
+
+### Frozen waveform corpus
+
+`benchmarks/plasma/waveform-fault-replay-v0.json` contains eight deterministic cases: nominal input, dropout, integrity failure, delay, saturation, additive bias, gain drift and stale calibration. The waveform unit-test audit checks each sample's expected state, optional value, source index and active fault identity, then verifies every receipt remains synthetic.
+
+The corpus uses hand-authored vectors and declared perturbation parameters. It is a regression fixture for the transformation implementation, not a statistically representative instrument-failure dataset and not a substitute for the TokaMark robustness benchmark.
