@@ -88,3 +88,13 @@ Both candidates share the same external envelope, outer support coordinates and 
 The comparison still excludes hub/connector/fastener mass and does not represent a full modular structure lifecycle.
 
 The two-member removal campaign has two limits: a hard 1,024-scenario ceiling and an approximate dense-solve work budget proportional to free_dofs^3. The applied scenario count is the minimum of the request, available pairs, the hard ceiling and the work budget. The receipt reports requested/applied counts and omitted combinations. This keeps the search bounded as model dimension grows; the work budget is an execution guard, not a physical metric.
+
+## Independent global verification audit
+
+The verification module separately checks:
+- total applied forces plus constrained support reactions;
+- total applied moments plus constrained support-reaction moments about the global origin;
+- strain energy against one-half external work for the zero-prescribed-displacement linear static problem;
+- the existing maximum free-DOF residual.
+
+This is an equilibrium/energy consistency audit of the numerical result. It does not validate the structural idealization, boundary conditions, omitted physics or material/connector properties. It assumes nodal forces and reactions act at node coordinates and does not include applied nodal couples.
