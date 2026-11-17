@@ -41,7 +41,7 @@ cargo test --all-targets
 cargo run --bin material-accounted-routes
 ```
 
-The crate contains ten unit tests covering frozen-corpus agreement, missing receipts, exact subject/scope joins, duplicate receipt IDs within and across cases, malformed/missing digests, orphan receipts, unknown status values and receipt-order determinism. The default executable evaluates the frozen case/receipt corpus under `fixtures/`, emits one TSV row per case and exits non-zero if any actual disposition differs from the frozen expected disposition.
+The crate contains thirteen unit tests covering frozen-corpus agreement, missing receipts, exact subject/scope joins, duplicate receipt IDs within and across cases, malformed/missing digests, orphan receipts, unknown status values and receipt-order determinism. The default executable evaluates the frozen case/receipt corpus under `fixtures/`, emits one TSV row per case and exits non-zero if any actual disposition differs from the frozen expected disposition.
 
 ## Frozen fixture corpus
 
