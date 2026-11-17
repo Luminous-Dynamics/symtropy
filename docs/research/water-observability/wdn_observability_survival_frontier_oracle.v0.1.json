@@ -422,32 +422,32 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             }
           ]
         },
@@ -460,32 +460,32 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -494,7 +494,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -511,8 +554,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -520,15 +563,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -545,8 +631,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -554,15 +640,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -579,8 +708,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -588,15 +717,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -613,8 +785,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -622,8 +794,8 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -1166,32 +1338,32 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -1200,7 +1372,266 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:PWR-N1-SHARED"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "channel:P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1226,15 +1657,58 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-P2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1260,15 +1734,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-P3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1294,15 +1811,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-P4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1328,8 +1888,8 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -1847,32 +2407,32 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             }
           ]
         },
@@ -1885,32 +2445,32 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -1919,7 +2479,351 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 2,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "channel:P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:power_supply:DOM-power_supply-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1936,8 +2840,8 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -1945,15 +2849,58 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -1970,8 +2917,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -1979,15 +2926,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2004,8 +2994,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -2013,15 +3003,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2038,8 +3071,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -2047,8 +3080,8 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -2591,32 +3624,32 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -2625,7 +3658,266 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:GW-N1-SHARED"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "channel:P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:physical_interface:DOM-physical_interface-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-A1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:power_supply:DOM-power_supply-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2651,15 +3943,58 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2685,15 +4020,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2719,15 +4097,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -2753,8 +4174,8 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -3297,32 +4718,32 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -3331,7 +4752,266 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:TAP-N1-SHARED"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "channel:P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:clock_domain:DOM-clock_domain-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:communications_path:DOM-communications_path-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:measurement_principle:DOM-measurement_principle-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:power_supply:DOM-power_supply-A1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:power_supply:DOM-power_supply-A1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3357,15 +5037,58 @@
               "total_combinations": 561,
               "observable_combinations": 492,
               "unobservable_combinations": 69,
-              "survival_fraction_numerator": 164,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 492,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3391,15 +5114,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3425,15 +5191,58 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3459,8 +5268,8 @@
               "total_combinations": 561,
               "observable_combinations": 351,
               "unobservable_combinations": 210,
-              "survival_fraction_numerator": 117,
-              "survival_fraction_denominator": 187
+              "survival_fraction_numerator": 351,
+              "survival_fraction_denominator": 561
             }
           ]
         }
@@ -3887,32 +5696,32 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         }
@@ -3921,7 +5730,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CLK1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-CLK1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:CLK-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CLK1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CLK1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CLK1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CLK1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3947,15 +5799,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CLK2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-CLK2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:CLK-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CLK2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CLK2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CLK2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CLK2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -3981,15 +5876,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CLK3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-CLK3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:CLK-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CLK3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CLK3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CLK3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CLK3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4015,15 +5953,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CLK4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-CLK4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:CLK-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CLK4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CLK4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CLK4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CLK4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4049,8 +6030,8 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         }
@@ -4477,32 +6458,32 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         }
@@ -4511,7 +6492,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CAL1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:CAL-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-CAL1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CAL1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CAL1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CAL1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CAL1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4537,15 +6561,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CAL2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:CAL-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-CAL2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CAL2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CAL2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CAL2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CAL2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4571,15 +6638,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CAL3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:CAL-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-CAL3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CAL3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CAL3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CAL3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CAL3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4605,15 +6715,58 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:CAL4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:CAL-SITE-WIDE"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-CAL4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-CAL4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-CAL4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-CAL4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-CAL4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -4639,8 +6792,8 @@
               "total_combinations": 300,
               "observable_combinations": 153,
               "unobservable_combinations": 147,
-              "survival_fraction_numerator": 51,
-              "survival_fraction_denominator": 100
+              "survival_fraction_numerator": 153,
+              "survival_fraction_denominator": 300
             }
           ]
         }
@@ -5158,32 +7311,32 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             }
           ]
         },
@@ -5196,32 +7349,32 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -5230,7 +7383,351 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 2,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "channel:V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:clock_domain:DOM-clock_domain-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:communications_path:DOM-communications_path-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:measurement_principle:DOM-measurement_principle-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:calibration_lineage:DOM-calibration_lineage-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:calibration_lineage:DOM-calibration_lineage-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:clock_domain:DOM-clock_domain-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:communications_path:DOM-communications_path-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:measurement_principle:DOM-measurement_principle-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-V1",
+                "domain:clock_domain:DOM-clock_domain-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-V1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-V1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-V1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:clock_domain:DOM-clock_domain-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:communications_path:DOM-communications_path-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:measurement_principle:DOM-measurement_principle-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-V1",
+                "domain:communications_path:DOM-communications_path-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-V1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-V1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:communications_path:DOM-communications_path-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:measurement_principle:DOM-measurement_principle-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-V1",
+                "domain:measurement_principle:DOM-measurement_principle-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-V1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:measurement_principle:DOM-measurement_principle-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-V1",
+                "domain:physical_interface:DOM-physical_interface-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P1",
+                "domain:physical_interface:DOM-physical_interface-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-V1",
+                "domain:power_supply:DOM-power_supply-P1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:power_supply:DOM-power_supply-P1",
+                "domain:power_supply:DOM-power_supply-V1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5247,8 +7744,8 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -5256,15 +7753,58 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5281,8 +7821,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -5290,15 +7830,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5315,8 +7898,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -5324,15 +7907,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5349,8 +7975,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -5358,8 +7984,8 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -5787,32 +8413,32 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             }
           ]
         },
@@ -5825,32 +8451,32 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -5859,7 +8485,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-LIVE1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-LIVE1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5876,8 +8545,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -5885,15 +8554,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5910,8 +8622,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -5919,15 +8631,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5944,8 +8699,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -5953,15 +8708,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -5978,8 +8776,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -5987,8 +8785,8 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -6416,32 +9214,32 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             }
           ]
         },
@@ -6454,32 +9252,32 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -6488,7 +9286,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-GOOD1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-GOOD1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -6505,8 +9346,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -6514,15 +9355,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -6539,8 +9423,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -6548,15 +9432,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -6573,8 +9500,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -6582,15 +9509,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -6607,8 +9577,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -6616,8 +9586,8 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -7135,32 +10105,32 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             }
           ]
         },
@@ -7173,32 +10143,32 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -7207,7 +10177,351 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 2,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "channel:DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:clock_domain:DOM-clock_domain-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:communications_path:DOM-communications_path-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:clock_domain:DOM-clock_domain-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:communications_path:DOM-communications_path-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "channel:DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:clock_domain:DOM-clock_domain-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:communications_path:DOM-communications_path-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
+                "domain:clock_domain:DOM-clock_domain-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
+                "domain:communications_path:DOM-communications_path-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL1",
+                "domain:clock_domain:DOM-clock_domain-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL1",
+                "domain:communications_path:DOM-communications_path-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL1",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL2",
+                "domain:communications_path:DOM-communications_path-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL2",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL2",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL1",
+                "domain:communications_path:DOM-communications_path-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL1",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL2",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL2",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:communications_path:DOM-communications_path-DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2",
+                "domain:physical_interface:DOM-physical_interface-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-DUAL1",
+                "domain:physical_interface:DOM-physical_interface-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-DUAL2",
+                "domain:power_supply:DOM-power_supply-DUAL1"
+              ]
+            },
+            {
+              "failure_order": 2,
+              "components": [
+                "domain:power_supply:DOM-power_supply-DUAL1",
+                "domain:power_supply:DOM-power_supply-DUAL2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7224,8 +10538,8 @@
               "total_combinations": 35,
               "observable_combinations": 35,
               "unobservable_combinations": 0,
-              "survival_fraction_numerator": 1,
-              "survival_fraction_denominator": 1
+              "survival_fraction_numerator": 35,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -7233,15 +10547,58 @@
               "total_combinations": 595,
               "observable_combinations": 546,
               "unobservable_combinations": 49,
-              "survival_fraction_numerator": 78,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 546,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7258,8 +10615,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -7267,15 +10624,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7292,8 +10692,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -7301,15 +10701,58 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-N4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-N4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7326,8 +10769,8 @@
               "total_combinations": 35,
               "observable_combinations": 28,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 4,
-              "survival_fraction_denominator": 5
+              "survival_fraction_numerator": 28,
+              "survival_fraction_denominator": 35
             },
             {
               "failure_order": 2,
@@ -7335,8 +10778,8 @@
               "total_combinations": 595,
               "observable_combinations": 378,
               "unobservable_combinations": 217,
-              "survival_fraction_numerator": 54,
-              "survival_fraction_denominator": 85
+              "survival_fraction_numerator": 378,
+              "survival_fraction_denominator": 595
             }
           ]
         }
@@ -7764,32 +11207,32 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             }
           ]
         },
@@ -7802,32 +11245,32 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N2",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N3",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             },
             {
               "state_id": "pressure:JHB-N4",
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
@@ -7836,7 +11279,50 @@
         {
           "state_id": "pressure:JHB-N1",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I1"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I1"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7853,8 +11339,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -7862,15 +11348,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N2",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I2"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I2"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7887,8 +11416,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -7896,15 +11425,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N3",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I3"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I3"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7921,8 +11493,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -7930,15 +11502,58 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         },
         {
           "state_id": "pressure:JHB-N4",
           "first_unobservable_order": 1,
-          "minimal_cut_sets": [],
+          "minimal_cut_sets": [
+            {
+              "failure_order": 1,
+              "components": [
+                "channel:I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:calibration_lineage:DOM-calibration_lineage-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:clock_domain:DOM-clock_domain-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:communications_path:DOM-communications_path-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:measurement_principle:DOM-measurement_principle-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:physical_interface:DOM-physical_interface-I4"
+              ]
+            },
+            {
+              "failure_order": 1,
+              "components": [
+                "domain:power_supply:DOM-power_supply-I4"
+              ]
+            }
+          ],
           "survival_by_order": [
             {
               "failure_order": 0,
@@ -7955,8 +11570,8 @@
               "total_combinations": 28,
               "observable_combinations": 21,
               "unobservable_combinations": 7,
-              "survival_fraction_numerator": 3,
-              "survival_fraction_denominator": 4
+              "survival_fraction_numerator": 21,
+              "survival_fraction_denominator": 28
             },
             {
               "failure_order": 2,
@@ -7964,8 +11579,8 @@
               "total_combinations": 378,
               "observable_combinations": 210,
               "unobservable_combinations": 168,
-              "survival_fraction_numerator": 5,
-              "survival_fraction_denominator": 9
+              "survival_fraction_numerator": 210,
+              "survival_fraction_denominator": 378
             }
           ]
         }
