@@ -268,3 +268,26 @@ The differences are retained unadjusted (about -0.004% in the rigidity energy an
 The 20 T entries are explicitly labelled HTS stretch cases, not production-qualified magnets. A 14 T / 16 T field label similarly does not imply aperture, field quality, protection, ramp-rate, manufacturing-yield or cost qualification.
 
 The calculation does not model lattice optics, beam-beam dynamics, usable luminosity, emittance evolution, RF systems, detector acceptance, beam dump, radiation transport, neutrino dose, terrain/site, utilities or radiator sizing. These are retained under their existing specialist owners, including [#5529](https://github.com/Luminous-Dynamics/symtropy/issues/5529), [#5583](https://github.com/Luminous-Dynamics/symtropy/issues/5583), [#5907](https://github.com/Luminous-Dynamics/symtropy/issues/5907) and the new [#5924 local-ring comparison](https://github.com/Luminous-Dynamics/symtropy/issues/5924).
+
+
+### Dipole-fill semantics and sensitivity
+
+The model's \`0.67\` is a **ring-wide effective bending fraction**: total dipole bending length divided by full machine circumference. It is not the fraction of an arc cell occupied by dipoles.
+
+For the 2019 FCC-hh CDR geometry, the cited machine has approximately 82 km of arcs in a 97.75 km ring and a dipole packing fraction of 0.80 within the arcs. The equivalent ring-wide fraction is:
+
+\[
+f_{ring}=0.80\\times\\frac{82.0}{97.75}=0.6710997.
+\]
+
+The common 0.67 matrix therefore approximates the FCC source geometry, but does not silently equate its arc-cell fill factor with the whole-ring bending fraction. The report exposes the conversion explicitly.
+
+A 97.75 km / 16 T fill sensitivity is also included at ring-wide fractions 0.60, 0.67, 0.6710997 (FCC-derived) and 0.75:
+- 0.60: ~89.55 TeV CM and ~1.68 MW/beam at 0.5 A;
+- 0.67: ~100.00 TeV CM and ~2.33 MW/beam;
+- 0.6710997: ~100.16 TeV CM and ~2.35 MW/beam;
+- 0.75: ~111.94 TeV CM and ~3.27 MW/beam.
+
+These values are first-order uniform-bend comparisons. The source FCC 2.4 MW per beam is based on the actual lattice; our simplified radiation relation does not reproduce the detailed radiation integral or lattice configuration. The difference remains a model-discrepancy diagnostic, not a calibration target.
+
+Source: [FCC-hh Extended Conceptual Design Report, CERN-2025-006](https://doi.org/10.23731/CYRM-2025-006).
