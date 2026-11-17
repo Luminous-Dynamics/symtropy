@@ -675,3 +675,9 @@ Two new work programmes turn spatial expression and lifecycle assembly into test
 Both are research plans. No occupant studies, physical mockups or robotic assembly trials have yet been performed.
 
 The beam-element test suite has been expanded to axial extension and torsional rotation, completing the four basic elementary response fixtures (axial, torsion, both principal bending planes). The assembled frame suite checks a shared six-DOF elbow joint and force/moment/energy balance. All remain authored tests, not current-head passes.
+
+### Deterministic build-plan compilation
+
+The free-flow structure crate now includes research/freeflow-structure-lab/src/assembly.rs. It converts the tetrahedral parent/face hierarchy into a deterministic parent-before-child assembly plan and rejects malformed root, generation, parent, shared-face or new-node relationships. The CLI reports sequence length, maximum generation, blocked faces and a non-cryptographic plan digest.
+
+This is a discrete dependency order, not a robotic assembly plan. Grasp/approach, reach, collision, pose correction, insertion/locking force, temporary support, tool availability and post-assembly verification are tracked separately in issue #5818.
