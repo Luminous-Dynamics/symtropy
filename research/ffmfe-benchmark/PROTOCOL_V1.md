@@ -302,3 +302,7 @@ Two follow-on experiments now operationalize the non-mechanical dimensions:
 - [Issue #5818](https://github.com/Luminous-Dynamics/symtropy/issues/5818): robotic assembly, inspection and replacement. Each interface needs grasp/approach, fiducial, insertion/locking, feedback, force/torque, verification, disassembly and inspection contracts. The benchmark measures success, pose error, insertion force, time, tool changes, false lock verification, collisions, damage and repair. NASA ARMADAS is an existing comparator; robotic assembly itself is not claimed as novel.
 
 Both are future research/physical programmes. Neither human trials nor robotic assembly trials have been run in this software increment.
+
+## 19. Assembly grammar output
+
+The geometry crate now compiles the validated tetrahedral module hierarchy into a deterministic parent-before-child assembly plan. The planner validates one root, contiguous IDs, generation progression, shared-face membership, previously introduced attachment nodes and exactly one new apex per child. This corresponds to a valid discrete dependency order only; it is not a robot motion plan or proof of manufacturability. Robot reach/grasp/collision/insertion/lock/verification requirements remain in issue #5818.
