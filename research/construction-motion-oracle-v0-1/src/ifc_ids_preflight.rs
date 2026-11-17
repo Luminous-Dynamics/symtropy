@@ -125,6 +125,7 @@ pub struct IfcIdsPreflightReport {
     pub in_scope_entity_count: u64,
     pub ifc_schema_release: String,
     pub ids_version: String,
+    pub coordinate_context: IfcCoordinateContext,
     pub length_to_mm_numerator: u64,
     pub length_to_mm_denominator: u64,
 }
@@ -440,6 +441,7 @@ pub fn preflight_ifc_ids_work_package(
         in_scope_entity_count: source_entity_bindings.len() as u64,
         ifc_schema_release: input.source_schema_release,
         ids_version: input.ids_version,
+        coordinate_context: input.coordinate_context,
         length_to_mm_numerator: unit_ratio.map_or(0, |ratio| ratio.0),
         length_to_mm_denominator: unit_ratio.map_or(0, |ratio| ratio.1),
     })
