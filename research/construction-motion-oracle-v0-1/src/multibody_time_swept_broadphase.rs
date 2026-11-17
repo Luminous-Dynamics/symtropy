@@ -1145,9 +1145,7 @@ mod tests {
         for initial_seed in 0..12_u64 {
             let mut seed = 0x5a17_0000_u64.wrapping_add(initial_seed);
             let mut next = || {
-                seed = seed
-                    .wrapping_mul(6_364_136_223_846_793_005)
-                    .wrapping_add(1);
+                seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
                 (seed >> 32) as i64
             };
             let mut bodies = Vec::new();
@@ -1185,7 +1183,10 @@ mod tests {
                     clock_domain_id: "site-clock".into(),
                     clock_uncertainty_ms: 0,
                 };
-                bodies.push(body(&format!("seed-{initial_seed}-body-{index:02}"), motion));
+                bodies.push(body(
+                    &format!("seed-{initial_seed}-body-{index:02}"),
+                    motion,
+                ));
             }
 
             for subdivisions in [1, 2, 4, 8, 16] {
@@ -1193,8 +1194,7 @@ mod tests {
                     time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
                 let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
                 assert_eq!(
-                    hierarchical.refinement.pairs,
-                    direct.pairs,
+                    hierarchical.refinement.pairs, direct.pairs,
                     "randomized complete candidate records diverged for seed {initial_seed} at {subdivisions} slabs"
                 );
                 let coarse_ids: BTreeSet<_> = hierarchical
@@ -1215,5 +1215,4 @@ mod tests {
             }
         }
     }
-
 }
