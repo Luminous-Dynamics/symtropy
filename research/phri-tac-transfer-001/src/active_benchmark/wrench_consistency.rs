@@ -357,9 +357,9 @@ pub fn integrate_tactile_field(
 ) -> Result<WrenchVector, String> {
     validate_field(operator, local_traction_pa)?;
     let mut values = [0.0; 6];
-    for row in 0..6 {
+    for (row, value) in values.iter_mut().enumerate() {
         let start = row * operator.parameter_count;
-        values[row] = dot(
+        *value = dot(
             &operator.coefficients[start..start + operator.parameter_count],
             local_traction_pa,
         );
@@ -412,16 +412,6 @@ impl WrenchReferenceEvidence {
     }
 }
 
-fn wrench_components(wrench: WrenchVector) -> [f64; 6] {
-    [
-        wrench.force_n.x,
-        wrench.force_n.y,
-        wrench.force_n.z,
-        wrench.moment_nm.x,
-        wrench.moment_nm.y,
-        wrench.moment_nm.z,
-    ]
-}
 
 pub fn assess_wrench_consistency(
     operator: &WrenchOperator,
