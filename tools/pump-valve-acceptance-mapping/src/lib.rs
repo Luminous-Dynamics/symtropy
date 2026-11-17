@@ -11,8 +11,8 @@ pub const PROFILES: &str = include_str!("../fixtures/profiles-v0.1.tsv");
 pub const SCENARIOS: &str = include_str!("../fixtures/scenarios-v0.1.tsv");
 pub const EXPECTED: &str = include_str!("../fixtures/expected-v0.1.tsv");
 
-const PROFILE_HEADER: &str = "profile_id\tstandard_id\tedition\tpublication_state\tproduct_families\ttest_families\tfluid_scope\tfacility_scope\trequires_product_standard\tallow_other_family_by_agreement\trequires_agreement_for_fittings\trequires_acceptance_grade\texcludes_pressure_test_safety\tsource_ref";
-const SCENARIO_HEADER: &str = "scenario_id\tprofile_id\tproduct_family\ttest_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement\tproduct_standard_link\tpurchaser_agreement\tacceptance_grade\tevidence_status\tclaim_kind";
+const PROFILE_HEADER: &str = "profile_id\tstandard_id\tedition\tpublication_state\tproduct_families\ttest_families\tseat_families\tfluid_scope\tfacility_scope\trequires_product_standard\tallow_other_family_by_agreement\trequires_agreement_for_fittings\trequires_acceptance_grade\texcludes_pressure_test_safety\tsource_ref";
+const SCENARIO_HEADER: &str = "scenario_id\tprofile_id\tproduct_family\ttest_family\tseat_family\tfluid_profile\tfacility_profile\tincludes_fittings\tfitting_agreement\tproduct_standard_link\tpurchaser_agreement\tacceptance_grade\tevidence_status\tclaim_kind";
 const EXPECTED_HEADER: &str = "scenario_id\texpected_disposition";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,6 +23,7 @@ pub struct StandardProfile {
     pub publication_state: String,
     pub product_families: Vec<String>,
     pub test_families: Vec<String>,
+    pub seat_families: Vec<String>,
     pub fluid_scope: String,
     pub facility_scope: String,
     pub requires_product_standard: bool,
@@ -39,6 +40,7 @@ pub struct Scenario {
     pub profile_id: String,
     pub product_family: String,
     pub test_family: String,
+    pub seat_family: String,
     pub fluid_profile: String,
     pub facility_profile: String,
     pub includes_fittings: bool,
@@ -158,21 +160,21 @@ pub fn parse_profiles(input: &str) -> Result<Vec<StandardProfile>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 14, "profiles", index + 2)?;
+        let row = split_row(line, 15, "profiles", index + 2)?;
         for (label, value) in [
             ("profile_id", row[0]),
             ("standard_id", row[1]),
             ("edition", row[2]),
             ("publication_state", row[3]),
-            ("fluid_scope", row[6]),
-            ("facility_scope", row[7]),
-            ("source_ref", row[13]),
+            ("fluid_scope", row[7]),
+            ("facility_scope", row[8]),
+            ("source_ref", row[14]),
         ] {
             if !valid_ref(value) && label != "standard_id" {
                 return Err(format!("profiles:{}: invalid {label}", index + 2));
             }
         }
-        if row[1].trim().is_empty() || !row[13].starts_with("https://") {
+        if row[1].trim().is_empty() || !row[14].starts_with("https://") {
             return Err(format!("profiles:{}: invalid standard/source reference", index + 2));
         }
         if !matches!(
@@ -204,14 +206,15 @@ pub fn parse_profiles(input: &str) -> Result<Vec<StandardProfile>, String> {
             publication_state: row[3].to_owned(),
             product_families: parse_list(row[4])?,
             test_families: parse_list(row[5])?,
-            fluid_scope: row[6].to_owned(),
-            facility_scope: row[7].to_owned(),
-            requires_product_standard: parse_bool(row[8], "profiles", index + 2)?,
-            allow_other_family_by_agreement: parse_bool(row[9], "profiles", index + 2)?,
-            requires_agreement_for_fittings: parse_bool(row[10], "profiles", index + 2)?,
-            requires_acceptance_grade: parse_bool(row[11], "profiles", index + 2)?,
-            excludes_pressure_test_safety: parse_bool(row[12], "profiles", index + 2)?,
-            source_ref: row[13].to_owned(),
+            seat_families: parse_list(row[6])?,
+            fluid_scope: row[7].to_owned(),
+            facility_scope: row[8].to_owned(),
+            requires_product_standard: parse_bool(row[9], "profiles", index + 2)?,
+            allow_other_family_by_agreement: parse_bool(row[10], "profiles", index + 2)?,
+            requires_agreement_for_fittings: parse_bool(row[11], "profiles", index + 2)?,
+            requires_acceptance_grade: parse_bool(row[12], "profiles", index + 2)?,
+            excludes_pressure_test_safety: parse_bool(row[13], "profiles", index + 2)?,
+            source_ref: row[14].to_owned(),
         });
     }
     if profiles.is_empty() {
@@ -234,18 +237,19 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
         if line.is_empty() {
             continue;
         }
-        let row = split_row(line, 13, "scenarios", index + 2)?;
+        let row = split_row(line, 14, "scenarios", index + 2)?;
         for (label, value) in [
             ("scenario_id", row[0]),
             ("profile_id", row[1]),
             ("product_family", row[2]),
             ("test_family", row[3]),
-            ("fluid_profile", row[4]),
-            ("facility_profile", row[5]),
-            ("product_standard_link", row[8]),
-            ("acceptance_grade", row[10]),
-            ("evidence_status", row[11]),
-            ("claim_kind", row[12]),
+            ("seat_family", row[4]),
+            ("fluid_profile", row[5]),
+            ("facility_profile", row[6]),
+            ("product_standard_link", row[9]),
+            ("acceptance_grade", row[11]),
+            ("evidence_status", row[12]),
+            ("claim_kind", row[13]),
         ] {
             if !valid_ref(value) && value != "-" {
                 return Err(format!("scenarios:{}: invalid {label}", index + 2));
@@ -258,31 +262,31 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
                 row[0]
             ));
         }
-        if !matches!(row[7], "YES" | "NO" | "NA") {
+        if !matches!(row[8], "YES" | "NO" | "NA") {
             return Err(format!(
                 "scenarios:{}: invalid fitting_agreement {}",
-                index + 2,
-                row[7]
-            ));
-        }
-        if !matches!(
-            row[8],
-            "REFERENCED" | "NOT_REFERENCED" | "NOT_REQUIRED"
-        ) {
-            return Err(format!(
-                "scenarios:{}: invalid product_standard_link {}",
                 index + 2,
                 row[8]
             ));
         }
         if !matches!(
-            row[11],
+            row[9],
+            "REFERENCED" | "NOT_REFERENCED" | "NOT_REQUIRED"
+        ) {
+            return Err(format!(
+                "scenarios:{}: invalid product_standard_link {}",
+                index + 2,
+                row[9]
+            ));
+        }
+        if !matches!(
+            row[12],
             "COMPLETE" | "MISSING_CALIBRATION" | "MISSING_TEST_RECORD" | "STALE_EVIDENCE"
         ) {
             return Err(format!(
                 "scenarios:{}: unsupported evidence_status {}",
                 index + 2,
-                row[11]
+                row[12]
             ));
         }
 
@@ -291,15 +295,16 @@ pub fn parse_scenarios(input: &str) -> Result<Vec<Scenario>, String> {
             profile_id: row[1].to_owned(),
             product_family: row[2].to_owned(),
             test_family: row[3].to_owned(),
-            fluid_profile: row[4].to_owned(),
-            facility_profile: row[5].to_owned(),
-            includes_fittings: parse_bool(row[6], "scenarios", index + 2)?,
-            fitting_agreement: row[7].to_owned(),
-            product_standard_link: row[8].to_owned(),
-            purchaser_agreement: parse_bool(row[9], "scenarios", index + 2)?,
-            acceptance_grade: row[10].to_owned(),
-            evidence_status: row[11].to_owned(),
-            claim_kind: row[12].to_owned(),
+            seat_family: row[4].to_owned(),
+            fluid_profile: row[5].to_owned(),
+            facility_profile: row[6].to_owned(),
+            includes_fittings: parse_bool(row[7], "scenarios", index + 2)?,
+            fitting_agreement: row[8].to_owned(),
+            product_standard_link: row[9].to_owned(),
+            purchaser_agreement: parse_bool(row[10], "scenarios", index + 2)?,
+            acceptance_grade: row[11].to_owned(),
+            evidence_status: row[12].to_owned(),
+            claim_kind: row[13].to_owned(),
         });
     }
     if scenarios.is_empty() {
@@ -421,6 +426,18 @@ fn evaluate_one(profile: &StandardProfile, scenario: &Scenario) -> (Disposition,
         return (
             Disposition::NotApplicable,
             "test family is outside the declared standard profile scope",
+        );
+    }
+
+    if !profile.seat_families.iter().any(|seat| seat == "ANY_DECLARED")
+        && !profile
+            .seat_families
+            .iter()
+            .any(|seat| seat == &scenario.seat_family)
+    {
+        return (
+            Disposition::NotApplicable,
+            "seat family is outside the declared standard profile scope",
         );
     }
 
@@ -614,7 +631,7 @@ mod tests {
                 .iter()
                 .filter(|row| row.disposition == Disposition::Applicable)
                 .count(),
-            10
+            11
         );
     }
 
