@@ -582,7 +582,7 @@ mod tests {
             Err(ParetoAnalysisError::InvalidObjective(ParetoSampleId(1)))
         );
 
-        item = sample(2, 1, 10, 2, 1.0, f64::NAN, 0.0, 10.0);
+        item = sample(2, 1, 10, 2, (f64::NAN, 1.0), (0.0, 10.0));
         assert_eq!(
             analyze_by_plant_genotype(&[item], origin(), normalization()),
             Err(ParetoAnalysisError::InvalidObjective(ParetoSampleId(2)))
