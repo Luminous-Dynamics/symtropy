@@ -205,12 +205,21 @@ fn main() -> ExitCode {
             ) {
                 Ok(campaign) => {
                     println!("field_reconstruction_campaign=paired_synthetic_113_taxel_v0_1");
+                    match serde_json::to_string(&campaign) {
+                        Ok(scorecard_json) => {
+                            println!("field_reconstruction_scorecard_json={scorecard_json}");
+                        }
+                        Err(error) => {
+                            eprintln!("field_reconstruction_scorecard_json=serialization_error:{error}");
+                            return ExitCode::FAILURE;
+                        }
+                    }
                     println!("field_taxel_count={}", campaign.taxel_count);
                     println!("field_module_count={}", campaign.module_count);
                     println!("field_replicates={}", campaign.replicate_count);
                     for result in campaign.results {
                         println!(
-                            "field_estimator={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean_vs_independent={:.8} paired_delta_p95_vs_independent={:.8} sensitivity_support_mean={:.4} sensitivity_support_min={:.4} mean_native_rank={:.2} full_rank_replicates={} sparsity_prior_enabled={} projected_gradient_residual_mean={:.3e} projected_gradient_residual_max={:.3e} converged_replicates={}/{}",
+                            "field_estimator={} rmse_mean={:.8} rmse_p95={:.8} rmse_max={:.8} paired_delta_mean_vs_independent={:.8} paired_delta_p95_vs_independent={:.8} sensitivity_support_mean={:.4} sensitivity_support_min={:.4} data_identifiability_mean={:.4} data_identifiability_min={:.4} underidentified_cells_mean={:.2} mean_native_rank={:.2} full_rank_replicates={} sparsity_prior_enabled={} projected_gradient_residual_mean={:.3e} projected_gradient_residual_max={:.3e} converged_replicates={}/{}",
                             result.estimator_id,
                             result.mean_field_rmse,
                             result.p95_field_rmse,
@@ -219,6 +228,9 @@ fn main() -> ExitCode {
                             result.paired_rmse_delta_p95_vs_independent,
                             result.mean_sensitivity_support_ratio,
                             result.minimum_sensitivity_support_ratio,
+                            result.mean_native_data_identifiability_ratio,
+                            result.minimum_native_data_identifiability_ratio,
+                            result.mean_underidentified_cells,
                             result.mean_native_data_rank,
                             result.full_rank_replicates,
                             result.sparsity_prior_enabled,
