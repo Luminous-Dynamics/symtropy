@@ -332,8 +332,7 @@ fn independent_bound(routes: &[&EvaluatedRoute]) -> usize {
 fn decision_fingerprint(scenario: &Scenario) -> String {
     let mut input = format!(
         "{}|{}",
-        scenario.observable_prefix_id,
-        scenario.decision_time_utc
+        scenario.observable_prefix_id, scenario.decision_time_utc
     );
     if scenario.event_visible_at_decision {
         input.push('|');
@@ -650,7 +649,10 @@ mod tests {
     #[test]
     fn unknown_only_route_is_not_promoted_to_available_or_blocked() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let unknown = evaluations.iter().find(|entry| entry.scenario_id == "S14").unwrap();
+        let unknown = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S14")
+            .unwrap();
         assert!(unknown.available_routes.is_empty());
         assert_eq!(unknown.unknown_routes, vec!["independent_e".to_owned()]);
         assert_eq!(unknown.independent_lower_bound, 0);
@@ -662,7 +664,10 @@ mod tests {
     #[test]
     fn unknown_first_article_gate_is_not_reported_as_rejection() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let unknown = evaluations.iter().find(|entry| entry.scenario_id == "S15").unwrap();
+        let unknown = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S15")
+            .unwrap();
         assert_eq!(unknown.available_routes.len(), 5);
         assert_eq!(unknown.output_disposition, "UNKNOWN");
         assert!(!unknown.synthetic_output_accepted);
@@ -671,7 +676,10 @@ mod tests {
     #[test]
     fn no_route_is_blocked_not_an_inspection_rejection() {
         let evaluations = evaluate_frozen_corpus().expect("frozen corpus should evaluate");
-        let blocked = evaluations.iter().find(|entry| entry.scenario_id == "S10").unwrap();
+        let blocked = evaluations
+            .iter()
+            .find(|entry| entry.scenario_id == "S10")
+            .unwrap();
         assert_eq!(blocked.output_disposition, "BLOCKED");
         assert!(!blocked.synthetic_output_accepted);
     }
