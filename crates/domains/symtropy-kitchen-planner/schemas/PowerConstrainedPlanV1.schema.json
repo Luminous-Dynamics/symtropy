@@ -134,7 +134,8 @@
         },
         "background_real_power_w": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Continuous household baseline load. Runtime validation requires this to be no greater than continuous_real_power_limit_w."
         }
       }
     },
