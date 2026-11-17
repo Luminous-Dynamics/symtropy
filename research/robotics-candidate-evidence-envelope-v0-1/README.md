@@ -27,6 +27,7 @@ No subsystem gets authority merely because its output is structurally valid.
 
 The v0.1 binding pins:
 - mission/scenario identity and revision;
+- upstream evidence-request-set identity, revision and digest (including the current behavior-conditioned task/progress constraints supplied by Symthaea #12046);
 - robot identity, configuration revision and configuration digest;
 - module manifest digest;
 - site revision, frame revision and map revision;
@@ -64,7 +65,7 @@ CandidateBinding::canonical_binding_bytes() produces deterministic, length-prefi
 
 ## Implementation status
 
-The reference crate includes 26 deterministic tests for eligibility precedence, externally computed binding digest matching, exact receipt/source binding, timebase binding, target coverage, calibration validity, duplicate receipts, numeric bounds and canonical target-order invariance. A private-field validation token exposes a QualifiedCandidateProjection only for structurally consistent, fully Qualified candidates.
+The reference crate includes 28 deterministic tests for eligibility precedence, externally computed binding digest matching, exact receipt/source binding, timebase binding, target coverage, calibration validity, duplicate receipts, numeric bounds and canonical target-order invariance. A private-field validation token exposes a QualifiedCandidateProjection only for structurally consistent, fully Qualified candidates.
 
 ## Claim boundary
 
