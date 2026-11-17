@@ -208,14 +208,39 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
     {
         errors.push("unexpected native input path".to_owned());
     }
-    if manifest.pointer("/input/expected_record_count").and_then(Value::as_u64) != Some(10_001) {
-        errors.push("the pinned source snapshot must contain 10,001 records".to_owned());
+    if manifest
+        .pointer("/input/expected_record_count")
+        .and_then(Value::as_u64)
+        .is_none_or(|count| count == 0)
+    {
+        errors.push("input.expected_record_count must be a positive integer".to_owned());
+    }
+    if manifest.pointer("/input/expected_header").and_then(Value::as_str)
+        != Some("\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"")
+    {
+        errors.push("input.expected_header does not match the pinned BDSIM userfile header".to_owned());
+    }
+    if manifest.pointer("/bdsim_declaration/distr_type").and_then(Value::as_str)
+        != Some("userfile")
+        || manifest.pointer("/bdsim_declaration/distr_file").and_then(Value::as_str)
+            != Some("lowemittancebeam.dat")
+        || manifest.pointer("/bdsim_declaration/distr_file_format").and_then(Value::as_str)
+            != Some("x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]")
+    {
+        errors.push("BDSIM declaration must preserve the pinned userfile, file name and native units".to_owned());
     }
     if manifest.pointer("/bdsim_declaration/particle").and_then(Value::as_str) != Some("mu-") {
         errors.push("the BDSIM beam declaration must identify mu-".to_owned());
     }
     if manifest.pointer("/bdsim_declaration/nlines_ignore").and_then(Value::as_u64) != Some(1) {
         errors.push("the BDSIM userfile declaration must ignore exactly one header line".to_owned());
+    }
+    if manifest.pointer("/bdsim_declaration/path").and_then(Value::as_str)
+        != Some("cooling/bdsim/lowemittancebeam.gmad")
+        || manifest.pointer("/bdsim_declaration/git_blob_sha1").and_then(Value::as_str)
+            != Some("f5ff777ee61ec8985a03f5439b272903917c8e8e")
+    {
+        errors.push("BDSIM userfile declaration identity does not match the pinned upstream object".to_owned());
     }
 
     let columns = manifest
@@ -271,14 +296,33 @@ fn validate_manifest(manifest: &Value) -> Result<(), Vec<String>> {
                 .to_owned(),
         );
     }
+    if manifest.pointer("/bdsim_lattice/path").and_then(Value::as_str)
+        != Some("cooling/bdsim/solenoidsheetdemonstrator102.gmad")
+        || manifest.pointer("/bdsim_lattice/git_blob_sha1").and_then(Value::as_str)
+            != Some("1f564a733fcc63d46d0eff6ece5c89d2b93519c9")
+    {
+        errors.push("BDSIM lattice identity does not match the pinned upstream object".to_owned());
+    }
+    if manifest.pointer("/g4bl_baseline/path").and_then(Value::as_str)
+        != Some("cooling/g4bl/cooling.g4bl")
+        || manifest.pointer("/g4bl_baseline/git_blob_sha1").and_then(Value::as_str)
+            != Some("dc0cb955ef657cdc1862b4b5c30e2fe415d4e377")
+        || manifest.pointer("/g4bl_baseline/cell_count").and_then(Value::as_u64) != Some(60)
+    {
+        errors.push("G4Beamline baseline identity or source cell count does not match the pinned upstream object".to_owned());
+    }
 
     if manifest.pointer("/g4bl_baseline/equivalent_to_bdsim_model").and_then(Value::as_bool)
         != Some(false)
     {
         errors.push("G4BL and BDSIM models must remain distinct until equivalence is established".to_owned());
     }
-    if manifest.pointer("/g4bl_run_log/decay_process_disabled").and_then(Value::as_bool)
-        != Some(true)
+    if manifest.pointer("/g4bl_run_log/path").and_then(Value::as_str)
+        != Some("cooling/g4bl/g4bl.log")
+        || manifest.pointer("/g4bl_run_log/git_blob_sha1").and_then(Value::as_str)
+            != Some("a69acc28ea77d9055685c05936615460f87059d9")
+        || manifest.pointer("/g4bl_run_log/decay_process_disabled").and_then(Value::as_bool)
+            != Some(true)
         || manifest.pointer("/g4bl_run_log/muon_survival_status").and_then(Value::as_str)
             != Some("not_evaluated")
     {
@@ -635,7 +679,7 @@ mod tests {
         let changed = String::from_utf8(bytes.clone())
             .expect("fixture UTF-8")
             .replace("-1.0 -0.1 -2.0 -0.2 0.0 200.0 -1.0", "-1.0 -0.1 -2.0 -0.2 0.0 200.0");
-        assert!(audit_bytes(&manifest_for(&bytes), changed.as_bytes()).is_err());
+        assert!(audit_bytes(&manifest_for(changed.as_bytes()), changed.as_bytes()).is_err());
     }
 
     #[test]
@@ -644,7 +688,7 @@ mod tests {
         let changed = String::from_utf8(bytes.clone())
             .expect("fixture UTF-8")
             .replace("-1.0 -0.1 -2.0", "NaN -0.1 -2.0");
-        assert!(audit_bytes(&manifest_for(&bytes), changed.as_bytes()).is_err());
+        assert!(audit_bytes(&manifest_for(changed.as_bytes()), changed.as_bytes()).is_err());
     }
 
     #[test]
