@@ -163,7 +163,9 @@
         "delivered_ids_properties",
         "applicable_ids_requirement_ids",
         "ids_requirement_evaluations",
-        "in_work_scope"
+        "in_work_scope",
+        "applicable_ids_requirement_ids",
+        "ids_requirement_evaluations"
       ],
       "properties": {
         "global_id": {
