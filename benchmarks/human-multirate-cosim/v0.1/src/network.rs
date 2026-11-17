@@ -268,6 +268,7 @@ pub struct NetworkScore {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkError {
+    InvalidReferenceState,
     InvalidTopologyEventTime,
     TopologyEventNotGridAligned,
     InvalidAdaptiveConfig,
@@ -295,6 +296,9 @@ pub enum NetworkError {
 impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidReferenceState => {
+                write!(f, "reference initial state must match the network dimension and be finite")
+            }
             Self::InvalidTopologyEventTime => {
                 write!(
                     f,
@@ -373,7 +377,26 @@ pub fn simulate_network(
     method: NetworkMethod,
     communication_step: f64,
 ) -> Result<NetworkScore, NetworkError> {
+    simulate_network_against_reference(
+        scenario,
+        method,
+        communication_step,
+        &scenario.initial,
+    )
+}
+
+fn simulate_network_against_reference(
+    scenario: &NetworkScenario,
+    method: NetworkMethod,
+    communication_step: f64,
+    reference_initial_state: &[f64],
+) -> Result<NetworkScore, NetworkError> {
     scenario.validate()?;
+    if reference_initial_state.len() != scenario.capacities.len()
+        || reference_initial_state.iter().any(|value| !value.is_finite())
+    {
+        return Err(NetworkError::InvalidReferenceState);
+    }
     if !communication_step.is_finite() || communication_step <= 0.0 {
         return Err(NetworkError::InvalidStep);
     }
@@ -388,7 +411,14 @@ pub fn simulate_network(
         return Err(NetworkError::ExcessiveStepCount);
     }
 
-    let oracle = scenario.spectral_oracle()?;
+    let reference_scenario = NetworkScenario {
+        name: scenario.name,
+        capacities: scenario.capacities.clone(),
+        initial: reference_initial_state.to_vec(),
+        edges: scenario.edges.clone(),
+        horizon: scenario.horizon,
+    };
+    let oracle = reference_scenario.spectral_oracle()?;
     let laplacian = scenario.laplacian();
     let steps = rounded_steps as usize;
     let n = scenario.capacities.len();
@@ -576,6 +606,7 @@ pub fn simulate_network_topology_events(
     }
 
     let mut state = scenario.initial.clone();
+    let mut reference_state = scenario.initial.clone();
     let mut active_edges = scenario.edges.clone();
     let mut segment_start = 0.0;
     let mut total_steps = 0_usize;
@@ -609,7 +640,22 @@ pub fn simulate_network_topology_events(
             .map(|(capacity, value)| capacity * value)
             .sum();
         let accumulated_total_offset = (segment_start_total - scenario.conserved_total()).abs();
-        let score = simulate_network(&segment, method, communication_step)?;
+        let score = simulate_network_against_reference(
+            &segment,
+            method,
+            communication_step,
+            &reference_state,
+        )?;
+        let reference_segment = NetworkScenario {
+            name: scenario.name,
+            capacities: scenario.capacities.clone(),
+            initial: reference_state.clone(),
+            edges: active_edges.clone(),
+            horizon: segment_duration,
+        };
+        reference_state = reference_segment
+            .spectral_oracle()?
+            .state_at(segment_duration)?;
         total_steps += score.steps;
         max_abs_state_error = max_abs_state_error.max(score.max_abs_state_error);
         sum_squared_error += score.rms_state_error
@@ -1211,6 +1257,55 @@ mod tests {
         assert!(score.max_abs_total_residual < 1.0e-10);
         assert!(score.positive_states);
         assert!(score.max_quadratic_energy_increase < 1.0e-10);
+    }
+
+    #[test]
+    fn topology_event_error_uses_one_continuous_piecewise_reference() {
+        let scenario = chain();
+        let events = [TopologyEvent {
+            at_time: 2.0,
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 0.1,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 0.9,
+                },
+            ],
+        }];
+        let score = simulate_network_topology_events(
+            &scenario,
+            &events,
+            NetworkMethod::BackwardEulerReference,
+            0.1,
+        )
+        .unwrap();
+
+        let first_reference = scenario.spectral_oracle().unwrap();
+        let exact_event_state = first_reference.state_at(2.0).unwrap();
+        let second_segment = NetworkScenario {
+            name: scenario.name,
+            capacities: scenario.capacities.clone(),
+            initial: exact_event_state,
+            edges: events[0].edges.clone(),
+            horizon: 2.0,
+        };
+        let exact_final = second_segment
+            .spectral_oracle()
+            .unwrap()
+            .state_at(2.0)
+            .unwrap();
+        let terminal_error = score
+            .final_state
+            .iter()
+            .zip(exact_final.iter())
+            .map(|(actual, expected)| (actual - expected).abs())
+            .fold(0.0_f64, f64::max);
+        assert!(score.max_abs_state_error + 1.0e-12 >= terminal_error);
     }
 
     #[test]
