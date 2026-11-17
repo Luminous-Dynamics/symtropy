@@ -249,3 +249,22 @@ The report keeps the separate source cases distinct:
 Negative vertical/longitudinal changes are preserved as source observations and are not treated as evidence of true beam cooling. Ramp-jitter observations are carried separately; negligible extra emittance growth at 100 ppm does not mean zero orbit or optics perturbation.
 
 The source-bound component qualifies transcription and arithmetic only. It does not replace RCS lattice tracking or prove that the full chain meets the physical emittance budget.
+
+
+## Local engineered-ring host comparison
+
+The JSON report now contains \`local_ring_screen\`, a 12-case first-order comparison for 50 km, 100 km and 150 km circumferences at 8.33 T, 14 T, 16 T and 20 T, with a declared 0.67 dipole fill fraction.
+
+**Key geometry result:** at 97.75 km, 16 T and 0.67 fill, the simplified rigidity relation gives 99.9959 TeV centre-of-mass energy. At 100 km, it gives 102.2976 TeV CM. This demonstrates why local machine circumference should be optimized independently of the host body's radius.
+
+**FCC-hh scale check:** at the FCC-hh conceptual geometry (97.75 km / 16 T), the simplified 0.67-fill, 0.5 A screen gives:
+- 99.9959 TeV CM versus the source's 100 TeV;
+- 2.3339 MW proton synchrotron power per beam versus the source's approximately 2.4 MW.
+
+The differences are retained unadjusted (about -0.004% in the rigidity energy and -2.76% in SR power). Actual accelerator lattices require the radiation integral and detailed beam parameters; this is not a replacement for the FCC lattice model.
+
+**Muon scaling is distinct.** At 100 km / 16 T / 0.67, the screen gives about 102.3 TeV CM, about 3,188 muon decay e-fold turns and about 1,594 two-beam luminosity decay e-fold turns in the simplified independent-decay model. With the NLASG 1.8e12-muon bunch and 5 Hz repetition profile, the illustrative per-beam injection power is about 73.75 MW and the formal isomagnetic SR power about 142.9 MW. This ratio is an analytical screen using a continuous repetition/decay approximation, not a machine load prediction or a credible collider operating point.
+
+The 20 T entries are explicitly labelled HTS stretch cases, not production-qualified magnets. A 14 T / 16 T field label similarly does not imply aperture, field quality, protection, ramp-rate, manufacturing-yield or cost qualification.
+
+The calculation does not model lattice optics, beam-beam dynamics, usable luminosity, emittance evolution, RF systems, detector acceptance, beam dump, radiation transport, neutrino dose, terrain/site, utilities or radiator sizing. These are retained under their existing specialist owners, including [#5529](https://github.com/Luminous-Dynamics/symtropy/issues/5529), [#5583](https://github.com/Luminous-Dynamics/symtropy/issues/5583), [#5907](https://github.com/Luminous-Dynamics/symtropy/issues/5907) and the new [#5924 local-ring comparison](https://github.com/Luminous-Dynamics/symtropy/issues/5924).
