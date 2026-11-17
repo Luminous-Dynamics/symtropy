@@ -91,6 +91,17 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-t1-input.schema.v0.1.json \
             research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json \
             artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
+      - name: Evaluate diagnosis-to-verified-intervention utility T1 contract
+        id: evaluate_verified_intervention_t1
+        env:
+          WATER_VERIFIED_INTERVENTION_UTILITY_T1_REVISION: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          cargo run --locked --package water-service-t0 --bin water-verified-intervention-utility-t1 -- \
+            research/water-service-engineering/water-verified-intervention-utility-t1-input.v0.1.json \
+            research/water-service-engineering/water-verified-intervention-utility-t1-input.schema.v0.1.json \
+            research/water-service-engineering/water-verified-intervention-utility-t1-oracle.v0.1.json \
+            artifacts/water-service-t0/water-verified-intervention-utility-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
@@ -126,6 +137,12 @@ jobs:
             research/water-service-engineering/waterloop-matched-service-t1-oracle.v0.1.json
             research/water-service-engineering/waterloop-matched-service-t1-oracle.schema.v0.1.json
             artifacts/water-service-t0/waterloop-matched-service-t1-receipt.json
+            research/water-service-engineering/WATER_VERIFIED_INTERVENTION_UTILITY_T1_PROTOCOL_V0_1.md
+            research/water-service-engineering/water-verified-intervention-utility-t1-input.v0.1.json
+            research/water-service-engineering/water-verified-intervention-utility-t1-input.schema.v0.1.json
+            research/water-service-engineering/water-verified-intervention-utility-t1-oracle.v0.1.json
+            research/water-service-engineering/water-verified-intervention-utility-t1-oracle.schema.v0.1.json
+            artifacts/water-service-t0/water-verified-intervention-utility-t1-receipt.json
           if-no-files-found: warn
       - name: Set up Python for matched-service protocol validation
         uses: actions/setup-python@v5
@@ -223,6 +240,39 @@ jobs:
                   if quality is not None and (not quality.get("sample_set_digest") or not quality.get("independent_reviewer_ref") or not quality.get("method_revision_ref") or not quality.get("valid_from_utc") or not quality.get("valid_until_utc")):
                       raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
           print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 15 cases; six paired blocks; run-bound records; scoped quality releases; synthetic-only")
+
+          intervention_root = root
+          intervention_schema = json.loads((intervention_root / "water-verified-intervention-utility-t1-input.schema.v0.1.json").read_text())
+          intervention_input = json.loads((intervention_root / "water-verified-intervention-utility-t1-input.v0.1.json").read_text())
+          intervention_oracle_schema = json.loads((intervention_root / "water-verified-intervention-utility-t1-oracle.schema.v0.1.json").read_text())
+          intervention_oracle = json.loads((intervention_root / "water-verified-intervention-utility-t1-oracle.v0.1.json").read_text())
+          for name, schema in [("intervention_input", intervention_schema), ("intervention_oracle", intervention_oracle_schema)]:
+              Draft202012Validator.check_schema(schema)
+          for name, schema, document in [
+              ("intervention_input", intervention_schema, intervention_input),
+              ("intervention_oracle", intervention_oracle_schema, intervention_oracle),
+          ]:
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(document),
+                  key=lambda error: (list(map(str, error.absolute_path)), error.message),
+              )
+              if errors:
+                  for error in errors:
+                      pointer = "/" + "/".join(map(str, error.absolute_path))
+                      print(f"WATER_VERIFIED_INTERVENTION_{name.upper()}_SCHEMA_FAIL: {pointer}: {error.message}")
+                  raise SystemExit(1)
+          if intervention_input["evidence_class"] != "synthetic_only" or len(intervention_input["scenarios"]) != 12:
+              raise SystemExit("WATER_VERIFIED_INTERVENTION_INPUT_CLAIM_CEILING_FAIL")
+          if {x["scenario_id"] for x in intervention_input["scenarios"]} != {x["scenario_id"] for x in intervention_oracle["scenarios"]}:
+              raise SystemExit("WATER_VERIFIED_INTERVENTION_ORACLE_SCENARIO_SET_FAIL")
+          for row in intervention_oracle["scenarios"]:
+              if row["abstained"] and (row["true_positive"] or row["localization_correct"] or row["inspection_confirmed"] or row["repair_consistent"]):
+                  raise SystemExit(f"WATER_VERIFIED_INTERVENTION_ABSTENTION_CREDIT_BREACH: {row['scenario_id']}")
+              if row["false_safe_pipe_claim"] and row["pipe_claim_eligible"]:
+                  raise SystemExit(f"WATER_VERIFIED_INTERVENTION_FALSE_SAFE_INVARIANT_FAIL: {row['scenario_id']}")
+          if intervention_oracle["physical_qualification_status"] != "NotRun" or intervention_oracle["statistical_inference_status"] != "NotRun" or intervention_oracle["claim_eligibility"] != "NotEligible":
+              raise SystemExit("WATER_VERIFIED_INTERVENTION_CLAIM_CEILING_FAIL")
+          print("WATER_VERIFIED_INTERVENTION_UTILITY_T1_SCHEMA_PASS: 12 synthetic scenarios; abstention and false-safe guards; physical/statistical qualification NotRun")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
@@ -232,9 +282,11 @@ jobs:
           INTAKE_OUTCOME: ${{ steps.verify_intake_t1.outcome }}
           MATCHED_SERVICE_PLAN_OUTCOME: ${{ steps.validate_matched_service.outcome }}
           MATCHED_SERVICE_T1_OUTCOME: ${{ steps.evaluate_matched_service_t1.outcome }}
+          VERIFIED_INTERVENTION_T1_OUTCOME: ${{ steps.evaluate_verified_intervention_t1.outcome }}
         run: |
           test "$EVALUATE_OUTCOME" = "success"
           test "$CASCADE_OUTCOME" = "success"
           test "$INTAKE_OUTCOME" = "success"
           test "$MATCHED_SERVICE_PLAN_OUTCOME" = "success"
           test "$MATCHED_SERVICE_T1_OUTCOME" = "success"
+          test "$VERIFIED_INTERVENTION_T1_OUTCOME" = "success"
