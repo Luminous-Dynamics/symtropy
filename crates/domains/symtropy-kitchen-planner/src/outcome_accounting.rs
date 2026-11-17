@@ -249,6 +249,7 @@ pub struct KitchenOutcomeAccountingReportV1 {
     pub water_nanolitres_per_accepted_serving: Option<ExactPerServingRatioV1>,
     pub electricity_microwatt_hours: Option<u128>,
     pub electricity_microwatt_hours_per_accepted_serving: Option<ExactPerServingRatioV1>,
+    pub evidence_refs: Vec<String>,
     pub not_applicable_refs: Vec<String>,
     pub unknown_refs: Vec<String>,
     pub issues: Vec<KitchenOutcomeIssueV1>,
@@ -860,6 +861,7 @@ pub fn evaluate_kitchen_outcome_accounting(
     let mut issues = Vec::new();
     let mut not_applicable_refs = Vec::new();
     let mut unknown_refs = Vec::new();
+    let mut evidence_refs = Vec::new();
     let mut claimable = true;
 
     if request.schema_version != KITCHEN_OUTCOME_ACCOUNTING_SCHEMA_VERSION {
@@ -1030,6 +1032,43 @@ pub fn evaluate_kitchen_outcome_accounting(
     unknown_refs.sort();
     unknown_refs.dedup();
 
+    for term in &request.mass_terms {
+        if let KitchenFlowObservationV1::Observed { evidence, .. } = &term.observation {
+            evidence_refs.push(evidence.source_ref.clone());
+            if let Some(reference) = &evidence.method_ref {
+                evidence_refs.push(reference.clone());
+            }
+            if let Some(reference) = &evidence.calibration_ref {
+                evidence_refs.push(reference.clone());
+            }
+        }
+    }
+    for term in &request.water_terms {
+        if let KitchenFlowObservationV1::Observed { evidence, .. } = &term.observation {
+            evidence_refs.push(evidence.source_ref.clone());
+            if let Some(reference) = &evidence.method_ref {
+                evidence_refs.push(reference.clone());
+            }
+            if let Some(reference) = &evidence.calibration_ref {
+                evidence_refs.push(reference.clone());
+            }
+        }
+    }
+    for term in &request.electricity_terms {
+        if let KitchenFlowObservationV1::Observed { evidence, .. } = &term.observation {
+            evidence_refs.push(evidence.source_ref.clone());
+            if let Some(reference) = &evidence.method_ref {
+                evidence_refs.push(reference.clone());
+            }
+            if let Some(reference) = &evidence.calibration_ref {
+                evidence_refs.push(reference.clone());
+            }
+        }
+    }
+    evidence_refs.retain(|reference| nonempty(reference));
+    evidence_refs.sort();
+    evidence_refs.dedup();
+
     let complete = mass_complete
         && water_complete
         && electricity_complete
@@ -1085,6 +1124,7 @@ pub fn evaluate_kitchen_outcome_accounting(
         water_nanolitres_per_accepted_serving: water_per_serving,
         electricity_microwatt_hours: electricity_total,
         electricity_microwatt_hours_per_accepted_serving: electricity_per_serving,
+        evidence_refs,
         not_applicable_refs,
         unknown_refs,
         issues,
@@ -1449,6 +1489,18 @@ mod tests {
         assert_eq!(
             evaluate_kitchen_outcome_accounting(&request).disposition,
             KitchenOutcomeDispositionV1::Blocked
+        );
+    }
+
+    #[test]
+    fn report_carries_sorted_deduplicated_evidence_references() {
+        let report = evaluate_kitchen_outcome_accounting(&request());
+        assert!(report.evidence_refs.windows(2).all(|pair| pair[0] <= pair[1]));
+        assert!(report.evidence_refs.contains(&"fixture:meter-v1".to_owned()));
+        assert!(report.evidence_refs.contains(&"fixture:calibration-v1".to_owned()));
+        assert_eq!(
+            report.evidence_refs.iter().filter(|value| *value == "fixture:meter-v1").count(),
+            1
         );
     }
 
