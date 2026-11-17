@@ -1492,8 +1492,301 @@ mod tests {
         serde_json::from_str(raw).expect("frozen fixture JSON parses")
     }
 
+
+    fn modular_fixture(name: &str) -> Value {
+        let raw = match name {
+            "modules" => include_str!(
+                "../../../../research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json"
+            ),
+            "pid" => include_str!(
+                "../../../../research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json"
+            ),
+            "bom" => include_str!(
+                "../../../../research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json"
+            ),
+            "fmea" => include_str!(
+                "../../../../research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json"
+            ),
+            "profiles" => include_str!(
+                "../../../../research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json"
+            ),
+            _ => panic!("unknown modular design fixture"),
+        };
+        serde_json::from_str(raw).expect("modular design fixture JSON parses")
+    }
+
+    fn design_string_array(value: &Value, path: &str, issues: &mut Vec<String>) -> Vec<String> {
+        let Some(rows) = value.as_array() else {
+            issues.push(format!("{path}: expected array"));
+            return Vec::new();
+        };
+        rows.iter()
+            .enumerate()
+            .filter_map(|(index, row)| {
+                row.as_str().map(str::to_owned).or_else(|| {
+                    issues.push(format!("{path}[{index}]: expected string"));
+                    None
+                })
+            })
+            .collect()
+    }
+
+    fn audit_modular_design(
+        modules_doc: &Value,
+        pid_doc: &Value,
+        bom_doc: &Value,
+        fmea_doc: &Value,
+        profiles_doc: &Value,
+    ) -> Vec<String> {
+        let mut issues = Vec::new();
+        let mut module_ids = BTreeSet::new();
+        let mut bom_tags = BTreeSet::new();
+        let mut fmea_module_coverage = BTreeSet::new();
+        let mut bom_module_coverage = BTreeSet::new();
+
+        let Some(modules) = modules_doc.get("modules").and_then(Value::as_array) else {
+            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: expected array".to_owned());
+            return issues;
+        };
+        if modules.is_empty() {
+            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules: must not be empty".to_owned());
+        }
+        for (index, module) in modules.iter().enumerate() {
+            let prefix = format!("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:modules[{index}]");
+            let id = module.get("module_id").and_then(Value::as_str).unwrap_or("");
+            if id.is_empty() {
+                issues.push(format!("{prefix}.module_id: missing"));
+            } else if !module_ids.insert(id.to_owned()) {
+                issues.push(format!("{prefix}.module_id: duplicate {id}"));
+            }
+            let failure = module.get("failure_state").and_then(Value::as_str).unwrap_or("");
+            if failure.trim().is_empty() {
+                issues.push(format!("{prefix}.failure_state: missing"));
+            }
+            let required_ports = design_string_array(
+                &module["required_ports"],
+                &format!("{prefix}.required_ports"),
+                &mut issues,
+            );
+            if required_ports.is_empty() {
+                issues.push(format!("{prefix}.required_ports: must not be empty"));
+            }
+            if required_ports.iter().any(|port| !port.starts_with("P-")) {
+                issues.push(format!("{prefix}.required_ports: every port must use the P- namespace"));
+            }
+            let requirements = design_string_array(
+                &module["requirements"],
+                &format!("{prefix}.requirements"),
+                &mut issues,
+            );
+            if requirements.is_empty() {
+                issues.push(format!("{prefix}.requirements: must not be empty"));
+            }
+            if module["module_class"] == "treatment_candidate"
+                && !["HOLD", "ISOLATE", "BYPASS"].iter().any(|word| failure.contains(word))
+            {
+                issues.push(format!("{prefix}.failure_state: treatment candidate must fail to hold/isolate/bypass"));
+            }
+        }
+        let universal_safe_state = modules_doc
+            .get("universal_safe_state")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        if !universal_safe_state.contains("NO AUTOMATIC RELEASE") {
+            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:universal_safe_state: missing no-automatic-release invariant".to_owned());
+        }
+        let prohibited = design_string_array(
+            &modules_doc["prohibited_connections"],
+            "WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:prohibited_connections",
+            &mut issues,
+        );
+        if !prohibited.iter().any(|value| value.contains("potable-to-reclaimed")) {
+            issues.push("WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json:prohibited_connections: potable/reclaimed cross-tie prohibition missing".to_owned());
+        }
+
+        let Some(pid_tags) = pid_doc.get("tags").and_then(Value::as_array) else {
+            issues.push("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags: expected array".to_owned());
+            return issues;
+        };
+        let mut pid_tag_ids = BTreeSet::new();
+        for (index, tag) in pid_tags.iter().enumerate() {
+            let prefix = format!("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags[{index}]");
+            let id = tag.get("tag").and_then(Value::as_str).unwrap_or("");
+            if id.is_empty() {
+                issues.push(format!("{prefix}.tag: missing"));
+            } else if !pid_tag_ids.insert(id.to_owned()) {
+                issues.push(format!("{prefix}.tag: duplicate {id}"));
+            }
+            for required in ["function", "boundary"] {
+                if tag.get(required).and_then(Value::as_str).is_none_or(str::is_empty) {
+                    issues.push(format!("{prefix}.{required}: missing"));
+                }
+            }
+            if design_string_array(&tag["interlocks"], &format!("{prefix}.interlocks"), &mut issues).is_empty() {
+                issues.push(format!("{prefix}.interlocks: must not be empty"));
+            }
+            let refs = design_string_array(&tag["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            if refs.is_empty() {
+                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+            }
+            for module_id in refs {
+                if !module_ids.contains(&module_id) {
+                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                }
+            }
+        }
+        let pid_invariants = design_string_array(
+            &pid_doc["safety_invariants"],
+            "WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:safety_invariants",
+            &mut issues,
+        );
+        if pid_invariants.len() < 3
+            || !pid_invariants.iter().any(|item| item.contains("pressurised cross-tie"))
+            || !pid_invariants.iter().any(|item| item.contains("No release"))
+        {
+            issues.push("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:safety_invariants: cross-connection and no-release invariants required".to_owned());
+        }
+
+        let Some(items) = bom_doc.get("items").and_then(Value::as_array) else {
+            issues.push("WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json:items: expected array".to_owned());
+            return issues;
+        };
+        for (index, item) in items.iter().enumerate() {
+            let prefix = format!("WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json:items[{index}]");
+            let tag = item.get("tag").and_then(Value::as_str).unwrap_or("");
+            if tag.is_empty() {
+                issues.push(format!("{prefix}.tag: missing"));
+            } else if !bom_tags.insert(tag.to_owned()) {
+                issues.push(format!("{prefix}.tag: duplicate {tag}"));
+            }
+            if !item.get("description").and_then(Value::as_str).is_some_and(|value| !value.is_empty()) {
+                issues.push(format!("{prefix}.description: missing"));
+            }
+            if !item.get("quantity").is_some_and(Value::is_null) {
+                issues.push(format!("{prefix}.quantity: must remain unset before design freeze"));
+            }
+            let procurement = item.get("procurement_status").and_then(Value::as_str).unwrap_or("");
+            if procurement != "not_specified" && procurement != "candidate_only" {
+                issues.push(format!("{prefix}.procurement_status: premature procurement state {procurement}"));
+            }
+            let refs = design_string_array(&item["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            if refs.is_empty() {
+                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+            }
+            for module_id in refs {
+                if !module_ids.contains(&module_id) {
+                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                } else {
+                    bom_module_coverage.insert(module_id);
+                }
+            }
+            for forbidden in ["sku", "approved_material_grade", "final_pressure_rating"] {
+                if item.get(forbidden).is_some() {
+                    issues.push(format!("{prefix}.{forbidden}: must not be frozen in conceptual BOM"));
+                }
+            }
+        }
+        for tag in &pid_tag_ids {
+            if !bom_tags.contains(tag) {
+                issues.push(format!("WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json:tags: tag {tag} has no BOM category"));
+            }
+        }
+        for module_id in &module_ids {
+            if !bom_module_coverage.contains(module_id) {
+                issues.push(format!("WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json:items: module {module_id} has no BOM category"));
+            }
+        }
+
+        let Some(hazards) = fmea_doc.get("hazards").and_then(Value::as_array) else {
+            issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards: expected array".to_owned());
+            return issues;
+        };
+        let mut hazard_ids = BTreeSet::new();
+        for (index, hazard) in hazards.iter().enumerate() {
+            let prefix = format!("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards[{index}]");
+            let id = hazard.get("hazard_id").and_then(Value::as_str).unwrap_or("");
+            if id.is_empty() {
+                issues.push(format!("{prefix}.hazard_id: missing"));
+            } else if !hazard_ids.insert(id.to_owned()) {
+                issues.push(format!("{prefix}.hazard_id: duplicate {id}"));
+            }
+            for required in ["failure", "effect", "detection", "safe_state", "verification"] {
+                if !hazard.get(required).and_then(Value::as_str).is_some_and(|value| !value.trim().is_empty()) {
+                    issues.push(format!("{prefix}.{required}: missing"));
+                }
+            }
+            let safe_state = hazard.get("safe_state").and_then(Value::as_str).unwrap_or("").to_ascii_lowercase();
+            if !["hold", "divert", "isolate", "stop", "lockout", "indeterminate", "disconnect", "do not commission"]
+                .iter().any(|word| safe_state.contains(word))
+            {
+                issues.push(format!("{prefix}.safe_state: no fail-safe action detected"));
+            }
+            let refs = design_string_array(&hazard["module_ids"], &format!("{prefix}.module_ids"), &mut issues);
+            if refs.is_empty() {
+                issues.push(format!("{prefix}.module_ids: must reference at least one module"));
+            }
+            for module_id in refs {
+                if !module_ids.contains(&module_id) {
+                    issues.push(format!("{prefix}.module_ids: orphan module reference {module_id}"));
+                } else {
+                    fmea_module_coverage.insert(module_id);
+                }
+            }
+        }
+        for module_id in &module_ids {
+            if !fmea_module_coverage.contains(module_id) {
+                issues.push(format!("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:hazards: module {module_id} has no hazard coverage"));
+            }
+        }
+        let invariants = design_string_array(
+            &fmea_doc["invariants"],
+            "WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:invariants",
+            &mut issues,
+        );
+        if !invariants.iter().any(|value| value.contains("No automated release")) {
+            issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:invariants: no-automated-release invariant missing".to_owned());
+        }
+        if fmea_doc.get("not_completed").and_then(Value::as_array).is_none_or(Vec::is_empty) {
+            issues.push("WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json:not_completed: unresolved formal safety work must remain visible".to_owned());
+        }
+
+        let Some(profiles) = profiles_doc.get("profiles").and_then(Value::as_array) else {
+            issues.push("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:profiles: expected array".to_owned());
+            return issues;
+        };
+        let profile_ids = profiles
+            .iter()
+            .filter_map(|profile| profile.get("profile_id").and_then(Value::as_str).map(str::to_owned))
+            .collect::<BTreeSet<_>>();
+        if let Some(scenarios) = profiles_doc.get("scenarios").and_then(Value::as_array) {
+            for (index, scenario) in scenarios.iter().enumerate() {
+                let prefix = format!("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios[{index}]");
+                let profile_id = scenario.get("profile_id").and_then(Value::as_str).unwrap_or("");
+                if !profile_ids.contains(profile_id) {
+                    issues.push(format!("{prefix}.profile_id: unknown profile {profile_id}"));
+                }
+                let disposition = scenario.get("expected_disposition").and_then(Value::as_str).unwrap_or("");
+                if profile_id == "GW-SYN-04-kitchen-source-excluded" && disposition != "REJECT_SOURCE" {
+                    issues.push(format!("{prefix}.expected_disposition: excluded kitchen source cannot be accepted"));
+                }
+                if profile_id == "GW-SYN-05-source-unknown" && disposition != "INDETERMINATE_HOLD_OR_DIVERT" {
+                    issues.push(format!("{prefix}.expected_disposition: unknown source must remain indeterminate"));
+                }
+                if profile_id == "GW-SYN-06-storage-age-violation" && disposition != "HOLD_NO_REUSE_RELEASE" {
+                    issues.push(format!("{prefix}.expected_disposition: over-age untreated source must not be released"));
+                }
+                if disposition.contains("QUALITY_QUALIFIED") || disposition == "APPROVED_FOR_HUMAN_USE" {
+                    issues.push(format!("{prefix}.expected_disposition: synthetic challenge cannot qualify water quality"));
+                }
+            }
+        } else {
+            issues.push("WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json:scenarios: expected array".to_owned());
+        }
+        issues
+    }
+
     #[test]
-    fn all_thirty_four_cases_match_the_separate_oracle() {
+    fn all_forty_two_cases_match_the_separate_oracle() {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &fixture("oracle"))
             .expect("evaluation completes");
         assert_eq!(result["result_count"], CASE_COUNT);
@@ -1598,7 +1891,7 @@ mod tests {
         let result = evaluate(&fixture("inputs"), &fixture("manifest"), &oracle)
             .expect("oracle disagreement is a recorded evaluation");
         assert_eq!(result["verification_state"], "OracleMismatch");
-        assert_eq!(result["matched_case_count"], 33);
+        assert_eq!(result["matched_case_count"], 41);
         assert_eq!(
             result["mismatches"].as_array().expect("mismatches").len(),
             1
@@ -1736,6 +2029,134 @@ mod tests {
             "SERVICE_FLOORS_NOT_MET"
         );
         assert_eq!(actual["economic_preference_eligible"], false);
+    }
+
+
+    #[test]
+    fn modular_skid_design_artifacts_pass_cross_file_audit() {
+        let issues = audit_modular_design(
+            &modular_fixture("modules"),
+            &modular_fixture("pid"),
+            &modular_fixture("bom"),
+            &modular_fixture("fmea"),
+            &modular_fixture("profiles"),
+        );
+        assert!(issues.is_empty(), "design artefact violations:\\n{}", issues.join("\\n"));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_orphan_module_references() {
+        let mut pid = modular_fixture("pid");
+        pid["tags"][0]["module_ids"][0] = json!("MISSING-MODULE");
+        let issues = audit_modular_design(
+            &modular_fixture("modules"), &pid, &modular_fixture("bom"),
+            &modular_fixture("fmea"), &modular_fixture("profiles"),
+        );
+        assert!(issues.iter().any(|issue| issue.contains("orphan module reference MISSING-MODULE")));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_missing_p_and_id_interlocks() {
+        let mut pid = modular_fixture("pid");
+        pid["tags"][0]["interlocks"] = json!([]);
+        let issues = audit_modular_design(
+            &modular_fixture("modules"), &pid, &modular_fixture("bom"),
+            &modular_fixture("fmea"), &modular_fixture("profiles"),
+        );
+        assert!(issues.iter().any(|issue| issue.contains("tags[0].interlocks")));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_bom_quantities_before_design_freeze() {
+        let mut bom = modular_fixture("bom");
+        bom["items"][0]["quantity"] = json!(1);
+        let issues = audit_modular_design(
+            &modular_fixture("modules"), &modular_fixture("pid"), &bom,
+            &modular_fixture("fmea"), &modular_fixture("profiles"),
+        );
+        assert!(issues.iter().any(|issue| issue.contains("items[0].quantity")));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_fmea_without_verification() {
+        let mut fmea = modular_fixture("fmea");
+        fmea["hazards"][0]["verification"] = json!("");
+        let issues = audit_modular_design(
+            &modular_fixture("modules"), &modular_fixture("pid"),
+            &modular_fixture("bom"), &fmea, &modular_fixture("profiles"),
+        );
+        assert!(issues.iter().any(|issue| issue.contains("hazards[0].verification")));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_excluded_source_as_bench_eligible() {
+        let mut profiles = modular_fixture("profiles");
+        profiles["scenarios"][3]["expected_disposition"] = json!("ELIGIBLE_FOR_BENCH_SCREENING_ONLY");
+        let issues = audit_modular_design(
+            &modular_fixture("modules"), &modular_fixture("pid"),
+            &modular_fixture("bom"), &modular_fixture("fmea"), &profiles,
+        );
+        assert!(issues.iter().any(|issue| issue.contains("excluded kitchen source cannot be accepted")));
+    }
+
+    #[test]
+    fn modular_design_audit_rejects_missing_potable_cross_connection_prohibition() {
+        let mut modules = modular_fixture("modules");
+        modules["prohibited_connections"] = json!(["no overflow to stormwater"]);
+        let issues = audit_modular_design(
+            &modules, &modular_fixture("pid"), &modular_fixture("bom"),
+            &modular_fixture("fmea"), &modular_fixture("profiles"),
+        );
+        assert!(issues.iter().any(|issue| issue.contains("potable/reclaimed cross-tie prohibition missing")));
+    }
+
+    #[test]
+    fn sizing_equalisation_reports_inventory_and_working_volume_separately() {
+        let out = compute(&fixture("inputs")["cases"][34]).expect("equalisation sizing");
+        assert_eq!(out["required_treatment_rate_l_per_h"], 15.0);
+        assert_eq!(out["idealized_equalization_working_volume_l"], 30.0);
+        assert_eq!(out["idealized_starting_inventory_l"], 30.0);
+        assert_eq!(out["period_mass_balance_residual_l"], 0.0);
+    }
+
+    #[test]
+    fn sizing_rejects_process_rate_below_required_periodic_throughput() {
+        let out = compute(&fixture("inputs")["cases"][35]).expect("capacity shortfall");
+        assert_eq!(out["design_disposition"], "INFEASIBLE");
+        assert_eq!(out["treatment_capacity_margin_l_per_h"], -1.0);
+        assert_eq!(out["idealized_equalization_working_volume_l"], Value::Null);
+    }
+
+    #[test]
+    fn sizing_treated_storage_uses_autonomy_reserve_and_usable_fraction() {
+        let out = compute(&fixture("inputs")["cases"][36]).expect("storage sizing");
+        assert_eq!(out["base_autonomy_volume_l"], 240.0);
+        assert_eq!(out["usable_storage_volume_l"], 288.0);
+        assert_eq!(out["gross_storage_volume_l"], 320.0);
+    }
+
+    #[test]
+    fn sizing_pump_energy_uses_declared_flow_head_and_efficiency() {
+        let out = compute(&fixture("inputs")["cases"][37]).expect("pump sizing");
+        assert!((out["hydraulic_power_w"].as_f64().unwrap() - 35.66054545454545).abs() < 1.0e-10);
+        assert!((out["hydraulic_specific_energy_kwh_m3"].as_f64().unwrap() - 0.05943424242424241).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn sizing_rejects_efficiency_above_unity_and_zero_process_hours() {
+        let efficiency = compute(&fixture("inputs")["cases"][38]).expect("invalid efficiency");
+        let availability = compute(&fixture("inputs")["cases"][39]).expect("zero availability");
+        assert_eq!(efficiency["design_disposition"], "REJECT");
+        assert_eq!(availability["reason"], "ZERO_TREATMENT_AVAILABILITY");
+    }
+
+    #[test]
+    fn sizing_unadmitted_inputs_and_synthetic_claim_promotion_abstain() {
+        let unadmitted = compute(&fixture("inputs")["cases"][40]).expect("unadmitted inputs");
+        let promotion = compute(&fixture("inputs")["cases"][41]).expect("claim promotion control");
+        assert_eq!(unadmitted["design_disposition"], "INDETERMINATE");
+        assert_eq!(promotion["design_disposition"], "REJECT_CLAIM_PROMOTION");
+        assert_eq!(promotion["qualification_status"], "NotRun");
     }
 
     #[test]
