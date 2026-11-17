@@ -509,7 +509,7 @@ pub fn run_synthetic_conformal_example() -> Result<SyntheticConformalExample, St
         ("piezoresistive", "sha256:piezoresistive-host-b", 0.2),
     ] {
         for index in 0..20 {
-            let normalized_error = 0.15 + index as f64 * 0.06;
+            let normalized_error = 0.15 + index as f64 * 0.074;
             evaluation.push(EvaluationObservation {
                 sample_id: format!("eval-{stratum}-{index:03}"),
                 stratum_id: stratum.to_owned(),
@@ -686,6 +686,10 @@ mod tests {
         assert_eq!(report.scored_count, 0);
         assert_eq!(report.abstained_out_of_domain_count, 1);
         assert_eq!(report.abstained_reference_unresolved_count, 1);
+        assert_eq!(report.sample_results[0].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
+        assert_eq!(report.sample_results[0].interval_width, None);
+        assert_eq!(report.sample_results[1].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
+        assert_eq!(report.sample_results[1].interval_width, None);
     }
 
     #[test]
@@ -738,6 +742,7 @@ mod tests {
         assert_eq!(example.evaluation.abstained_out_of_domain_count, 1);
         assert_eq!(example.evaluation.abstained_reference_unresolved_count, 1);
         assert_eq!(example.evaluation.scored_count, 40);
+        assert_eq!(example.evaluation.overall_empirical_coverage, Some(0.9));
         assert_eq!(example.claim_class, "synthetic_groupwise_conformal_example_only");
     }
 }
