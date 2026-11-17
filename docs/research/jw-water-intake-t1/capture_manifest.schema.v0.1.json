@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json",
+  "title": "Watersearch offline capture manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capture_mode",
+    "evidence_class",
+    "source",
+    "capture",
+    "rights_review",
+    "notes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "capture_mode": {
+      "enum": [
+        "synthetic_fixture",
+        "publisher_capture"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_only",
+        "publisher_reported_asset_status"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "publisher",
+        "underlying_facts_source",
+        "url",
+        "suburb_slug",
+        "from_date",
+        "to_date"
+      ],
+      "properties": {
+        "publisher": {
+          "const": "Watersearch"
+        },
+        "underlying_facts_source": {
+          "const": "Johannesburg Water"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "suburb_slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "from_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "to_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "captured_at_utc",
+        "http_status",
+        "final_url",
+        "content_type",
+        "expected_release",
+        "headers",
+        "body_bytes",
+        "body_sha256",
+        "headers_bytes",
+        "headers_sha256"
+      ],
+      "properties": {
+        "method": {
+          "const": "GET"
+        },
+        "captured_at_utc": {
+          "type": "string",
+          "pattern": "^20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "http_status": {
+          "const": 200
+        },
+        "final_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "content_type": {
+          "type": "string",
+          "pattern": "^application/json"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "content-type",
+            "x-licence",
+            "date"
+          ],
+          "properties": {
+            "content-type": {
+              "type": "string"
+            },
+            "x-licence": {
+              "type": "string",
+              "minLength": 1
+            },
+            "date": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "body_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "body_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "headers_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "headers_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expected_release": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "rights_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "review_reference"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_applicable_synthetic",
+            "pending",
+            "approved"
+          ]
+        },
+        "review_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

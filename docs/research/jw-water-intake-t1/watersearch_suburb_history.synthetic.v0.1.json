@@ -1,0 +1,50 @@
+{
+  "licence": "SYNTHETIC-ONLY",
+  "release": "SYNTHETIC-ONLY",
+  "source_view": "api.suburb_history",
+  "caveat": "Synthetic conformance fixture only. It does not describe a real supply or household tap.",
+  "suburb": "synthetic-suburb",
+  "suburb_name": "Synthetic Suburb",
+  "days": [
+    {
+      "day": "2026-02-01",
+      "asset_id": "synthetic-supply-a",
+      "asset_name": "Synthetic Supply A",
+      "level": "no_water",
+      "bad": true,
+      "on_bypass": true,
+      "boards": 1,
+      "wording": "Synthetic severe supply report."
+    },
+    {
+      "day": "2026-02-02",
+      "asset_id": "synthetic-supply-a",
+      "asset_name": "Synthetic Supply A",
+      "level": "no_report",
+      "bad": false,
+      "on_bypass": false,
+      "boards": 0,
+      "wording": "Synthetic no-board gap; not normal service."
+    },
+    {
+      "day": "2026-02-03",
+      "asset_id": "synthetic-supply-a",
+      "asset_name": "Synthetic Supply A",
+      "level": "fair",
+      "bad": false,
+      "on_bypass": false,
+      "boards": 2,
+      "wording": "Synthetic fair report off bypass."
+    },
+    {
+      "day": "2026-02-01",
+      "asset_id": "synthetic-supply-b",
+      "asset_name": "Synthetic Supply B",
+      "level": "critical",
+      "bad": true,
+      "on_bypass": false,
+      "boards": 1,
+      "wording": "Synthetic critical supply report."
+    }
+  ]
+}
