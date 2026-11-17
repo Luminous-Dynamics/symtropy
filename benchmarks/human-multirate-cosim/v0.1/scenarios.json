@@ -266,6 +266,36 @@
         "quadratic_energy_nonincrease_with_roundoff_slack"
       ],
       "claim": "local error tolerance is not a global error guarantee; score global error independently against the spectral oracle"
+    },
+    "topology_events": {
+      "method": "piecewise_topology_event_backward_euler",
+      "scenario": "three_node_heterogeneous_chain",
+      "horizon": 4,
+      "communication_step": 0.1,
+      "events": [
+        {
+          "at_time": 2,
+          "edges": [
+            [
+              0,
+              1,
+              0.1
+            ],
+            [
+              1,
+              2,
+              0.9
+            ]
+          ]
+        }
+      ],
+      "policy": "exact grid-aligned event split; state carries continuously across topology change",
+      "invalid_controls": [
+        "non-grid-aligned event",
+        "reordered event times",
+        "event at or beyond horizon"
+      ],
+      "claim_ceiling": "Synthetic event-time and state-continuity software check only."
     }
   }
 }
