@@ -76,6 +76,37 @@ Do not claim the number of independent synthetic paths predicts real factory res
 
 Source: https://doi.org/10.1080/21693277.2026.2738298
 
+## 2.6.1 Execution truth versus execution registration: add a factory reality-gap benchmark
+
+Smolenaars, Akcay and Adan, *Ramp-up performance measurement in job–shop systems using real-time location data: a case study in semiconductor manufacturing*, *Production & Manufacturing Research* 14(1), article 2738937, published online **2 October 2026**, DOI https://doi.org/10.1080/21693277.2026.2738937, report a real RTLS deployment alongside MES at SMART Photonics during a photonic integrated-circuit foundry ramp-up.
+
+The study distinguishes:
+- manufacturing performance indicators (how the system performs); and
+- registration-accuracy indicators (how accurately the information system records what is happening).
+
+The authors report that real-time location data reveals actual product pathways and traceability information that conventional WIP/MES records may not capture, including unregistered production steps and differences between assumed and actual product pathways. The article also discusses practical limits such as sensor coverage, position flipping between adjacent stations, and the need to combine RTLS with MES rather than treating RTLS as the only source.
+
+**Benchmark consequence:** the factory intelligence corpus needs three independent views and one derived reconciliation:
+1. intended route / work order;
+2. recorded MES/ERP/QMS/scan events;
+3. bounded observations (RTLS, equipment, metrology, operator or other authorized evidence);
+4. reconciled execution state with explicit uncertainty, provenance and affected-claim disposition.
+
+Do not make RTLS the physical ground truth. Position evidence establishes location only within a validated coverage, calibration, identity, map-version and uncertainty envelope. A machine cycle does not prove which product was processed unless product identity is independently bound. Absence of a signal during an observation gap is UNKNOWN, not proof that an operation did not happen. Event/effective time and ingest/observation time must remain distinct.
+
+For comparison, preserve the paper's registration-accuracy measures and the factory's existing performance metrics, then add:
+- route/event reconstruction under a declared observation-coverage denominator;
+- identity/serial/lot join correctness;
+- missing/duplicated/unregistered event detection;
+- route sequence and rework-loop discrepancy;
+- coverage-aware UNKNOWN vs NOT_OBSERVED_WITH_COVERAGE correctness;
+- discrepancy-to-correct-disposition latency;
+- affected genealogy/claim closure and time to first independently accepted output.
+
+This is an important complement to the SLR2 and document-driven scheduling papers: an excellent schedule or a successful rescheduling loop cannot establish that the physical product followed that schedule. The plan, recorded history and observed history must be reconciled.
+
+Source: https://doi.org/10.1080/21693277.2026.2738937
+
 ## 2.7 Industrial policy-governed AI is already moving beyond anomaly prediction
 
 Lin and Chen, *An integrated framework featuring policy-governed agentic AI for closed-loop manufacturing control with multi-source sensor–MES–ERP*, *The International Journal of Advanced Manufacturing Technology*, published 17 March 2026, DOI https://doi.org/10.1007/s00170-026-17806-2, report evaluation on 25,275 manufacturing records and author-reported improvements in anomaly accuracy, false alarms, monitoring robustness and operational efficiency. Their architecture combines sensor/MES/ERP context, temporal alignment, edge anomaly models, capability-aware limits, policy-governed action constraints, digital-twin checks and human review.
