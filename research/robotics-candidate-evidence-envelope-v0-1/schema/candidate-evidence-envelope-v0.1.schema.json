@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/robotics-candidate-evidence-envelope-v0.1.json",
+  "title": "Robotics Candidate Evidence Envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binding",
+    "binding_sha256",
+    "receipts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "robotics-candidate-evidence-envelope/v0.1"
+    },
+    "binding": {
+      "$ref": "#/$defs/CandidateBinding"
+    },
+    "binding_sha256": {
+      "$ref": "#/$defs/Sha256"
+    },
+    "receipts": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/EvidenceReceipt"
+      }
+    }
+  },
+  "$defs": {
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "CandidateBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "pass_id",
+        "mission_id",
+        "mission_revision",
+        "scenario_id",
+        "scenario_revision",
+        "robot_id",
+        "robot_configuration_revision",
+        "robot_configuration_sha256",
+        "module_manifest_sha256",
+        "site_id",
+        "site_revision",
+        "frame_id",
+        "frame_revision",
+        "map_revision",
+        "timebase_id",
+        "timebase_revision",
+        "acquisition_start_ns",
+        "acquisition_end_ns",
+        "sensor_id",
+        "sensor_revision",
+        "mount_id",
+        "mount_revision",
+        "calibration_bundle_sha256",
+        "observation_bundle_sha256",
+        "target_ids",
+        "position_u_m",
+        "position_v_m",
+        "view_angle_rad",
+        "cost_model_id",
+        "cost_model_revision",
+        "cost_model_sha256",
+        "estimated_travel_distance_m",
+        "estimated_travel_time_s",
+        "estimated_acquisition_time_s",
+        "estimated_energy_wh",
+        "risk_penalty_s"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "pass_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mission_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mission_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "scenario_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "scenario_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "robot_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "robot_configuration_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "robot_configuration_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "module_manifest_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "site_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "site_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "frame_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "frame_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "map_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "timebase_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "timebase_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "acquisition_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "acquisition_end_ns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sensor_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mount_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mount_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "calibration_bundle_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "observation_bundle_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "target_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          }
+        },
+        "position_u_m": {
+          "type": "number",
+          "minimum": -1000000000,
+          "maximum": 1000000000
+        },
+        "position_v_m": {
+          "type": "number",
+          "minimum": -1000000000,
+          "maximum": 1000000000
+        },
+        "view_angle_rad": {
+          "type": "number",
+          "minimum": -3.141592653589793,
+          "maximum": 3.141592653589793
+        },
+        "cost_model_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "cost_model_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "cost_model_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "estimated_travel_distance_m": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "estimated_travel_time_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "estimated_acquisition_time_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "estimated_energy_wh": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "risk_penalty_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000000000
+        }
+      }
+    },
+    "EvidenceReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain",
+        "timebase_id",
+        "timebase_revision",
+        "record_id",
+        "issuer_id",
+        "issuer_revision",
+        "profile_id",
+        "profile_revision",
+        "status",
+        "binding_sha256",
+        "result_sha256",
+        "source_bundle_sha256",
+        "issued_at_ns",
+        "valid_from_ns",
+        "valid_until_ns",
+        "covered_target_ids"
+      ],
+      "properties": {
+        "domain": {
+          "enum": [
+            "GeometryCoverage",
+            "SensorQuality",
+            "Calibration"
+          ]
+        },
+        "timebase_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "timebase_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "record_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "issuer_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "issuer_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "profile_id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "profile_revision": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "status": {
+          "enum": [
+            "Qualified",
+            "NotQualified",
+            "Unknown",
+            "InvalidEvidence"
+          ]
+        },
+        "binding_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "result_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "source_bundle_sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "issued_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "valid_until_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "covered_target_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          }
+        }
+      }
+    }
+  }
+}
