@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1.0",
+  "binding_id": "synthetic-binding-optical-battery-001",
+  "session_event": {
+    "session_id": "synthetic-session-001",
+    "event_id": "event-position-confirmed-004",
+    "event_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "assets": {
+    "source_id": "synthetic-laser-transmitter-01",
+    "source_capability_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "source_firmware_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "source_topology_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "receiver_id": "synthetic-pv-battery-receiver-01",
+    "receiver_capability_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "receiver_firmware_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "service": {
+    "service_type": "BATTERY_DC",
+    "service_profile_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "quality_profile_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "duty_cycle_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "scenario_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+    "source_input_boundary_id": "laser-driver-dc-input",
+    "useful_output_boundary_id": "battery-dc-terminals",
+    "source_boundary_profile_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+    "useful_boundary_profile_digest": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "transport_path": {
+    "path_id": "synthetic-optical-battery-path",
+    "path_revision_id": "revision-0001",
+    "path_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+    "operating_regime_profile_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+    "source_port_id": "laser-driver-dc-input",
+    "useful_service_port_id": "battery-dc-terminals",
+    "primitives": [
+      {
+        "primitive_id": "laser-driver-electrical-feed-01",
+        "primitive_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+        "source_port_id": "laser-driver-dc-input",
+        "destination_port_id": "laser-emitter-optical-output",
+        "carrier": "Electrical",
+        "mechanism": "Conduction",
+        "medium": "Conductor",
+        "conversion_stages": [
+          "ElectroOptic"
+        ],
+        "storage_state": "None",
+        "evidence_class": "Modelled",
+        "evidence_id": "synthetic-laser-driver-model-001"
+      },
+      {
+        "primitive_id": "free-space-optical-path-01",
+        "primitive_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_port_id": "laser-emitter-optical-output",
+        "destination_port_id": "pv-cell-dc-output",
+        "carrier": "ElectromagneticField",
+        "mechanism": "RadiativePropagation",
+        "medium": "FreeSpace",
+        "conversion_stages": [
+          "OpticalToElectric"
+        ],
+        "storage_state": "None",
+        "evidence_class": "Modelled",
+        "evidence_id": "synthetic-optical-link-model-001"
+      },
+      {
+        "primitive_id": "receiver-dc-to-battery-01",
+        "primitive_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_port_id": "pv-cell-dc-output",
+        "destination_port_id": "battery-dc-terminals",
+        "carrier": "Electrical",
+        "mechanism": "Conduction",
+        "medium": "Conductor",
+        "conversion_stages": [
+          "Rectifier"
+        ],
+        "storage_state": "Battery",
+        "evidence_class": "Modelled",
+        "evidence_id": "synthetic-battery-interface-model-001"
+      }
+    ]
+  },
+  "measurement_profile_digest": "abababababababababababababababababababababababababababababababab",
+  "calibration_receipt_digests": [],
+  "binding_status": "METADATA_BOUND",
+  "reason_codes": [],
+  "authority": {
+    "binding_is_evidence_only": true,
+    "energization_authority": false,
+    "interlock_override": false
+  }
+}
