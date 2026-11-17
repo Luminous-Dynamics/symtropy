@@ -1331,14 +1331,14 @@ mod tests {
     }
 
     #[test]
-    fn zero_reference_brier_does_not_create_infinite_skill() {
-        let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference Brier");
+    fn zero_reference_crps_does_not_create_infinite_skill() {
+        let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference CRPS");
         assert_eq!(
             out["probabilistic_disposition"],
             "UNDEFINED_REFERENCE_SCORE"
         );
-        assert_eq!(out["reference_brier_score"], 0.0);
-        assert_eq!(out["brier_skill_score"], Value::Null);
+        assert_eq!(out["reference_crps"], 0.0);
+        assert_eq!(out["crps_skill_score"], Value::Null);
     }
 
     #[test]
