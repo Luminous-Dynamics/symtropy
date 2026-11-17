@@ -372,9 +372,10 @@ impl TetrahedralAssembly {
 
                 // Do not create a hub whose connector count exceeds the
                 // configured manufacturing interface budget.
-                if [a, b, c].iter().any(|vertex| {
-                    node_degrees[*vertex as usize] >= config.max_ports_per_node
-                }) {
+                if [a, b, c]
+                    .iter()
+                    .any(|vertex| node_degrees[*vertex as usize] >= config.max_ports_per_node)
+                {
                     blocked_attachment_faces += 1;
                     continue;
                 }
@@ -458,12 +459,19 @@ impl TetrahedralAssembly {
         self.config.validate()?;
         if self.cells.is_empty()
             || self.cells.len() > self.config.expected_cell_count()?
-            || self.nodes.len() != self.cells.len().checked_add(3)
-                .ok_or(TetrahedralError::ArithmeticOverflow)?
-            || self.members.len() != self.cells.len()
-                .checked_mul(3)
-                .and_then(|count| count.checked_add(3))
-                .ok_or(TetrahedralError::ArithmeticOverflow)?
+            || self.nodes.len()
+                != self
+                    .cells
+                    .len()
+                    .checked_add(3)
+                    .ok_or(TetrahedralError::ArithmeticOverflow)?
+            || self.members.len()
+                != self
+                    .cells
+                    .len()
+                    .checked_mul(3)
+                    .and_then(|count| count.checked_add(3))
+                    .ok_or(TetrahedralError::ArithmeticOverflow)?
         {
             return Err(TetrahedralError::InvalidGraph(
                 "adaptive counts do not match the declared attachment grammar",
@@ -801,7 +809,10 @@ mod tests {
         assert_eq!(metrics.node_count, metrics.cell_count + 3);
         assert_eq!(metrics.member_count, metrics.cell_count * 3 + 3);
         assert_eq!(metrics.connected_components, 1);
-        assert_eq!(metrics.cycle_rank, metrics.member_count - metrics.node_count + 1);
+        assert_eq!(
+            metrics.cycle_rank,
+            metrics.member_count - metrics.node_count + 1
+        );
         assert!(metrics.maximum_node_degree <= 16);
         assert!(metrics.blocked_attachment_faces > 0);
     }
