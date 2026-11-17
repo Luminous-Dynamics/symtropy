@@ -356,10 +356,25 @@ baseline has 52 mapping decisions: 36 exact-native, one normalized-equivalent,
 one derived and 14 preserved-raw-only, with no unclassified baseline fields.
 
 The E4 report serializes and deserializes the typed envelope and checks
-structural equality. The OpenLineage projection additionally checks START and
-terminal job/schema identity, canonical UTC timestamps and event ordering. Source byte digests are separate from semantic
-projection equality: changing whitespace may change a raw SHA-256 while
-leaving provider-native typed values and mapping decisions unchanged.
+structural equality. It also emits two different integrity identifiers:
+- a raw serialization SHA-256;
+- an RFC 8785 JCS semantic projection SHA-256.
+
+The JCS fingerprint covers provider identities/profiles, rights/use limits,
+typed native views and mapping decisions. It excludes source paths, byte
+lengths and raw source SHA-256 values, which remain in separate receipts.
+Thus whitespace or object-key-order changes can alter the raw source digest
+without altering the semantic fingerprint. Meaning-changing mutations must
+change the semantic fingerprint. JCS sorts object member names but preserves
+array order.
+
+The crate pins `serde_json_canonicalizer = 0.4.1`, checks RFC 8785 number,
+string and UTF-16 property-order vectors, and rejects integer-valued JSON
+numbers outside the exact safe-integer range before fingerprinting. Larger
+identifiers/counters must be strings. A strict recursive JSON parser rejects
+duplicate object member names rather than silently accepting parser-specific
+duplicate resolution. The OpenLineage projection additionally checks START
+and terminal job/schema identity, canonical UTC timestamps and event ordering.
 OGC bbox coordinates are explicitly classified as a normalized-equivalent
 numeric representation; no CRS or coordinate reprojection is performed.
 OpenLineage terminal state is explicitly classified as derived from the
@@ -369,6 +384,6 @@ The exact E1 context envelope is separately hashed into a context receipt.
 The OpenLineage E3 facet must match its embedded E1 analysis ID and
 `NOT_EXECUTED` status with null run ID; it remains context only.
 
-The E4 prototype has 32 unit tests written. Hosted formatting, Clippy,
+The E4 prototype has 40 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
