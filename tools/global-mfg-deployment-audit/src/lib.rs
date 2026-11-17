@@ -28,10 +28,7 @@ const REQUIRED_CONTROLS: [&str; 10] = [
     "silent_global_core_change",
 ];
 
-fn object<'a>(
-    value: &'a Value,
-    path: &str,
-) -> Result<&'a serde_json::Map<String, Value>, String> {
+fn object<'a>(value: &'a Value, path: &str) -> Result<&'a serde_json::Map<String, Value>, String> {
     value
         .as_object()
         .ok_or_else(|| format!("{path}: expected object"))
@@ -56,12 +53,7 @@ fn array<'a>(value: &'a Value, path: &str) -> Result<&'a Vec<Value>, String> {
         .ok_or_else(|| format!("{path}: expected array"))
 }
 
-fn require_string(
-    value: &Value,
-    key: &str,
-    path: &str,
-    expected: &str,
-) -> Result<(), String> {
+fn require_string(value: &Value, key: &str, path: &str, expected: &str) -> Result<(), String> {
     let actual = string(field(value, key, path)?, &format!("{path}.{key}"))?;
     if actual != expected {
         return Err(format!("{path}.{key}: expected {expected}, got {actual}"));
@@ -124,7 +116,11 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
     )?
     .to_owned();
     let digest = string(
-        field(core, "engineering_core_digest", &format!("{path}.global_core"))?,
+        field(
+            core,
+            "engineering_core_digest",
+            &format!("{path}.global_core"),
+        )?,
         &format!("{path}.global_core.engineering_core_digest"),
     )?;
     if digest != format!("sha256:{}", "0".repeat(64)) {
@@ -146,7 +142,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         &format!("{path}.market_access"),
     )?;
     if market_access.is_empty() {
-        return Err(format!("{path}.market_access: at least one destination market required"));
+        return Err(format!(
+            "{path}.market_access: at least one destination market required"
+        ));
     }
     for (j, market) in market_access.iter().enumerate() {
         let mpath = format!("{path}.market_access[{j}]");
@@ -171,7 +169,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         &format!("{path}.supply_chain.components"),
     )?;
     if components.is_empty() {
-        return Err(format!("{path}.supply_chain.components: empty component set"));
+        return Err(format!(
+            "{path}.supply_chain.components: empty component set"
+        ));
     }
     for (j, component) in components.iter().enumerate() {
         let cpath = format!("{path}.supply_chain.components[{j}]");
@@ -269,7 +269,12 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         &format!("{path}.claims"),
         "not_established",
     )?;
-    if field(claims, "production_authorization", &format!("{path}.claims"))?.as_bool()
+    if field(
+        claims,
+        "production_authorization",
+        &format!("{path}.claims"),
+    )?
+    .as_bool()
         != Some(false)
     {
         return Err(format!(
