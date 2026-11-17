@@ -2,7 +2,9 @@
 //!
 //! This module solves a small nonnegative inverse problem:
 //!
-//!     y = K x + noise
+//! ```text
+//! y = K x + noise
+//! ```
 //!
 //! where y is the sensor-native, per-taxel response after the upstream
 //! calibration/observability gates, K is a declared mechanical coupling
@@ -495,7 +497,7 @@ mod tests {
 
     #[test]
     fn projection_prevents_negative_contact_intensity() {
-        let mut problem = identity_problem(vec![-0.5, 0.2, -1.0]);
+        let problem = identity_problem(vec![-0.5, 0.2, -1.0]);
         let report = reconstruct_contact_field(
             &problem,
             &FieldReconstructionConfig::default(),
@@ -510,7 +512,6 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![0.0, 0.2, 0.0]
         );
-        problem.smoothness_penalty = 0.0;
     }
 
     #[test]
