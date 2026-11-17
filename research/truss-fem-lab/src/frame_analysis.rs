@@ -168,7 +168,10 @@ impl fmt::Display for FrameAnalysisError {
                 matrix_scale,
             } => write!(
                 f,
-                "singular frame stiffness matrix at pivot {pivot_index}: {pivot_magnitude:e}                  (scale {matrix_scale:e})"
+                concat!(
+                    "singular frame stiffness matrix at pivot ",
+                    "{pivot_index}: {pivot_magnitude:e} (scale {matrix_scale:e})"
+                )
             ),
             Self::BeamElement(error) => write!(f, "beam element construction failed: {error}"),
         }
