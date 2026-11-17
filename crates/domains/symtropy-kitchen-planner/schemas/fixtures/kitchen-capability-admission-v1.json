@@ -121,6 +121,14 @@
     {
       "case_id": "missing-task-power-profile",
       "expected_disposition": "blocked"
+    },
+    {
+      "case_id": "missing-task-power-profile",
+      "expected_disposition": "indeterminate"
+    },
+    {
+      "case_id": "batch-mass-arithmetic-overflow",
+      "expected_disposition": "indeterminate"
     }
   ]
 }
