@@ -430,7 +430,11 @@ mod tests {
     fn render_contains_all_twelve_cases_and_preserves_claim_ceiling() {
         let report = render_report_json().expect("valid local-ring report");
         assert!(report.contains("\"comparison_matrix_count\":12"));
-        assert!(report.contains("\"dipole_fill_fraction_semantics\":\"ring-wide effective bending length"));
+        let fill_semantics = concat!(
+            "\"dipole_fill_fraction_semantics\":\"",
+            "ring-wide effective bending length"
+        );
+        assert!(report.contains(fill_semantics));
         assert!(report.contains("\"derived_ringwide_effective_fill_fraction\":0.671099744"));
         assert!(report.contains("\"fill_sensitivity_cases\""));
         assert!(report.contains("\"circumference_km\":100.000000"));
