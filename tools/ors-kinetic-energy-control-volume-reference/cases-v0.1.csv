@@ -1,0 +1,7 @@
+case_id,frame_id,boundary_id,epoch_s,mass_accumulation_kg_s,kinetic_energy_accumulation_w,nonport_external_power_on_cv_w,boundary_work_on_cv_w,mechanical_dissipation_rate_w
+STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,CV0,0,0,0,0,0,0
+SPEED_CHANGE,INERTIAL_SYNTHETIC,CV0,0,0,1,7,0,0
+UNSTEADY_STORAGE,INERTIAL_SYNTHETIC,CV0,0,1,1.5,2,6,1
+WORK_AND_DISSIPATION,INERTIAL_SYNTHETIC,CV0,0,0,4,7,2,5
+NEGATIVE_EXTERNAL_POWER,INERTIAL_SYNTHETIC,CV0,0,0,-5,-6,2,1
+MULTIPORT_3D,INERTIAL_SYNTHETIC,CV0,0,0,0.5,1,1,2
