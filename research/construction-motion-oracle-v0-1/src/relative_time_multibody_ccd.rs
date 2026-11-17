@@ -1446,17 +1446,12 @@ mod tests {
                 valid_from_source_ms: base_ms,
                 valid_until_source_ms: base_ms + 10_000,
             };
-            bodies.push(body(
-                &format!("robot-{index:03}"),
-                motion,
-                Some(mapping),
-            ));
+            bodies.push(body(&format!("robot-{index:03}"), motion, Some(mapping)));
         }
 
         let clock_config = config();
         let broadphase_config = broadphase_config();
-        let reference =
-            evaluate_relative_time_multibody_ccd(&bodies, &clock_config).unwrap();
+        let reference = evaluate_relative_time_multibody_ccd(&bodies, &clock_config).unwrap();
         let accelerated =
             evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config)
                 .unwrap();
@@ -1493,5 +1488,4 @@ mod tests {
         );
         assert_eq!(accelerated.unresolved_pairs, 0);
     }
-
 }
