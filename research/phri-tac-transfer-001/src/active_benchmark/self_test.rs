@@ -150,20 +150,31 @@ fn evaluate_electrical(
     };
     let mut reasons = nonempty_fields(&[
         ("evidence_id", &evidence.evidence_id),
-        ("sensorized_body_context_digest", &evidence.sensorized_body_context_digest),
+        (
+            "sensorized_body_context_digest",
+            &evidence.sensorized_body_context_digest,
+        ),
         ("readout_chain_digest", &evidence.readout_chain_digest),
         ("injection_point_digest", &evidence.injection_point_digest),
         ("stimulus_digest", &evidence.stimulus_digest),
         ("observation_digest", &evidence.observation_digest),
-        ("reference_ancestry_receipt_id", &evidence.reference_ancestry_receipt_id),
-        ("common_cause_analysis_receipt_id", &evidence.common_cause_analysis_receipt_id),
+        (
+            "reference_ancestry_receipt_id",
+            &evidence.reference_ancestry_receipt_id,
+        ),
+        (
+            "common_cause_analysis_receipt_id",
+            &evidence.common_cause_analysis_receipt_id,
+        ),
         ("verifier_receipt_id", &evidence.verifier_receipt_id),
     ]);
-    if evidence.sensorized_body_context_digest
-        != request.current_sensorized_body_context_digest
+    if evidence.sensorized_body_context_digest != request.current_sensorized_body_context_digest
         || evidence.readout_chain_digest != request.current_readout_chain_digest
     {
-        reasons.push("electrical loopback evidence does not bind the exact current physical/readout context".to_owned());
+        reasons.push(
+            "electrical loopback evidence does not bind the exact current physical/readout context"
+                .to_owned(),
+        );
         return (ElectricalDiagnosticDisposition::ContextMismatch, reasons);
     }
     if evidence.channels.len() != request.expected_channel_count {
@@ -175,7 +186,9 @@ fn evaluate_electrical(
     let mut any_untested = false;
     for channel in &evidence.channels {
         if channel.channel_index >= request.expected_channel_count || seen[channel.channel_index] {
-            reasons.push("electrical loopback channel indices are duplicate or out of range".to_owned());
+            reasons.push(
+                "electrical loopback channel indices are duplicate or out of range".to_owned(),
+            );
             continue;
         }
         seen[channel.channel_index] = true;
@@ -183,11 +196,17 @@ fn evaluate_electrical(
             ChannelSelfTestResult::Pass => {}
             ChannelSelfTestResult::Fail => {
                 any_failed = true;
-                reasons.push(format!("electrical loopback failed on channel {}", channel.channel_index));
+                reasons.push(format!(
+                    "electrical loopback failed on channel {}",
+                    channel.channel_index
+                ));
             }
             ChannelSelfTestResult::NotTested => {
                 any_untested = true;
-                reasons.push(format!("electrical loopback did not test channel {}", channel.channel_index));
+                reasons.push(format!(
+                    "electrical loopback did not test channel {}",
+                    channel.channel_index
+                ));
             }
         }
     }
@@ -221,19 +240,31 @@ fn evaluate_mechanical(
     };
     let mut reasons = nonempty_fields(&[
         ("evidence_id", &evidence.evidence_id),
-        ("sensorized_body_context_digest", &evidence.sensorized_body_context_digest),
+        (
+            "sensorized_body_context_digest",
+            &evidence.sensorized_body_context_digest,
+        ),
         ("witness_article_digest", &evidence.witness_article_digest),
         ("applied_stimulus_digest", &evidence.applied_stimulus_digest),
         ("observation_digest", &evidence.observation_digest),
-        ("reference_instrument_receipt_id", &evidence.reference_instrument_receipt_id),
-        ("reference_ancestry_receipt_id", &evidence.reference_ancestry_receipt_id),
-        ("common_cause_analysis_receipt_id", &evidence.common_cause_analysis_receipt_id),
+        (
+            "reference_instrument_receipt_id",
+            &evidence.reference_instrument_receipt_id,
+        ),
+        (
+            "reference_ancestry_receipt_id",
+            &evidence.reference_ancestry_receipt_id,
+        ),
+        (
+            "common_cause_analysis_receipt_id",
+            &evidence.common_cause_analysis_receipt_id,
+        ),
         ("verifier_receipt_id", &evidence.verifier_receipt_id),
     ]);
-    if evidence.sensorized_body_context_digest
-        != request.current_sensorized_body_context_digest
-    {
-        reasons.push("mechanical witness does not bind the exact current sensorized-body context".to_owned());
+    if evidence.sensorized_body_context_digest != request.current_sensorized_body_context_digest {
+        reasons.push(
+            "mechanical witness does not bind the exact current sensorized-body context".to_owned(),
+        );
         return (MechanicalWitnessDisposition::ContextMismatch, reasons);
     }
     if !evidence.normalized_residual.is_finite()
@@ -244,9 +275,17 @@ fn evaluate_mechanical(
         reasons.push("mechanical witness residual/tolerance is invalid".to_owned());
         return (MechanicalWitnessDisposition::Invalid, reasons);
     }
-    if evidence.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized {
-        reasons.push("mechanical witness reference ancestry/common-cause disposition is unresolved".to_owned());
-        return (MechanicalWitnessDisposition::ReferenceChainUnresolved, reasons);
+    if evidence.reference_independence
+        != ReferenceIndependenceDisposition::IndependentlyCharacterized
+    {
+        reasons.push(
+            "mechanical witness reference ancestry/common-cause disposition is unresolved"
+                .to_owned(),
+        );
+        return (
+            MechanicalWitnessDisposition::ReferenceChainUnresolved,
+            reasons,
+        );
     }
     if !reasons.is_empty() {
         return (MechanicalWitnessDisposition::Invalid, reasons);
@@ -265,34 +304,60 @@ fn validate_requalification(
     evidence: Option<&ExternalRequalificationEvidence>,
 ) -> Result<(), Vec<String>> {
     let Some(evidence) = evidence else {
-        return Err(vec!["external requalification evidence was not supplied".to_owned()]);
+        return Err(vec![
+            "external requalification evidence was not supplied".to_owned(),
+        ]);
     };
     let mut reasons = nonempty_fields(&[
         ("evidence_id", &evidence.evidence_id),
         ("calibration_record_id", &evidence.calibration_record_id),
-        ("sensorized_body_context_digest", &evidence.sensorized_body_context_digest),
+        (
+            "sensorized_body_context_digest",
+            &evidence.sensorized_body_context_digest,
+        ),
         ("readout_chain_digest", &evidence.readout_chain_digest),
-        ("mechanical_witness_observation_digest", &evidence.mechanical_witness_observation_digest),
-        ("reference_instrument_receipt_id", &evidence.reference_instrument_receipt_id),
-        ("reference_ancestry_receipt_id", &evidence.reference_ancestry_receipt_id),
-        ("common_cause_analysis_receipt_id", &evidence.common_cause_analysis_receipt_id),
+        (
+            "mechanical_witness_observation_digest",
+            &evidence.mechanical_witness_observation_digest,
+        ),
+        (
+            "reference_instrument_receipt_id",
+            &evidence.reference_instrument_receipt_id,
+        ),
+        (
+            "reference_ancestry_receipt_id",
+            &evidence.reference_ancestry_receipt_id,
+        ),
+        (
+            "common_cause_analysis_receipt_id",
+            &evidence.common_cause_analysis_receipt_id,
+        ),
         ("verifier_receipt_id", &evidence.verifier_receipt_id),
     ]);
-    if evidence.sensorized_body_context_digest
-        != request.current_sensorized_body_context_digest
-    {
-        reasons.push("external requalification does not bind current sensorized-body context".to_owned());
+    if evidence.sensorized_body_context_digest != request.current_sensorized_body_context_digest {
+        reasons.push(
+            "external requalification does not bind current sensorized-body context".to_owned(),
+        );
     }
     if evidence.readout_chain_digest != request.current_readout_chain_digest {
         reasons.push("external requalification does not bind current readout chain".to_owned());
     }
     if evidence.mechanical_witness_observation_digest != witness.observation_digest {
-        reasons.push("external requalification does not bind the supplied mechanical witness observation".to_owned());
+        reasons.push(
+            "external requalification does not bind the supplied mechanical witness observation"
+                .to_owned(),
+        );
     }
-    if evidence.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized {
+    if evidence.reference_independence
+        != ReferenceIndependenceDisposition::IndependentlyCharacterized
+    {
         reasons.push("external requalification reference independence is unresolved".to_owned());
     }
-    if reasons.is_empty() { Ok(()) } else { Err(reasons) }
+    if reasons.is_empty() {
+        Ok(())
+    } else {
+        Err(reasons)
+    }
 }
 
 /// Assess self-test evidence without allowing electrical diagnostics alone to
@@ -301,8 +366,8 @@ pub fn assess_tactile_self_test(
     request: &SelfTestRequest,
     evidence: &SelfTestEvidence,
 ) -> SelfTestAssessment {
-    let sensorized_body_context_changed = request.prior_qualified_context_digest
-        != request.current_sensorized_body_context_digest;
+    let sensorized_body_context_changed =
+        request.prior_qualified_context_digest != request.current_sensorized_body_context_digest;
     let readout_context_changed =
         request.prior_readout_chain_digest != request.current_readout_chain_digest;
 
@@ -357,7 +422,8 @@ pub fn assess_tactile_self_test(
             return SelfTestAssessment {
                 electrical_disposition,
                 mechanical_disposition,
-                measurement_disposition: MeasurementQualificationDisposition::QualificationSuspended,
+                measurement_disposition:
+                    MeasurementQualificationDisposition::QualificationSuspended,
                 sensorized_body_context_changed,
                 readout_context_changed,
                 reasons,
@@ -369,7 +435,8 @@ pub fn assess_tactile_self_test(
             return SelfTestAssessment {
                 electrical_disposition,
                 mechanical_disposition,
-                measurement_disposition: MeasurementQualificationDisposition::ExternalRequalificationRequired,
+                measurement_disposition:
+                    MeasurementQualificationDisposition::ExternalRequalificationRequired,
                 sensorized_body_context_changed,
                 readout_context_changed,
                 reasons,
@@ -377,27 +444,27 @@ pub fn assess_tactile_self_test(
             };
         }
         let Some(witness) = evidence.mechanical_witness.as_ref() else {
-            reasons.push("mechanical witness evidence disappeared before requalification".to_owned());
+            reasons
+                .push("mechanical witness evidence disappeared before requalification".to_owned());
             return SelfTestAssessment {
                 electrical_disposition,
                 mechanical_disposition,
-                measurement_disposition: MeasurementQualificationDisposition::ExternalRequalificationRequired,
+                measurement_disposition:
+                    MeasurementQualificationDisposition::ExternalRequalificationRequired,
                 sensorized_body_context_changed,
                 readout_context_changed,
                 reasons,
                 claim_class: "synthetic_self_test_disposition_only",
             };
         };
-        match validate_requalification(
-            request,
-            witness,
-            evidence.external_requalification.as_ref(),
-        ) {
+        match validate_requalification(request, witness, evidence.external_requalification.as_ref())
+        {
             Ok(()) => {
                 return SelfTestAssessment {
                     electrical_disposition,
                     mechanical_disposition,
-                    measurement_disposition: MeasurementQualificationDisposition::QualificationRestored,
+                    measurement_disposition:
+                        MeasurementQualificationDisposition::QualificationRestored,
                     sensorized_body_context_changed,
                     readout_context_changed,
                     reasons,
@@ -409,7 +476,8 @@ pub fn assess_tactile_self_test(
                 return SelfTestAssessment {
                     electrical_disposition,
                     mechanical_disposition,
-                    measurement_disposition: MeasurementQualificationDisposition::ExternalRequalificationRequired,
+                    measurement_disposition:
+                        MeasurementQualificationDisposition::ExternalRequalificationRequired,
                     sensorized_body_context_changed,
                     readout_context_changed,
                     reasons,
@@ -425,7 +493,8 @@ pub fn assess_tactile_self_test(
         SelfTestAssessment {
             electrical_disposition,
             mechanical_disposition,
-            measurement_disposition: MeasurementQualificationDisposition::PreviousQualificationRemainsApplicable,
+            measurement_disposition:
+                MeasurementQualificationDisposition::PreviousQualificationRemainsApplicable,
             sensorized_body_context_changed,
             readout_context_changed,
             reasons,
@@ -471,9 +540,18 @@ mod tests {
             common_cause_analysis_receipt_id: "receipt:loopback-cca".to_owned(),
             verifier_receipt_id: "receipt:loopback-verifier".to_owned(),
             channels: vec![
-                ChannelSelfTest { channel_index: 0, result: ChannelSelfTestResult::Pass },
-                ChannelSelfTest { channel_index: 1, result: ChannelSelfTestResult::Pass },
-                ChannelSelfTest { channel_index: 2, result: ChannelSelfTestResult::Pass },
+                ChannelSelfTest {
+                    channel_index: 0,
+                    result: ChannelSelfTestResult::Pass,
+                },
+                ChannelSelfTest {
+                    channel_index: 1,
+                    result: ChannelSelfTestResult::Pass,
+                },
+                ChannelSelfTest {
+                    channel_index: 2,
+                    result: ChannelSelfTestResult::Pass,
+                },
             ],
         }
     }
@@ -520,8 +598,14 @@ mod tests {
                 external_requalification: None,
             },
         );
-        assert_eq!(assessment.electrical_disposition, ElectricalDiagnosticDisposition::Pass);
-        assert_eq!(assessment.mechanical_disposition, MechanicalWitnessDisposition::NotPerformed);
+        assert_eq!(
+            assessment.electrical_disposition,
+            ElectricalDiagnosticDisposition::Pass
+        );
+        assert_eq!(
+            assessment.mechanical_disposition,
+            MechanicalWitnessDisposition::NotPerformed
+        );
         assert_eq!(
             assessment.measurement_disposition,
             MeasurementQualificationDisposition::PreviousQualificationRemainsApplicable
@@ -540,7 +624,10 @@ mod tests {
                 external_requalification: None,
             },
         );
-        assert_eq!(assessment.electrical_disposition, ElectricalDiagnosticDisposition::Fail);
+        assert_eq!(
+            assessment.electrical_disposition,
+            ElectricalDiagnosticDisposition::Fail
+        );
         assert_eq!(
             assessment.measurement_disposition,
             MeasurementQualificationDisposition::QualificationSuspended
@@ -554,9 +641,11 @@ mod tests {
         changed.current_sensorized_body_context_digest = "sha256:new-body-context".to_owned();
         let mut loopback = electrical();
         loopback.readout_chain_digest = changed.current_readout_chain_digest.clone();
-        loopback.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        loopback.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         let mut witness = mechanical();
-        witness.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        witness.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         witness.observation_digest = "sha256:new-mechanical-observation".to_owned();
 
         let assessment = assess_tactile_self_test(
@@ -580,9 +669,11 @@ mod tests {
         changed.current_sensorized_body_context_digest = "sha256:new-body-context".to_owned();
         let mut loopback = electrical();
         loopback.readout_chain_digest = changed.current_readout_chain_digest.clone();
-        loopback.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        loopback.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         let mut witness = mechanical();
-        witness.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        witness.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         witness.observation_digest = "sha256:new-mechanical-observation".to_owned();
 
         let mut receipt = requalification();
@@ -611,9 +702,11 @@ mod tests {
         changed.current_sensorized_body_context_digest = "sha256:new-body-context".to_owned();
         let mut loopback = electrical();
         loopback.readout_chain_digest = changed.current_readout_chain_digest.clone();
-        loopback.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        loopback.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         let mut witness = mechanical();
-        witness.sensorized_body_context_digest = changed.current_sensorized_body_context_digest.clone();
+        witness.sensorized_body_context_digest =
+            changed.current_sensorized_body_context_digest.clone();
         witness.observation_digest = "sha256:new-mechanical-observation".to_owned();
         witness.reference_independence = ReferenceIndependenceDisposition::SharedCommonCause;
         let mut receipt = requalification();
