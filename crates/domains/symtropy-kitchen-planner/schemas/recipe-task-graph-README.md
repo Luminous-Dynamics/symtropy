@@ -22,3 +22,17 @@ Run through the existing planner test target:
 `cargo test -p symtropy-kitchen-planner --all-targets`
 
 The branch layers on the power-aware planner PR: https://github.com/Luminous-Dynamics/symtropy/pull/2230
+
+
+## Optional action ontology enrichment
+
+Each recipe task may optionally carry an `ActionOntologyBindingV1`:
+- six Action Core families and explicit Action Groups;
+- mapping method (`rule_based`, `human_reviewed`, or `unmapped`);
+- provenance reference for mapped actions;
+- optional typed fixed-point parameters, tool capability references and precondition references;
+- declared/modelled/simulated evidence class.
+
+The field is optional for backward compatibility. A missing binding means no ontology enrichment was performed. `Other` stays unmapped by default. Human-reviewed mapping requires its own provenance and a valid core/group pair. Parameters and capability/precondition references are descriptive only; no hardware command or robot trajectory can be emitted.
+
+The action taxonomy is aligned with the six-core actionable-knowledge-graph research, but Symtropy's mapping table is a deterministic V1 subset. Do not compare raw coverage to the paper's 76.5% until the same corpus, normalization and similarity protocol are reproduced.
