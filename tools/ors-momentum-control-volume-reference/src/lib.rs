@@ -26,7 +26,11 @@ pub struct Vector3 {
 }
 
 impl Vector3 {
-    pub const ZERO: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
+    pub const ZERO: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
 
     pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
@@ -154,7 +158,10 @@ fn parse_vector(fields: &[&str], at: &str) -> Result<Vector3, String> {
     ))
 }
 
-pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolumeScenario>, String> {
+pub fn parse_corpus(
+    cases_csv: &str,
+    ports_csv: &str,
+) -> Result<Vec<ControlVolumeScenario>, String> {
     let mut case_lines = cases_csv.lines();
     let case_header = case_lines
         .next()
@@ -170,14 +177,23 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
         }
         let fields: Vec<&str> = line.split(',').collect();
         if fields.len() != 10 {
-            return Err(format!("scenario line {}: expected ten columns", line_index + 2));
+            return Err(format!(
+                "scenario line {}: expected ten columns",
+                line_index + 2
+            ));
         }
         let case_id = fields[0].to_owned();
         let frame_id = fields[1].to_owned();
         if !valid_identifier(&case_id) || !valid_identifier(&frame_id) {
-            return Err(format!("scenario line {}: invalid case or frame ID", line_index + 2));
+            return Err(format!(
+                "scenario line {}: invalid case or frame ID",
+                line_index + 2
+            ));
         }
-        let epoch_s = parse_number(fields[2], &format!("scenario line {} epoch", line_index + 2))?;
+        let epoch_s = parse_number(
+            fields[2],
+            &format!("scenario line {} epoch", line_index + 2),
+        )?;
         let mass_accumulation_kg_s = parse_number(
             fields[3],
             &format!("scenario line {} mass accumulation", line_index + 2),
@@ -200,7 +216,10 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
             ports: Vec::new(),
         };
         if scenarios.insert(case_id.clone(), scenario).is_some() {
-            return Err(format!("scenario line {}: duplicate case ID {case_id}", line_index + 2));
+            return Err(format!(
+                "scenario line {}: duplicate case ID {case_id}",
+                line_index + 2
+            ));
         }
     }
 
@@ -229,7 +248,10 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
         }
         let fields: Vec<&str> = line.split(',').collect();
         if fields.len() != 7 {
-            return Err(format!("port line {}: expected seven columns", line_index + 2));
+            return Err(format!(
+                "port line {}: expected seven columns",
+                line_index + 2
+            ));
         }
         let case_id = fields[0];
         let port_id = fields[1].to_owned();
@@ -246,10 +268,15 @@ pub fn parse_corpus(cases_csv: &str, ports_csv: &str) -> Result<Vec<ControlVolum
                 ));
             }
         };
-        let mass_flow_kg_s =
-            parse_number(fields[3], &format!("port line {} mass flow", line_index + 2))?;
+        let mass_flow_kg_s = parse_number(
+            fields[3],
+            &format!("port line {} mass flow", line_index + 2),
+        )?;
         if mass_flow_kg_s < 0.0 {
-            return Err(format!("port line {}: negative mass-flow magnitude", line_index + 2));
+            return Err(format!(
+                "port line {}: negative mass-flow magnitude",
+                line_index + 2
+            ));
         }
         let velocity_inertial_m_s = parse_vector(
             &fields[4..7],
@@ -299,7 +326,10 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         return Err(format!("{}: non-finite evaluation epoch", scenario.case_id));
     }
     if scenario.ports.is_empty() {
-        return Err(format!("{}: at least one mass-flux port is required", scenario.case_id));
+        return Err(format!(
+            "{}: at least one mass-flux port is required",
+            scenario.case_id
+        ));
     }
     if scenario.ports.len() > MAX_PORT_COUNT_PER_CASE {
         return Err(format!("{}: port limit exceeded", scenario.case_id));
@@ -320,7 +350,10 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
 
     for port in ordered_ports {
         if !valid_identifier(&port.port_id) || !port_ids.insert(port.port_id.as_str()) {
-            return Err(format!("{}: invalid or duplicate port ID", scenario.case_id));
+            return Err(format!(
+                "{}: invalid or duplicate port ID",
+                scenario.case_id
+            ));
         }
         if !port.mass_flow_kg_s.is_finite() || port.mass_flow_kg_s < 0.0 {
             return Err(format!("{}: invalid mass-flow magnitude", scenario.case_id));
@@ -363,13 +396,13 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         ));
     }
 
-    let required_external_resultant_n =
-        scenario.momentum_accumulation_n.add(advective_momentum_flux_n);
+    let required_external_resultant_n = scenario
+        .momentum_accumulation_n
+        .add(advective_momentum_flux_n);
     let support_on_stream_force_n =
         required_external_resultant_n.sub(scenario.other_external_force_n);
     let stream_on_support_reaction_n = support_on_stream_force_n.scale(-1.0);
-    let reaction_closure_residual_n =
-        support_on_stream_force_n.add(stream_on_support_reaction_n);
+    let reaction_closure_residual_n = support_on_stream_force_n.add(stream_on_support_reaction_n);
 
     let derived = [
         advective_momentum_flux_n,
@@ -379,7 +412,10 @@ pub fn evaluate_scenario(scenario: &ControlVolumeScenario) -> Result<CaseEvaluat
         reaction_closure_residual_n,
     ];
     if derived.iter().any(|vector| !vector.is_finite()) {
-        return Err(format!("{}: non-finite derived momentum result", scenario.case_id));
+        return Err(format!(
+            "{}: non-finite derived momentum result",
+            scenario.case_id
+        ));
     }
 
     Ok(CaseEvaluation {
@@ -412,10 +448,10 @@ pub fn evaluate_corpus(cases_csv: &str, ports_csv: &str) -> Result<EvaluationRep
     for scenario in &scenarios {
         port_count += scenario.ports.len();
         let result = evaluate_scenario(scenario)?;
-        max_abs_mass_balance_residual_kg_s = max_abs_mass_balance_residual_kg_s
-            .max(result.mass_balance_residual_kg_s.abs());
-        max_abs_reaction_closure_residual_n = max_abs_reaction_closure_residual_n
-            .max(result.reaction_closure_residual_n.norm());
+        max_abs_mass_balance_residual_kg_s =
+            max_abs_mass_balance_residual_kg_s.max(result.mass_balance_residual_kg_s.abs());
+        max_abs_reaction_closure_residual_n =
+            max_abs_reaction_closure_residual_n.max(result.reaction_closure_residual_n.norm());
         cases.push(result);
     }
 
@@ -513,7 +549,11 @@ mod tests {
     #[test]
     fn unsteady_control_volume_uses_both_mass_and_momentum_accumulation() {
         let result = evaluate_scenario(&scenario("UNSTEADY_STORAGE")).expect("unsteady case");
-        close(result.mass_flow_in_kg_s - result.mass_flow_out_kg_s, 1.0, 0.0);
+        close(
+            result.mass_flow_in_kg_s - result.mass_flow_out_kg_s,
+            1.0,
+            0.0,
+        );
         close_vec(
             result.advective_momentum_flux_n,
             Vector3::new(-40.0, 30.0, 0.0),
@@ -559,8 +599,7 @@ mod tests {
     #[test]
     fn non_support_external_force_is_removed_before_solving_support_reaction() {
         let external_force_case = scenario("OTHER_FORCE_ISOLATION");
-        let result =
-            evaluate_scenario(&external_force_case).expect("external force case");
+        let result = evaluate_scenario(&external_force_case).expect("external force case");
         close_vec(
             result.advective_momentum_flux_n,
             Vector3::new(-6.0, 8.0, 0.0),
@@ -583,14 +622,26 @@ mod tests {
         let near_reversal = scenario("NEAR_REVERSAL_179");
         let result = evaluate_scenario(&near_reversal).expect("near-reversal");
         let ports = &near_reversal.ports;
-        let inlet = ports.iter().find(|p| p.direction == FlowDirection::Inflow).unwrap();
-        let outlet = ports.iter().find(|p| p.direction == FlowDirection::Outflow).unwrap();
+        let inlet = ports
+            .iter()
+            .find(|p| p.direction == FlowDirection::Inflow)
+            .unwrap();
+        let outlet = ports
+            .iter()
+            .find(|p| p.direction == FlowDirection::Outflow)
+            .unwrap();
         let speed = inlet.velocity_inertial_m_s.norm();
-        let cosine = inlet.velocity_inertial_m_s.dot(outlet.velocity_inertial_m_s)
+        let cosine = inlet
+            .velocity_inertial_m_s
+            .dot(outlet.velocity_inertial_m_s)
             / (speed * outlet.velocity_inertial_m_s.norm());
         let angle = cosine.clamp(-1.0, 1.0).acos();
         let exact_magnitude = inlet.mass_flow_kg_s * 2.0 * speed * (angle / 2.0).sin();
-        close(result.stream_on_support_reaction_n.norm(), exact_magnitude, 1.0e-10);
+        close(
+            result.stream_on_support_reaction_n.norm(),
+            exact_magnitude,
+            1.0e-10,
+        );
         assert!(exact_magnitude > 19.9);
     }
 
@@ -671,7 +722,10 @@ mod tests {
         let rotated_result = evaluate_scenario(&rotated).expect("rotated case");
         close_vec(
             rotated_result.advective_momentum_flux_n,
-            rotate_x(rotate_z(original_result.advective_momentum_flux_n, 0.37), -0.81),
+            rotate_x(
+                rotate_z(original_result.advective_momentum_flux_n, 0.37),
+                -0.81,
+            ),
             1.0e-10,
         );
         close_vec(
@@ -746,7 +800,11 @@ mod tests {
         let expected = evaluate_scenario(&original).expect("original order");
         original.ports.reverse();
         let actual = evaluate_scenario(&original).expect("reversed order");
-        close_vec(actual.advective_momentum_flux_n, expected.advective_momentum_flux_n, 0.0);
+        close_vec(
+            actual.advective_momentum_flux_n,
+            expected.advective_momentum_flux_n,
+            0.0,
+        );
         close_vec(
             actual.stream_on_support_reaction_n,
             expected.stream_on_support_reaction_n,
@@ -808,12 +866,11 @@ mod tests {
 
     #[test]
     fn parser_rejects_duplicate_case_ids_and_unknown_port_cases() {
-        let duplicate_cases = format!("{CASES}STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0\n");
+        let duplicate_cases =
+            format!("{CASES}STRAIGHT_THROUGH,INERTIAL_SYNTHETIC,0,0,0,0,0,0,0,0\n");
         assert!(parse_corpus(&duplicate_cases, PORTS).is_err());
 
-        let unknown_port = format!(
-            "{PORTS}UNKNOWN_CASE,PORT,Inflow,1,0,0,0\n"
-        );
+        let unknown_port = format!("{PORTS}UNKNOWN_CASE,PORT,Inflow,1,0,0,0\n");
         assert!(parse_corpus(CASES, &unknown_port).is_err());
     }
 
@@ -842,5 +899,4 @@ mod tests {
         let bad_direction = PORTS.replace("Inflow", "Sideways");
         assert!(parse_corpus(CASES, &bad_direction).is_err());
     }
-
 }
