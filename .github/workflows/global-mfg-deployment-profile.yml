@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/research/GLOBAL_MFG_DEPLOYMENT_PROFILE_V0_1.md"
+      - "docs/research/GLOBAL_MFG_BENCHMARK_TOURNAMENT_V0_1.md"
       - "schemas/global/global_mfg_deployment_profile_v0_1.schema.json"
       - "fixtures/global/global_mfg_deployment_profiles_v0_1.json"
       - "tools/global-mfg-deployment-audit/**"
@@ -13,6 +14,7 @@ on:
       - "research/global-mfg-deploy-profile-v0-1"
     paths:
       - "docs/research/GLOBAL_MFG_DEPLOYMENT_PROFILE_V0_1.md"
+      - "docs/research/GLOBAL_MFG_BENCHMARK_TOURNAMENT_V0_1.md"
       - "schemas/global/global_mfg_deployment_profile_v0_1.schema.json"
       - "fixtures/global/global_mfg_deployment_profiles_v0_1.json"
       - "tools/global-mfg-deployment-audit/**"
