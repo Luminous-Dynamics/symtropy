@@ -41,7 +41,8 @@ The `waveform` module adds deterministic sample-level transformations for explic
 - Bias adds a declared finite offset.
 - Gain drift linearly interpolates a positive gain factor across a half-open interval.
 - Fault intervals on the same waveform must not overlap; disjoint/intermittent intervals are supported.
-- The output receipt binds the input-series digest, fault-schedule digest, sample timebase, per-sample source index and fault identity.
+- Fault schedules are canonicalized by sample interval and ID before hashing, so reordering independent schedule entries does not change the fault-schedule digest.
+- The output receipt binds the input-series digest, canonical fault-schedule digest, sample timebase, per-sample source index and non-empty fault identity.
 
 This is a deterministic software perturbation of synthetic vectors, **not** an instrument model. The declared saturation/bias/gain parameters are challenge parameters, not fitted physical calibration values. No noise model, ADC behavior, detector transfer function, plasma kinetics, or inverse reconstruction is implied. All output samples and receipts remain synthetic.
 
