@@ -92,6 +92,7 @@ pub enum FieldWorkflowScoreError {
     UnexpectedRandomizationReceipt,
     MixedStudyDesigns,
     DuplicateBlock(String),
+    DuplicateRun(String),
     ArmOrderInvalid(String),
     PairIdentityMismatch(String),
     WorkPackageMismatch(String),
@@ -152,7 +153,7 @@ pub struct FieldWorkflowStudyScore {
     pub matched_block_count: u64,
     pub independent_cluster_count: u64,
     pub minimum_independent_clusters: u64,
-    pub cross_cluster_inference_ready: bool,
+    pub minimum_independent_clusters_met: bool,
     pub quality_noninferiority_margin: f64,
     pub quality_noninferiority_passed_block_count: u64,
     pub quality_noninferiority_failed_block_count: u64,
@@ -287,11 +288,27 @@ pub fn score_field_workflow_study(
     }
 
     let mut block_ids = std::collections::BTreeSet::new();
+    let mut run_ids = std::collections::BTreeSet::new();
     let mut scored = Vec::with_capacity(blocks.len());
     for block in blocks {
-        if !block_ids.insert(block.manual.identity.block_id.as_str()) {
-            return Err(FieldWorkflowScoreError::DuplicateBlock(
-                block.manual.identity.block_id.clone(),
+        let block_key = (
+            block.manual.identity.cluster_id.as_str(),
+            block.manual.identity.block_id.as_str(),
+        );
+        if !block_ids.insert(block_key) {
+            return Err(FieldWorkflowScoreError::DuplicateBlock(format!(
+                "{}/{}",
+                block.manual.identity.cluster_id, block.manual.identity.block_id
+            )));
+        }
+        if !run_ids.insert(block.manual.identity.run_id.as_str()) {
+            return Err(FieldWorkflowScoreError::DuplicateRun(
+                block.manual.identity.run_id.clone(),
+            ));
+        }
+        if !run_ids.insert(block.robotic.identity.run_id.as_str()) {
+            return Err(FieldWorkflowScoreError::DuplicateRun(
+                block.robotic.identity.run_id.clone(),
             ));
         }
         scored.push(score_matched_workflow_block(block, profile)?);
@@ -342,7 +359,7 @@ pub fn score_field_workflow_study(
         matched_block_count: scored.len() as u64,
         independent_cluster_count: clusters.len() as u64,
         minimum_independent_clusters: profile.minimum_independent_clusters as u64,
-        cross_cluster_inference_ready: clusters.len() >= profile.minimum_independent_clusters,
+        minimum_independent_clusters_met: clusters.len() >= profile.minimum_independent_clusters,
         quality_noninferiority_margin: profile.quality_noninferiority_margin,
         quality_noninferiority_passed_block_count,
         quality_noninferiority_failed_block_count: scored.len() as u64
@@ -427,12 +444,13 @@ fn validate_acceptance_score(
     block_id: &str,
 ) -> Result<(), FieldWorkflowScoreError> {
     if score.design_entity_count == 0
-        || score.accepted_count
-            + score.rejected_count
-            + score.held_count
-            + score.waived_count
-            + score.not_attempted_count
-            != score.design_entity_count
+        || (u128::from(score.accepted_count)
+            + u128::from(score.rejected_count)
+            + u128::from(score.held_count)
+            + u128::from(score.waived_count)
+            + u128::from(score.not_attempted_count))
+            != u128::from(score.design_entity_count)
+        || score.attempted_count > score.design_entity_count
         || score.accepted_count > score.attempted_count
         || score.first_pass_accepted_count > score.accepted_count
     {
@@ -471,6 +489,7 @@ fn same_pairing_identity(
         && manual.task_family == robotic.task_family
         && manual.pairing_sha256 == robotic.pairing_sha256
         && manual.environment_profile_sha256 == robotic.environment_profile_sha256
+        && manual.randomization_receipt_sha256 == robotic.randomization_receipt_sha256
 }
 
 fn same_work_package(
@@ -495,7 +514,7 @@ fn cluster_bootstrap_interval(
         let mut total = 0.0;
         for _ in 0..cluster_means.len() {
             seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
-            let index = (seed as usize) % cluster_means.len();
+            let index = (seed % cluster_means.len() as u64) as usize;
             total += cluster_means[index];
         }
         means.push(total / cluster_means.len() as f64);
@@ -678,7 +697,7 @@ mod tests {
         let score = score_field_workflow_study(&blocks, Default::default()).unwrap();
         assert_eq!(score.matched_block_count, 4);
         assert_eq!(score.independent_cluster_count, 3);
-        assert!(score.cross_cluster_inference_ready);
+        assert!(score.minimum_independent_clusters_met);
         assert_eq!(score.productivity_ratio_bootstrap_95.as_ref().unwrap().independent_clusters, 3);
         assert_eq!(score.productivity_ratio_bootstrap_95, score_field_workflow_study(&blocks, Default::default()).unwrap().productivity_ratio_bootstrap_95);
     }
@@ -690,7 +709,7 @@ mod tests {
             block("lab-a", "block-2"),
         ];
         let score = score_field_workflow_study(&blocks, Default::default()).unwrap();
-        assert!(!score.cross_cluster_inference_ready);
+        assert!(!score.minimum_independent_clusters_met);
         assert_eq!(score.independent_cluster_count, 1);
         assert_eq!(score.productivity_ratio_bootstrap_95, None);
     }
