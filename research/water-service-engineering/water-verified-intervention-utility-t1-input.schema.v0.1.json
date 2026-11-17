@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/water-service-engineering/water-verified-intervention-utility-t1-input.schema.v0.1.json",
+  "title": "Water verified-intervention utility T1 input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "submission_id",
+    "arm_id",
+    "evidence_class",
+    "claim_ceiling",
+    "maximum_demand_difference_percent",
+    "maximum_pressure_difference_percent",
+    "uncertainty_expansion_factor",
+    "crew_day_hours",
+    "scenarios"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "water-verified-intervention-utility-t1-input-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATER-VERIFIED-INTERVENTION-UTILITY-001"
+    },
+    "submission_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "arm_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "maximum_demand_difference_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "maximum_pressure_difference_percent": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20
+    },
+    "uncertainty_expansion_factor": {
+      "const": 2
+    },
+    "crew_day_hours": {
+      "const": 8
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "event_truth",
+          "event_start_minute",
+          "ground_truth_asset_ids",
+          "observability",
+          "diagnostic",
+          "inspection",
+          "repair",
+          "verification"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "pattern": "^IVU-T1-[0-9]{3}-"
+          },
+          "event_truth": {
+            "enum": [
+              "leak",
+              "non_leak"
+            ]
+          },
+          "event_start_minute": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "ground_truth_asset_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "observability": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "disposition",
+              "topology_valid",
+              "estimator_scope_valid"
+            ],
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "directly_observed_current",
+                  "estimator_qualified_for_declared_scope",
+                  "structurally_observable_only",
+                  "unobservable_under_declared_faults",
+                  "indeterminate_evidence",
+                  "topology_invalidates_certificate"
+                ]
+              },
+              "topology_valid": {
+                "type": "boolean"
+              },
+              "estimator_scope_valid": {
+                "type": "boolean"
+              }
+            }
+          },
+          "diagnostic": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "detected",
+              "detected_minute",
+              "localization_level",
+              "candidate_asset_ids",
+              "action"
+            ],
+            "properties": {
+              "detected": {
+                "type": "boolean"
+              },
+              "detected_minute": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "localization_level": {
+                "enum": [
+                  "none",
+                  "zone",
+                  "pipe",
+                  "within_pipe"
+                ]
+              },
+              "candidate_asset_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "action": {
+                "enum": [
+                  "inspect",
+                  "prioritize",
+                  "abstain"
+                ]
+              }
+            }
+          },
+          "inspection": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "confirmed_asset_ids",
+              "crew_hours",
+              "travel_hours",
+              "inspection_cost",
+              "confirmed_minute"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_attempted",
+                  "confirmed_leak",
+                  "no_leak",
+                  "inconclusive"
+                ]
+              },
+              "confirmed_asset_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "crew_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "travel_hours": {
+                "type": "number",
+                "minimum": 0
+              },
+              "inspection_cost": {
+                "type": "number",
+                "minimum": 0
+              },
+              "confirmed_minute": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            }
+          },
+          "repair": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "repair_id",
+              "asset_id",
+              "repair_minute",
+              "repair_cost",
+              "outage_minutes"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_repaired",
+                  "repaired"
+                ]
+              },
+              "repair_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "asset_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "repair_minute": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "repair_cost": {
+                "type": "number",
+                "minimum": 0
+              },
+              "outage_minutes": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          },
+          "verification": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "baseline",
+              "followups"
+            ],
+            "properties": {
+              "baseline": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "$ref": "#/$defs/measurement"
+              },
+              "followups": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "day",
+                    "measurement"
+                  ],
+                  "properties": {
+                    "day": {
+                      "enum": [
+                        7,
+                        30,
+                        90
+                      ]
+                    },
+                    "measurement": {
+                      "$ref": "#/$defs/measurement"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "leak_flow_m3_day",
+        "standard_uncertainty_m3_day",
+        "demand_m3_day",
+        "pressure_kpa",
+        "pump_state",
+        "valve_state",
+        "topology_revision",
+        "instrument_id",
+        "calibration_ref",
+        "method_ref",
+        "raw_record_digest",
+        "validity",
+        "window_start_minute",
+        "window_end_minute"
+      ],
+      "properties": {
+        "leak_flow_m3_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "standard_uncertainty_m3_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_m3_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pressure_kpa": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pump_state": {
+          "type": "string"
+        },
+        "valve_state": {
+          "type": "string"
+        },
+        "topology_revision": {
+          "type": "string"
+        },
+        "instrument_id": {
+          "type": "string"
+        },
+        "calibration_ref": {
+          "type": "string"
+        },
+        "method_ref": {
+          "type": "string"
+        },
+        "raw_record_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "stale",
+            "missing",
+            "contradictory"
+          ]
+        },
+        "window_start_minute": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_end_minute": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
