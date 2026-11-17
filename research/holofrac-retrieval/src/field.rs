@@ -415,13 +415,11 @@ pub fn run_field_family_benchmark(
 
     let query_p50_micros = percentile(&mut total_times.clone(), 0.50);
     let query_p95_micros = percentile(&mut total_times, 0.95);
-    let retained_vector_payload_bytes_estimate =
-        memory.retained_vector_payload_bytes_estimate();
+    let retained_vector_payload_bytes_estimate = memory.retained_vector_payload_bytes_estimate();
     let encoder_index_bytes_estimate = memory.encoder_index_bytes_estimate();
     let hdc_payload_plus_encoder_index_bytes_estimate =
         retained_vector_payload_bytes_estimate + encoder_index_bytes_estimate;
-    let reference_grid_value_payload_bytes_estimate =
-        samples.len() * std::mem::size_of::<f64>();
+    let reference_grid_value_payload_bytes_estimate = samples.len() * std::mem::size_of::<f64>();
     let reference_sample_record_payload_bytes_estimate =
         samples.len() * std::mem::size_of::<FieldSample>();
 
@@ -716,8 +714,10 @@ mod tests {
             assert!(report.hdc_r2.is_finite());
             assert!(report.nearest_r2.is_finite());
             assert!(report.bilinear_r2.is_finite());
-            assert!(report.hdc_payload_plus_encoder_index_bytes_estimate
-                >= report.retained_vector_payload_bytes_estimate);
+            assert!(
+                report.hdc_payload_plus_encoder_index_bytes_estimate
+                    >= report.retained_vector_payload_bytes_estimate
+            );
             assert!(report.reference_grid_value_payload_bytes_estimate > 0);
             assert!(report.hdc_to_grid_value_payload_ratio.is_finite());
         }
