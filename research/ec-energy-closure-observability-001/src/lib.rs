@@ -896,6 +896,7 @@ mod tests {
         let intervals = [
             IntegratedEnergyInterval {
                 interval_id: 1,
+                interval_start_unix_seconds: 0,
                 duration_seconds: 1800,
                 available_energy_w_m2: 100.0,
                 turbulent_energy_w_m2: 80.0,
@@ -922,6 +923,7 @@ mod tests {
         let intervals = [
             IntegratedEnergyInterval {
                 interval_id: 1,
+                interval_start_unix_seconds: 0,
                 duration_seconds: 1800,
                 available_energy_w_m2: 100.0,
                 turbulent_energy_w_m2: 80.0,
@@ -929,6 +931,7 @@ mod tests {
             },
             IntegratedEnergyInterval {
                 interval_id: 2,
+                interval_start_unix_seconds: 1800,
                 duration_seconds: 1800,
                 available_energy_w_m2: 100.0,
                 turbulent_energy_w_m2: 100.0,
