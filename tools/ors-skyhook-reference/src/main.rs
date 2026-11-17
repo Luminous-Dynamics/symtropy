@@ -92,7 +92,12 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
             json_string(&case.case_id)
         )
         .unwrap();
-        writeln!(&mut output, "      \"status\": {},", json_string(case.status.as_str())).unwrap();
+        writeln!(
+            &mut output,
+            "      \"status\": {},",
+            json_string(case.status.as_str())
+        )
+        .unwrap();
         writeln!(
             &mut output,
             "      \"turn_angle_rad\": {:.15e},",
