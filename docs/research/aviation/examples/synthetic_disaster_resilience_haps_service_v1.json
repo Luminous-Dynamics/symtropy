@@ -153,6 +153,66 @@
       "fso_backhaul_capacity_mbps": 1000,
       "edge_compute_capacity_tops": 10,
       "platform_crosslink_capacity_mbps": 200
-    }
+    },
+    "edge_placement_policy": "lowest_latency_with_reserve_guard",
+    "edge_workloads": [
+      {
+        "workload_id": "emergency-alert-fusion",
+        "workload_class": "emergency_alert_fusion",
+        "placement_candidates": [
+          "platform_edge",
+          "terrestrial_gateway_edge",
+          "satellite_edge"
+        ],
+        "input_data_rate_mbps": 0.05,
+        "compute_demand_tops": 0.05,
+        "compute_power_w": 10,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 250,
+        "response_metric_basis": "application_round_trip",
+        "criticality": "emergency_critical",
+        "fallback_policy": "store_and_forward",
+        "stateful": false,
+        "workload_profile_ref": null
+      },
+      {
+        "workload_id": "drone-control-telemetry",
+        "workload_class": "drone_telemetry_control",
+        "placement_candidates": [
+          "platform_edge",
+          "drone_edge",
+          "terrestrial_gateway_edge"
+        ],
+        "input_data_rate_mbps": 2,
+        "compute_demand_tops": 0.5,
+        "compute_power_w": 40,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 100,
+        "response_metric_basis": "control_loop_round_trip",
+        "criticality": "safety_critical",
+        "fallback_policy": "drone_local_safe_mode",
+        "stateful": true,
+        "workload_profile_ref": null
+      },
+      {
+        "workload_id": "wildfire-video-analytics",
+        "workload_class": "wildfire_video_analytics",
+        "placement_candidates": [
+          "platform_edge",
+          "terrestrial_gateway_edge",
+          "remote_cloud"
+        ],
+        "input_data_rate_mbps": 8,
+        "compute_demand_tops": 2,
+        "compute_power_w": 60,
+        "waste_heat_fraction": 0.9,
+        "max_response_ms": 1000,
+        "response_metric_basis": "application_round_trip",
+        "criticality": "mission_critical",
+        "fallback_policy": "store_and_forward",
+        "stateful": false,
+        "workload_profile_ref": null
+      }
+    ]
   }
 }
