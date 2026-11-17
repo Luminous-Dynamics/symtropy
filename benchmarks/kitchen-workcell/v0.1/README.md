@@ -28,3 +28,14 @@ The Breville Paradice 9 has a regional capacity discrepancy in public technical 
 - Pressure, thermal cut-outs and blade guarding remain local deterministic safety functions.
 - Food safety, microbiological lethality and conformity are external qualification gates.
 - The current manifest contains hypotheses only; no physical results or SOTA claims.
+
+
+## Household power-envelope scheduling
+
+The `workflow-power-envelope` task composes with the existing Symtropy [KITCHEN-OPS-001 planner](https://github.com/Luminous-Dynamics/symtropy/issues/2227). Its implementation branch adds independent power aggregation, explicit time-varying task profiles, background load and a conservative serial fallback.
+
+- [PowerConstrainedPlanV1 schema](https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/PowerConstrainedPlanV1.schema.json)
+- [Synthetic power-envelope fixtures](https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/schemas/fixtures/power-envelope-v1.json)
+- [Planner implementation](https://github.com/Luminous-Dynamics/symtropy/blob/feat/kitchen-ops-planner-v1/crates/domains/symtropy-kitchen-planner/src/power.rs)
+
+No local household limit is assumed. Limits are real watts, not VA/kVA; inverter compatibility also needs power factor, startup waveform and quality evidence. The benchmark's power work remains unrun until physical profiles and calibrated metering exist.
