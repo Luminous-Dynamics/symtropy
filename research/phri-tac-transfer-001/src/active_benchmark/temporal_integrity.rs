@@ -50,9 +50,18 @@ impl ClockSyncAttestation {
     ) -> Result<(), String> {
         for (name, value) in [
             ("attestation_id", self.attestation_id.as_str()),
-            ("reference_instrument_receipt_id", self.reference_instrument_receipt_id.as_str()),
-            ("reference_ancestry_receipt_id", self.reference_ancestry_receipt_id.as_str()),
-            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            (
+                "reference_instrument_receipt_id",
+                self.reference_instrument_receipt_id.as_str(),
+            ),
+            (
+                "reference_ancestry_receipt_id",
+                self.reference_ancestry_receipt_id.as_str(),
+            ),
+            (
+                "common_cause_analysis_receipt_id",
+                self.common_cause_analysis_receipt_id.as_str(),
+            ),
             ("verifier_receipt_id", self.verifier_receipt_id.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -65,7 +74,10 @@ impl ClockSyncAttestation {
             return Err("clock sync attestation domain binding mismatch".to_owned());
         }
         if self.sync_pairs != pairs {
-            return Err("clock sync attestation does not bind the supplied synchronization pairs".to_owned());
+            return Err(
+                "clock sync attestation does not bind the supplied synchronization pairs"
+                    .to_owned(),
+            );
         }
         if self.disposition != ClockSyncEvidenceDisposition::IndependentlyCharacterized {
             return Err("clock synchronization ancestry/common-cause disposition is not independently characterized".to_owned());
@@ -581,13 +593,8 @@ mod tests {
             },
         ];
         let proof = attestation("accelerometer-clock", "robot-clock", &pairs);
-        let mapping = fit_clock_mapping(
-            "accelerometer-clock",
-            "robot-clock",
-            &pairs,
-            &proof,
-        )
-        .expect("clock mapping");
+        let mapping = fit_clock_mapping("accelerometer-clock", "robot-clock", &pairs, &proof)
+            .expect("clock mapping");
         assert_eq!(mapping.offset_ns, 0);
         assert_eq!(mapping.drift_ppb, 100);
         assert_eq!(mapping.maximum_fit_residual_ns, 0);
@@ -602,13 +609,7 @@ mod tests {
             reference_timestamp_ns: 1,
         }];
         let insufficient_proof = attestation("sensor", "robot", &insufficient);
-        assert!(fit_clock_mapping(
-            "sensor",
-            "robot",
-            &insufficient,
-            &insufficient_proof,
-        )
-        .is_err());
+        assert!(fit_clock_mapping("sensor", "robot", &insufficient, &insufficient_proof,).is_err());
 
         let nonmonotonic = [
             ClockSyncPair {
@@ -625,18 +626,21 @@ mod tests {
             },
         ];
         let nonmonotonic_proof = attestation("sensor", "robot", &nonmonotonic);
-        assert!(fit_clock_mapping(
-            "sensor",
-            "robot",
-            &nonmonotonic,
-            &nonmonotonic_proof,
-        )
-        .is_err());
+        assert!(fit_clock_mapping("sensor", "robot", &nonmonotonic, &nonmonotonic_proof,).is_err());
 
         let valid_pairs = [
-            ClockSyncPair { local_timestamp_ns: 1, reference_timestamp_ns: 11 },
-            ClockSyncPair { local_timestamp_ns: 2, reference_timestamp_ns: 12 },
-            ClockSyncPair { local_timestamp_ns: 3, reference_timestamp_ns: 13 },
+            ClockSyncPair {
+                local_timestamp_ns: 1,
+                reference_timestamp_ns: 11,
+            },
+            ClockSyncPair {
+                local_timestamp_ns: 2,
+                reference_timestamp_ns: 12,
+            },
+            ClockSyncPair {
+                local_timestamp_ns: 3,
+                reference_timestamp_ns: 13,
+            },
         ];
         let mut shared_cause = attestation("sensor", "robot", &valid_pairs);
         shared_cause.disposition = ClockSyncEvidenceDisposition::SharedCommonCause;
