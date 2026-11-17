@@ -58,16 +58,19 @@ The repeated SHA-256-shaped fixture value is a fixed test token; it is not the d
 
 Audited against public GitHub metadata and exact file/PR heads on 17 November 2026:
 
-| Owner surface | Exact observed PR head | Observed state | Integration consequence |
-|---|---|---|---|
-| Symtropy matched routes #5434 | `c35e9e2e56c43b947dea17e52ce2e05b4528b625` | Open draft; branch `research/factory-matched-routes-v0-1` | Route library exists in a separate tool crate; no shared receipt API yet |
-| Symthaea PIE-001A #1609 | `672de96181c7e352763e62983334e9deb8f14cc9` | Open draft; independent Python oracle | Use its status semantics only as a reference until adapter is agreed |
-| Symthaea PIE-002A #1617 | `31f6e7d32e65843f0cdfc9043607751565a5b769` | Open draft; independent Python oracle | Use its conservative utility/thermal statuses only as reference |
-| Mycelix accounted loop #3107 | `97d04cd8180ada98591ad6bb27a764253bc984ff` | Open draft; stacked base `circ-mfg-001c-material-flow-accounting` | No claim that the Mycelix API is on `main` |
-| Symthaea process semantics #5686 | issue only | Open research | Process/material semantics remain owned upstream |
-| Mycelix circular manufacturing #3095 | issue only | Open research | Lifecycle/circularity semantics remain owned upstream |
+| Owner surface | Exact observed PR head | Base | Observed state / changed surface | Integration consequence |
+|---|---|---|---|---|
+| Symtropy matched routes #5434 | `c35e9e2e56c43b947dea17e52ce2e05b4528b625` | `240914e56939eade580a2b4245c5cf5592ddd276` | Open draft; `tools/factory-matched-routes` Rust crate | Route library exists separately; no shared receipt API yet |
+| Symthaea PIE-001A oracle #1609 | `672de96181c7e352763e62983334e9deb8f14cc9` | `980d0bfca1f67143a3095dff25437f913ac10be7` | Open draft; independent Python oracle + evidence note | Reference arithmetic/status semantics only |
+| Symthaea PIE-001B #1614 | `b5d2a0a48665926beb398b60c6f58b8cfbe13401` | `b7305085fc5bbb7aed400c2a39f0c5f597a11035` | Open draft; production mass-balance module; stacked on PIE-000 branch | Do not assume it is on `main` |
+| Symthaea PIE-002A oracle #1617 | `31f6e7d32e65843f0cdfc9043607751565a5b769` | `980d0bfca1f67143a3095dff25437f913ac10be7` | Open draft; independent utility/thermal oracle + evidence note | Reference screening semantics only |
+| Symthaea PIE-002 kernel #2724 | `1965f58fcea91ae83a73714fa93f0f22ad1abc20` | `b5d2a0a48665926beb398b60c6f58b8cfbe13401` | Open draft; production utility kernel; stacked on PIE-001B | Do not assume it is on `main` |
+| Symthaea PIE-002B #2759 | `0212804ae03f9db538332e72cde7a1d2743edbeb` | `1965f58fcea91ae83a73714fa93f0f22ad1abc20` | Open draft; process utility projection; stacked on #2724 | Do not assume it is on `main` |
+| Mycelix accounted loop #3107 | `97d04cd8180ada98591ad6bb27a764253bc984ff` | `a54ce9712850d0e4327da16e1e861a98b365bf85` | Open draft; accounted closed-loop test, stacked on material-flow branch | No claim that the API is on `main` |
+| Symthaea process semantics #5686 | issue only | — | Open research | Process/material semantics remain owned upstream |
+| Mycelix circular manufacturing #3095 | issue only | — | Open research | Lifecycle/circularity semantics remain owned upstream |
 
-The hashes above are full observed heads where returned by GitHub metadata; shortened values in this table are for readability. Verify the linked PR before relying on any branch or schema. PR state, branch head and CI state can change independently.
+All hashes above are full observed 40-character Git commit IDs, not shortened display values. The stacked dependency chain is significant: PIE-001B is based on PIE-000; PIE-002 on PIE-001B; PIE-002B on PIE-002; Mycelix #3107 is based on a separate material-flow branch. Verify PR state, branch head, changed files and CI independently before relying on any surface.
 
 ## Evidence class and claim ceiling
 
