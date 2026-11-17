@@ -23,12 +23,12 @@ fn main() {
         Ok(result) => {
             println!("suite=ROBOTICS-CANDIDATE-EVIDENCE-ENVELOPE-001");
             println!("schema={SCHEMA_VERSION}");
-            println!("eligibility={:?}", result.eligibility);
+            println!("eligibility={:?}", result.eligibility());
             println!("receipt_count={}", envelope.receipts.len());
             println!("canonical_binding_preimage_bytes={preimage_bytes}");
             println!(
                 "candidate_feedable={}",
-                result.eligibility == CandidateEligibility::Qualified
+                result.eligibility() == CandidateEligibility::Qualified
             );
             println!(
                 "note=fixture-only structural check; digest authentication and physical truth are external"
@@ -87,6 +87,8 @@ fn fixture_receipts(binding: &CandidateBinding) -> Vec<EvidenceReceipt> {
     let receipt = |domain: EvidenceDomain, record_id: &str, result_sha256: &str| {
         EvidenceReceipt {
             domain,
+            timebase_id: binding.timebase_id.clone(),
+            timebase_revision: binding.timebase_revision.clone(),
             record_id: record_id.to_owned(),
             issuer_id: format!("evaluator-{domain:?}"),
             issuer_revision: "evaluator-r1".to_owned(),
