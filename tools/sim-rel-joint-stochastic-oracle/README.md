@@ -38,3 +38,26 @@ This oracle is intentionally small and exact. It does not implement particle fil
 The baseline module ranks actions by one-step expected information gain about the mechanism, divided by action cost. It integrates the current joint physical/sensor belief through the same transition kernel, and treats a hazard event as an observed terminal outcome. Its score is floating-point and is deliberately separate from the exact rational optimizer.
 
 The calibration fixture is a useful counterexample: neither the measurement nor calibration action has immediate mechanism information, but calibration changes sensor state so that a subsequent measurement becomes identifying. A one-step EIG policy cannot value that enabling sequence; the finite-horizon joint optimizer can.
+
+
+## Interactive episode adapter v0.1
+
+The additive `episode::EpisodeProvider` is a headless policy-facing adapter over this exact joint stochastic kernel. It owns the initial joint-state draw, current mechanism/physical/sensor tuple, simulation PRNG, budget, and append-only request attempts.
+
+The public `EpisodeView` exposes only an opaque episode identity, current discrete step, the public action catalogue and costs, emitted observations, the caller's own attempt dispositions, accepted-attempt/cost counters, and terminal status. It does not expose the hypothesis identity, physical state, sensor state, full kernel, sampled initial-state realization, or PRNG seed.
+
+Unknown actions, calls after a terminal event, cost-denied requests, attempt-budget-denied requests, and horizon-denied requests are retained as attempts and do not mutate the hidden world. The in-memory receipt log is capped at 65,536 requests; an external runner must reconcile its own independent request counter for campaign-completeness claims.
+
+The first adapter profile is synchronous and discrete: for each emitted observation, event, acquisition, and availability steps are equal. It does not simulate delayed acquisition or late delivery. Add those semantics only with an owner model that represents the relevant clock and process evolution.
+
+### Randomness and claim ceiling
+
+The trajectory sampler uses the named SplitMix64 generator for reproducible runs. It is **not cryptographic randomness** and must not protect a sealed challenge seed from a process that can inspect/control the provider. A blind evaluation still needs an independently isolated runner and oracle custody.
+
+The trajectory sampler converts exact rational weights to f64 and uses a 53-bit uniform draw. It is a reproducible sampled path, not an exact rational sampler. The exact kernel, finite-horizon optimizer and independent policy replay remain the authorities for exact finite-domain probability calculations. The adapter does not turn a modelled transition into measured evidence, validate a biological/physical model, or control a real experiment.
+
+### Run the adapter tests
+
+```sh
+cargo test --locked --manifest-path tools/sim-rel-joint-stochastic-oracle/Cargo.toml --lib episode::tests
+```
