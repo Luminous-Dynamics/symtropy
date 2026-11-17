@@ -4,10 +4,11 @@
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::error::Error;
-use std::fs;
 
 const BASELINES: &str =
     include_str!("../../../docs/research/power-fabric/data/transport-modality-baselines.v0.1.json");
+const BASELINES_JSONL: &str =
+    include_str!("../../../docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BaselineSummary {
@@ -155,6 +156,37 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
     Ok(())
 }
 
+fn parse_jsonl_records(raw: &str) -> Result<Vec<Value>, String> {
+    let mut records = Vec::new();
+    for (index, line) in raw.lines().enumerate() {
+        if line.trim().is_empty() {
+            return Err(format!("JSONL line {} must not be blank", index + 1));
+        }
+        let record: Value = serde_json::from_str(line)
+            .map_err(|error| format!("JSONL line {} is invalid: {error}", index + 1))?;
+        if !record.is_object() {
+            return Err(format!("JSONL line {} must contain one record object", index + 1));
+        }
+        records.push(record);
+    }
+    if records.is_empty() {
+        return Err("JSONL register must contain at least one record".to_owned());
+    }
+    Ok(records)
+}
+
+pub fn validate_frozen_artifacts(
+    document: &Value,
+    jsonl: &str,
+) -> Result<BaselineSummary, String> {
+    let manifest_records = field(document, "records", "root")?;
+    let jsonl_records = parse_jsonl_records(jsonl)?;
+    if manifest_records.as_array() != Some(&jsonl_records) {
+        return Err("JSONL records differ from the frozen JSON manifest".to_owned());
+    }
+    validate_document(document)
+}
+
 pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
     if field(document, "schema_version", "root")?.as_str() != Some("0.1.0") {
         return Err("root: schema_version must be 0.1.0".to_owned());
@@ -251,13 +283,9 @@ pub fn validate_document(document: &Value) -> Result<BaselineSummary, String> {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let path = std::env::args().nth(1);
-    let raw = match path {
-        Some(path) => fs::read_to_string(path)?,
-        None => BASELINES.to_owned(),
-    };
-    let document: Value = serde_json::from_str(&raw)?;
-    let summary = validate_document(&document).map_err(std::io::Error::other)?;
+    let document: Value = serde_json::from_str(BASELINES)?;
+    let summary =
+        validate_frozen_artifacts(&document, BASELINES_JSONL).map_err(std::io::Error::other)?;
     println!(
         "VALID: {} source-claim records, {} measurement observations; no cross-modal ranking permitted",
         summary.records, summary.measurements
@@ -272,6 +300,32 @@ mod tests {
 
     fn corpus() -> Value {
         serde_json::from_str(BASELINES).unwrap()
+    }
+
+    #[test]
+    fn frozen_jsonl_records_match_the_json_manifest_exactly() {
+        let document = corpus();
+        let summary = validate_frozen_artifacts(&document, BASELINES_JSONL).unwrap();
+        assert_eq!(summary.records, 6);
+        assert_eq!(summary.measurements, 19);
+    }
+
+    #[test]
+    fn rejects_a_jsonl_file_with_malformed_record_data() {
+        let document = corpus();
+        let malformed = "{ not valid json }\\n";
+        assert!(validate_frozen_artifacts(&document, malformed)
+            .unwrap_err()
+            .contains("invalid"));
+    }
+
+    #[test]
+    fn rejects_jsonl_manifest_drift() {
+        let document = corpus();
+        let drifted = BASELINES_JSONL.replace("riekerk-2026-50kw-ipt", "changed-id");
+        assert!(validate_frozen_artifacts(&document, &drifted)
+            .unwrap_err()
+            .contains("differ"));
     }
 
     #[test]
