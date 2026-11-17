@@ -314,3 +314,12 @@ Sources:
 - [CERN FCC-hh CDR, CERN-2025-006](https://doi.org/10.23731/CYRM-2025-006)
 - [2025 FCC-hh parameter update](https://indico.cern.ch/event/1520755/attachments/3023021/5342322/FCC_FinalReport_Vol2-HFM.pdf)
 - [CERN High Field Magnets programme](https://hfm.web.cern.ch/)
+
+
+The executable report now includes the 2025 updated FCC-hh comparator directly:
+- source geometry: 90.7 km ring, 76.9 km arcs, 0.83 arc-cell dipole packing, 14 T and 85 TeV CM;
+- converted ring-wide effective fill: 0.7037155;
+- screen: ~85.2714 TeV CM, about +0.32% relative to the 85 TeV source value;
+- the uniform-bend 0.5 A proton screen emits ~1.266 MW/beam, while the source table labels its synchrotron entry as MW **per ring**. The report explicitly marks these unlike conventions as not directly compared rather than inventing a per-beam conversion.
+
+This gives the local-ring screen two distinct external references: the 100 TeV / 16 T CDR stretch case and the 85 TeV / 14 T updated study case.
