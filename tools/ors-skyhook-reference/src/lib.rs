@@ -103,7 +103,12 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
         let expected_status = match fields[6] {
             "table_reproduced" => FixtureStatus::TableReproduced,
             "outside_source_domain" => FixtureStatus::OutsideSourceDomain,
-            other => return Err(format!("line {}: unsupported expected status {other:?}", line_index + 2)),
+            other => {
+                return Err(format!(
+                    "line {}: unsupported expected status {other:?}",
+                    line_index + 2
+                ));
+            }
         };
 
         if height_m == 0 || delta_h_m == 0 || !table_scale_n.is_finite() || table_scale_n <= 0.0 {
@@ -113,7 +118,10 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
             || ![3_000, 30_000, 300_000].contains(&delta_h_m)
             || ![2, 4, 8, 16, 32, 64].contains(&pi_over_alpha)
         {
-            return Err(format!("line {}: fixture is outside the frozen Table 4 grid", line_index + 2));
+            return Err(format!(
+                "line {}: fixture is outside the frozen Table 4 grid",
+                line_index + 2
+            ));
         }
         if !combinations.insert((height_m, delta_h_m, pi_over_alpha)) {
             return Err(format!("line {}: duplicate geometry tuple", line_index + 2));
@@ -121,7 +129,12 @@ pub fn parse_fixtures(input: &str) -> Result<Vec<Fixture>, String> {
         match (expected_status, table_value) {
             (FixtureStatus::TableReproduced, Some(value)) if value.is_finite() && value > 0.0 => {}
             (FixtureStatus::OutsideSourceDomain, None) => {}
-            _ => return Err(format!("line {}: source table value and expected status disagree", line_index + 2)),
+            _ => {
+                return Err(format!(
+                    "line {}: source table value and expected status disagree",
+                    line_index + 2
+                ));
+            }
         }
 
         fixtures.push(Fixture {
@@ -166,7 +179,10 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
 
     if !within_turn_limit || !within_speed_domain {
         if fixture.expected_status != FixtureStatus::OutsideSourceDomain {
-            return Err(format!("{}: source model rejects a case marked reproducible", fixture.case_id));
+            return Err(format!(
+                "{}: source model rejects a case marked reproducible",
+                fixture.case_id
+            ));
         }
         return Ok(CaseResult {
             case_id: fixture.case_id.clone(),
@@ -210,7 +226,10 @@ pub fn evaluate_fixture(fixture: &Fixture) -> Result<CaseResult, String> {
     }
 
     if fixture.expected_status != FixtureStatus::TableReproduced {
-        return Err(format!("{}: source model accepts a case marked outside its domain", fixture.case_id));
+        return Err(format!(
+            "{}: source model accepts a case marked outside its domain",
+            fixture.case_id
+        ));
     }
     let table_value = fixture.table_value.expect("validated fixture has Table 4 value");
     let table_force_n = table_value * fixture.table_scale_n;
@@ -257,7 +276,9 @@ pub fn evaluate_corpus(input: &str) -> Result<EvaluationReport, String> {
 
     if table_reproduced_count != 28 || outside_source_domain_count != 8 {
         return Err(format!(
-            "unexpected Table 4 disposition: {table_reproduced_count} reproduced, {outside_source_domain_count} outside source domain"
+            "unexpected Table 4 disposition: {} reproduced, {} outside source domain",
+            table_reproduced_count,
+            outside_source_domain_count
         ));
     }
 
