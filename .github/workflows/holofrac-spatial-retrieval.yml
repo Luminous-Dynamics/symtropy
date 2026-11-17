@@ -67,6 +67,12 @@ jobs:
           echo "geometric scale qualification:"
           HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin fractal_sweep > artifacts/fractal-geometry.csv
           cat artifacts/fractal-geometry.csv
+          echo "bitemporal spatial observations:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin temporal_fixture_sweep > artifacts/temporal-observations.csv
+          cat artifacts/temporal-observations.csv
+          echo "sensor placement and virtual sensing:"
+          HOLOFRAC_SOURCE_SHA="$(git rev-parse HEAD)" cargo run --release --manifest-path research/holofrac-retrieval/Cargo.toml --bin sensor_placement_sweep > artifacts/sensor-placement.csv
+          cat artifacts/sensor-placement.csv
 
       - name: Upload raw benchmark outputs
         if: always()
