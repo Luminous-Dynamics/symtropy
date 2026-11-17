@@ -124,6 +124,37 @@ Split by **mechanism, recipe, measurement family, topology and domain**, not onl
 
 Generated worlds are experiment material. They are not evidence that the modeled process exists in nature, and generator diversity is not itself scientific validity.
 
+### 7A. Counterexample-driven world curriculum
+
+Do not generate challenges merely to increase visual diversity or simulation complexity. Reuse Symthaea #9332's sealed challenge-generation authority and make the generator search for **minimal, scientifically valid counterexamples to a specific candidate claim**.
+
+A challenge candidate should bind:
+- the public claim/hypothesis it is intended to challenge;
+- at least one competing mechanism or measurement explanation;
+- the intervention(s) capable of distinguishing them;
+- the expected observation branches and the exact evaluator-owned outcome relation;
+- the claim's identifiability conditions and the cases where abstention is correct;
+- resource, hazard, model-applicability and rights constraints; and
+- the intended transfer relation to a previously studied world.
+
+Use a staged curriculum:
+1. **Calibration world:** the structure and instrument semantics are supplied; isolate coefficient and implementation competence.
+2. **Discrimination world:** competing mechanisms fit the visible history but predict different outcomes under affordable interventions.
+3. **Falsification world:** a provisional mechanism appears to fit, but a bounded held-out probe can refute it.
+4. **Misspecification world:** no candidate in the declared hypothesis class is adequate; the correct result is explicit misspecification, not the least-bad singleton.
+5. **Transfer world:** a related mechanism recurs under a different topology, scale, sensor map or domain; the agent must decide what transfers and what does not.
+6. **Adversarial observability world:** missingness, timing, calibration, common-cause dependencies or uninformative channels prevent a unique conclusion.
+
+Before a challenge enters qualification, an evaluator independent of the solver must verify:
+- the task is solvable or deliberately non-identifiable for a documented reason;
+- the permitted interventions really distinguish the target hypotheses where identification is claimed;
+- the expected outcome is not exposed through IDs, file names, errors, order or resource limits;
+- a metadata-only and other declared shortcut baselines do not solve the task;
+- the difficulty change preserves the same scientific construct; and
+- the sealed truth and replay reproduce deterministically under the declared model profile.
+
+Report challenge acceptance rate, construct-validity review, shortcut exploit rate, identifiability coverage, cost of the cheapest discriminating/falsifying probe, difficulty calibration, and mechanism-transfer success. A larger or harder generated corpus is not automatically a better benchmark.
+
 ## 8. Required comparison arms
 
 Under the same policy-visible starting evidence and inclusive budget, compare:
@@ -177,6 +208,16 @@ Relevant, non-interchangeable references:
 - **Autonomous Science Bench** (2026): six laboratory workflows with distinct discovery and held-out-learning gates; simulated outcomes must not be represented as physical experiments.
 - **FIRE-Bench / PaperBench / SciAgentArena:** complementary full-cycle rediscovery, paper reproduction and stepwise research-workflow evaluations.
 - **World Model Benchmark Survey** (2026): its 130-benchmark snapshot shows a gap between open-loop/prediction-level evaluation and closed-loop/downstream-outcome evaluation. This supports decision-centric measures, not a blanket claim that the present project is superior.
+
+External comparator snapshots (18 November 2026):
+- **FrontierPhysics**: 56 tasks authored by 42 physicists across nine physics domains; 22 models in 26 configurations; the strongest tested configuration passed 46 of 168 rollouts. Its expert rubrics and deterministic verifiers make it a useful end-to-end physics research comparator, but its pass/rollout score is not comparable to our mechanism-recovery or transfer metrics.
+- **Scientist World**: its first release reports 1,000 paper-derived executable environments and claims AI researchers exceeded reproduced paper baselines in 74% of attempts. This is a major competitor in executable research environments. It is paper/method-derived and must be kept distinct from private-seed structural discovery, genuinely novel mechanisms, and independent physical confirmation.
+- **EmbodiedLab**: 30 experiments across five disciplines and 14 apparatus platforms; the paper reports that even the strongest native-control agent succeeds on fewer than half of tasks, with apparatus interaction a major failure source. This is the natural later embodied/apparatus layer, not a reason to pretend our first software-only episodes qualify manipulation.
+- **Autonomous Science Bench 0.1**: six real-lab pilot tasks; its current public leaderboard lists 72.2% for the leading displayed configuration. Treat this as a small pilot, compare per task and all-in cost, and do not infer a statistically meaningful general ranking from the aggregate.
+- **TasteVal**: the leading reported experimental-compute multiplier is 2.30x (95% CI 1.15–4.37) with a fixed Coder and an eight-task private suite. It motivates prospective experiment-policy comparison, but not a claim of 2.30x final quality or inclusive total-cost advantage.
+- **RE-Bench**: seven open-ended R&D tasks and 71 eight-hour human attempts; AI agents led humans at a two-hour budget, while humans overtook at longer budgets and reached roughly twice the top AI score at 32 hours. Publish full capability-versus-time/cost curves, not one fixed-budget ranking.
+- **SciAgentArena**: approximately 200 stepwise-verified tasks, five scientific domains and 18 evaluated agents. Its authors report strength on well-specified analysis workflows but uneven novel-insight generation and sustained self-directed exploration.
+- **FIRE-Bench**: rediscovery of verifiable scientific findings; its strongest reported agents remain below 50 F1 with high variance. It complements, rather than replaces, novel mechanism discovery and cross-world transfer.
 
 Do not compare raw scores across different task sets, splits, rubrics, runners, time budgets or model versions. Publish a parity matrix before any leaderboard claim.
 
