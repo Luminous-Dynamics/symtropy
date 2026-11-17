@@ -59,7 +59,10 @@ fn parse_rows(input: &str, columns: usize, source: &str) -> Result<Vec<Vec<Strin
             ));
         }
         if fields.iter().any(|field| field.trim().is_empty()) {
-            return Err(format!("{source}: line {} contains a blank field", index + 1));
+            return Err(format!(
+                "{source}: line {} contains a blank field",
+                index + 1
+            ));
         }
         rows.push(fields);
     }
@@ -79,17 +82,24 @@ fn parse_obligations(input: &str) -> Result<BTreeMap<String, Obligation>, String
     for (index, row) in rows.into_iter().enumerate() {
         let line = index + 2;
         if row[0] == "-" || row[7] == "-" {
-            return Err(format!("obligations-v0.1.tsv: line {line}: obligation identity and family are required"));
+            return Err(format!(
+                "obligations-v0.1.tsv: line {line}: obligation identity and family are required"
+            ));
         }
         if !matches!(row[4].as_str(), "CRITICAL" | "HIGH" | "MEDIUM" | "LOW") {
-            return Err(format!("obligations-v0.1.tsv: line {line}: invalid criticality"));
+            return Err(format!(
+                "obligations-v0.1.tsv: line {line}: invalid criticality"
+            ));
         }
         let obligation = Obligation {
             expected_constraint_family: row[7].clone(),
             criticality: row[4].clone(),
         };
         if obligations.insert(row[0].clone(), obligation).is_some() {
-            return Err(format!("obligations-v0.1.tsv: duplicate obligation id {}", row[0]));
+            return Err(format!(
+                "obligations-v0.1.tsv: duplicate obligation id {}",
+                row[0]
+            ));
         }
     }
     if obligations.is_empty() {
@@ -98,7 +108,10 @@ fn parse_obligations(input: &str) -> Result<BTreeMap<String, Obligation>, String
     Ok(obligations)
 }
 
-fn parse_tasks(input: &str, obligations: &BTreeMap<String, Obligation>) -> Result<BTreeMap<String, Task>, String> {
+fn parse_tasks(
+    input: &str,
+    obligations: &BTreeMap<String, Obligation>,
+) -> Result<BTreeMap<String, Task>, String> {
     let rows = parse_rows(input, 15, "tasks-v0.1.tsv")?;
     let mut tasks = BTreeMap::new();
     for (index, row) in rows.into_iter().enumerate() {
@@ -108,11 +121,15 @@ fn parse_tasks(input: &str, obligations: &BTreeMap<String, Obligation>) -> Resul
         }
         let required = split_ids(&row[10]);
         if required.is_empty() {
-            return Err(format!("tasks-v0.1.tsv: line {line}: task has no critical obligations"));
+            return Err(format!(
+                "tasks-v0.1.tsv: line {line}: task has no critical obligations"
+            ));
         }
         for id in &required {
             if !obligations.contains_key(id) {
-                return Err(format!("tasks-v0.1.tsv: line {line}: unknown obligation {id}"));
+                return Err(format!(
+                    "tasks-v0.1.tsv: line {line}: unknown obligation {id}"
+                ));
             }
         }
         let task = Task {
@@ -129,22 +146,35 @@ fn parse_tasks(input: &str, obligations: &BTreeMap<String, Obligation>) -> Resul
     Ok(tasks)
 }
 
-fn parse_mutations(input: &str, obligations: &BTreeMap<String, Obligation>) -> Result<Vec<Mutation>, String> {
+fn parse_mutations(
+    input: &str,
+    obligations: &BTreeMap<String, Obligation>,
+) -> Result<Vec<Mutation>, String> {
     let rows = parse_rows(input, 8, "mutations-v0.1.tsv")?;
     let mut mutations = Vec::new();
     let mut ids = BTreeSet::new();
     for (index, row) in rows.into_iter().enumerate() {
         let line = index + 2;
         if !ids.insert(row[0].clone()) {
-            return Err(format!("mutations-v0.1.tsv: duplicate mutation id {}", row[0]));
+            return Err(format!(
+                "mutations-v0.1.tsv: duplicate mutation id {}",
+                row[0]
+            ));
         }
         if !obligations.contains_key(&row[2]) {
-            return Err(format!("mutations-v0.1.tsv: line {line}: unknown target obligation {}", row[2]));
+            return Err(format!(
+                "mutations-v0.1.tsv: line {line}: unknown target obligation {}",
+                row[2]
+            ));
         }
         let objective_preserving_candidate = match row[5].as_str() {
             "true" => true,
             "false" => false,
-            _ => return Err(format!("mutations-v0.1.tsv: line {line}: objective-preserving flag must be true or false")),
+            _ => {
+                return Err(format!(
+                    "mutations-v0.1.tsv: line {line}: objective-preserving flag must be true or false"
+                ));
+            }
         };
         mutations.push(Mutation {
             id: row[0].clone(),
@@ -167,9 +197,12 @@ fn parse_trace(
     let mut trace = BTreeMap::new();
     for (index, row) in rows.into_iter().enumerate() {
         let line = index + 2;
-        let task = tasks
-            .get(&row[0])
-            .ok_or_else(|| format!("reference-trace-v0.1.tsv: line {line}: unknown task {}", row[0]))?;
+        let task = tasks.get(&row[0]).ok_or_else(|| {
+            format!(
+                "reference-trace-v0.1.tsv: line {line}: unknown task {}",
+                row[0]
+            )
+        })?;
         if !task.required_obligations.contains(&row[1]) {
             return Err(format!(
                 "reference-trace-v0.1.tsv: line {line}: obligation {} is not required by task {}",
@@ -177,13 +210,23 @@ fn parse_trace(
             ));
         }
         if !obligations.contains_key(&row[1]) {
-            return Err(format!("reference-trace-v0.1.tsv: line {line}: unknown obligation {}", row[1]));
+            return Err(format!(
+                "reference-trace-v0.1.tsv: line {line}: unknown obligation {}",
+                row[1]
+            ));
         }
-        if !matches!(row[2].as_str(), "SATISFIED" | "NOT_APPLICABLE" | "UNSUPPORTED" | "UNKNOWN") {
-            return Err(format!("reference-trace-v0.1.tsv: line {line}: invalid disposition"));
+        if !matches!(
+            row[2].as_str(),
+            "SATISFIED" | "NOT_APPLICABLE" | "UNSUPPORTED" | "UNKNOWN"
+        ) {
+            return Err(format!(
+                "reference-trace-v0.1.tsv: line {line}: invalid disposition"
+            ));
         }
         if !matches!(row[7].as_str(), "CURRENT" | "STALE" | "UNKNOWN") {
-            return Err(format!("reference-trace-v0.1.tsv: line {line}: invalid evidence state"));
+            return Err(format!(
+                "reference-trace-v0.1.tsv: line {line}: invalid evidence state"
+            ));
         }
         let entry = TraceEntry {
             disposition: row[2].clone(),
@@ -208,10 +251,7 @@ fn parse_trace(
     Ok(trace)
 }
 
-fn trace_entry_blockers(
-    entry: &TraceEntry,
-    obligation: &Obligation,
-) -> Vec<String> {
+fn trace_entry_blockers(entry: &TraceEntry, obligation: &Obligation) -> Vec<String> {
     let mut blockers = Vec::new();
     match entry.disposition.as_str() {
         "SATISFIED" => {
@@ -270,7 +310,9 @@ fn evaluate(
                 None => blockers.push(format!("{obligation_id}:MISSING_TRACE")),
                 Some(entry) => {
                     represented += 1;
-                    let obligation = obligations.get(obligation_id).expect("task parser validated obligation");
+                    let obligation = obligations
+                        .get(obligation_id)
+                        .expect("task parser validated obligation");
                     for blocker in trace_entry_blockers(entry, obligation) {
                         blockers.push(format!("{obligation_id}:{blocker}"));
                     }
@@ -289,12 +331,15 @@ fn evaluate(
     results
 }
 
-fn load_reference() -> Result<(
-    BTreeMap<String, Task>,
-    BTreeMap<String, Obligation>,
-    Vec<Mutation>,
-    BTreeMap<(String, String), TraceEntry>,
-), String> {
+fn load_reference() -> Result<
+    (
+        BTreeMap<String, Task>,
+        BTreeMap<String, Obligation>,
+        Vec<Mutation>,
+        BTreeMap<(String, String), TraceEntry>,
+    ),
+    String,
+> {
     let obligations = parse_obligations(OBLIGATIONS)?;
     let tasks = parse_tasks(TASKS, &obligations)?;
     let mutations = parse_mutations(MUTATIONS, &obligations)?;
@@ -334,7 +379,8 @@ mod tests {
 
     #[test]
     fn reference_trace_covers_all_task_obligations() {
-        let (tasks, obligations, mutations, trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, mutations, trace) =
+            load_reference().expect("reference data parses");
         let results = evaluate(&tasks, &obligations, &trace);
         assert_eq!(results.len(), 18);
         assert_eq!(trace.len(), 40);
@@ -344,29 +390,47 @@ mod tests {
 
     #[test]
     fn every_mutation_target_is_a_task_obligation() {
-        let (tasks, obligations, mutations, trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, mutations, trace) =
+            load_reference().expect("reference data parses");
         for mutation in mutations {
             assert!(!mutation.id.is_empty());
             assert!(obligations.contains_key(&mutation.target_obligation_id));
-            assert!(tasks.values().any(|task| task.required_obligations.contains(&mutation.target_obligation_id)));
-            assert!(trace.keys().any(|(_, obligation)| obligation == &mutation.target_obligation_id));
+            assert!(tasks.values().any(|task| {
+                task.required_obligations
+                    .contains(&mutation.target_obligation_id)
+            }));
+            assert!(
+                trace
+                    .keys()
+                    .any(|(_, obligation)| obligation == &mutation.target_obligation_id)
+            );
         }
     }
 
     #[test]
     fn missing_critical_trace_blocks_task() {
-        let (tasks, obligations, _mutations, mut trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, _mutations, mut trace) =
+            load_reference().expect("reference data parses");
         let key = ("E01".to_owned(), "OB-MACHINE-AVAIL".to_owned());
         trace.remove(&key);
         let results = evaluate(&tasks, &obligations, &trace);
-        let result = results.iter().find(|result| result.task_id == "E01").unwrap();
+        let result = results
+            .iter()
+            .find(|result| result.task_id == "E01")
+            .unwrap();
         assert!(!result.trace_contract_clear);
-        assert!(result.blocking_obligations.iter().any(|item| item.contains("MISSING_TRACE")));
+        assert!(
+            result
+                .blocking_obligations
+                .iter()
+                .any(|item| item.contains("MISSING_TRACE"))
+        );
     }
 
     #[test]
     fn stale_evidence_blocks_satisfied_obligation() {
-        let (tasks, obligations, _mutations, mut trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, _mutations, mut trace) =
+            load_reference().expect("reference data parses");
         let key = ("E01".to_owned(), "OB-MACHINE-AVAIL".to_owned());
         trace.get_mut(&key).unwrap().evidence_state = "STALE".to_owned();
         let result = evaluate(&tasks, &obligations, &trace)
@@ -374,12 +438,18 @@ mod tests {
             .find(|result| result.task_id == "E01")
             .unwrap();
         assert!(!result.trace_contract_clear);
-        assert!(result.blocking_obligations.iter().any(|item| item.contains("EVIDENCE_NOT_CURRENT")));
+        assert!(
+            result
+                .blocking_obligations
+                .iter()
+                .any(|item| item.contains("EVIDENCE_NOT_CURRENT"))
+        );
     }
 
     #[test]
     fn unknown_obligation_blocks_critical_task() {
-        let (tasks, obligations, _mutations, mut trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, _mutations, mut trace) =
+            load_reference().expect("reference data parses");
         let key = ("E01".to_owned(), "OB-MACHINE-AVAIL".to_owned());
         trace.get_mut(&key).unwrap().disposition = "UNKNOWN".to_owned();
         let result = evaluate(&tasks, &obligations, &trace)
@@ -387,12 +457,18 @@ mod tests {
             .find(|result| result.task_id == "E01")
             .unwrap();
         assert!(!result.trace_contract_clear);
-        assert!(result.blocking_obligations.iter().any(|item| item.contains("UNKNOWN_OBLIGATION")));
+        assert!(
+            result
+                .blocking_obligations
+                .iter()
+                .any(|item| item.contains("UNKNOWN_OBLIGATION"))
+        );
     }
 
     #[test]
     fn constraint_family_mismatch_blocks_task() {
-        let (tasks, obligations, _mutations, mut trace) = load_reference().expect("reference data parses");
+        let (tasks, obligations, _mutations, mut trace) =
+            load_reference().expect("reference data parses");
         let key = ("E01".to_owned(), "OB-MACHINE-AVAIL".to_owned());
         trace.get_mut(&key).unwrap().constraint_family = "machine_preference".to_owned();
         let result = evaluate(&tasks, &obligations, &trace)
@@ -400,13 +476,22 @@ mod tests {
             .find(|result| result.task_id == "E01")
             .unwrap();
         assert!(!result.trace_contract_clear);
-        assert!(result.blocking_obligations.iter().any(|item| item.contains("CONSTRAINT_FAMILY_MISMATCH")));
+        assert!(
+            result
+                .blocking_obligations
+                .iter()
+                .any(|item| item.contains("CONSTRAINT_FAMILY_MISMATCH"))
+        );
     }
 
     #[test]
     fn objective_preserving_flags_are_candidates_not_results() {
         let (_, _, mutations, _) = load_reference().expect("reference data parses");
-        assert!(mutations.iter().any(|mutation| mutation.objective_preserving_candidate));
+        assert!(
+            mutations
+                .iter()
+                .any(|mutation| mutation.objective_preserving_candidate)
+        );
         // The trace checker does not solve mutated models or confirm objective preservation.
         // That requires the later paired exact-solver + semantic-oracle campaign.
     }
