@@ -21,6 +21,7 @@ const NANO_LITRES_PER_LITRE: u64 = 1_000_000_000;
 const MICRO_WH_PER_WH: u64 = 1_000_000;
 const MICRO_WH_PER_KWH: u64 = 1_000_000_000;
 const PPM_SCALE: u128 = 1_000_000;
+const JSON_SAFE_INTEGER_MAX: u64 = 9_007_199_254_740_991;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -332,6 +333,11 @@ fn decimal_divisor(decimal_places: u8) -> Option<u64> {
     10_u64.checked_pow(u32::from(decimal_places))
 }
 
+fn checked_json_safe_sum(left: u64, right: u64) -> Option<u64> {
+    left.checked_add(right)
+        .filter(|sum| *sum <= JSON_SAFE_INTEGER_MAX)
+}
+
 fn exact_units(
     value: u64,
     decimal_places: u8,
@@ -344,6 +350,7 @@ fn exact_units(
     }
     value
         .checked_mul(base / divisor)
+        .filter(|value| *value <= JSON_SAFE_INTEGER_MAX)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
 
@@ -368,6 +375,7 @@ fn water_nanolitres(value: ExactKitchenWaterV1) -> Result<u64, KitchenOutcomeIss
     }
     value.value
         .checked_mul(base / divisor)
+        .filter(|value| *value <= JSON_SAFE_INTEGER_MAX)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
 
@@ -383,6 +391,7 @@ fn energy_microwatt_hours(value: ExactKitchenEnergyV1) -> Result<u64, KitchenOut
     }
     value.value
         .checked_mul(base / divisor)
+        .filter(|value| *value <= JSON_SAFE_INTEGER_MAX)
         .ok_or(KitchenOutcomeIssueCodeV1::ArithmeticOverflow)
 }
 
@@ -481,7 +490,7 @@ fn observe_mass(
                                 &mut output_total
                             }
                         };
-                        match total.checked_add(value) {
+                        match checked_json_safe_sum(*total, value) {
                             Some(sum) => *total = sum,
                             None => {
                                 add_issue(
@@ -495,7 +504,7 @@ fn observe_mass(
                         }
                         if term.category == KitchenMassCategoryV1::AcceptedEdible {
                             accepted_seen = true;
-                            match accepted_total.checked_add(value) {
+                            match checked_json_safe_sum(accepted_total, value) {
                                 Some(sum) => accepted_total = sum,
                                 None => {
                                     add_issue(
@@ -654,7 +663,7 @@ fn observe_water(
                     *claimable = false;
                 }
                 match water_nanolitres(*quantity) {
-                    Ok(value) => match total.checked_add(value) {
+                    Ok(value) => match checked_json_safe_sum(*total, value) {
                         Some(sum) => total = sum,
                         None => {
                             add_issue(
@@ -764,7 +773,7 @@ fn observe_electricity(
                     *claimable = false;
                 }
                 match energy_microwatt_hours(*quantity) {
-                    Ok(value) => match total.checked_add(value) {
+                    Ok(value) => match checked_json_safe_sum(*total, value) {
                         Some(sum) => total = sum,
                         None => {
                             add_issue(
@@ -864,6 +873,14 @@ pub fn evaluate_kitchen_outcome_accounting(
     let mut evidence_refs = Vec::new();
     let mut claimable = true;
 
+    if request.accepted_servings > JSON_SAFE_INTEGER_MAX {
+        add_issue(
+            &mut issues,
+            KitchenOutcomeIssueCodeV1::MissingRequiredValue,
+            Some("accepted_servings"),
+            "accepted serving count exceeds the exact JSON integer range",
+        );
+    }
     if request.schema_version != KITCHEN_OUTCOME_ACCOUNTING_SCHEMA_VERSION {
         add_issue(
             &mut issues,
