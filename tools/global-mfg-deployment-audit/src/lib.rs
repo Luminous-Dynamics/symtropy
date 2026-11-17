@@ -133,11 +133,17 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
                 "{path}.deployment_context.{dimension}: empty jurisdiction dimension"
             ));
         }
+        let mut dimension_ids = BTreeSet::new();
         for (j, value) in values.iter().enumerate() {
             let id = string(
                 value,
                 &format!("{path}.deployment_context.{dimension}[{j}]"),
             )?;
+            if !dimension_ids.insert(id.to_owned()) {
+                return Err(format!(
+                    "{path}.deployment_context.{dimension}: duplicate jurisdiction {id}"
+                ));
+            }
             if !id.starts_with("urn:luminous:synthetic:jurisdiction:") {
                 return Err(format!(
                     "{path}.deployment_context.{dimension}[{j}]: real jurisdiction not permitted in synthetic corpus"
@@ -198,6 +204,7 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             "{path}.market_access: at least one destination market required"
         ));
     }
+    let mut market_ids = BTreeSet::new();
     for (j, market) in market_access.iter().enumerate() {
         let mpath = format!("{path}.market_access[{j}]");
         let destination = string(
@@ -210,6 +217,9 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             destination,
             &format!("{path}.deployment_context"),
         )?;
+        if !market_ids.insert(destination.to_owned()) {
+            return Err(format!("{path}.market_access: duplicate destination {destination}"));
+        }
         require_not(
             market,
             "approval_status",
@@ -236,8 +246,16 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
             "{path}.supply_chain.components: empty component set"
         ));
     }
+    let mut component_ids = BTreeSet::new();
     for (j, component) in components.iter().enumerate() {
         let cpath = format!("{path}.supply_chain.components[{j}]");
+        let component_id = string(
+            field(component, "component_ref", &cpath)?,
+            &format!("{cpath}.component_ref"),
+        )?;
+        if !component_ids.insert(component_id.to_owned()) {
+            return Err(format!("{path}.supply_chain.components: duplicate component {component_id}"));
+        }
         let supplier_site = string(
             field(component, "supplier_site_jurisdiction", &cpath)?,
             &format!("{cpath}.supplier_site_jurisdiction"),
@@ -265,11 +283,15 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         if transformation_sites.is_empty() {
             return Err(format!("{cpath}.transformation_jurisdictions: empty list"));
         }
+        let mut component_transformation_ids = BTreeSet::new();
         for (k, value) in transformation_sites.iter().enumerate() {
             let jurisdiction = string(
                 value,
                 &format!("{cpath}.transformation_jurisdictions[{k}]"),
             )?;
+            if !component_transformation_ids.insert(jurisdiction.to_owned()) {
+                return Err(format!("{cpath}.transformation_jurisdictions: duplicate jurisdiction {jurisdiction}"));
+            }
             require_dimension_member(
                 context,
                 "transformation_jurisdictions",
@@ -336,8 +358,16 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
         field(profile, "obligations", &path)?,
         &format!("{path}.obligations"),
     )?;
+    let mut obligation_ids = BTreeSet::new();
     for (j, obligation) in obligations.iter().enumerate() {
         let opath = format!("{path}.obligations[{j}]");
+        let obligation_id = string(
+            field(obligation, "obligation_id", &opath)?,
+            &format!("{opath}.obligation_id"),
+        )?;
+        if !obligation_ids.insert(obligation_id.to_owned()) {
+            return Err(format!("{path}.obligations: duplicate obligation {obligation_id}"));
+        }
         let jurisdiction = string(
             field(obligation, "jurisdiction", &opath)?,
             &format!("{opath}.jurisdiction"),
@@ -554,6 +584,7 @@ pub fn audit_corpus(input: &str) -> Result<Value, String> {
         "schema_version": "0.1.0",
         "profile_count": profiles.len(),
         "negative_control_count": controls.len(),
+        "jurisdiction_dimension_count": REQUIRED_DIMENSIONS.len(),
         "shared_product_family_id": product_family,
         "shared_product_revision": product_revision,
         "jurisdiction_dimensions": REQUIRED_DIMENSIONS,
@@ -692,6 +723,43 @@ mod tests {
             Value::String("urn:luminous:synthetic:jurisdiction:site-1".to_owned());
         let encoded = serde_json::to_string(&fixture).expect("encode fixture");
         assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_duplicate_jurisdiction_in_one_dimension() {
+        let mut fixture = fixture_value();
+        let first = fixture["profiles"][0]["deployment_context"]["supplier_site_jurisdictions"][0].clone();
+        fixture["profiles"][0]["deployment_context"]["supplier_site_jurisdictions"][1] = first;
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_duplicate_obligation_identity() {
+        let mut fixture = fixture_value();
+        let first = fixture["profiles"][0]["obligations"][0]["obligation_id"].clone();
+        fixture["profiles"][0]["obligations"][1]["obligation_id"] = first;
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        assert!(audit_corpus(&encoded).is_err());
+    }
+
+    #[test]
+    fn report_is_invariant_to_input_array_order() {
+        let expected = audit_corpus(FIXTURE).expect("canonical fixture audit");
+        let mut fixture = fixture_value();
+        fixture["profiles"].as_array_mut().expect("profiles").reverse();
+        fixture["negative_controls"].as_array_mut().expect("controls").reverse();
+        for profile in fixture["profiles"].as_array_mut().expect("profiles") {
+            profile["obligations"].as_array_mut().expect("obligations").reverse();
+            profile["supply_chain"]["components"].as_array_mut().expect("components").reverse();
+            for dimension in REQUIRED_DIMENSIONS {
+                profile["deployment_context"][dimension].as_array_mut().expect("dimension").reverse();
+            }
+        }
+        let encoded = serde_json::to_string(&fixture).expect("encode permuted fixture");
+        let actual = audit_corpus(&encoded).expect("permuted fixture audit");
+        assert_eq!(expected, actual);
+        assert_eq!(actual["jurisdiction_dimension_count"], 7);
     }
 
     #[test]
