@@ -64,3 +64,18 @@ Report TP/FP/FN/TN, unresolved, not-run, not-comparable, malformed receipt and c
 - examples/adapter-observation-moveit-fcl-not-run-v0.2.json shows how a known unsupported query is recorded without being misrepresented as clear.
 
 The example digests are fixtures, not production run evidence.
+
+## Separate scorer-owned verdict
+
+The scorer output uses schema/score-verdict-v0.2.schema.json. It binds the same case digest to the adapter's raw receipt digest, the oracle truth receipt digest and the scorer binary digest. A MATCHED record is valid only when the adapter disposition is OBSERVED and the oracle truth is CONTACT or NO_CONTACT. The scorer then writes exactly one confusion-matrix cell:
+
+| Oracle truth | Backend observation | Cell |
+|---|---|---|
+| CONTACT | collision found | TP |
+| CONTACT | no collision found | FN |
+| NO_CONTACT | collision found | FP |
+| NO_CONTACT | no collision found | TN |
+
+UNRESOLVED, NOT_RUN and NOT_COMPARABLE require a reason and cannot contain a confusion-matrix cell. An unknown or unsupported oracle truth cannot be forced into a negative class. This keeps abstention, missing capability and semantic mismatch visible rather than rewarding them as true negatives.
+
+The example examples/score-verdict-false-negative-v0.2.json demonstrates a backend that executed and reported no collision while the independent analytic oracle established a contact; the scorer, not the backend, emits FN. All hashes in the example files are synthetic placeholders and are not production evidence.
