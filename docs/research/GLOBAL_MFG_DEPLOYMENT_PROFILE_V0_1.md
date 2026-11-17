@@ -147,7 +147,14 @@ The negative-control catalogue includes:
 - unknown origin/HS classification treated as qualifying;
 - unknown evidence promoted to satisfied;
 - data-processing location omitted;
-- a local variant silently changing the global product identity.
+- a local variant silently changing the global product identity;
+- unknown customs classification treated as preferential or quota eligible;
+- origin preference claimed without the applicable origin rule and transformation evidence;
+- responsible economic operator/reviewer mismatched to the scoped obligation;
+- requirement or temporary tariff/quota applied outside its effective, transition or expiry window;
+- local-content claim made without a named methodology, numerator, denominator and evidence.
+
+The v0.1 corpus freezes **15 adversarial cases** across these themes. Each synthetic case expects rejection or abstention; it does not represent a real legal determination.
 
 ### Measures
 
