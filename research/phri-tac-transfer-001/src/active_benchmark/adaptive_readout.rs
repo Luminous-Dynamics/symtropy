@@ -273,12 +273,16 @@ pub fn plan_adaptive_readout(
     let mut total_latency = problem.bus_setup_latency_ns;
     let mut total_energy = problem.bus_setup_energy_nj;
 
+    let available_count = problem
+        .candidates
+        .iter()
+        .filter(|candidate| candidate.readout_available)
+        .count();
+    if policy == AcquisitionPolicy::FullRaster && problem.maximum_taxel_reads < available_count {
+        return Err("full-raster policy exceeds the maximum taxel-read budget".to_owned());
+    }
     let required_count = if policy == AcquisitionPolicy::FullRaster {
-        problem
-            .candidates
-            .iter()
-            .filter(|candidate| candidate.readout_available)
-            .count()
+        available_count
     } else {
         problem.maximum_taxel_reads
     };
@@ -392,6 +396,14 @@ pub fn score_acquisition_plan(
         || plan.estimated_total_energy_nj != expected_energy
     {
         return Err("acquisition plan latency/energy receipts do not match selected taxel costs".to_owned());
+    }
+    let available_count = problem
+        .candidates
+        .iter()
+        .filter(|candidate| candidate.readout_available)
+        .count();
+    if plan.policy == AcquisitionPolicy::FullRaster && plan.selected_taxel_count != available_count {
+        return Err("full-raster plan must include every available taxel".to_owned());
     }
     let expected_unknown = taxel_count.saturating_sub(plan.selected_taxel_count);
     if plan.unknown_taxel_count != expected_unknown {
@@ -805,6 +817,48 @@ mod tests {
         let mut bad_mask = plan;
         bad_mask.evidence_state_by_taxel[0] = TaxelEvidenceState::Observed;
         assert!(score_acquisition_plan(&input, &bad_mask, &evaluator_truth).is_err());
+    }
+
+    #[test]
+    fn evaluator_rejects_forged_costs_unavailable_taxels_and_incomplete_full_raster() {
+        let input = problem(DEFAULT_READOUT_BUDGET);
+        let plan = plan_adaptive_readout(&input, AcquisitionPolicy::RiskAdaptive)
+            .expect("risk plan");
+        let evaluator_truth = truth(32, 32, [15, 15], [16, 16]);
+
+        let mut forged_cost = plan.clone();
+        forged_cost.estimated_total_latency_ns -= 1;
+        assert!(score_acquisition_plan(&input, &forged_cost, &evaluator_truth).is_err());
+
+        let mut unavailable_input = input.clone();
+        unavailable_input.candidates[plan.selected_taxel_indices[0]].readout_available = false;
+        assert!(score_acquisition_plan(&unavailable_input, &plan, &evaluator_truth).is_err());
+
+        let mut forged_full_raster = plan;
+        forged_full_raster.policy = AcquisitionPolicy::FullRaster;
+        assert!(score_acquisition_plan(&input, &forged_full_raster, &evaluator_truth).is_err());
+    }
+
+    #[test]
+    fn synthetic_example_separates_predicted_from_off_prediction_region_events() {
+        let example = run_synthetic_readout_example(20261117).expect("synthetic example");
+        assert_eq!(example.observable_event_scores.len(), 6);
+        assert_eq!(example.off_prediction_region_event_scores.len(), 6);
+        assert_eq!(
+            example.observable_event_scores[0].active_contact_recall,
+            Some(1.0)
+        );
+        assert_eq!(
+            example.observable_event_scores[0].urgent_event_recall,
+            Some(1.0)
+        );
+        assert!(example.off_prediction_region_event_scores[1..]
+            .iter()
+            .all(|score| score.urgent_event_recall == Some(0.0)));
+        assert_eq!(
+            example.off_prediction_region_event_scores[0].urgent_event_recall,
+            Some(1.0)
+        );
     }
 
     #[test]
