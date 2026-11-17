@@ -163,6 +163,38 @@ Metrics:
 
 Exact grid interpolation is a correctness/reference arm, not an assumed competitor that a lossy representation must beat at every point. HDC earns a role when it offers a better memory/latency/generalization trade-off or enables compositional field retrieval under the same explicit error budget. It must never be used as the authoritative solver field.
 
+### H9 — Exact change-impact closure and evidence currentness
+
+This task tests a different layer from spatial retrieval: whether a declared engineering dependency graph can identify every evidence receipt made stale by an upstream mutation, while retaining only evidence whose dependencies are proven unchanged.
+
+Model artifact kinds including design parameters, requirements, geometry, interfaces, solver inputs, solver runs and evidence receipts. Store dependencies as consumer -> dependency edges. A changed source invalidates itself and every transitive consumer.
+
+Required controls:
+- unknown changed IDs, unknown edge endpoints, duplicate edges, self-dependencies and cycles fail closed;
+- if dependency inventory completeness is not explicitly declared, all scoped evidence is conservatively stale;
+- multiple simultaneous changes use the union of their reverse dependency closures;
+- shared/common-cause dependencies invalidate every affected consumer;
+- evidence outside the transitive closure may remain current only for a complete, validated dependency graph.
+
+Baselines:
+- full rebuild/revalidation of every evidence receipt;
+- exact reverse-graph reachability closure;
+- an independent brute-force reachability oracle on tractable DAGs;
+- no-HDC dependency traversal as the authority. HDC may suggest analogous dependencies, but cannot authorize currentness or invalidate/retain evidence.
+
+Generate deterministic DAG families with 10², 10³, 10⁴, 10⁵ and, where feasible, 10⁶ artifacts. Vary depth, fan-out, shared dependencies/common-cause cut sets, evidence density, independent subgraphs, mutation count and mutation location. Include disconnected and highly coupled graphs.
+
+Metrics:
+- precision/recall against the independent oracle (target 100%);
+- false-current and false-stale classifications (false-current target zero);
+- evidence revalidation count versus full rebuild count;
+- affected-artifact/evidence ratios and work avoided;
+- graph-build, closure and incremental-update p50/p95 latency;
+- retained graph memory, index memory and actual process RSS;
+- update/replay cost under source revision and dependency-edge changes.
+
+The exact closure is the validity authority. A similarity score, learned predictor or incomplete dependency graph cannot certify evidence freshness.
+
 ## 3. Representation and optimizer baselines
 
 ### Representation baselines
@@ -172,13 +204,15 @@ For discrete graph retrieval:
 2. Canonical serialized lookup / relational database query.
 3. HRR.
 4. FHRR.
-5. MAP.
-6. BSC.
+5. MAP (bipolar multiplicative binding/bundling).
+6. BSC (binary XOR binding), implemented separately from bipolar multiplication.
 7. TPR.
 8. GHRR, only after implementation and independent test fixtures.
 9. Graph embedding or graph-neural baseline where training data and compute permit.
 
 For continuous spatial fields (H8), add exact grid/voxel interpolation, nearest-neighbour, RBF/kernel interpolation, and HyperSpace-style modular HRR/FHRR pipelines with explicit inversion, cleanup and regression choices.
+
+The current HoloFrac prototype uses bipolar element-wise multiplicative binding and majority bundling, which is MAP-like. It is not HRR/FHRR circular convolution, BSC XOR binding, or matrix-native GHRR. Keep those as separate adapters with independent implementations and tests.
 
 Use identical graph snapshots or field samples, queries, held-out splits, dimension budgets where meaningful and hardware. Report every stage's cost and each representation's actual memory footprint; equal nominal dimensions do not imply equal memory or compute. The April 2026 HyperSpace study specifically finds that similarity/cleanup and regression can dominate spatial-pipeline runtime, and that HRR/FHRR isolated operator complexity does not predict their end-to-end latency. Its results make stage-level profiling and decoder/cleanup ablation mandatory, not optional: https://arxiv.org/abs/2604.15113.
 
