@@ -375,6 +375,7 @@ fn validate_profile(profile: &SurveyProfile) -> Result<(), String> {
         || !profile.max_motion_blur_pixels.is_finite()
         || profile.max_motion_blur_pixels <= 0.0
         || !profile.minimum_rgb_sharpness.is_finite()
+        || profile.minimum_rgb_sharpness < 0.0
         || !fraction(profile.maximum_rgb_saturation_fraction)
         || !fraction(profile.maximum_ir_saturation_fraction)
         || !fraction(profile.maximum_glare_fraction)
@@ -1506,6 +1507,51 @@ mod tests {
         let result = evaluate_survey(&profile(), &frames);
         assert_eq!(result.frames[0].geometry, GeometryFrameDisposition::Qualified);
         assert_eq!(result.frames[0].radiometric, RadiometricFrameDisposition::NotEligible);
+    }
+
+    #[test]
+    fn rgb_frame_pose_timestamp_skew_rejects_geometry() {
+        let mut frames = two_pass_frames();
+        frames[0].rgb.acquired_at_s += 1.0;
+        let result = evaluate_survey(&profile(), &frames);
+        assert_eq!(
+            result.frames[0].geometry,
+            GeometryFrameDisposition::QualityRejected
+        );
+        assert!(result.frames[0]
+            .geometry_reason
+            .as_deref()
+            .unwrap()
+            .contains("timestamp"));
+    }
+
+    #[test]
+    fn stale_ir_calibration_is_top_level_invalid_when_ir_is_required() {
+        let mut frames = two_pass_frames();
+        frames[0].ir.as_mut().unwrap().calibration_digest =
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned();
+        let result = evaluate_survey(&profile(), &frames);
+        assert_eq!(result.disposition, SurveyDisposition::InvalidEvidence);
+        assert_eq!(result.invalid_radiometric_frames, 1);
+        assert_eq!(
+            result.modules[0].radiometric,
+            ModuleRadiometricDisposition::InvalidEvidence
+        );
+    }
+
+    #[test]
+    fn invalid_ir_calibration_is_not_unknown_or_not_eligible() {
+        let mut frames = two_pass_frames();
+        frames[0].ir.as_mut().unwrap().calibration_revision = "old-cal".to_owned();
+        let result = evaluate_survey(&profile(), &frames);
+        assert_eq!(
+            result.frames[0].radiometric,
+            RadiometricFrameDisposition::InvalidEvidence
+        );
+        assert_eq!(
+            result.modules[0].radiometric,
+            ModuleRadiometricDisposition::InvalidEvidence
+        );
     }
 
     #[test]
