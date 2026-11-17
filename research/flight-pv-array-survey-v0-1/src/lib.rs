@@ -1012,7 +1012,7 @@ pub fn evaluate_survey(profile: &SurveyProfile, observations: &[FlightFrame]) ->
             row: module.row,
             column: module.column,
             geometric_passes: geometry_passes,
-            qualified_geometric_passes,
+            qualified_geometric_passes: qualified_geometry_passes,
             radiometric_passes,
             qualified_radiometric_passes,
             geometry: geometry_disposition,
