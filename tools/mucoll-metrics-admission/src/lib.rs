@@ -225,6 +225,14 @@ pub fn audit_bytes(
     if event_count.is_none_or(|count| count == 0) {
         errors.push("sample event_count must be a positive integer".to_owned());
     }
+    if event_count != submission.get("events").and_then(Value::as_u64) {
+        errors.push("generated event count in submission.json differs from reconstructed sample event count".to_owned());
+    }
+    if !sample_label.is_empty()
+        && submission.get("particle").and_then(Value::as_str) != Some(sample_label)
+    {
+        errors.push("sample label differs from submitted generated particle identity".to_owned());
+    }
 
     let input_name = sample.pointer("/input/name").and_then(Value::as_str);
     if input_name.is_none_or(str::is_empty) {
@@ -339,6 +347,13 @@ fn validate_policy(policy: &Value, errors: &mut Vec<String>) {
     {
         errors.push("policy.expected_studies must contain at least one study".to_owned());
     }
+    if let Some(studies) = policy.get("expected_studies").and_then(Value::as_array) {
+        let names: Vec<&str> = studies.iter().filter_map(Value::as_str).collect();
+        let unique: BTreeSet<&str> = names.iter().copied().collect();
+        if names.len() != studies.len() || unique.len() != names.len() || names.iter().any(|name| name.is_empty()) {
+            errors.push("policy.expected_studies must contain unique non-empty study names".to_owned());
+        }
+    }
     if policy
         .get("require_github_actions")
         .and_then(Value::as_bool)
@@ -411,6 +426,11 @@ fn validate_submission(submission: &Value, policy: &Value, errors: &mut Vec<Stri
         || submission.pointer("/github/ref").and_then(Value::as_str).is_none_or(str::is_empty)
     {
         errors.push("submission.github must include run_id, run_attempt, sha and ref".to_owned());
+    }
+    if submission.pointer("/github/sha").and_then(Value::as_str)
+        != submission.pointer("/revisions/mucoll_spack").and_then(Value::as_str)
+    {
+        errors.push("submission GitHub source SHA differs from the pinned MuColl Spack revision".to_owned());
     }
 }
 
