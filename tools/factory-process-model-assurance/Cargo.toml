@@ -1,0 +1,14 @@
+[package]
+name = "factory-process-model-assurance"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Dependency-free obligation-trace contract checker for synthetic manufacturing model changes"
+
+[workspace]
+members = []
+
+[[bin]]
+name = "factory-process-model-assurance"
+path = "src/main.rs"
