@@ -1,0 +1,12 @@
+[package]
+name = "auv-wall-inspection-coverage"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Quality-gated sonar surface coverage reference for enclosed-water AUV inspection"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
