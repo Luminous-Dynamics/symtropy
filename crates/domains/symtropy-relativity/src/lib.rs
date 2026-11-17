@@ -6,8 +6,10 @@
 //! This crate is deliberately narrower than a general-relativity solver. It
 //! provides validated parameters, closed-form Kerr/Schwarzschild observables,
 //! and analytic exterior metric components checked against exact fixtures.
-//! It does not yet implement connection/curvature tensors, geodesic
-//! integration, waveform generation, or numerical-relativity evolution.
+//! The reference kernels include explicit derivative-fed curvature, fixed-size
+//! automatic differentiation, geodesic and light-ring calculations, and
+//! waveform comparison diagnostics. They are not a production numerical
+//! relativity or general higher-curvature field-equation solver.
 //!
 //! Conventions:
 //! - SI units are used at the public API boundary.
@@ -38,6 +40,8 @@ pub mod light_ring;
 pub mod metric;
 /// Posterior-preserving transforms for Kerr remnant horizon observables.
 pub mod posterior;
+/// Four-coordinate Taylor jets through fifth total derivative order.
+pub mod taylor_jet;
 /// Noise-weighted frequency-domain waveform comparison and error diagnostics.
 pub mod waveform_metrics;
 
