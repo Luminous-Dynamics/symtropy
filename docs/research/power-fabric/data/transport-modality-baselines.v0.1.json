@@ -45,7 +45,8 @@
           "source_reported": true,
           "conditions": [
             "50 kW experimental prototype"
-          ]
+          ],
+          "evidence_kind": "source_declared_parameter"
         },
         {
           "name": "dc_to_dc_efficiency",
@@ -59,7 +60,8 @@
           "conditions": [
             "50 kW experimental prototype",
             "reported operating range includes up to 100 mm X/Y misalignment"
-          ]
+          ],
+          "evidence_kind": "source_reported_derived"
         },
         {
           "name": "stray_magnetic_field",
@@ -71,7 +73,8 @@
           "source_reported": true,
           "conditions": [
             "prototype operating condition from the study"
-          ]
+          ],
+          "evidence_kind": "source_reported_measurement"
         }
       ],
       "known_unknowns": [
@@ -111,7 +114,8 @@
           "conditions": [
             "1 km free-space path",
             "atmospheric turbulence present"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "receiver_electrical_power",
@@ -124,7 +128,8 @@
           "conditions": [
             "1 km free-space path",
             "continuous operation reported for 30 minutes"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "optical_to_electrical_efficiency",
@@ -137,7 +142,8 @@
           "conditions": [
             "1 km free-space path",
             "source reports 15%"
-          ]
+          ],
+          "evidence_kind": "source_reported_derived"
         },
         {
           "name": "continuous_delivery_duration",
@@ -149,7 +155,8 @@
           "source_reported": true,
           "conditions": [
             "laser and receiver system each installed inside safety booths"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         }
       ],
       "known_unknowns": [
@@ -189,7 +196,8 @@
           "conditions": [
             "8.6 km transmission",
             "30-second transmission"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "transmission_duration",
@@ -201,7 +209,8 @@
           "source_reported": true,
           "conditions": [
             "8.6 km transmission"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "campaign_energy_transferred",
@@ -213,7 +222,8 @@
           "source_reported": true,
           "conditions": [
             "aggregate of the test campaign"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         }
       ],
       "known_unknowns": [
@@ -254,7 +264,8 @@
           "conditions": [
             "20 m optical link",
             "continuous operation under reported alignment and thermal conditions"
-          ]
+          ],
+          "evidence_kind": "source_reported_measurement"
         },
         {
           "name": "end_to_end_lpt_efficiency",
@@ -266,7 +277,8 @@
           "source_reported": true,
           "conditions": [
             "20 m optical link"
-          ]
+          ],
+          "evidence_kind": "source_reported_derived"
         },
         {
           "name": "laser_driver_electrical_efficiency",
@@ -278,7 +290,8 @@
           "source_reported": true,
           "conditions": [
             "SiC LLC laser driver"
-          ]
+          ],
+          "evidence_kind": "source_reported_derived"
         }
       ],
       "known_unknowns": [
@@ -319,7 +332,8 @@
           "conditions": [
             "35 cm separation",
             "underwater acoustic link"
-          ]
+          ],
+          "evidence_kind": "source_reported_measurement"
         },
         {
           "name": "received_load_power",
@@ -333,7 +347,8 @@
             "35 cm separation",
             "1.2 kΩ load",
             "22.8 V RMS reported"
-          ]
+          ],
+          "evidence_kind": "source_reported_measurement"
         },
         {
           "name": "transmission_efficiency",
@@ -346,7 +361,8 @@
           "conditions": [
             "35 cm separation",
             "underwater ultrasonic transmission"
-          ]
+          ],
+          "evidence_kind": "source_reported_derived"
         }
       ],
       "known_unknowns": [
@@ -387,7 +403,8 @@
             "optimal steady-state conditions",
             "open motorway pilot",
             "four prototype vehicle classes"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "average_wireless_transfer_power",
@@ -400,7 +417,8 @@
           "conditions": [
             "optimal steady-state conditions",
             "1.5 km pilot section"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         },
         {
           "name": "pilot_roadway_length",
@@ -412,7 +430,8 @@
           "source_reported": true,
           "conditions": [
             "A10 motorway near Paris"
-          ]
+          ],
+          "evidence_kind": "source_reported_announcement_claim"
         }
       ],
       "known_unknowns": [
@@ -420,6 +439,163 @@
         "power meter plane, averaging window, vehicle speed and per-vehicle energy are not stated",
         "all-weather availability, traffic utilization and fleet-scale lifecycle economics are not established",
         "optimal steady-state values are not a guaranteed continuous operating envelope"
+      ],
+      "reproduction_status": "not_independently_reproduced_by_luminous"
+    },
+    {
+      "id": "sfasciamuro-2026-uav-laser-pointing",
+      "modality": "optical_laser_wpt",
+      "study_type": "paper_reported_prototype",
+      "comparison_group": "optical-uav-pointing-control-not-efficiency",
+      "source": {
+        "title": "Laser-Based Far-Field Wireless Power Transfer for UAV Recharging: Architecture and Experimental Validation of the Pointing, Sensing, and Control System",
+        "publisher": "Aerospace (MDPI)",
+        "url": "https://doi.org/10.3390/aerospace13080664",
+        "publication_date": "2026-07-24",
+        "doi": "10.3390/aerospace13080664"
+      },
+      "service": {
+        "service_kind": "electrical_dc",
+        "application": "UAV laser power-link pointing, sensing and photovoltaic receiver architecture; energy-delivery efficacy not fully measured",
+        "medium": "free-space infrared optical link with hierarchical beam pointing"
+      },
+      "measurements": [
+        {
+          "name": "laser_electrical_to_optical_efficiency_parameter",
+          "value": 30,
+          "unit": "percent",
+          "relation": "exact",
+          "evidence_kind": "source_declared_parameter",
+          "measurement_plane": "source model parameter: electrical laser input to emitted optical power",
+          "boundary": "paper states eta_laser=0.30 for the current system; not presented as a complete end-to-end battery-delivery measurement",
+          "source_reported": true,
+          "conditions": [
+            "declared in the paper's system efficiency chain",
+            "does not include free-space interception, PV conversion or battery conditioning"
+          ]
+        },
+        {
+          "name": "pv_optical_to_electrical_efficiency_parameter",
+          "value": 20,
+          "unit": "percent",
+          "relation": "exact",
+          "evidence_kind": "source_declared_parameter",
+          "measurement_plane": "photovoltaic receiver conversion parameter: incident optical power to cell electrical output",
+          "boundary": "paper states eta_cells=0.20; downstream receiver electronics between cell output and battery input are explicitly neglected",
+          "source_reported": true,
+          "conditions": [
+            "representative receiver-chain parameter as stated by the authors",
+            "not an independently validated full battery-side efficiency"
+          ]
+        },
+        {
+          "name": "spot_center_and_diameter_calibration_error",
+          "value": 2,
+          "unit": "percent",
+          "relation": "less_than",
+          "evidence_kind": "source_reported_measurement",
+          "measurement_plane": "camera-based spot-center and diameter estimator against checkerboard metric reference",
+          "boundary": "calibration estimator error; not receiver-pose uncertainty or energy-transfer efficiency",
+          "source_reported": true,
+          "conditions": [
+            "mean error below 2% in calibration campaign"
+          ]
+        },
+        {
+          "name": "outdoor_coarse_pointing_error",
+          "value": 0.1,
+          "value_upper": 0.8,
+          "unit": "metre",
+          "relation": "range",
+          "evidence_kind": "source_reported_measurement",
+          "measurement_plane": "difference between desired UAV target position and ground-station optical pointing result",
+          "boundary": "coarse pointing error; not beam interception probability or delivered power",
+          "source_reported": true,
+          "conditions": [
+            "outdoor flight-cage campaign",
+            "average UAV distance approximately 15 m",
+            "reported error magnitude 10–80 cm"
+          ]
+        },
+        {
+          "name": "fine_steering_y_step_residual",
+          "value": 2,
+          "value_upper": 9,
+          "unit": "percent",
+          "relation": "range",
+          "evidence_kind": "source_reported_measurement",
+          "measurement_plane": "measured spot-center displacement versus nominal fine-steering mirror Y-axis steps",
+          "boundary": "step-response residual; not dynamic tracking error under arbitrary flight disturbances",
+          "source_reported": true,
+          "conditions": [
+            "approximately 80 m test distance",
+            "nominal 0–400 mm Y sweep in 50 mm steps"
+          ]
+        },
+        {
+          "name": "fine_steering_cross_axis_drift",
+          "value": 6,
+          "unit": "millimetre",
+          "relation": "approximate",
+          "evidence_kind": "source_reported_measurement",
+          "measurement_plane": "measured X-axis spot-center drift during a Y-only fine-steering sweep",
+          "boundary": "cross-axis coupling in the tested scanner configuration",
+          "source_reported": true,
+          "conditions": [
+            "approximately 80 m test distance",
+            "Y-only sweep from 0 to 400 mm"
+          ]
+        },
+        {
+          "name": "infrared_spot_diameter_fit_slope",
+          "value": 1.236,
+          "unit": "millimetre_per_metre",
+          "relation": "approximate",
+          "evidence_kind": "source_reported_model_fit",
+          "measurement_plane": "linear fit of measured infrared beam spot diameter versus propagation distance",
+          "boundary": "empirical spot-diameter interpolation within tested range; not received-power or efficiency",
+          "source_reported": true,
+          "conditions": [
+            "fit D_IR[mm] approximately 1.236 × z[m] + 9.93",
+            "R-squared 0.996",
+            "spot measurements at long range including 100 m and 150 m"
+          ]
+        },
+        {
+          "name": "infrared_spot_diameter_fit_intercept",
+          "value": 9.93,
+          "unit": "millimetre",
+          "relation": "approximate",
+          "evidence_kind": "source_reported_model_fit",
+          "measurement_plane": "intercept of measured infrared beam spot diameter versus distance fit",
+          "boundary": "empirical spot-diameter interpolation within tested range; not received-power or efficiency",
+          "source_reported": true,
+          "conditions": [
+            "fit D_IR[mm] approximately 1.236 × z[m] + 9.93",
+            "R-squared 0.996"
+          ]
+        },
+        {
+          "name": "infrared_spot_diameter_fit_r_squared",
+          "value": 0.996,
+          "unit": "dimensionless",
+          "relation": "exact",
+          "evidence_kind": "source_reported_model_fit",
+          "measurement_plane": "goodness-of-fit statistic for measured infrared spot diameter against distance",
+          "boundary": "regression fit quality; not a physical transfer performance metric",
+          "source_reported": true,
+          "conditions": [
+            "linear spot-diameter fit over the paper's tested range"
+          ]
+        }
+      ],
+      "known_unknowns": [
+        "No independently metered useful battery-terminal energy or end-to-end optical-to-battery efficiency is reported by the paper.",
+        "The 30% laser and 20% PV chain figures are source-declared architecture parameters and must not be multiplied or presented as a measured system efficiency.",
+        "The paper explicitly neglects the downstream electronic efficiency between photovoltaic cell output and battery input.",
+        "The outdoor coarse pointing error of 10–80 cm at approximately 15 m demonstrates unresolved calibration and actuation error, not qualified dynamic in-flight tracking.",
+        "The paper states that a full control-theoretic characterization of bandwidth, settling time and disturbance rejection was not part of the campaign.",
+        "The prototype-level controlled-access test posture is not a complete laser-safety certification or public-airspace deployment authorization."
       ],
       "reproduction_status": "not_independently_reproduced_by_luminous"
     }
