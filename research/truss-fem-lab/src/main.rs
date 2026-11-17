@@ -2,6 +2,9 @@ use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, Tetrahed
 use symtropy_truss_fem_lab::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
 };
+use symtropy_truss_fem_lab::stability::{
+    screen_member_stability, MemberStabilityProperties,
+};
 use symtropy_truss_fem_lab::{BoundaryConditions, TrussMaterial, TrussModel};
 
 fn main() {
@@ -49,6 +52,34 @@ fn main() {
         .fold(0.0_f64, f64::max);
     println!("max_node_displacement_m={:.12e}", max_displacement);
     println!("max_abs_axial_stress_pa={:.12e}", max_stress);
+
+    let section = MemberStabilityProperties {
+        youngs_modulus_pa: material.youngs_modulus_pa,
+        cross_section_area_m2: material.cross_section_area_m2,
+        weak_axis_second_moment_m4: 1.0e-6,
+        yield_strength_pa: 250.0e6,
+        effective_length_factor: 1.0,
+    };
+    let member_sections = vec![section; model.members.len()];
+    let stability = screen_member_stability(&result, &member_sections)
+        .expect("valid declared member stability properties");
+    println!(
+        "maximum_yield_utilization={:.12e}",
+        stability.maximum_yield_utilization
+    );
+    println!(
+        "maximum_elastic_euler_utilization={:?}",
+        stability.maximum_elastic_euler_utilization
+    );
+    println!("yield_exceedance_count={}", stability.yield_exceedance_count);
+    println!(
+        "elastic_euler_exceedance_count={}",
+        stability.elastic_euler_exceedance_count
+    );
+    println!(
+        "euler_outside_nominal_range_count={}",
+        stability.euler_outside_nominal_range_count
+    );
 
     let damage = single_member_removal_campaign(&model, material, &boundary)
         .expect("intact model must solve before damage campaign");
