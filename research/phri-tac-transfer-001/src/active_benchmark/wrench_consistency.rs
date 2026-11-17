@@ -63,6 +63,14 @@ impl Vec3 {
         }
     }
 
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
+    }
+
     fn components(self) -> [f64; 3] {
         [self.x, self.y, self.z]
     }
@@ -80,6 +88,66 @@ pub struct TaxelGeometry {
     /// Unit local tangent basis; tangent_u × tangent_v must equal normal.
     pub tangent_u: Vec3,
     pub tangent_v: Vec3,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+pub struct RigidFrameTransform3 {
+    pub transform_digest: String,
+    pub source_frame_digest: String,
+    pub target_frame_digest: String,
+    /// Proper rotation matrix, row-major.
+    pub rotation_row_major: [f64; 9],
+    /// Translation from source-frame origin to target-frame origin, metres.
+    pub translation_m: Vec3,
+}
+
+impl RigidFrameTransform3 {
+    fn validate(&self) -> Result<(), String> {
+        if self.transform_digest.trim().is_empty()
+            || self.source_frame_digest.trim().is_empty()
+            || self.target_frame_digest.trim().is_empty()
+            || self.source_frame_digest == self.target_frame_digest
+            || !self.translation_m.is_finite()
+            || self.rotation_row_major.iter().any(|value| !value.is_finite())
+        {
+            return Err("rigid frame transform has missing identities or non-finite values".to_owned());
+        }
+
+        let rotation = &self.rotation_row_major;
+        let tolerance = 1.0e-9;
+        for row in 0..3 {
+            for other_row in 0..3 {
+                let dot = (0..3)
+                    .map(|column| rotation[row * 3 + column] * rotation[other_row * 3 + column])
+                    .sum::<f64>();
+                let expected = if row == other_row { 1.0 } else { 0.0 };
+                if (dot - expected).abs() > tolerance {
+                    return Err("frame transform rotation must be orthonormal".to_owned());
+                }
+            }
+        }
+        let determinant =
+            rotation[0] * (rotation[4] * rotation[8] - rotation[5] * rotation[7])
+                - rotation[1] * (rotation[3] * rotation[8] - rotation[5] * rotation[6])
+                + rotation[2] * (rotation[3] * rotation[7] - rotation[4] * rotation[6]);
+        if (determinant - 1.0).abs() > tolerance {
+            return Err("frame transform rotation must be proper (determinant +1), not a reflection".to_owned());
+        }
+        Ok(())
+    }
+
+    fn rotate_vector(&self, vector: Vec3) -> Vec3 {
+        let r = &self.rotation_row_major;
+        Vec3 {
+            x: r[0] * vector.x + r[1] * vector.y + r[2] * vector.z,
+            y: r[3] * vector.x + r[4] * vector.y + r[5] * vector.z,
+            z: r[6] * vector.x + r[7] * vector.y + r[8] * vector.z,
+        }
+    }
+
+    fn transform_point(&self, point: Vec3) -> Vec3 {
+        self.rotate_vector(point).add(self.translation_m)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -341,6 +409,48 @@ fn validate_geometry(geometry: &TaxelGeometrySet) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// Transform as-built taxel geometry from its sensor frame into the
+/// declared wrench/reference frame. Positions and wrench origin receive the
+/// rigid translation; normals and tangent vectors receive rotation only.
+/// The returned digest must be supplied by the evidence/geometry registry and
+/// should bind source geometry, transform and exact transformed output.
+pub fn transform_geometry_to_reference(
+    local_geometry: &TaxelGeometrySet,
+    transform: &RigidFrameTransform3,
+    transformed_geometry_digest: &str,
+) -> Result<TaxelGeometrySet, String> {
+    validate_geometry(local_geometry)?;
+    transform.validate()?;
+    if local_geometry.reference_frame_digest != transform.source_frame_digest {
+        return Err("local geometry frame does not match transform source frame".to_owned());
+    }
+    if transformed_geometry_digest.trim().is_empty() {
+        return Err("transformed geometry digest must not be empty".to_owned());
+    }
+    let taxels = local_geometry
+        .taxels
+        .iter()
+        .map(|taxel| TaxelGeometry {
+            taxel_id: taxel.taxel_id.clone(),
+            area_m2: taxel.area_m2,
+            application_point_m: transform.transform_point(taxel.application_point_m),
+            normal: transform.rotate_vector(taxel.normal),
+            tangent_u: transform.rotate_vector(taxel.tangent_u),
+            tangent_v: transform.rotate_vector(taxel.tangent_v),
+        })
+        .collect();
+
+    let transformed = TaxelGeometrySet {
+        geometry_digest: transformed_geometry_digest.to_owned(),
+        reference_frame_digest: transform.target_frame_digest.clone(),
+        contact_boundary_digest: local_geometry.contact_boundary_digest.clone(),
+        wrench_origin_m: transform.transform_point(local_geometry.wrench_origin_m),
+        taxels,
+    };
+    validate_geometry(&transformed)?;
+    Ok(transformed)
 }
 
 /// Construct the geometry-aware map from local taxel traction in pascals to
@@ -946,6 +1056,86 @@ mod tests {
             moment_nm: wrench.moment_nm,
             covariance: WrenchCovariance6 { matrix_row_major: covariance },
         }
+    }
+
+    #[test]
+    fn rigid_frame_transform_rotates_vectors_and_translates_points_and_origin() {
+        let local = TaxelGeometrySet {
+            geometry_digest: "sha256:local-geometry".to_owned(),
+            reference_frame_digest: "sha256:sensor-frame".to_owned(),
+            contact_boundary_digest: "sha256:contact-boundary-01".to_owned(),
+            wrench_origin_m: Vec3 { x: 0.1, y: 0.0, z: 0.0 },
+            taxels: vec![TaxelGeometry {
+                taxel_id: "taxel-a".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                normal: Vec3 { x: 0.0, y: 0.0, z: 1.0 },
+                tangent_u: Vec3 { x: 1.0, y: 0.0, z: 0.0 },
+                tangent_v: Vec3 { x: 0.0, y: 1.0, z: 0.0 },
+            }],
+        };
+        let transform = RigidFrameTransform3 {
+            transform_digest: "sha256:sensor-to-body-transform".to_owned(),
+            source_frame_digest: "sha256:sensor-frame".to_owned(),
+            target_frame_digest: "sha256:body-frame".to_owned(),
+            // +90 degrees around z.
+            rotation_row_major: [0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            translation_m: Vec3 { x: 0.5, y: -0.2, z: 0.1 },
+        };
+        let transformed = transform_geometry_to_reference(
+            &local,
+            &transform,
+            "sha256:body-frame-geometry",
+        )
+        .expect("rigid frame transform");
+
+        let taxel = &transformed.taxels[0];
+        assert!((taxel.application_point_m.x - 0.5).abs() < 1.0e-12);
+        assert!((taxel.application_point_m.y - -0.18).abs() < 1.0e-12);
+        assert!((taxel.application_point_m.z - 0.1).abs() < 1.0e-12);
+        assert!((taxel.normal.z - 1.0).abs() < 1.0e-12);
+        assert!((taxel.tangent_u.y - 1.0).abs() < 1.0e-12);
+        assert!((taxel.tangent_v.x + 1.0).abs() < 1.0e-12);
+        assert!((transformed.wrench_origin_m.x - 0.5).abs() < 1.0e-12);
+        assert!((transformed.wrench_origin_m.y - -0.1).abs() < 1.0e-12);
+        assert_eq!(transformed.reference_frame_digest, "sha256:body-frame");
+        assert!(build_wrench_operator(&transformed).is_ok());
+    }
+
+    #[test]
+    fn frame_transform_rejects_reflection_nonorthogonal_and_wrong_source_frame() {
+        let local = geometry();
+        let mut reflection = RigidFrameTransform3 {
+            transform_digest: "sha256:reflection".to_owned(),
+            source_frame_digest: "sha256:frame-sensorized-body".to_owned(),
+            target_frame_digest: "sha256:world-frame".to_owned(),
+            rotation_row_major: [-1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+            translation_m: Vec3::default(),
+        };
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
+
+        reflection.rotation_row_major =
+            [1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
+
+        reflection.rotation_row_major = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0];
+        reflection.source_frame_digest = "sha256:wrong-source".to_owned();
+        assert!(transform_geometry_to_reference(
+            &local,
+            &reflection,
+            "sha256:transformed"
+        )
+        .is_err());
     }
 
     #[test]
