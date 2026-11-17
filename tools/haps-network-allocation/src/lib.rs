@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 const TIME_TOLERANCE_S: f64 = 1.0e-6;
+const INTEGER_TOLERANCE: f64 = 1.0e-9;
+const SECONDS_PER_DAY: f64 = 86_400.0;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AllocationError {
@@ -330,11 +332,17 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
         ));
     }
 
+    if (trace.interval_duration_s - SECONDS_PER_DAY).abs() > TIME_TOLERANCE_S {
+        return Err(AllocationError::InvalidTrace(
+            "this initial allocator expects one 24-hour demand sample per interval".to_owned(),
+        ));
+    }
     let ratio = trace.horizon_s / trace.interval_duration_s;
     let expected_intervals = ratio.round();
     if !ratio.is_finite()
-        || (ratio - expected_intervals).abs() > TIME_TOLERANCE_S
+        || (ratio - expected_intervals).abs() > INTEGER_TOLERANCE
         || expected_intervals < 1.0
+        || expected_intervals > usize::MAX as f64
         || expected_intervals as usize != trace.intervals.len()
     {
         return Err(AllocationError::InvalidTrace(
@@ -446,7 +454,13 @@ pub fn select_static_assignment(
             let excess =
                 (load.offered_load_mbps - load.terrestrial_available_mbps).max(0.0);
             let score = excess * weights[load.cell_id.as_str()];
-            *scores.get_mut(load.cell_id.as_str()).expect("validated cell") += score;
+            let current = scores.get_mut(load.cell_id.as_str()).ok_or_else(|| {
+                AllocationError::InvalidTrace(format!(
+                    "training interval references undeclared cell {}",
+                    load.cell_id
+                ))
+            })?;
+            *current += score;
         }
     }
 
@@ -573,7 +587,11 @@ pub fn evaluate_window(
                 .cell_loads
                 .iter()
                 .find(|load| load.cell_id == *cell_id)
-                .expect("trace validation guarantees every cell load");
+                .ok_or_else(|| {
+                    AllocationError::InvalidTrace(format!(
+                        "interval {source_day} is missing assigned cell {cell_id}"
+                    ))
+                })?;
             let excess = (row.offered_load_mbps - row.terrestrial_available_mbps).max(0.0);
             served += excess.min(per_beam_capacity_mbps);
         }
