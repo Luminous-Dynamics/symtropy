@@ -1,0 +1,12 @@
+[package]
+name = "robotics-candidate-evidence-envelope"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Revision-bound, receipt-bearing cross-platform robotics acquisition candidate contract"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
