@@ -135,6 +135,7 @@ pub enum HoloFracError {
     Graph(GraphError),
     Hdc(HdcError),
     StaleIndex,
+    EncoderMismatch,
 }
 
 impl std::fmt::Display for HoloFracError {
@@ -142,7 +143,10 @@ impl std::fmt::Display for HoloFracError {
         match self {
             Self::Graph(error) => write!(f, "spatial graph error: {error}"),
             Self::Hdc(error) => write!(f, "HDC encoding error: {error}"),
-            Self::StaleIndex => f.write_str("spatial index source digest does not match graph"),
+            Self::StaleIndex => f.write_str("spatial index source snapshot does not match graph"),
+            Self::EncoderMismatch => {
+                f.write_str("query encoder fingerprint does not match index encoder")
+            }
         }
     }
 }
@@ -259,6 +263,16 @@ impl SpatialGraph {
         let mut keys: Vec<_> = self.facts.iter().map(SpatialFact::canonical_key).collect();
         keys.sort();
         keys
+    }
+
+    /// Canonical exact source snapshot. Insertion order is not semantically
+    /// significant; IDs, scales and directed facts are.
+    fn canonical_snapshot(&self) -> Self {
+        let mut entities = self.entities.clone();
+        entities.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut facts = self.facts.clone();
+        facts.sort_by_key(SpatialFact::canonical_key);
+        Self { entities, facts }
     }
 
     /// Non-security digest for regression identity only. Use SHA-256/BLAKE3
@@ -393,6 +407,8 @@ struct IndexedFact {
 #[derive(Clone, Debug)]
 pub struct SpatialIndex {
     source_graph_digest_non_security: u64,
+    source_graph_snapshot: SpatialGraph,
+    encoder_fingerprint_non_security: u64,
     canonical_keys: Vec<String>,
     facts: Vec<IndexedFact>,
 }
@@ -405,6 +421,8 @@ impl SpatialIndex {
         let started = Instant::now();
         graph.validate()?;
         let source_graph_digest_non_security = graph.digest_validated();
+        let source_graph_snapshot = graph.canonical_snapshot();
+        let encoder_fingerprint_non_security = encoder.fingerprint();
 
         let mut facts = Vec::with_capacity(graph.facts.len());
         for fact in &graph.facts {
@@ -418,6 +436,8 @@ impl SpatialIndex {
 
         let index = Self {
             source_graph_digest_non_security,
+            source_graph_snapshot,
+            encoder_fingerprint_non_security,
             canonical_keys,
             facts,
         };
@@ -433,13 +453,21 @@ impl SpatialIndex {
     }
 
     pub fn validate_source(&self, graph: &SpatialGraph) -> Result<(), HoloFracError> {
-        if graph.digest_non_security()? != self.source_graph_digest_non_security {
+        graph.validate()?;
+        if graph.canonical_snapshot() != self.source_graph_snapshot {
             return Err(HoloFracError::StaleIndex);
         }
         Ok(())
     }
 
-    /// Safe public query path. Source freshness is checked before retrieval.
+    pub fn validate_encoder(&self, encoder: &HoloFracEncoder) -> Result<(), HoloFracError> {
+        if encoder.fingerprint() != self.encoder_fingerprint_non_security {
+            return Err(HoloFracError::EncoderMismatch);
+        }
+        Ok(())
+    }
+
+    /// Safe public query path. Source and encoder freshness are checked before retrieval.
     pub fn rank_query(
         &self,
         graph: &SpatialGraph,
@@ -447,6 +475,7 @@ impl SpatialIndex {
         query: &SpatialFact,
     ) -> Result<QueryOutcome, HoloFracError> {
         self.validate_source(graph)?;
+        self.validate_encoder(encoder)?;
         self.rank_query_prevalidated(graph, encoder, query)
     }
 
@@ -607,8 +636,9 @@ pub fn run_benchmark(
         queries.push(fact.reversed());
     }
 
-    // Check the immutable source snapshot once, outside the per-query timers.
+    // Check the immutable source and encoder snapshots once, outside per-query timers.
     index.validate_source(graph)?;
+    index.validate_encoder(&encoder)?;
 
     // One warm-up query reduces first-call effects in this deliberately small fixture.
     if let Some(first) = queries.first() {
@@ -908,6 +938,35 @@ mod tests {
             index.rank_query(&changed, &encoder, &graph.facts()[0]),
             Err(HoloFracError::StaleIndex)
         ));
+    }
+
+    #[test]
+    fn index_rejects_mismatched_encoder_configuration() {
+        let graph = reference_architecture_graph().unwrap();
+        let encoder = HoloFracEncoder::new(spec(2_048, 3)).unwrap();
+        let wrong_encoder = HoloFracEncoder::new(spec(2_048, 4)).unwrap();
+        let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
+        assert!(matches!(
+            index.rank_query(&graph, &wrong_encoder, &graph.facts()[0]),
+            Err(HoloFracError::EncoderMismatch)
+        ));
+    }
+
+    #[test]
+    fn graph_digest_and_snapshot_ignore_insertion_order() {
+        let original = reference_architecture_graph().unwrap();
+        let mut reordered = SpatialGraph::new();
+        for entity in original.entities().iter().rev() {
+            reordered.add_entity(entity.clone()).unwrap();
+        }
+        for fact in original.facts().iter().rev() {
+            reordered.add_fact(fact.clone()).unwrap();
+        }
+        assert_eq!(
+            original.digest_non_security().unwrap(),
+            reordered.digest_non_security().unwrap()
+        );
+        assert_eq!(original.canonical_snapshot(), reordered.canonical_snapshot());
     }
 
     #[test]
