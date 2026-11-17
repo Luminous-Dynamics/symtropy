@@ -615,3 +615,8 @@ The bounded two-member removal campaign now uses both a hard 1,024-scenario ceil
 
 A separate exploratory coupon programme is now tracked in [issue #5771](https://github.com/Luminous-Dynamics/symtropy/issues/5771). It stages non-load-bearing fit prototypes, quasi-static connector characterization, repeated mate/unmate wear testing, and later cyclic/fatigue/NDE work. The minimum record includes specimen identity, process/material batch, as-built metrology, calibration, raw synchronized force/displacement data, post-test inspection and all failed/aborted specimens. This is a future physical work plan; no coupons have been fabricated or tested in this software-only increment.
 
+### Global verification and first beam-element kernel
+
+The truss reference now includes a separate audit of global force resultant, global moment resultant and the linear strain-energy / half-external-work identity. Mass-normalized receipts include these diagnostics plus a deterministic input digest. The digest is explicitly non-cryptographic and is not an evidence seal.
+
+The next solver issue (#5768) has begun with an isolated 12-DOF 3D Euler-Bernoulli beam element kernel: axial/torsion/two-plane bending stiffness and local/global transformation, including a closed-form cantilever fixture. It is not yet a global frame solver or global buckling model. The issue remains open for assembly, rotational connector stiffness, eigenvalue stability and independent solver comparison.
