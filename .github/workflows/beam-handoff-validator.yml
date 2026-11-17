@@ -163,6 +163,38 @@ jobs:
           test "$(git -C upstream-bdsim rev-parse HEAD:examples/muoncooling/muoncooler.gmad)" = "a71dbf70605d3dbed9b27fab43436a77a8171d6d"
           test "$(wc -c < upstream-bdsim/examples/muoncooling/muoncooler.gmad | tr -d ' ')" = "2489"
 
+      - name: Verify pinned MuonColliderSoft detector benchmark sources
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          benchmarks_commit="f1d1cddc412fa037dd21449af90c97ce4d16f293"
+          git init upstream-mucoll-benchmarks
+          git -C upstream-mucoll-benchmarks remote add origin https://github.com/MuonColliderSoft/mucoll-benchmarks.git
+          git -C upstream-mucoll-benchmarks fetch --depth=1 origin "$benchmarks_commit"
+          git -C upstream-mucoll-benchmarks checkout --detach FETCH_HEAD
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD)" = "$benchmarks_commit"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:README.md)" = "8acec4d650a03e2e70e21896805a1880188e23f6"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/benchmarks/README.md)" = "2b0b8cabbfe29df2c24c94d440b360720ab99971"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/benchmarks/aggregate_metrics.py)" = "8d9b01bbc9eb9ada7247aea1a623b420b3d12df2"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/python/edm4hep/benchmark_metrics.py)" = "06425a9f7292f5e67726ac042b17bd04a353f8bc"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:workflows/README.md)" = "48bf28eee40d28cdf99c3958d88f70e7b0b4fd0c"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:simulation/README.md)" = "df445c6b59fdc9e547a7d0c16424c5bc7054fb5b"
+
+          spack_commit="553debf49dd25628054e95f3a24d1d067d5ef1ed"
+          git init upstream-mucoll-spack
+          git -C upstream-mucoll-spack remote add origin https://github.com/MuonColliderSoft/mucoll-spack.git
+          git -C upstream-mucoll-spack fetch --depth=1 origin "$spack_commit"
+          git -C upstream-mucoll-spack checkout --detach FETCH_HEAD
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD)" = "$spack_commit"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:README.md)" = "235ec5aecd29f8321af7fd467123bace73917642"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:doc/ReleaseNotes.md)" = "5ee5157424986c80b361c4ba6aa9e5ee7924aa36"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:packages/mucoll-stack/package.py)" = "14bf60b869da15dc4fd5af16ec00ddbbfc279cae"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/README.md)" = "83dff5ff19cf147d6dbed45ed907414d0c0778ee"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/run_chain.sh)" = "7c5e8ea825274c61e2c854cd0fec1537b70d336e"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/write_provenance.py)" = "769f9427f37ce5092cb6aec62f92442e67b3830b"
+
+          jq -e '.repositories.benchmarks.commit == "f1d1cddc412fa037dd21449af90c97ce4d16f293" and .repositories.spack.commit == "553debf49dd25628054e95f3a24d1d067d5ef1ed" and .repositories.benchmarks.current_physics_threshold_status == "upstream documentation says no pass/fail physics tolerances are applied yet"' docs/research/muon-collider/mucoll-detector-benchmark-stack.v0.1.json >/dev/null
+
       - name: Audit pinned native BDSIM userfile
         if: runner.os == 'Linux'
         shell: bash
