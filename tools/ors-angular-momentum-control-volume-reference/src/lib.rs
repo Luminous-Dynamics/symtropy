@@ -13,6 +13,11 @@ pub const EXPECTED_PORT_COUNT: usize = 14;
 pub const MASS_BALANCE_REL_TOLERANCE: f64 = 1.0e-12;
 pub const MASS_BALANCE_ABS_TOLERANCE_KG_S: f64 = 1.0e-12;
 pub const MAX_PORT_COUNT_PER_CASE: usize = 1_024;
+const EXPECTED_PORT_HEADER: &str = concat!(
+    "case_id,port_id,direction,mass_flow_kg_s,",
+    "position_x_m,position_y_m,position_z_m,",
+    "velocity_x_m_s,velocity_y_m_s,velocity_z_m_s"
+);
 const EXPECTED_CASE_HEADER: &str = concat!(
     "case_id,frame_id,origin_id,epoch_s,mass_accumulation_kg_s,",
     "momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,",
@@ -273,7 +278,7 @@ pub fn parse_corpus(
         .next()
         .ok_or_else(|| "empty angular-momentum port corpus".to_owned())?;
     if port_header
-        != "case_id,port_id,direction,mass_flow_kg_s,position_x_m,position_y_m,position_z_m,velocity_x_m_s,velocity_y_m_s,velocity_z_m_s"
+        != EXPECTED_PORT_HEADER
     {
         return Err("unexpected angular-momentum port header".to_owned());
     }
