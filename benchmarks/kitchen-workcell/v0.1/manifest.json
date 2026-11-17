@@ -390,10 +390,14 @@
         "total_time_to_plate_s",
         "user_present_time_s",
         "late_dish_count",
-        "accepted_servings"
+        "accepted_servings",
+        "staggered_makespan_savings_vs_serial",
+        "makespan_relative_gap_to_lower_bound",
+        "power_aware_event_search_latency_ms",
+        "schedule_feasibility_rate"
       ],
       "safety_boundary": "Scheduler is advisory only. Local appliance protections remain authoritative. No pressure-cycle restart after power restoration unless manufacturer-approved; no power-interruption test outside the approved safe procedure.",
-      "control_condition": "Compare manual schedule, fixed-rule schedule and Symtropy schedule on identical tasks and declared electrical envelope."
+      "control_condition": "On identical task graphs, profiles and envelope, compare human/manual plan, fixed-rule schedule, earliest-gap resource-greedy, event-boundary power-aware staggering, serial topological fallback and a CP-SAT exact reference on small instances. Record all failed attempts and verifier outputs."
     },
     {
       "task_id": "workflow-recipe-action-grounding",
@@ -415,7 +419,7 @@
         "human_correction_count"
       ],
       "safety_boundary": "Generated task graphs are advisory proposals and do not directly actuate appliances.",
-      "control_condition": "Compare human-authored graph, deterministic recipe rules and Symthaea proposal on frozen recipes."
+      "control_condition": "Compare human-authored graph, deterministic recipe rules, LREC-style recipe grounding and Symthaea proposal on frozen recipes; then compare mapped plans with identical downstream schedulers."
     }
   ],
   "metrics": [
