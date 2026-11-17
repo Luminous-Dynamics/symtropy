@@ -60,12 +60,18 @@ impl std::fmt::Display for FractalError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptyPointSet => f.write_str("fractal analysis requires at least one point"),
-            Self::InvalidPoint => f.write_str("all points must be finite and lie inside the unit square"),
+            Self::InvalidPoint => {
+                f.write_str("all points must be finite and lie inside the unit square")
+            }
             Self::InvalidResolutionSchedule => {
                 f.write_str("box-count resolutions must be strictly increasing and at least two")
             }
-            Self::InvalidFitWindow => f.write_str("box-count fit window must be within the scale schedule"),
-            Self::TooFewFitScales => f.write_str("box-count regression requires at least three scales"),
+            Self::InvalidFitWindow => {
+                f.write_str("box-count fit window must be within the scale schedule")
+            }
+            Self::TooFewFitScales => {
+                f.write_str("box-count regression requires at least three scales")
+            }
         }
     }
 }
@@ -188,9 +194,7 @@ pub fn estimate_box_counting_dimension(
     {
         return Err(FractalError::InvalidResolutionSchedule);
     }
-    if fit_start_index > fit_end_index_inclusive
-        || fit_end_index_inclusive >= resolutions.len()
-    {
+    if fit_start_index > fit_end_index_inclusive || fit_end_index_inclusive >= resolutions.len() {
         return Err(FractalError::InvalidFitWindow);
     }
     let fit_count = fit_end_index_inclusive - fit_start_index + 1;
@@ -223,9 +227,7 @@ pub fn estimate_box_counting_dimension(
         });
     }
 
-    let fit = fit_log_counts(
-        &scale_counts[fit_start_index..=fit_end_index_inclusive],
-    );
+    let fit = fit_log_counts(&scale_counts[fit_start_index..=fit_end_index_inclusive]);
     let mut window_dimensions = Vec::new();
     if resolutions.len() >= WINDOW_LENGTH {
         for start in 0..=(resolutions.len() - WINDOW_LENGTH) {
@@ -392,14 +394,17 @@ mod tests {
         ];
         for (family, expected, tolerance) in families {
             let points = generate_geometry_fixture(family, 65_536, 0x484f_4c4f_4652_4143).unwrap();
-            let report =
-                estimate_box_counting_dimension(&points, &resolutions, 2, 5).unwrap();
+            let report = estimate_box_counting_dimension(&points, &resolutions, 2, 5).unwrap();
             assert!(
                 (report.dimension_estimate - expected).abs() < tolerance,
                 "{family:?}: estimated {}, expected {expected}",
                 report.dimension_estimate
             );
-            assert!(report.fit_r_squared > 0.98, "{family:?}: R2 {}", report.fit_r_squared);
+            assert!(
+                report.fit_r_squared > 0.98,
+                "{family:?}: R2 {}",
+                report.fit_r_squared
+            );
             assert_eq!(report.fit_scale_count, 4);
             assert!(report.mean_translation_count_spread.is_finite());
             assert!(report.window_dimension_spread.is_finite());
@@ -410,13 +415,8 @@ mod tests {
     fn scale_window_and_translation_diagnostics_are_reported() {
         let points =
             generate_geometry_fixture(GeometryFamily::SierpinskiTriangle, 16_384, 17).unwrap();
-        let report = estimate_box_counting_dimension(
-            &points,
-            &standard_resolutions(),
-            0,
-            5,
-        )
-        .unwrap();
+        let report =
+            estimate_box_counting_dimension(&points, &standard_resolutions(), 0, 5).unwrap();
         assert_eq!(report.fit_start_resolution, 16);
         assert_eq!(report.fit_end_resolution, 128);
         assert!(report.min_window_dimension <= report.max_window_dimension);
@@ -430,13 +430,8 @@ mod tests {
             FractalError::EmptyPointSet
         );
         assert_eq!(
-            estimate_box_counting_dimension(
-                &[Point2 { x: 1.2, y: 0.5 }],
-                &[4, 8, 16],
-                0,
-                2,
-            )
-            .unwrap_err(),
+            estimate_box_counting_dimension(&[Point2 { x: 1.2, y: 0.5 }], &[4, 8, 16], 0, 2,)
+                .unwrap_err(),
             FractalError::InvalidPoint
         );
         let point = [Point2 { x: 0.5, y: 0.5 }];
