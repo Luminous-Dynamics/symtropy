@@ -9,6 +9,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 const TAU: f64 = 2.0 * std::f64::consts::PI;
+const MAX_ABSOLUTE_COORDINATE_M: f64 = 1.0e9;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct EvidenceTarget {
@@ -155,6 +156,8 @@ pub fn plan_acquisition(
         if pass.target_id.trim().is_empty()
             || pass.pass_id.trim().is_empty()
             || !pass.view_angle_rad.is_finite()
+            || !(-std::f64::consts::PI..=std::f64::consts::PI)
+                .contains(&pass.view_angle_rad)
         {
             return Err("existing qualified pass contains invalid identity or angle".to_owned());
         }
@@ -249,6 +252,9 @@ pub fn plan_acquisition(
             let utility_cost = step_elapsed
                 + candidate.risk_penalty_s
                 + candidate.energy_wh * budget.energy_penalty_s_per_wh;
+            if !utility_cost.is_finite() || utility_cost < 0.0 {
+                continue;
+            }
             let score = gain / utility_cost.max(1.0e-9);
             if !score.is_finite() {
                 continue;
@@ -346,6 +352,8 @@ pub fn plan_acquisition(
 fn validate_budget(budget: &AcquisitionBudget) -> Result<(), String> {
     if !budget.start_u_m.is_finite()
         || !budget.start_v_m.is_finite()
+        || budget.start_u_m.abs() > MAX_ABSOLUTE_COORDINATE_M
+        || budget.start_v_m.abs() > MAX_ABSOLUTE_COORDINATE_M
         || !budget.travel_speed_m_per_s.is_finite()
         || budget.travel_speed_m_per_s <= 0.0
         || !budget.maximum_elapsed_time_s.is_finite()
@@ -368,7 +376,11 @@ fn validate_candidate(
         || candidate.pass_id.trim().is_empty()
         || !candidate.u_m.is_finite()
         || !candidate.v_m.is_finite()
+        || candidate.u_m.abs() > MAX_ABSOLUTE_COORDINATE_M
+        || candidate.v_m.abs() > MAX_ABSOLUTE_COORDINATE_M
         || !candidate.view_angle_rad.is_finite()
+        || !(-std::f64::consts::PI..=std::f64::consts::PI)
+            .contains(&candidate.view_angle_rad)
         || !candidate.acquisition_time_s.is_finite()
         || candidate.acquisition_time_s < 0.0
         || !candidate.energy_wh.is_finite()
