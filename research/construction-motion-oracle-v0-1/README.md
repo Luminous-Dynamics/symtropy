@@ -111,7 +111,7 @@ The timed-result verifier is a separate implementation from the active-set CCD p
 It returns distinct dispositions:
 
 - CONTACT_WITNESS: a reconstructed point pair is within the declared summed radii at an attained common time.
-- TERMINAL_BOUNDARY_CANDIDATE: the reported closest approach lies at the excluded end limit of a half-open interval; treat conservatively, but do not describe it as an attained collision.
+- TERMINAL_BOUNDARY_CANDIDATE: the reported minimum lies at the excluded end limit and is only tangent (within the declared contact tolerance); a strict overlap at that endpoint implies an attained pre-terminal witness by continuity.
 - SEPARATED_KKT_CHECKED: the independently reconstructed result is separated and passes the box-constrained KKT sign checks for the convex squared-distance objective over (time, moving-axis, obstacle-axis) in [0,1]^3.
 - NO_TEMPORAL_OVERLAP: source intervals have no positive-duration intersection. This is not a geometric-clearance verdict.
 - UNRESOLVED: source identity, clock assumptions, reported values, feasibility or KKT residuals do not support a stronger disposition.
