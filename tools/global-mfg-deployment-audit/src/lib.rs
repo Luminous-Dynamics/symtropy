@@ -288,10 +288,10 @@ fn validate_profile(profile: &Value, index: usize) -> Result<(String, String, St
 /// Validates the JSON Schema document and corpus against Draft 2020-12,
 /// then applies the deployment-specific semantic audit.
 pub fn audit_schema_and_corpus(schema_input: &str, corpus_input: &str) -> Result<Value, String> {
-    let schema: Value = serde_json::from_str(schema_input)
-        .map_err(|e| format!("invalid schema JSON: {e}"))?;
-    let corpus: Value = serde_json::from_str(corpus_input)
-        .map_err(|e| format!("invalid corpus JSON: {e}"))?;
+    let schema: Value =
+        serde_json::from_str(schema_input).map_err(|e| format!("invalid schema JSON: {e}"))?;
+    let corpus: Value =
+        serde_json::from_str(corpus_input).map_err(|e| format!("invalid corpus JSON: {e}"))?;
 
     require_string(
         &schema,
@@ -315,7 +315,10 @@ pub fn audit_schema_and_corpus(schema_input: &str, corpus_input: &str) -> Result
     let mut report = audit_corpus(corpus_input)?;
     if let Some(map) = report.as_object_mut() {
         map.insert("json_schema_valid".to_owned(), Value::Bool(true));
-        map.insert("json_schema_draft".to_owned(), Value::String("2020-12".to_owned()));
+        map.insert(
+            "json_schema_draft".to_owned(),
+            Value::String("2020-12".to_owned()),
+        );
     }
     Ok(report)
 }
@@ -409,7 +412,6 @@ mod tests {
     fn fixture_value() -> Value {
         serde_json::from_str(FIXTURE).expect("fixture JSON parses")
     }
-
 
     #[test]
     fn validates_corpus_against_draft_2020_12_schema() {
