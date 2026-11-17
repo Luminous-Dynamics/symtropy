@@ -1,0 +1,68 @@
+name: ORS momentum control-volume reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ors-momentum-control-volume-reference.yml"
+      - "tools/ors-momentum-control-volume-reference/**"
+      - "docs/tech/ORS_MOMENTUM_CONTROL_VOLUME_REFERENCE_V0_1.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ors-momentum-control-volume-reference.yml"
+      - "tools/ors-momentum-control-volume-reference/**"
+      - "docs/tech/ORS_MOMENTUM_CONTROL_VOLUME_REFERENCE_V0_1.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format
+        run: cargo fmt --manifest-path tools/ors-momentum-control-volume-reference/Cargo.toml --all -- --check
+      - name: Clippy
+        run: cargo clippy --manifest-path tools/ors-momentum-control-volume-reference/Cargo.toml --locked --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --manifest-path tools/ors-momentum-control-volume-reference/Cargo.toml --locked --all-targets
+      - name: Emit and compare deterministic receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          cases="tools/ors-momentum-control-volume-reference/cases-v0.1.csv"
+          ports="tools/ors-momentum-control-volume-reference/ports-v0.1.csv"
+          cases_sha="$(sha256sum "$cases" | awk '{print $1}')"
+          ports_sha="$(sha256sum "$ports" | awk '{print $1}')"
+          cargo run --quiet --manifest-path tools/ors-momentum-control-volume-reference/Cargo.toml --locked -- \
+            --source-commit "$source_commit" --cases-sha256 "$cases_sha" --ports-sha256 "$ports_sha" > momentum-cv-a.json
+          cargo run --quiet --manifest-path tools/ors-momentum-control-volume-reference/Cargo.toml --locked -- \
+            --source-commit "$source_commit" --cases-sha256 "$cases_sha" --ports-sha256 "$ports_sha" > momentum-cv-b.json
+          cmp momentum-cv-a.json momentum-cv-b.json
+          jq -e '
+            .result == "pass"
+            and .case_count == 6
+            and .port_count == 14
+            and .source_commit == "'"$source_commit"'"
+            and .cases_corpus_sha256 == "'"$cases_sha"'"
+            and .ports_corpus_sha256 == "'"$ports_sha"'"
+            and (.max_abs_mass_balance_residual_kg_s <= 1.0e-12)
+            and (.max_abs_reaction_closure_residual_n == 0)
+            and (.cases | length == 6)
+            and all(.cases[]; .frame_id == "INERTIAL_SYNTHETIC")
+            and all(.cases[]; .epoch_s == 0)
+          ' momentum-cv-a.json
+          sha256sum "$cases" "$ports" momentum-cv-a.json
+      - name: Upload exact outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ors-momentum-control-volume-receipts
+          path: |
+            momentum-cv-a.json
+            momentum-cv-b.json

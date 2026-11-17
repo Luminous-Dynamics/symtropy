@@ -1,0 +1,15 @@
+[package]
+name = "ors-momentum-control-volume-reference"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+name = "ors_momentum_control_volume_reference"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ors-momentum-control-volume-reference"
+path = "src/main.rs"
+
+[workspace]
