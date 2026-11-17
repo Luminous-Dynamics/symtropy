@@ -1,7 +1,7 @@
 use flight_pv_array_survey::{
     ArrayIdentity, FlightFrame, IrImage, MissionEnergyEnvelope, ModuleBounds, RadiometricQc,
-    RasterPlanSpec, RgbImage, SurveyProfile, SweepAxis, assess_return_reserve,
-    evaluate_survey, generate_raster_plan,
+    RasterPlanSpec, RgbImage, SurveyProfile, SweepAxis, assess_return_reserve, evaluate_survey,
+    generate_raster_plan,
 };
 
 fn identity() -> ArrayIdentity {
