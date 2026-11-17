@@ -23,17 +23,19 @@ The control and treatment arms must refer to one frozen demand trace, same use p
 
 Point credit is bounded by:
 
-`min(quality_qualified_product_l, recovered_fixture_use_l, max(0, matched_control_mains_fixture_l - treatment_mains_fallback_l))`
+`min(quality_qualified_product_l, recovered_fixture_use_l, max(0, normalized_matched_control_mains_fixture_l - treatment_mains_fallback_l))`
+
+The control mains volume is normalized to the treatment arm's measured fixture demand using `control_mains_l × treatment_demand_l / control_demand_l`; a zero or non-comparable control demand is indeterminate. This is a declared deterministic normalization, not a causal adjustment model.
 
 Quality release must be current, independently reviewed and match both the exact declared use profile and source profile. A release for toilet flushing cannot qualify irrigation or potable use.
 
-An expanded-uncertainty screen is reported separately. For the two-meter mains difference, the conservative uncertainty allowance adds standard uncertainties rather than assuming independent calibration errors:
+An expanded-uncertainty screen is reported separately. The normalized control-meter uncertainty is scaled by the same demand ratio. For the two-meter mains difference, the conservative uncertainty allowance adds standard uncertainties rather than assuming independent calibration errors:
 
-`displacement_lower_l = max(0, displacement_l - k * (u_control_mains_l + u_treatment_fallback_l))`
+`displacement_lower_l = max(0, displacement_l - k * (u_control_mains_l × treatment_demand_l / control_demand_l + u_treatment_fallback_l))`
 
 `lower_credit_l = min(max(0, qualified_l - k*u_qualified), max(0, fixture_use_l - k*u_use), displacement_lower_l)`
 
-v0.1 uses `k=2` only as a declared uncertainty expansion factor. It is not a 95% confidence interval, probability, significance test or population inference. Statistical inference remains `NotRun`.
+v0.1 uses `k=2` only as a declared uncertainty expansion factor. It is not a 95% confidence interval, probability, significance test or population inference. Statistical inference remains `NotRun`. Demand-measurement uncertainty is not modeled in v0.1 and must be added before field evidence qualification.
 
 ## 3. Evidence/validity gates
 
@@ -43,18 +45,21 @@ A block receives zero credit or an explicit indeterminate disposition when it co
 - wrong arm or use/source profile;
 - mismatched demand-trace digests or excessive paired-demand difference;
 - overlapping or invalid run windows;
+- measurement windows that do not match the parent run's frozen time window;
+- quality releases outside their validity period or missing the independent reviewer, sample-set digest or method revision;
 - service pressure/flow outside the frozen envelope;
 - missing, stale, mismatched or non-independent quality release;
 - invalid units, meter calibration/method identity, raw-record digest or measurement validity;
 - duplicate instrument, channel or raw-record identity;
 - measurement at the wrong physical boundary;
-- reuse of a recovered allocation ID across multiple paired blocks.
+- reuse of a recovered allocation ID across multiple paired blocks;
+- reuse of the same raw meter-record digest across different paired blocks.
 
-All paired blocks sharing a duplicate recovered-allocation ID are rejected together. The evaluator does not choose which duplicate claim was legitimate.
+All paired blocks sharing a duplicate recovered-allocation ID or replayed raw-record digest are rejected together. The evaluator does not choose which duplicate claim was legitimate.
 
 ## 4. Frozen synthetic challenge pack
 
-Thirteen six-block cases cover:
+Fifteen six-block cases cover:
 
 1. valid paired credit;
 2. high gross output but zero fixture use;
@@ -68,15 +73,17 @@ Thirteen six-block cases cover:
 10. pressure outside the declared service envelope;
 11. overlapping control/treatment windows;
 12. non-comparable matched demand;
-13. uncertainty expansion consumes the apparent credit margin.
+13. uncertainty expansion consumes the apparent credit margin;
+14. raw meter record replayed across two paired blocks;
+15. expired quality release.
 
 Each case has six paired blocks. A negative-control event is isolated to one block except the duplicate-allocation case, which rejects every block reusing the same allocation ID.
 
 ## 5. Outputs
 
-Per block: point credit, uncertainty-screened lower credit, displacement, lower displacement, treatment energy and energy per 1,000 L of lower-bound credit (null when no lower-bound credit exists).
+Per block: point credit, uncertainty-screened lower credit, normalized control mains, displacement, lower displacement, control energy, treatment energy and incremental energy delta. Treatment and incremental kWh per 1,000 L of lower-bound credit remain separate and are null when no lower-bound credit exists. Energy observations are retained for zero-credit/indeterminate blocks when the energy channel itself is independently valid.
 
-Per case: paired/credited block counts, aggregate point and lower-bound credit, treatment energy, kWh per 1,000 L lower-bound credit, dispositions and counts.
+Per case: paired/credited block counts, aggregate point and lower-bound credit, control/treatment/incremental energy and observation coverage, both kWh intensities, dispositions and counts.
 
 Every synthetic case carries:
 
