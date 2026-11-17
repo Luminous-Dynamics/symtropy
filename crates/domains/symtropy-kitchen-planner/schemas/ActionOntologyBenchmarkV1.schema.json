@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBenchmarkV1.schema.json",
+  "title": "ActionOntologyBenchmarkV1",
+  "description": "Adjudicated action ontology benchmark cases and exact-weight expectations. The benchmark only measures taxonomy agreement and abstention; it does not qualify manipulation or food safety.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_bundle_id",
+    "status",
+    "cases",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "fixture_bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "synthetic_only",
+        "licensed_corpus",
+        "adjudicated_subset"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "action_kind",
+          "gold_group",
+          "prediction",
+          "occurrence_weight"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action_kind": {
+            "enum": [
+              "wash",
+              "peel",
+              "trim",
+              "chop",
+              "slice",
+              "dice",
+              "grate",
+              "shred",
+              "halve",
+              "pour",
+              "drain",
+              "sprinkle",
+              "stir",
+              "add",
+              "combine",
+              "whisk",
+              "mix",
+              "knead",
+              "blend",
+              "emulsify",
+              "pick",
+              "place",
+              "move",
+              "cover",
+              "cook",
+              "heat",
+              "freeze",
+              "saute",
+              "boil",
+              "simmer",
+              "steam",
+              "bake",
+              "roast",
+              "pressure_cook",
+              "cool",
+              "rest",
+              "serve",
+              "other"
+            ]
+          },
+          "gold_group": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "chop",
+              "slice",
+              "dice",
+              "grate",
+              "shred",
+              "halve",
+              "pour",
+              "drain",
+              "sprinkle",
+              "stir",
+              "add",
+              "combine",
+              "whisk",
+              "mix",
+              "knead",
+              "blend",
+              "emulsify",
+              "wash",
+              "peel",
+              "trim",
+              "pick",
+              "place",
+              "move",
+              "serve",
+              "cover",
+              "saute",
+              "cook",
+              "heat",
+              "freeze",
+              "boil",
+              "simmer",
+              "steam",
+              "bake",
+              "roast",
+              "pressure_cook",
+              "cool",
+              "rest",
+              null
+            ]
+          },
+          "prediction": {
+            "$ref": "https://luminousdynamics.io/schemas/kitchen/ActionOntologyBindingV1.schema.json"
+          },
+          "occurrence_weight": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_count",
+        "total_occurrence_weight",
+        "weighted_core_coverage",
+        "micro_group_precision",
+        "micro_group_recall",
+        "abstention_precision"
+      ],
+      "properties": {
+        "case_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_occurrence_weight": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "weighted_core_coverage": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "micro_group_precision": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "integer",
+              "minimum": 0
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "micro_group_recall": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "integer",
+              "minimum": 0
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "abstention_precision": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "integer",
+              "minimum": 0
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    }
+  }
+}

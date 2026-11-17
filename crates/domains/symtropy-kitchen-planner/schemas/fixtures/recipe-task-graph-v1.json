@@ -1,0 +1,825 @@
+{
+  "fixture_bundle_id": "recipe-task-graph-v1-fixtures",
+  "status": "synthetic_only",
+  "cases": [
+    {
+      "fixture_id": "valid-reviewed-onion-sauce-graph",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": true,
+      "expected_mapping": "preserve_schedule_task_fields_exactly",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:onion-sauce",
+        "revision": 1,
+        "title": "Synthetic onion sauce",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-unknown-ingredient-reference",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "The ingredient input is structurally valid but references an undeclared ingredient ID.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:unknown-ingredient",
+        "revision": 1,
+        "title": "Synthetic missing ingredient graph",
+        "source": {
+          "source_ref": "fixture:synthetic",
+          "rights_status": "unknown",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "modelled",
+        "review_state": "unreviewed",
+        "ingredients": [],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "mix",
+              "duration_ms": 1000,
+              "resource_ids": [
+                "bowl"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "mix",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "missing",
+                "quantity": {
+                  "value": 1,
+                  "decimal_places": 0,
+                  "unit": "piece"
+                }
+              }
+            ],
+            "output_refs": [
+              "mix"
+            ],
+            "instruction_ref": null
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-redistribution-with-unknown-source-rights",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "A graph with unknown source rights may be used only locally; it cannot be marked for redistribution or model training.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:unknown-rights",
+        "revision": 1,
+        "title": "Synthetic rights boundary",
+        "source": {
+          "source_ref": "source:unknown",
+          "rights_status": "unknown",
+          "permitted_uses": [
+            "local_processing",
+            "redistribution"
+          ],
+          "permission_evidence_ref": "permission:claimed-without-grant",
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "unreviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "water",
+            "display_name": "Water",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "heat-water",
+              "duration_ms": 60000,
+              "resource_ids": [
+                "kettle"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "boil",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "water",
+                "quantity": {
+                  "value": 1,
+                  "decimal_places": 0,
+                  "unit": "litre"
+                }
+              }
+            ],
+            "output_refs": [
+              "hot-water"
+            ],
+            "instruction_ref": null
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-other-action-without-label",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:other-action",
+        "revision": 1,
+        "title": "Synthetic other action",
+        "source": {
+          "source_ref": "fixture:synthetic",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "unreviewed",
+        "ingredients": [],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "step",
+              "duration_ms": 1,
+              "resource_ids": [],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "other",
+            "action_label": null,
+            "ingredient_inputs": [],
+            "output_refs": [
+              "out"
+            ],
+            "instruction_ref": null
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-weakened-claim-ceiling",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:claim",
+        "revision": 1,
+        "title": "Synthetic invalid claim",
+        "source": {
+          "source_ref": "fixture:synthetic",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "serve",
+              "duration_ms": 1,
+              "resource_ids": [],
+              "dependencies": [],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "serve",
+            "action_label": null,
+            "ingredient_inputs": [],
+            "output_refs": [
+              "served"
+            ],
+            "instruction_ref": null
+          }
+        ],
+        "claim_ceiling": "This recipe is safe."
+      }
+    },
+    {
+      "fixture_id": "reject-duplicate-task-identifiers",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "Task IDs collide even though each task object is structurally valid.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:duplicate-task",
+        "revision": 1,
+        "title": "Synthetic duplicate task",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-zero-ingredient-quantity",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "reason": "Zero ingredient quantity is invalid and must not enter the scheduler.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:zero-quantity",
+        "revision": 1,
+        "title": "Synthetic zero quantity",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 0,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-invalid-source-digest",
+      "expected_schema_valid": false,
+      "expected_runtime_valid": false,
+      "reason": "A source digest must be exactly 64 hexadecimal characters.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:invalid-digest",
+        "revision": 1,
+        "title": "Synthetic invalid source digest",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": "not-a-digest",
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "accept-explicit-rule-based-action-ontology-binding",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": true,
+      "reason": "Chop maps deterministically to Cutting/Chop with explicit rule provenance and typed capability/precondition references.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:onion-sauce-action-ontology",
+        "revision": 1,
+        "title": "Synthetic onion sauce with explicit action ontology",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null,
+            "ontology_binding": {
+              "ontology_version": 1,
+              "mapping": {
+                "method": "rule_based",
+                "core": "cutting",
+                "group": "chop",
+                "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+              },
+              "parameters": [],
+              "tool_capability_refs": [
+                "capability:guarded-food-processor-cutting"
+              ],
+              "precondition_refs": [
+                "precondition:guard-closed",
+                "precondition:food-lot-confirmed"
+              ],
+              "evidence_class": "declared"
+            }
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    },
+    {
+      "fixture_id": "reject-rule-based-action-ontology-mismatch",
+      "expected_schema_valid": true,
+      "expected_runtime_valid": false,
+      "reason": "A rule-based Chop mapping cannot silently substitute the Dice action group.",
+      "payload": {
+        "schema_version": 1,
+        "recipe_id": "fixture:onion-sauce-invalid-ontology",
+        "revision": 1,
+        "title": "Synthetic mismatched action ontology",
+        "source": {
+          "source_ref": "fixture:synthetic-recipe",
+          "rights_status": "user_supplied",
+          "permitted_uses": [
+            "local_processing"
+          ],
+          "permission_evidence_ref": null,
+          "content_sha256": null,
+          "attribution_ref": null
+        },
+        "evidence_class": "declared",
+        "review_state": "reviewed",
+        "ingredients": [
+          {
+            "ingredient_id": "onion",
+            "display_name": "Onion",
+            "product_lot_ref": null
+          }
+        ],
+        "tasks": [
+          {
+            "schedule": {
+              "task_id": "chop-onion",
+              "duration_ms": 30000,
+              "resource_ids": [
+                "processor"
+              ],
+              "dependencies": [],
+              "earliest_start_ms": 0,
+              "latest_finish_ms": 60000
+            },
+            "action_kind": "chop",
+            "action_label": null,
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "prepared-onion"
+            ],
+            "instruction_ref": null,
+            "ontology_binding": {
+              "ontology_version": 1,
+              "mapping": {
+                "method": "rule_based",
+                "core": "cutting",
+                "group": "dice",
+                "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+              },
+              "parameters": [],
+              "tool_capability_refs": [
+                "capability:guarded-food-processor-cutting"
+              ],
+              "precondition_refs": [
+                "precondition:guard-closed",
+                "precondition:food-lot-confirmed"
+              ],
+              "evidence_class": "declared"
+            }
+          },
+          {
+            "schedule": {
+              "task_id": "saute-onion",
+              "duration_ms": 180000,
+              "resource_ids": [
+                "burner-1"
+              ],
+              "dependencies": [
+                {
+                  "predecessor_task_id": "chop-onion",
+                  "min_lag_ms": 0,
+                  "max_lag_ms": 30000
+                }
+              ],
+              "earliest_start_ms": null,
+              "latest_finish_ms": null
+            },
+            "action_kind": "saute",
+            "action_label": "Sweat until translucent",
+            "ingredient_inputs": [
+              {
+                "ingredient_id": "onion",
+                "quantity": {
+                  "value": 250,
+                  "decimal_places": 0,
+                  "unit": "gram"
+                }
+              }
+            ],
+            "output_refs": [
+              "sweated-onion"
+            ],
+            "instruction_ref": "instruction-ref:synthetic-step-2"
+          }
+        ],
+        "claim_ceiling": "Recipe task graph only; does not validate food safety, allergens, ingredient condition, or culinary quality."
+      }
+    }
+  ]
+}
