@@ -10,7 +10,6 @@ on:
       - "research/protect-evidence-multiprovider-e3-v0-1"
       - "research/protect-evidence-semantic-projection-e4-v0-1"
       - "research/protect-schema-evolution-e6-v0-1"
-      - "research/protect-schema-evolution-e6-v0-1"
       - "research/protect-evidence-adjudication-e7-v0-1"
     paths:
       - "research/protective-systems/**"
@@ -25,6 +24,7 @@ on:
       - "research/protect-evidence-portability-e2-review-v0-1"
       - "research/protect-evidence-multiprovider-e3-v0-1"
       - "research/protect-evidence-semantic-projection-e4-v0-1"
+      - "research/protect-schema-evolution-e6-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
