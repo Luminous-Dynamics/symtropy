@@ -60,7 +60,9 @@ fn ensure_keys(value: &Value, expected: &[&str], context: &str) -> Result<(), St
     let actual: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let required: BTreeSet<&str> = expected.iter().copied().collect();
     if actual != required {
-        return Err(format!("{context}: key set differs from the v0.1 closed contract"));
+        return Err(format!(
+            "{context}: key set differs from the v0.1 closed contract"
+        ));
     }
     Ok(())
 }
@@ -118,9 +120,15 @@ fn validate_utc_timestamp(value: &str) -> Result<(), String> {
     if parts.len() != 3 {
         return Err("captured_at_utc must use HH:MM:SS".to_owned());
     }
-    let hour = parts[0].parse::<u32>().map_err(|_| "invalid UTC hour".to_owned())?;
-    let minute = parts[1].parse::<u32>().map_err(|_| "invalid UTC minute".to_owned())?;
-    let second = parts[2].parse::<u32>().map_err(|_| "invalid UTC second".to_owned())?;
+    let hour = parts[0]
+        .parse::<u32>()
+        .map_err(|_| "invalid UTC hour".to_owned())?;
+    let minute = parts[1]
+        .parse::<u32>()
+        .map_err(|_| "invalid UTC minute".to_owned())?;
+    let second = parts[2]
+        .parse::<u32>()
+        .map_err(|_| "invalid UTC second".to_owned())?;
     if hour > 23 || minute > 59 || second > 59 {
         return Err("captured_at_utc clock component out of range".to_owned());
     }
@@ -159,7 +167,10 @@ fn parse_raw_headers(bytes: &[u8]) -> Result<(u16, BTreeMap<String, String>), St
         if key.is_empty() {
             return Err("empty response header name".to_owned());
         }
-        if headers.insert(key.clone(), value.trim().to_owned()).is_some() {
+        if headers
+            .insert(key.clone(), value.trim().to_owned())
+            .is_some()
+        {
             return Err(format!("duplicate response header '{key}'"));
         }
     }
@@ -180,9 +191,7 @@ fn is_valid_slug(value: &str) -> bool {
 fn validate_url(url: &str, mode: &str, slug: &str) -> Result<(), String> {
     let path = format!("/api/v1/suburbs/{slug}/history");
     let valid = match mode {
-        "synthetic_fixture" => {
-            url == format!("https://fixture.invalid{path}")
-        }
+        "synthetic_fixture" => url == format!("https://fixture.invalid{path}"),
         "publisher_capture" => {
             url == format!("https://watersearch.co.za{path}")
                 || url.starts_with(&format!("https://watersearch.co.za{path}?"))
@@ -232,7 +241,8 @@ fn validate_capture(
     let mode = string(&manifest, "capture_mode", "manifest")?;
     let evidence_class = string(&manifest, "evidence_class", "manifest")?;
     match (mode, evidence_class) {
-        ("synthetic_fixture", "synthetic_only") | ("publisher_capture", "publisher_reported_asset_status") => {}
+        ("synthetic_fixture", "synthetic_only")
+        | ("publisher_capture", "publisher_reported_asset_status") => {}
         _ => return Err("capture_mode/evidence_class mismatch".to_owned()),
     }
 
@@ -262,8 +272,12 @@ fn validate_capture(
     validate_url(source_url, mode, slug)?;
     let from_date = optional_string(source, "from_date", "source")?;
     let to_date = optional_string(source, "to_date", "source")?;
-    let from_day = from_date.map(|d| parse_date(d).map(|(y, m, d)| days_from_civil(y, m, d))).transpose()?;
-    let to_day = to_date.map(|d| parse_date(d).map(|(y, m, d)| days_from_civil(y, m, d))).transpose()?;
+    let from_day = from_date
+        .map(|d| parse_date(d).map(|(y, m, d)| days_from_civil(y, m, d)))
+        .transpose()?;
+    let to_day = to_date
+        .map(|d| parse_date(d).map(|(y, m, d)| days_from_civil(y, m, d)))
+        .transpose()?;
     if let (Some(start), Some(end)) = (from_day, to_day) {
         if start > end {
             return Err("from_date is later than to_date".to_owned());
@@ -300,7 +314,10 @@ fn validate_capture(
     }
     validate_url(final_url, mode, slug)?;
     let content_type = string(capture, "content_type", "capture")?;
-    if !content_type.to_ascii_lowercase().starts_with("application/json") {
+    if !content_type
+        .to_ascii_lowercase()
+        .starts_with("application/json")
+    {
         return Err("content_type must be application/json".to_owned());
     }
 
@@ -320,7 +337,11 @@ fn validate_capture(
         return Err("raw header block does not end in HTTP 200".to_owned());
     }
     let normalized = field(capture, "headers", "capture")?;
-    ensure_keys(normalized, &["content-type", "x-licence", "date"], "capture.headers")?;
+    ensure_keys(
+        normalized,
+        &["content-type", "x-licence", "date"],
+        "capture.headers",
+    )?;
     if string(normalized, "content-type", "capture.headers")? != content_type {
         return Err("capture.content_type differs from normalized response header".to_owned());
     }
@@ -330,7 +351,9 @@ fn validate_capture(
             .get(key)
             .ok_or_else(|| format!("raw header block lacks '{key}'"))?;
         if declared != actual {
-            return Err(format!("normalized header '{key}' differs from raw response header"));
+            return Err(format!(
+                "normalized header '{key}' differs from raw response header"
+            ));
         }
     }
     if !raw_headers
@@ -375,7 +398,9 @@ fn validate_capture(
         parse_date(&release[..10])?;
         let hash = &release[11..];
         if hash.len() != 8 || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
-            return Err("publisher release id hash must be eight hexadecimal characters".to_owned());
+            return Err(
+                "publisher release id hash must be eight hexadecimal characters".to_owned(),
+            );
         }
         let licence = string(&body, "licence", "body")?;
         if !licence.contains("CC BY 4.0") {
@@ -401,10 +426,14 @@ fn validate_capture(
         }
         "publisher_capture" => {
             if rights_status == "approved" && review_reference.is_none() {
-                return Err("approved rights review requires a non-empty review reference".to_owned());
+                return Err(
+                    "approved rights review requires a non-empty review reference".to_owned(),
+                );
             }
             if rights_status != "approved" && rights_status != "pending" {
-                return Err("publisher capture rights status must be pending or approved".to_owned());
+                return Err(
+                    "publisher capture rights status must be pending or approved".to_owned(),
+                );
             }
             if rights_status == "pending" && review_reference.is_some() {
                 return Err("pending rights review cannot carry an approval reference".to_owned());
@@ -448,7 +477,9 @@ fn validate_capture(
         if from_day.is_some_and(|start| day_number < start)
             || to_day.is_some_and(|end| day_number > end)
         {
-            return Err(format!("{context}: day falls outside requested date bounds"));
+            return Err(format!(
+                "{context}: day falls outside requested date bounds"
+            ));
         }
         let asset_id = string(row, "asset_id", &context)?;
         if asset_id.trim().is_empty() {
@@ -475,7 +506,9 @@ fn validate_capture(
             .ok_or_else(|| format!("{context}: on_bypass must be boolean"))?;
         let boards = integer(row, "boards", &context)?;
         if (level == "no_report" && boards != 0) || (level != "no_report" && boards == 0) {
-            return Err(format!("{context}: board count contradicts no_report state"));
+            return Err(format!(
+                "{context}: board count contradicts no_report state"
+            ));
         }
         if level == "no_report" {
             no_report_count += 1;
@@ -561,7 +594,12 @@ fn run(args: &[String]) -> Result<Value, String> {
     let (capture_schema_bytes, capture_schema) = read_json(&args[4])?;
     if string(&capture_schema, "$schema", "capture manifest schema")?
         != "https://json-schema.org/draft/2020-12/schema"
-        || field(&capture_schema, "additionalProperties", "capture manifest schema")?.as_bool()
+        || field(
+            &capture_schema,
+            "additionalProperties",
+            "capture manifest schema",
+        )?
+        .as_bool()
             != Some(false)
     {
         return Err("capture manifest schema must be closed Draft 2020-12".to_owned());
@@ -570,13 +608,18 @@ fn run(args: &[String]) -> Result<Value, String> {
     let revision = env::var("JW_WATER_INTAKE_T1_REVISION")
         .map_err(|_| "JW_WATER_INTAKE_T1_REVISION must be the exact checkout SHA".to_owned())?;
     if revision.len() != 40 || !revision.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-        return Err("JW_WATER_INTAKE_T1_REVISION must be a 40-character hexadecimal SHA".to_owned());
+        return Err(
+            "JW_WATER_INTAKE_T1_REVISION must be a 40-character hexadecimal SHA".to_owned(),
+        );
     }
     let object = receipt
         .as_object_mut()
         .ok_or_else(|| "internal receipt is not an object".to_owned())?;
     object.insert("implementation_revision".to_owned(), json!(revision));
-    object.insert("response_schema_sha256".to_owned(), json!(sha256(&schema_bytes)));
+    object.insert(
+        "response_schema_sha256".to_owned(),
+        json!(sha256(&schema_bytes)),
+    );
     object.insert(
         "capture_manifest_schema_sha256".to_owned(),
         json!(sha256(&capture_schema_bytes)),
@@ -633,11 +676,22 @@ mod tests {
 
     fn fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Value) {
         let body = include_bytes!("../../../../docs/research/jw-water-intake-t1/watersearch_suburb_history.synthetic.v0.1.json").to_vec();
-        let headers = include_bytes!("../../../../docs/research/jw-water-intake-t1/response_headers.synthetic.v0.1.txt").to_vec();
-        let manifest_bytes = include_bytes!("../../../../docs/research/jw-water-intake-t1/capture_manifest.synthetic.v0.1.json").to_vec();
+        let headers = include_bytes!(
+            "../../../../docs/research/jw-water-intake-t1/response_headers.synthetic.v0.1.txt"
+        )
+        .to_vec();
+        let manifest_bytes = include_bytes!(
+            "../../../../docs/research/jw-water-intake-t1/capture_manifest.synthetic.v0.1.json"
+        )
+        .to_vec();
         let manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
         let schema: Value = serde_json::from_str(include_str!("../../../../docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json")).unwrap();
-        (body, headers, manifest_bytes, json!({"manifest":manifest,"schema":schema}))
+        (
+            body,
+            headers,
+            manifest_bytes,
+            json!({"manifest":manifest,"schema":schema}),
+        )
     }
 
     fn refresh_manifest(body: &[u8], headers: &[u8], manifest: &mut Value) -> Vec<u8> {
@@ -651,10 +705,14 @@ mod tests {
     #[test]
     fn synthetic_fixture_is_integrity_checked_but_not_admitted() {
         let (body, headers, manifest_bytes, bundle) = fixture();
-        let receipt = validate_capture(&body, &headers, &manifest_bytes, &bundle["schema"]).unwrap();
+        let receipt =
+            validate_capture(&body, &headers, &manifest_bytes, &bundle["schema"]).unwrap();
         assert_eq!(receipt["integrity_status"], "PASS");
         assert_eq!(receipt["evidence_class"], "synthetic_only");
-        assert_eq!(receipt["admission_status"], "not_admitted_synthetic_conformance");
+        assert_eq!(
+            receipt["admission_status"],
+            "not_admitted_synthetic_conformance"
+        );
         assert_eq!(receipt["row_count"], 4);
         assert_eq!(receipt["unique_supply_count"], 2);
         assert_eq!(receipt["no_report_rows"], 1);
@@ -666,8 +724,11 @@ mod tests {
     fn tampered_body_is_rejected_by_sha256() {
         let (mut body, headers, manifest_bytes, bundle) = fixture();
         body.push(b' ');
-        assert!(validate_capture(&body, &headers, &manifest_bytes, &bundle["schema"])
-            .unwrap_err().contains("body byte count/SHA-256 mismatch"));
+        assert!(
+            validate_capture(&body, &headers, &manifest_bytes, &bundle["schema"])
+                .unwrap_err()
+                .contains("body byte count/SHA-256 mismatch")
+        );
     }
 
     #[test]
@@ -678,8 +739,11 @@ mod tests {
         let changed = serde_json::to_vec_pretty(&value).unwrap();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
         let refreshed = refresh_manifest(&changed, &headers, &mut manifest);
-        assert!(validate_capture(&changed, &headers, &refreshed, &bundle["schema"])
-            .unwrap_err().contains("bad flag contradicts native level"));
+        assert!(
+            validate_capture(&changed, &headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("bad flag contradicts native level")
+        );
     }
 
     #[test]
@@ -690,8 +754,11 @@ mod tests {
         let changed = serde_json::to_vec_pretty(&value).unwrap();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
         let refreshed = refresh_manifest(&changed, &headers, &mut manifest);
-        assert!(validate_capture(&changed, &headers, &refreshed, &bundle["schema"])
-            .unwrap_err().contains("duplicate (asset_id, day)"));
+        assert!(
+            validate_capture(&changed, &headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("duplicate (asset_id, day)")
+        );
     }
 
     #[test]
@@ -703,8 +770,11 @@ mod tests {
             .into_bytes();
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
         let refreshed = refresh_manifest(&body, &changed_headers, &mut manifest);
-        assert!(validate_capture(&body, &changed_headers, &refreshed, &bundle["schema"])
-            .unwrap_err().contains("normalized header 'x-licence'"));
+        assert!(
+            validate_capture(&body, &changed_headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("normalized header 'x-licence'")
+        );
     }
 
     #[test]
@@ -715,8 +785,11 @@ mod tests {
         manifest["capture"]["body_sha256"] = json!(sha256(&body));
         manifest["capture"]["headers_sha256"] = json!(sha256(&headers));
         let refreshed = serde_json::to_vec_pretty(&manifest).unwrap();
-        assert!(validate_capture(&body, &headers, &refreshed, &bundle["schema"])
-            .unwrap_err().contains("outside requested date bounds"));
+        assert!(
+            validate_capture(&body, &headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("outside requested date bounds")
+        );
     }
 
     #[test]
@@ -725,18 +798,28 @@ mod tests {
         let mut manifest: Value = serde_json::from_slice(&manifest_bytes).unwrap();
         manifest["capture_mode"] = json!("publisher_capture");
         manifest["evidence_class"] = json!("publisher_reported_asset_status");
-        manifest["source"]["url"] = json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
-        manifest["capture"]["final_url"] = json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
+        manifest["source"]["url"] =
+            json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
+        manifest["capture"]["final_url"] =
+            json!("https://watersearch.co.za/api/v1/suburbs/synthetic-suburb/history");
         manifest["rights_review"]["status"] = json!("pending");
         let refreshed = serde_json::to_vec_pretty(&manifest).unwrap();
-        assert!(validate_capture(&body, &headers, &refreshed, &bundle["schema"])
-            .unwrap_err().contains("publisher release id"));
+        assert!(
+            validate_capture(&body, &headers, &refreshed, &bundle["schema"])
+                .unwrap_err()
+                .contains("publisher release id")
+        );
     }
 
     #[test]
     fn release_ids_are_date_bound_and_hash_suffixed() {
         let mut parts = "2026-11-17-ee99662f".split('-');
-        let date = format!("{}-{}-{}", parts.next().unwrap(), parts.next().unwrap(), parts.next().unwrap());
+        let date = format!(
+            "{}-{}-{}",
+            parts.next().unwrap(),
+            parts.next().unwrap(),
+            parts.next().unwrap()
+        );
         let hash = parts.next().unwrap();
         assert!(parse_date(&date).is_ok());
         assert_eq!(hash.len(), 8);
