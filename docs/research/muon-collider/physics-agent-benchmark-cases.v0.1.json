@@ -1,0 +1,167 @@
+{
+  "benchmark_id": "muon-collider-physics-agent",
+  "version": "0.1.0",
+  "evidence_class": "synthetic_workflow_control_cases",
+  "claim_ceiling": "Workflow classification and evidence-receipt semantics only; no solver or physical accelerator result.",
+  "cases": [
+    {
+      "case_id": "agent-valid-reproduction-001",
+      "case_family": "valid_reproduction",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 0,
+        "artifacts_present": true,
+        "reference_metrics_available": true,
+        "source_identity": "match",
+        "replay": "match",
+        "domain": "inside_validity_domain"
+      },
+      "metrics": [
+        {
+          "name": "synthetic_transmission_fraction",
+          "unit": "1",
+          "reference": 0.9,
+          "observed": 0.9000000001,
+          "absolute_tolerance": 0.000001
+        }
+      ],
+      "expected": {
+        "technical_status": "success",
+        "scientific_status": "valid",
+        "evidence_integrity": "valid",
+        "qualification_decision": "accept",
+        "reason": "All frozen synthetic metrics, source identity and deterministic replay match."
+      }
+    },
+    {
+      "case_id": "agent-infrastructure-failure-001",
+      "case_family": "infrastructure_failure",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 127,
+        "artifacts_present": false,
+        "reference_metrics_available": true,
+        "source_identity": "match",
+        "replay": "not_run",
+        "domain": "inside_validity_domain"
+      },
+      "injected_fault": "required synthetic executable missing from PATH",
+      "metrics": [],
+      "expected": {
+        "technical_status": "blocked",
+        "scientific_status": "not_evaluated",
+        "evidence_integrity": "incomplete",
+        "qualification_decision": "reject",
+        "reason": "Execution did not reach physics evaluation; this is not a scientific falsification."
+      }
+    },
+    {
+      "case_id": "agent-successful-but-wrong-001",
+      "case_family": "successful_but_wrong_output",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 0,
+        "artifacts_present": true,
+        "reference_metrics_available": true,
+        "source_identity": "match",
+        "replay": "match",
+        "domain": "inside_validity_domain"
+      },
+      "metrics": [
+        {
+          "name": "synthetic_transmission_fraction",
+          "unit": "1",
+          "reference": 0.9,
+          "observed": 0.72,
+          "absolute_tolerance": 0.000001
+        }
+      ],
+      "expected": {
+        "technical_status": "success",
+        "scientific_status": "invalid",
+        "evidence_integrity": "valid",
+        "qualification_decision": "reject",
+        "reason": "The process succeeded but the observed physical metric is outside the frozen tolerance."
+      }
+    },
+    {
+      "case_id": "agent-stale-input-001",
+      "case_family": "stale_or_mismatched_inputs",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 0,
+        "artifacts_present": true,
+        "reference_metrics_available": true,
+        "source_identity": "mismatch",
+        "replay": "match",
+        "domain": "inside_validity_domain"
+      },
+      "metrics": [
+        {
+          "name": "synthetic_transmission_fraction",
+          "unit": "1",
+          "reference": 0.9,
+          "observed": 0.9,
+          "absolute_tolerance": 0.000001
+        }
+      ],
+      "expected": {
+        "technical_status": "success",
+        "scientific_status": "not_evaluated",
+        "evidence_integrity": "invalid",
+        "qualification_decision": "reject",
+        "reason": "The numerically plausible output used the wrong input/configuration identity."
+      }
+    },
+    {
+      "case_id": "agent-unsupported-domain-001",
+      "case_family": "unsupported_or_held_out_domain",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 0,
+        "artifacts_present": true,
+        "reference_metrics_available": false,
+        "source_identity": "match",
+        "replay": "not_run",
+        "domain": "outside_validity_domain"
+      },
+      "metrics": [],
+      "expected": {
+        "technical_status": "success",
+        "scientific_status": "not_evaluated",
+        "evidence_integrity": "incomplete",
+        "qualification_decision": "abstain",
+        "reason": "No admitted reference or validated domain exists for this configuration."
+      }
+    },
+    {
+      "case_id": "agent-replay-divergence-001",
+      "case_family": "reproducibility_divergence",
+      "synthetic_only": true,
+      "execution": {
+        "process_exit_code": 0,
+        "artifacts_present": true,
+        "reference_metrics_available": true,
+        "source_identity": "match",
+        "replay": "mismatch",
+        "domain": "inside_validity_domain"
+      },
+      "metrics": [
+        {
+          "name": "synthetic_transmission_fraction",
+          "unit": "1",
+          "reference": 0.9,
+          "observed": 0.9,
+          "absolute_tolerance": 0.000001
+        }
+      ],
+      "expected": {
+        "technical_status": "success",
+        "scientific_status": "valid",
+        "evidence_integrity": "invalid",
+        "qualification_decision": "reject",
+        "reason": "Primary metrics matched, but deterministic replay produced different output digests; retain both receipts and investigate."
+      }
+    }
+  ]
+}

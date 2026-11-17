@@ -1,0 +1,192 @@
+{
+  "schema_version": "0.1.0",
+  "handoff_id": "synthetic-full-distribution-mu-plus-001",
+  "stage": "cooling",
+  "run": {
+    "run_id": "synthetic-full-distribution-schema-test-only",
+    "created_utc": "2026-11-16T19:00:00Z",
+    "parent_handoff_ids": [
+      "synthetic-target-capture-mu-plus-001"
+    ],
+    "seed_set": [
+      "none-deterministic-test-vector"
+    ],
+    "scenario_id": "synthetic-8-particle-covariance-example",
+    "notes": "Synthetic deterministic test vector only; no physical simulation, measurement, beam or inference is represented."
+  },
+  "particle": {
+    "pdg_id": -13,
+    "charge_e": 1,
+    "rest_energy_MeV": 105.6583755
+  },
+  "coordinates": {
+    "frame_id": "synthetic-right-handed-local-beam-frame",
+    "handedness": "right",
+    "reference_plane": "synthetic-cooling-exit",
+    "beam_direction": "+z",
+    "order": [
+      "x",
+      "px",
+      "y",
+      "py",
+      "z",
+      "pz"
+    ],
+    "position_unit": "m",
+    "momentum_unit": "GeV/c",
+    "longitudinal_origin": "synthetic-bunch-centroid",
+    "time_reference": "synthetic-run-clock",
+    "native_coordinate_mapping": "Already expressed in the contract's canonical interchange coordinates; no external solver or physical transformation is represented."
+  },
+  "distribution": {
+    "representation": "full_distribution",
+    "asset": {
+      "uri": "synthetic-beam-8-muons.csv",
+      "sha256": "759c2c5372f4fd4fe959a65b7a70be6dcde3113df8a233944ad17e6f205f81b9",
+      "format": "text/csv",
+      "byte_length": 656,
+      "adapter_version": "synthetic-csv-fixture-v0.1"
+    },
+    "macro_particle_count": 8,
+    "weighted_population": 8,
+    "effective_sample_size": 8,
+    "sampling_method": "hand-authored deterministic eight-row test vector; not a Monte Carlo sample",
+    "independent_sample": false,
+    "correlations_preserved": true,
+    "ancestry_preserved": true,
+    "summary": {
+      "mean_6d": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0.3
+      ],
+      "covariance_definition": "Weighted population covariance: sum_i(w_i * (u_i - mean) * (u_i - mean)^T) / sum_i(w_i), with u=(x,px,y,py,z,pz) in declared units.",
+      "covariance_6d": [
+        [
+          0.0000025,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2.5e-8,
+          0,
+          2.5e-8,
+          0,
+          2.5e-7
+        ],
+        [
+          0,
+          0,
+          0.0000025,
+          0,
+          0.000025,
+          0
+        ],
+        [
+          0,
+          2.5e-8,
+          0,
+          2.5e-8,
+          0,
+          2.5e-7
+        ],
+        [
+          0,
+          0,
+          0.000025,
+          0,
+          0.00025,
+          0
+        ],
+        [
+          0,
+          2.5e-7,
+          0,
+          2.5e-7,
+          0,
+          0.0000025
+        ]
+      ],
+      "emittance_metrics": [],
+      "quantile_metrics": []
+    }
+  },
+  "population_ledger": {
+    "accounting_scope": "same_species_transport",
+    "input_weighted_count": 10,
+    "generated_weighted_count": 0,
+    "surviving_weighted_count": 8,
+    "losses": [
+      {
+        "cause": "decay",
+        "weighted_count": 1
+      },
+      {
+        "cause": "aperture",
+        "weighted_count": 1
+      }
+    ],
+    "balance_tolerance_relative": 1e-9,
+    "balance_residual_weighted_count": 0
+  },
+  "uncertainty": {
+    "components": [
+      {
+        "category": "monte_carlo",
+        "quantity": "distribution sampling uncertainty",
+        "status": "unquantified",
+        "reason_unquantified": "Deterministic hand-authored test vector; not sampled from a physical probability distribution."
+      },
+      {
+        "category": "model_form",
+        "quantity": "beam transport and cooling physics",
+        "status": "unquantified",
+        "reason_unquantified": "No accelerator solver, material model or physical process is represented."
+      }
+    ],
+    "dependence_notes": "Coordinate correlations in the eight explicit rows are preserved in the asset and population covariance; no statistical-independence interpretation is asserted."
+  },
+  "qualification": {
+    "status": "not_evaluated",
+    "tier": "schema_only",
+    "validity_domain": "Schema, asset metadata and covariance-fixture conformance only.",
+    "reference_ids": [],
+    "excluded_regimes": [
+      "physical beam distributions",
+      "beam transport",
+      "cooling",
+      "emittance performance",
+      "experimental correlation"
+    ],
+    "claim_ceiling": "Synthetic data-plane fixture only. No physical beam or performance claim."
+  },
+  "provenance": {
+    "source_dataset_id": "synthetic-deterministic-test-vector-no-physical-data",
+    "producer": "schema-fixture-generator",
+    "producer_version": "0.1.0",
+    "repository_commit": null,
+    "configuration_sha256": null,
+    "toolchain_digest": null,
+    "physics_list": null,
+    "material_database": null,
+    "evidence_uri": null
+  },
+  "handoff": {
+    "acceptance_status": "not_evaluated",
+    "downstream_contract_id": null,
+    "reason": "Synthetic fixture exercises full-distribution asset metadata; physical use is prohibited.",
+    "blocked_requirements": [
+      "physical source distribution",
+      "solver provenance",
+      "uncertainty quantification",
+      "downstream acceptance"
+    ]
+  }
+}

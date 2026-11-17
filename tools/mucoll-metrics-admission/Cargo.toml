@@ -1,0 +1,14 @@
+[package]
+name = "mucoll-metrics-admission"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Independent evidence-integrity admission for MuonColliderSoft detector metric artifacts"
+
+[workspace]
+members = []
+
+[dependencies]
+serde_json = "=1.0.154"
+sha2 = "=0.11.1"

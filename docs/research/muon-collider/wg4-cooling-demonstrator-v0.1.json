@@ -1,0 +1,194 @@
+{
+  "schema_version": "0.1.0",
+  "audit_id": "wg4-cooling-demonstrator-bdsim-userfile-2026-11-09",
+  "evidence_class": "upstream_native_input_distribution",
+  "upstream": {
+    "repository": "MuonCollider-WG4/cooling_demonstrator",
+    "repository_url": "https://github.com/MuonCollider-WG4/cooling_demonstrator",
+    "ref": "2026-11-09-prerelease",
+    "commit": "d453b0ce0efd018ffb8d32927ac74cb597a02d26",
+    "license": "MIT"
+  },
+  "input": {
+    "path": "cooling/bdsim/lowemittancebeam.dat",
+    "git_blob_sha1": "9e31ff9e1e65ca31aa082f685a2f5fc0b81a7217",
+    "byte_length": 1257234,
+    "ignored_header_lines": 1,
+    "expected_record_count": 10001,
+    "expected_header": "\"x [mm]\" \"px [rad]\" \"y [mm]\" \"py [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+    "columns": [
+      {
+        "name": "x",
+        "unit": "mm",
+        "meaning": "horizontal position",
+        "header_label": "x"
+      },
+      {
+        "name": "xp",
+        "unit": "rad",
+        "meaning": "horizontal angle",
+        "header_label": "px"
+      },
+      {
+        "name": "y",
+        "unit": "mm",
+        "meaning": "vertical position",
+        "header_label": "y"
+      },
+      {
+        "name": "yp",
+        "unit": "rad",
+        "meaning": "vertical angle",
+        "header_label": "py"
+      },
+      {
+        "name": "z",
+        "unit": "mm",
+        "meaning": "longitudinal position",
+        "header_label": "z"
+      },
+      {
+        "name": "Ek",
+        "unit": "MeV",
+        "meaning": "kinetic energy",
+        "header_label": "Ek"
+      },
+      {
+        "name": "t",
+        "unit": "ns",
+        "meaning": "time",
+        "header_label": "t"
+      }
+    ],
+    "explicit_particle_ids": false,
+    "explicit_weights": false
+  },
+  "bdsim_declaration": {
+    "path": "cooling/bdsim/lowemittancebeam.gmad",
+    "git_blob_sha1": "f5ff777ee61ec8985a03f5439b272903917c8e8e",
+    "particle": "mu-",
+    "energy": "200*MeV",
+    "distr_type": "userfile",
+    "distr_file": "lowemittancebeam.dat",
+    "distr_file_format": "x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]",
+    "nlines_ignore": 1
+  },
+  "bdsim_lattice": {
+    "path": "cooling/bdsim/solenoidsheetdemonstrator102.gmad",
+    "git_blob_sha1": "1f564a733fcc63d46d0eff6ece5c89d2b93519c9",
+    "model_name": "solenoidsheetdemonstrator102",
+    "coil_count": 102,
+    "absorber_count": 0,
+    "rf_cavity_count": 0,
+    "ionization_cooling_claim_admissible": false,
+    "rf_acceleration_claim_admissible": false,
+    "explanation": "The pinned model declares a solenoid-sheet field model but instantiates zero absorbers and zero RF cavities. This input/configuration pair cannot evidence ionization cooling or RF acceleration."
+  },
+  "g4bl_baseline": {
+    "path": "cooling/g4bl/cooling.g4bl",
+    "git_blob_sha1": "dc0cb955ef657cdc1862b4b5c30e2fe415d4e377",
+    "cell_count": 60,
+    "rf_gradient_mv_per_m": 30,
+    "absorber_material": "LITHIUM_HYDRIDE",
+    "model_identity": "separate_G4Beamline_cooling_lattice",
+    "equivalent_to_bdsim_model": false
+  },
+  "g4bl_run_log": {
+    "path": "cooling/g4bl/g4bl.log",
+    "git_blob_sha1": "a69acc28ea77d9055685c05936615460f87059d9",
+    "g4beamline_version": "3.08",
+    "geant4_version": "11.1-patch-01",
+    "event_count": 10000,
+    "runtime_seconds": 773,
+    "output_regions": 51,
+    "output_z_min_mm": 0,
+    "output_z_max_mm": 100000,
+    "unsupported_particle_ignores_total": 2087,
+    "unsupported_particle_ignores_max_per_region": 65,
+    "fatal_exceptions": 0,
+    "aborted_events": 0,
+    "stuck_tracks": 0,
+    "decay_process_disabled": true,
+    "muon_survival_status": "not_evaluated",
+    "parameter_override_provenance": "incomplete",
+    "note": "The log's recorded beam offsets and RF phase differ from the current param -unset defaults. The originating command and override file are not pinned in this source snapshot; do not infer stale data or silently reconstruct the invocation."
+  },
+  "source_documentation": {
+    "bdsim_userfile_manual": "https://www.pp.rhul.ac.uk/bdsim/manual/model_control.html",
+    "g4beamline_user_guide": "https://beamdocs.fnal.gov/AD/DocDB/0079/007950/001/G4beamlineUsersGuide.pdf",
+    "upstream_readme": "The upstream README identifies the BDSIM lattice as an early-stage model and says it is not consistent with the G4Beamline lattice; use G4Beamline as the current baseline.",
+    "published_bdsim_d4_1": "MuCol D4.1 (2025-02-25) documents the BDSIM muoncooler element and an 80 m rectilinear 6D cooling simulation.",
+    "published_bdsim_ipac26": "IPAC'26 MOP1048 reports a 100 m BDSIM cooling study with approximately 2.3x 6D emittance reduction and approximately 93% transmission; muon decays were disabled.",
+    "bdsim_scope_note": "The pinned WG4 solenoidsheetdemonstrator102.gmad is a separate 102-coil configuration with zero absorbers and zero RF. It is not the full muoncooler implementation used in the published cooling studies."
+  },
+  "claim_ceiling": "Native-coordinate input parsing, source-object identity and model/run evidence admission only. No beam-dynamics reproduction, ionization-cooling, RF, transmission or muon-survival qualification.",
+  "bdsim_muoncooler_implementation": {
+    "repository": "bdsim-collaboration/bdsim",
+    "repository_url": "https://github.com/bdsim-collaboration/bdsim",
+    "commit": "d18134084b3960ba07bea81a7e2772114062f8b3",
+    "commit_date": "2025-02-14",
+    "license": "GPL-3.0",
+    "source_path": "examples/muoncooling/muoncooler.gmad",
+    "git_blob_sha1": "a71dbf70605d3dbed9b27fab43436a77a8171d6d",
+    "byte_length": 2489,
+    "example_scope": "5 m executable component example; not the published 80 m or 100 m full-channel study",
+    "declared_configuration": {
+      "total_component_length_m": 5,
+      "coils": 6,
+      "dipoles": 1,
+      "absorbers": 2,
+      "rf_cavities": 12,
+      "absorber_material": "G4_LITHIUM_HYDRIDE",
+      "absorber_shape": "cylindrical",
+      "rf_voltage_mv": 14.85,
+      "beam_particle": "mu+",
+      "beam_momentum_mev_c": 200
+    },
+    "equivalence_to_wg4_102_coil_model": false
+  },
+  "published_bdsim_references": {
+    "mu_col_d4_1": {
+      "title": "Development of BDSIM to Model Cooling Systems",
+      "deliverable": "MuCol D4.1",
+      "issue_date": "2025-02-25",
+      "url": "https://indico.cern.ch/event/1517584/attachments/3020990/5329912/MuCol_D4_1.pdf",
+      "channel_length_m": 80,
+      "evidence_class": "published_simulation_report",
+      "initial_transverse_emittance_mm_approx": 2.5,
+      "final_transverse_emittance_mm_approx": 1.45,
+      "initial_longitudinal_emittance_eV_s_approx": 1.8,
+      "final_longitudinal_emittance_eV_s_approx": 1.15,
+      "findings": [
+        "Longitudinal phase-space mismatch produces initial emittance growth, momentum oscillations and tail losses.",
+        "Matched input beam preparation and better treatment of tail events are identified as important follow-up work.",
+        "Field/component validations compare BDSIM with analytical calculations and other simulation codes."
+      ],
+      "muon_decay_status": "not established by the cited 80 m emittance plots"
+    },
+    "ipac26_mop1048": {
+      "title": "Simulation and study of the Muon Cooling Demonstrator Rectilinear Channel in BDSIM",
+      "doi": "10.18429/JACoW-IPAC2026-MOP1048",
+      "url": "https://www.ipac26.org/prepress/pdf/MOP1048.pdf",
+      "issue_date": "2026-07-20",
+      "channel_length_m": 100,
+      "reference_momentum_mev_c": 200,
+      "evidence_class": "published_conference_simulation",
+      "initial_transverse_emittance_mm_approx": 1.9,
+      "initial_longitudinal_emittance_mm_approx": 2.1,
+      "six_d_emittance_reduction_factor_approx": 2.3,
+      "transmission_fraction_approx": 0.93,
+      "muon_decay_enabled": false,
+      "input_distribution_reference": "MuonCollider-WG4/cooling_demonstrator, accessed May 2026",
+      "input_asset_identity_to_pinned_lowemittancebeam_dat": "not_verified",
+      "note": "Published result and plots are reproduction targets, not raw output particles or an independently reproduced result."
+    }
+  },
+  "benchmark_alignment": {
+    "wg4_102_coil_model_vs_published_muoncooler": "not_equivalent",
+    "pinned_lowemittancebeam_dat_vs_ipac26_initial_distribution": "not_verified",
+    "bdsim_5m_component_example_vs_published_80m_or_100m_channel": "not_equivalent",
+    "full_channel_raw_output_available_in_pinned_sources": false,
+    "cross_code_equivalence": "not_established",
+    "claim_ceiling": "The local audit validates the native WG4 input and source identities only. Published BDSIM cooling metrics remain external reproduction targets."
+  }
+}

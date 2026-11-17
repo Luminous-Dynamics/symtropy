@@ -1,0 +1,253 @@
+name: beam-handoff-validator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/beam-handoff-validator.yml"
+      - "tools/beam-handoff-validator/**"
+      - "tools/physics-agent-benchmark/**"
+      - "tools/muon-cooling-data-audit/**"
+      - "tools/mucoll-metrics-admission/**"
+      - "docs/research/muon-collider/**"
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/beam-handoff-validator.yml"
+      - "tools/beam-handoff-validator/**"
+      - "tools/physics-agent-benchmark/**"
+      - "tools/muon-cooling-data-audit/**"
+      - "tools/mucoll-metrics-admission/**"
+      - "docs/research/muon-collider/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beam-handoff-validator-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validator:
+    name: validator (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Assert exact source revision
+        shell: bash
+        run: |
+          expected="${{ github.event.pull_request.head.sha || github.sha }}"
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected"
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Generate dependency lock
+        run: cargo generate-lockfile --manifest-path tools/beam-handoff-validator/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/beam-handoff-validator/Cargo.toml -- --check
+
+      - name: Run unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/beam-handoff-validator/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path tools/beam-handoff-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Validate both checked-in fixtures
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/beam-handoff-validator/Cargo.toml -- \
+            --schema docs/research/muon-collider/beam-state-handoff.schema.json \
+            --input docs/research/muon-collider/fixtures/beam-handoff.synthetic.example.json \
+            > summary-report.json
+          cargo run --locked --manifest-path tools/beam-handoff-validator/Cargo.toml -- \
+            --schema docs/research/muon-collider/beam-state-handoff.schema.json \
+            --input docs/research/muon-collider/fixtures/beam-handoff.full-distribution.synthetic.example.json \
+            > full-report.json
+
+      - name: Assert fixture receipts and physics-agent controls
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          jq -e '.status == "passed" and .macro_particle_count == null' summary-report.json >/dev/null
+          jq -e '.status == "passed" and .macro_particle_count == 8 and .asset_sha256 == "759c2c5372f4fd4fe959a65b7a70be6dcde3113df8a233944ad17e6f205f81b9"' full-report.json >/dev/null
+          jq -e '
+            .benchmark_id == "muon-collider-physics-agent"
+            and .version == "0.1.0"
+            and .evidence_class == "synthetic_workflow_control_cases"
+            and (.cases | length) == 6
+            and ([.cases[].case_id] | length == (unique | length))
+            and (.cases | all(.synthetic_only == true))
+            and any(.cases[]; .case_id == "agent-valid-reproduction-001" and .expected.qualification_decision == "accept")
+            and any(.cases[]; .case_id == "agent-infrastructure-failure-001" and .expected.technical_status == "blocked" and .expected.scientific_status == "not_evaluated")
+            and any(.cases[]; .case_id == "agent-successful-but-wrong-001" and .expected.technical_status == "success" and .expected.scientific_status == "invalid" and .expected.qualification_decision == "reject")
+            and any(.cases[]; .case_id == "agent-stale-input-001" and .expected.evidence_integrity == "invalid" and .expected.qualification_decision == "reject")
+            and any(.cases[]; .case_id == "agent-unsupported-domain-001" and .expected.qualification_decision == "abstain")
+            and any(.cases[]; .case_id == "agent-replay-divergence-001" and .expected.evidence_integrity == "invalid" and .expected.qualification_decision == "reject")
+          ' docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json >/dev/null
+          cp docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json physics-agent-benchmark-cases.json
+
+      - name: Generate physics-agent benchmark lock
+        run: cargo generate-lockfile --manifest-path tools/physics-agent-benchmark/Cargo.toml
+
+      - name: Check physics-agent benchmark formatting
+        run: cargo fmt --manifest-path tools/physics-agent-benchmark/Cargo.toml -- --check
+
+      - name: Run physics-agent benchmark unit tests
+        run: cargo test --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml
+
+      - name: Run physics-agent benchmark strict Clippy
+        run: cargo clippy --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml --all-targets -- -D warnings
+
+      - name: Evaluate synthetic physics-agent case registry
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/physics-agent-benchmark/Cargo.toml -- \
+            docs/research/muon-collider/physics-agent-benchmark-cases.v0.1.json \
+            > physics-agent-report.json
+
+      - name: Assert physics-agent oracle report
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          jq -e '.status == "passed" and .case_count == 6 and .matched_case_count == 6 and .mismatch_count == 0' physics-agent-report.json >/dev/null
+
+      - name: Generate muon-cooling data audit lock
+        run: cargo generate-lockfile --manifest-path tools/muon-cooling-data-audit/Cargo.toml
+
+      - name: Check muon-cooling data audit formatting
+        run: cargo fmt --manifest-path tools/muon-cooling-data-audit/Cargo.toml -- --check
+
+      - name: Run muon-cooling data audit tests
+        run: cargo test --locked --manifest-path tools/muon-cooling-data-audit/Cargo.toml
+
+      - name: Run muon-cooling data audit strict Clippy
+        run: cargo clippy --locked --manifest-path tools/muon-cooling-data-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate MuonColliderSoft metrics admission lock
+        run: cargo generate-lockfile --manifest-path tools/mucoll-metrics-admission/Cargo.toml
+
+      - name: Check MuonColliderSoft metrics admission formatting
+        run: cargo fmt --manifest-path tools/mucoll-metrics-admission/Cargo.toml -- --check
+
+      - name: Run MuonColliderSoft metrics admission unit and negative-control tests
+        run: cargo test --locked --manifest-path tools/mucoll-metrics-admission/Cargo.toml
+
+      - name: Run MuonColliderSoft metrics admission strict Clippy
+        run: cargo clippy --locked --manifest-path tools/mucoll-metrics-admission/Cargo.toml --all-targets -- -D warnings
+
+      - name: Fetch exact upstream WG4 source snapshot and verify source objects
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          upstream_commit="d453b0ce0efd018ffb8d32927ac74cb597a02d26"
+          git init upstream-cooling-demonstrator
+          git -C upstream-cooling-demonstrator remote add origin https://github.com/MuonCollider-WG4/cooling_demonstrator.git
+          git -C upstream-cooling-demonstrator fetch --depth=1 origin "$upstream_commit"
+          git -C upstream-cooling-demonstrator checkout --detach FETCH_HEAD
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD)" = "$upstream_commit"
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/bdsim/lowemittancebeam.dat)" = "9e31ff9e1e65ca31aa082f685a2f5fc0b81a7217"
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/bdsim/lowemittancebeam.gmad)" = "f5ff777ee61ec8985a03f5439b272903917c8e8e"
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/bdsim/solenoidsheetdemonstrator102.gmad)" = "1f564a733fcc63d46d0eff6ece5c89d2b93519c9"
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/g4bl/cooling.g4bl)" = "dc0cb955ef657cdc1862b4b5c30e2fe415d4e377"
+          test "$(git -C upstream-cooling-demonstrator rev-parse HEAD:cooling/g4bl/g4bl.log)" = "a69acc28ea77d9055685c05936615460f87059d9"
+
+      - name: Fetch exact BDSIM muoncooler implementation source
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bdsim_commit="d18134084b3960ba07bea81a7e2772114062f8b3"
+          git init upstream-bdsim
+          git -C upstream-bdsim remote add origin https://github.com/bdsim-collaboration/bdsim.git
+          git -C upstream-bdsim fetch --depth=1 origin "$bdsim_commit"
+          git -C upstream-bdsim checkout --detach FETCH_HEAD
+          test "$(git -C upstream-bdsim rev-parse HEAD)" = "$bdsim_commit"
+          test "$(git -C upstream-bdsim rev-parse HEAD:examples/muoncooling/muoncooler.gmad)" = "a71dbf70605d3dbed9b27fab43436a77a8171d6d"
+          test "$(wc -c < upstream-bdsim/examples/muoncooling/muoncooler.gmad | tr -d ' ')" = "2489"
+
+      - name: Verify pinned MuonColliderSoft detector benchmark sources
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          benchmarks_commit="f1d1cddc412fa037dd21449af90c97ce4d16f293"
+          git init upstream-mucoll-benchmarks
+          git -C upstream-mucoll-benchmarks remote add origin https://github.com/MuonColliderSoft/mucoll-benchmarks.git
+          git -C upstream-mucoll-benchmarks fetch --depth=1 origin "$benchmarks_commit"
+          git -C upstream-mucoll-benchmarks checkout --detach FETCH_HEAD
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD)" = "$benchmarks_commit"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:README.md)" = "8acec4d650a03e2e70e21896805a1880188e23f6"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/benchmarks/README.md)" = "2b0b8cabbfe29df2c24c94d440b360720ab99971"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/benchmarks/aggregate_metrics.py)" = "8d9b01bbc9eb9ada7247aea1a623b420b3d12df2"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:analysis/python/edm4hep/benchmark_metrics.py)" = "06425a9f7292f5e67726ac042b17bd04a353f8bc"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:workflows/README.md)" = "48bf28eee40d28cdf99c3958d88f70e7b0b4fd0c"
+          test "$(git -C upstream-mucoll-benchmarks rev-parse HEAD:simulation/README.md)" = "df445c6b59fdc9e547a7d0c16424c5bc7054fb5b"
+
+          spack_commit="553debf49dd25628054e95f3a24d1d067d5ef1ed"
+          git init upstream-mucoll-spack
+          git -C upstream-mucoll-spack remote add origin https://github.com/MuonColliderSoft/mucoll-spack.git
+          git -C upstream-mucoll-spack fetch --depth=1 origin "$spack_commit"
+          git -C upstream-mucoll-spack checkout --detach FETCH_HEAD
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD)" = "$spack_commit"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:README.md)" = "235ec5aecd29f8321af7fd467123bace73917642"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:doc/ReleaseNotes.md)" = "5ee5157424986c80b361c4ba6aa9e5ee7924aa36"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:packages/mucoll-stack/package.py)" = "14bf60b869da15dc4fd5af16ec00ddbbfc279cae"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/README.md)" = "83dff5ff19cf147d6dbed45ed907414d0c0778ee"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/run_chain.sh)" = "7c5e8ea825274c61e2c854cd0fec1537b70d336e"
+          test "$(git -C upstream-mucoll-spack rev-parse HEAD:validation/write_provenance.py)" = "769f9427f37ce5092cb6aec62f92442e67b3830b"
+
+          jq -e '.repositories.benchmarks.commit == "f1d1cddc412fa037dd21449af90c97ce4d16f293" and .repositories.spack.commit == "553debf49dd25628054e95f3a24d1d067d5ef1ed" and .repositories.benchmarks.current_physics_threshold_status == "upstream documentation says no pass/fail physics tolerances are applied yet"' docs/research/muon-collider/mucoll-detector-benchmark-stack.v0.1.json >/dev/null
+
+      - name: Audit pinned native BDSIM userfile
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cargo run --locked --manifest-path tools/muon-cooling-data-audit/Cargo.toml -- \
+            --manifest docs/research/muon-collider/wg4-cooling-demonstrator-v0.1.json \
+            --input upstream-cooling-demonstrator/cooling/bdsim/lowemittancebeam.dat \
+            > wg4-cooling-demonstrator-audit.json
+
+      - name: Assert pinned data summary and claim boundaries
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          jq -e '.status == "passed" and .evidence_class == "upstream_native_input_distribution" and .source_identity.commit == "d453b0ce0efd018ffb8d32927ac74cb597a02d26" and .source_identity.git_blob_sha1 == "9e31ff9e1e65ca31aa082f685a2f5fc0b81a7217"' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.native_distribution_summary.record_count == 10001 and .native_distribution_summary.coordinate_representation == "native_bdsim_userfile"' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.beam_declaration.native_format == "x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]" and .beam_declaration.source_header_labels[1].header_label == "px" and .beam_declaration.source_header_labels[1].name == "xp" and .beam_declaration.source_header_labels[1].unit == "rad" and .beam_declaration.source_header_labels[3].header_label == "py" and .beam_declaration.source_header_labels[3].name == "yp" and .beam_declaration.source_header_labels[3].unit == "rad"' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.native_distribution_summary.columns[5].mean > 200.00020 and .native_distribution_summary.columns[5].mean < 200.00024 and .native_distribution_summary.columns[5].population_standard_deviation > 0.0000010 and .native_distribution_summary.columns[5].population_standard_deviation < 0.0000012' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.native_distribution_summary.native_rms_covariance_determinants.horizontal_x_xp.value > 0.0992 and .native_distribution_summary.native_rms_covariance_determinants.horizontal_x_xp.value < 0.0993 and .native_distribution_summary.native_rms_covariance_determinants.vertical_y_yp.value > 0.1005 and .native_distribution_summary.native_rms_covariance_determinants.vertical_y_yp.value < 0.1007' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.bdsim_lattice.absorber_count == 0 and .model_context.bdsim_lattice.rf_cavity_count == 0 and .model_context.bdsim_lattice.ionization_cooling_claim_admissible == false and .model_context.g4bl_baseline.equivalent_to_bdsim_model == false' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.g4bl_run_log.decay_process_disabled == true and .model_context.g4bl_run_log.muon_survival_status == "not_evaluated" and .claim_status.muon_survival_qualification == "not_evaluated" and .claim_status.normalized_emittance_emitted == false' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.bdsim_muoncooler_implementation.commit == "d18134084b3960ba07bea81a7e2772114062f8b3" and .model_context.bdsim_muoncooler_implementation.git_blob_sha1 == "a71dbf70605d3dbed9b27fab43436a77a8171d6d" and .model_context.bdsim_muoncooler_implementation.declared_configuration.absorbers == 2 and .model_context.bdsim_muoncooler_implementation.declared_configuration.rf_cavities == 12 and .model_context.bdsim_muoncooler_implementation.equivalence_to_wg4_102_coil_model == false' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.published_bdsim_references.mu_col_d4_1.channel_length_m == 80 and .model_context.published_bdsim_references.ipac26_mop1048.channel_length_m == 100 and .model_context.published_bdsim_references.ipac26_mop1048.six_d_emittance_reduction_factor_approx == 2.3 and .model_context.published_bdsim_references.ipac26_mop1048.transmission_fraction_approx == 0.93 and .model_context.published_bdsim_references.ipac26_mop1048.muon_decay_enabled == false and .model_context.published_bdsim_references.ipac26_mop1048.input_asset_identity_to_pinned_lowemittancebeam_dat == "not_verified"' wg4-cooling-demonstrator-audit.json >/dev/null
+          jq -e '.model_context.benchmark_alignment.cross_code_equivalence == "not_established" and .claim_status.ionization_cooling_qualification == "not_evaluated" and .claim_status.rf_acceleration_qualification == "not_evaluated"' wg4-cooling-demonstrator-audit.json >/dev/null
+
+      - name: Retain lockfile and validation receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beam-handoff-validator-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            tools/beam-handoff-validator/Cargo.lock
+            tools/physics-agent-benchmark/Cargo.lock
+            tools/muon-cooling-data-audit/Cargo.lock
+            tools/mucoll-metrics-admission/Cargo.lock
+            summary-report.json
+            full-report.json
+            physics-agent-benchmark-cases.json
+            physics-agent-report.json
+            wg4-cooling-demonstrator-audit.json
+          if-no-files-found: warn
+          retention-days: 30
