@@ -22,9 +22,7 @@ The parser preserves the original native coordinate basis. BDSIM defines xp/yp a
 
 ```sh
 git clone https://github.com/MuonCollider-WG4/cooling_demonstrator.git
-cd cooling_demonstrator
-git checkout --detach d453b0ce0efd018ffb8d32927ac74cb597a02d26
-cd -
+git -C cooling_demonstrator checkout --detach d453b0ce0efd018ffb8d32927ac74cb597a02d26
 cargo run --manifest-path tools/muon-cooling-data-audit/Cargo.toml -- \
   --manifest docs/research/muon-collider/wg4-cooling-demonstrator-v0.1.json \
   --input cooling_demonstrator/cooling/bdsim/lowemittancebeam.dat
