@@ -15,6 +15,7 @@ use symtropy_hdc_core::{
 };
 
 pub mod partial;
+pub mod field;
 
 pub const GRAPH_SCHEMA_VERSION: u32 = 1;
 pub const ENCODER_RECIPE: &str = "holofrac-directed-typed-triple-v2:subject+subject-scale+predicate+object+object-scale:majority-bundle";
