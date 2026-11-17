@@ -19,7 +19,9 @@ fn at<'a>(root: &'a Value, path: &[&str]) -> Option<&'a Value> {
 }
 
 fn text_at<'a>(root: &'a Value, path: &[&str]) -> Option<&'a str> {
-    at(root, path)?.as_str().filter(|value| !value.trim().is_empty())
+    at(root, path)?
+        .as_str()
+        .filter(|value| !value.trim().is_empty())
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -122,7 +124,10 @@ fn compare_json(
 fn validate_authority(binding: &Value) -> Result<(), Value> {
     let authority = binding.get("authority");
     let valid = authority.is_some_and(|value| {
-        value.get("binding_is_evidence_only").and_then(Value::as_bool) == Some(true)
+        value
+            .get("binding_is_evidence_only")
+            .and_then(Value::as_bool)
+            == Some(true)
             && value.get("energization_authority").and_then(Value::as_bool) == Some(false)
             && value.get("interlock_override").and_then(Value::as_bool) == Some(false)
     });
@@ -146,60 +151,110 @@ fn validate_primitive_chain(binding: &Value, trusted: &Value) -> Result<(), Valu
         return Err(incomplete(claimed));
     };
     let Some(primitives) = path.get("primitives").and_then(Value::as_array) else {
-        return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+        return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
     };
     let Some(trusted_primitives) = trusted_path.get("primitives").and_then(Value::as_array) else {
         return Err(incomplete(claimed));
     };
     if primitives.is_empty() || trusted_primitives.is_empty() {
-        return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+        return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
     }
     if primitives.len() < trusted_primitives.len() {
-        return Err(report("UNRESOLVED", Some("MISSING_CONVERSION_EVIDENCE"), claimed));
+        return Err(report(
+            "UNRESOLVED",
+            Some("MISSING_CONVERSION_EVIDENCE"),
+            claimed,
+        ));
     }
     if primitives.len() != trusted_primitives.len() {
-        return Err(report("NOT_COMPARABLE", Some("TRANSPORT_PRIMITIVE_SET_MISMATCH"), claimed));
+        return Err(report(
+            "NOT_COMPARABLE",
+            Some("TRANSPORT_PRIMITIVE_SET_MISMATCH"),
+            claimed,
+        ));
     }
 
     let source_port = text_at(path, &["source_port_id"]);
     let useful_port = text_at(path, &["useful_service_port_id"]);
     let first_source = text_at(&primitives[0], &["source_port_id"]);
-    let last_destination = primitives.last().and_then(|item| text_at(item, &["destination_port_id"]));
+    let last_destination = primitives
+        .last()
+        .and_then(|item| text_at(item, &["destination_port_id"]));
     if source_port.is_none()
         || useful_port.is_none()
         || first_source != source_port
         || last_destination != useful_port
     {
-        return Err(report("NOT_COMPARABLE", Some("PRIMITIVE_CHAIN_DISCONTINUITY"), claimed));
+        return Err(report(
+            "NOT_COMPARABLE",
+            Some("PRIMITIVE_CHAIN_DISCONTINUITY"),
+            claimed,
+        ));
     }
 
     for (index, primitive) in primitives.iter().enumerate() {
         let Some(primitive_digest) = text_at(primitive, &["primitive_digest"]) else {
-            return Err(report("UNRESOLVED", Some("INVALID_OR_MISSING_DIGEST"), claimed));
+            return Err(report(
+                "UNRESOLVED",
+                Some("INVALID_OR_MISSING_DIGEST"),
+                claimed,
+            ));
         };
         if !valid_sha256(primitive_digest) {
-            return Err(report("UNRESOLVED", Some("INVALID_OR_MISSING_DIGEST"), claimed));
+            return Err(report(
+                "UNRESOLVED",
+                Some("INVALID_OR_MISSING_DIGEST"),
+                claimed,
+            ));
         }
         let evidence_class = text_at(primitive, &["evidence_class"]).unwrap_or("Unknown");
         let evidence_id = text_at(primitive, &["evidence_id"]);
         if evidence_class == "Unknown" || evidence_id.is_none() {
-            return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
         }
         let Some(source) = text_at(primitive, &["source_port_id"]) else {
-            return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
         };
         let Some(destination) = text_at(primitive, &["destination_port_id"]) else {
-            return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
         };
         if index > 0 {
             let prior_destination =
                 text_at(&primitives[index - 1], &["destination_port_id"]).unwrap_or("");
             if prior_destination != source {
-                return Err(report("NOT_COMPARABLE", Some("PRIMITIVE_CHAIN_DISCONTINUITY"), claimed));
+                return Err(report(
+            "NOT_COMPARABLE",
+            Some("PRIMITIVE_CHAIN_DISCONTINUITY"),
+            claimed,
+        ));
             }
         }
         if destination.trim().is_empty() {
-            return Err(report("UNRESOLVED", Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("PRIMITIVE_EVIDENCE_NOT_ADMISSIBLE"),
+            claimed,
+        ));
         }
 
         let Some(expected_stages) = trusted_primitives[index]
@@ -210,15 +265,27 @@ fn validate_primitive_chain(binding: &Value, trusted: &Value) -> Result<(), Valu
         };
         let Some(actual_stages) = primitive.get("conversion_stages").and_then(Value::as_array)
         else {
-            return Err(report("UNRESOLVED", Some("MISSING_CONVERSION_EVIDENCE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("MISSING_CONVERSION_EVIDENCE"),
+            claimed,
+        ));
         };
         if expected_stages.iter().any(|stage| !actual_stages.contains(stage)) {
-            return Err(report("UNRESOLVED", Some("MISSING_CONVERSION_EVIDENCE"), claimed));
+            return Err(report(
+            "UNRESOLVED",
+            Some("MISSING_CONVERSION_EVIDENCE"),
+            claimed,
+        ));
         }
     }
 
     if primitives != trusted_primitives {
-        return Err(report("NOT_COMPARABLE", Some("TRANSPORT_PRIMITIVE_MISMATCH"), claimed));
+        return Err(report(
+            "NOT_COMPARABLE",
+            Some("TRANSPORT_PRIMITIVE_MISMATCH"),
+            claimed,
+        ));
     }
     Ok(())
 }
@@ -241,70 +308,169 @@ pub fn evaluate_transport_session_binding(binding: &Value, trusted: &Value) -> V
     }
 
     if let Err(result) = compare_text(
-        binding, trusted, &["session_event", "session_id"], "SESSION_EVENT_IDENTITY_MISMATCH",
-    ) { return result; }
-    if let Err(result) = compare_text(
-        binding, trusted, &["session_event", "event_id"], "SESSION_EVENT_IDENTITY_MISMATCH",
-    ) { return result; }
-    if let Err(result) = compare_digest(
-        binding, trusted, &["session_event", "event_digest"], "SESSION_EVENT_DIGEST_MISMATCH",
-    ) { return result; }
-
-    if let Err(result) = compare_text(
-        binding, trusted, &["assets", "source_id"], "SOURCE_IDENTITY_MISMATCH",
-    ) { return result; }
-    for field in ["source_capability_digest", "source_firmware_digest", "source_topology_digest"] {
-        if let Err(result) = compare_digest(
-            binding, trusted, &["assets", field], "SOURCE_IDENTITY_MISMATCH",
-        ) { return result; }
+        binding,
+        trusted,
+        &["session_event", "session_id"],
+        "SESSION_EVENT_IDENTITY_MISMATCH",
+    ) {
+        return result;
     }
     if let Err(result) = compare_text(
-        binding, trusted, &["assets", "receiver_id"], "RECEIVER_IDENTITY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["session_event", "event_id"],
+        "SESSION_EVENT_IDENTITY_MISMATCH",
+    ) {
+        return result;
+    }
+    if let Err(result) = compare_digest(
+        binding,
+        trusted,
+        &["session_event", "event_digest"],
+        "SESSION_EVENT_DIGEST_MISMATCH",
+    ) {
+        return result;
+    }
+
+    if let Err(result) = compare_text(
+        binding,
+        trusted,
+        &["assets", "source_id"],
+        "SOURCE_IDENTITY_MISMATCH",
+    ) {
+        return result;
+    }
+    for field in [
+        "source_capability_digest",
+        "source_firmware_digest",
+        "source_topology_digest",
+    ] {
+        if let Err(result) = compare_digest(
+            binding,
+            trusted,
+            &["assets", field],
+            "SOURCE_IDENTITY_MISMATCH",
+        ) {
+            return result;
+        }
+    }
+    if let Err(result) = compare_text(
+        binding,
+        trusted,
+        &["assets", "receiver_id"],
+        "RECEIVER_IDENTITY_MISMATCH",
+    ) {
+        return result;
+    }
     for field in ["receiver_capability_digest", "receiver_firmware_digest"] {
         if let Err(result) = compare_digest(
-            binding, trusted, &["assets", field], "RECEIVER_IDENTITY_MISMATCH",
-        ) { return result; }
+            binding,
+            trusted,
+            &["assets", field],
+            "RECEIVER_IDENTITY_MISMATCH",
+        ) {
+            return result;
+        }
     }
 
     if let Err(result) = compare_text(
-        binding, trusted, &["service", "service_type"], "SERVICE_PROFILE_MISMATCH",
-    ) { return result; }
-    for field in ["service_profile_digest", "quality_profile_digest", "duty_cycle_digest", "scenario_digest"] {
+        binding,
+        trusted,
+        &["service", "service_type"],
+        "SERVICE_PROFILE_MISMATCH",
+    ) {
+        return result;
+    }
+    for field in [
+        "service_profile_digest",
+        "quality_profile_digest",
+        "duty_cycle_digest",
+        "scenario_digest",
+    ] {
         if let Err(result) = compare_digest(
-            binding, trusted, &["service", field], "SERVICE_PROFILE_MISMATCH",
-        ) { return result; }
+            binding,
+            trusted,
+            &["service", field],
+            "SERVICE_PROFILE_MISMATCH",
+        ) {
+            return result;
+        }
     }
     if let Err(result) = compare_text(
-        binding, trusted, &["service", "source_input_boundary_id"], "SOURCE_BOUNDARY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["service", "source_input_boundary_id"],
+        "SOURCE_BOUNDARY_MISMATCH",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_digest(
-        binding, trusted, &["service", "source_boundary_profile_digest"], "SOURCE_BOUNDARY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["service", "source_boundary_profile_digest"],
+        "SOURCE_BOUNDARY_MISMATCH",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_text(
-        binding, trusted, &["service", "useful_output_boundary_id"], "USEFUL_OUTPUT_BOUNDARY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["service", "useful_output_boundary_id"],
+        "USEFUL_OUTPUT_BOUNDARY_MISMATCH",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_digest(
-        binding, trusted, &["service", "useful_boundary_profile_digest"], "USEFUL_OUTPUT_BOUNDARY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["service", "useful_boundary_profile_digest"],
+        "USEFUL_OUTPUT_BOUNDARY_MISMATCH",
+    ) {
+        return result;
+    }
 
     if let Err(result) = compare_text(
-        binding, trusted, &["transport_path", "path_id"], "TRANSPORT_PATH_IDENTITY_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["transport_path", "path_id"],
+        "TRANSPORT_PATH_IDENTITY_MISMATCH",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_text(
-        binding, trusted, &["transport_path", "path_revision_id"], "STALE_TRANSPORT_PATH_REVISION",
-    ) { return result; }
+        binding,
+        trusted,
+        &["transport_path", "path_revision_id"],
+        "STALE_TRANSPORT_PATH_REVISION",
+    ) {
+        return result;
+    }
     for field in ["path_digest", "operating_regime_profile_digest"] {
         if let Err(result) = compare_digest(
-            binding, trusted, &["transport_path", field], "STALE_TRANSPORT_PATH_REVISION",
-        ) { return result; }
+            binding,
+            trusted,
+            &["transport_path", field],
+            "STALE_TRANSPORT_PATH_REVISION",
+        ) {
+            return result;
+        }
     }
     if let Err(result) = compare_text(
-        binding, trusted, &["transport_path", "source_port_id"], "PRIMITIVE_CHAIN_DISCONTINUITY",
-    ) { return result; }
+        binding,
+        trusted,
+        &["transport_path", "source_port_id"],
+        "PRIMITIVE_CHAIN_DISCONTINUITY",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_text(
-        binding, trusted, &["transport_path", "useful_service_port_id"], "PRIMITIVE_CHAIN_DISCONTINUITY",
-    ) { return result; }
+        binding,
+        trusted,
+        &["transport_path", "useful_service_port_id"],
+        "PRIMITIVE_CHAIN_DISCONTINUITY",
+    ) {
+        return result;
+    }
 
     let source_boundary = text_at(binding, &["service", "source_input_boundary_id"]);
     let path_source = text_at(binding, &["transport_path", "source_port_id"]);
@@ -314,18 +480,32 @@ pub fn evaluate_transport_session_binding(binding: &Value, trusted: &Value) -> V
     let useful_boundary = text_at(binding, &["service", "useful_output_boundary_id"]);
     let path_useful = text_at(binding, &["transport_path", "useful_service_port_id"]);
     if useful_boundary.is_none() || useful_boundary != path_useful {
-        return report("NOT_COMPARABLE", Some("USEFUL_OUTPUT_BOUNDARY_MISMATCH"), claimed);
+        return report(
+            "NOT_COMPARABLE",
+            Some("USEFUL_OUTPUT_BOUNDARY_MISMATCH"),
+            claimed,
+        );
     }
 
     if let Err(result) = validate_primitive_chain(binding, trusted) {
         return result;
     }
     if let Err(result) = compare_json(
-        binding, trusted, &["measurement_profile_digest"], "MEASUREMENT_PROFILE_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["measurement_profile_digest"],
+        "MEASUREMENT_PROFILE_MISMATCH",
+    ) {
+        return result;
+    }
     if let Err(result) = compare_json(
-        binding, trusted, &["calibration_receipt_digests"], "MEASUREMENT_PROFILE_MISMATCH",
-    ) { return result; }
+        binding,
+        trusted,
+        &["calibration_receipt_digests"],
+        "MEASUREMENT_PROFILE_MISMATCH",
+    ) {
+        return result;
+    }
     if let Some(digest) = text_at(binding, &["measurement_profile_digest"]) {
         if !valid_sha256(digest) {
             return report("UNRESOLVED", Some("INVALID_OR_MISSING_DIGEST"), claimed);
@@ -423,14 +603,12 @@ mod tests {
             );
             let result = evaluate_transport_session_binding(&binding, &context);
             assert_eq!(
-                result["disposition"],
-                control["expected_disposition"],
+                result["disposition"], control["expected_disposition"],
                 "scenario {}",
                 control["scenario_id"]
             );
             assert_eq!(
-                result["reason_codes"][0],
-                control["expected_reason_codes"][0],
+                result["reason_codes"][0], control["expected_reason_codes"][0],
                 "scenario {}",
                 control["scenario_id"]
             );
@@ -444,7 +622,10 @@ mod tests {
     #[test]
     fn missing_trusted_path_is_unresolved_not_self_authorized() {
         let (binding, mut context) = fixtures();
-        context.as_object_mut().expect("object").remove("transport_path");
+        context
+            .as_object_mut()
+            .expect("object")
+            .remove("transport_path");
         let result = evaluate_transport_session_binding(&binding, &context);
         assert_eq!(result["disposition"], "UNRESOLVED");
         assert_eq!(result["energization_authority"], false);

@@ -25,7 +25,9 @@ fn run_binding(binding_path: OsString, context_path: OsString) -> Result<(), Str
     println!("{report}");
     match report.get("disposition").and_then(Value::as_str) {
         Some("METADATA_BOUND") => Ok(()),
-        Some(disposition) => Err(format!("transport-session binding disposition: {disposition}")),
+        Some(disposition) => Err(format!(
+            "transport-session binding disposition: {disposition}"
+        )),
         None => Err("validator returned no binding disposition".into()),
     }
 }
