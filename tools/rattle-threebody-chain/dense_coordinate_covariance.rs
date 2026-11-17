@@ -206,9 +206,363 @@ fn assert_close(actual: &Vec9, expected: &Vec9, tolerance: f64) {
     assert!(vector_max_abs(actual, expected) <= tolerance);
 }
 
+type RelativeMaps = [[[f64; N]; 3]; 2];
+
+fn relative_maps(basis: &Mat9) -> RelativeMaps {
+    let mut maps = [[[0.0; N]; 3]; 2];
+    let edges = [(0_usize, 1_usize), (1_usize, 2_usize)];
+    for (edge, (from, to)) in edges.into_iter().enumerate() {
+        for axis in 0..3 {
+            for column in 0..N {
+                maps[edge][axis][column] =
+                    basis[3 * to + axis][column] - basis[3 * from + axis][column];
+            }
+        }
+    }
+    maps
+}
+
+fn apply_relative_map(map: &[[f64; N]; 3], y: &Vec9) -> [f64; 3] {
+    let mut relative = [0.0; 3];
+    for axis in 0..3 {
+        for coordinate in 0..N {
+            relative[axis] += map[axis][coordinate] * y[coordinate];
+        }
+    }
+    relative
+}
+
+fn dense_constraint_jacobian(
+    maps: &RelativeMaps,
+    y: &Vec9,
+) -> Jacobian {
+    let mut jacobian = [[0.0; N]; 2];
+    for edge in 0..2 {
+        let relative = apply_relative_map(&maps[edge], y);
+        for coordinate in 0..N {
+            for axis in 0..3 {
+                jacobian[edge][coordinate] +=
+                    relative[axis] * maps[edge][axis][coordinate];
+            }
+        }
+    }
+    jacobian
+}
+
+fn solve_dense_metric(metric: &Mat9, rhs: &Vec9) -> Vec9 {
+    let mut augmented = [[0.0; N + 1]; N];
+    for row in 0..N {
+        for column in 0..N {
+            augmented[row][column] = metric[row][column];
+        }
+        augmented[row][N] = rhs[row];
+    }
+
+    for pivot in 0..N {
+        let mut selected = pivot;
+        for row in (pivot + 1)..N {
+            if augmented[row][pivot].abs() > augmented[selected][pivot].abs() {
+                selected = row;
+            }
+        }
+        assert!(
+            augmented[selected][pivot].abs() > 1.0e-14,
+            "transformed mass metric lost numerical rank"
+        );
+        augmented.swap(pivot, selected);
+
+        let diagonal = augmented[pivot][pivot];
+        for column in pivot..=N {
+            augmented[pivot][column] /= diagonal;
+        }
+        for row in 0..N {
+            if row == pivot {
+                continue;
+            }
+            let factor = augmented[row][pivot];
+            for column in pivot..=N {
+                augmented[row][column] -= factor * augmented[pivot][column];
+            }
+        }
+    }
+
+    let mut solution = [0.0; N];
+    for row in 0..N {
+        solution[row] = augmented[row][N];
+    }
+    solution
+}
+
+fn solve_2x2_dense(matrix: [[f64; 2]; 2], rhs: [f64; 2]) -> [f64; 2] {
+    let determinant = matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+    let scale = matrix
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+    assert!(determinant.is_finite() && determinant.abs() > 1.0e-14 * scale * scale);
+    [
+        (rhs[0] * matrix[1][1] - matrix[0][1] * rhs[1]) / determinant,
+        (matrix[0][0] * rhs[1] - rhs[0] * matrix[1][0]) / determinant,
+    ]
+}
+
+fn dense_position_residuals(
+    maps: &RelativeMaps,
+    y: &Vec9,
+    lengths: [f64; 2],
+) -> [f64; 2] {
+    let mut residuals = [0.0; 2];
+    for edge in 0..2 {
+        let relative = apply_relative_map(&maps[edge], y);
+        residuals[edge] =
+            0.5 * (relative.iter().map(|value| value * value).sum::<f64>()
+                - lengths[edge] * lengths[edge]);
+    }
+    residuals
+}
+
+/// A genuine dense-coordinate SHAKE/RATTLE step. The generalized velocity,
+/// mass metric, constraint Jacobians, KKT solves and momentum projection all
+/// remain in y-coordinates; S is used only to define the represented
+/// constraint maps and to lift the final result for comparison.
+fn dense_coordinate_rattle_step(
+    basis: &Mat9,
+    inverse: &Mat9,
+    masses: [f64; 3],
+    lengths: [f64; 2],
+    q0: &Vec9,
+    vq0: &Vec9,
+    dt: f64,
+) -> (Vec9, Vec9, [f64; 2], [f64; 2], [f64; 2]) {
+    let metric_q = mass_metric();
+    let metric_y = multiply(&transpose(basis), &multiply(&metric_q, basis));
+    let maps = relative_maps(basis);
+    let y0 = mat_vec(inverse, q0);
+    let vy0 = mat_vec(inverse, vq0);
+    let j0 = dense_constraint_jacobian(&maps, &y0);
+
+    // Compute M_y^-1 J_y(y_0)^T by solving the dense SPD metric directly.
+    let mut minv_j0_t = [[0.0; N]; 2];
+    for edge in 0..2 {
+        let mut covector = [0.0; N];
+        covector.copy_from_slice(&j0[edge]);
+        minv_j0_t[edge] = solve_dense_metric(&metric_y, &covector);
+    }
+
+    let mut y_free = y0;
+    for coordinate in 0..N {
+        y_free[coordinate] += dt * vy0[coordinate];
+    }
+    let mut multipliers = [0.0; 2];
+    let mut y_plus = y_free;
+    let mut residuals = dense_position_residuals(&maps, &y_plus, lengths);
+
+    for _ in 0..32 {
+        let scaled_norm = (0..2)
+            .map(|edge| {
+                let value = residuals[edge] / (1.0 + lengths[edge] * lengths[edge]);
+                value * value
+            })
+            .sum::<f64>()
+            .sqrt();
+        if scaled_norm <= 2.0e-13 {
+            break;
+        }
+
+        let j_plus = dense_constraint_jacobian(&maps, &y_plus);
+        let mut newton = [[0.0; 2]; 2];
+        for row in 0..2 {
+            for column in 0..2 {
+                let contraction = (0..N)
+                    .map(|coordinate| j_plus[row][coordinate] * minv_j0_t[column][coordinate])
+                    .sum::<f64>();
+                newton[row][column] = -0.5 * dt * dt * contraction;
+            }
+        }
+        let delta = solve_2x2_dense(newton, [-residuals[0], -residuals[1]]);
+        let mut fraction = 1.0;
+        let mut accepted = false;
+        for _ in 0..20 {
+            let candidate_multipliers = [
+                multipliers[0] + fraction * delta[0],
+                multipliers[1] + fraction * delta[1],
+            ];
+            let mut candidate = y_free;
+            for coordinate in 0..N {
+                candidate[coordinate] -= 0.5
+                    * dt
+                    * dt
+                    * (minv_j0_t[0][coordinate] * candidate_multipliers[0]
+                        + minv_j0_t[1][coordinate] * candidate_multipliers[1]);
+            }
+            let candidate_residuals = dense_position_residuals(&maps, &candidate, lengths);
+            let candidate_norm = (0..2)
+                .map(|edge| {
+                    let value = candidate_residuals[edge]
+                        / (1.0 + lengths[edge] * lengths[edge]);
+                    value * value
+                })
+                .sum::<f64>()
+                .sqrt();
+            if candidate_norm < scaled_norm {
+                multipliers = candidate_multipliers;
+                y_plus = candidate;
+                residuals = candidate_residuals;
+                accepted = true;
+                break;
+            }
+            fraction *= 0.5;
+        }
+        assert!(accepted, "dense-coordinate SHAKE Newton line search stalled");
+    }
+    let final_position_norm = (0..2)
+        .map(|edge| {
+            let value = residuals[edge] / (1.0 + lengths[edge] * lengths[edge]);
+            value * value
+        })
+        .sum::<f64>()
+        .sqrt();
+    assert!(final_position_norm <= 2.0e-13, "dense-coordinate SHAKE did not converge");
+
+    // RATTLE endpoint momentum projection, entirely in the dense y metric.
+    let mut momentum_half = mat_vec(&metric_y, &vy0);
+    for coordinate in 0..N {
+        momentum_half[coordinate] -= 0.5
+            * dt
+            * (j0[0][coordinate] * multipliers[0] + j0[1][coordinate] * multipliers[1]);
+    }
+    let j_plus = dense_constraint_jacobian(&maps, &y_plus);
+    let mut minv_jplus_t = [[0.0; N]; 2];
+    for edge in 0..2 {
+        let mut covector = [0.0; N];
+        covector.copy_from_slice(&j_plus[edge]);
+        minv_jplus_t[edge] = solve_dense_metric(&metric_y, &covector);
+    }
+    let mut velocity_gram = [[0.0; 2]; 2];
+    for row in 0..2 {
+        for column in 0..2 {
+            velocity_gram[row][column] = (0..N)
+                .map(|coordinate| j_plus[row][coordinate] * minv_jplus_t[column][coordinate])
+                .sum();
+        }
+    }
+    let minv_momentum_half = solve_dense_metric(&metric_y, &momentum_half);
+    let velocity_rhs = [
+        2.0 / dt
+            * (0..N)
+                .map(|coordinate| j_plus[0][coordinate] * minv_momentum_half[coordinate])
+                .sum::<f64>(),
+        2.0 / dt
+            * (0..N)
+                .map(|coordinate| j_plus[1][coordinate] * minv_momentum_half[coordinate])
+                .sum::<f64>(),
+    ];
+    let velocity_multipliers = solve_2x2_dense(velocity_gram, velocity_rhs);
+    let mut momentum_plus = momentum_half;
+    for coordinate in 0..N {
+        momentum_plus[coordinate] -= 0.5
+            * dt
+            * (j_plus[0][coordinate] * velocity_multipliers[0]
+                + j_plus[1][coordinate] * velocity_multipliers[1]);
+    }
+    let vy_plus = solve_dense_metric(&metric_y, &momentum_plus);
+
+    let q_plus = mat_vec(basis, &mat_vec(&identity_matrix(), &y_plus));
+    let vq_plus = mat_vec(basis, &mat_vec(&identity_matrix(), &vy_plus));
+    let lifted_residuals = dense_position_residuals(&maps, &y_plus, lengths);
+    (q_plus, vq_plus, multipliers, velocity_multipliers, lifted_residuals)
+}
+
+fn identity_matrix() -> Mat9 {
+    let mut identity = [[0.0; N]; N];
+    for index in 0..N {
+        identity[index][index] = 1.0;
+    }
+    identity
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn dense_generalized_coordinate_rattle_step_matches_independent_cartesian_step() {
+        let q0 = initial_position();
+        let vq0 = initial_velocity();
+        let masses = [1.3, 2.1, 0.8];
+        let lengths = [1.0_f64, 1.25_f64.sqrt()];
+        let state = super::super::State {
+            q: [
+                [q0[0], q0[1], q0[2]],
+                [q0[3], q0[4], q0[5]],
+                [q0[6], q0[7], q0[8]],
+            ],
+            v: [
+                [vq0[0], vq0[1], vq0[2]],
+                [vq0[3], vq0[4], vq0[5]],
+                [vq0[6], vq0[7], vq0[8]],
+            ],
+        };
+        let cartesian = super::super::CartesianRattleChain::new(masses, lengths).unwrap();
+        let dt = 0.01;
+        let reference = cartesian
+            .step(state, dt, super::super::SolverOptions::default())
+            .unwrap();
+
+        for scale in [1_i64, 2_i64] {
+            let (basis_i, inverse_i) = basis_pair(scale);
+            let basis = to_float(&basis_i);
+            let inverse = to_float(&inverse_i);
+            let (q_plus, v_plus, position_lambda, velocity_lambda, residuals) =
+                dense_coordinate_rattle_step(&basis, &inverse, masses, lengths, &q0, &vq0, dt);
+            let reference_q = [
+                reference.after.q[0][0],
+                reference.after.q[0][1],
+                reference.after.q[0][2],
+                reference.after.q[1][0],
+                reference.after.q[1][1],
+                reference.after.q[1][2],
+                reference.after.q[2][0],
+                reference.after.q[2][1],
+                reference.after.q[2][2],
+            ];
+            let reference_v = [
+                reference.after.v[0][0],
+                reference.after.v[0][1],
+                reference.after.v[0][2],
+                reference.after.v[1][0],
+                reference.after.v[1][1],
+                reference.after.v[1][2],
+                reference.after.v[2][0],
+                reference.after.v[2][1],
+                reference.after.v[2][2],
+            ];
+            assert!(vector_max_abs(&q_plus, &reference_q) <= 2.0e-8);
+            assert!(vector_max_abs(&v_plus, &reference_v) <= 2.0e-8);
+            assert!((position_lambda[0] - reference.position_multipliers[0]).abs() <= 2.0e-8);
+            assert!((position_lambda[1] - reference.position_multipliers[1]).abs() <= 2.0e-8);
+            assert!((velocity_lambda[0] - reference.velocity_multipliers[0]).abs() <= 2.0e-8);
+            assert!((velocity_lambda[1] - reference.velocity_multipliers[1]).abs() <= 2.0e-8);
+            assert!(residuals.iter().all(|residual| residual.abs() <= 2.0e-12));
+
+            let endpoint_jacobian = constraint_jacobian_at(&q_plus);
+            let endpoint_tangency = jacobian_vec(&endpoint_jacobian, &v_plus);
+            assert!(endpoint_tangency.iter().all(|value| value.abs() <= 2.0e-9));
+        }
+    }
+
+    fn constraint_jacobian_at(q: &Vec9) -> Jacobian {
+        let first = [q[3] - q[0], q[4] - q[1], q[5] - q[2]];
+        let second = [q[6] - q[3], q[7] - q[4], q[8] - q[5]];
+        let mut jacobian = [[0.0; N]; 2];
+        for axis in 0..3 {
+            jacobian[0][axis] = -first[axis];
+            jacobian[0][3 + axis] = first[axis];
+            jacobian[1][3 + axis] = -second[axis];
+            jacobian[1][6 + axis] = second[axis];
+        }
+        jacobian
+    }
 
     #[test]
     fn both_dense_integer_basis_changes_have_exact_inverse_witnesses() {
