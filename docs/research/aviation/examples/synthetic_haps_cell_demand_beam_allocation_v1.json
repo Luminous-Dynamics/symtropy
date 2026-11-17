@@ -1,0 +1,191 @@
+{
+  "schema_version": "haps-network-allocation-case/v1",
+  "case_id": "synthetic.haps.cell-demand.beam-budget.001",
+  "revision": 1,
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_allocation_oracle",
+  "demand_source": {
+    "source_kind": "synthetic_generator",
+    "trace_ref": null,
+    "source_digest": null,
+    "rights_or_license_ref": null,
+    "initialization_time_utc": null,
+    "available_at_decision_time": false,
+    "reanalysis_not_used_as_live_forecast": true,
+    "time_basis": "valid_time"
+  },
+  "evaluation": {
+    "region_ref": "synthetic.region.disaster-network.001",
+    "horizon_s": 2700,
+    "interval_duration_s": 900,
+    "critical_excess_definition": "max(offered_load_mbps - terrestrial_available_mbps, 0)"
+  },
+  "radio_resource_budget": {
+    "beam_budget": 2,
+    "per_beam_capacity_mbps": 10,
+    "allocation_policy": "critical_excess_weighted_greedy",
+    "tie_break_policy": "cell_id_ascending",
+    "beam_reallocation_interval_s": 900
+  },
+  "cells": [
+    {
+      "cell_id": "cell-east",
+      "latitude_deg": -22.01,
+      "longitude_deg": 23.01,
+      "priority_weight": 1,
+      "service_class": "emergency"
+    },
+    {
+      "cell_id": "cell-north",
+      "latitude_deg": -21.99,
+      "longitude_deg": 23,
+      "priority_weight": 1,
+      "service_class": "public_broadband"
+    },
+    {
+      "cell_id": "cell-south",
+      "latitude_deg": -22.01,
+      "longitude_deg": 23,
+      "priority_weight": 1,
+      "service_class": "health"
+    },
+    {
+      "cell_id": "cell-west",
+      "latitude_deg": -22,
+      "longitude_deg": 22.99,
+      "priority_weight": 1,
+      "service_class": "critical_infrastructure"
+    }
+  ],
+  "intervals": [
+    {
+      "offset_s": 0,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 20,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 7,
+          "terrestrial_available_mbps": 4
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 15,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 12,
+          "terrestrial_available_mbps": 6
+        }
+      ]
+    },
+    {
+      "offset_s": 900,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 12,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 18,
+          "terrestrial_available_mbps": 7
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 14,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 16,
+          "terrestrial_available_mbps": 8
+        }
+      ]
+    },
+    {
+      "offset_s": 1800,
+      "cell_loads": [
+        {
+          "cell_id": "cell-north",
+          "offered_load_mbps": 18,
+          "terrestrial_available_mbps": 9
+        },
+        {
+          "cell_id": "cell-east",
+          "offered_load_mbps": 17,
+          "terrestrial_available_mbps": 8
+        },
+        {
+          "cell_id": "cell-south",
+          "offered_load_mbps": 8,
+          "terrestrial_available_mbps": 6
+        },
+        {
+          "cell_id": "cell-west",
+          "offered_load_mbps": 20,
+          "terrestrial_available_mbps": 10
+        }
+      ]
+    }
+  ],
+  "expected_oracle": {
+    "oracle_status": "independently_calculated",
+    "intervals": [
+      {
+        "offset_s": 0,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-south"
+        ],
+        "critical_excess_offered_mbps": 27,
+        "critical_excess_served_mbps": 19,
+        "critical_excess_unserved_mbps": 8
+      },
+      {
+        "offset_s": 900,
+        "selected_cell_ids": [
+          "cell-east",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 29,
+        "critical_excess_served_mbps": 18,
+        "critical_excess_unserved_mbps": 11
+      },
+      {
+        "offset_s": 1800,
+        "selected_cell_ids": [
+          "cell-north",
+          "cell-west"
+        ],
+        "critical_excess_offered_mbps": 28,
+        "critical_excess_served_mbps": 18,
+        "critical_excess_unserved_mbps": 10
+      }
+    ],
+    "total_critical_excess_offered_mbps_intervals": 84,
+    "total_critical_excess_served_mbps_intervals": 55,
+    "total_critical_excess_unserved_mbps_intervals": 29,
+    "critical_excess_offload_fraction": 0.6547619047619048,
+    "beam_utilization_fraction": 0.9166666666666666,
+    "deterministic_allocation": true
+  },
+  "source_evidence_refs": [
+    "https://doi.org/10.1016/j.comnet.2026.112795"
+  ],
+  "assumptions": [
+    "All values are synthetic and are not SoftBank, Sceye or any operator traffic measurements.",
+    "Four cell demand areas are represented by centroids; no real propagation, radio geometry or interference model is used.",
+    "One beam is assigned per selected cell per interval; two simultaneous beams are available and each carries at most 10 Mbps of critical excess traffic.",
+    "Critical excess is offered load above the declared terrestrial available capacity, calculated independently for each cell and interval.",
+    "The greedy allocation selects cells by priority_weight times critical excess, descending, with cell_id ascending as the deterministic tie break.",
+    "Each cell can receive at most one beam in each interval; this is a scheduling fixture, not a beamforming or SINR result.",
+    "The expected oracle counts Mbps-interval sums; the interval duration is equal across rows, so the corresponding traffic volume would be those sums multiplied by 900 seconds.",
+    "No HAPS position, wind, energy, backhaul, service latency, interference, spectrum or safety result is implied."
+  ]
+}
