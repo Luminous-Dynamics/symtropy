@@ -19,12 +19,36 @@ pub enum LifecycleState {
     Disposed,
 }
 
+impl LifecycleState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Designed => "designed",
+            Self::InService => "in_service",
+            Self::Removed => "removed",
+            Self::Recovered => "recovered",
+            Self::Recycled => "recycled",
+            Self::Disposed => "disposed",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ComponentCondition {
     Good,
     Degraded,
     Damaged,
     Repaired,
+}
+
+impl ComponentCondition {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Good => "good",
+            Self::Degraded => "degraded",
+            Self::Damaged => "damaged",
+            Self::Repaired => "repaired",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +61,21 @@ pub enum LifecycleAction {
     Reuse,
     Recycle,
     Dispose,
+}
+
+impl LifecycleAction {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Install => "install",
+            Self::Inspect => "inspect",
+            Self::Repair => "repair",
+            Self::Remove => "remove",
+            Self::Recover => "recover",
+            Self::Reuse => "reuse",
+            Self::Recycle => "recycle",
+            Self::Dispose => "dispose",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -501,6 +540,12 @@ fn stable_digest(config: &LifecycleFixtureConfig, ledger: &ComponentLifecycleLed
         feed_u64(&mut hash, event.event_id);
         feed_u64(&mut hash, event.revision as u64);
         feed_u64(&mut hash, event.prior_event_id.unwrap_or(u64::MAX));
+        feed_text(&mut hash, event.component_id.as_str());
+        feed_text(&mut hash, event.action.as_str());
+        feed_text(&mut hash, event.state_before.as_str());
+        feed_text(&mut hash, event.state_after.as_str());
+        feed_text(&mut hash, event.condition_before.as_str());
+        feed_text(&mut hash, event.condition_after.as_str());
         feed_u64(&mut hash, event.effective_at_micros as u64);
         feed_u64(&mut hash, event.recorded_at_micros as u64);
         feed_u64(&mut hash, event.mass_before_kg.to_bits());
