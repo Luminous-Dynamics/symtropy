@@ -1,7 +1,7 @@
 use holofrac_spatial_retrieval::partial::PartialSpatialQuery;
 use holofrac_spatial_retrieval::{
-    reference_architecture_graph, run_benchmark, EncoderSpec, HoloFracEncoder, RelationKind,
-    SpatialIndex,
+    EncoderSpec, HoloFracEncoder, RelationKind, SpatialIndex, reference_architecture_graph,
+    run_benchmark,
 };
 
 fn metric(value: Option<f64>) -> String {
@@ -35,19 +35,11 @@ fn run_partial_queries(
         ),
         (
             "relation_object",
-            PartialSpatialQuery::new(
-                None,
-                Some(RelationKind::Supplies),
-                Some("kitchen".into()),
-            ),
+            PartialSpatialQuery::new(None, Some(RelationKind::Supplies), Some("kitchen".into())),
         ),
         (
             "subject_object",
-            PartialSpatialQuery::new(
-                Some("water-main".into()),
-                None,
-                Some("bathroom".into()),
-            ),
+            PartialSpatialQuery::new(Some("water-main".into()), None, Some("bathroom".into())),
         ),
         (
             "no_answer_control",
@@ -59,7 +51,9 @@ fn run_partial_queries(
         ),
     ];
 
-    println!("# partial_query,labelled_fields,exact_matches,abstained,slot_precision_at_5,slot_recall_at_5,slot_mrr_at_5,slot_false_suggestions,holistic_precision_at_5,holistic_recall_at_5,holistic_mrr_at_5,holistic_false_suggestions,encoding_us,slot_rank_us,holistic_rank_us,exact_oracle_us");
+    println!(
+        "# partial_query,labelled_fields,exact_matches,abstained,slot_precision_at_5,slot_recall_at_5,slot_mrr_at_5,slot_false_suggestions,holistic_precision_at_5,holistic_recall_at_5,holistic_mrr_at_5,holistic_false_suggestions,encoding_us,slot_rank_us,holistic_rank_us,exact_oracle_us"
+    );
     for (label, query) in queries {
         let report = index.rank_partial_query(graph, &encoder, &query, 5)?;
         println!(
