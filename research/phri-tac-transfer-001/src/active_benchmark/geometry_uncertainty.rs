@@ -894,6 +894,83 @@ pub fn validate_geometry_uq_against_monte_carlo(
     })
 }
 
+/// Deterministic 20,000-draw Monte Carlo comparison for the CLI. The output
+/// measures covariance agreement for this synthetic small-error scenario only.
+pub fn run_synthetic_geometry_uq_monte_carlo_example(
+) -> Result<GeometryUqMonteCarloReport, String> {
+    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
+    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
+    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+    let geometry = TaxelGeometrySet {
+        geometry_digest: "sha256:synthetic-geometry-mc-grid".to_owned(),
+        reference_frame_digest: "sha256:synthetic-geometry-mc-frame".to_owned(),
+        contact_boundary_digest: "sha256:synthetic-geometry-mc-boundary".to_owned(),
+        wrench_origin_m: Vec3::default(),
+        taxels: vec![
+            TaxelGeometry {
+                taxel_id: "taxel-0".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            },
+            TaxelGeometry {
+                taxel_id: "taxel-1".to_owned(),
+                area_m2: 1.0e-4,
+                application_point_m: Vec3 { x: -0.02, y: 0.0, z: 0.0 },
+                normal,
+                tangent_u,
+                tangent_v,
+            },
+        ],
+    };
+    let field = TractionFieldEstimate {
+        estimate_digest: "sha256:synthetic-geometry-mc-field".to_owned(),
+        sample_identity: "sample:synthetic-geometry-mc".to_owned(),
+        native_observation_set_digest: "sha256:synthetic-geometry-mc-native".to_owned(),
+        local_traction_pa: vec![10_000.0, 1_000.0, 500.0, 8_000.0, 500.0, 250.0],
+        standard_uncertainties_pa: vec![100.0; 6],
+        uncertainty_method_digest: "sha256:synthetic-geometry-mc-field-uq".to_owned(),
+        uncertainty_reference_ancestry_receipt_id: "receipt:field-ancestry".to_owned(),
+        uncertainty_common_cause_analysis_receipt_id: "receipt:field-cca".to_owned(),
+        covariance_structure: FieldCovarianceStructure::IndependentDiagonalComponents,
+        relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
+    };
+    let mut pose_covariance = vec![0.0; 36];
+    for axis in 0..6 {
+        pose_covariance[axis * 6 + axis] = if axis < 3 { 1.0e-8 } else { 1.0e-6 };
+    }
+    let model = GeometryUncertaintyModel {
+        geometry_digest: geometry.geometry_digest.clone(),
+        reference_frame_digest: geometry.reference_frame_digest.clone(),
+        contact_boundary_digest: geometry.contact_boundary_digest.clone(),
+        transform_digest: "sha256:synthetic-geometry-mc-transform".to_owned(),
+        sample_identity: field.sample_identity.clone(),
+        native_observation_set_digest: field.native_observation_set_digest.clone(),
+        field_estimate_digest: field.estimate_digest.clone(),
+        uncertainty_method_digest: "sha256:synthetic-geometry-mc-method".to_owned(),
+        reference_ancestry_receipt_id: "receipt:geometry-ancestry".to_owned(),
+        common_cause_analysis_receipt_id: "receipt:geometry-cca".to_owned(),
+        local_taxels: geometry.taxels
+            .iter()
+            .map(|taxel| TaxelGeometryStandardUncertainty {
+                taxel_id: taxel.taxel_id.clone(),
+                area_m2: 1.0e-6,
+                application_point_m: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+                orientation_rad: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+            })
+            .collect(),
+        local_taxel_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        common_rigid_pose_covariance_row_major: pose_covariance,
+        local_to_global_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_field_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_wrench_reference_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        wrench_origin_attachment: WrenchOriginAttachment::FixedInReferenceFrame,
+    };
+    validate_geometry_uq_against_monte_carlo(&geometry, &field, &model, 20261117, 20_000)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
