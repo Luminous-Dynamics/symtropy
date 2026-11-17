@@ -235,17 +235,13 @@ fn apply_relative_map(map: &[[f64; N]; 3], y: &Vec9) -> [f64; 3] {
     relative
 }
 
-fn dense_constraint_jacobian(
-    maps: &RelativeMaps,
-    y: &Vec9,
-) -> Jacobian {
+fn dense_constraint_jacobian(maps: &RelativeMaps, y: &Vec9) -> Jacobian {
     let mut jacobian = [[0.0; N]; 2];
     for edge in 0..2 {
         let relative = apply_relative_map(&maps[edge], y);
         for coordinate in 0..N {
             for axis in 0..3 {
-                jacobian[edge][coordinate] +=
-                    relative[axis] * maps[edge][axis][coordinate];
+                jacobian[edge][coordinate] += relative[axis] * maps[edge][axis][coordinate];
             }
         }
     }
@@ -309,16 +305,12 @@ fn solve_2x2_dense(matrix: [[f64; 2]; 2], rhs: [f64; 2]) -> [f64; 2] {
     ]
 }
 
-fn dense_position_residuals(
-    maps: &RelativeMaps,
-    y: &Vec9,
-    lengths: [f64; 2],
-) -> [f64; 2] {
+fn dense_position_residuals(maps: &RelativeMaps, y: &Vec9, lengths: [f64; 2]) -> [f64; 2] {
     let mut residuals = [0.0; 2];
     for edge in 0..2 {
         let relative = apply_relative_map(&maps[edge], y);
-        residuals[edge] =
-            0.5 * (relative.iter().map(|value| value * value).sum::<f64>()
+        residuals[edge] = 0.5
+            * (relative.iter().map(|value| value * value).sum::<f64>()
                 - lengths[edge] * lengths[edge]);
     }
     residuals
@@ -401,8 +393,7 @@ fn dense_coordinate_rattle_step(
             let candidate_residuals = dense_position_residuals(&maps, &candidate, lengths);
             let candidate_norm = (0..2)
                 .map(|edge| {
-                    let value = candidate_residuals[edge]
-                        / (1.0 + lengths[edge] * lengths[edge]);
+                    let value = candidate_residuals[edge] / (1.0 + lengths[edge] * lengths[edge]);
                     value * value
                 })
                 .sum::<f64>()
@@ -416,7 +407,10 @@ fn dense_coordinate_rattle_step(
             }
             fraction *= 0.5;
         }
-        assert!(accepted, "dense-coordinate SHAKE Newton line search stalled");
+        assert!(
+            accepted,
+            "dense-coordinate SHAKE Newton line search stalled"
+        );
     }
     let final_position_norm = (0..2)
         .map(|edge| {
@@ -425,14 +419,16 @@ fn dense_coordinate_rattle_step(
         })
         .sum::<f64>()
         .sqrt();
-    assert!(final_position_norm <= 2.0e-13, "dense-coordinate SHAKE did not converge");
+    assert!(
+        final_position_norm <= 2.0e-13,
+        "dense-coordinate SHAKE did not converge"
+    );
 
     // RATTLE endpoint momentum projection, entirely in the dense y metric.
     let mut momentum_half = mat_vec(&metric_y, &vy0);
     for coordinate in 0..N {
-        momentum_half[coordinate] -= 0.5
-            * dt
-            * (j0[0][coordinate] * multipliers[0] + j0[1][coordinate] * multipliers[1]);
+        momentum_half[coordinate] -=
+            0.5 * dt * (j0[0][coordinate] * multipliers[0] + j0[1][coordinate] * multipliers[1]);
     }
     let j_plus = dense_constraint_jacobian(&maps, &y_plus);
     let mut minv_jplus_t = [[0.0; N]; 2];
@@ -473,7 +469,13 @@ fn dense_coordinate_rattle_step(
     let q_plus = mat_vec(basis, &y_plus);
     let vq_plus = mat_vec(basis, &vy_plus);
     let lifted_residuals = dense_position_residuals(&maps, &y_plus, lengths);
-    (q_plus, vq_plus, multipliers, velocity_multipliers, lifted_residuals)
+    (
+        q_plus,
+        vq_plus,
+        multipliers,
+        velocity_multipliers,
+        lifted_residuals,
+    )
 }
 
 #[cfg(test)]
