@@ -598,6 +598,8 @@ mod tests {
         assert_eq!(report.work_package.ids_version, SUPPORTED_IDS_VERSION);
         assert_eq!(report.length_to_mm_numerator, 1);
         assert_eq!(report.length_to_mm_denominator, 1);
+        assert_eq!(report.coordinate_context.project_crs_identifier, "EPSG:32735");
+        assert_eq!(report.coordinate_context.vertical_datum_identifier, "local-project-benchmark-datum");
     }
 
     #[test]
@@ -812,6 +814,34 @@ mod tests {
         let report = preflight_ifc_ids_work_package(foot).unwrap();
         assert_eq!(report.length_to_mm_numerator, 3_048);
         assert_eq!(report.length_to_mm_denominator, 10);
+    }
+
+
+    #[test]
+    fn missing_crs_datum_and_unsupported_units_block_preflight() {
+        let mut missing_crs = valid_input();
+        missing_crs.coordinate_context.project_crs_identifier.clear();
+        assert!(
+            preflight_ifc_ids_work_package(missing_crs)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::MissingProjectCrsIdentifier)
+        );
+
+        let mut missing_datum = valid_input();
+        missing_datum.coordinate_context.vertical_datum_identifier.clear();
+        assert!(
+            preflight_ifc_ids_work_package(missing_datum)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::MissingVerticalDatumIdentifier)
+        );
+
+        let mut unsupported = valid_input();
+        unsupported.coordinate_context.length_unit = IfcLengthUnit::Unsupported("yard".into());
+        assert!(
+            preflight_ifc_ids_work_package(unsupported)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::UnsupportedLengthUnit("yard".into()))
+        );
     }
 
 }
