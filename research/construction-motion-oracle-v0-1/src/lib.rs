@@ -7,8 +7,8 @@
 mod capsule;
 mod co_translation_ccd;
 mod multibody_time_swept_broadphase;
-mod timed_co_translation_ccd;
 mod timed_ccd_witness_verifier;
+mod timed_co_translation_ccd;
 mod translation_ccd;
 pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
@@ -26,14 +26,14 @@ pub use multibody_time_swept_broadphase::{
     MultiBodyBroadphaseReport, SlabMetrics, SweepAxis, TimedCapsuleBody, TimedCapsulePairCandidate,
     time_swept_capsule_broadphase,
 };
+pub use timed_ccd_witness_verifier::{
+    TimedCcdVerificationDisposition, TimedCcdVerificationReason, TimedCcdVerificationReceipt,
+    TimedCcdVerifierConfig, TimedCcdVerifierError, replay_timed_ccd_verification_receipt,
+    verify_timed_co_translating_result,
+};
 pub use timed_co_translation_ccd::{
     CapsuleMotionSpan, TimedCcdError, TimedCoTranslatingClosestApproach,
     timed_co_translating_capsule_vs_capsule, timed_co_translating_capsules_collision,
-};
-pub use timed_ccd_witness_verifier::{
-    TimedCcdVerificationDisposition, TimedCcdVerificationReason,
-    TimedCcdVerificationReceipt, TimedCcdVerifierConfig, TimedCcdVerifierError,
-    replay_timed_ccd_verification_receipt, verify_timed_co_translating_result,
 };
 pub use translation_ccd::{
     TranslatingCapsuleClosestApproach, TranslationCcdError,
