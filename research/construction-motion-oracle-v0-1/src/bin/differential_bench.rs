@@ -465,28 +465,26 @@ fn measure_multibody(
     subdivisions: u32,
     samples: usize,
 ) -> (Duration, Duration, Duration, usize, u64, u64) {
+    assert!(samples > 0, "benchmark sample count must be positive");
     let mut durations = Vec::with_capacity(samples);
-    let mut last = None;
     for _ in 0..samples {
         let start = Instant::now();
-        let report = time_swept_capsule_broadphase(black_box(bodies), subdivisions)
-            .expect("benchmark broadphase inputs are valid");
+        black_box(
+            time_swept_capsule_broadphase(black_box(bodies), subdivisions)
+                .expect("benchmark broadphase inputs are valid"),
+        );
         durations.push(start.elapsed());
-        last = Some((
-            report.pairs.len(),
-            report.active_body_slab_cells,
-            report.total_coarse_spatial_pairs,
-        ));
     }
     durations.sort_unstable();
-    let values = last.expect("sample count is positive");
+    let report = time_swept_capsule_broadphase(bodies, subdivisions)
+        .expect("benchmark broadphase inputs are valid");
     (
         percentile(&durations, 50),
         percentile(&durations, 95),
         percentile(&durations, 99),
-        values.0,
-        values.1,
-        values.2,
+        report.pairs.len(),
+        report.active_body_slab_cells,
+        report.total_coarse_spatial_pairs,
     )
 }
 
@@ -555,11 +553,11 @@ fn measure_whole_horizon_all_pairs(
     bodies: &[TimedCapsuleBody],
     samples: usize,
 ) -> (Duration, Duration, Duration, u64) {
+    assert!(samples > 0, "benchmark sample count must be positive");
     let mut durations = Vec::with_capacity(samples);
-    let mut last_count = 0;
     for _ in 0..samples {
         let start = Instant::now();
-        last_count = whole_horizon_all_pairs_candidate_count(black_box(bodies));
+        black_box(whole_horizon_all_pairs_candidate_count(black_box(bodies)));
         durations.push(start.elapsed());
     }
     durations.sort_unstable();
@@ -567,7 +565,7 @@ fn measure_whole_horizon_all_pairs(
         percentile(&durations, 50),
         percentile(&durations, 95),
         percentile(&durations, 99),
-        last_count,
+        whole_horizon_all_pairs_candidate_count(bodies),
     )
 }
 
