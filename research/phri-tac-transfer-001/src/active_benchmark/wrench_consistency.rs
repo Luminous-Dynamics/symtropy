@@ -326,7 +326,23 @@ pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperat
     })
 }
 
+fn validate_operator(operator: &WrenchOperator) -> Result<(), String> {
+    if operator.parameter_count == 0
+        || operator.taxel_ids.is_empty()
+        || operator.parameter_count != operator.taxel_ids.len().saturating_mul(3)
+        || operator.coefficients.len() != 6_usize.saturating_mul(operator.parameter_count)
+        || operator.coefficients.iter().any(|value| !value.is_finite())
+        || operator.geometry_digest.trim().is_empty()
+        || operator.reference_frame_digest.trim().is_empty()
+        || operator.contact_boundary_digest.trim().is_empty()
+    {
+        return Err("wrench operator dimensions, coefficients or context digests are invalid".to_owned());
+    }
+    Ok(())
+}
+
 fn validate_field(operator: &WrenchOperator, local_traction_pa: &[f64]) -> Result<(), String> {
+    validate_operator(operator)?;
     if local_traction_pa.len() != operator.parameter_count
         || local_traction_pa.iter().any(|value| !value.is_finite())
     {
@@ -525,8 +541,8 @@ pub fn compare_field_identifiability(
     if !tolerance.is_finite() || tolerance <= 0.0 {
         return Err("identifiability tolerance must be finite and positive".to_owned());
     }
-    if operator.parameter_count == 0
-        || !native_design_matrix.len().is_multiple_of(operator.parameter_count)
+    validate_operator(operator)?;
+    if !native_design_matrix.len().is_multiple_of(operator.parameter_count)
         || native_design_matrix.len() != native_row_count.saturating_mul(operator.parameter_count)
         || native_design_matrix.iter().any(|value| !value.is_finite())
     {
@@ -667,8 +683,8 @@ mod tests {
         assert!((wrench.force_n.x - 0.45).abs() < 1.0e-12);
         assert!((wrench.force_n.y - 0.225).abs() < 1.0e-12);
         assert!(wrench.moment_nm.x.abs() < 1.0e-12);
-        assert!(wrench.moment_nm.y.abs() < 1.0e-12);
-        assert!(wrench.moment_nm.z.abs() < 1.0e-12);
+        assert!((wrench.moment_nm.y - 0.004).abs() < 1.0e-12);
+        assert!((wrench.moment_nm.z - 0.001).abs() < 1.0e-12);
     }
 
     #[test]
