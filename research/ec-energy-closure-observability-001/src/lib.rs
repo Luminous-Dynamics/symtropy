@@ -477,12 +477,10 @@ pub fn integrated_energy_balance_ratio(
         }
     }
 
-    let mut available_energy_j_m2 = 0.0;
-    let mut turbulent_energy_j_m2 = 0.0;
-    let mut included = 0;
+    let mut included_intervals = Vec::new();
     let mut excluded_gap_filled = 0;
 
-    for interval in intervals {
+    for interval in ordered_intervals {
         if !ids.insert(interval.interval_id) {
             return Err(IntegratedEbrError::DuplicateIntervalId);
         }
@@ -497,16 +495,38 @@ pub fn integrated_energy_balance_ratio(
             excluded_gap_filled += 1;
             continue;
         }
+        included_intervals.push(interval);
+    }
 
+    // Input intervals may be contiguous while the selected observed-only
+    // population is not. Never present a disjoint sum as one continuous EBR.
+    for pair in included_intervals.windows(2) {
+        let previous = pair[0];
+        let next = pair[1];
+        let duration = i64::try_from(previous.duration_seconds)
+            .map_err(|_| IntegratedEbrError::IntervalTimeOverflow)?;
+        let expected_next = previous
+            .interval_start_unix_seconds
+            .checked_add(duration)
+            .ok_or(IntegratedEbrError::IntervalTimeOverflow)?;
+        if next.interval_start_unix_seconds != expected_next {
+            return Err(IntegratedEbrError::NonContiguousIntervals);
+        }
+    }
+
+    if included_intervals.is_empty() {
+        return Err(IntegratedEbrError::NoEligibleIntervals);
+    }
+
+    let mut available_energy_j_m2 = 0.0;
+    let mut turbulent_energy_j_m2 = 0.0;
+    for interval in &included_intervals {
         let duration = interval.duration_seconds as f64;
         available_energy_j_m2 += interval.available_energy_w_m2 * duration;
         turbulent_energy_j_m2 += interval.turbulent_energy_w_m2 * duration;
-        included += 1;
     }
+    let included = included_intervals.len();
 
-    if included == 0 {
-        return Err(IntegratedEbrError::NoEligibleIntervals);
-    }
     if available_energy_j_m2 == 0.0 {
         return Err(IntegratedEbrError::ZeroAvailableEnergyIntegral);
     }
@@ -955,6 +975,44 @@ mod tests {
             integrated_energy_balance_ratio(&[zero], GapFillPolicy::ObservedOnly),
             Err(IntegratedEbrError::ZeroDuration)
         );
+    }
+
+    #[test]
+    fn observed_only_ebr_rejects_an_interior_gapfilled_gap() {
+        let intervals = [
+            IntegratedEnergyInterval {
+                interval_id: 1,
+                interval_start_unix_seconds: 0,
+                duration_seconds: 1800,
+                available_energy_w_m2: 100.0,
+                turbulent_energy_w_m2: 80.0,
+                gap_fill_state: GapFillState::Observed,
+            },
+            IntegratedEnergyInterval {
+                interval_id: 2,
+                interval_start_unix_seconds: 1800,
+                duration_seconds: 1800,
+                available_energy_w_m2: 100.0,
+                turbulent_energy_w_m2: 100.0,
+                gap_fill_state: GapFillState::GapFilled,
+            },
+            IntegratedEnergyInterval {
+                interval_id: 3,
+                interval_start_unix_seconds: 3600,
+                duration_seconds: 1800,
+                available_energy_w_m2: 100.0,
+                turbulent_energy_w_m2: 75.0,
+                gap_fill_state: GapFillState::Observed,
+            },
+        ];
+        assert_eq!(
+            integrated_energy_balance_ratio(&intervals, GapFillPolicy::ObservedOnly),
+            Err(IntegratedEbrError::NonContiguousIntervals)
+        );
+        let inclusive =
+            integrated_energy_balance_ratio(&intervals, GapFillPolicy::IncludeGapFilled).unwrap();
+        assert_eq!(inclusive.included_intervals, 3);
+        assert_eq!(inclusive.excluded_gap_filled_intervals, 0);
     }
 
     #[test]
