@@ -592,7 +592,7 @@ pub fn build_power_constrained_schedule(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{KitchenTaskV1, TaskDependencyV1, KITCHEN_PLAN_SCHEMA_VERSION};
+    use crate::{KitchenTaskV1, KITCHEN_PLAN_SCHEMA_VERSION};
 
     fn task(id: &str, duration_ms: u64, resource_id: &str) -> KitchenTaskV1 {
         KitchenTaskV1 {
