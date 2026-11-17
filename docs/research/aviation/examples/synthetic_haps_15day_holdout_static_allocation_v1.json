@@ -29,7 +29,8 @@
     "static_assignment_cell_ids": [
       "cell-east",
       "cell-north"
-    ]
+    ],
+    "optimization_objective": "priority_weighted_critical_excess_served_mbps"
   },
   "cells": [
     {
@@ -612,7 +613,11 @@
     "total_critical_excess_unserved_mbps_intervals": 269,
     "critical_excess_offload_fraction": 0.46520874751491054,
     "beam_utilization_fraction": 0.78,
-    "deterministic_allocation": true
+    "deterministic_allocation": true,
+    "total_priority_weighted_critical_excess_offered_mbps_intervals": 568.5,
+    "total_priority_weighted_critical_excess_served_mbps_intervals": 255,
+    "total_priority_weighted_critical_excess_unserved_mbps_intervals": 313.5,
+    "priority_weighted_offload_fraction": 0.44854881266490765
   },
   "source_evidence_refs": [
     "https://doi.org/10.1016/j.comnet.2026.112795"
