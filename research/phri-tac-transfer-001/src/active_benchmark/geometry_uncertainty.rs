@@ -696,12 +696,13 @@ fn cholesky_lower_6(covariance: &[[f64; 6]; 6]) -> Result<[[f64; 6]; 6], String>
             if row == column {
                 let diagonal = covariance[row][row] - correction;
                 if !diagonal.is_finite() || diagonal <= 0.0 {
-                    return Err("Monte Carlo rigid-pose covariance is not positive definite".to_owned());
+                    return Err(
+                        "Monte Carlo rigid-pose covariance is not positive definite".to_owned()
+                    );
                 }
                 lower[row][column] = diagonal.sqrt();
             } else {
-                lower[row][column] =
-                    (covariance[row][column] - correction) / lower[column][column];
+                lower[row][column] = (covariance[row][column] - correction) / lower[column][column];
             }
         }
     }
@@ -724,7 +725,12 @@ fn rotate_small_angle(vector: Vec3, rotation_vector: Vec3) -> Vec3 {
             vec_scale(vector, cosine),
             vec_scale(vec_cross(axis, vector), sine),
         ),
-        vec_scale(axis, axis.x.mul_add(vector.x, axis.y.mul_add(vector.y, axis.z * vector.z)) * (1.0 - cosine)),
+        vec_scale(
+            axis,
+            axis.x
+                .mul_add(vector.x, axis.y.mul_add(vector.y, axis.z * vector.z))
+                * (1.0 - cosine),
+        ),
     )
 }
 
@@ -809,11 +815,16 @@ pub fn validate_geometry_uq_against_monte_carlo(
         return Err("geometry Monte Carlo seed must be nonzero".to_owned());
     }
     if replicate_count < 2_000 {
-        return Err("geometry Monte Carlo validation requires at least 2,000 replicates".to_owned());
+        return Err(
+            "geometry Monte Carlo validation requires at least 2,000 replicates".to_owned(),
+        );
     }
     let analytic = propagate_geometry_wrench_uncertainty(geometry, field, model)?;
     if !analytic.admissible_for_combined_wrench_uncertainty {
-        return Err("geometry Monte Carlo comparison requires independently admissible covariance sources".to_owned());
+        return Err(
+            "geometry Monte Carlo comparison requires independently admissible covariance sources"
+                .to_owned(),
+        );
     }
     let linearized_row_major = analytic
         .total_geometry_covariance_row_major
@@ -865,9 +876,7 @@ pub fn validate_geometry_uq_against_monte_carlo(
         }
     }
     let empirical: [[f64; 6]; 6] = std::array::from_fn(|row| {
-        std::array::from_fn(|column| {
-            sum_outer[row][column] / (replicate_count - 1) as f64
-        })
+        std::array::from_fn(|column| sum_outer[row][column] / (replicate_count - 1) as f64)
     });
     let mut squared_difference = 0.0;
     let mut squared_linearized = 0.0;
@@ -879,10 +888,11 @@ pub fn validate_geometry_uq_against_monte_carlo(
     }
     let denominator = squared_linearized.sqrt();
     if !denominator.is_finite() || denominator <= f64::MIN_POSITIVE {
-        return Err("linearized geometry covariance has zero or non-finite Frobenius norm".to_owned());
+        return Err(
+            "linearized geometry covariance has zero or non-finite Frobenius norm".to_owned(),
+        );
     }
-    let mean_bias_from_nominal =
-        std::array::from_fn(|index| mean[index] - nominal_values[index]);
+    let mean_bias_from_nominal = std::array::from_fn(|index| mean[index] - nominal_values[index]);
     Ok(GeometryUqMonteCarloReport {
         replicate_count,
         first_seed,
@@ -896,11 +906,23 @@ pub fn validate_geometry_uq_against_monte_carlo(
 
 /// Deterministic 20,000-draw Monte Carlo comparison for the CLI. The output
 /// measures covariance agreement for this synthetic small-error scenario only.
-pub fn run_synthetic_geometry_uq_monte_carlo_example(
-) -> Result<GeometryUqMonteCarloReport, String> {
-    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
-    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
-    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+pub fn run_synthetic_geometry_uq_monte_carlo_example() -> Result<GeometryUqMonteCarloReport, String>
+{
+    let tangent_u = Vec3 {
+        x: 1.0,
+        y: 0.0,
+        z: 0.0,
+    };
+    let tangent_v = Vec3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
+    let normal = Vec3 {
+        x: 0.0,
+        y: 0.0,
+        z: 1.0,
+    };
     let geometry = TaxelGeometrySet {
         geometry_digest: "sha256:synthetic-geometry-mc-grid".to_owned(),
         reference_frame_digest: "sha256:synthetic-geometry-mc-frame".to_owned(),
@@ -910,7 +932,11 @@ pub fn run_synthetic_geometry_uq_monte_carlo_example(
             TaxelGeometry {
                 taxel_id: "taxel-0".to_owned(),
                 area_m2: 1.0e-4,
-                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                application_point_m: Vec3 {
+                    x: 0.02,
+                    y: 0.0,
+                    z: 0.0,
+                },
                 normal,
                 tangent_u,
                 tangent_v,
@@ -918,7 +944,11 @@ pub fn run_synthetic_geometry_uq_monte_carlo_example(
             TaxelGeometry {
                 taxel_id: "taxel-1".to_owned(),
                 area_m2: 1.0e-4,
-                application_point_m: Vec3 { x: -0.02, y: 0.0, z: 0.0 },
+                application_point_m: Vec3 {
+                    x: -0.02,
+                    y: 0.0,
+                    z: 0.0,
+                },
                 normal,
                 tangent_u,
                 tangent_v,
@@ -935,7 +965,8 @@ pub fn run_synthetic_geometry_uq_monte_carlo_example(
         uncertainty_reference_ancestry_receipt_id: "receipt:field-ancestry".to_owned(),
         uncertainty_common_cause_analysis_receipt_id: "receipt:field-cca".to_owned(),
         covariance_structure: FieldCovarianceStructure::IndependentDiagonalComponents,
-        relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
+        relationship_to_wrench_reference:
+            FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
     };
     let mut pose_covariance = vec![0.0; 36];
     for axis in 0..6 {
@@ -952,20 +983,30 @@ pub fn run_synthetic_geometry_uq_monte_carlo_example(
         uncertainty_method_digest: "sha256:synthetic-geometry-mc-method".to_owned(),
         reference_ancestry_receipt_id: "receipt:geometry-ancestry".to_owned(),
         common_cause_analysis_receipt_id: "receipt:geometry-cca".to_owned(),
-        local_taxels: geometry.taxels
+        local_taxels: geometry
+            .taxels
             .iter()
             .map(|taxel| TaxelGeometryStandardUncertainty {
                 taxel_id: taxel.taxel_id.clone(),
                 area_m2: 1.0e-6,
-                application_point_m: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
-                orientation_rad: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+                application_point_m: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
+                orientation_rad: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
             })
             .collect(),
         local_taxel_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
         common_rigid_pose_covariance_row_major: pose_covariance,
         local_to_global_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
         geometry_to_field_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
-        geometry_to_wrench_reference_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_wrench_reference_relationship:
+            GeometrySourceRelationship::IndependentlyCharacterized,
         wrench_origin_attachment: WrenchOriginAttachment::FixedInReferenceFrame,
     };
     validate_geometry_uq_against_monte_carlo(&geometry, &field, &model, 20261117, 20_000)
@@ -1364,22 +1405,19 @@ mod tests {
         let geometry = geometry();
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let model = model(&geometry);
-        let report = validate_geometry_uq_against_monte_carlo(
-            &geometry,
-            &field,
-            &model,
-            20261117,
-            20_000,
-        )
-        .expect("Monte Carlo geometry covariance validation");
+        let report =
+            validate_geometry_uq_against_monte_carlo(&geometry, &field, &model, 20261117, 20_000)
+                .expect("Monte Carlo geometry covariance validation");
         assert_eq!(report.replicate_count, 20_000);
         assert!(report.relative_covariance_frobenius_error < 0.12);
         assert_eq!(report.linearized_covariance_row_major.len(), 36);
         assert_eq!(report.empirical_covariance_row_major.len(), 36);
-        assert!(report
-            .empirical_mean_bias_from_nominal
-            .iter()
-            .all(|value| value.is_finite()));
+        assert!(
+            report
+                .empirical_mean_bias_from_nominal
+                .iter()
+                .all(|value| value.is_finite())
+        );
     }
 
     #[test]
@@ -1387,22 +1425,12 @@ mod tests {
         let geometry = geometry();
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let model = model(&geometry);
-        assert!(validate_geometry_uq_against_monte_carlo(
-            &geometry,
-            &field,
-            &model,
-            1,
-            1_999,
-        )
-        .is_err());
-        assert!(validate_geometry_uq_against_monte_carlo(
-            &geometry,
-            &field,
-            &model,
-            0,
-            2_000,
-        )
-        .is_err());
+        assert!(
+            validate_geometry_uq_against_monte_carlo(&geometry, &field, &model, 1, 1_999,).is_err()
+        );
+        assert!(
+            validate_geometry_uq_against_monte_carlo(&geometry, &field, &model, 0, 2_000,).is_err()
+        );
     }
 
     #[test]
