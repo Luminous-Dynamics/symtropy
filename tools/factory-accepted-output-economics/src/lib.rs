@@ -574,8 +574,12 @@ pub fn evaluate(
         let mut total_high = 0_u64;
         let mut breakdown: BTreeMap<(String, String), (u64, u64)> = BTreeMap::new();
         for item in &case_costs {
-            let low = item.amount_minor_low.expect("known lower bound");
-            let high = item.amount_minor_high.expect("known upper bound");
+            let low = item
+                .amount_minor_low
+                .ok_or_else(|| format!("case {}: missing lower cost bound", case.case_id))?;
+            let high = item
+                .amount_minor_high
+                .ok_or_else(|| format!("case {}: missing upper cost bound", case.case_id))?;
             total_low = total_low
                 .checked_add(low)
                 .ok_or_else(|| format!("case {}: lower cost total overflow", case.case_id))?;
@@ -1011,6 +1015,49 @@ mod tests {
         outputs.reverse();
         let reverse = evaluate(&cases, &costs, &outputs).unwrap();
         assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn negative_cost_amount_is_rejected_by_parser() {
+        let corrupted = COST_ITEMS.replacen("100000", "-1", 1);
+        assert!(parse_cost_items(&corrupted)
+            .unwrap_err()
+            .contains("invalid non-negative integer amount"));
+    }
+
+    #[test]
+    fn eligible_case_without_in_scope_cost_items_is_incomplete() {
+        let (cases, mut costs, outputs) = parsed();
+        costs.retain(|item| item.case_id != "baseline_three_first_pass");
+        let row = evaluate(&cases, &costs, &outputs)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.case_id == "baseline_three_first_pass")
+            .unwrap();
+        assert_eq!(row.disposition, EvaluationDisposition::CostIncomplete);
+        assert_eq!(row.total_cost_low_minor, None);
+    }
+
+    #[test]
+    fn component_breakdown_reconciles_to_total_cost_interval() {
+        let (cases, costs, outputs) = parsed();
+        let row = evaluate(&cases, &costs, &outputs)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.case_id == "baseline_three_first_pass")
+            .unwrap();
+        let low = row
+            .cost_breakdown
+            .iter()
+            .map(|item| item.amount_low_minor)
+            .sum::<u64>();
+        let high = row
+            .cost_breakdown
+            .iter()
+            .map(|item| item.amount_high_minor)
+            .sum::<u64>();
+        assert_eq!(Some(low), row.total_cost_low_minor);
+        assert_eq!(Some(high), row.total_cost_high_minor);
     }
 
     #[test]
