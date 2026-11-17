@@ -7,7 +7,7 @@ on:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/sim-rel-joint-stochastic-oracle.yml"
   pull_request:
-    branches: ["main", "research/sim-rel-012-stateful-frontier"]
+    branches: ["main", "research/sim-rel-012-stateful-frontier", "research/sim-rel-014-eig-baselines"]
     paths:
       - "tools/sim-rel-joint-stochastic-oracle/**"
       - ".github/workflows/sim-rel-joint-stochastic-oracle.yml"
