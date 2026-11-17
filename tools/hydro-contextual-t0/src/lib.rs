@@ -916,7 +916,9 @@ fn brier_skill(input: &Value) -> Result<Value, String> {
     let reference_id = text(input, "reference_forecast_id")?;
     let tolerance = number(input, "denominator_tolerance")?;
     if forecast.len() != reference.len() || forecast.len() != outcomes.len() {
-        return Err("forecast, reference and observed-event arrays must have equal length".to_owned());
+        return Err(
+            "forecast, reference and observed-event arrays must have equal length".to_owned(),
+        );
     }
     if tolerance < 0.0 {
         return Err("denominator_tolerance must be non-negative".to_owned());
@@ -1022,8 +1024,9 @@ pub fn compute_case(case: &Value) -> Result<Value, String> {
         "HC-T0-033-ensemble-crps-skill"
         | "HC-T0-035-crps-skill-zero-reference-undefined"
         | "HC-T0-036-crps-skill-negative-retained" => crps_skill(input),
-        "HC-T0-034-threshold-event-brier-skill"
-        | "HC-T0-037-brier-skill-negative-retained" => brier_skill(input),
+        "HC-T0-034-threshold-event-brier-skill" | "HC-T0-037-brier-skill-negative-retained" => {
+            brier_skill(input)
+        }
         _ => compute_split(&id, input),
     }
 }
@@ -1302,32 +1305,42 @@ mod tests {
         assert_eq!(out["reason"], "NEGATIVE_STREAMFLOW_VALUE");
     }
 
-
     #[test]
     fn crps_skill_is_relative_to_a_declared_reference_forecast() {
         let out = compute_case(&fixture("inputs")["cases"][32]).expect("CRPS skill");
         assert_eq!(out["reference_forecast_id"], "seasonal_climatology-v1");
-        assert!((out["forecast_crps"].as_f64().expect("forecast CRPS") - 2.0 / 3.0).abs() < 1.0e-12);
-        assert!((out["reference_crps"].as_f64().expect("reference CRPS") - 4.0 / 3.0).abs() < 1.0e-12);
+        assert!(
+            (out["forecast_crps"].as_f64().expect("forecast CRPS") - 2.0 / 3.0).abs() < 1.0e-12
+        );
+        assert!(
+            (out["reference_crps"].as_f64().expect("reference CRPS") - 4.0 / 3.0).abs() < 1.0e-12
+        );
         assert!((out["crps_skill_score"].as_f64().expect("CRPSS") - 0.5).abs() < 1.0e-12);
     }
 
     #[test]
     fn brier_skill_compares_to_the_same_event_reference() {
         let out = compute_case(&fixture("inputs")["cases"][33]).expect("Brier skill");
-        assert!((out["forecast_brier_score"].as_f64().expect("forecast BS") - 0.29 / 3.0).abs() < 1.0e-12);
+        assert!(
+            (out["forecast_brier_score"].as_f64().expect("forecast BS") - 0.29 / 3.0).abs()
+                < 1.0e-12
+        );
         assert_eq!(out["reference_brier_score"], 0.25);
-        assert!((out["brier_skill_score"].as_f64().expect("BSS") - 0.6133333333333333).abs() < 1.0e-12);
+        assert!(
+            (out["brier_skill_score"].as_f64().expect("BSS") - 0.6133333333333333).abs() < 1.0e-12
+        );
     }
 
     #[test]
     fn zero_reference_brier_does_not_create_infinite_skill() {
         let out = compute_case(&fixture("inputs")["cases"][34]).expect("zero reference Brier");
-        assert_eq!(out["probabilistic_disposition"], "UNDEFINED_REFERENCE_SCORE");
+        assert_eq!(
+            out["probabilistic_disposition"],
+            "UNDEFINED_REFERENCE_SCORE"
+        );
         assert_eq!(out["reference_brier_score"], 0.0);
         assert_eq!(out["brier_skill_score"], Value::Null);
     }
-
 
     #[test]
     fn negative_crps_skill_is_not_clipped() {
