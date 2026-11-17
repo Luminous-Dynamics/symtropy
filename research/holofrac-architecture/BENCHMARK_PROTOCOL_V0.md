@@ -138,11 +138,37 @@ Evaluate declared candidate sets for:
 
 Use ASHRAE Standard 140 test cases when evaluating the building-simulation engine's applicable capabilities. This is engine testing, not whole-project validation. Use independent solvers where formulations overlap and measured data for later calibration. BOPTEST is a useful operational-control benchmark, not a substitute for a design-generation benchmark.
 
+### H8 — Continuous spatial fields and reconstruction
+
+The typed-graph track (H0-H3) evaluates discrete entities and relations. It does not establish that a VSA can represent or reconstruct continuous spatial fields. Evaluate this as a separate pipeline, using identical field samples and query locations across:
+
+- HRR and FHRR;
+- MAP/BSC/TPR where their continuous encoders are well-defined;
+- GHRR only as a separately specified spatial-field composition treatment;
+- exact grid/voxel storage and nearest-neighbour, bilinear/trilinear interpolation;
+- RBF or kernel interpolation;
+- a declared neural implicit-field baseline where training data and compute permit.
+
+Use 2D and 3D fields derived from analytic functions, public spatial data, and later measured building fields (for example temperature, illuminance, airflow, occupancy density or moisture). Freeze the function family, spatial bounds, units, sampling density and held-out coordinates. Include smooth, discontinuous, high-frequency, sparse, anisotropic and boundary-heavy fields; do not let a single smooth sinusoid determine the conclusion.
+
+A VSA pipeline must be measured end to end, not as a binding-only microbenchmark. Record separate costs for coordinate encoding, value encoding, binding, bundling/storage, inversion/unbinding, similarity, cleanup and regression/decoding. Compare at matched field samples, held-out query points, precision, actual bytes and compute budget. Include the cleanup mechanism as a first-class ablation: resonator, modern Hopfield, codebook/nearest-neighbour cleanup, or no cleanup when applicable. Report both the best pipeline and every component configuration used to obtain it.
+
+Metrics:
+- held-out MAE, RMSE, R² and normalized error;
+- field-specific conservation/invariant error where a physical law applies;
+- spatial gradient and boundary-condition error, not only pointwise error;
+- reconstruction error versus sample density, dimension, noise and number of bundled samples;
+- query p50/p95 latency, throughput, build time, actual retained memory and energy;
+- degradation outside the sampled coordinate set and under distribution shift.
+
+Exact grid interpolation is a correctness/reference arm, not an assumed competitor that a lossy representation must beat at every point. HDC earns a role when it offers a better memory/latency/generalization trade-off or enables compositional field retrieval under the same explicit error budget. It must never be used as the authoritative solver field.
+
 ## 3. Representation and optimizer baselines
 
 ### Representation baselines
 
-1. Exact typed graph traversal (authoritative correctness reference).
+For discrete graph retrieval:
+1. Exact typed graph traversal and source-keyed role postings (authoritative exact-answer reference).
 2. Canonical serialized lookup / relational database query.
 3. HRR.
 4. FHRR.
@@ -152,7 +178,9 @@ Use ASHRAE Standard 140 test cases when evaluating the building-simulation engin
 8. GHRR, only after implementation and independent test fixtures.
 9. Graph embedding or graph-neural baseline where training data and compute permit.
 
-Use identical graph snapshots, queries, held-out splits, dimension budgets where meaningful and hardware. Report each representation's actual memory footprint; equal dimensions do not imply equal memory or compute.
+For continuous spatial fields (H8), add exact grid/voxel interpolation, nearest-neighbour, RBF/kernel interpolation, and HyperSpace-style modular HRR/FHRR pipelines with explicit inversion, cleanup and regression choices.
+
+Use identical graph snapshots or field samples, queries, held-out splits, dimension budgets where meaningful and hardware. Report every stage's cost and each representation's actual memory footprint; equal nominal dimensions do not imply equal memory or compute. The April 2026 HyperSpace study specifically finds that similarity/cleanup and regression can dominate spatial-pipeline runtime, and that HRR/FHRR isolated operator complexity does not predict their end-to-end latency. Its results make stage-level profiling and decoder/cleanup ablation mandatory, not optional: https://arxiv.org/abs/2604.15113.
 
 ### Generation and optimization baselines
 
@@ -193,6 +221,13 @@ Do not select the benchmark after inspecting candidate performance. Publish ever
 - calibration and abstention risk;
 - latency, throughput, peak memory and energy per query;
 - update/re-encoding cost and scale-transfer degradation.
+
+### Continuous spatial-field reconstruction
+- held-out MAE/RMSE/R² and normalized field error;
+- gradient, boundary and applicable conservation/invariant errors;
+- error-versus-sample-density, vector-dimension and noise curves;
+- per-stage and end-to-end latency/throughput;
+- decoder/cleanup compute, vector and codebook memory, and actual process RSS.
 
 ### Geometry and architectural feasibility
 - invalid geometry and topology rate;
@@ -299,6 +334,7 @@ Primary comparative measures should include time to first feasible candidate, de
 
 - Performance-driven generative design review (153 studies; fragmented metrics, interoperability, validation and reproducibility): https://doi.org/10.3390/buildings15244556
 - Fast building simulation review (765 studies; calls for application-specific end-to-end latency and uncertainty-aware validation): https://doi.org/10.1016/j.enbuild.2026.118152
+- Snyder et al. (16 April 2026), *HyperSpace: A Generalized Framework for Spatial Encoding in Hyperdimensional Representations*: modular continuous VSA pipeline and HRR/FHRR end-to-end comparisons, including similarity/cleanup/regression and memory trade-offs: https://arxiv.org/abs/2604.15113
 - MSD floor-plan dataset and paper: https://arxiv.org/abs/2407.10121 and https://archilyse.standfest.science/modified-swiss-dwellings
 - IFC 4.3 / ISO 16739 and buildingSMART IDS: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/ and https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
 - ASHRAE Standard 140 resources: https://data.ashrae.org/standard140/index.html
