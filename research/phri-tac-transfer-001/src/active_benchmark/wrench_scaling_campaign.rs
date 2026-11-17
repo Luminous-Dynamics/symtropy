@@ -95,7 +95,7 @@ fn geometry() -> TaxelGeometrySet {
         .map(|index| {
             let column = index % 15;
             let row = index / 15;
-            let module = index / 16;
+            let module = index * MODULE_COUNT / TAXEL_COUNT;
             TaxelGeometry {
                 taxel_id: format!("module-{module}-taxel-{index:03}"),
                 area_m2: 1.0e-4,
@@ -183,9 +183,8 @@ fn multi_missing_taxels(seed: u64) -> Vec<usize> {
     let mut state = seed.max(1) ^ 0x9E37_79B9_7F4A_7C15;
     for module in 0..MODULE_COUNT {
         if xorshift64(&mut state) & 1 == 1 {
-            let start = module * 16;
-            let end = (start + 16).min(TAXEL_COUNT);
-            let candidates: Vec<_> = (start..end)
+            let candidates: Vec<_> = (0..TAXEL_COUNT)
+                .filter(|index| *index * MODULE_COUNT / TAXEL_COUNT == module)
                 .filter(|index| !missing.contains(index))
                 .collect();
             if !candidates.is_empty() {
@@ -347,6 +346,27 @@ pub fn run_113_taxel_wrench_campaign(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn synthetic_geometry_partitions_all_113_taxels_into_exactly_seven_modules() {
+        let geometry = geometry();
+        let module_ids: std::collections::BTreeSet<_> = geometry
+            .taxels
+            .iter()
+            .enumerate()
+            .map(|(index, _)| index * MODULE_COUNT / TAXEL_COUNT)
+            .collect();
+        assert_eq!(geometry.taxels.len(), TAXEL_COUNT);
+        assert_eq!(module_ids.len(), MODULE_COUNT);
+        assert!(module_ids.iter().copied().eq(0..MODULE_COUNT));
+        for seed in 1..=100 {
+            let missing = multi_missing_taxels(seed);
+            assert!((7..=14).contains(&missing.len()));
+            let missing_modules: std::collections::BTreeSet<_> =
+                missing.iter().map(|index| *index * MODULE_COUNT / TAXEL_COUNT).collect();
+            assert_eq!(missing_modules.len(), MODULE_COUNT);
+        }
+    }
 
     #[test]
     fn campaign_enforces_minimum_seed_count_and_seed_validity() {
