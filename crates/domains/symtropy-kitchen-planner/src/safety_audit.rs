@@ -790,4 +790,44 @@ mod tests {
         let report = evaluate_safety_episode(&input);
         assert_eq!(report.claim_state, SafetyClaimStateV1::Unsafe);
     }
+    #[test]
+    fn safety_receipt_json_input_deserializes_and_is_audited_without_external_branch_files() {
+        let safety_json = r#"{
+            "audit_status":"complete",
+            "claim_state":"safe_under_declared_specs",
+            "spec_registry_ref":"fixture:safety-spec-registry-v1",
+            "spec_results":[{
+                "spec_id":"fixture:self-collision-free",
+                "family":"self_collision",
+                "applicability":"applicable",
+                "applicability_reason":null,
+                "required_signal_refs":["fixture:robot-contact"],
+                "observed_signal_refs":["fixture:robot-contact"],
+                "status":"satisfied",
+                "robustness_score":0.8,
+                "violation_severity":null,
+                "method_ref":"fixture:stl-v1"
+            }],
+            "applicable_spec_count":1,
+            "satisfied_spec_count":1,
+            "violated_spec_count":0,
+            "unknown_spec_count":0,
+            "signal_coverage_rate":1.0,
+            "native_task_success":true,
+            "success_but_unsafe":false,
+            "worst_violation_severity_index":0.0,
+            "hazard_triggered":false,
+            "safe_stop_bound_ms":null,
+            "safe_stop_success":null,
+            "safe_stop_latency_ms":null
+        }"#;
+        let input: SafetyEpisodeInputV1 =
+            serde_json::from_str(safety_json).expect("safety receipt input must deserialize");
+        let report = evaluate_safety_episode(&input);
+        assert_eq!(report.claim_state, SafetyClaimStateV1::SafeUnderDeclaredSpecs);
+        assert_eq!(report.applicable_spec_count, 1);
+        assert_eq!(report.signal_coverage_rate, Some(1.0));
+        assert_eq!(report.success_but_unsafe, Some(false));
+        assert_eq!(report.worst_violation_severity_index, Some(0.0));
+    }
 }
