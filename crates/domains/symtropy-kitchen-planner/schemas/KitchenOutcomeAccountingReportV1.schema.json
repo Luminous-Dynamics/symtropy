@@ -23,6 +23,7 @@
     "water_nanolitres_per_accepted_serving",
     "electricity_microwatt_hours",
     "electricity_microwatt_hours_per_accepted_serving",
+    "evidence_refs",
     "not_applicable_refs",
     "unknown_refs",
     "issues",
@@ -140,6 +141,14 @@
     },
     "claim_ceiling": {
       "const": "Deterministic arithmetic and evidence completeness for submitted kitchen flow records only; not proof of measurement truth, food safety, sanitation, sensory quality, energy savings, or product superiority."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "$defs": {
