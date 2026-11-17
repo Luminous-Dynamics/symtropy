@@ -408,6 +408,7 @@ struct IndexedFact {
 pub struct SpatialIndex {
     source_graph_digest_non_security: u64,
     source_graph_snapshot: SpatialGraph,
+    encoder_spec: EncoderSpec,
     encoder_fingerprint_non_security: u64,
     canonical_keys: Vec<String>,
     facts: Vec<IndexedFact>,
@@ -422,6 +423,7 @@ impl SpatialIndex {
         graph.validate()?;
         let source_graph_digest_non_security = graph.digest_validated();
         let source_graph_snapshot = graph.canonical_snapshot();
+        let encoder_spec = encoder.spec().clone();
         let encoder_fingerprint_non_security = encoder.fingerprint();
 
         let mut facts = Vec::with_capacity(graph.facts.len());
@@ -437,6 +439,7 @@ impl SpatialIndex {
         let index = Self {
             source_graph_digest_non_security,
             source_graph_snapshot,
+            encoder_spec,
             encoder_fingerprint_non_security,
             canonical_keys,
             facts,
@@ -461,7 +464,7 @@ impl SpatialIndex {
     }
 
     pub fn validate_encoder(&self, encoder: &HoloFracEncoder) -> Result<(), HoloFracError> {
-        if encoder.fingerprint() != self.encoder_fingerprint_non_security {
+        if encoder.spec() != &self.encoder_spec {
             return Err(HoloFracError::EncoderMismatch);
         }
         Ok(())
