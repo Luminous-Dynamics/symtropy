@@ -1,6 +1,6 @@
 use adaptive_evidence_acquisition::{
     AcquisitionBudget, AcquisitionCandidate, CandidateQuality, EvidenceTarget,
-    QualifiedExistingPass, plan_acquisition,
+    QualifiedExistingPass, SelectionPolicy, plan_acquisition_with_policy,
 };
 
 fn main() {
@@ -76,31 +76,43 @@ fn main() {
         energy_penalty_s_per_wh: 0.5,
     };
 
-    match plan_acquisition(&targets, &existing, &candidates, &budget) {
-        Ok(plan) => {
-            println!("suite=ADAPTIVE-EVIDENCE-ACQUISITION-001");
-            println!("disposition={:?}", plan.disposition);
-            println!("selected_steps={}", plan.steps.len());
-            for step in &plan.steps {
+    let policies = [
+        ("evidence_gain_per_cost", SelectionPolicy::EvidenceGainPerCost),
+        ("nearest_feasible", SelectionPolicy::NearestFeasible),
+        ("maximum_marginal_evidence", SelectionPolicy::MaximumMarginalEvidence),
+        ("input_order_fixed_route", SelectionPolicy::InputOrder),
+        ("seeded_hash_order", SelectionPolicy::SeededHashOrder { seed: 7 }),
+    ];
+
+    println!("suite=ADAPTIVE-EVIDENCE-ACQUISITION-001");
+    println!("candidate_pool_size={}", candidates.len());
+    for (name, policy) in policies {
+        match plan_acquisition_with_policy(&targets, &existing, &candidates, &budget, policy) {
+            Ok(plan) => {
+                let selected = plan
+                    .steps
+                    .iter()
+                    .map(|step| step.candidate_id.as_str())
+                    .collect::<Vec<_>>()
+                    .join(",");
                 println!(
-                    "step={} candidate={} pass={} new_targets={} elapsed_s={:.3} energy_wh={:.3} score_per_s={:.6}",
-                    step.ordinal,
-                    step.candidate_id,
-                    step.pass_id,
-                    step.marginal_target_ids.join(","),
-                    step.cumulative_elapsed_time_s,
-                    step.cumulative_energy_wh,
-                    step.utility_score_per_s
+                    "policy={} disposition={:?} selected={} completed_targets={}/{} elapsed_s={:.3} energy_wh={:.3} unknown_candidates={} invalid_candidates={}",
+                    name,
+                    plan.disposition,
+                    selected,
+                    plan.completed_targets,
+                    plan.total_targets,
+                    plan.cumulative_elapsed_time_s,
+                    plan.cumulative_energy_wh,
+                    plan.blockers.unknown,
+                    plan.blockers.invalid_evidence,
                 );
             }
-            println!("completed_targets={}/{}", plan.completed_targets, plan.total_targets);
-            println!("unknown_candidates={}", plan.blockers.unknown);
-            println!("invalid_candidates={}", plan.blockers.invalid_evidence);
-            println!("note=synthetic candidate plan; not a robot motion or safety authorization");
-        }
-        Err(error) => {
-            eprintln!("planning_error={error}");
-            std::process::exit(2);
+            Err(error) => {
+                eprintln!("policy={} planning_error={error}", name);
+                std::process::exit(2);
+            }
         }
     }
+    println!("note=matched synthetic candidates and budgets; selection policies do not alter qualification gates");
 }
