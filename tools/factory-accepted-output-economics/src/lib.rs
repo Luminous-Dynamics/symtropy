@@ -674,12 +674,12 @@ pub fn evaluate_corpus(
 
 pub fn render_cost_breakdown(results: &[EconomicsEvaluation]) -> String {
     let mut report = String::from(
-        "case_id\\tcategory\\tevidence_class\\tamount_low_minor\\tamount_high_minor\\n",
+        "case_id\tcategory\tevidence_class\tamount_low_minor\tamount_high_minor\n",
     );
     for row in results {
         for item in &row.cost_breakdown {
             report.push_str(&format!(
-                "{}\\t{}\\t{}\\t{}\\t{}\\n",
+                "{}\t{}\t{}\t{}\t{}\n",
                 row.case_id,
                 item.category,
                 item.evidence_class,
