@@ -697,10 +697,10 @@ mod tests {
         assert_eq!(report.scored_count, 0);
         assert_eq!(report.abstained_out_of_domain_count, 1);
         assert_eq!(report.abstained_reference_unresolved_count, 1);
-        assert_eq!(report.sample_results[40].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
-        assert_eq!(report.sample_results[40].interval_width, None);
-        assert_eq!(report.sample_results[41].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
-        assert_eq!(report.sample_results[41].interval_width, None);
+        assert_eq!(report.sample_results[0].disposition, IntervalEvaluationDisposition::AbstainedOutOfDomain);
+        assert_eq!(report.sample_results[0].interval_width, None);
+        assert_eq!(report.sample_results[1].disposition, IntervalEvaluationDisposition::AbstainedReferenceUnresolved);
+        assert_eq!(report.sample_results[1].interval_width, None);
     }
 
     #[test]
@@ -777,6 +777,16 @@ mod tests {
         assert_eq!(example.evaluation.abstained_reference_unresolved_count, 1);
         assert_eq!(example.evaluation.scored_count, 40);
         assert_eq!(example.evaluation.overall_empirical_coverage, Some(0.9));
+        assert_eq!(
+            example.evaluation.sample_results[40].disposition,
+            IntervalEvaluationDisposition::AbstainedOutOfDomain
+        );
+        assert_eq!(
+            example.evaluation.sample_results[41].disposition,
+            IntervalEvaluationDisposition::AbstainedReferenceUnresolved
+        );
+        assert_eq!(example.evaluation.sample_results[40].interval_width, None);
+        assert_eq!(example.evaluation.sample_results[41].interval_width, None);
         assert_eq!(example.claim_class, "synthetic_groupwise_conformal_example_only");
     }
 }
