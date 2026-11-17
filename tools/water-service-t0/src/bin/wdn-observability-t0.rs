@@ -567,8 +567,14 @@ fn evaluate_all(inputs: &Value, schema: &Value, oracle: &Value) -> Result<Value,
     {
         return Err("observability input identity/evidence class mismatch".to_owned());
     }
-    if string(schema, "schema_version", "input schema")? != INPUT_VERSION {
-        return Err("input schema version mismatch".to_owned());
+    let schema_properties = field(schema, "properties", "input schema")?;
+    if string(
+        field(schema_properties, "schema_version", "input schema properties")?,
+        "const",
+        "input schema properties.schema_version",
+    )? != INPUT_VERSION
+    {
+        return Err("input schema version constant mismatch".to_owned());
     }
     if field(schema, "additionalProperties", "input schema")?.as_bool() != Some(false) {
         return Err("input schema must be a closed object contract".to_owned());
