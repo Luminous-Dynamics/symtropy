@@ -1,0 +1,799 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema_version": "water-verified-intervention-utility-t1-input-v0.1",
+  "benchmark_id": "WATER-VERIFIED-INTERVENTION-UTILITY-001",
+  "submission_id": "luminous-synthetic-fixture-v0.1",
+  "arm_id": "luminous_candidate",
+  "evidence_class": "synthetic_only",
+  "claim_ceiling": "synthetic_diagnosis_to_verified_intervention_contract_only",
+  "maximum_demand_difference_percent": 2,
+  "maximum_pressure_difference_percent": 5,
+  "uncertainty_expansion_factor": 2,
+  "crew_day_hours": 8,
+  "scenarios": [
+    {
+      "scenario_id": "IVU-T1-001-observed-leak-repaired-persistent",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 120,
+        "confirmed_minute": 90
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-IVU-T1-001-observed-leak-repaired-persistent",
+        "asset_id": "PIPE-101",
+        "repair_minute": 180,
+        "repair_cost": 350,
+        "outage_minutes": 30
+      },
+      "verification": {
+        "baseline": {
+          "leak_flow_m3_day": 10,
+          "standard_uncertainty_m3_day": 0.5,
+          "demand_m3_day": 120,
+          "pressure_kpa": 300,
+          "pump_state": "normal",
+          "valve_state": "normal",
+          "topology_revision": "TOPO-V1",
+          "instrument_id": "FLOW-METER-01",
+          "calibration_ref": "CAL-FLOW-01-V1",
+          "method_ref": "METHOD-FLOW-01-V1",
+          "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000003e8",
+          "validity": "valid",
+          "window_start_minute": 0,
+          "window_end_minute": 60
+        },
+        "followups": [
+          {
+            "day": 7,
+            "measurement": {
+              "leak_flow_m3_day": 2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000003e9",
+              "validity": "valid",
+              "window_start_minute": 7000,
+              "window_end_minute": 7060
+            }
+          },
+          {
+            "day": 30,
+            "measurement": {
+              "leak_flow_m3_day": 1.5,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000003ea",
+              "validity": "valid",
+              "window_start_minute": 30000,
+              "window_end_minute": 30060
+            }
+          },
+          {
+            "day": 90,
+            "measurement": {
+              "leak_flow_m3_day": 1.2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "00000000000000000000000000000000000000000000000000000000000003eb",
+              "validity": "valid",
+              "window_start_minute": 90000,
+              "window_end_minute": 90060
+            }
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-002-unobservable-false-pipe-claim",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "unobservable_under_declared_faults",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 15,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "inconclusive",
+        "confirmed_asset_ids": [],
+        "crew_hours": 1,
+        "travel_hours": 0.5,
+        "inspection_cost": 100,
+        "confirmed_minute": null
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-003-nonleak-pressure-change",
+      "event_truth": "non_leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 25,
+        "localization_level": "zone",
+        "candidate_asset_ids": [
+          "ZONE-A"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "no_leak",
+        "confirmed_asset_ids": [],
+        "crew_hours": 1,
+        "travel_hours": 0.5,
+        "inspection_cost": 90,
+        "confirmed_minute": 100
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-004-leak-missed-by-detector",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": false,
+        "detected_minute": null,
+        "localization_level": "none",
+        "candidate_asset_ids": [],
+        "action": "abstain"
+      },
+      "inspection": {
+        "status": "not_attempted",
+        "confirmed_asset_ids": [],
+        "crew_hours": 0,
+        "travel_hours": 0,
+        "inspection_cost": 0,
+        "confirmed_minute": null
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-005-structural-only-multiple-pipes",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "structurally_observable_only",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101",
+          "PIPE-102"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "inconclusive",
+        "confirmed_asset_ids": [],
+        "crew_hours": 1,
+        "travel_hours": 0.5,
+        "inspection_cost": 90,
+        "confirmed_minute": null
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-006-estimator-scope-mismatch",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "estimator_qualified_for_declared_scope",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "within_pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "prioritize"
+      },
+      "inspection": {
+        "status": "not_attempted",
+        "confirmed_asset_ids": [],
+        "crew_hours": 0,
+        "travel_hours": 0,
+        "inspection_cost": 0,
+        "confirmed_minute": null
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-007-repair-only-seven-day-followup",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 120,
+        "confirmed_minute": 90
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-IVU-T1-007-repair-only-seven-day-followup",
+        "asset_id": "PIPE-101",
+        "repair_minute": 180,
+        "repair_cost": 350,
+        "outage_minutes": 30
+      },
+      "verification": {
+        "baseline": {
+          "leak_flow_m3_day": 10,
+          "standard_uncertainty_m3_day": 0.5,
+          "demand_m3_day": 120,
+          "pressure_kpa": 300,
+          "pump_state": "normal",
+          "valve_state": "normal",
+          "topology_revision": "TOPO-V1",
+          "instrument_id": "FLOW-METER-01",
+          "calibration_ref": "CAL-FLOW-01-V1",
+          "method_ref": "METHOD-FLOW-01-V1",
+          "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000400",
+          "validity": "valid",
+          "window_start_minute": 0,
+          "window_end_minute": 60
+        },
+        "followups": [
+          {
+            "day": 7,
+            "measurement": {
+              "leak_flow_m3_day": 2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000401",
+              "validity": "valid",
+              "window_start_minute": 7000,
+              "window_end_minute": 7060
+            }
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-008-post-pressure-mismatch",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 120,
+        "confirmed_minute": 90
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-IVU-T1-008-post-pressure-mismatch",
+        "asset_id": "PIPE-101",
+        "repair_minute": 180,
+        "repair_cost": 350,
+        "outage_minutes": 30
+      },
+      "verification": {
+        "baseline": {
+          "leak_flow_m3_day": 10,
+          "standard_uncertainty_m3_day": 0.5,
+          "demand_m3_day": 120,
+          "pressure_kpa": 300,
+          "pump_state": "normal",
+          "valve_state": "normal",
+          "topology_revision": "TOPO-V1",
+          "instrument_id": "FLOW-METER-01",
+          "calibration_ref": "CAL-FLOW-01-V1",
+          "method_ref": "METHOD-FLOW-01-V1",
+          "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000406",
+          "validity": "valid",
+          "window_start_minute": 0,
+          "window_end_minute": 60
+        },
+        "followups": [
+          {
+            "day": 7,
+            "measurement": {
+              "leak_flow_m3_day": 2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 240,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000407",
+              "validity": "valid",
+              "window_start_minute": 7000,
+              "window_end_minute": 7060
+            }
+          },
+          {
+            "day": 30,
+            "measurement": {
+              "leak_flow_m3_day": 1.5,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 240,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000408",
+              "validity": "valid",
+              "window_start_minute": 30000,
+              "window_end_minute": 30060
+            }
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-009-replayed-raw-record",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 120,
+        "confirmed_minute": 90
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-IVU-T1-009-replayed-raw-record",
+        "asset_id": "PIPE-101",
+        "repair_minute": 180,
+        "repair_cost": 350,
+        "outage_minutes": 30
+      },
+      "verification": {
+        "baseline": {
+          "leak_flow_m3_day": 10,
+          "standard_uncertainty_m3_day": 0.5,
+          "demand_m3_day": 120,
+          "pressure_kpa": 300,
+          "pump_state": "normal",
+          "valve_state": "normal",
+          "topology_revision": "TOPO-V1",
+          "instrument_id": "FLOW-METER-01",
+          "calibration_ref": "CAL-FLOW-01-V1",
+          "method_ref": "METHOD-FLOW-01-V1",
+          "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000040d",
+          "validity": "valid",
+          "window_start_minute": 0,
+          "window_end_minute": 60
+        },
+        "followups": [
+          {
+            "day": 7,
+            "measurement": {
+              "leak_flow_m3_day": 2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "000000000000000000000000000000000000000000000000000000000000040d",
+              "validity": "valid",
+              "window_start_minute": 7000,
+              "window_end_minute": 7060
+            }
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-010-repair-asset-mismatch",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "pipe",
+        "candidate_asset_ids": [
+          "PIPE-101"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 120,
+        "confirmed_minute": 90
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-WRONG",
+        "asset_id": "PIPE-999",
+        "repair_minute": 180,
+        "repair_cost": 300,
+        "outage_minutes": 20
+      },
+      "verification": {
+        "baseline": {
+          "leak_flow_m3_day": 10,
+          "standard_uncertainty_m3_day": 0.5,
+          "demand_m3_day": 120,
+          "pressure_kpa": 300,
+          "pump_state": "normal",
+          "valve_state": "normal",
+          "topology_revision": "TOPO-V1",
+          "instrument_id": "FLOW-METER-01",
+          "calibration_ref": "CAL-FLOW-01-V1",
+          "method_ref": "METHOD-FLOW-01-V1",
+          "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000413",
+          "validity": "valid",
+          "window_start_minute": 0,
+          "window_end_minute": 60
+        },
+        "followups": [
+          {
+            "day": 7,
+            "measurement": {
+              "leak_flow_m3_day": 2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000414",
+              "validity": "valid",
+              "window_start_minute": 7000,
+              "window_end_minute": 7060
+            }
+          },
+          {
+            "day": 30,
+            "measurement": {
+              "leak_flow_m3_day": 1.5,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000415",
+              "validity": "valid",
+              "window_start_minute": 30000,
+              "window_end_minute": 30060
+            }
+          },
+          {
+            "day": 90,
+            "measurement": {
+              "leak_flow_m3_day": 1.2,
+              "standard_uncertainty_m3_day": 0.4,
+              "demand_m3_day": 120,
+              "pressure_kpa": 300,
+              "pump_state": "normal",
+              "valve_state": "normal",
+              "topology_revision": "TOPO-V1",
+              "instrument_id": "FLOW-METER-01",
+              "calibration_ref": "CAL-FLOW-01-V1",
+              "method_ref": "METHOD-FLOW-01-V1",
+              "raw_record_digest": "0000000000000000000000000000000000000000000000000000000000000416",
+              "validity": "valid",
+              "window_start_minute": 90000,
+              "window_end_minute": 90060
+            }
+          }
+        ]
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-011-zone-inspection-no-post-repair-evidence",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 18,
+        "localization_level": "zone",
+        "candidate_asset_ids": [
+          "ZONE-A"
+        ],
+        "action": "inspect"
+      },
+      "inspection": {
+        "status": "confirmed_leak",
+        "confirmed_asset_ids": [
+          "PIPE-101"
+        ],
+        "crew_hours": 1.5,
+        "travel_hours": 0.5,
+        "inspection_cost": 100,
+        "confirmed_minute": 85
+      },
+      "repair": {
+        "status": "repaired",
+        "repair_id": "REP-011",
+        "asset_id": "PIPE-101",
+        "repair_minute": 160,
+        "repair_cost": 330,
+        "outage_minutes": 25
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    },
+    {
+      "scenario_id": "IVU-T1-012-prioritized-not-inspected",
+      "event_truth": "leak",
+      "event_start_minute": 0,
+      "ground_truth_asset_ids": [
+        "PIPE-101"
+      ],
+      "observability": {
+        "disposition": "directly_observed_current",
+        "topology_valid": true,
+        "estimator_scope_valid": false
+      },
+      "diagnostic": {
+        "detected": true,
+        "detected_minute": 20,
+        "localization_level": "zone",
+        "candidate_asset_ids": [
+          "ZONE-A",
+          "ZONE-B"
+        ],
+        "action": "prioritize"
+      },
+      "inspection": {
+        "status": "not_attempted",
+        "confirmed_asset_ids": [],
+        "crew_hours": 0,
+        "travel_hours": 0,
+        "inspection_cost": 0,
+        "confirmed_minute": null
+      },
+      "repair": {
+        "status": "not_repaired",
+        "repair_id": null,
+        "asset_id": null,
+        "repair_minute": null,
+        "repair_cost": 0,
+        "outage_minutes": 0
+      },
+      "verification": {
+        "baseline": null,
+        "followups": []
+      }
+    }
+  ]
+}
