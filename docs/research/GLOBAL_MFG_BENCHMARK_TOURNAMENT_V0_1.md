@@ -31,6 +31,16 @@ Compare against actual deployed workflows and matched test scope, not marketing 
 
 Potential reference frameworks and datasets include ISO 23247-5:2026 (digital thread), ISO 23247-6:2026 (integrated/unified/federated composition), MTConnect, OPC UA companion specifications, QIF/ISO 23952, NIST Smart Manufacturing Systems Test Bed and task-specific NIST AM-Bench data. These are reference/interop inputs, not automatic proof of conformance or a single competitor baseline.
 
+## 2A. External research alignment: NIST trustworthy manufacturing intelligence
+
+NIST's 2026 **Super Intelligence (SI) for Manufacturing** initiative is directly relevant as an external research programme. Its stated threads include trustworthy manufacturing-intelligence fundamentals, human-machine teaming, contextualized data, an integration test bench and benchmark studies, and digital-twin-assured manufacturing intelligence with VVUQ. NIST's July 2026 Digital Twins Workshops report (NISTIR 8620) separately identifies interoperability, VVUQ, cybersecurity and workforce readiness as persistent challenges.
+
+Sources:
+- NIST SI for Manufacturing: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
+- NISTIR 8620 (published 21 July 2026): https://doi.org/10.6028/NIST.IR.8620
+
+This is a research and measurement-science alignment, not a published NIST performance leaderboard or evidence that Luminous is ahead of the field. We should track emerging NIST benchmark datasets, test-bed interfaces and measurement methods as they become available, and compare on common tasks rather than inventing a proprietary score with no external baseline.
+
 ## 3. Evidence classes and comparison discipline
 
 Every result must carry one of these classes:
