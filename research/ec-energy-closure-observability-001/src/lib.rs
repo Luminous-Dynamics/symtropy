@@ -214,9 +214,7 @@ pub enum TurbulentNotAssessable {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TurbulentDisposition {
-    Accepted {
-        turbulent_energy_w_m2: f64,
-    },
+    Accepted { turbulent_energy_w_m2: f64 },
     Excluded(TurbulentExclusion),
     NotAssessable(TurbulentNotAssessable),
 }
@@ -326,15 +324,12 @@ pub enum RmaError {
 ///
 /// RMA is used because both axes have measurement error. This is a regression
 /// diagnostic, not a conservation proof and not a reason to force slope = 1.
-pub fn reduced_major_axis(
-    samples: &[PairedEnergyObservation],
-) -> Result<RmaResult, RmaError> {
+pub fn reduced_major_axis(samples: &[PairedEnergyObservation]) -> Result<RmaResult, RmaError> {
     if samples.len() < 2 {
         return Err(RmaError::TooFewSamples);
     }
     if samples.iter().any(|sample| {
-        !sample.available_energy_w_m2.is_finite()
-            || !sample.turbulent_energy_w_m2.is_finite()
+        !sample.available_energy_w_m2.is_finite() || !sample.turbulent_energy_w_m2.is_finite()
     }) {
         return Err(RmaError::NonFiniteSample);
     }
@@ -789,9 +784,7 @@ mod tests {
                 TurbulentQualityPolicy::FrictionVelocityFiltered,
                 Some(0.3)
             ),
-            TurbulentDisposition::Excluded(
-                TurbulentExclusion::BelowFrictionVelocityThreshold
-            )
+            TurbulentDisposition::Excluded(TurbulentExclusion::BelowFrictionVelocityThreshold)
         );
     }
 
@@ -809,9 +802,7 @@ mod tests {
                 TurbulentQualityPolicy::FrictionVelocityFiltered,
                 Some(0.2)
             ),
-            TurbulentDisposition::NotAssessable(
-                TurbulentNotAssessable::MissingFrictionVelocity
-            )
+            TurbulentDisposition::NotAssessable(TurbulentNotAssessable::MissingFrictionVelocity)
         );
 
         let invalid = TurbulentFluxSample {
@@ -824,9 +815,7 @@ mod tests {
                 TurbulentQualityPolicy::FrictionVelocityFiltered,
                 Some(0.2)
             ),
-            TurbulentDisposition::NotAssessable(
-                TurbulentNotAssessable::InvalidFrictionVelocity
-            )
+            TurbulentDisposition::NotAssessable(TurbulentNotAssessable::InvalidFrictionVelocity)
         );
     }
 
@@ -885,8 +874,7 @@ mod tests {
         ];
         let result =
             integrated_energy_balance_ratio(&intervals, GapFillPolicy::ObservedOnly).unwrap();
-        let expected = (50.0 * 1800.0 + 180.0 * 3600.0)
-            / (100.0 * 1800.0 + 200.0 * 3600.0);
+        let expected = (50.0 * 1800.0 + 180.0 * 3600.0) / (100.0 * 1800.0 + 200.0 * 3600.0);
         assert!((result.energy_balance_ratio - expected).abs() < 1e-12);
         assert_eq!(result.included_intervals, 2);
     }
@@ -938,11 +926,8 @@ mod tests {
                 gap_fill_state: GapFillState::GapFilled,
             },
         ];
-        let result = integrated_energy_balance_ratio(
-            &intervals,
-            GapFillPolicy::IncludeGapFilled,
-        )
-        .unwrap();
+        let result =
+            integrated_energy_balance_ratio(&intervals, GapFillPolicy::IncludeGapFilled).unwrap();
         assert!((result.energy_balance_ratio - 0.9).abs() < 1e-12);
         assert_eq!(result.included_intervals, 2);
         assert_eq!(result.excluded_gap_filled_intervals, 0);
@@ -991,10 +976,7 @@ mod tests {
             gap_fill_state: GapFillState::Observed,
         };
         assert_eq!(
-            integrated_energy_balance_ratio(
-                &[first, third],
-                GapFillPolicy::ObservedOnly
-            ),
+            integrated_energy_balance_ratio(&[first, third], GapFillPolicy::ObservedOnly),
             Err(IntegratedEbrError::NonContiguousIntervals)
         );
     }
