@@ -19,10 +19,8 @@ const EXPECTED_CORPUS_ID: &str = "LIVING-WORLD-ETHICAL-IMPACT-001/v0.1";
 const EXPECTED_PROFILE_STATUS_SEMANTICS: &str =
     "conditional_premise_finding_not_global_moral_verdict";
 
-const FIXTURE_JSON: &str =
-    include_str!("../../living-world-ethical-impact/v0.1/fixtures.json");
-const SCHEMA_JSON: &str =
-    include_str!("../../living-world-ethical-impact/v0.1/schema.json");
+const FIXTURE_JSON: &str = include_str!("../../living-world-ethical-impact/v0.1/fixtures.json");
+const SCHEMA_JSON: &str = include_str!("../../living-world-ethical-impact/v0.1/schema.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
