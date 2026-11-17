@@ -9,20 +9,20 @@
       "events": [
         {
           "event_id": "EV-1-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "repair_and_recovery_verified",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 4500,
-          "point_recovered_l_per_day": null,
-          "lower_bound_recovered_l_per_day": null,
-          "sustained_recovery_eligible": false
+          "point_recovered_l_per_day": 700,
+          "lower_bound_recovered_l_per_day": 640,
+          "sustained_recovery_eligible": true
         }
       ],
-      "verified_recovery_event_count": 0,
+      "verified_recovery_event_count": 1,
       "partial_recovery_event_count": 0,
-      "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 0,
+      "lower_bound_recovered_l_per_day": 640,
+      "point_recovered_l_per_day": 700,
       "claim_eligibility": "NotEligible"
     },
     {
@@ -53,20 +53,20 @@
       "events": [
         {
           "event_id": "EV-3-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "partial_recovery_verified",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 4500,
-          "point_recovered_l_per_day": null,
-          "lower_bound_recovered_l_per_day": null,
+          "point_recovered_l_per_day": 400,
+          "lower_bound_recovered_l_per_day": 340,
           "sustained_recovery_eligible": false
         }
       ],
       "verified_recovery_event_count": 0,
-      "partial_recovery_event_count": 0,
-      "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 0,
+      "partial_recovery_event_count": 1,
+      "lower_bound_recovered_l_per_day": 340,
+      "point_recovered_l_per_day": 400,
       "claim_eligibility": "NotEligible"
     },
     {
@@ -75,7 +75,7 @@
       "events": [
         {
           "event_id": "EV-4-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "attribution_indeterminate_operating_context",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
@@ -97,7 +97,7 @@
       "events": [
         {
           "event_id": "EV-5-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "attribution_indeterminate_operating_context",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
@@ -141,20 +141,20 @@
       "events": [
         {
           "event_id": "EV-7-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "no_recovery_measured",
           "localization_correct": false,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 4500,
-          "point_recovered_l_per_day": null,
-          "lower_bound_recovered_l_per_day": null,
+          "point_recovered_l_per_day": 10,
+          "lower_bound_recovered_l_per_day": 0,
           "sustained_recovery_eligible": false
         }
       ],
       "verified_recovery_event_count": 0,
       "partial_recovery_event_count": 0,
       "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 0,
+      "point_recovered_l_per_day": 10,
       "claim_eligibility": "NotEligible"
     },
     {
@@ -185,20 +185,20 @@
       "events": [
         {
           "event_id": "EV-9-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "partial_recovery_verified",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 5200,
-          "point_recovered_l_per_day": null,
-          "lower_bound_recovered_l_per_day": null,
+          "point_recovered_l_per_day": 300,
+          "lower_bound_recovered_l_per_day": 240,
           "sustained_recovery_eligible": false
         }
       ],
       "verified_recovery_event_count": 0,
-      "partial_recovery_event_count": 0,
-      "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 0,
+      "partial_recovery_event_count": 1,
+      "lower_bound_recovered_l_per_day": 240,
+      "point_recovered_l_per_day": 300,
       "claim_eligibility": "NotEligible"
     },
     {
@@ -229,20 +229,20 @@
       "events": [
         {
           "event_id": "EV-11-1",
-          "disposition": "attribution_indeterminate_boundary_or_topology",
+          "disposition": "recurrence_defeats_sustained_claim",
           "localization_correct": true,
           "inspection_cost_zar": 1200,
           "crew_hours": 2,
           "repair_cost_zar": 4500,
-          "point_recovered_l_per_day": null,
-          "lower_bound_recovered_l_per_day": null,
+          "point_recovered_l_per_day": 700,
+          "lower_bound_recovered_l_per_day": 640,
           "sustained_recovery_eligible": false
         }
       ],
       "verified_recovery_event_count": 0,
       "partial_recovery_event_count": 0,
-      "lower_bound_recovered_l_per_day": 0,
-      "point_recovered_l_per_day": 0,
+      "lower_bound_recovered_l_per_day": 640,
+      "point_recovered_l_per_day": 700,
       "claim_eligibility": "NotEligible"
     },
     {
