@@ -139,6 +139,7 @@
       "additionalProperties": false,
       "required": [
         "beam_budget",
+        "optimization_objective",
         "per_beam_capacity_mbps",
         "allocation_policy",
         "tie_break_policy",
@@ -180,6 +181,14 @@
             "minLength": 1
           },
           "description": "Required only for static_fixed_assignment. The same listed cells are served in every interval; the count must not exceed beam_budget."
+        },
+        "optimization_objective": {
+          "type": "string",
+          "enum": [
+            "critical_excess_served_mbps",
+            "priority_weighted_critical_excess_served_mbps"
+          ],
+          "description": "The declared objective used to rank allocations. Every comparator in a matched case must use the same objective."
         }
       }
     },
@@ -362,6 +371,23 @@
         },
         "deterministic_allocation": {
           "type": "boolean"
+        },
+        "total_priority_weighted_critical_excess_offered_mbps_intervals": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_priority_weighted_critical_excess_served_mbps_intervals": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_priority_weighted_critical_excess_unserved_mbps_intervals": {
+          "type": "number",
+          "minimum": 0
+        },
+        "priority_weighted_offload_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
@@ -381,7 +407,7 @@
       "uniqueItems": true
     }
   },
-  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied. Static fixed assignment requires declared static_assignment_cell_ids, no more than beam_budget; selected cells remain fixed across every interval. For a held-out window sliced from a longer traffic trace, offset_s is relative to the holdout case while source_offset_s records the original trace offset.",
+  "$comment": "Semantic checks: cell IDs unique; each interval contains exactly one load row per declared cell; offsets strictly increase and fit inside horizon; intervals align with declared interval duration; critical excess is recomputed from offered minus terrestrial capacity; each cell can receive at most one beam per interval; selected cells do not exceed beam budget; the oracle is independently recomputed; no radio SINR/interference, propagation, spectrum or link feasibility is implied. Static fixed assignment requires declared static_assignment_cell_ids, no more than beam_budget; selected cells remain fixed across every interval. For a held-out window sliced from a longer traffic trace, offset_s is relative to the holdout case while source_offset_s records the original trace offset. The optimization_objective must be frozen across matched policies. For priority_weighted_critical_excess_served_mbps, the exact oracle maximizes sum(priority_weight × min(cell critical excess, per-beam capacity)) subject to the beam budget; ties are broken by the lexicographically ascending sorted cell-ID set.",
   "allOf": [
     {
       "if": {
