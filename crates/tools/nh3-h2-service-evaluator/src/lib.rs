@@ -431,6 +431,28 @@ fn validate_dynamic_service(
         return None;
     }
 
+    let expected_flow = match (product.accepted_h2_mass_g, product.delivery_interval_s) {
+        (Some(mass_g), Some(interval_s))
+            if mass_g.is_finite()
+                && mass_g > 0.0
+                && interval_s.is_finite()
+                && interval_s > 0.0 =>
+        {
+            mass_g / interval_s * 3600.0
+        }
+        _ => {
+            blocked.push(
+                "dynamic service target flow cannot be reconciled to accepted H2 mass and delivery interval".to_owned(),
+            );
+            return None;
+        }
+    };
+    if !close_enough(target_flow, expected_flow, 1.0e-6) {
+        rejected.push(
+            "dynamic customer flow target does not match the accepted H2 product contract rate".to_owned(),
+        );
+    }
+
     let lower_flow = target_flow * (1.0 - settling_band);
     let upper_flow = target_flow * (1.0 + settling_band);
     let earliest_settled = trace.iter().enumerate().find_map(|(index, point)| {
@@ -1135,6 +1157,24 @@ mod tests {
         assert_eq!(
             scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
             "REJECTED"
+        );
+    }
+
+    #[test]
+    fn dynamic_target_flow_must_match_accepted_product_mass_and_interval() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(
+            scenario_for(&report, "rejected-flow-target-mismatches-product-contract").disposition,
+            "REJECTED"
+        );
+    }
+
+    #[test]
+    fn positive_dynamic_target_is_derived_from_accepted_product_contract() {
+        let report = audit_manifest_json(FIXTURE).expect("fixture should audit");
+        assert_eq!(
+            scenario_for(&report, "synthetic-plasma-h2-service-positive").disposition,
+            "SYNTHETIC_ACCOUNTING_PASS"
         );
     }
 
