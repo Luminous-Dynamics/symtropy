@@ -30,7 +30,7 @@
     },
     "negative_controls": {
       "type": "array",
-      "minItems": 10,
+      "minItems": 15,
       "items": {
         "$ref": "#/$defs/negative_control"
       }
@@ -319,7 +319,8 @@
               "destination_jurisdiction",
               "product_category",
               "approval_status",
-              "responsible_operator_status"
+              "responsible_operator_status",
+              "approval_route_class"
             ],
             "properties": {
               "destination_jurisdiction": {
@@ -346,6 +347,19 @@
                   "identified",
                   "authorized"
                 ]
+              },
+              "approval_route_class": {
+                "type": "string",
+                "enum": [
+                  "unknown",
+                  "whole_vehicle_type_approval",
+                  "manufacturer_self_certification",
+                  "notified_test_agency_type_approval",
+                  "national_conformity_authorization",
+                  "component_or_system_approval",
+                  "tariff_quota_route_only",
+                  "other_review_required"
+                ]
               }
             }
           }
@@ -369,7 +383,13 @@
                   "supplier_site_jurisdiction",
                   "material_origin_jurisdiction",
                   "origin_evidence_status",
-                  "transformation_refs"
+                  "transformation_refs",
+                  "customs_classification_code",
+                  "customs_classification_status",
+                  "origin_rule_ref",
+                  "preference_claim_status",
+                  "local_content_method_ref",
+                  "local_content_status"
                 ],
                 "properties": {
                   "component_ref": {
@@ -396,6 +416,56 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "customs_classification_code": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 2
+                  },
+                  "customs_classification_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "candidate",
+                      "review_required",
+                      "verified",
+                      "not_applicable"
+                    ]
+                  },
+                  "origin_rule_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3
+                  },
+                  "preference_claim_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "not_claimed",
+                      "pending_evidence",
+                      "verified_eligible",
+                      "verified_ineligible"
+                    ]
+                  },
+                  "local_content_method_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "minLength": 3
+                  },
+                  "local_content_status": {
+                    "type": "string",
+                    "enum": [
+                      "unknown",
+                      "synthetic_only",
+                      "pending_evidence",
+                      "verified"
+                    ]
                   }
                 }
               }
@@ -548,7 +618,11 @@
         "source",
         "applicability",
         "disposition",
-        "reviewer_status"
+        "reviewer_status",
+        "responsible_party_ref",
+        "conformity_route",
+        "required_evidence_refs",
+        "reviewer_ref"
       ],
       "properties": {
         "obligation_id": {
@@ -607,7 +681,12 @@
             "publication_date",
             "entry_into_force_date",
             "application_date",
-            "source_digest"
+            "source_digest",
+            "source_checked_at",
+            "transition_start_date",
+            "transition_end_date",
+            "expiry_date",
+            "source_language"
           ],
           "properties": {
             "issuer": {
@@ -649,6 +728,38 @@
             "source_digest": {
               "type": "string",
               "pattern": "^(sha256:[a-f0-9]{64}|unknown|synthetic)$"
+            },
+            "source_checked_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "transition_start_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "transition_end_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "expiry_date": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "source_language": {
+              "type": "string",
+              "minLength": 2
             }
           }
         },
@@ -703,6 +814,43 @@
             "local_expert_review_pending",
             "reviewed_for_scope"
           ]
+        },
+        "responsible_party_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 3
+        },
+        "conformity_route": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "type_approval",
+            "manufacturer_self_certification",
+            "national_conformity_authorization",
+            "notified_test_agency_approval",
+            "permit_or_licence",
+            "registration",
+            "third_party_assessment",
+            "self_declaration",
+            "contractual_review",
+            "not_applicable"
+          ]
+        },
+        "required_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "reviewer_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 3
         }
       }
     },
@@ -732,7 +880,12 @@
             "unknown_origin_as_eligible",
             "unknown_as_satisfied",
             "data_processing_jurisdiction_omitted",
-            "silent_global_core_change"
+            "silent_global_core_change",
+            "unknown_customs_classification_as_eligible",
+            "origin_preference_without_evidence",
+            "responsible_party_mismatch",
+            "effective_window_mismatch",
+            "local_content_claim_without_method"
           ]
         },
         "expected_disposition": {
