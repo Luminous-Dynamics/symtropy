@@ -4,9 +4,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use symmetry_physical_handoff_receiver::{
-    ReceiverPackageV1, ReceiverProfileV1, verify_package,
-};
+use symmetry_physical_handoff_receiver::{ReceiverPackageV1, ReceiverProfileV1, verify_package};
 
 fn main() {
     if let Err(error) = run() {
