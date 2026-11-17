@@ -35,17 +35,21 @@ This work composes the existing public Luminous owners:
 
 The GMDP stores references to these canonical subjects. It must not reimplement their engineering semantics.
 
-## Five independent jurisdiction dimensions
+## Seven independent jurisdiction dimensions
 
 Every profile must explicitly model:
 
 1. **Manufacturing site** — where the operation physically happens and which local site, facility, workforce, utilities, permits and emergency arrangements apply.
 2. **Destination market** — where the product/component is placed on the market, registered, operated or put into service, and which product/actor obligations apply.
-3. **Supply-chain origin** — where material and components originate and where the legally relevant transformations occur. Supplier address alone does not prove origin.
-4. **Data processing** — where telemetry, personal data, engineering records or regulated data are stored, accessed or processed, under whose authority and for which purpose.
-5. **Service/lifecycle** — where installation, repair, remanufacture, repurposing, recycling or disposal occurs, with its own skills, safety, waste and producer-responsibility obligations.
+3. **Supplier/manufacturing site** — where a supplier performs its operation. This is not automatically the material's legal origin or the place of substantial transformation.
+4. **Material/component origin** — where the material or component legally originates under the relevant destination-market rule; it requires rule-specific evidence and is not inferred from the supplier's address.
+5. **Transformation location** — where each legally or technically relevant manufacturing transformation occurs. Multiple transformations may occur in several jurisdictions.
+6. **Data processing** — where telemetry, personal data, engineering records or regulated data are stored, accessed or processed, under whose authority and for which purpose.
+7. **Service/lifecycle** — where installation, repair, remanufacture, repurposing, recycling or disposal occurs, with its own skills, safety, waste and producer-responsibility obligations.
 
 These dimensions may coincide, but must never be assumed to coincide.
+A component record therefore binds supplier site, material origin and each relevant transformation location separately. This is required for origin, tariff preference, local-content and resilience analysis; a supplier's billing address, headquarters or warehouse cannot stand in for the manufacturing plant or transformation sequence.
+
 
 ## Record model
 
@@ -76,7 +80,7 @@ A proposal cannot satisfy an in-force legal obligation. A voluntary standard is 
 
 ### Supply-chain origin and transformation
 
-Bind component identity and exact lot, supplier/manufacturing site, origin evidence, transformation sequence, customs classification candidate, customs-value basis, freight/insurance, tariff/preference rule and local-content calculation method/version.
+For each component bind supplier site, material origin, all relevant transformation jurisdictions, exact lot and the transformation sequence. Bind the destination-specific origin rule, customs classification candidate, customs-value basis, freight/insurance, tariff/preference rule and local-content calculation method/version. Supplier-site membership must reconcile with the supplier-site dimension; material origin with component-origin; and each transformation location with transformation jurisdictions.
 
 Unknown origin, tariff classification, preference eligibility or incentive entitlement remains unknown. Do not award a modeled saving for an unevidenced preferential rate or local-content benefit. Do not count a finished/landed price and then add the same freight or duty again.
 
