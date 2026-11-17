@@ -1029,8 +1029,14 @@ pub fn verify_package(
         return Err(ReceiverErrorV1::TaskSemanticDigestMismatch);
     }
 
-    let (inverse_s, condition) = inverse_and_condition(&fixture.transform_s, profile)?;
     let (lower_q, symmetry_defect) = cholesky(&fixture.mass_metric_q, profile)?;
+    let (inverse_s, condition) = match inverse_and_condition(&fixture.transform_s, profile) {
+        Ok(result) => result,
+        Err(ReceiverErrorV1::CoordinateConditionOutOfEnvelope { estimate_bits }) => {
+            return out_of_envelope_receipt(envelope, f64::from_bits(estimate_bits));
+        }
+        Err(error) => return Err(error),
+    };
     let mass_y = multiply(
         &multiply(&transpose(&fixture.transform_s), &fixture.mass_metric_q),
         &fixture.transform_s,
@@ -1215,6 +1221,12 @@ pub fn verify_package(
         diagnostics,
         claim_boundary: "Bounded 3D coordinate re-description only; no discrete-step, physical-observable, nonlinear solver, or scientific pruning authority.".to_owned(),
     };
+    sign_receipt(payload)
+}
+
+fn sign_receipt(
+    payload: ReceiverReceiptPayloadV1,
+) -> Result<ReceiverReceiptV1, ReceiverErrorV1> {
     let receipt_bytes =
         serde_json::to_vec(&payload).map_err(|_| ReceiverErrorV1::ReceiptSerializationFailure)?;
     let receipt_hash = hash_domain("luminous.receiver-owned-receipt.v1", &receipt_bytes);
@@ -1222,6 +1234,58 @@ pub fn verify_package(
         payload,
         receiver_receipt_sha256: receipt_hash,
     })
+}
+
+fn out_of_envelope_receipt(
+    envelope: &HandoffEnvelopeV1,
+    condition_estimate: f64,
+) -> Result<ReceiverReceiptV1, ReceiverErrorV1> {
+    let obligations = ReceiverObligationsV1 {
+        mass_metric_congruence: ObligationStatusV1::Inconclusive,
+        force_covector_duality: ObligationStatusV1::Inconclusive,
+        momentum_one_form: ObligationStatusV1::Inconclusive,
+        constraint_jacobian: ObligationStatusV1::Inconclusive,
+        generator_metric_isometry: ObligationStatusV1::Inconclusive,
+        discrete_step_equivariance: ObligationStatusV1::Inconclusive,
+        physical_observables: ObligationStatusV1::Inconclusive,
+        numerical_error_envelope: ObligationStatusV1::Inconclusive,
+        full_task_semantics: ObligationStatusV1::Pass,
+    };
+    let diagnostics = ReceiverDiagnosticsV1 {
+        transform_condition_inf_estimate: condition_estimate,
+        mass_metric_relative_symmetry_defect: 0.0,
+        mass_congruence_relative_defect: 0.0,
+        force_covector_relative_defect: 0.0,
+        momentum_covector_relative_defect: 0.0,
+        constraint_jacobian_relative_defect: 0.0,
+        maximum_generator_conjugation_relative_defect: 0.0,
+        maximum_generator_isometry_relative_defect_q: 0.0,
+        maximum_generator_isometry_relative_defect_y: 0.0,
+        force_pairing_relative_defect: 0.0,
+        momentum_pairing_relative_defect: 0.0,
+        tangent_norm_relative_defect: 0.0,
+        force_dual_norm_relative_defect: 0.0,
+        momentum_dual_norm_relative_defect: 0.0,
+    };
+    let payload = ReceiverReceiptPayloadV1 {
+        schema_version: RECEIVER_SCHEMA_VERSION.to_owned(),
+        verifier_id: RECEIVER_ID.to_owned(),
+        verifier_profile_id: RECEIVER_PROFILE_ID.to_owned(),
+        handoff_id: envelope.handoff_id.clone(),
+        source_repository: envelope.source_math_receipt.repository.clone(),
+        source_commit_sha: envelope.source_math_receipt.commit_sha.clone(),
+        source_receipt_sha256: envelope.source_math_receipt.receipt_sha256.clone(),
+        physical_case_id: envelope.physical_problem.case_id.clone(),
+        status: ObligationStatusV1::Inconclusive,
+        physical_equivalence_authority: "NONE".to_owned(),
+        scientific_search_pruning_authorized: false,
+        obligations,
+        diagnostics,
+        claim_boundary: format!(
+            "INCONCLUSIVE: transform condition estimate {condition_estimate:.6e} exceeds the declared receiver profile; physical coordinate laws were not promoted."
+        ),
+    };
+    sign_receipt(payload)
 }
 
 fn relative_scalar_defect(left: f64, right: f64) -> f64 {
@@ -1578,6 +1642,54 @@ mod tests {
         assert_eq!(
             verify_package(&package, test_profile()),
             Err(ReceiverErrorV1::SingularCoordinateChange { pivot: 1 })
+        );
+    }
+
+    #[test]
+    fn out_of_envelope_transform_returns_inconclusive_not_a_false_failure_or_pass() {
+        let mut package = build_package();
+        package.physical_fixture.transform_s = [
+            [1.0e-5, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        package.envelope.physical_problem.coordinate_change.transform_sha256 =
+            canonical_matrix3_hash(
+                "luminous.transform-s.v1",
+                &package.physical_fixture.transform_s,
+            )
+            .unwrap();
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+
+        let profile = ReceiverProfileV1 {
+            maximum_transform_condition_inf: 100.0,
+            ..test_profile()
+        };
+        let receipt = verify_package(&package, profile).unwrap();
+        assert_eq!(receipt.payload.status, ObligationStatusV1::Inconclusive);
+        assert_eq!(
+            receipt.payload.obligations.mass_metric_congruence,
+            ObligationStatusV1::Inconclusive
+        );
+        assert_eq!(
+            receipt.payload.obligations.full_task_semantics,
+            ObligationStatusV1::Pass
+        );
+        assert_eq!(receipt.payload.physical_equivalence_authority, "NONE");
+        assert!(!receipt.payload.scientific_search_pruning_authorized);
+    }
+
+    #[test]
+    fn transformed_metric_digest_is_bound_to_exact_recomputed_congruence() {
+        let mut package = build_package();
+        package.envelope.physical_problem.coordinate_change.transformed_mass_metric_sha256 =
+            "0".repeat(64);
+        package.envelope.physical_problem.fixture_sha256 =
+            canonical_fixture_hash(&package.envelope, &package.physical_fixture).unwrap();
+        assert_eq!(
+            verify_package(&package, test_profile()),
+            Err(ReceiverErrorV1::MassMetricDigestMismatch)
         );
     }
 
