@@ -1,0 +1,477 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminousdynamics:aero:haps-service-profile:v1",
+  "title": "HAPS service profile v1",
+  "description": "A platform-independent coverage, network and fleet service contract for matched HAPS architecture comparisons. Aircraft performance is supplied by separately identified candidate and domain models.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "revision",
+    "data_origin",
+    "claim_ceiling",
+    "service",
+    "coverage",
+    "operating_envelope",
+    "platform_portfolio",
+    "fleet_policy",
+    "energy_and_reserve",
+    "comparators",
+    "evidence_requirements",
+    "assumptions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "haps-service-profile/v1"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "data_origin": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "public_dataset",
+        "mixed"
+      ]
+    },
+    "claim_ceiling": {
+      "enum": [
+        "synthetic_architecture_screening",
+        "analytic_bounded_fixture",
+        "model_based_research",
+        "sil_research",
+        "hil_research",
+        "component_bench_research",
+        "flight_test_research",
+        "externally_accepted"
+      ]
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_class",
+        "description",
+        "target_devices",
+        "aggregate_throughput_mbps",
+        "max_one_way_latency_ms",
+        "availability_fraction",
+        "service_window_s"
+      ],
+      "properties": {
+        "service_class": {
+          "enum": [
+            "connectivity",
+            "disaster_resilience_connectivity",
+            "earth_observation",
+            "environmental_monitoring",
+            "communications_relay",
+            "hybrid",
+            "other"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_devices": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "aggregate_throughput_mbps": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_one_way_latency_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "service_window_s": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_unserved_interval_s": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "region_ref",
+        "target_area_km2",
+        "minimum_coverage_fraction",
+        "maximum_coverage_gap_s",
+        "handover_max_gap_s",
+        "demand_profile_ref"
+      ],
+      "properties": {
+        "region_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_area_km2": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_coverage_gap_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "handover_max_gap_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "demand_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "population_density_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "operating_envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "altitude_m",
+        "latitude_deg",
+        "temperature_k",
+        "wind_profile_ref",
+        "solar_weather_profile_ref",
+        "seasonal_holdout_refs"
+      ],
+      "properties": {
+        "altitude_m": {
+          "$ref": "#/$defs/range"
+        },
+        "latitude_deg": {
+          "$ref": "#/$defs/latitudeRange"
+        },
+        "temperature_k": {
+          "$ref": "#/$defs/positiveRange"
+        },
+        "wind_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solar_weather_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seasonal_holdout_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "weather_campaign_holdout_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "platform_portfolio": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_families",
+        "candidate_refs",
+        "minimum_simultaneous_nodes",
+        "candidate_selection_policy"
+      ],
+      "properties": {
+        "candidate_families": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "solar_haps",
+              "buoyant_haps"
+            ]
+          }
+        },
+        "candidate_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "minimum_simultaneous_nodes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidate_selection_policy": {
+          "enum": [
+            "fixed_portfolio",
+            "matched_service_optimization",
+            "robust_feasible_set",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "fleet_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_fleet_availability_fraction",
+        "maximum_concurrent_node_losses",
+        "minimum_spare_ratio",
+        "maximum_maintenance_downtime_fraction",
+        "single_node_failure_must_be_tolerated",
+        "handover_policy"
+      ],
+      "properties": {
+        "minimum_fleet_availability_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_concurrent_node_losses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_spare_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_maintenance_downtime_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "single_node_failure_must_be_tolerated": {
+          "type": "boolean"
+        },
+        "handover_policy": {
+          "enum": [
+            "continuous_overlap",
+            "store_and_forward",
+            "best_effort",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "energy_and_reserve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "energy_case_refs",
+        "own_platform_load_priority",
+        "minimum_reserve_fraction",
+        "export_allowed"
+      ],
+      "properties": {
+        "energy_case_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "own_platform_load_priority": {
+          "const": true
+        },
+        "minimum_reserve_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "export_allowed": {
+          "type": "boolean"
+        },
+        "export_profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "energy_export_admission_policy": {
+          "enum": [
+            "none",
+            "surplus_only_after_platform_reserve",
+            "unknown"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "export_allowed": {
+                "const": true
+              }
+            },
+            "required": [
+              "export_allowed"
+            ]
+          },
+          "then": {
+            "required": [
+              "export_profile_ref",
+              "energy_export_admission_policy"
+            ],
+            "properties": {
+              "export_profile_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "energy_export_admission_policy": {
+                "const": "surplus_only_after_platform_reserve"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "comparators": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "terrestrial_network",
+          "leo_satellite",
+          "geo_satellite",
+          "solar_fixed_wing_haps",
+          "buoyant_haps",
+          "low_altitude_uav_mesh",
+          "hybrid_multilayer_network"
+        ]
+      }
+    },
+    "evidence_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_weather_holdouts",
+        "independent_service_measurement",
+        "source_to_service_traceability",
+        "claim_boundary_notes"
+      ],
+      "properties": {
+        "independent_weather_holdouts": {
+          "type": "boolean"
+        },
+        "independent_service_measurement": {
+          "type": "boolean"
+        },
+        "source_to_service_traceability": {
+          "type": "boolean"
+        },
+        "claim_boundary_notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        }
+      }
+    },
+    "latitudeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "maximum": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        }
+      }
+    },
+    "positiveRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "properties": {
+        "minimum": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximum": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  },
+  "$comment": "Semantic constraints beyond this schema: ranges must be ordered; geographic and weather profiles need source/rights/time provenance; service availability denominator and planned exclusions must be explicit; nodes must be independently identified; fleet service cannot be inferred from one airframe endurance; export is unavailable unless the independent per-platform energy profile admits it."
+}
