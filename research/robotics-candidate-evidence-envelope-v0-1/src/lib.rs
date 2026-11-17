@@ -837,9 +837,11 @@ mod tests {
         value.receipts[0]
             .covered_target_ids
             .push("module-unknown".to_owned());
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::GeometryCoverageMismatch));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::GeometryCoverageMismatch)
+        );
     }
 
     #[test]
