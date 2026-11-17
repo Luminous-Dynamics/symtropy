@@ -478,8 +478,8 @@ fn pareto_frontier(plans: &[MeasurementPlan]) -> Vec<MeasurementPlan> {
         )
             .cmp(&(
                 right.worst_case_remaining_hypothesis_count,
-                right.cost,
                 right.duration_minutes,
+                right.cost,
                 &right.candidate_ids,
             ))
     });
@@ -540,8 +540,8 @@ fn build_report(fixture: &Fixture) -> Result<PlannerReport, String> {
         .min_by(|left, right| {
             (
                 left.worst_case_remaining_hypothesis_count,
-                left.cost,
                 left.duration_minutes,
+                left.cost,
                 &left.candidate_ids,
             )
                 .cmp(&(
@@ -566,7 +566,7 @@ fn build_report(fixture: &Fixture) -> Result<PlannerReport, String> {
         rule_version: RULE_VERSION,
         claim_ceiling: CLAIM_CEILING,
         status,
-        objective_rule: "MINIMAX_RESIDUAL_THEN_COST_THEN_DURATION",
+        objective_rule: "MINIMAX_RESIDUAL_THEN_DURATION_THEN_COST",
         probabilities_emitted: false,
         priors_assumed: false,
         hypothesis_set_id: fixture.hypothesis_set.set_id.clone(),
@@ -745,7 +745,7 @@ mod tests {
     #[test]
     fn recommended_plan_uses_declared_lexicographic_objective_not_a_weighted_score() {
         let report = run().expect("report");
-        assert_eq!(report.objective_rule, "MINIMAX_RESIDUAL_THEN_COST_THEN_DURATION");
+        assert_eq!(report.objective_rule, "MINIMAX_RESIDUAL_THEN_DURATION_THEN_COST");
         let recommended = report.recommended_plan.expect("recommended");
         assert_eq!(
             recommended.candidate_ids,
