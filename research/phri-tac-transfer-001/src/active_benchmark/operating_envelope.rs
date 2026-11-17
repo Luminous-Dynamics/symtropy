@@ -574,12 +574,12 @@ mod tests {
         boundary.normal_force_n = Some(5.0);
         boundary.temperature_c = Some(30.0);
         let assessment = assess_operating_point(&envelope(vec![cell.clone()]), &boundary);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.QualifiedInsideCell);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::QualifiedInsideCell);
 
         let mut changed_context = point();
         changed_context.sensorized_body_context_digest = "sha256:new-host".to_owned();
         let assessment = assess_operating_point(&envelope(vec![cell]), &changed_context);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.PhysicalContextMismatch);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::PhysicalContextMismatch);
     }
 
     #[test]
@@ -592,7 +592,7 @@ mod tests {
         let mut missing = point();
         missing.humidity_percent = None;
         let assessment = assess_operating_point(&envelope(vec![cell_a.clone()]), &missing);
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.MissingRequiredState);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::MissingRequiredState);
 
         let cell_b = cell(
             "cell-b",
@@ -600,7 +600,7 @@ mod tests {
             NumericRange { minimum: 25.0, maximum: 35.0 },
         );
         let assessment = assess_operating_point(&envelope(vec![cell_a, cell_b]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.OverlappingOrAmbiguousCells);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::OverlappingOrAmbiguousCells);
     }
 
     #[test]
@@ -612,7 +612,7 @@ mod tests {
         );
         changed_sensor.sensor_identity_digest = "sha256:replacement-sensor".to_owned();
         let assessment = assess_operating_point(&envelope(vec![changed_sensor]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
         assert!(assessment.reasons.iter().any(|reason| {
             reason.contains("sensor identity differs from envelope sensor identity")
         }));
@@ -627,7 +627,7 @@ mod tests {
         );
         invalid_humidity.humidity_percent = NumericRange { minimum: 10.0, maximum: 120.0 };
         let assessment = assess_operating_point(&envelope(vec![invalid_humidity]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
 
         let mut negative_force = cell(
             "negative-force",
@@ -636,7 +636,7 @@ mod tests {
         );
         negative_force.evidence.qualification_status = CellQualificationStatus::NotValidated;
         let assessment = assess_operating_point(&envelope(vec![negative_force]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
     }
 
     #[test]
@@ -696,6 +696,6 @@ mod tests {
         );
         invalid.evidence.heldout_validation_receipt_id.clear();
         let assessment = assess_operating_point(&envelope(vec![invalid]), &point());
-        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition.EnvelopeInvalid);
+        assert_eq!(assessment.disposition, OperatingEnvelopeDisposition::EnvelopeInvalid);
     }
 }
