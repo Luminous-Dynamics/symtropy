@@ -30,9 +30,8 @@
 #![forbid(unsafe_code)]
 
 use super::wrench_consistency::{
-    FieldCovarianceStructure, FieldWrenchReferenceRelationship, TaxelGeometry,
-    TaxelGeometrySet, TractionFieldEstimate, Vec3, WrenchVector, build_wrench_operator,
-    integrate_tactile_field,
+    FieldCovarianceStructure, FieldWrenchReferenceRelationship, TaxelGeometry, TaxelGeometrySet,
+    TractionFieldEstimate, Vec3, WrenchVector, build_wrench_operator, integrate_tactile_field,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
@@ -156,9 +155,21 @@ fn vec_cross(left: Vec3, right: Vec3) -> Vec3 {
 
 fn unit_axis(index: usize) -> Vec3 {
     match index {
-        0 => Vec3 { x: 1.0, y: 0.0, z: 0.0 },
-        1 => Vec3 { x: 0.0, y: 1.0, z: 0.0 },
-        _ => Vec3 { x: 0.0, y: 0.0, z: 1.0 },
+        0 => Vec3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        },
+        1 => Vec3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        },
+        _ => Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        },
     }
 }
 
@@ -190,7 +201,9 @@ fn matrix_to_row_major(matrix: &[[f64; 6]; 6]) -> Vec<f64> {
 
 fn validate_spd_6(covariance: &[f64]) -> Result<[[f64; 6]; 6], String> {
     if covariance.len() != 36 || covariance.iter().any(|value| !value.is_finite()) {
-        return Err("common rigid-pose covariance must contain 36 finite row-major values".to_owned());
+        return Err(
+            "common rigid-pose covariance must contain 36 finite row-major values".to_owned(),
+        );
     }
     let mut matrix = [[0.0; 6]; 6];
     for (row, matrix_row) in matrix.iter_mut().enumerate() {
@@ -216,8 +229,7 @@ fn validate_spd_6(covariance: &[f64]) -> Result<[[f64; 6]; 6], String> {
                 }
                 lower[row][column] = diagonal.sqrt();
             } else {
-                lower[row][column] =
-                    (matrix[row][column] - correction) / lower[column][column];
+                lower[row][column] = (matrix[row][column] - correction) / lower[column][column];
             }
         }
     }
@@ -230,15 +242,36 @@ fn validate_model(
 ) -> Result<[[f64; 6]; 6], String> {
     for (name, value) in [
         ("geometry_digest", model.geometry_digest.as_str()),
-        ("reference_frame_digest", model.reference_frame_digest.as_str()),
-        ("contact_boundary_digest", model.contact_boundary_digest.as_str()),
+        (
+            "reference_frame_digest",
+            model.reference_frame_digest.as_str(),
+        ),
+        (
+            "contact_boundary_digest",
+            model.contact_boundary_digest.as_str(),
+        ),
         ("transform_digest", model.transform_digest.as_str()),
         ("sample_identity", model.sample_identity.as_str()),
-        ("native_observation_set_digest", model.native_observation_set_digest.as_str()),
-        ("field_estimate_digest", model.field_estimate_digest.as_str()),
-        ("uncertainty_method_digest", model.uncertainty_method_digest.as_str()),
-        ("reference_ancestry_receipt_id", model.reference_ancestry_receipt_id.as_str()),
-        ("common_cause_analysis_receipt_id", model.common_cause_analysis_receipt_id.as_str()),
+        (
+            "native_observation_set_digest",
+            model.native_observation_set_digest.as_str(),
+        ),
+        (
+            "field_estimate_digest",
+            model.field_estimate_digest.as_str(),
+        ),
+        (
+            "uncertainty_method_digest",
+            model.uncertainty_method_digest.as_str(),
+        ),
+        (
+            "reference_ancestry_receipt_id",
+            model.reference_ancestry_receipt_id.as_str(),
+        ),
+        (
+            "common_cause_analysis_receipt_id",
+            model.common_cause_analysis_receipt_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(format!("geometry uncertainty field {name} is missing"));
@@ -248,14 +281,22 @@ fn validate_model(
         || model.reference_frame_digest != geometry.reference_frame_digest
         || model.contact_boundary_digest != geometry.contact_boundary_digest
     {
-        return Err("geometry uncertainty digests do not match the exact geometry/frame/contact boundary".to_owned());
+        return Err(
+            "geometry uncertainty digests do not match the exact geometry/frame/contact boundary"
+                .to_owned(),
+        );
     }
     if model.local_taxels.len() != geometry.taxels.len() {
-        return Err("local geometry uncertainty must contain exactly one entry per taxel".to_owned());
+        return Err(
+            "local geometry uncertainty must contain exactly one entry per taxel".to_owned(),
+        );
     }
     for (taxel, uncertainty) in geometry.taxels.iter().zip(&model.local_taxels) {
         if taxel.taxel_id != uncertainty.taxel_id {
-            return Err("local geometry uncertainty taxel identity/order does not match geometry".to_owned());
+            return Err(
+                "local geometry uncertainty taxel identity/order does not match geometry"
+                    .to_owned(),
+            );
         }
         if !uncertainty.area_m2.is_finite()
             || uncertainty.area_m2 < 0.0
@@ -268,7 +309,10 @@ fn validate_model(
             || uncertainty.orientation_rad.y < 0.0
             || uncertainty.orientation_rad.z < 0.0
         {
-            return Err(format!("taxel {} geometry standard uncertainties must be finite and nonnegative", taxel.taxel_id));
+            return Err(format!(
+                "taxel {} geometry standard uncertainties must be finite and nonnegative",
+                taxel.taxel_id
+            ));
         }
     }
     validate_spd_6(&model.common_rigid_pose_covariance_row_major)
@@ -286,10 +330,19 @@ pub fn propagate_geometry_wrench_uncertainty(
         || field.sample_identity.trim().is_empty()
         || field.native_observation_set_digest.trim().is_empty()
         || field.uncertainty_method_digest.trim().is_empty()
-        || field.uncertainty_reference_ancestry_receipt_id.trim().is_empty()
-        || field.uncertainty_common_cause_analysis_receipt_id.trim().is_empty()
+        || field
+            .uncertainty_reference_ancestry_receipt_id
+            .trim()
+            .is_empty()
+        || field
+            .uncertainty_common_cause_analysis_receipt_id
+            .trim()
+            .is_empty()
         || field.standard_uncertainties_pa.len() != field.local_traction_pa.len()
-        || field.standard_uncertainties_pa.iter().any(|value| !value.is_finite() || *value < 0.0)
+        || field
+            .standard_uncertainties_pa
+            .iter()
+            .any(|value| !value.is_finite() || *value < 0.0)
     {
         return Err("traction field estimate or uncertainty provenance is incomplete".to_owned());
     }
@@ -303,11 +356,8 @@ pub fn propagate_geometry_wrench_uncertainty(
     let nominal = integrate_tactile_field(&operator, &field.local_traction_pa)?;
 
     let mut local_covariance = [[0.0; 6]; 6];
-    for (parameter, (taxel, uncertainty)) in geometry
-        .taxels
-        .iter()
-        .zip(&model.local_taxels)
-        .enumerate()
+    for (parameter, (taxel, uncertainty)) in
+        geometry.taxels.iter().zip(&model.local_taxels).enumerate()
     {
         let offset = parameter * 3;
         let normal_pressure = field.local_traction_pa[offset];
@@ -333,7 +383,11 @@ pub fn propagate_geometry_wrench_uncertainty(
             area_moment.y,
             area_moment.z,
         ];
-        outer_add(&mut local_covariance, &area_jacobian, uncertainty.area_m2.powi(2));
+        outer_add(
+            &mut local_covariance,
+            &area_jacobian,
+            uncertainty.area_m2.powi(2),
+        );
 
         // dM/d(application_point_k) = e_k × force_contribution.
         for axis in 0..3 {
@@ -416,12 +470,15 @@ pub fn propagate_geometry_wrench_uncertainty(
     let local_covariance_available =
         model.local_taxel_relationship == GeometrySourceRelationship::IndependentlyCharacterized;
     let total_geometry_covariance_available = local_covariance_available
-        && model.local_to_global_relationship == GeometrySourceRelationship::IndependentlyCharacterized;
+        && model.local_to_global_relationship
+            == GeometrySourceRelationship::IndependentlyCharacterized;
     let total = total_geometry_covariance_available
         .then(|| matrix_add(&local_covariance, &global_covariance));
     let combined_independence = total_geometry_covariance_available
-        && model.geometry_to_field_relationship == GeometrySourceRelationship::IndependentlyCharacterized
-        && model.geometry_to_wrench_reference_relationship == GeometrySourceRelationship::IndependentlyCharacterized
+        && model.geometry_to_field_relationship
+            == GeometrySourceRelationship::IndependentlyCharacterized
+        && model.geometry_to_wrench_reference_relationship
+            == GeometrySourceRelationship::IndependentlyCharacterized
         && field.relationship_to_wrench_reference
             == FieldWrenchReferenceRelationship::IndependentFromWrenchReference
         && field.covariance_structure == FieldCovarianceStructure::IndependentDiagonalComponents;
@@ -430,14 +487,26 @@ pub fn propagate_geometry_wrench_uncertainty(
     if !local_covariance_available {
         reasons.push("per-taxel local geometry errors are correlated or unknown; independent local covariance sum is not admissible".to_owned());
     }
-    if model.local_to_global_relationship != GeometrySourceRelationship::IndependentlyCharacterized {
-        reasons.push("local and global geometry errors have unresolved cross-covariance".to_owned());
+    if model.local_to_global_relationship != GeometrySourceRelationship::IndependentlyCharacterized
+    {
+        reasons
+            .push("local and global geometry errors have unresolved cross-covariance".to_owned());
     }
-    if model.geometry_to_field_relationship != GeometrySourceRelationship::IndependentlyCharacterized {
-        reasons.push("geometry and tactile field uncertainty share or may share evidence ancestry".to_owned());
+    if model.geometry_to_field_relationship
+        != GeometrySourceRelationship::IndependentlyCharacterized
+    {
+        reasons.push(
+            "geometry and tactile field uncertainty share or may share evidence ancestry"
+                .to_owned(),
+        );
     }
-    if model.geometry_to_wrench_reference_relationship != GeometrySourceRelationship::IndependentlyCharacterized {
-        reasons.push("geometry and wrench-reference uncertainty share or may share evidence ancestry".to_owned());
+    if model.geometry_to_wrench_reference_relationship
+        != GeometrySourceRelationship::IndependentlyCharacterized
+    {
+        reasons.push(
+            "geometry and wrench-reference uncertainty share or may share evidence ancestry"
+                .to_owned(),
+        );
     }
     if field.relationship_to_wrench_reference
         != FieldWrenchReferenceRelationship::IndependentFromWrenchReference
@@ -481,11 +550,23 @@ pub fn propagate_geometry_wrench_uncertainty(
 
 /// Deterministic small synthetic CLI example for the geometry uncertainty
 /// path. This is a contract smoke-test, not physical sensor evidence.
-pub fn run_synthetic_geometry_uncertainty_example(
-) -> Result<GeometryWrenchUncertaintyReport, String> {
-    let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
-    let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
-    let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+pub fn run_synthetic_geometry_uncertainty_example()
+-> Result<GeometryWrenchUncertaintyReport, String> {
+    let tangent_u = Vec3 {
+        x: 1.0,
+        y: 0.0,
+        z: 0.0,
+    };
+    let tangent_v = Vec3 {
+        x: 0.0,
+        y: 1.0,
+        z: 0.0,
+    };
+    let normal = Vec3 {
+        x: 0.0,
+        y: 0.0,
+        z: 1.0,
+    };
     let geometry = TaxelGeometrySet {
         geometry_digest: "sha256:synthetic-geometry-uq-grid".to_owned(),
         reference_frame_digest: "sha256:synthetic-geometry-uq-frame".to_owned(),
@@ -495,7 +576,11 @@ pub fn run_synthetic_geometry_uncertainty_example(
             TaxelGeometry {
                 taxel_id: "taxel-0".to_owned(),
                 area_m2: 1.0e-4,
-                application_point_m: Vec3 { x: 0.02, y: 0.0, z: 0.0 },
+                application_point_m: Vec3 {
+                    x: 0.02,
+                    y: 0.0,
+                    z: 0.0,
+                },
                 normal,
                 tangent_u,
                 tangent_v,
@@ -503,7 +588,11 @@ pub fn run_synthetic_geometry_uncertainty_example(
             TaxelGeometry {
                 taxel_id: "taxel-1".to_owned(),
                 area_m2: 1.0e-4,
-                application_point_m: Vec3 { x: -0.02, y: 0.0, z: 0.0 },
+                application_point_m: Vec3 {
+                    x: -0.02,
+                    y: 0.0,
+                    z: 0.0,
+                },
                 normal,
                 tangent_u,
                 tangent_v,
@@ -531,15 +620,24 @@ pub fn run_synthetic_geometry_uncertainty_example(
             .map(|taxel| TaxelGeometryStandardUncertainty {
                 taxel_id: taxel.taxel_id.clone(),
                 area_m2: 1.0e-6,
-                application_point_m: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
-                orientation_rad: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+                application_point_m: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
+                orientation_rad: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
             })
             .collect(),
         local_taxel_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
         common_rigid_pose_covariance_row_major: pose_covariance,
         local_to_global_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
         geometry_to_field_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
-        geometry_to_wrench_reference_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+        geometry_to_wrench_reference_relationship:
+            GeometrySourceRelationship::IndependentlyCharacterized,
         wrench_origin_attachment: WrenchOriginAttachment::FixedInReferenceFrame,
     };
     let field = TractionFieldEstimate {
@@ -552,7 +650,8 @@ pub fn run_synthetic_geometry_uncertainty_example(
         uncertainty_reference_ancestry_receipt_id: "receipt:field-ancestry".to_owned(),
         uncertainty_common_cause_analysis_receipt_id: "receipt:field-cca".to_owned(),
         covariance_structure: FieldCovarianceStructure::IndependentDiagonalComponents,
-        relationship_to_wrench_reference: FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
+        relationship_to_wrench_reference:
+            FieldWrenchReferenceRelationship::IndependentFromWrenchReference,
     };
     propagate_geometry_wrench_uncertainty(&geometry, &field, &model)
 }
@@ -562,9 +661,21 @@ mod tests {
     use super::*;
 
     fn geometry() -> TaxelGeometrySet {
-        let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
-        let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
-        let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+        let tangent_u = Vec3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let tangent_v = Vec3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        };
+        let normal = Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        };
         TaxelGeometrySet {
             geometry_digest: "sha256:geometry-1".to_owned(),
             reference_frame_digest: "sha256:reference-frame".to_owned(),
@@ -573,7 +684,11 @@ mod tests {
             taxels: vec![super::super::wrench_consistency::TaxelGeometry {
                 taxel_id: "taxel-0".to_owned(),
                 area_m2: 1.0e-4,
-                application_point_m: Vec3 { x: 0.1, y: 0.0, z: 0.0 },
+                application_point_m: Vec3 {
+                    x: 0.1,
+                    y: 0.0,
+                    z: 0.0,
+                },
                 normal,
                 tangent_u,
                 tangent_v,
@@ -615,14 +730,23 @@ mod tests {
             local_taxels: vec![TaxelGeometryStandardUncertainty {
                 taxel_id: "taxel-0".to_owned(),
                 area_m2: 1.0e-6,
-                application_point_m: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
-                orientation_rad: Vec3 { x: 1.0e-3, y: 1.0e-3, z: 1.0e-3 },
+                application_point_m: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
+                orientation_rad: Vec3 {
+                    x: 1.0e-3,
+                    y: 1.0e-3,
+                    z: 1.0e-3,
+                },
             }],
             local_taxel_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
             common_rigid_pose_covariance_row_major: pose_covariance,
             local_to_global_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
             geometry_to_field_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
-            geometry_to_wrench_reference_relationship: GeometrySourceRelationship::IndependentlyCharacterized,
+            geometry_to_wrench_reference_relationship:
+                GeometrySourceRelationship::IndependentlyCharacterized,
             wrench_origin_attachment: WrenchOriginAttachment::FixedInReferenceFrame,
         }
     }
@@ -633,13 +757,49 @@ mod tests {
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &model(&geometry))
             .expect("geometry uncertainty propagation");
-        assert_eq!(report.disposition, GeometryUqDisposition::IndependentGeometryCovarianceAvailable);
+        assert_eq!(
+            report.disposition,
+            GeometryUqDisposition::IndependentGeometryCovarianceAvailable
+        );
         assert!(report.admissible_for_combined_wrench_uncertainty);
-        assert_eq!(report.local_geometry_covariance_row_major.as_ref().unwrap().len(), 36);
-        assert_eq!(report.global_pose_covariance_row_major.as_ref().unwrap().len(), 36);
-        assert_eq!(report.total_geometry_covariance_row_major.as_ref().unwrap().len(), 36);
-        assert!(report.local_geometry_covariance_row_major.unwrap().iter().any(|value| *value > 0.0));
-        assert!(report.global_pose_covariance_row_major.unwrap().iter().any(|value| *value > 0.0));
+        assert_eq!(
+            report
+                .local_geometry_covariance_row_major
+                .as_ref()
+                .unwrap()
+                .len(),
+            36
+        );
+        assert_eq!(
+            report
+                .global_pose_covariance_row_major
+                .as_ref()
+                .unwrap()
+                .len(),
+            36
+        );
+        assert_eq!(
+            report
+                .total_geometry_covariance_row_major
+                .as_ref()
+                .unwrap()
+                .len(),
+            36
+        );
+        assert!(
+            report
+                .local_geometry_covariance_row_major
+                .unwrap()
+                .iter()
+                .any(|value| *value > 0.0)
+        );
+        assert!(
+            report
+                .global_pose_covariance_row_major
+                .unwrap()
+                .iter()
+                .any(|value| *value > 0.0)
+        );
     }
 
     #[test]
@@ -660,7 +820,8 @@ mod tests {
             fixed.common_rigid_pose_covariance_row_major[axis * 6 + axis] = 1.0e-6;
             fixed.common_rigid_pose_covariance_row_major[(axis + 3) * 6 + axis + 3] = 1.0e-12;
         }
-        attached.common_rigid_pose_covariance_row_major = fixed.common_rigid_pose_covariance_row_major.clone();
+        attached.common_rigid_pose_covariance_row_major =
+            fixed.common_rigid_pose_covariance_row_major.clone();
 
         let fixed_report =
             propagate_geometry_wrench_uncertainty(&geometry, &field, &fixed).unwrap();
@@ -678,9 +839,13 @@ mod tests {
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let mut evidence = model(&geometry);
         evidence.geometry_to_field_relationship = GeometrySourceRelationship::SharedOrUnknown;
-        evidence.geometry_to_wrench_reference_relationship = GeometrySourceRelationship::SharedOrUnknown;
+        evidence.geometry_to_wrench_reference_relationship =
+            GeometrySourceRelationship::SharedOrUnknown;
         let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &evidence).unwrap();
-        assert_eq!(report.disposition, GeometryUqDisposition::GeometryCovarianceAvailableButCrossSourcesUnresolved);
+        assert_eq!(
+            report.disposition,
+            GeometryUqDisposition::GeometryCovarianceAvailableButCrossSourcesUnresolved
+        );
         assert!(!report.admissible_for_combined_wrench_uncertainty);
         assert!(report.total_geometry_covariance_row_major.is_some());
     }
@@ -691,15 +856,23 @@ mod tests {
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
         let mut local_correlated = model(&geometry);
         local_correlated.local_taxel_relationship = GeometrySourceRelationship::SharedOrUnknown;
-        let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &local_correlated).unwrap();
-        assert_eq!(report.disposition, GeometryUqDisposition::LocalGeometryCorrelationUnresolved);
+        let report =
+            propagate_geometry_wrench_uncertainty(&geometry, &field, &local_correlated).unwrap();
+        assert_eq!(
+            report.disposition,
+            GeometryUqDisposition::LocalGeometryCorrelationUnresolved
+        );
         assert!(report.local_geometry_covariance_row_major.is_none());
         assert!(report.total_geometry_covariance_row_major.is_none());
 
         let mut local_global = model(&geometry);
         local_global.local_to_global_relationship = GeometrySourceRelationship::SharedOrUnknown;
-        let report = propagate_geometry_wrench_uncertainty(&geometry, &field, &local_global).unwrap();
-        assert_eq!(report.disposition, GeometryUqDisposition::LocalGlobalGeometryCorrelationUnresolved);
+        let report =
+            propagate_geometry_wrench_uncertainty(&geometry, &field, &local_global).unwrap();
+        assert_eq!(
+            report.disposition,
+            GeometryUqDisposition::LocalGlobalGeometryCorrelationUnresolved
+        );
         assert!(report.total_geometry_covariance_row_major.is_none());
     }
 
@@ -728,9 +901,7 @@ mod tests {
         perturb(&mut minus, -epsilon);
         let plus_wrench = wrench_components(&plus, field);
         let minus_wrench = wrench_components(&minus, field);
-        std::array::from_fn(|index| {
-            (plus_wrench[index] - minus_wrench[index]) / (2.0 * epsilon)
-        })
+        std::array::from_fn(|index| (plus_wrench[index] - minus_wrench[index]) / (2.0 * epsilon))
     }
 
     fn covariance_from_single_local_parameter(
@@ -754,15 +925,15 @@ mod tests {
         set_sigma(&mut uncertainty, sigma);
         let report = propagate_geometry_wrench_uncertainty(geometry, field, &uncertainty).unwrap();
         let row_major = report.local_geometry_covariance_row_major.unwrap();
-        let analytic: [[f64; 6]; 6] = std::array::from_fn(|row| {
-            std::array::from_fn(|column| row_major[row * 6 + column])
-        });
+        let analytic: [[f64; 6]; 6] =
+            std::array::from_fn(|row| std::array::from_fn(|column| row_major[row * 6 + column]));
         let derivative = finite_difference(geometry, &field.local_traction_pa, perturb, epsilon);
         for row in 0..6 {
             for column in 0..6 {
                 let expected = derivative[row] * derivative[column] * sigma * sigma;
                 assert!(
-                    (analytic[row][column] - expected).abs() < expected.abs().max(1.0e-15) * 1.0e-5 + 1.0e-15,
+                    (analytic[row][column] - expected).abs()
+                        < expected.abs().max(1.0e-15) * 1.0e-5 + 1.0e-15,
                     "local geometry Jacobian mismatch at ({row}, {column}): analytic={}, finite-difference={expected}",
                     analytic[row][column]
                 );
@@ -856,6 +1027,9 @@ mod tests {
         assert!(propagate_geometry_wrench_uncertainty(&geometry, &field, &bad_pose).is_err());
 
         let short_field = field_estimate(vec![1.0]);
-        assert!(propagate_geometry_wrench_uncertainty(&geometry, &short_field, &model(&geometry)).is_err());
+        assert!(
+            propagate_geometry_wrench_uncertainty(&geometry, &short_field, &model(&geometry))
+                .is_err()
+        );
     }
 }
