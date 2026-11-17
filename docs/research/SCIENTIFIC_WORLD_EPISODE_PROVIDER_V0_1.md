@@ -187,6 +187,8 @@ Report separately:
 - correct reuse, partial reuse, adaptation, rejection and abstention;
 - worst-family and leave-one-domain-out performance.
 
+A closed evaluator-only schema is provided at `benchmarks/scientific-world-episodes/v0.1/evaluator-transfer-annotation.schema.json`, with six known-answer development controls at `benchmarks/scientific-world-episodes/v0.1/transfer-annotations.development.example.json`. The set schema binds source/target episode-contract digests, the hidden relation class, changed dimensions, expected disposition, identifiability status, and any supported/rejected submechanism IDs. The development file is public and is **not a sealed qualification set**; its labels must never be sent to a policy under evaluation.
+
 The evaluator's relation labels, hidden-generating mechanism and target outcome remain sealed. The public task may state that a source model is available, but it must not reveal whether the source is related. Positive transfer requires better target outcomes than the matched cold-start arm at equal total budget; copying a source model without validating it is not transfer success.
 
 ## 8. Required comparison arms
