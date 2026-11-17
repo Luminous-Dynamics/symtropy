@@ -59,6 +59,7 @@ pub enum AcquisitionPolicy {
 pub enum TaxelEvidenceState {
     Observed,
     Unknown,
+    Unavailable,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -68,6 +69,7 @@ pub struct AcquisitionPlan {
     pub evidence_state_by_taxel: Vec<TaxelEvidenceState>,
     pub selected_taxel_count: usize,
     pub unknown_taxel_count: usize,
+    pub unavailable_taxel_count: usize,
     pub estimated_total_latency_ns: u64,
     pub estimated_total_energy_nj: u64,
     pub maximum_taxel_reads: usize,
@@ -89,6 +91,7 @@ pub struct AcquisitionScorecard {
     pub taxel_count: usize,
     pub selected_taxel_count: usize,
     pub unknown_taxel_count: usize,
+    pub unavailable_taxel_count: usize,
     pub observed_taxel_fraction: f64,
     pub active_contact_taxel_count: usize,
     pub observed_active_contact_taxel_count: usize,
@@ -320,7 +323,17 @@ pub fn plan_adaptive_readout(
         return Err("full-raster readout could not acquire every available taxel".to_owned());
     }
 
-    let mut evidence_state_by_taxel = vec![TaxelEvidenceState::Unknown; taxel_count];
+    let mut evidence_state_by_taxel: Vec<_> = problem
+        .candidates
+        .iter()
+        .map(|candidate| {
+            if candidate.readout_available {
+                TaxelEvidenceState::Unknown
+            } else {
+                TaxelEvidenceState::Unavailable
+            }
+        })
+        .collect();
     for index in &selected {
         evidence_state_by_taxel[*index] = TaxelEvidenceState::Observed;
     }
@@ -328,11 +341,16 @@ pub fn plan_adaptive_readout(
         .iter()
         .filter(|state| **state == TaxelEvidenceState::Unknown)
         .count();
+    let unavailable_taxel_count = evidence_state_by_taxel
+        .iter()
+        .filter(|state| **state == TaxelEvidenceState::Unavailable)
+        .count();
 
     Ok(AcquisitionPlan {
         policy,
         selected_taxel_count: selected.len(),
         unknown_taxel_count,
+        unavailable_taxel_count,
         selected_taxel_indices: selected,
         evidence_state_by_taxel,
         estimated_total_latency_ns: total_latency,
@@ -405,18 +423,23 @@ pub fn score_acquisition_plan(
     if plan.policy == AcquisitionPolicy::FullRaster && plan.selected_taxel_count != available_count {
         return Err("full-raster plan must include every available taxel".to_owned());
     }
-    let expected_unknown = taxel_count.saturating_sub(plan.selected_taxel_count);
-    if plan.unknown_taxel_count != expected_unknown {
-        return Err("acquisition plan unknown-taxel count does not match selected observations".to_owned());
+    let expected_unknown = available_count.saturating_sub(plan.selected_taxel_count);
+    let expected_unavailable = taxel_count.saturating_sub(available_count);
+    if plan.unknown_taxel_count != expected_unknown
+        || plan.unavailable_taxel_count != expected_unavailable
+    {
+        return Err("acquisition plan unknown/unavailable counts do not match channel availability and selected observations".to_owned());
     }
     for (index, is_observed) in observed.iter().enumerate() {
         let expected = if *is_observed {
             TaxelEvidenceState::Observed
-        } else {
+        } else if problem.candidates[index].readout_available {
             TaxelEvidenceState::Unknown
+        } else {
+            TaxelEvidenceState::Unavailable
         };
         if plan.evidence_state_by_taxel[index] != expected {
-            return Err("plan evidence-state mask does not match its selected indices".to_owned());
+            return Err("plan evidence-state mask does not match selected and unavailable taxels".to_owned());
         }
     }
     if plan.selected_taxel_count == 0 || plan.estimated_total_latency_ns > problem.maximum_total_latency_ns
@@ -472,6 +495,7 @@ pub fn score_acquisition_plan(
         taxel_count,
         selected_taxel_count: plan.selected_taxel_count,
         unknown_taxel_count: plan.unknown_taxel_count,
+        unavailable_taxel_count: plan.unavailable_taxel_count,
         observed_taxel_fraction: plan.selected_taxel_count as f64 / taxel_count as f64,
         active_contact_taxel_count,
         observed_active_contact_taxel_count,
@@ -793,6 +817,13 @@ mod tests {
         let plan = plan_adaptive_readout(&unavailable, AcquisitionPolicy::FixedRasterPrefix)
             .expect("remaining channels available");
         assert_eq!(plan.selected_taxel_count, DEFAULT_READOUT_BUDGET);
+        assert_eq!(plan.unavailable_taxel_count, DEFAULT_READOUT_BUDGET);
+        assert_eq!(plan.unknown_taxel_count, 992);
+        assert!(plan
+            .evidence_state_by_taxel
+            .iter()
+            .take(DEFAULT_READOUT_BUDGET)
+            .all(|state| *state == TaxelEvidenceState::Unavailable));
         assert!(!plan.selected_taxel_indices.iter().any(|index| *index < DEFAULT_READOUT_BUDGET));
 
         let mut no_budget = problem(DEFAULT_READOUT_BUDGET);
