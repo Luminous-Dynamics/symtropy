@@ -174,7 +174,7 @@ mod tests {
         assert_eq!(campaign.other_failures, 0);
         assert_eq!(campaign.single_removal_solvability_fraction(), 0.0);
         assert!(matches!(
-            campaign.scenarios[0].outcome,
+            &campaign.scenarios[0].outcome,
             RemovalOutcome::KinematicMechanism(AnalysisError::SingularStiffnessMatrix { .. })
         ));
     }
