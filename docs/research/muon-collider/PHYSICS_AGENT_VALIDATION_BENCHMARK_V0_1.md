@@ -167,3 +167,70 @@ The scientific contribution is not that an AI agent can run a simulation. It is 
 ## 11. Claim ceiling
 
 Version 0.1.0 is a synthetic benchmark specification and case registry. It tests workflow semantics only. It does not validate an accelerator solver, establish an improvement in beam physics, or demonstrate collider feasibility. Real accelerator-agent claims require specialist solver outputs, admitted reference data, held-out configurations and independent replay.
+
+
+## 12. Industry baseline and interoperability
+
+The public Muon Collider software ecosystem already has useful benchmark infrastructure. The MuonColliderSoft/mucoll-benchmarks repository documents a staged pipeline:
+
+generation → GEANT4 detector simulation → geometry-specific digitisation/reconstruction → analysis → plotting.
+
+Its EDM4hep studies report tracking efficiency, fake rate, track quality and resolution; seed matching and multiplicity; hit occupancy; photon/PFO matching, response and resolution. Its benchmark sidecars record collection names, cuts, binning/ranges, event counts and producer checksums. The aggregator binds results to the reconstructed input size and SHA-256, installed mucoll-stack version, benchmark Git revision/dirty state, aggregator and fragment checksums, GitHub Actions identifiers, and optional generation/container metadata.
+
+That is a strong existing foundation for reproducible detector-performance comparison. Its own benchmark README also states that pass/fail physics tolerances have not yet been applied; the initial samples are being used to review metric definitions and statistical stability before reference values are frozen.
+
+This benchmark should interoperate with, not replace, that system.
+
+| Capability | Public Muon Collider benchmark tooling | This benchmark's added scope |
+|---|---|---|
+| Standardized physics observables | Detector tracking, seeds, hits, photons/PFOs | Extend to beam input, lattice/transport and accelerator-stage observables |
+| Input and producer lineage | File SHA-256, producer checksum, Git revision, stack version | Pin solver/lattice/config/field-map/input identities across multiple stages and codes |
+| Machine-readable reports | JSON sidecars and aggregate report | Add independent technical/scientific/evidence/qualification labels |
+| Metric thresholds | Definitions and statistics under review; pass/fail tolerances not yet frozen | Freeze tolerances before blinded evaluation; separate hard gates from continuous metrics |
+| Failure injection | Not the documented focus of the detector sidecar contract | Wrong-but-successful runs, stale inputs, disabled physics, unsupported domain and replay divergence |
+| AI agent evaluation | Not the documented purpose of the detector benchmark repository | Blind agent tasks, abstention quality, false acceptance, replay and human-review cost |
+| Cross-code model validity | Geometry-specific pipeline configuration | Explicit model-equivalence evidence; no BDSIM/G4Beamline merge based on file names or similar outputs |
+
+**Positioning:** this is not a claim that our current tools outperform the existing detector benchmark or replace specialist codes. The advance being pursued is an evidence-qualified layer over existing specialist workflows: agents may propose and orchestrate work, but they cannot turn a successful process exit or an attractive plot into an accepted physics claim.
+
+## 13. Paradigm shift: metric contract first, simulator second
+
+The conventional workflow tends to center the simulation job and attach a report afterwards. The proposed workflow freezes an evidence contract before execution:
+
+1. **Source contract:** exact beam distribution, coordinate convention, lattice, geometry, field maps, materials, solver, physics list, version and license/access conditions.
+2. **Experiment contract:** question, operating point, random seeds, required observables, uncertainty method, expected validity domain and tolerances are versioned before the run.
+3. **Execution contract:** exact command, environment/container, resources, exit state, warnings and raw outputs are retained.
+4. **Independent scientific adjudication:** a separate oracle checks the declared physical observables, conservation/acceptance conditions and uncertainty against the admitted reference.
+5. **Qualification contract:** accept, reject or abstain is computed from technical state, scientific comparison and provenance integrity separately.
+6. **Replay contract:** a second operator can rerun from the receipt without access to hidden prompts, private chat history or undeclared files.
+
+This makes an AI agent a *hypothesis-to-evidence compiler* rather than a command executor. It must propose the next cheapest experiment that can falsify a claim, preserve negative results, and abstain when a model is outside its validity domain.
+
+## 14. Quantitative targets for a credible SOTA comparison
+
+Targets should be reported by benchmark tier and failure family; they must not be collapsed into one score.
+
+| Tier | Target | Why it matters |
+|---|---:|---|
+| Source/data admission | 100% exact source identity and native-unit interpretation | Prevents silent data substitution or coordinate corruption |
+| Injected evidence faults | 0 false acceptances across the frozen fault suite | A single false acceptance can invalidate a scientific conclusion |
+| Qualification semantics | 100% correct distinction between blocked, invalid, not evaluated and abstain on the synthetic controls | Prevents technical failures from being misreported as science |
+| Deterministic replay | 100% matching output digests where determinism is declared | Tests whether receipts are actually sufficient |
+| Metric agreement | Within pre-frozen, observable-specific tolerances | Avoids tuning thresholds after seeing results |
+| Unsupported domain | 100% abstention on the held-out unsupported controls | Prevents unjustified extrapolation |
+| Efficiency | Lower expert minutes and high-fidelity solver calls at equal acceptance quality | Measures practical productivity rather than token or command count |
+| Decision value | Higher held-out decision improvement per unit compute and review cost | Measures whether the agent selects experiments that matter |
+
+For real accelerator cases, establish baselines with manual experts, deterministic reference scripts, each specialist solver's own accepted validation workflow, and agent workflows under identical solver versions, inputs, seeds, tolerances and compute budgets. Hold out complete lattice/configuration families and operating points—not random rows from the same run. A claimed improvement must survive independent rerun and a predeclared uncertainty analysis.
+
+## 15. Cooling-demonstrator data admission example
+
+The public WG4 cooling-demonstrator intake in issue #5736 is the first real-source admission exercise for this protocol. The pinned BDSIM userfile is audited in its native x, xp, y, yp, z, Ek, t coordinates; the BDSIM 102-coil model is recorded with zero instantiated absorbers and RF cavities; the G4Beamline model and its decay-disabled log remain separate source objects. This deliberately does not claim ionization cooling, RF acceleration, cross-code agreement or muon survival.
+
+The distinction is central: the detector benchmark's JSON sidecars, this project's beam-distribution receipts and an eventual specialist solver report should be combinable as evidence objects only when their source identities and measurement definitions actually match.
+
+References:
+- Muon Collider detector benchmark tooling: https://github.com/MuonColliderSoft/mucoll-benchmarks
+- WG4 cooling demonstrator snapshot: https://github.com/MuonCollider-WG4/cooling_demonstrator/tree/2026-11-09-prerelease
+- BDSIM native userfile column/unit contract: https://www.pp.rhul.ac.uk/bdsim/manual/model_control.html
+- G4Beamline physics-process controls: https://beamdocs.fnal.gov/AD/DocDB/0079/007950/001/G4beamlineUsersGuide.pdf
