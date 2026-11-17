@@ -1,0 +1,31 @@
+name: LOCO Entropy Account
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/loco-entropy-account-001/**"
+      - ".github/workflows/loco-entropy-account.yml"
+  push:
+    branches: ["research/loco-entropy-account-001"]
+    paths:
+      - "research/loco-entropy-account-001/**"
+      - ".github/workflows/loco-entropy-account.yml"
+
+jobs:
+  reference:
+    name: Analytical Rust reference (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-entropy-account-001/Cargo.toml -- --check
+      - name: Test analytical reference
+        run: cargo test --locked --manifest-path research/loco-entropy-account-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/loco-entropy-account-001/Cargo.toml --all-targets -- -D warnings
