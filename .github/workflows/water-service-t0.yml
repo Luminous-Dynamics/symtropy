@@ -62,6 +62,18 @@ jobs:
             research/water-service-engineering/waterloop-physical-manifest-v0.1.json \
             research/water-service-engineering/waterloop-physical-oracle-v0.1.json \
             artifacts/water-service-t0/waterloop-physical-receipt.json
+            research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.json
+            research/water-service-engineering/WATERLOOP_MODULE_INTERFACE_CONTROL_V0_1.schema.json
+            research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.json
+            research/water-service-engineering/WATERLOOP_PILOT_SKID_P_AND_ID_TAG_SCHEDULE_V0_1.schema.json
+            research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.json
+            research/water-service-engineering/WATERLOOP_PILOT_SKID_PRELIMINARY_BOM_V0_1.schema.json
+            research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.json
+            research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_FMEA_STARTER_V0_1.schema.json
+            research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.json
+            research/water-service-engineering/WATERLOOP_GREYWATER_CHALLENGE_PROFILES_V0_1.schema.json
+            research/water-service-engineering/WATERLOOP_MODULAR_TREATMENT_ARCHITECTURE_V0_1.md
+            research/water-service-engineering/WATERLOOP_DESIGN_ASSURANCE_AND_SIZING_V0_1.md
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
         uses: actions/upload-artifact@v4
