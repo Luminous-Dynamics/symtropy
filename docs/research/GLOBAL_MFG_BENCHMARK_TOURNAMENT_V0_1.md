@@ -110,6 +110,9 @@ First use synthetic archetypes. Later add source-backed site/market profiles; ne
 
 Measures:
 - common-core identity preservation;
+- independent join correctness for manufacturing site, destination market, supplier site, material origin, transformation location, data processing and service/lifecycle;
+- obligation-to-jurisdiction-dimension link correctness;
+- supplier-site versus legal-origin versus transformation-location confusion detection;
 - explicit incompatibility and requalification detection;
 - time to create/update a local realization;
 - duplicated engineering-data entry;
