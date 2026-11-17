@@ -78,6 +78,20 @@ Status labels:
 | Cognition / behaviour | Beliefs, policy, attention, action, task switching | Physiology, sensed evidence, goals, environment | Behaviour is not Symtropy's authority | Symthaea is the candidate agent/controller, not a validated human cognition model |
 | Social / built environment | Social contact, task schedules, food/water/light access, environmental exposure | Behaviour, immune exposure, circadian, resources | Spatial/environment substrate exists; human exposure semantics incomplete | Social reasoning is not empirical population physiology |
 
+### 3.1 Existing Symtropy living-system substrate (reuse, do not overclaim)
+
+Symtropy already has `symtropy-lifesim-core`, a CPU-first deterministic 2D field substrate. Its current field channels include moisture, nutrient, toxin, biomass, heat, light, oxygen and disease, alongside ecology-specific pheromone, obstacle and signal-noise channels. It provides explicit finite-difference diffusion/decay with source terms, obstacle boundaries, an explicit 2D stability guard (`diffusion × dt ≤ 0.25`), Arrow snapshots and an optional WGPU backend. A generic `Metabolism` structure tracks normalized energy, hydration, oxygen need, heat tolerance, toxin tolerance, hunger and recovery parameters.
+
+This is an unusually useful starting point for **spatial environmental and tissue-microenvironment scaffolding**, particularly when a future tissue model needs fields and local transport. It is not yet a human tissue model:
+- field values are generic `f32` concentrations/normalized channels, not typed SI quantities or calibrated molar concentrations;
+- oxygen is a scalar field, not oxygen partial pressure, blood oxygen content, saturation, or perfusion;
+- moisture/hydration are generic ecological variables, not plasma/interstitial volume or total body water;
+- heat is a channel, not a validated multi-node human thermal state or a thermoregulation controller;
+- generic `Metabolism::stress_from_fields` is a normalized stress heuristic, not organ energy balance;
+- the current field is 2D and has no human tissue geometry, vascular network, cell identities, extracellular matrix constitutive law or organ-specific boundary conditions.
+
+**Recommended reuse path:** keep LifeSim as a deterministic spatial-field kernel. Add a human/tissue-specific adapter only after its field units, geometry, conservation properties, boundary conditions, source/sink terms and solver convergence are defined. The same channel name must not imply the same physical quantity across ecological and human domains.
+
 This table is deliberately conservative. A crate name or equation does not qualify the system named in the crate's README. Current Symthaea building blocks include: (1) BMI, BMR, TDEE and macronutrient arithmetic plus one-compartment first-order pharmacokinetics in symthaea-physiology; (2) generic engineering heat-transfer and fluid equations in symthaea-thermofluids; (3) an SIR population infectious-disease model in symthaea-epidemiology; (4) a normalized, cognitive-cycle PNI/cytokine-to-neuromodulator coupling in symthaea-neuromodulators; and (5) mobile device sensor bridges and a compute wake-state machine in symthaea-soma. These are useful primitives with different contexts of use, not an integrated human physiological plant. Symtropy's current human-systems crate has a bounded Process S / harmonic Process C sleep reference plus synthetic observation and intervention-event fixtures. Neither codebase currently contains a validated coupled whole-body model.
 
 ## 4. High-value coupling graph
