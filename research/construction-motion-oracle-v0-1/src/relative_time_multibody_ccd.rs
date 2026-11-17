@@ -1410,4 +1410,87 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn generated_multibody_candidate_set_is_a_superset_of_exhaustive_potential_pairs() {
+        let base_ms = 2_000_000_u64;
+        let mut bodies = Vec::new();
+        for index in 0..64_u64 {
+            let pair = index / 2;
+            let (x, dx) = if index < 16 {
+                if index % 2 == 0 {
+                    (-10.0 + pair as f64 * 1_000.0, 20.0)
+                } else {
+                    (10.0 + pair as f64 * 1_000.0, -20.0)
+                }
+            } else {
+                (
+                    ((index * 137) % 4_000) as f64,
+                    ((index * 53) % 41) as f64 - 20.0,
+                )
+            };
+            let clock = format!("generated-clock-{index:03}");
+            let start = base_ms + (pair % 4) * 50;
+            let motion = span(x, dx, start, start + 1_000, &clock);
+            let mapping = QualifiedClockMapping {
+                source_clock_domain_id: clock.clone(),
+                site_clock_domain_id: "site-clock".into(),
+                site_epoch: "site-epoch-7".into(),
+                mapping_id: format!("generated-map-{index:03}"),
+                evidence_ref: format!("synthetic://clock/{index:03}"),
+                reference_source_time_ms: start + 500,
+                offset_min_ms: -3,
+                offset_max_ms: 3,
+                drift_bound_ppm: Some(100),
+                valid_from_source_ms: base_ms,
+                valid_until_source_ms: base_ms + 10_000,
+            };
+            bodies.push(body(
+                &format!("robot-{index:03}"),
+                motion,
+                Some(mapping),
+            ));
+        }
+
+        let clock_config = config();
+        let broadphase_config = broadphase_config();
+        let reference =
+            evaluate_relative_time_multibody_ccd(&bodies, &clock_config).unwrap();
+        let accelerated =
+            evaluate_relative_time_multibody_ccd_with_broadphase(&bodies, &broadphase_config)
+                .unwrap();
+        let candidates: BTreeSet<_> = accelerated
+            .pairs
+            .iter()
+            .map(|pair| (pair.first_body_id.clone(), pair.second_body_id.clone()))
+            .collect();
+
+        for pair in reference.pairs.iter().filter(|pair| {
+            matches!(
+                pair.disposition,
+                RelativeTimePairDisposition::ExactContact
+                    | RelativeTimePairDisposition::BoundaryCandidateUnresolved
+                    | RelativeTimePairDisposition::PotentialContactUnresolved
+            )
+        }) {
+            assert!(
+                candidates.contains(&(pair.first_body_id.clone(), pair.second_body_id.clone())),
+                "generated possible pair was pruned: {} / {}",
+                pair.first_body_id,
+                pair.second_body_id
+            );
+        }
+        assert_eq!(
+            accelerated.reference_pair_count,
+            accelerated.broadphase_candidate_pairs
+                + accelerated.outer_space_time_pruned_pairs
+                + accelerated.unresolved_pairs
+        );
+        assert_eq!(
+            accelerated.pairwise_checked_pairs,
+            accelerated.broadphase_candidate_pairs
+        );
+        assert_eq!(accelerated.unresolved_pairs, 0);
+    }
+
 }
