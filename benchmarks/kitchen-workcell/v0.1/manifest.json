@@ -589,6 +589,48 @@
       ],
       "safety_boundary": "Simulation/post-hoc audit only. Do not activate a physical robot or appliance based on these results. Unknown signals cannot produce a safe label; appliance-local interlocks remain authoritative.",
       "control_condition": "Run native policies with unchanged host task observations, action space, seeds and success predicates; log trajectories and score native success and safety separately. Keep task-aware N/A rules, unsafe successes, failed episodes and missing signals."
+    },
+    {
+      "task_id": "robotics-robocasa365-multitask",
+      "domain": "robotics",
+      "operation": "evaluate a kitchen manipulation policy or novel agentic harness on RoboCasa365's official 50-task multi-task leaderboard protocol",
+      "input_manifest_required": [
+        "RoboCasa simulator/dataset exact release (including the 1.0.1 horizon change)",
+        "official 50-target task set and 18/16/16 split IDs",
+        "unaltered pretrain_human300 training-data provenance where applicable",
+        "policy checkpoint digest and base-policy attribution",
+        "agentic harness source/configuration and cross-episode memory disclosure where applicable",
+        "policy observations, actions, episode seeds and evaluator output",
+        "proof that no privileged simulator state or ground-truth success signal is exposed during an episode"
+      ],
+      "primary_metrics": [
+        "robocasa365_overall_success_rate",
+        "robocasa365_atomic_seen_success_rate",
+        "robocasa365_composite_seen_success_rate",
+        "robocasa365_composite_unseen_success_rate"
+      ],
+      "safety_boundary": "Simulation benchmark only. Do not infer physical robot safety, food-contact hygiene, appliance compatibility or human safety. Official agentic submissions must use policy observations only, not privileged simulator state or ground-truth success signals; disclose the unchanged base policy and all memory/tools.",
+      "control_condition": "Reproduce the public 50-task leaderboard protocol exactly. Compare policy and agentic-harness modes separately where applicable; report all three splits, checkpoint/data lineage, failed episodes and evaluation variance. Do not compare a partial task subset to the official overall score."
+    },
+    {
+      "task_id": "robotics-behavior2026-long-horizon",
+      "domain": "robotics",
+      "operation": "evaluate long-horizon household mobile manipulation on the official 2026 BEHAVIOR Challenge 100-task release, with kitchen-adjacent tasks reported as a declared subset",
+      "input_manifest_required": [
+        "official 2026 BEHAVIOR challenge release and 100-task evaluation IDs",
+        "exact OmniGibson/Isaac Sim version and scene/config digests",
+        "Galaxea R1Pro embodiment and 21-dimensional whole-body action/control specification",
+        "RGB, depth and proprioception observation contract",
+        "policy checkpoint and training-data provenance",
+        "episode seeds, BDDL goal predicates and full task/episode receipts",
+        "official max_steps x 1-second evaluation budget and time-limit rules"
+      ],
+      "primary_metrics": [
+        "behavior2026_average_bddl_task_score",
+        "behavior2026_full_task_success_rate"
+      ],
+      "safety_boundary": "Simulation-only long-horizon mobile manipulation. The benchmark is household-wide rather than kitchen-appliance-only. No appliance safety, food sanitation, pressure control or physical transfer is established.",
+      "control_condition": "Use the official 2026 100-task, seven-scene release and official RGB+depth+proprioception track. Match robot embodiment, time budgets, goal predicates and seeds. Report whole-set results and any kitchen-adjacent subset separately; never present a subset score as an official challenge score."
     }
   ],
   "metrics": [
@@ -1151,6 +1193,54 @@
       "method": "count episodes where the controller reaches the declared safe stopped state within the task-specific time bound without violating another active spec divided by all trigger episodes",
       "evidence_class": "simulated",
       "notes": "Simulation only; physical emergency-stop and appliance-local protection require separate independent qualification."
+    },
+    {
+      "metric_id": "robocasa365_overall_success_rate",
+      "unit": "fraction",
+      "denominator": "all evaluated episodes across the official 50-task RoboCasa365 multi-task split, task-averaged with 18/16/16 split weighting",
+      "method": "Reproduce the exact official RoboCasa365 release/evaluator and report the full 50-task score plus the three split scores; retain failed, timed-out and aborted episodes",
+      "evidence_class": "simulated",
+      "notes": "Current public 16 Nov 2026 leader: 0.856 overall. The benchmark is a simulated manipulation-policy result, not an end-to-end physical kitchen outcome."
+    },
+    {
+      "metric_id": "robocasa365_atomic_seen_success_rate",
+      "unit": "fraction",
+      "denominator": "all evaluated episodes on the 18 Atomic-Seen target tasks",
+      "method": "Official RoboCasa365 Atomic-Seen split; same evaluator, horizons, initial-state distribution and episode accounting",
+      "evidence_class": "simulated",
+      "notes": "Current public leader: 0.911."
+    },
+    {
+      "metric_id": "robocasa365_composite_seen_success_rate",
+      "unit": "fraction",
+      "denominator": "all evaluated episodes on the 16 Composite-Seen target tasks",
+      "method": "Official RoboCasa365 Composite-Seen split; same evaluator, horizons, initial-state distribution and episode accounting",
+      "evidence_class": "simulated",
+      "notes": "Current public leader: 0.850."
+    },
+    {
+      "metric_id": "robocasa365_composite_unseen_success_rate",
+      "unit": "fraction",
+      "denominator": "all evaluated episodes on the 16 Composite-Unseen target tasks",
+      "method": "Official RoboCasa365 Composite-Unseen split; tasks held out from pretraining; same evaluator and zero-shot task protocol",
+      "evidence_class": "simulated",
+      "notes": "Current public leader: 0.800. Unseen composite transfer is a non-compensatory reporting dimension."
+    },
+    {
+      "metric_id": "behavior2026_average_bddl_task_score",
+      "unit": "fraction",
+      "denominator": "all 100 full-length tasks in the official 2026 BEHAVIOR Challenge evaluation set",
+      "method": "Official average task success score using BDDL partial credit under the 2026 challenge rules; retain task-level scores, failures and evaluator version",
+      "evidence_class": "simulated",
+      "notes": "Published 9th-place solution report discloses 0.446 Q for its public submission; this is not the winner's score and not the current leaderboard maximum."
+    },
+    {
+      "metric_id": "behavior2026_full_task_success_rate",
+      "unit": "fraction",
+      "denominator": "all evaluated episodes across the official 100-task BEHAVIOR-1K 2026 challenge set",
+      "method": "Count tasks where all goal predicates are satisfied divided by all evaluated tasks; report beside BDDL Q and preserve incomplete episodes",
+      "evidence_class": "simulated",
+      "notes": "Published 9th-place solution report discloses 0.273 full-task success for the public submission; this is not the winner's score."
     }
   ],
   "target_hypotheses": [
@@ -1459,6 +1549,57 @@
         "safe-stop time threshold is changed after results",
         "physical emergency-stop is inferred from simulator outcome"
       ]
+    },
+    {
+      "hypothesis_id": "H-ROBOCASA365-OVERALL-907",
+      "metric_id": "robocasa365_overall_success_rate",
+      "target": ">=0.907 on the exact official 50-task RoboCasa365 leaderboard protocol, exceeding the 16 Nov 2026 public leader's 0.856 by at least 5.1 percentage points",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "official task set, data restrictions or evaluator version differ",
+        "any split is omitted or training leakage is found",
+        "unsafe or invalid episodes are silently excluded"
+      ]
+    },
+    {
+      "hypothesis_id": "H-ROBOCASA365-ATOMIC-955",
+      "metric_id": "robocasa365_atomic_seen_success_rate",
+      "target": ">=0.955, above the public leader's 0.911 on the 18-task Atomic-Seen split",
+      "status": "unverified_hypothesis"
+    },
+    {
+      "hypothesis_id": "H-ROBOCASA365-COMPOSITE-SEEN-900",
+      "metric_id": "robocasa365_composite_seen_success_rate",
+      "target": ">=0.900, above the public leader's 0.850 on the 16-task Composite-Seen split",
+      "status": "unverified_hypothesis"
+    },
+    {
+      "hypothesis_id": "H-ROBOCASA365-COMPOSITE-UNSEEN-860",
+      "metric_id": "robocasa365_composite_unseen_success_rate",
+      "target": ">=0.860, above the public leader's 0.800 on the 16-task Composite-Unseen split",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "unseen tasks appear in training or adaptation data",
+        "policy receives privileged state or success signal",
+        "failed episodes are omitted"
+      ]
+    },
+    {
+      "hypothesis_id": "H-BEHAVIOR2026-Q-500",
+      "metric_id": "behavior2026_average_bddl_task_score",
+      "target": ">=0.500 BDDL Q on the official 100-task 2026 challenge protocol, exceeding the published 9th-place public submission result of 0.446; this is not a claim to exceed the undisclosed winner score",
+      "status": "unverified_hypothesis",
+      "stop_conditions": [
+        "official 2026 release, embodiment, sensors, time budget or score rubric differs",
+        "published 9th-place result is not reproduced under matched conditions",
+        "task subset is substituted for the official 100-task result"
+      ]
+    },
+    {
+      "hypothesis_id": "H-BEHAVIOR2026-FULL-320",
+      "metric_id": "behavior2026_full_task_success_rate",
+      "target": ">=0.320 full-task completion on the same official 100-task protocol, above the published 9th-place public submission result of 0.273",
+      "status": "unverified_hypothesis"
     }
   ],
   "instruments": [
@@ -1653,6 +1794,24 @@
       "implementation_ref": "https://safevla.org/leaderboard",
       "dataset_ref": "https://arxiv.org/abs/2606.00773",
       "evaluation_role": "Add safety auditing to matched RoboCasa-365/Kitchen-R trajectories without changing host observations, actions, seeds or native success predicates. Record SafeVLA release 2026-09-26 and spec registry; simulator safety is not real-world appliance or human safety."
+    },
+    {
+      "baseline_id": "robocasa365-public-leader-2026-11-16",
+      "class": "robocasa365_external",
+      "status": "external_public_benchmark",
+      "description": "Official RoboCasa365 public leaderboard updated 16 Nov 2026: top agentic result 0.856 overall, 0.911 Atomic-Seen (18 tasks), 0.850 Composite-Seen (16 tasks), 0.800 Composite-Unseen (16 tasks).",
+      "implementation_ref": "https://robocasa.ai/leaderboard",
+      "dataset_ref": "https://github.com/robocasa/robocasa",
+      "evaluation_role": "External matched robot-policy/agentic benchmark. Reproduce the official 50-target task set, 1.0.1 horizon/evaluator and official training-data restriction; never compare a partial run or physical appliance result directly to this leaderboard."
+    },
+    {
+      "baseline_id": "behavior2026-public-paper-ninth-place",
+      "class": "behavior_1k_external",
+      "status": "external_public_benchmark",
+      "description": "2026 BEHAVIOR Challenge: published ninth-place solution reports 0.392 learned-policy Q on all 100 tasks and 0.446 Q / 0.273 full-task success for its public submission. This is a disclosed ninth-place result, not the winner's score; official public leaderboard artifacts are limited.",
+      "implementation_ref": "https://arxiv.org/abs/2611.14432",
+      "dataset_ref": "https://behavior.stanford.edu/challenge/index.html",
+      "evaluation_role": "External long-horizon household benchmark. Match the 100-task, seven-scene release, Galaxea R1Pro, RGB+depth+proprioception, time budget and BDDL score. Report kitchen-adjacent subset separately; no direct aggregate comparison with RoboCasa365 or Kitchen-R."
     }
   ]
 }
