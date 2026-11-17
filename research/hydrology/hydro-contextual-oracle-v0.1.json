@@ -510,6 +510,48 @@
         "observed": 4,
         "crps": null
       }
+    },
+    {
+      "case_id": "HC-T0-033-ensemble-crps-skill",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "CRPS_SKILL_AGAINST_DECLARED_REFERENCE",
+        "reference_forecast_id": "seasonal-climatology-v1",
+        "forecast_member_count": 3,
+        "reference_member_count": 3,
+        "forecast_crps": 0.6666666666666666,
+        "reference_crps": 1.3333333333333333,
+        "crps_skill_score": 0.5
+      }
+    },
+    {
+      "case_id": "HC-T0-034-threshold-event-brier-skill",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "ADMITTED",
+        "reason": "BRIER_SKILL_AGAINST_DECLARED_REFERENCE",
+        "event_definition_id": "daily_flow_exceeds_5_m3_s",
+        "reference_forecast_id": "constant_climatology_0_5",
+        "sample_count": 3,
+        "forecast_brier_score": 0.09666666666666666,
+        "reference_brier_score": 0.25,
+        "brier_skill_score": 0.6133333333333333
+      }
+    },
+    {
+      "case_id": "HC-T0-035-crps-skill-zero-reference-undefined",
+      "family": "probabilistic_skill",
+      "expected": {
+        "probabilistic_disposition": "UNDEFINED_REFERENCE_SCORE",
+        "reason": "REFERENCE_CRPS_ZERO_OR_WITHIN_TOLERANCE",
+        "reference_forecast_id": "perfect_reference-control",
+        "forecast_member_count": 3,
+        "reference_member_count": 1,
+        "forecast_crps": 0.6666666666666666,
+        "reference_crps": 0,
+        "crps_skill_score": null
+      }
     }
   ]
 }
