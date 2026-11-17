@@ -512,13 +512,13 @@
         ]
       }
     ],
-    "objective": "maximise minimum pairwise covariance-aware Gaussian T-optimal separation over candidate model pairs",
+    "objective": "maximize minimum pairwise equal-covariance Gaussian KL divergence over fixed-parameter candidate models",
     "metrics": [
       "integrated_squared_input",
       "maximum_abs_forcing",
-      "pairwise_T_optimal_separation",
-      "minimum_pairwise_separation",
-      "mean_pairwise_separation",
+      "pairwise_equal_covariance_gaussian_kl",
+      "minimum_pairwise_gaussian_kl",
+      "mean_pairwise_gaussian_kl",
       "worst_case_indistinguishable"
     ],
     "assumptions": [
@@ -526,8 +526,9 @@
       "fixed candidate parameters",
       "known strictly positive definite sensor covariance",
       "noise blocks independent across observation times",
-      "piecewise-constant forcing and fixed graph within each candidate"
+      "piecewise-constant forcing and fixed graph within each candidate",
+      "candidate-specific nuisance parameters are fixed; profile likelihood / parameter profiling is not included"
     ],
-    "claim_ceiling": "Exact forced response and model-separation arithmetic for this frozen synthetic graph family only."
+    "claim_ceiling": "Exact piecewise-constant forced response and equal-covariance Gaussian KL discrimination arithmetic for this frozen synthetic graph family; not general T-optimal or optimal-control design."
   }
 }
