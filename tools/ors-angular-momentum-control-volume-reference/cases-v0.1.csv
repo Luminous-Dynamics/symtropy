@@ -1,0 +1,7 @@
+case_id,frame_id,origin_id,epoch_s,mass_accumulation_kg_s,momentum_accumulation_x_n,momentum_accumulation_y_n,momentum_accumulation_z_n,angular_momentum_accumulation_x_n_m,angular_momentum_accumulation_y_n_m,angular_momentum_accumulation_z_n_m,other_external_force_x_n,other_external_force_y_n,other_external_force_z_n,other_external_torque_x_n_m,other_external_torque_y_n_m,other_external_torque_z_n_m
+RADIAL_THROUGH,INERTIAL_SYNTHETIC,O0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+TANGENTIAL_FLOW,INERTIAL_SYNTHETIC,O0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+OFF_AXIS_TURN,INERTIAL_SYNTHETIC,O0,0,0,1,2,0,1,2,0,1,0,0,0,0,-2
+MULTIPORT_3D,INERTIAL_SYNTHETIC,O0,0,0,1,-2,0,2,0,-1,2,-1,0,1,2,3
+UNSTEADY_STORAGE,INERTIAL_SYNTHETIC,O0,0,1,1,2,0,0,0,3,1,0,0,0,0,-1
+TORQUE_ISOLATION,INERTIAL_SYNTHETIC,O0,0,0,0,0,0,0,0,1,0,0,0,0,0,-1
