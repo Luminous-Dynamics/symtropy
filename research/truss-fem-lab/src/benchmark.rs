@@ -301,7 +301,7 @@ pub fn evaluate_mass_normalized_candidate(
         tested_two_member_pairs: pair_damage.applied_budget,
         omitted_two_member_pairs: pair_damage.omitted_scenarios(),
         two_member_removal_solvability_fraction,
-        claim_ceiling: "member-mass-normalized ideal pin-jointed linear-elastic reference only; connector, node, build, inspection, lifecycle and qualification costs excluded",
+        claim_ceiling: "member-only ideal axial-truss reference; excludes connectors, build, lifecycle and qualification",
     })
 }
 
