@@ -1,0 +1,116 @@
+{
+  "schema": "luminous.schwarzschild-geodesic-reference-cases",
+  "schema_version": 1,
+  "status": "analytic fixtures authored; Rust tests are not yet executed",
+  "coordinate_convention": {
+    "coordinates": ["c*t", "r", "theta", "phi"],
+    "units": ["m", "m", "rad", "rad"],
+    "metric_signature": "-+++",
+    "metric_chart": "Schwarzschild coordinates; exterior r > 2*r_g; 0 < theta < pi",
+    "geodesic_equation": "d2x^rho/dlambda2 + Gamma^rho_(mu nu) (dx^mu/dlambda)(dx^nu/dlambda) = 0"
+  },
+  "parameterizations": {
+    "timelike": {
+      "name": "proper_length",
+      "definition": "lambda = c*tau",
+      "units": "m",
+      "normalization": "g_mu_nu u^mu u^nu = -1"
+    },
+    "null": {
+      "name": "affine",
+      "units": "m under the declared tangent normalization",
+      "normalization": "g_mu_nu u^mu u^nu = 0"
+    }
+  },
+  "constants": {
+    "G_m3_kg_s2": 6.6743e-11,
+    "c_m_s": 299792458.0,
+    "solar_mass_kg": 1.98847e30
+  },
+  "cases": [
+    {
+      "case_id": "schwarzschild_isco_circular_timelike",
+      "kind": "timelike",
+      "mass_kg": 1.98847e30,
+      "radius_over_r_g": 6.0,
+      "theta_rad": 1.5707963267948966,
+      "initial_coordinates_over_r_g": [0.0, 6.0, 1.5707963267948966, 0.0],
+      "initial_tangent": {
+        "u0": 1.4142135623730951,
+        "ur": 0.0,
+        "u_theta_m_inv": 0.0,
+        "u_phi_m_inv_times_r_g": 0.09622504486493763
+      },
+      "analytic_constants": {
+        "norm": -1.0,
+        "specific_killing_energy": 0.9428090415820634,
+        "axial_angular_momentum_over_r_g": 3.4641016151377544,
+        "dphi_dlambda_times_r_g": 0.09622504486493763,
+        "dct_dlambda": 1.4142135623730951
+      },
+      "fixed_rk4_check": {
+        "step_over_r_g": 0.05,
+        "steps": 200,
+        "parameter_span_over_r_g": 10.0,
+        "expected_final": {
+          "r_over_r_g": 6.0,
+          "theta_rad": 1.5707963267948966,
+          "phi_rad": 0.9622504486493763,
+          "ct_over_r_g": 14.142135623730951
+        }
+      },
+      "required_checks": [
+        "timelike proper-length normalization",
+        "specific Killing energy conservation",
+        "axial angular momentum conservation",
+        "Christoffel vs canonical Hamiltonian trajectory agreement",
+        "step-refinement convergence"
+      ]
+    },
+    {
+      "case_id": "schwarzschild_radial_outgoing_null",
+      "kind": "null",
+      "mass_kg": 1.98847e30,
+      "radius_over_r_g": 8.0,
+      "theta_rad": 1.5707963267948966,
+      "initial_coordinates_over_r_g": [0.0, 8.0, 1.5707963267948966, 0.0],
+      "initial_tangent": {
+        "u0": 1.3333333333333333,
+        "ur": 1.0,
+        "u_theta_m_inv": 0.0,
+        "u_phi_m_inv": 0.0
+      },
+      "analytic_constants": {
+        "norm": 0.0,
+        "killing_energy": 1.0,
+        "axial_angular_momentum_over_r_g": 0.0
+      },
+      "fixed_rk4_check": {
+        "step_over_r_g": 0.02,
+        "steps": 100,
+        "parameter_span_over_r_g": 2.0,
+        "expected_final": {
+          "r_over_r_g": 10.0,
+          "theta_rad": 1.5707963267948966,
+          "phi_rad": 0.0
+        }
+      },
+      "required_checks": [
+        "null normalization",
+        "Killing energy conservation",
+        "zero axial angular momentum conservation",
+        "Christoffel vs canonical Hamiltonian trajectory agreement",
+        "step-refinement convergence"
+      ]
+    }
+  ],
+  "negative_controls": [
+    "substitute coordinate time for proper length on a timelike path",
+    "flip metric signature without changing normalization target",
+    "permute Christoffel index order",
+    "use a null normalization target on a timelike initial state",
+    "allow an RK stage to cross the Schwarzschild-coordinate horizon",
+    "allow a spherical chart trajectory to hit theta=0 or theta=pi"
+  ],
+  "claim_ceiling": "These are analytic Schwarzschild background fixtures. They do not validate Kerr geodesics, horizon-penetrating trajectories, numerical relativity, or observational inference."
+}

@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "artifact_id": "symtropy.black_hole.waveform_surrogate_baselines.v1",
+  "created_utc": "2026-11-07",
+  "purpose": "Versioned comparison registry for waveform, ringdown, and numerical-relativity surrogates. Reported numbers are literature claims and are not Symtropy results.",
+  "comparison_rules": [
+    "Never compare mismatch numbers unless waveform modes, parameter domain, total-mass range, frequency band, detector weighting, reference waveform, and alignment procedure match.",
+    "Separate waveform mismatch from parameter-estimation speedup and batch throughput.",
+    "Record hardware, batch size, precision, software version, and warm-up policy for all performance comparisons.",
+    "Preserve model applicability domains and out-of-domain behavior; do not infer extrapolation capability from interpolation validation.",
+    "Pin exact paper version, source code commit, data release, and supplementary validation tables before numerical reproduction."
+  ],
+  "baselines": [
+    {
+      "id": "NRSur7dq4_NN",
+      "kind": "differentiable_neural_waveform_surrogate",
+      "reference": "https://arxiv.org/abs/2607.24960",
+      "domain": {
+        "mass_ratio_q": [
+          1,
+          4
+        ],
+        "spin_magnitude_max": 0.8,
+        "systems": "precessing quasicircular BBH"
+      },
+      "reported_accuracy": {
+        "median_sky_averaged_frequency_domain_mismatch": [
+          0.00008,
+          0.00017
+        ],
+        "percentile_95_below": 0.001,
+        "validation_waveforms": 10000
+      },
+      "reported_performance": {
+        "hardware": "NVIDIA L40S",
+        "single_waveform_end_to_end_ms": 1,
+        "speedup_vs_LALSimulation_single_waveform": 10,
+        "batch_size": 64,
+        "speedup_vs_LALSimulation_batch": 140
+      },
+      "implementation": "JAX; differentiable waveform and likelihood pipeline",
+      "comparability": "Paper-reported domain/hardware; not directly comparable to unrelated q or spin domains."
+    },
+    {
+      "id": "NRSur7dq4v2",
+      "kind": "multi_domain_precessing_NR_surrogate",
+      "reference": "https://arxiv.org/abs/2609.07873",
+      "domain": {
+        "mass_ratio_q": [
+          1,
+          4
+        ],
+        "systems": "precessing quasicircular BBH",
+        "multipoles": "ell up to 5"
+      },
+      "reported_accuracy": {
+        "remnant_mass_spin_estimate_improvement_factor": [
+          3,
+          10
+        ],
+        "metric": "QNM-fit remnant parameter recovery versus NRSur7dq4"
+      },
+      "reported_performance": {
+        "package_speedup_vs_prior_gwsurrogate_approx": 4,
+        "runtime_complexity_control": true
+      },
+      "implementation": "gwsurrogate; overlapping inspiral and merger-ringdown temporal domains",
+      "comparability": "3-10x refers to remnant mass/spin estimates, not a universal waveform mismatch improvement."
+    },
+    {
+      "id": "SEOBNRv5PHM_NNSur7dq10",
+      "kind": "reduced_order_neural_EOB_surrogate",
+      "reference": "https://doi.org/10.1103/qt1n-gbv2",
+      "domain": {
+        "mass_ratio_q_max": 10,
+        "systems": "generically precessing quasicircular BBH",
+        "spin_magnitudes": "arbitrary within model training domain"
+      },
+      "reported_accuracy": {
+        "GW250114_inference": "reported consistency with SEOBNRv5PHM",
+        "inference_event_speedup": [
+          2.1,
+          3.2
+        ]
+      },
+      "reported_performance": {
+        "single_waveform_cpu_time_ms": 12.52,
+        "speedup_vs_SEOBNRv5PHM_CPU": 5,
+        "batch_gpu_time_per_waveform_microseconds": 81,
+        "batch_gpu_speedup_vs_SEOBNRv5PHM": 800
+      },
+      "implementation": "reduced-order neural surrogate of SEOBNRv5PHM",
+      "comparability": "Pin the published hardware, masses, training domain, and exact inference runs before reproducing."
+    },
+    {
+      "id": "AESur3dq8",
+      "kind": "autoencoder_waveform_surrogate",
+      "reference": "https://doi.org/10.1103/qqln-f8vy",
+      "domain": {
+        "systems": "quasicircular BBH",
+        "training_parent": "NRHybSur3dq8 and SXS"
+      },
+      "reported_accuracy": {
+        "mismatch_order": 0.0001,
+        "metric": "against NR waveforms"
+      },
+      "reported_performance": {
+        "template_bank_generation": "millions of waveforms in under one second",
+        "hardware": "modest computational resources (paper wording)"
+      },
+      "implementation": "autoencoder generative model",
+      "comparability": "Exact parameter domain and benchmark hardware should be extracted from the paper before direct comparison."
+    },
+    {
+      "id": "NRSurE_q4NoSpin_22",
+      "kind": "eccentric_NR_waveform_surrogate",
+      "reference": "https://doi.org/10.1103/5m8n-r746",
+      "domain": {
+        "mass_ratio_q_approx": 4,
+        "spin": "nonspinning",
+        "eccentricity": "eccentric BBH",
+        "mode": "(2,2)"
+      },
+      "reported_accuracy": {
+        "median_mismatch": 0.00004,
+        "maximum_mismatch": 0.0006
+      },
+      "reported_performance": {
+        "not_reported_here": true
+      },
+      "implementation": "radial-phase inspiral compression plus time-domain merger-ringdown surrogate",
+      "comparability": "Eccentric nonspinning domain is distinct from generic precessing quasicircular models."
+    },
+    {
+      "id": "BOB",
+      "kind": "analytical_merger_ringdown_model",
+      "reference": "https://doi.org/10.1103/v6wx-spvl",
+      "domain": {
+        "systems": "quasicircular nonprecessing BBH",
+        "mode": "dominant (2,2)",
+        "parameterization": "minimal NR-calibrated parameterization"
+      },
+      "reported_accuracy": {
+        "comparison": "reported accuracy comparable to calibrated EOB and NR surrogate models",
+        "sparse_catalog_regions": "reported useful accuracy in regions sparsely covered by NR"
+      },
+      "reported_performance": {
+        "analytic_model": true,
+        "package": "gwBOB"
+      },
+      "implementation": "Backwards-One-Body analytical model",
+      "comparability": "Different model class from a full inspiral waveform surrogate; especially relevant to merger-ringdown and direct-wave / News-frequency discrimination."
+    },
+    {
+      "id": "SpEC_accuracy_limits_2026",
+      "kind": "numerical_relativity_accuracy_study",
+      "reference": "https://arxiv.org/abs/2610.24283",
+      "domain": {
+        "code": "SpEC",
+        "focus": "inspiral accuracy and resolution dependence"
+      },
+      "reported_accuracy": {
+        "finding": "targeted resolution/domain choices reduce constraint and waveform differences; floating-point error and disparate variable scales limit further high-resolution accuracy"
+      },
+      "reported_performance": {
+        "not_a_speed_benchmark": true
+      },
+      "comparability": "Motivates nondimensionalization, scale-aware precision, and non-monotonic resolution studies."
+    },
+    {
+      "id": "SEOBNRv6EPHM",
+      "kind": "generic_orbit_spin_precessing_EOB_waveform_model",
+      "reference": "https://arxiv.org/abs/2609.01568",
+      "domain": {
+        "systems": "generic-orbit, spin-precessing binary black holes; inspiral-merger-ringdown, dynamical capture and scattering",
+        "validation_waveforms": {
+          "quasicircular": 1437,
+          "eccentric": 87
+        },
+        "eccentricity": "generic orbital configurations; not restricted to quasicircular inspirals"
+      },
+      "reported_accuracy": {
+        "median_waveform_mismatch_below": 0.01,
+        "comparison": "against numerical-relativity waveforms",
+        "improvement_vs_TEOBResumS_Dali_median_factor": 4
+      },
+      "reported_performance": {
+        "speedup_vs_SEOBNRv5PHM_quasicircular_factor": [
+          2,
+          3
+        ],
+        "speedup_vs_TEOBResumS_Dali_up_to": 10
+      },
+      "implementation": "SEOBNRv6EPHM effective-one-body waveform model; not a neural surrogate",
+      "comparability": "Broadens the reference set to generic-orbit / eccentric precessing systems. Preserve the paper's waveform domain and NR validation split; mismatch values are not directly comparable to frequency-domain surrogate mismatches for different modes/domains."
+    },
+    {
+      "id": "SEOBNRv6EHM",
+      "kind": "generic_planar_orbit_EOB_waveform_model",
+      "reference": "https://doi.org/10.1103/shbg-989s",
+      "arxiv_id": null,
+      "publication_date": "2026-11-03",
+      "domain": {
+        "systems": "generic planar-orbit binary black holes",
+        "waveform_modes": [
+          "(2,2)",
+          "(2,1)",
+          "(3,3)",
+          "(3,2)",
+          "(4,4)",
+          "(4,3)"
+        ],
+        "validation_waveforms": {
+          "quasicircular": 592,
+          "eccentric": 319,
+          "dynamical_capture": 1,
+          "scattering": 2
+        },
+        "eccentricity": "up to approximately 0.9, with cited high-eccentricity comparisons at 14 periastron passages before merger",
+        "total_mass_range_solar": [
+          20,
+          200
+        ]
+      },
+      "reported_accuracy": {
+        "quasicircular_and_small_eccentricity": "comparable to previous-generation SEOBNRv5 models",
+        "high_eccentricity_mismatch_below_or_around": 0.02,
+        "reference": "SXS numerical-relativity waveforms"
+      },
+      "reported_performance": {
+        "speedup_vs_other_state_of_the_art_EOB_eccentric_models": [
+          2,
+          8
+        ]
+      },
+      "implementation": "time-domain multipolar effective-one-body waveform model, not a neural surrogate",
+      "comparability": "Distinct from generic spin-precessing SEOBNRv6EPHM and from neural reduced-order surrogates. Preserve its planar-orbit, eccentricity, modes, mass range, and SXS comparison domain."
+    },
+    {
+      "id": "SEOBNRv6EHM_catalog_PE_systematics_2026",
+      "kind": "waveform_model_parameter_estimation_and_systematics_study",
+      "reference": "https://doi.org/10.1103/cx64-gmkk",
+      "publication_date": "2026-11-03",
+      "model": "SEOBNRv6EHM",
+      "sample": {
+        "observing_runs": "O1-O4",
+        "events_analyzed": 27,
+        "event_classes": [
+          "binary black hole",
+          "neutron-star black hole",
+          "binary neutron star"
+        ]
+      },
+      "findings": {
+        "mild_eccentricity_support_events": 5,
+        "eccentricity_support_threshold": "log10 Bayes factor > 0.5 against quasi-circular precessing-spin hypothesis",
+        "high_mass_events_reanalyzed_for_unbound_initial_conditions": 5,
+        "events_with_unbound_configuration_comparable_or_marginally_favored": 3,
+        "caveat": "Recovered unbound configurations are astrophysically unrealistic and not confidently distinguishable from highly eccentric bound orbits; these results do not alone establish an unbound origin."
+      },
+      "reported_performance": {
+        "parameter_estimation_speedup_vs_SEOBNRv5EHM": [
+          3,
+          5
+        ],
+        "metric": "end-to-end parameter-estimation runtime"
+      },
+      "comparability": "This is a PE/systematics study using SEOBNRv6EHM, not an independent waveform family or a direct waveform-mismatch benchmark. Keep its astrophysical interpretation caveats."
+    }
+  ],
+  "symtropy_differentiator": {
+    "target": "time-to-posterior-accuracy with calibrated uncertainty",
+    "required_features": [
+      "held-out splits by simulation family/configuration, not random neighboring parameter points",
+      "calibrated waveform error distributions including tails",
+      "out-of-domain detection and safe abstention",
+      "cross-model disagreement as an uncertainty and active-learning signal",
+      "propagation of model discrepancy into posterior coverage",
+      "active selection of the next expensive NR simulation",
+      "comparison with random and space-filling acquisition at equal simulation budget"
+    ],
+    "success_claim_ceiling": "bounded, independently validated surrogate with calibrated applicability and uncertainty; no universal SOTA claim"
+  },
+  "newest_sota_notes": [
+    "SEOBNRv6EHM was published in PRD on 2026-11-03 (DOI 10.1103/shbg-989s). The final paper validates 592 quasi-circular, 319 eccentric, 1 capture and 2 scattering SXS waveforms; for high eccentricity it reports mismatches below/near 2% up to e~0.9 at 14 periastron passages before merger and 2-8x speedup over other state-of-the-art EOB eccentric models.",
+    "The companion SEOBNRv6EHM catalogue PE/systematics study (DOI 10.1103/cx64-gmkk, published 2026-11-03) analyzed 27 O1-O4 events, finds five with mild eccentricity support, and explores unbound configurations in five high-mass events. Three have comparable/marginally favored unbound fits, but the recovered configurations are astrophysically unrealistic and not confidently separable from high-eccentricity bound orbits.",
+    "Do not collapse waveform-generation speedup, parameter-estimation speedup, mismatch, and Bayesian evidence into one performance figure."
+  ]
+}

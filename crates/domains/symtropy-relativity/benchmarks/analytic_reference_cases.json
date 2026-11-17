@@ -1,0 +1,151 @@
+{
+  "schema": "luminous.black-hole-analytic-reference-cases",
+  "schema_version": 1,
+  "units": {
+    "mass": "kg",
+    "length": "m",
+    "angular_velocity": "rad/s",
+    "surface_gravity_rate": "1/s",
+    "frequency": "Hz"
+  },
+  "constants": {
+    "G_m3_kg_s2": 6.6743e-11,
+    "c_m_s": 299792458.0,
+    "solar_mass_kg": 1.98847e30
+  },
+  "metric_convention": {
+    "coordinates": ["c*t", "r", "theta", "phi"],
+    "coordinate_units": ["m", "m", "rad", "rad"],
+    "signature": "-+++",
+    "schwarzschild_chart_domain": "r > 2*G*M/c^2 and 0 < theta < pi",
+    "kerr_chart_domain": "r > r_plus and 0 < theta < pi",
+    "kerr_spin": "chi = c*J/(G*M^2)",
+    "kerr_parameter": "a = chi*G*M/c^2"
+  },
+  "schwarzschild_solar_mass": {
+    "input": {"mass_kg": 1.98847e30},
+    "expected": {
+      "gravitational_radius_m": 1476.6696910334392,
+      "horizon_radius_m": 2953.3393820668784,
+      "photon_sphere_radius_m": 4430.0090731003174,
+      "isco_radius_m": 8860.018146200635
+    },
+    "relative_tolerance": 2e-14
+  },
+  "kerr_solar_mass_grid": [
+    {
+      "case_id": "chi_zero",
+      "mass_kg": 1.98847e30,
+      "chi": 0.0,
+      "expected": {
+        "r_plus_m": 2953.3393820668784,
+        "r_minus_m": 0.0,
+        "omega_h_rad_s": 0.0,
+        "kappa_t_s_inv": 50754.82686148178,
+        "f_2omega_h_hz": 0.0
+      }
+    },
+    {
+      "case_id": "chi_0_5",
+      "mass_kg": 1.98847e30,
+      "chi": 0.5,
+      "expected": {
+        "r_plus_m": 2755.5031564669157,
+        "r_minus_m": 197.83622559996277,
+        "omega_h_rad_s": 27199.429739030995,
+        "kappa_t_s_inv": 47110.79424490157,
+        "f_2omega_h_hz": 8657.847384494968
+      }
+    },
+    {
+      "case_id": "chi_0_9",
+      "mass_kg": 1.98847e30,
+      "chi": 0.9,
+      "expected": {
+        "r_plus_m": 2120.335086653858,
+        "r_minus_m": 833.0042954130203,
+        "omega_h_rad_s": 63625.13498415891,
+        "kappa_t_s_inv": 30815.059296120333,
+        "f_2omega_h_hz": 20252.50947523594
+      }
+    },
+    {
+      "case_id": "chi_0_99",
+      "mass_kg": 1.98847e30,
+      "chi": 0.99,
+      "expected": {
+        "r_plus_m": 1684.9795856392745,
+        "r_minus_m": 1268.359796427604,
+        "omega_h_rad_s": 88070.66149332524,
+        "kappa_t_s_inv": 12549.389588291584,
+        "f_2omega_h_hz": 28033.762236071514
+      }
+    },
+    {
+      "case_id": "chi_extremal",
+      "mass_kg": 1.98847e30,
+      "chi": 1.0,
+      "expected": {
+        "r_plus_m": 1476.6696910334392,
+        "r_minus_m": 1476.6696910334392,
+        "omega_h_rad_s": 101509.65372296357,
+        "kappa_t_s_inv": 0.0,
+        "f_2omega_h_hz": 32311.52632311254
+      }
+    },
+    {
+      "case_id": "chi_retrograde",
+      "mass_kg": 1.98847e30,
+      "chi": -0.9,
+      "expected": {
+        "r_plus_m": 2120.335086653858,
+        "r_minus_m": 833.0042954130203,
+        "omega_h_rad_s": -63625.13498415891,
+        "kappa_t_s_inv": 30815.059296120333,
+        "f_2omega_h_hz": 20252.50947523594
+      }
+    },
+    {
+      "case_id": "chi_small",
+      "mass_kg": 1.98847e30,
+      "chi": 1e-8,
+      "expected": {
+        "r_plus_m": 2953.3393820668784,
+        "r_minus_m": 7.383348455167197e-14,
+        "omega_h_rad_s": 0.0005075482686148178,
+        "kappa_t_s_inv": 50754.82686148178,
+        "f_2omega_h_hz": 0.00016155763161556267
+      },
+      "special_check": "inner_horizon_must_remain_positive"
+    },
+    {
+      "case_id": "chi_near_extremal",
+      "mass_kg": 1.98847e30,
+      "chi": 0.999999999999,
+      "expected": {
+        "r_plus_m": 1476.6717793366447,
+        "r_minus_m": 1476.667602730234,
+        "omega_h_rad_s": 101509.5101683239,
+        "kappa_t_s_inv": 0.14355453812703478,
+        "f_2omega_h_hz": 32311.480628251524
+      },
+      "special_check": "surface_gravity_must_remain_positive_and_finite"
+    }
+  ],
+  "invariants": {
+    "schwarzschild_kretschmann_m_minus_4": "48*(G*M/c^2)^2/r^6",
+    "kerr_horizon_angular_velocity_rad_s": "a*c/(r_plus^2+a^2)",
+    "kerr_surface_gravity_rate_s_inv": "c*sqrt(1-chi^2)/(2*r_g*(1+sqrt(1-chi^2)))",
+    "direct_wave_reference_frequency_hz": "abs(omega_h)/pi"
+  },
+  "tolerances": {
+    "well_conditioned_relative": 2e-13,
+    "zero_expected_absolute": 1e-13,
+    "near_boundary": "use conditioning-aware residual budgets; do not apply a global absolute tolerance"
+  },
+  "provenance": {
+    "fixture_generation": "independent double-precision calculation from the constants and closed-form equations recorded above",
+    "reference_software": "symtropy-relativity",
+    "execution_status": "expected values authored; Rust tests remain unexecuted until cargo is available"
+  }
+}

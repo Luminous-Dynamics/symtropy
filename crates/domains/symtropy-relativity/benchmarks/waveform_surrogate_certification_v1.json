@@ -1,0 +1,205 @@
+{
+  "schema": "luminous.black-hole-waveform-surrogate-certification",
+  "schema_version": 1,
+  "status": "benchmark protocol specification; no results claimed",
+  "objective": "Certify surrogate applicability and posterior reliability, not raw waveform throughput alone.",
+  "reference_models": [
+    {
+      "id": "NRSur7dq4-NN",
+      "reference": "arXiv:2607.24960",
+      "reported_domain": "q in [1,4], component spin magnitudes <=0.8",
+      "reported_validation_waveforms": 10000,
+      "reported_median_mismatch": [
+        0.00008,
+        0.00017
+      ],
+      "reported_95th_percentile_mismatch_upper_bound": 0.001,
+      "reported_device": "NVIDIA L40S",
+      "reported_latency_ms": 1
+    },
+    {
+      "id": "NRSur7dq4v2",
+      "reference": "arXiv:2609.07873",
+      "reported_domain": "NRSur7dq4 precessing quasi-circular domain; pin model release for exact bounds",
+      "reported_features": [
+        "overlapping inspiral and merger-ringdown temporal subdomains",
+        "higher multipoles through ell<=5",
+        "runtime complexity control",
+        "improved remnant mass/spin estimation in reported ringdown fits"
+      ]
+    },
+    {
+      "id": "SEOBNRv5PHM_NNSur7dq10",
+      "reference": "PRD 114, 084042 (2026), DOI 10.1103/qt1n-gbv2",
+      "reported_domain": "generically precessing quasicircular binaries to mass ratio 10"
+    },
+    {
+      "id": "AESur3dq8",
+      "reference": "PRD 114, 083047 (2026), DOI 10.1103/qqln-f8vy",
+      "reported_performance": "mismatch of order 1e-4; template generation throughput reported in paper"
+    },
+    {
+      "id": "NRSurE_q4NoSpin_22",
+      "reference": "PR Research 8, 023362 (2026), DOI 10.1103/5m8n-r746",
+      "reported_domain": "eccentric, nonspinning, q up to about 4, (2,2) mode",
+      "reported_median_mismatch": 0.00004,
+      "reported_maximum_mismatch": 0.0006
+    }
+  ],
+  "split_policy": {
+    "unit_of_grouping": "full NR simulation ID / physical configuration, not individual waveform samples",
+    "requirements": [
+      "train and validation do not contain neighboring time windows from one simulation",
+      "hold out complete simulation IDs",
+      "reserve boundary regions in mass ratio, spin magnitude, spin orientation, eccentricity and precession",
+      "preserve resolution variants of a physical simulation within one split group unless resolution convergence is the explicit test",
+      "publish exact train/validation/test IDs and file digests",
+      "keep an untouched final test set while active learning selects new simulations"
+    ]
+  },
+  "waveform_metrics": {
+    "mandatory": [
+      "noise-weighted frequency-domain mismatch with pinned PSD, frequency band and alignment procedure",
+      "time-dependent phase difference after declared alignment",
+      "relative amplitude difference",
+      "mode-by-mode errors and mode-sum error",
+      "remnant mass/spin bias from ringdown recovery",
+      "error versus wall time",
+      "error versus peak memory"
+    ],
+    "report_distribution": [
+      "median",
+      "90th_percentile",
+      "95th_percentile",
+      "99th_percentile",
+      "maximum"
+    ],
+    "do_not_compare_without_matching": [
+      "parameter domain",
+      "waveform modes",
+      "mass scaling and frequency band",
+      "PSD/noise curve",
+      "alignment convention",
+      "reference NR resolution/extrapolation",
+      "precision and hardware"
+    ]
+  },
+  "uncertainty_and_ood": {
+    "required_methods": [
+      "cross-model disagreement across independent approximants/surrogates",
+      "held-out residual calibration",
+      "conformal or equivalent empirical coverage calibration",
+      "parameter-domain distance or density estimator",
+      "physics-residual / remnant-consistency diagnostics"
+    ],
+    "required_metrics": [
+      "nominal 50/90/95 percent interval coverage",
+      "coverage error with binomial confidence interval",
+      "interval width / sharpness",
+      "negative log predictive density or a declared proper scoring rule",
+      "out-of-domain AUROC and AUPRC",
+      "in-domain false-abstention rate",
+      "out-of-domain false-acceptance rate"
+    ],
+    "proposed_targets_not_claims": {
+      "in_domain_90_percent_coverage_error_absolute": 0.02,
+      "in_domain_95_percent_coverage_error_absolute": 0.02,
+      "in_domain_abstention_rate_max": 0.05,
+      "out_of_domain_detection_recall_min": 0.95
+    },
+    "abstention_policy": "A result outside the calibrated domain must be marked unsupported or return a conservative uncertainty bound; it must not be emitted as a validated waveform."
+  },
+  "posterior_validation": {
+    "task": "propagate surrogate discrepancy through GW likelihood and remnant parameter estimation",
+    "metrics": [
+      "remnant mass bias and coverage",
+      "remnant spin bias and coverage",
+      "posterior credible interval calibration",
+      "prior sensitivity",
+      "waveform model discrepancy contribution",
+      "injection recovery across SNR and detector noise conditions"
+    ],
+    "acceptance": "No posterior-accuracy claim without injection-recovery and calibrated coverage on held-out physical configurations."
+  },
+  "active_nr_selection": {
+    "candidate_scores": [
+      "cross-surrogate predictive disagreement",
+      "expected reduction in posterior entropy / parameter uncertainty",
+      "coverage gaps near domain boundaries",
+      "high observational posterior probability",
+      "ability to distinguish direct-wave horizon, News-peak and BOB/plunge predictors"
+    ],
+    "baselines": [
+      "uniform random selection",
+      "Latin-hypercube / space-filling selection",
+      "max predictive variance",
+      "max cross-model disagreement"
+    ],
+    "equal_budget_comparison": [
+      "posterior uncertainty reduction per new NR simulation",
+      "held-out mismatch reduction",
+      "calibration improvement",
+      "parameter-domain coverage gain",
+      "compute cost of selection itself"
+    ],
+    "leakage_control": "A held-out final simulation set must not be used to choose or tune active-learning acquisitions."
+  },
+  "performance_profile": {
+    "required": [
+      "exact code/model revision and model weights digest",
+      "CPU/GPU/driver/VRAM/RAM and power profile where available",
+      "precision and compiler/runtime versions",
+      "warm-up, batch size, number of repetitions",
+      "latency distribution and throughput",
+      "peak memory",
+      "waveform error and posterior coverage at the same operating point"
+    ],
+    "development_hardware_note": "An RTX 2070 Laptop with 8 GB VRAM is a development profile; do not compare its raw latency directly with an NVIDIA L40S. Provide CPU fallback and publish per-device profiles."
+  },
+  "success_criteria": [
+    "reproduce at least one published surrogate benchmark on a matched domain and metric",
+    "held-out waveform error distribution is within a declared reference envelope",
+    "posterior coverage remains calibrated after surrogate discrepancy is propagated",
+    "out-of-domain cases are reliably detected or conservatively bounded",
+    "active selection beats random and space-filling baselines at equal NR simulation budget on an untouched test region",
+    "independent rerun reproduces manifests and metrics"
+  ],
+  "primary_competitive_metric": "time-to-posterior-accuracy at calibrated coverage, not waveform throughput alone",
+  "sources": [
+    "https://arxiv.org/abs/2607.24960",
+    "https://arxiv.org/abs/2609.07873",
+    "https://doi.org/10.1103/qt1n-gbv2",
+    "https://doi.org/10.1103/qqln-f8vy",
+    "https://doi.org/10.1103/5m8n-r746",
+    "https://arxiv.org/abs/2610.24283"
+  ],
+  "rust_comparison_kernel": {
+    "module": "crates/domains/symtropy-relativity/src/waveform_metrics.rs",
+    "status": "source_and_synthetic_tests_authored_not_executed",
+    "inner_product": "4*delta_f*sum(conjugate(h_reference)*h_candidate/one_sided_psd)",
+    "grid_contract": "reference strain, candidate strain and PSD use the same strictly increasing uniform frequency grid; no interpolation is performed",
+    "alignment_contract": "caller must time-align using a pinned procedure; kernel analytically maximizes over one constant phase only and returns the phase offset",
+    "reported_metrics": [
+      "real normalized overlap before phase maximization",
+      "constant-phase-maximized overlap and mismatch",
+      "best constant phase offset",
+      "PSD-weighted relative amplitude L2 error",
+      "reference-amplitude/PSD-weighted frequency-dependent phase residual RMS",
+      "per-frequency relative amplitude and phase residuals"
+    ],
+    "explicit_nonoperations": [
+      "no time-shift maximization",
+      "no interpolation or resampling",
+      "no windowing or whitening",
+      "no PSD estimation"
+    ],
+    "tests_authored": 10,
+    "test_status": "not executed; rustc and cargo unavailable in editing environment"
+  },
+  "next_execution_steps": [
+    "run the exact Rust waveform-metric synthetic tests",
+    "cross-check overlap, mismatch, amplitude error and phase residual against an independent Python/NumPy reference",
+    "test PSD weighting and pre-alignment sensitivity on a pinned SXS waveform pair",
+    "propagate a measured waveform discrepancy into a small posterior-recovery injection before making surrogate-accuracy claims"
+  ]
+}

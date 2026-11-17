@@ -1,0 +1,295 @@
+{
+  "schema": "luminous.kerr.equatorial-light-ring-reference-cases",
+  "schema_version": 1,
+  "status": "independent analytic reference fixtures authored; Rust tests not executed",
+  "units": {
+    "mass": "kg",
+    "length": "m",
+    "angular_frequency": "rad/s",
+    "lyapunov_exponent": "1/s"
+  },
+  "constants": {
+    "G_m3_kg_s2": 6.6743e-11,
+    "c_m_s": 299792458,
+    "solar_mass_kg": 1.98847e+30
+  },
+  "coordinate_convention": {
+    "coordinates": [
+      "c*t",
+      "r",
+      "theta",
+      "phi"
+    ],
+    "coordinate_units": [
+      "m",
+      "m",
+      "rad",
+      "rad"
+    ],
+    "metric_signature": "-+++",
+    "equatorial_theta_rad": 1.5707963267948966
+  },
+  "spin_convention": "chi=c*J/(G*M^2); prograde angular momentum aligned with signed spin; at chi=0 prograde is positive coordinate rotation",
+  "closed_form_equations": {
+    "prograde_radius_over_rg": "2*(1+cos((2/3)*acos(-abs(chi))))",
+    "retrograde_radius_over_rg": "2*(1+cos((2/3)*acos(abs(chi))))",
+    "prograde_angular_frequency": "sign(chi)*c/(r_g*((r_ph/r_g)^(3/2)+abs(chi)))",
+    "retrograde_angular_frequency": "-sign(chi)*c/(r_g*((r_ph/r_g)^(3/2)-abs(chi)))",
+    "null_radial_potential_E1": "R(r)=[r^2+a^2-a*b]^2-Delta*(b-a)^2",
+    "radial_second_derivative": "R''=8*r^2+4*(r^2+a^2-a*b)-2*(b-a)^2"
+  },
+  "cases": [
+    {
+      "case_id": "chi_0_prograde",
+      "chi": 0,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 4430.009073100317,
+        "angular_frequency_rad_s": 39071.083934865805,
+        "impact_parameter_m": 7673.000792600859,
+        "radial_lyapunov_exponent_s_inv": 39071.083934865805,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0_retrograde",
+      "chi": 0,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 4430.009073100317,
+        "angular_frequency_rad_s": -39071.083934865805,
+        "impact_parameter_m": -7673.000792600859,
+        "radial_lyapunov_exponent_s_inv": 39071.083934865805,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.5_prograde",
+      "chi": 0.5,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 3466.1813837947698,
+        "angular_frequency_rad_s": 49562.034008223105,
+        "impact_parameter_m": 6048.832821313588,
+        "radial_lyapunov_exponent_s_inv": 37744.95620335202,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.5_retrograde",
+      "chi": 0.5,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5215.728604343647,
+        "angular_frequency_rad_s": -33074.96853305047,
+        "impact_parameter_m": -9064.0285175307,
+        "radial_lyapunov_exponent_s_inv": 38591.63746464375,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.9_prograde",
+      "chi": 0.9,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 2300.4367113523003,
+        "angular_frequency_rad_s": 71374.5534321381,
+        "impact_parameter_m": 4200.270875040057,
+        "radial_lyapunov_exponent_s_inv": 27626.865369703755,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.9_retrograde",
+      "chi": 0.9,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5774.174149493245,
+        "angular_frequency_rad_s": -29714.55235013289,
+        "impact_parameter_m": -10089.078727065504,
+        "radial_lyapunov_exponent_s_inv": 37872.98536767927,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.99_prograde",
+      "chi": 0.99,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 1724.2213326201736,
+        "angular_frequency_rad_s": 90161.70596653293,
+        "impact_parameter_m": 3325.053078646065,
+        "radial_lyapunov_exponent_s_inv": 12113.799334579338,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.99_retrograde",
+      "chi": 0.99,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5893.540628767555,
+        "angular_frequency_rad_s": -29072.018423449932,
+        "impact_parameter_m": -10312.06205339299,
+        "radial_lyapunov_exponent_s_inv": 37695.60385011169,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.5_prograde",
+      "chi": -0.5,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 3466.1813837947698,
+        "angular_frequency_rad_s": -49562.034008223105,
+        "impact_parameter_m": -6048.832821313588,
+        "radial_lyapunov_exponent_s_inv": 37744.95620335202,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.5_retrograde",
+      "chi": -0.5,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5215.728604343647,
+        "angular_frequency_rad_s": 33074.96853305047,
+        "impact_parameter_m": 9064.0285175307,
+        "radial_lyapunov_exponent_s_inv": 38591.63746464375,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.9_prograde",
+      "chi": -0.9,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 2300.4367113523003,
+        "angular_frequency_rad_s": -71374.5534321381,
+        "impact_parameter_m": -4200.270875040057,
+        "radial_lyapunov_exponent_s_inv": 27626.865369703755,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.9_retrograde",
+      "chi": -0.9,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5774.174149493245,
+        "angular_frequency_rad_s": 29714.55235013289,
+        "impact_parameter_m": 10089.078727065504,
+        "radial_lyapunov_exponent_s_inv": 37872.98536767927,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.999999_prograde",
+      "chi": 0.999999,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 1479.0817386826589,
+        "angular_frequency_rad_s": 101385.44861384248,
+        "impact_parameter_m": 2956.9574539406776,
+        "radial_lyapunov_exponent_s_inv": 143.30269999069313,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_0.999999_retrograde",
+      "chi": 0.999999,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5906.677451538354,
+        "angular_frequency_rad_s": -29002.76511198169,
+        "impact_parameter_m": -10336.685376117777,
+        "radial_lyapunov_exponent_s_inv": 37675.69007347163,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.999999_prograde",
+      "chi": -0.999999,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 1479.0817386826589,
+        "angular_frequency_rad_s": -101385.44861384248,
+        "impact_parameter_m": -2956.9574539406776,
+        "radial_lyapunov_exponent_s_inv": 143.30269999069313,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-0.999999_retrograde",
+      "chi": -0.999999,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5906.677451538354,
+        "angular_frequency_rad_s": 29002.76511198169,
+        "impact_parameter_m": 10336.685376117777,
+        "radial_lyapunov_exponent_s_inv": 37675.69007347163,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_1_prograde",
+      "chi": 1,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 1476.66969103344,
+        "angular_frequency_rad_s": 101509.65372296351,
+        "impact_parameter_m": null,
+        "radial_lyapunov_exponent_s_inv": null,
+        "status": "extremal_horizon_limit"
+      }
+    },
+    {
+      "case_id": "chi_1_retrograde",
+      "chi": 1,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5906.678764133757,
+        "angular_frequency_rad_s": -29002.75820656102,
+        "impact_parameter_m": -10336.687837234073,
+        "radial_lyapunov_exponent_s_inv": 37675.68808004917,
+        "status": "exterior_boyer_lindquist"
+      }
+    },
+    {
+      "case_id": "chi_-1_prograde",
+      "chi": -1,
+      "sense": "prograde",
+      "expected": {
+        "radius_m": 1476.66969103344,
+        "angular_frequency_rad_s": -101509.65372296351,
+        "impact_parameter_m": null,
+        "radial_lyapunov_exponent_s_inv": null,
+        "status": "extremal_horizon_limit"
+      }
+    },
+    {
+      "case_id": "chi_-1_retrograde",
+      "chi": -1,
+      "sense": "retrograde",
+      "expected": {
+        "radius_m": 5906.678764133757,
+        "angular_frequency_rad_s": 29002.75820656102,
+        "impact_parameter_m": 10336.687837234073,
+        "radial_lyapunov_exponent_s_inv": 37675.68808004917,
+        "status": "exterior_boyer_lindquist"
+      }
+    }
+  ],
+  "validation": {
+    "schwarzschild_limit": "r_ph=3*r_g and coordinate-time radial Lyapunov exponent equals abs(Omega_ph)",
+    "extremal_limits": "prograde r_ph=r_g; retrograde r_ph=4*r_g",
+    "zero_spin_orientation": "prograde and retrograde radii and instability exponents equal; signed frequencies opposite",
+    "tolerances": {
+      "well_conditioned_relative": 2e-12,
+      "near_extremal_relative": 2e-8,
+      "metric_null_residual_absolute": 2e-13,
+      "radial_circularity_residual_times_rg_absolute": 2e-13
+    },
+    "provenance": "Expected values generated by a separate V8 implementation of the closed-form Kerr photon-orbit and null-potential equations; not generated by calling the Rust source."
+  }
+}
