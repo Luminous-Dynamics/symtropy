@@ -893,21 +893,22 @@ mod tests {
 
     #[test]
     fn integrated_ebr_is_duration_weighted_not_a_mean_of_ratios() {
+        // Intentionally reversed: the EBR implementation sorts by the declared timestamps.
         let intervals = [
-            IntegratedEnergyInterval {
-                interval_id: 1,
-                interval_start_unix_seconds: 0,
-                duration_seconds: 1800,
-                available_energy_w_m2: 100.0,
-                turbulent_energy_w_m2: 50.0,
-                gap_fill_state: GapFillState::Observed,
-            },
             IntegratedEnergyInterval {
                 interval_id: 2,
                 interval_start_unix_seconds: 1800,
                 duration_seconds: 3600,
                 available_energy_w_m2: 200.0,
                 turbulent_energy_w_m2: 180.0,
+                gap_fill_state: GapFillState::Observed,
+            },
+            IntegratedEnergyInterval {
+                interval_id: 1,
+                interval_start_unix_seconds: 0,
+                duration_seconds: 1800,
+                available_energy_w_m2: 100.0,
+                turbulent_energy_w_m2: 50.0,
                 gap_fill_state: GapFillState::Observed,
             },
         ];
@@ -1059,6 +1060,22 @@ mod tests {
         assert_eq!(
             integrated_energy_balance_ratio(&[first, third], GapFillPolicy::ObservedOnly),
             Err(IntegratedEbrError::NonContiguousIntervals)
+        );
+    }
+
+    #[test]
+    fn integrated_ebr_rejects_end_timestamp_overflow() {
+        let interval = IntegratedEnergyInterval {
+            interval_id: 1,
+            interval_start_unix_seconds: i64::MAX - 10,
+            duration_seconds: 20,
+            available_energy_w_m2: 100.0,
+            turbulent_energy_w_m2: 80.0,
+            gap_fill_state: GapFillState::Observed,
+        };
+        assert_eq!(
+            integrated_energy_balance_ratio(&[interval], GapFillPolicy::ObservedOnly),
+            Err(IntegratedEbrError::IntervalTimeOverflow)
         );
     }
 
