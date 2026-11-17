@@ -197,7 +197,7 @@ jobs:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_CEILING_FAIL")
           if t1_input["frozen_plan_blob_sha"] != "3b64690fa02ac47b3bc430a22b1392c65583bba7":
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PLAN_IDENTITY_FAIL")
-          if len(t1_input["cases"]) != 13 or len(t1_oracle["cases"]) != 13:
+          if len(t1_input["cases"]) != 15 or len(t1_oracle["cases"]) != 15:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CASE_COUNT_FAIL")
           if {x["case_id"] for x in t1_input["cases"]} != {x["case_id"] for x in t1_oracle["cases"]}:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ORACLE_CASE_SET_FAIL")
@@ -207,7 +207,22 @@ jobs:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_GUARD_BREACH")
           if any(case["energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_COVERAGE_BREACH")
-          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 13 cases; six paired blocks; synthetic-only; no physical or statistical claim")
+          if any(case["control_energy_observed_block_count"] > case["paired_block_count"] or case["net_energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CONTROL_ENERGY_COVERAGE_BREACH")
+          for case in t1_input["cases"]:
+              for block in case["blocks"]:
+                  for arm_name in ["control", "treatment"]:
+                      run = block[arm_name]
+                      if run is None:
+                          continue
+                      for key, value in run.items():
+                          if isinstance(value, dict) and "raw_record_digest" in value:
+                              if value.get("time_window_start_utc") != run["start_utc"] or value.get("time_window_end_utc") != run["end_utc"]:
+                                  raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_MEASUREMENT_WINDOW_BINDING_FAIL")
+                  quality = block["treatment"]["quality_release"]
+                  if quality is not None and (not quality.get("sample_set_digest") or not quality.get("independent_reviewer_ref") or not quality.get("method_revision_ref") or not quality.get("valid_from_utc") or not quality.get("valid_until_utc")):
+                      raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
+          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 15 cases; six paired blocks; run-bound records; scoped quality releases; synthetic-only")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
