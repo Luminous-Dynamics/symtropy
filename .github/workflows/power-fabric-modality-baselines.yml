@@ -1,0 +1,53 @@
+name: Power Fabric Modality Baselines
+
+on:
+  push:
+    branches:
+      - research/power-fabric-modality-baselines-v0.1
+  pull_request:
+    branches:
+      - research/power-fabric-service-comparison-v0.1
+    paths:
+      - "docs/research/power-fabric/data/transport-modality-baselines.*.json"
+      - "docs/research/power-fabric/data/transport-modality-baselines.schema.json"
+      - "tools/power-fabric-baseline-validator/**"
+      - ".github/workflows/power-fabric-modality-baselines.yml"
+
+concurrency:
+  group: power-fabric-modality-baselines-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate source-bound modality baselines
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Validate schema and corpus JSON syntax
+        run: |
+          python3 -c "import json; json.load(open('docs/research/power-fabric/data/transport-modality-baselines.schema.json')); json.load(open('docs/research/power-fabric/data/transport-modality-baselines.v0.1.json'))"
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/power-fabric-baseline-validator/Cargo.toml -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/power-fabric-baseline-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run validator tests
+        run: cargo test --manifest-path tools/power-fabric-baseline-validator/Cargo.toml
+
+      - name: Validate frozen corpus
+        run: cargo run --manifest-path tools/power-fabric-baseline-validator/Cargo.toml
