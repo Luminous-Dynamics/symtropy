@@ -81,7 +81,10 @@ pub fn photon_sphere_radii(p: MkParameters) -> Result<Vec<f64>, DomainError> {
         if disc < -disc_tol { return Err(DomainError::NoRealPhotonSphere); }
         let sqrt_disc = disc.max(0.0).sqrt();
         // Stable quadratic formula avoids cancellation in one of the roots.
-        let q = -0.5 * (b + b.signum() * sqrt_disc);
+        // copysign convention: choose +sqrt when b == 0, avoiding q == 0
+        // for a valid pair of symmetric nonzero roots.
+        let signed_sqrt = if b >= 0.0 { sqrt_disc } else { -sqrt_disc };
+        let q = -0.5 * (b + signed_sqrt);
         if q == 0.0 {
             let x = -b / (2.0 * a);
             if finite(x) && x > 0.0 { roots.push(x); }
@@ -165,6 +168,16 @@ mod tests {
         assert!((roots[0] - 3.0).abs() < 1e-13);
         let b = critical_impact_parameter(SCHWARZSCHILD, roots[0]).unwrap();
         assert!((b - 3.0 * 3.0_f64.sqrt()).abs() < 1e-13);
+    }
+
+    #[test]
+    fn quadratic_solver_handles_zero_linear_coefficient() {
+        // beta*gamma = 1/3 makes the linear coefficient exactly zero;
+        // the positive root is r=3 and the negative root is discarded.
+        let p = MkParameters { beta: 1.0, gamma: 1.0 / 3.0, kappa: 0.0 };
+        let roots = photon_sphere_radii(p).unwrap();
+        assert_eq!(roots.len(), 1);
+        assert!((roots[0] - 3.0).abs() < 1e-12);
     }
 
     #[test]
