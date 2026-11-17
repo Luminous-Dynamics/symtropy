@@ -430,7 +430,7 @@ fn failed_dependency_is_still_rejected_when_exempt_for_diversity() {
 }
 
 #[test]
-fn same_scope_and_bounds_with_three_required_options_abstains_if_witness_is_too_small() {
+fn exact_small_witness_reports_insufficient_independent_option_count() {
     let mut contingency = case();
     contingency.required_independent_options = 3;
     let result = evaluate(
