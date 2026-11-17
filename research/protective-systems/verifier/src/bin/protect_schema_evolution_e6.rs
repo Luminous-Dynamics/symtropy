@@ -37,6 +37,14 @@ const OPENLINEAGE_PROFILE: &str = "openlineage:run-event:2.0.2";
 const OPENLINEAGE_BLOB: &str = "58167f71407add7734810cda9943b39b83c89aa2";
 const OPENLINEAGE_DIGEST: &str =
     "69f68bee00b9beac88a87059c0102410e7bb05f3f43c46d02a0409831eceb0d2";
+const KNOWN_PROFILE_IDS: [&str; 6] = [
+    DATACITE_PROFILE,
+    "datacite:kernel-4:4.8-draft",
+    OGC_PROFILE,
+    "ogcapi-records:part2-facets:draft",
+    "ogcapi-records:part3-crud-harvest:draft",
+    OPENLINEAGE_PROFILE,
+];
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -187,6 +195,7 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
         .and_then(Value::as_str)
         .unwrap_or("<missing-profile-id>")
         .to_owned();
+    let known_profile = KNOWN_PROFILE_IDS.contains(&profile_id.as_str());
     let lifecycle = profile
         .get("lifecycle")
         .and_then(Value::as_str)
@@ -222,6 +231,10 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
         .is_some_and(|value| !value.trim().is_empty());
 
     let (admission_state, reason) = match lifecycle.as_str() {
+        _ if !known_profile => (
+            AdmissionState::AbstainUnverified,
+            "Unrecognized profile identity requires an explicit registry and verifier update before admission.",
+        ),
         "DRAFT" => (
             AdmissionState::DraftShadowOnly,
             "Draft/preview profiles are shadow-only regardless of parse success or version number.",
@@ -233,6 +246,10 @@ fn evaluate_profile(profile: &Value) -> ProfileAssessment {
         "FINAL" if !schema_digest_verified => (
             AdmissionState::AbstainUnverified,
             "Final lifecycle status without a valid pinned schema SHA-256 is unverified.",
+        ),
+        "FINAL" if receipt == "NONE" || receipt == "FAIL_EXACT_HEAD" => (
+            AdmissionState::AbstainUnverified,
+            "Missing or failed exact-head validator receipt cannot support any new profile admission.",
         ),
         "FINAL"
             if bundle == "PARTIAL_EXTERNAL_REFERENCES"
@@ -344,15 +361,24 @@ fn build_report(registry: &Value) -> Result<EvolutionReport, String> {
             return Err("E6 compatibility observation references an unknown profile".to_owned());
         }
         let class = required_text(observation, "compatibility", "E6 compatibility observation")?;
+        let decision = required_text(observation, "decision", "E6 compatibility observation")?;
         if class == "UNKNOWN" {
             compatibility_unknown += 1;
         }
         if class == "UNKNOWN"
-            && required_text(observation, "decision", "E6 compatibility observation")? != "ABSTAIN"
-            && required_text(observation, "decision", "E6 compatibility observation")? != "BLOCKED_DRAFT"
-            && required_text(observation, "decision", "E6 compatibility observation")? != "REVIEW_REQUIRED"
+            && !["ABSTAIN", "BLOCKED_DRAFT", "REVIEW_REQUIRED"].contains(&decision)
         {
             return Err("E6 unknown compatibility cannot be accepted or auto-promoted".to_owned());
+        }
+        if ["LOSSY", "SEMANTIC_BREAK", "BREAKING"].contains(&class)
+            && !["ABSTAIN", "REVIEW_REQUIRED", "BLOCKED_DRAFT"].contains(&decision)
+        {
+            return Err("E6 lossy or breaking compatibility requires review, blocking or abstention".to_owned());
+        }
+        if class == "NOT_COMPARABLE_SEPARATE_PART"
+            && !["ABSTAIN", "SHADOW_ONLY", "REVIEW_REQUIRED"].contains(&decision)
+        {
+            return Err("E6 separate draft parts cannot be treated as an automatic upgrade".to_owned());
         }
     }
 
@@ -645,6 +671,60 @@ mod tests {
             Value::String("NO_MIGRATION".into());
         let error = build_report(&value).expect_err("unknown compatibility cannot pass");
         assert!(error.contains("unknown compatibility cannot be accepted"));
+    }
+
+    #[test]
+    fn final_profile_with_no_validator_receipt_abstains_even_for_selected_scope() {
+        let value = registry();
+        let mut item = profile(&value, DATACITE_PROFILE);
+        item["validator_receipt"] = Value::String("NONE".into());
+        assert_eq!(
+            evaluate_profile(&item).admission_state,
+            AdmissionState::AbstainUnverified
+        );
+    }
+
+    #[test]
+    fn failed_exact_head_validator_receipt_abstains() {
+        let value = registry();
+        let mut item = profile(&value, OGC_PROFILE);
+        item["validator_receipt"] = Value::String("FAIL_EXACT_HEAD".into());
+        assert_eq!(
+            evaluate_profile(&item).admission_state,
+            AdmissionState::AbstainUnverified
+        );
+    }
+
+    #[test]
+    fn unrecognized_profile_cannot_be_admitted_by_its_own_digest() {
+        let value = registry();
+        let mut item = profile(&value, OPENLINEAGE_PROFILE);
+        item["profile_id"] = Value::String("openlineage:run-event:99.0".into());
+        item["validator_receipt"] = Value::String("PASS_EXACT_HEAD".into());
+        assert_eq!(
+            evaluate_profile(&item).admission_state,
+            AdmissionState::AbstainUnverified
+        );
+    }
+
+    #[test]
+    fn breaking_compatibility_cannot_be_recorded_as_no_migration() {
+        let mut value = registry();
+        value["compatibility_observations"][0]["compatibility"] =
+            Value::String("SEMANTIC_BREAK".into());
+        value["compatibility_observations"][0]["decision"] =
+            Value::String("NO_MIGRATION".into());
+        let error = build_report(&value).expect_err("breaking migration ignored");
+        assert!(error.contains("requires review"));
+    }
+
+    #[test]
+    fn separate_draft_part_cannot_be_auto_promoted() {
+        let mut value = registry();
+        value["compatibility_observations"][1]["decision"] =
+            Value::String("NO_MIGRATION".into());
+        let error = build_report(&value).expect_err("separate part auto-upgrade");
+        assert!(error.contains("separate draft parts"));
     }
 
     #[test]
