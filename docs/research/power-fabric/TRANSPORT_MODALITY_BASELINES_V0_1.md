@@ -3,7 +3,9 @@
 **Owner issue:** [#5921 — POWER-FABRIC-MODALITY-BASELINES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5921)  
 **Parent programme:** [#5832 — POWER-FABRIC-TRANSPORT-PRIMITIVES-001](https://github.com/Luminous-Dynamics/symtropy/issues/5832)  
 **Schema:** `docs/research/power-fabric/data/transport-modality-baselines.schema.json`  
-**Data:** `docs/research/power-fabric/data/transport-modality-baselines.v0.1.json`
+**Data manifest:** `docs/research/power-fabric/data/transport-modality-baselines.v0.1.json`  
+**JSONL corpus:** `docs/research/power-fabric/data/transport-modality-baselines.v0.1.jsonl`  
+**Record schema:** `docs/research/power-fabric/data/transport-modality-baseline-record.schema.json`
 
 ## What the register is for
 
@@ -46,7 +48,7 @@ Only measured or independently qualified data with matched boundaries may enter 
 
 ## Validation
 
-The standalone Rust validator at `tools/power-fabric-baseline-validator` checks:
+The JSON manifest and JSONL corpus contain the same six records; the validator rejects any byte-parsed semantic drift between the two. The standalone Rust validator at `tools/power-fabric-baseline-validator` checks:
 - unique record IDs and distinct initial comparison groups;
 - modality and study-type enums;
 - source identity, HTTPS URLs and publication-date shape;
