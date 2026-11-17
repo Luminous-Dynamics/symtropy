@@ -661,32 +661,71 @@ pub fn evaluate_action_ontology_benchmark(
 
         let predicted_group = case.prediction.mapping.group;
         checked_accumulate(&mut summary.case_count, 1, &case.case_id)?;
-        checked_accumulate(&mut summary.total_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+        checked_accumulate(
+            &mut summary.total_occurrence_weight,
+            case.occurrence_weight,
+            &case.case_id,
+        )?;
 
         if let Some(group) = case.gold_group {
-            checked_accumulate(&mut summary.gold_mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
-            let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
+            checked_accumulate(
+                &mut summary.gold_mapped_occurrence_weight,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
+            let counts = summary
+                .groups
+                .iter_mut()
+                .find(|counts| counts.group == group)
                 .expect("every action group has a stable evaluation entry");
-            checked_accumulate(&mut counts.gold_occurrences, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut counts.gold_occurrences,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
         }
 
         if let Some(group) = predicted_group {
-            checked_accumulate(&mut summary.mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut summary.mapped_occurrence_weight,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
             let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
                 .expect("every action group has a stable evaluation entry");
-            checked_accumulate(&mut counts.predicted_occurrences, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut counts.predicted_occurrences,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
         } else {
-            checked_accumulate(&mut summary.abstained_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut summary.abstained_occurrence_weight,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
         }
 
         if predicted_group.is_some() && predicted_group == case.gold_group {
-            checked_accumulate(&mut summary.correct_mapped_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut summary.correct_mapped_occurrence_weight,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
             let group = predicted_group.expect("checked as Some");
             let counts = summary.groups.iter_mut().find(|counts| counts.group == group)
                 .expect("every action group has a stable evaluation entry");
-            checked_accumulate(&mut counts.true_positive_occurrences, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut counts.true_positive_occurrences,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
         } else if predicted_group.is_none() && case.gold_group.is_none() {
-            checked_accumulate(&mut summary.correctly_abstained_occurrence_weight, case.occurrence_weight, &case.case_id)?;
+            checked_accumulate(
+                &mut summary.correctly_abstained_occurrence_weight,
+                case.occurrence_weight,
+                &case.case_id,
+            )?;
         }
     }
 
