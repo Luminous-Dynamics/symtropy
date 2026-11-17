@@ -610,7 +610,6 @@ fn run(args: &[String]) -> Result<Value, String> {
             .map_err(|error| format!("serialize receipt: {error}"))?,
     )
     .map_err(|error| format!("cannot write receipt '{}': {error}", output.display()))?;
-    let _ = manifest;
     Ok(receipt)
 }
 
