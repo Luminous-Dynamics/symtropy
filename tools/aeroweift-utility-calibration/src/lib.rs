@@ -599,10 +599,12 @@ pub fn evaluate_utility_claim(
         });
     }
 
-    let disposition = if any_insufficient {
-        CalibrationDisposition::IndeterminateInsufficientData
-    } else if any_failed_gate {
+    // A known failure in any sufficiently sampled stratum must not be hidden by
+    // insufficient evidence in a different stratum.
+    let disposition = if any_failed_gate {
         CalibrationDisposition::NotCalibrated
+    } else if any_insufficient {
+        CalibrationDisposition::IndeterminateInsufficientData
     } else {
         CalibrationDisposition::CalibratedForDeclaredChallengeSetOnly
     };
