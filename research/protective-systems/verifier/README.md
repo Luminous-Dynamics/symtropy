@@ -357,8 +357,8 @@ one derived and 14 preserved-raw-only, with no unclassified baseline fields.
 
 The E4 report serializes and deserializes the typed envelope and checks
 structural equality. It also emits two different integrity identifiers:
-- a raw serialization SHA-256;
-- an RFC 8785 JCS semantic projection SHA-256.
+- `envelope_serialization_sha256`, a raw serialization SHA-256;
+- `semantic_fingerprint_sha256`, an RFC 8785 JCS semantic projection SHA-256.
 
 The JCS fingerprint covers provider identities/profiles, rights/use limits,
 typed native views and mapping decisions. It excludes source paths, byte
@@ -384,6 +384,6 @@ The exact E1 context envelope is separately hashed into a context receipt.
 The OpenLineage E3 facet must match its embedded E1 analysis ID and
 `NOT_EXECUTED` status with null run ID; it remains context only.
 
-The E4 prototype has 40 unit tests written. Hosted formatting, Clippy,
+The E4 prototype has 41 unit tests written. Hosted formatting, Clippy,
 compilation, test and executable evidence remain pending exact-head CI.
 The executable returns `ABSTAIN_SYNTHETIC_METADATA_ONLY`.
