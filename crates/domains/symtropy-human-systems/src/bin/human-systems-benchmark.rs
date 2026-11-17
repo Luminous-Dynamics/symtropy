@@ -14,11 +14,11 @@ use std::io::{self, BufRead, BufWriter, Write};
 use std::process::{Command, Stdio};
 
 use symtropy_human_systems::intervention::{
-    generate_intervention_scenario, InterventionScenarioId, PhysicalExposureTruth,
+    InterventionScenarioId, PhysicalExposureTruth, generate_intervention_scenario,
 };
 use symtropy_human_systems::observation::{
-    generate_scenario, EstimatorView, ObservationEvent, ObservationQuantity, ScenarioId,
-    ScorerEventTruth,
+    EstimatorView, ObservationEvent, ObservationQuantity, ScenarioId, ScorerEventTruth,
+    generate_scenario,
 };
 use symtropy_human_systems::sampling_rate::{
     canonical_rate_profiles, sample_ideal_lowpass, FIXTURE_DURATION_SECONDS,
@@ -52,7 +52,9 @@ fn main() {
 
 fn run_benchmark() -> Result<(), Box<dyn Error>> {
     println!("RUNNER\tprotocol=1\tcandidate=last-observation-baseline\ttruth=parent-only");
-    println!("BOUNDARY\tchild_process=true\tenvironment=scrubbed\tfilesystem_sandbox=false\tnetwork_sandbox=false");
+    println!(
+        "BOUNDARY\tchild_process=true\tenvironment=scrubbed\tfilesystem_sandbox=false\tnetwork_sandbox=false"
+    );
 
     let mut candidate_processes = 0_usize;
     for (index, scenario_id) in ScenarioId::ALL.into_iter().enumerate() {
@@ -60,13 +62,22 @@ fn run_benchmark() -> Result<(), Box<dyn Error>> {
         let payload = encode_estimator_view(&generated.estimator_view);
         let replies = run_candidate_process(&payload)?;
         candidate_processes += 1;
-        score_scenario(scenario_id, &generated.estimator_view, &generated.scorer_view.event_truth, &generated.scorer_view.truth, generated.scorer_view.alternate_truth.as_deref(), &replies)?;
+        score_scenario(
+            scenario_id,
+            &generated.estimator_view,
+            &generated.scorer_view.event_truth,
+            &generated.scorer_view.truth,
+            generated.scorer_view.alternate_truth.as_deref(),
+            &replies,
+        )?;
     }
 
     run_sampling_reference_lane()?;
     run_intervention_visibility_lane()?;
 
-    println!("COMPLETE\tcandidate_processes={candidate_processes}\thuman_validity=not_assessed\tclinical_validity=not_assessed");
+    println!(
+        "COMPLETE\tcandidate_processes={candidate_processes}\thuman_validity=not_assessed\tclinical_validity=not_assessed"
+    );
     Ok(())
 }
 
@@ -140,9 +151,7 @@ fn run_candidate_process(payload: &str) -> Result<HashMap<u64, CandidateReply>, 
         .map_err(|message| invalid_data(format!("invalid candidate response: {message}")).into())
 }
 
-fn parse_candidate_output(
-    output: &str,
-) -> Result<HashMap<u64, CandidateReply>, String> {
+fn parse_candidate_output(output: &str) -> Result<HashMap<u64, CandidateReply>, String> {
     let mut replies = HashMap::new();
     for (line_number, line) in output.lines().enumerate() {
         if line.trim().is_empty() {
@@ -150,7 +159,10 @@ fn parse_candidate_output(
         }
         let fields: Vec<&str> = line.split('\t').collect();
         if fields.len() != 3 {
-            return Err(format!("line {} must contain three tab-separated fields", line_number + 1));
+            return Err(format!(
+                "line {} must contain three tab-separated fields",
+                line_number + 1
+            ));
         }
         let source_id = fields[1]
             .parse::<u64>()
@@ -162,8 +174,18 @@ fn parse_candidate_output(
                 CandidateReply::Prediction(value)
             }
             "A" if fields[2] == "NO_PRIOR_OBSERVATION" => CandidateReply::Abstention,
-            "A" => return Err(format!("line {} has an unknown abstention reason", line_number + 1)),
-            _ => return Err(format!("line {} has an unknown response record", line_number + 1)),
+            "A" => {
+                return Err(format!(
+                    "line {} has an unknown abstention reason",
+                    line_number + 1
+                ));
+            }
+            _ => {
+                return Err(format!(
+                    "line {} has an unknown response record",
+                    line_number + 1
+                ));
+            }
         };
         if replies.insert(source_id, reply).is_some() {
             return Err(format!("duplicate response for source event {source_id}"));
@@ -216,9 +238,9 @@ fn score_scenario(
         .collect();
 
     for source_id in &target_ids {
-        let truth_row = truth_by_id
-            .get(source_id)
-            .ok_or_else(|| invalid_data(format!("scorer map is missing source event {source_id}")))?;
+        let truth_row = truth_by_id.get(source_id).ok_or_else(|| {
+            invalid_data(format!("scorer map is missing source event {source_id}"))
+        })?;
         visible_sample_indices.insert(truth_row.sample_index);
 
         match replies.get(source_id).expect("reply IDs were checked") {
@@ -230,9 +252,12 @@ fn score_scenario(
 
                 if alternate_truth.is_some() {
                     world_a_squared_errors.push(error * error);
-                    let alternate = alternate_by_index
-                        .get(&truth_row.sample_index)
-                        .ok_or_else(|| invalid_data("alternate truth lacks a matching sample index"))?;
+                    let alternate =
+                        alternate_by_index
+                            .get(&truth_row.sample_index)
+                            .ok_or_else(|| {
+                                invalid_data("alternate truth lacks a matching sample index")
+                            })?;
                     let alternate_error = prediction - alternate;
                     world_b_squared_errors.push(alternate_error * alternate_error);
                 }
@@ -283,15 +308,25 @@ fn run_sampling_reference_lane() -> Result<(), Box<dyn Error>> {
     let profiles = canonical_rate_profiles();
     for (profile, expected_retention) in profiles.iter().zip(expected) {
         if (profile.expected_task_band_retention - expected_retention).abs() > 1.0e-12 {
-            return Err(invalid_data("sampling-rate retention differs from the known-truth oracle").into());
+            return Err(invalid_data(
+                "sampling-rate retention differs from the known-truth oracle",
+            )
+            .into());
         }
         let samples = sample_ideal_lowpass(profile.sampling_rate_hz, FIXTURE_DURATION_SECONDS)?;
         let expected_count = (profile.sampling_rate_hz * FIXTURE_DURATION_SECONDS).round() as usize;
         if samples.len() != expected_count {
-            return Err(invalid_data("sampling-rate sample count differs from the expected count").into());
+            return Err(
+                invalid_data("sampling-rate sample count differs from the expected count").into(),
+            );
         }
-        if samples.windows(2).any(|pair| pair[1].time_seconds <= pair[0].time_seconds) {
-            return Err(invalid_data("sampling-rate sample times are not strictly increasing").into());
+        if samples
+            .windows(2)
+            .any(|pair| pair[1].time_seconds <= pair[0].time_seconds)
+        {
+            return Err(
+                invalid_data("sampling-rate sample times are not strictly increasing").into(),
+            );
         }
         println!(
             "RATE\thz={:.5}\tnyquist_hz={:.5}\tretained_task_power={:.9}\tregime={:?}\tsamples={}",
@@ -317,14 +352,19 @@ fn run_intervention_visibility_lane() -> Result<(), Box<dyn Error>> {
             .iter()
             .any(|observation| observation.available_at_seconds > 60.0)
         {
-            return Err(invalid_data("future exposure observation leaked into the 60-second view").into());
+            return Err(
+                invalid_data("future exposure observation leaked into the 60-second view").into(),
+            );
         }
         if later
             .exposure_observations
             .iter()
             .any(|observation| observation.available_at_seconds > 120.0)
         {
-            return Err(invalid_data("future exposure observation leaked into the 120-second view").into());
+            return Err(invalid_data(
+                "future exposure observation leaked into the 120-second view",
+            )
+            .into());
         }
 
         let physical_truth = match &scenario.oracle.traces[0].physical_exposure {
@@ -337,7 +377,9 @@ fn run_intervention_visibility_lane() -> Result<(), Box<dyn Error>> {
             && (!at_cutoff.exposure_observations.is_empty()
                 || later.exposure_observations.len() != 1)
         {
-            return Err(invalid_data("delayed HIE-04 observation did not respect the cutoff").into());
+            return Err(
+                invalid_data("delayed HIE-04 observation did not respect the cutoff").into(),
+            );
         }
 
         println!(
@@ -390,14 +432,19 @@ fn candidate_main() -> io::Result<()> {
         let _delivery_id = parse_u64(fields[2], "delivery ID")?;
         let _sensor_id = parse_u16(fields[3], "sensor ID")?;
         let quantity = fields[4];
-        if !matches!(quantity, "PrimarySignal" | "ActivityProxy" | "CompositeSignal") {
+        if !matches!(
+            quantity,
+            "PrimarySignal" | "ActivityProxy" | "CompositeSignal"
+        ) {
             return Err(invalid_data("unknown observation quantity"));
         }
 
         let _sensor_timestamp = parse_finite(fields[5])?;
         let available_at = parse_finite(fields[6])?;
         if available_at < last_available_at || available_at < 0.0 {
-            return Err(invalid_data("events must be ordered by non-negative availability time"));
+            return Err(invalid_data(
+                "events must be ordered by non-negative availability time",
+            ));
         }
         last_available_at = available_at;
         let _clock_domain = parse_u16(fields[7], "clock domain")?;
