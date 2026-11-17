@@ -547,9 +547,11 @@ mod tests {
     #[test]
     fn duplicate_and_unexpected_ids_evaluation_receipts_are_rejected() {
         let mut duplicate = valid_input();
+        let duplicate_evaluation =
+            duplicate.entities[0].ids_requirement_evaluations[0].clone();
         duplicate.entities[0]
             .ids_requirement_evaluations
-            .push(duplicate.entities[0].ids_requirement_evaluations[0].clone());
+            .push(duplicate_evaluation);
         assert!(
             preflight_ifc_ids_work_package(duplicate)
                 .unwrap_err()
@@ -568,6 +570,22 @@ mod tests {
                 .contains(&IfcIdsPreflightError::UnexpectedIdsRequirementEvaluation {
                     global_id: global_id('A'),
                     requirement_id: "not-in-the-applicability-set".into(),
+                })
+        );
+    }
+
+
+    #[test]
+    fn malformed_ids_evaluation_receipt_blocks_package_compilation() {
+        let mut invalid = valid_input();
+        invalid.entities[0].ids_requirement_evaluations[0].evaluation_receipt_sha256 =
+            "unverified".into();
+        assert!(
+            preflight_ifc_ids_work_package(invalid)
+                .unwrap_err()
+                .contains(&IfcIdsPreflightError::InvalidIdsRequirementEvaluationReceipt {
+                    global_id: global_id('A'),
+                    requirement_id: "layout-marking-class".into(),
                 })
         );
     }
