@@ -754,7 +754,7 @@ mod tests {
 
     #[test]
     fn all_three_qualified_receipts_make_candidate_eligible() {
-        let result = validate_candidate_envelope(&envelope()).unwrap();
+        let result = validate_candidate_envelope(&envelope(), A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::Qualified);
         assert!(result.assessment().non_qualified_domains.is_empty());
         assert!(result.assessment().unknown_domains.is_empty());
@@ -790,7 +790,7 @@ mod tests {
 
     #[test]
     fn only_validated_fully_qualified_candidate_has_planner_projection() {
-        let qualified = validate_candidate_envelope(&envelope()).unwrap();
+        let qualified = validate_candidate_envelope(&envelope(), A).unwrap();
         let projection = qualified.qualified_projection().unwrap();
         assert_eq!(projection.candidate_id, "candidate-01");
         assert_eq!(projection.covered_target_ids.len(), 2);
