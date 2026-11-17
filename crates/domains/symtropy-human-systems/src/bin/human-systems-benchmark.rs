@@ -10,7 +10,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::env;
 use std::error::Error;
-use std::io::{self, BufRead, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufWriter, Write};
 use std::process::{Command, Stdio};
 
 use symtropy_human_systems::intervention::{
@@ -21,7 +21,7 @@ use symtropy_human_systems::observation::{
     ScorerEventTruth,
 };
 use symtropy_human_systems::sampling_rate::{
-    canonical_rate_profiles, sample_ideal_lowpass, SamplingRegime, FIXTURE_DURATION_SECONDS,
+    canonical_rate_profiles, sample_ideal_lowpass, FIXTURE_DURATION_SECONDS,
 };
 
 const WIRE_MAGIC: &str = "HUMAN-ESTIMATOR-V1";
@@ -393,7 +393,7 @@ fn candidate_main() -> io::Result<()> {
             return Err(invalid_data("unknown observation quantity"));
         }
 
-        let sensor_timestamp = parse_finite(fields[5])?;
+        let _sensor_timestamp = parse_finite(fields[5])?;
         let available_at = parse_finite(fields[6])?;
         if available_at < last_available_at || available_at < 0.0 {
             return Err(invalid_data("events must be ordered by non-negative availability time"));
