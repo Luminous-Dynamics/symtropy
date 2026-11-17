@@ -295,6 +295,21 @@ pub enum NetworkError {
 impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidTopologyEventTime => {
+                write!(f, "topology event times must be finite, strictly increasing and inside the horizon")
+            }
+            Self::TopologyEventNotGridAligned => {
+                write!(f, "topology event time must align with the communication grid")
+            }
+            Self::InvalidAdaptiveConfig => {
+                write!(f, "adaptive network step/tolerance configuration is invalid")
+            }
+            Self::AdaptiveStepUnderflow => {
+                write!(f, "adaptive network reached its minimum step without an acceptable step")
+            }
+            Self::AdaptiveAttemptLimitReached => {
+                write!(f, "adaptive network exceeded its attempt limit")
+            }
             Self::InvalidNodeCount => write!(
                 f,
                 "network needs at least two nodes and matching initial states"
