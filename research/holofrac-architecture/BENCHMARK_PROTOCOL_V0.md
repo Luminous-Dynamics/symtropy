@@ -294,7 +294,20 @@ Primary comparative measures should include time to first feasible candidate, de
 - IFC 4.3 / ISO 16739 and buildingSMART IDS: https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/ and https://www.buildingsmart.org/standards/bsi-standards/information-delivery-specification-ids/
 - ASHRAE Standard 140 resources: https://data.ashrae.org/standard140/index.html
 - BOPTEST building-operations benchmark: https://ibpsa.github.io/project1-boptest/
-- GHRR DATE 2026 paper: https://doi.org/10.23919/DATE69613.2026.11539261
+- Yeung, Zou & Imani (2024), *Generalized Holographic Reduced Representations*: non-commutative matrix binding, compositional decoding and capacity baselines: https://arxiv.org/abs/2405.09689
+- Chung et al. (arXiv version 12 November 2026; ISLPED '26), *Vector-Space Projection and Unified Complex-Valued Acceleration for Scaling Matrix-Based Brain-Inspired Representations*: GHRR flattening equivalence and an ASIC/software comparison. The paper's flattened effective dimension is D*m^2; its RTX 3060 Ti sequence experiment, RTX 4090 PyTorch comparison and 28 nm ASIC results must be reported as distinct experimental settings: https://arxiv.org/abs/2611.16363 and https://doi.org/10.1145/3816440.3818598
+- Chung et al., DATE 2026 GHRR accelerator paper: https://doi.org/10.23919/DATE69613.2026.11539261
+
+### Required GHRR comparison contract
+
+A nominal hyperdimension D is not a fair comparison between FHRR and matrix-valued GHRR. For every GHRR run record:
+- matrix block count D and matrix width m;
+- effective flattened dimension D*m^2;
+- complex precision, component layout and actual encoded bytes;
+- arithmetic operations, memory traffic, binding/unbinding work and normalization;
+- whether the result is matrix-native, software-flattened or hardware-accelerated.
+
+Compare at least matrix-native GHRR, flattened GHRR and current FHRR/bipolar baselines under both matched effective-dimension and matched-byte budgets. Report the trade-off rather than selecting whichever normalization favours one method. Test sequence order, reversed edges, nested trees, graph depth, decoding accuracy, capacity under superposition, noise/corruption tolerance, bind/unbind error, query latency, throughput, peak memory and energy. Do not import ASIC throughput or energy figures as expected software performance.
 
 ## 10. First implementation sequence
 
