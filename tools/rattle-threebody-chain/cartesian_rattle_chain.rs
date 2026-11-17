@@ -1061,3 +1061,8 @@ fn main() {
         );
     }
 }
+
+
+#[cfg(test)]
+#[path = "dense_coordinate_covariance.rs"]
+mod dense_coordinate_covariance;
