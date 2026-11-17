@@ -745,7 +745,7 @@ mod tests {
             target: FaultTarget::DiagnosticSystem {
                 system_id: "interferometer".to_owned(),
             },
-            mode: FaultMode::Degraded,
+            mode: FaultMode::GainDrift,
             start_time_ns: 30,
             end_time_ns: 60,
         });
