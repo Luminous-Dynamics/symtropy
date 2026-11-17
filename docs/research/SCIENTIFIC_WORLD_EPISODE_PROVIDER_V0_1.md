@@ -289,7 +289,7 @@ Implemented checks:
 
 The isolated crate has no third-party dependencies and currently contains 17 authored unit tests. A focused GitHub Actions workflow has been added. **No Rust compiler, test, Clippy or CI result is claimed yet**; the current environment has no Rust toolchain, and authored tests are not passing evidence until an exact-head run executes.
 
-The typed semantic checker complements the public JSON Schema; it is not yet a JSON decoder, JSON Schema 2020-12 implementation, authenticated ledger verifier or simulator adapter. The runner-supplied attempt count is only as trustworthy as the independent runner counter that supplies it.
+The typed semantic checker complements the public JSON Schema; it is not a JSON decoder, JSON Schema 2020-12 implementation, authenticated ledger verifier, or model executor. The runner-supplied attempt count is only as trustworthy as the independent runner counter that supplies it. A first owner-native model adapter is tracked separately below.
 
 ### First model adapter: SIM-REL-013 joint stochastic world
 
@@ -304,8 +304,9 @@ Current source topology matters:
 - The oracle implementation is in the open [SIM-REL-013 PR #3020](https://github.com/Luminous-Dynamics/symtropy/pull/3020), whose base is the separate [SIM-REL-012 research branch](https://github.com/Luminous-Dynamics/symtropy/tree/research/sim-rel-012-stateful-frontier), not `main`.
 - The one-step EIG baseline is in [PR #3022](https://github.com/Luminous-Dynamics/symtropy/pull/3022), stacked on that oracle work.
 - The biological locomotion adapter is [PR #3656](https://github.com/Luminous-Dynamics/symtropy/pull/3656); it has its own source and biological-evidence claim boundaries.
+- A first typed interactive episode adapter is now in [stacked PR #5976](https://github.com/Luminous-Dynamics/symtropy/pull/5976), targeting the SIM-REL-014 branch rather than main.
 
-Therefore this provider PR must **not** add a path dependency on unfinished non-mainline code, copy the joint oracle into a second crate, or claim the SIM-REL-013 implementation is already integrated on `main`. Once the owner chain is reviewable on a stable base, the next adapter should be a thin consumer of that exact model/profile and its replay/evaluator semantics. The new contract crate remains model-neutral.
+Therefore this provider PR must **not** add a path dependency on unfinished non-mainline code, copy the joint oracle into a second crate, or claim the SIM-REL-013 implementation is already integrated on `main`. PR #5976 is deliberately stacked on the owner branch and adds only a typed provider/view seam plus sampled-episode tests. It does not yet serialize the generic public-packet schema, implement the Symthaea JSONL process bridge, or connect a learned research policy. The generic contract crate remains model-neutral.
 
 The first confirmatory research task should be a sensor/physical-state confounding challenge, not a broad locomotion or all-physics claim. Add the richer locomotion and cross-domain biological tracks only after their source-lock, model adequacy and independent reproduction prerequisites are met.
 
