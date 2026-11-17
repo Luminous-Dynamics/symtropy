@@ -30,7 +30,9 @@ struct Measurement {
 }
 
 fn field<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a Value, String> {
-    value.get(key).ok_or_else(|| format!("{context}: missing '{key}'"))
+    value
+        .get(key)
+        .ok_or_else(|| format!("{context}: missing '{key}'"))
 }
 
 fn string<'a>(value: &'a Value, key: &str, context: &str) -> Result<&'a str, String> {
@@ -50,11 +52,15 @@ fn number(value: &Value, key: &str, context: &str) -> Result<f64, String> {
 }
 
 fn ensure_keys(value: &Value, expected: &[&str], context: &str) -> Result<(), String> {
-    let object = value.as_object().ok_or_else(|| format!("{context}: must be an object"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| format!("{context}: must be an object"))?;
     let actual: BTreeSet<&str> = object.keys().map(String::as_str).collect();
     let wanted: BTreeSet<&str> = expected.iter().copied().collect();
     if actual != wanted {
-        return Err(format!("{context}: key set differs from the frozen v0.1 contract"));
+        return Err(format!(
+            "{context}: key set differs from the frozen v0.1 contract"
+        ));
     }
     Ok(())
 }
@@ -76,10 +82,10 @@ fn valid_canonical_utc(value: &str) -> bool {
         && bytes[13] == b':'
         && bytes[16] == b':'
         && bytes[19] == b'Z'
-        && bytes.iter().enumerate().all(|(index, byte)| {
-            [4, 7, 10, 13, 16, 19].contains(&index)
-                || byte.is_ascii_digit()
-        })
+        && bytes
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| [4, 7, 10, 13, 16, 19].contains(&index) || byte.is_ascii_digit())
 }
 
 fn parse_measurement(
@@ -116,26 +122,32 @@ fn parse_measurement(
     let method_ref = string(value, "method_ref", context)?.to_owned();
     let raw_record_digest = string(value, "raw_record_digest", context)?.to_owned();
     let validity = string(value, "validity", context)?;
-    let time_window_start_utc =
-        string(value, "time_window_start_utc", context)?.to_owned();
-    let time_window_end_utc =
-        string(value, "time_window_end_utc", context)?.to_owned();
+    let time_window_start_utc = string(value, "time_window_start_utc", context)?.to_owned();
+    let time_window_end_utc = string(value, "time_window_end_utc", context)?.to_owned();
 
     if channel_id.trim().is_empty()
         || instrument_id.trim().is_empty()
         || calibration_ref.trim().is_empty()
         || method_ref.trim().is_empty()
     {
-        return Err(format!("{context}: channel/instrument/calibration/method identity is empty"));
+        return Err(format!(
+            "{context}: channel/instrument/calibration/method identity is empty"
+        ));
     }
     if measurement_value < 0.0 || standard_uncertainty < 0.0 {
-        return Err(format!("{context}: negative value or uncertainty is invalid"));
+        return Err(format!(
+            "{context}: negative value or uncertainty is invalid"
+        ));
     }
     if validity != "valid" {
-        return Err(format!("{context}: measurement validity is '{validity}', not 'valid'"));
+        return Err(format!(
+            "{context}: measurement validity is '{validity}', not 'valid'"
+        ));
     }
     if !valid_digest(&raw_record_digest) {
-        return Err(format!("{context}: raw_record_digest must be 64 hexadecimal characters"));
+        return Err(format!(
+            "{context}: raw_record_digest must be 64 hexadecimal characters"
+        ));
     }
     if !valid_canonical_utc(&time_window_start_utc)
         || !valid_canonical_utc(&time_window_end_utc)
@@ -170,7 +182,10 @@ fn expect_measurement<'a>(
         .get(key)
         .ok_or_else(|| format!("{context}: missing parsed measurement '{key}'"))?;
     if measurement.unit != unit {
-        return Err(format!("{context}: {key} unit '{}' != '{unit}'", measurement.unit));
+        return Err(format!(
+            "{context}: {key} unit '{}' != '{unit}'",
+            measurement.unit
+        ));
     }
     Ok(measurement)
 }
@@ -216,8 +231,14 @@ fn read_energy(run: Option<&Value>, context: &str) -> Option<f64> {
 }
 
 fn empty_block_from_input(block: &Value, block_id: &str, disposition: &str) -> Value {
-    let control_energy = read_energy(block.get("control").filter(|value| !value.is_null()), "control.energy");
-    let treatment_energy = read_energy(block.get("treatment").filter(|value| !value.is_null()), "treatment.energy");
+    let control_energy = read_energy(
+        block.get("control").filter(|value| !value.is_null()),
+        "control.energy",
+    );
+    let treatment_energy = read_energy(
+        block.get("treatment").filter(|value| !value.is_null()),
+        "treatment.energy",
+    );
     empty_block(block_id, disposition, control_energy, treatment_energy)
 }
 
@@ -281,7 +302,11 @@ fn count_duplicate_raw_record_blocks(blocks: &[Value]) -> BTreeSet<String> {
 fn count_duplicate_allocations(blocks: &[Value]) -> Result<BTreeSet<String>, String> {
     let mut counts = BTreeMap::<String, usize>::new();
     for (index, block) in blocks.iter().enumerate() {
-        let id = string(block, "recovered_allocation_id", &format!("blocks[{index}]"))?;
+        let id = string(
+            block,
+            "recovered_allocation_id",
+            &format!("blocks[{index}]"),
+        )?;
         if id.trim().is_empty() {
             return Err(format!("blocks[{index}]: recovered_allocation_id is empty"));
         }
@@ -303,19 +328,35 @@ fn eval_block(
     let context = format!("block {block_id}");
     let allocation_id = string(block, "recovered_allocation_id", &context)?;
     if duplicate_allocations.contains(allocation_id) {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_duplicate_recovered_allocation"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_duplicate_recovered_allocation",
+        ));
     }
     if duplicate_raw_record_blocks.contains(block_id) {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_duplicate_raw_record_across_blocks"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_duplicate_raw_record_across_blocks",
+        ));
     }
 
     let control_value = field(block, "control", &context)?;
     if control_value.is_null() {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_missing_control"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_missing_control",
+        ));
     }
     let treatment_value = field(block, "treatment", &context)?;
     if treatment_value.is_null() {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_missing_treatment"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_missing_treatment",
+        ));
     }
     let control = control_value;
     let treatment = treatment_value;
@@ -323,23 +364,42 @@ fn eval_block(
     if string(control, "arm_id", &context)? != "CONTROL-MAINS"
         || string(treatment, "arm_id", &context)? != "TREATMENT-RECOVERED"
     {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_arm_identity"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_arm_identity",
+        ));
     }
     let use_profile = string(case, "use_profile_id", "case")?;
     let source_profile = string(case, "source_profile_id", "case")?;
     if string(control, "use_profile_id", &context)? != use_profile
         || string(treatment, "use_profile_id", &context)? != use_profile
     {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_use_profile_mismatch"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_use_profile_mismatch",
+        ));
     }
     if string(treatment, "source_profile_id", &context)? != source_profile {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_source_profile_mismatch"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_source_profile_mismatch",
+        ));
     }
 
     let control_run = string(control, "run_id", &context)?;
     let treatment_run = string(treatment, "run_id", &context)?;
-    if control_run.trim().is_empty() || treatment_run.trim().is_empty() || control_run == treatment_run {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_arm_identity"));
+    if control_run.trim().is_empty()
+        || treatment_run.trim().is_empty()
+        || control_run == treatment_run
+    {
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_arm_identity",
+        ));
     }
 
     let control_digest = string(control, "demand_trace_digest", &context)?;
@@ -350,42 +410,61 @@ fn eval_block(
         || control_digest != treatment_digest
         || control_digest != block_digest
     {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_trace_mismatch"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_demand_trace_mismatch",
+        ));
     }
 
     let control_demand = number(control, "measured_demand_l", &context)?;
     let treatment_demand = number(treatment, "measured_demand_l", &context)?;
     if control_demand < 0.0 || treatment_demand < 0.0 {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_not_comparable"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_demand_not_comparable",
+        ));
     }
     let demand_denominator = control_demand.max(treatment_demand).max(1.0);
     let demand_difference_percent =
         (control_demand - treatment_demand).abs() / demand_denominator * 100.0;
     let maximum_difference = number(case, "max_demand_relative_difference_percent", "case")?;
     if demand_difference_percent > maximum_difference {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_demand_not_comparable"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_demand_not_comparable",
+        ));
     }
 
     let control_start = string(control, "start_utc", &context)?;
     let control_end = string(control, "end_utc", &context)?;
     let treatment_start = string(treatment, "start_utc", &context)?;
     let treatment_end = string(treatment, "end_utc", &context)?;
-    if ![
-        control_start,
-        control_end,
-        treatment_start,
-        treatment_end,
-    ]
-    .into_iter()
-    .all(valid_canonical_utc)
+    if ![control_start, control_end, treatment_start, treatment_end]
+        .into_iter()
+        .all(valid_canonical_utc)
     {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_timebase"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_invalid_timebase",
+        ));
     }
     if control_start >= control_end || treatment_start >= treatment_end {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_timebase"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_invalid_timebase",
+        ));
     }
     if !(control_end <= treatment_start || treatment_end <= control_start) {
-        return Ok(empty_block_from_input(block, block_id, "indeterminate_overlapping_windows"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_overlapping_windows",
+        ));
     }
 
     let service = field(case, "service_envelope", "case")?;
@@ -401,13 +480,18 @@ fn eval_block(
         let pressure_max = number(run, "service_pressure_max_kpa", &context)?;
         let flow_min = number(run, "service_flow_min_lpm", &context)?;
         let flow_max = number(run, "service_flow_max_lpm", &context)?;
-        if pressure_min > pressure_max || flow_min > flow_max
+        if pressure_min > pressure_max
+            || flow_min > flow_max
             || pressure_min < min_pressure
             || pressure_max > max_pressure
             || flow_min < min_flow
             || flow_max > max_flow
         {
-            return Ok(empty_block_from_input(block, block_id, "zero_credit_service_envelope_violation"));
+            return Ok(empty_block_from_input(
+                block,
+                block_id,
+                "zero_credit_service_envelope_violation",
+            ));
         }
     }
 
@@ -417,12 +501,28 @@ fn eval_block(
         || string(quality, "profile_id", &context)? != use_profile
         || string(quality, "source_profile_id", &context)? != source_profile
         || quality.get("independent_review").and_then(Value::as_bool) != Some(true)
-        || quality.get("release_ref").and_then(Value::as_str).is_none_or(str::is_empty)
-        || quality.get("method_revision_ref").and_then(Value::as_str).is_none_or(str::is_empty)
-        || quality.get("independent_reviewer_ref").and_then(Value::as_str).is_none_or(str::is_empty)
-        || quality.get("sample_set_digest").and_then(Value::as_str).is_none_or(|value| !valid_digest(value))
+        || quality
+            .get("release_ref")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        || quality
+            .get("method_revision_ref")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        || quality
+            .get("independent_reviewer_ref")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+        || quality
+            .get("sample_set_digest")
+            .and_then(Value::as_str)
+            .is_none_or(|value| !valid_digest(value))
     {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_quality_not_released_for_profile"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_quality_not_released_for_profile",
+        ));
     }
 
     let treatment_start = string(treatment, "start_utc", &context)?;
@@ -445,7 +545,11 @@ fn eval_block(
     let raw_measurements = [
         ("control_mains_fixture", control, "mains_fixture"),
         ("control_energy", control, "energy"),
-        ("quality_qualified_delivery", treatment, "quality_qualified_delivery"),
+        (
+            "quality_qualified_delivery",
+            treatment,
+            "quality_qualified_delivery",
+        ),
         ("recovered_fixture_use", treatment, "recovered_fixture_use"),
         ("mains_fallback", treatment, "mains_fallback"),
         ("gross_product", treatment, "gross_product"),
@@ -459,21 +563,17 @@ fn eval_block(
         let raw = field(run, field_name, &context)?;
         let run_start = string(run, "start_utc", &context)?;
         let run_end = string(run, "end_utc", &context)?;
-        let parsed = match parse_measurement(
-            raw,
-            &format!("{context}.{field_name}"),
-            run_start,
-            run_end,
-        ) {
-            Ok(measurement) => measurement,
-            Err(_) => {
-                return Ok(empty_block_from_input(
-                    block,
-                    block_id,
-                    "indeterminate_invalid_measurement_evidence",
-                ));
-            }
-        };
+        let parsed =
+            match parse_measurement(raw, &format!("{context}.{field_name}"), run_start, run_end) {
+                Ok(measurement) => measurement,
+                Err(_) => {
+                    return Ok(empty_block_from_input(
+                        block,
+                        block_id,
+                        "indeterminate_invalid_measurement_evidence",
+                    ));
+                }
+            };
         measurements.insert(key.to_owned(), parsed);
     }
 
@@ -491,13 +591,20 @@ fn eval_block(
     ];
     for (key, unit) in expected_units {
         if expect_measurement(&measurements, key, unit, &context).is_err() {
-            return Ok(empty_block_from_input(block, block_id, "indeterminate_invalid_measurement_evidence"));
+            return Ok(empty_block_from_input(
+                block,
+                block_id,
+                "indeterminate_invalid_measurement_evidence",
+            ));
         }
     }
 
     let expected_boundaries = [
         ("control_mains_fixture", "declared_fixture_inlet"),
-        ("control_energy", "whole_treatment_pump_train_electrical_boundary"),
+        (
+            "control_energy",
+            "whole_treatment_pump_train_electrical_boundary",
+        ),
         ("quality_qualified_delivery", "treatment_product_outlet"),
         ("recovered_fixture_use", "declared_fixture_inlet"),
         ("mains_fallback", "declared_fixture_inlet"),
@@ -505,12 +612,21 @@ fn eval_block(
         ("reject", "treatment_reject_outlet"),
         ("purge", "purge_backwash_outlet"),
         ("overflow", "storage_overflow_drain"),
-        ("treatment_energy", "whole_treatment_pump_train_electrical_boundary"),
+        (
+            "treatment_energy",
+            "whole_treatment_pump_train_electrical_boundary",
+        ),
     ];
     if expected_boundaries.iter().any(|(key, boundary)| {
-        measurements.get(*key).is_none_or(|measurement| measurement.boundary != *boundary)
+        measurements
+            .get(*key)
+            .is_none_or(|measurement| measurement.boundary != *boundary)
     }) {
-        return Ok(empty_block_from_input(block, block_id, "zero_credit_service_boundary_mismatch"));
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "zero_credit_service_boundary_mismatch",
+        ));
     }
 
     let instrument_ids: BTreeSet<String> = measurements
@@ -536,9 +652,15 @@ fn eval_block(
         ));
     }
 
-    let control_mains = measurements.get("control_mains_fixture").expect("parsed above");
-    let quality_delivery = measurements.get("quality_qualified_delivery").expect("parsed above");
-    let recovered_use = measurements.get("recovered_fixture_use").expect("parsed above");
+    let control_mains = measurements
+        .get("control_mains_fixture")
+        .expect("parsed above");
+    let quality_delivery = measurements
+        .get("quality_qualified_delivery")
+        .expect("parsed above");
+    let recovered_use = measurements
+        .get("recovered_fixture_use")
+        .expect("parsed above");
     let mains_fallback = measurements.get("mains_fallback").expect("parsed above");
     let treatment_energy = measurements.get("treatment_energy").expect("parsed above");
 
@@ -565,16 +687,16 @@ fn eval_block(
     if expansion_factor <= 0.0 {
         return Err("case: uncertainty_expansion_factor must be positive".to_owned());
     }
-    let quality_lower =
-        (quality_delivery.value - expansion_factor * quality_delivery.standard_uncertainty).max(0.0);
+    let quality_lower = (quality_delivery.value
+        - expansion_factor * quality_delivery.standard_uncertainty)
+        .max(0.0);
     let use_lower =
         (recovered_use.value - expansion_factor * recovered_use.standard_uncertainty).max(0.0);
     // Conservative bound for a difference: add standard uncertainties; do not
     // assume independent calibration errors or a covariance model.
     let demand_ratio = treatment_demand / control_demand;
     let displacement_uncertainty =
-        control_mains.standard_uncertainty * demand_ratio
-            + mains_fallback.standard_uncertainty;
+        control_mains.standard_uncertainty * demand_ratio + mains_fallback.standard_uncertainty;
     let displacement_lower =
         (matched_control_displacement - expansion_factor * displacement_uncertainty).max(0.0);
     let lower_credit = quality_lower.min(use_lower).min(displacement_lower);
@@ -588,7 +710,10 @@ fn eval_block(
     } else {
         "credited"
     };
-    let control_energy = measurements.get("control_energy").expect("parsed above").value;
+    let control_energy = measurements
+        .get("control_energy")
+        .expect("parsed above")
+        .value;
     let treatment_energy = treatment_energy.value;
     let net_energy_delta = treatment_energy - control_energy;
     Ok(json!({
@@ -674,7 +799,11 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         .sum();
     let lower_credit: f64 = outputs
         .iter()
-        .map(|block| block["uncertainty_screened_lower_credit_l"].as_f64().unwrap_or(0.0))
+        .map(|block| {
+            block["uncertainty_screened_lower_credit_l"]
+                .as_f64()
+                .unwrap_or(0.0)
+        })
         .sum();
     let energy: f64 = outputs
         .iter()
@@ -709,7 +838,9 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
         let disposition = block["disposition"]
             .as_str()
             .ok_or_else(|| format!("{case_id}: output disposition missing"))?;
-        *disposition_counts.entry(disposition.to_owned()).or_default() += 1;
+        *disposition_counts
+            .entry(disposition.to_owned())
+            .or_default() += 1;
     }
     let energy_intensity = (lower_credit > 0.0).then_some(energy / lower_credit * 1000.0);
 
@@ -750,7 +881,11 @@ fn evaluate_all(input: &Value, input_schema: &Value, oracle: &Value) -> Result<V
     }
     let schema_properties = field(input_schema, "properties", "input schema")?;
     if string(
-        field(schema_properties, "schema_version", "input schema properties")?,
+        field(
+            schema_properties,
+            "schema_version",
+            "input schema properties",
+        )?,
         "const",
         "input schema properties.schema_version",
     )? != INPUT_VERSION
@@ -787,7 +922,9 @@ fn evaluate_all(input: &Value, input_schema: &Value, oracle: &Value) -> Result<V
         .as_array()
         .ok_or_else(|| "oracle.cases must be an array".to_owned())?;
     if cases.len() != CASE_COUNT || expected_cases.len() != CASE_COUNT {
-        return Err(format!("exactly {CASE_COUNT} input and oracle cases are required"));
+        return Err(format!(
+            "exactly {CASE_COUNT} input and oracle cases are required"
+        ));
     }
     let mut expected_by_id = BTreeMap::new();
     for expected in expected_cases {
@@ -874,8 +1011,8 @@ fn run(args: &[String]) -> Result<(), String> {
     let lock_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.lock");
     let manifest_bytes = fs::read(&manifest_path)
         .map_err(|error| format!("read {}: {error}", manifest_path.display()))?;
-    let lock_bytes = fs::read(&lock_path)
-        .map_err(|error| format!("read {}: {error}", lock_path.display()))?;
+    let lock_bytes =
+        fs::read(&lock_path).map_err(|error| format!("read {}: {error}", lock_path.display()))?;
     let implementation = include_bytes!("waterloop-matched-service-t1.rs");
 
     let receipt = json!({
@@ -910,8 +1047,7 @@ fn run(args: &[String]) -> Result<(), String> {
     if let Some(parent) = output.parent()
         && !parent.as_os_str().is_empty()
     {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("create receipt directory: {error}"))?;
+        fs::create_dir_all(parent).map_err(|error| format!("create receipt directory: {error}"))?;
     }
     fs::write(
         output,
@@ -1034,8 +1170,14 @@ mod tests {
     fn fallback_mains_reduces_displacement_credit() {
         let (input, _, _) = fixture();
         let output = evaluate_case(&input["cases"][5]).unwrap();
-        assert_eq!(output["block_dispositions"][0]["matched_control_mains_normalized_l"], 100.0);
-        assert_eq!(output["block_dispositions"][0]["matched_control_displacement_l"], 60.0);
+        assert_eq!(
+            output["block_dispositions"][0]["matched_control_mains_normalized_l"],
+            100.0
+        );
+        assert_eq!(
+            output["block_dispositions"][0]["matched_control_displacement_l"],
+            60.0
+        );
         assert_eq!(output["block_dispositions"][0]["point_credit_l"], 60.0);
     }
 
@@ -1141,7 +1283,10 @@ mod tests {
         assert_eq!(output["block_dispositions"][0]["point_credit_l"], 0.0);
         assert_eq!(output["block_dispositions"][0]["energy_kwh"], 0.025);
         assert_eq!(output["block_dispositions"][0]["control_energy_kwh"], 0.01);
-        assert_eq!(output["block_dispositions"][0]["net_energy_delta_kwh"], 0.015);
+        assert_eq!(
+            output["block_dispositions"][0]["net_energy_delta_kwh"],
+            0.015
+        );
     }
 
     #[test]
@@ -1182,9 +1327,11 @@ mod tests {
     fn duplicate_block_ids_are_rejected() {
         let (mut input, _, _) = fixture();
         input["cases"][0]["blocks"][1]["block_id"] = json!("B1");
-        assert!(evaluate_case(&input["cases"][0])
-            .unwrap_err()
-            .contains("duplicate block_id"));
+        assert!(
+            evaluate_case(&input["cases"][0])
+                .unwrap_err()
+                .contains("duplicate block_id")
+        );
     }
 
     #[test]
@@ -1192,8 +1339,10 @@ mod tests {
         let (mut input, _, _) = fixture();
         input["cases"][0]["blocks"][1]["control"]["run_id"] =
             input["cases"][0]["blocks"][0]["control"]["run_id"].clone();
-        assert!(evaluate_case(&input["cases"][0])
-            .unwrap_err()
-            .contains("duplicate run_id"));
+        assert!(
+            evaluate_case(&input["cases"][0])
+                .unwrap_err()
+                .contains("duplicate run_id")
+        );
     }
 }
