@@ -550,15 +550,6 @@ fn evaluate_all(input: &Value, input_schema: &Value, oracle: &Value) -> Result<V
     {
         return Err("input schema version constant mismatch".to_owned());
     }
-    if string(
-        field(input, "frozen_plan_blob_sha", "input")?,
-        "frozen_plan_blob_sha",
-        "input",
-    )
-    .is_err()
-    {
-        return Err("input frozen plan blob identity is invalid".to_owned());
-    }
     let plan_blob = string(input, "frozen_plan_blob_sha", "input")?;
     if plan_blob != EXPECTED_PLAN_BLOB_SHA {
         return Err("input frozen plan blob differs from the reviewed design-only plan".to_owned());
@@ -660,7 +651,7 @@ fn run(args: &[String]) -> Result<(), String> {
     let (schema_bytes, schema) = read_json(&args[1])?;
     let (oracle_bytes, oracle) = read_json(&args[2])?;
     let plan_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../research/water-service-engineering/waterloop-matched-service-plan.v0.1.json");
+        .join("../../research/water-service-engineering/waterloop-matched-service-plan.v0.1.json");
     let plan_bytes = fs::read(&plan_path)
         .map_err(|error| format!("read frozen design plan '{}': {error}", plan_path.display()))?;
     let result = evaluate_all(&input, &schema, &oracle)?;
