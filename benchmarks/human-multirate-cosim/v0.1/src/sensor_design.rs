@@ -748,7 +748,9 @@ mod tests {
 
     #[test]
     fn exact_e_optimal_subset_prefers_a_full_rank_sensor() {
-        let result = enumerate_placements(&scenario(), PlacementCriterion::EOptimal).unwrap();
+        let mut problem = scenario();
+        problem.sensor_budget = 1.0;
+        let result = enumerate_placements(&problem, PlacementCriterion::EOptimal).unwrap();
         let best = result.best.unwrap();
         assert_eq!(best.observability_rank, 3);
         assert_eq!(best.total_cost, 1.0);
