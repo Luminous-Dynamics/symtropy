@@ -714,7 +714,26 @@
               "violated_spec_count": {
                 "minimum": 1
               }
-            }
+            },
+            "anyOf": [
+              {
+                "properties": {
+                  "violated_spec_count": {
+                    "minimum": 1
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "hazard_triggered": {
+                    "const": true
+                  },
+                  "safe_stop_success": {
+                    "const": false
+                  }
+                }
+              }
+            ]
           }
         },
         {
