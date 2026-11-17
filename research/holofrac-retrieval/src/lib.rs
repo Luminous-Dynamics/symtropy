@@ -1413,6 +1413,10 @@ mod tests {
                 > low_reuse.factorized_role_slot_bytes_saved
         );
         assert!(
+            high_reuse.factorized_role_index_net_bytes_saved
+                > low_reuse.factorized_role_index_net_bytes_saved
+        );
+        assert!(
             high_reuse.factorized_role_slot_payload_bytes
                 < high_reuse.duplicated_role_slot_payload_bytes
         );
@@ -1445,6 +1449,21 @@ mod tests {
         assert_eq!(
             report.retained_payload_and_slot_refs_bytes_estimate,
             report.retained_vector_payload_bytes_estimate + report.slot_reference_bytes_estimate
+        );
+        assert_eq!(
+            report.role_postings_fact_id_bytes_estimate,
+            facts * 5 * std::mem::size_of::<usize>()
+        );
+        assert_eq!(
+            report.role_postings_header_bytes_estimate,
+            report.unique_role_codebook_entries * std::mem::size_of::<Vec<usize>>()
+        );
+        assert_eq!(
+            report.retained_payload_and_all_index_refs_bytes_estimate,
+            report.retained_vector_payload_bytes_estimate
+                + report.slot_reference_bytes_estimate
+                + report.role_postings_fact_id_bytes_estimate
+                + report.role_postings_header_bytes_estimate
         );
         let encoder = HoloFracEncoder::new(spec(dimension, 43)).unwrap();
         let (index, _) = SpatialIndex::build(&graph, &encoder).unwrap();
