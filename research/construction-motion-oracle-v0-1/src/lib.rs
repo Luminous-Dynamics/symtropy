@@ -8,7 +8,7 @@ pub mod field_layout_acceptance;
 pub mod ifc_ids_preflight;
 pub use ifc_ids_preflight::{
     IfcIdsPreflightError, IfcIdsPreflightReport, IfcIdsWorkPackageInput, IfcSourceEntity,
-    SourceEntityBinding, preflight_ifc_ids_work_package,
+    IdsRequirementEvaluation, SourceEntityBinding, preflight_ifc_ids_work_package,
 };
 pub mod site_state_ledger;
 pub use site_state_ledger::{
