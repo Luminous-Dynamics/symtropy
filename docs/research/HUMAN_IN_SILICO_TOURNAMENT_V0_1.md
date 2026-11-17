@@ -113,7 +113,7 @@ Every adapter must pin exact release/commit, license, equations, parameter defau
 
 ## Synthetic challenge catalogue
 
-The companion [scenarios.json](../../benchmarks/human-systems/v0.1/scenarios.json) defines 15 synthetic scenario families:
+The companion [scenarios.json](../../benchmarks/human-systems/v0.1/scenarios.json) defines 16 synthetic scenario families:
 
 | ID | Scenario | Primary falsification target |
 |---|---|---|
@@ -132,6 +132,7 @@ The companion [scenarios.json](../../benchmarks/human-systems/v0.1/scenarios.jso
 | SYN-013 | Assignment/delivery/exposure mismatch | Attributing effects to undelivered actions |
 | SYN-014 | Coupling semantic corruption | Wrong units, sign, direction or double-counted flux |
 | SYN-015 | Out-of-domain input | Silent extrapolation beyond declared validity |
+| SYN-016 | Observed environmental forcing with synthetic response | Treating real weather inputs as human response validation |
 
 Use separate truth generators and candidate models to reduce inverse-crime risk. Use analytic known-answer cases and structurally distinct model families for cross-model claims. Keep seeds, model discrepancy and scorer truth outside candidate-visible inputs.
 
