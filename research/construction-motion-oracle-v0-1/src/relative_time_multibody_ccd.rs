@@ -149,6 +149,7 @@ pub enum RelativeTimeMultiBodyError {
     EmptyTargetIdentity,
     PairCountOverflow,
     PairBudgetExceeded,
+    CandidateIdentityMismatch,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -786,10 +787,10 @@ pub fn evaluate_relative_time_multibody_ccd_with_broadphase(
     if let Some(report) = output.broadphase.as_ref() {
         for candidate in &report.pairs {
             let Some(first) = mapped_by_id.get(candidate.first_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
+                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
             };
             let Some(second) = mapped_by_id.get(candidate.second_body_id.as_str()).copied() else {
-                return Err(RelativeTimeBroadphaseError::PairBudgetExceeded);
+                return Err(RelativeTimeBroadphaseError::CandidateIdentityMismatch);
             };
             let pairwise = evaluate_pair(&first.mapped, &second.mapped);
             let unresolved_reason =
