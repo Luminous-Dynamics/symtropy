@@ -50,7 +50,7 @@ jobs:
             and .schema_version == "0.1.0"
             and .evidence_class == "synthetic_fixture"
             and (.profiles | length) == 4
-            and (.negative_controls | length) == 15
+            and (.negative_controls | length) == 18
             and ([.profiles[].profile_id] | unique | length) == 4
             and ([.negative_controls[].case_id] | unique | length) == 15
             and all(.profiles[];
