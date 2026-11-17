@@ -652,7 +652,9 @@ pub fn certify_interval_constraint_basis_covariance<const N: usize, const K: usi
     )
     .is_none()
     {
-        return Err(ConstraintBasisErrorV1::CorrectionResidualNormIdentityNotEnclosed { transformed: true });
+        return Err(
+            ConstraintBasisErrorV1::CorrectionResidualNormIdentityNotEnclosed { transformed: true },
+        );
     }
 
     // Check J delta_v = r in both constraint representations.
