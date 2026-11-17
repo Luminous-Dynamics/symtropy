@@ -91,7 +91,7 @@ Do not collapse these into one opaque leaderboard score. Report a Pareto frontie
 | Capability | Relevant comparator | What we must match before claiming improvement |
 |---|---|---|
 | Adaptive stationary-metric shadow inference | Liu et al., PRD 114 (2026), DOI 10.1103/66x9-zj16 | Accuracy, scaling, posterior calibration, nuisance handling |
-| Calibration-robust M87* morphology | Lai et al., Nature 659 (2026), DOI 10.1038/s41586-026-11241-9 | Closure-invariant likelihood and uncertainty propagation |
+| Calibration-robust M87* morphology | Lai et al., Nature 659 (2026), DOI 10.1038/s41586-026-11241-9 | Closure-invariant likelihood, joint covariance, nuisance uncertainty, and direct forward-model comparison |
 | Kerr ray tracing | AART | Matched geodesics, lens maps, performance and convergence |
 | Perturbations / self-force | BHPT Toolkit | Teukolsky, MST, QNM and flux reference fixtures |
 | Numerical relativity | SXS / SpEC, Einstein Toolkit, SpECTRE | Matched initial data, convergence and waveform error |
@@ -106,13 +106,15 @@ Comparisons must be capability-specific. No single package is the baseline for e
 
 Protocol:
 1. Freeze candidate actions, parameter priors, matter/radiation model and instrument likelihood before unsealing the evaluation data.
-2. Use closure invariants / robust closure quantities where available; document exactly which observables are calibration-independent and which nuisance effects remain.
-3. Generate matched synthetic datasets from each candidate plus out-of-family controls.
-4. Measure injection recovery, parameter bias, interval coverage, false selection and abstention.
-5. Evaluate held-out epochs or sources without retuning.
-6. Publish likelihood code, synthetic truth, digests and a machine-readable result capsule.
+2. Use closure invariants / robust closure quantities where available. The research reference in [closure_invariants.rs](reference/closure_invariants.rs) implements the scalar co-polar reference-pinned advariant and common L2 normalization; independently verify it against the authors' implementation and real EHT data before using it in inference.
+3. For theory comparison, generate predicted visibilities from ray-traced emission models and evaluate the measured closure-invariant likelihood directly. Do not insert a diffusion-model image prior into the gravity likelihood.
+4. Carry the joint covariance of normalized advariants and reference-station choices. A diagonal chi-square over all normalized components is not automatically valid.
+5. Generate matched synthetic datasets from each candidate plus out-of-family controls.
+6. Measure injection recovery, parameter bias, interval coverage, false selection and abstention.
+7. Evaluate held-out epochs or sources without retuning.
+8. Publish likelihood code, synthetic truth, digests and a machine-readable result capsule.
 
-**No model wins by matching the 42.2 microarcsecond ring diameter alone.** That observable constrains a combination of mass, distance, spin, inclination, emission and gravity assumptions; it does not uniquely identify a theory.
+**No model wins by matching the 42.2 ± 1.5 microarcsecond ring diameter alone.** Lai et al. (published 11 November 2026) report an independent closure-invariant reconstruction from public 2017, 2018 and 2021 EHT epochs; their nominal 6.5 ± 0.5 billion-solar-mass estimate depends on the adopted scaling calibration. The paper explicitly notes that near-unity closure-invariant reduced chi-square establishes self-consistency with measured invariants but does not prove the recovered morphology is absolutely correct. Their GenDIReCT reconstruction also uses a learned generative image prior. Our theory test should therefore forward-model the sky brightness for each candidate spacetime and compare the predicted visibilities/closure invariants directly with data, marginalizing emission and instrument nuisance parameters, rather than scoring a reconstructed image as if it were a direct measurement. Closure invariants remove selected station-based calibration degrees of freedom and absolute position/flux-scale information; they do not remove plasma, source-variability, finite-sampling or covariance uncertainty. The ring size by itself constrains a combination of mass, distance, spin, inclination, emission and gravity assumptions; it does not uniquely identify a theory.
 
 ## 7. Chain Theory firewall
 
@@ -129,7 +131,7 @@ Failure at any stage is a useful result. Do not map graph distance to spacetime 
 ## 8. Immediate implementation sequence
 
 1. Extend the existing static Mannheim–Kazanas reference kernel with bracketed horizon-root classification and dimensional/convention fixtures.
-2. Add independent tensor residual fixtures; do not call the metric validated until the Bach equations are evaluated independently.
+2. Cross-check the symmetry-reduced Bach residual in [BACH_REDUCTION.md](reference/BACH_REDUCTION.md) against a second independent full-tensor implementation; do not call the metric fully field-equation-qualified before this independent check.
 3. Add finite-observer optical comparisons and cross-check the analytic photon-sphere fixtures.
 4. Reproduce the published rotating Weyl horizons / ergoregions before attempting a full rotating ray tracer.
 5. Build the closure-domain synthetic inference harness only by composing existing Symtropy observation and inference infrastructure; do not create a parallel imaging stack.
