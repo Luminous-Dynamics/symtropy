@@ -1011,6 +1011,40 @@ mod tests {
     }
 
     #[test]
+    fn field_sample_and_native_observation_binding_mismatches_fail_closed() {
+        let geometry = geometry();
+        let model = model(&geometry);
+        let valid_field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
+
+        let mut wrong_estimate = valid_field.clone();
+        wrong_estimate.estimate_digest = "sha256:other-field".to_owned();
+        assert!(propagate_geometry_wrench_uncertainty(&geometry, &wrong_estimate, &model).is_err());
+
+        let mut wrong_sample = valid_field.clone();
+        wrong_sample.sample_identity = "sample:other".to_owned();
+        assert!(propagate_geometry_wrench_uncertainty(&geometry, &wrong_sample, &model).is_err());
+
+        let mut wrong_native = valid_field;
+        wrong_native.native_observation_set_digest = "sha256:other-native".to_owned();
+        assert!(propagate_geometry_wrench_uncertainty(&geometry, &wrong_native, &model).is_err());
+    }
+
+    #[test]
+    fn correlated_field_covariance_blocks_combined_independence_claim() {
+        let geometry = geometry();
+        let mut field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
+        field.covariance_structure = FieldCovarianceStructure::CorrelatedOrUnknown;
+        let report =
+            propagate_geometry_wrench_uncertainty(&geometry, &field, &model(&geometry)).unwrap();
+        assert!(!report.admissible_for_combined_wrench_uncertainty);
+        assert!(report.total_geometry_covariance_row_major.is_some());
+        assert!(report
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("traction-field covariance is correlated or unknown")));
+    }
+
+    #[test]
     fn geometry_context_and_parameter_validation_fail_closed() {
         let geometry = geometry();
         let field = field_estimate(vec![10_000.0, 1_000.0, 500.0]);
