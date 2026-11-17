@@ -13,7 +13,7 @@ const INPUT_VERSION: &str = "waterloop-matched-service-t1-input-v0.1";
 const ORACLE_VERSION: &str = "waterloop-matched-service-t1-oracle-v0.1";
 const BENCHMARK_ID: &str = "WATERLOOP-MATCHED-SERVICE-T1-EXECUTOR-001";
 const EXPECTED_PLAN_BLOB_SHA: &str = "3b64690fa02ac47b3bc430a22b1392c65583bba7";
-const CASE_COUNT: usize = 15;
+const CASE_COUNT: usize = 19;
 const MINIMUM_PAIRED_BLOCKS: usize = 6;
 
 #[derive(Clone, Debug)]
@@ -25,6 +25,8 @@ struct Measurement {
     value: f64,
     standard_uncertainty: f64,
     calibration_ref: String,
+    calibration_valid_from_utc: String,
+    calibration_valid_until_utc: String,
     method_ref: String,
     raw_record_digest: String,
 }
@@ -73,19 +75,60 @@ fn valid_digest(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn valid_canonical_utc(value: &str) -> bool {
+fn parse_canonical_utc_seconds(value: &str) -> Option<i64> {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[10] == b'T'
-        && bytes[13] == b':'
-        && bytes[16] == b':'
-        && bytes[19] == b'Z'
-        && bytes
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+        || !bytes
             .iter()
             .enumerate()
             .all(|(index, byte)| [4, 7, 10, 13, 16, 19].contains(&index) || byte.is_ascii_digit())
+    {
+        return None;
+    }
+    let year = value[0..4].parse::<i64>().ok()?;
+    let month = value[5..7].parse::<i64>().ok()?;
+    let day = value[8..10].parse::<i64>().ok()?;
+    let hour = value[11..13].parse::<i64>().ok()?;
+    let minute = value[14..16].parse::<i64>().ok()?;
+    let second = value[17..19].parse::<i64>().ok()?;
+    if !(1..=12).contains(&month) || !(0..=23).contains(&hour)
+        || !(0..=59).contains(&minute) || !(0..=59).contains(&second)
+    {
+        return None;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return None,
+    };
+    if day < 1 || day > days_in_month {
+        return None;
+    }
+    let adjusted_year = year - i64::from(month <= 2);
+    let era = if adjusted_year >= 0 {
+        adjusted_year
+    } else {
+        adjusted_year - 399
+    } / 400;
+    let year_of_era = adjusted_year - era * 400;
+    let adjusted_month = month + if month > 2 { -3 } else { 9 };
+    let day_of_year = (153 * adjusted_month + 2) / 5 + day - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+    let days = era * 146_097 + day_of_era;
+    Some(days * 86_400 + hour * 3_600 + minute * 60 + second)
+}
+
+fn valid_canonical_utc(value: &str) -> bool {
+    parse_canonical_utc_seconds(value).is_some()
 }
 
 fn parse_measurement(
@@ -104,6 +147,8 @@ fn parse_measurement(
             "value",
             "standard_uncertainty",
             "calibration_ref",
+            "calibration_valid_from_utc",
+            "calibration_valid_until_utc",
             "method_ref",
             "raw_record_digest",
             "validity",
@@ -119,6 +164,10 @@ fn parse_measurement(
     let measurement_value = number(value, "value", context)?;
     let standard_uncertainty = number(value, "standard_uncertainty", context)?;
     let calibration_ref = string(value, "calibration_ref", context)?.to_owned();
+    let calibration_valid_from_utc =
+        string(value, "calibration_valid_from_utc", context)?.to_owned();
+    let calibration_valid_until_utc =
+        string(value, "calibration_valid_until_utc", context)?.to_owned();
     let method_ref = string(value, "method_ref", context)?.to_owned();
     let raw_record_digest = string(value, "raw_record_digest", context)?.to_owned();
     let validity = string(value, "validity", context)?;
@@ -159,6 +208,16 @@ fn parse_measurement(
             "{context}: measurement time window must be valid and equal its run window"
         ));
     }
+    if !valid_canonical_utc(&calibration_valid_from_utc)
+        || !valid_canonical_utc(&calibration_valid_until_utc)
+        || calibration_valid_from_utc > run_start_utc
+        || run_end_utc > calibration_valid_until_utc
+        || calibration_valid_from_utc >= calibration_valid_until_utc
+    {
+        return Err(format!(
+            "{context}: calibration validity window does not cover the complete run"
+        ));
+    }
     Ok(Measurement {
         channel_id,
         instrument_id,
@@ -167,6 +226,8 @@ fn parse_measurement(
         value: measurement_value,
         standard_uncertainty,
         calibration_ref,
+        calibration_valid_from_utc,
+        calibration_valid_until_utc,
         method_ref,
         raw_record_digest,
     })
@@ -466,6 +527,17 @@ fn eval_block(
             "indeterminate_overlapping_windows",
         ));
     }
+    let control_duration = parse_canonical_utc_seconds(control_end).unwrap()
+        - parse_canonical_utc_seconds(control_start).unwrap();
+    let treatment_duration = parse_canonical_utc_seconds(treatment_end).unwrap()
+        - parse_canonical_utc_seconds(treatment_start).unwrap();
+    if control_duration != treatment_duration {
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_run_duration_mismatch",
+        ));
+    }
 
     let service = field(case, "service_envelope", "case")?;
     let min_pressure = number(service, "min_pressure_kpa", "service_envelope")?;
@@ -475,6 +547,7 @@ fn eval_block(
     if min_pressure > max_pressure || min_flow > max_flow {
         return Err("case: invalid service envelope bounds".to_owned());
     }
+    let mut service_ranges = Vec::with_capacity(2);
     for run in [control, treatment] {
         let pressure_min = number(run, "service_pressure_min_kpa", &context)?;
         let pressure_max = number(run, "service_pressure_max_kpa", &context)?;
@@ -493,6 +566,28 @@ fn eval_block(
                 "zero_credit_service_envelope_violation",
             ));
         }
+        service_ranges.push((pressure_min, pressure_max, flow_min, flow_max));
+    }
+    let max_pressure_difference =
+        number(case, "max_service_pressure_difference_kpa", "case")?;
+    let max_flow_difference = number(case, "max_service_flow_difference_lpm", "case")?;
+    if max_pressure_difference < 0.0 || max_flow_difference < 0.0 {
+        return Err("case: service matching tolerances must be non-negative".to_owned());
+    }
+    let (control_pressure_min, control_pressure_max, control_flow_min, control_flow_max) =
+        service_ranges[0];
+    let (treatment_pressure_min, treatment_pressure_max, treatment_flow_min, treatment_flow_max) =
+        service_ranges[1];
+    if (control_pressure_min - treatment_pressure_min).abs() > max_pressure_difference
+        || (control_pressure_max - treatment_pressure_max).abs() > max_pressure_difference
+        || (control_flow_min - treatment_flow_min).abs() > max_flow_difference
+        || (control_flow_max - treatment_flow_max).abs() > max_flow_difference
+    {
+        return Ok(empty_block_from_input(
+            block,
+            block_id,
+            "indeterminate_service_envelope_mismatch",
+        ));
     }
 
     let quality = field(treatment, "quality_release", &context)?;
@@ -566,12 +661,13 @@ fn eval_block(
         let parsed =
             match parse_measurement(raw, &format!("{context}.{field_name}"), run_start, run_end) {
                 Ok(measurement) => measurement,
-                Err(_) => {
-                    return Ok(empty_block_from_input(
-                        block,
-                        block_id,
-                        "indeterminate_invalid_measurement_evidence",
-                    ));
+                Err(error) => {
+                    let disposition = if error.contains("calibration validity window") {
+                        "indeterminate_measurement_calibration_out_of_validity_window"
+                    } else {
+                        "indeterminate_invalid_measurement_evidence"
+                    };
+                    return Ok(empty_block_from_input(block, block_id, disposition));
                 }
             };
         measurements.insert(key.to_owned(), parsed);
@@ -748,6 +844,8 @@ fn evaluate_case(case: &Value) -> Result<Value, String> {
             "use_profile_id",
             "source_profile_id",
             "max_demand_relative_difference_percent",
+            "max_service_pressure_difference_kpa",
+            "max_service_flow_difference_lpm",
             "service_envelope",
             "uncertainty_expansion_factor",
             "blocks",
