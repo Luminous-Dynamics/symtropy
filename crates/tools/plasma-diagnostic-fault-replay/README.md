@@ -30,3 +30,43 @@ The fixture does not contain plasma measurements, reconstruct diagnostic values,
 ## Fault-mode interpretation
 
 The replay engine currently maps a declared fault mode to an evidence disposition (unavailable, invalid, delayed or degraded) at selected timepoints. It does **not** synthesize corrupted waveform values, sensor noise distributions, acquisition electronics, or diagnostic reconstruction. In particular, saturation, bias and gain drift are represented as a degraded-channel state, not by numerical clipping or signal transformation. The corpus includes temporal schedules shaped around public MAST/TokaMark robustness scenarios, but remains a software fault-disposition benchmark only.
+
+## Synthetic waveform replay (S0.2)
+
+The `waveform` module adds deterministic sample-level transformations for explicit synthetic input arrays:
+
+- Dropout, integrity failure and stale calibration remove numeric values and retain unavailable/invalid states.
+- Delay references an earlier source sample; initial samples without a past source remain value-less and delayed.
+- Saturation clamps to declared finite bounds.
+- Bias adds a declared finite offset.
+- Gain drift linearly interpolates a positive gain factor across a half-open interval.
+- Fault intervals on the same waveform must not overlap; disjoint/intermittent intervals are supported.
+- The output receipt binds the input-series digest, fault-schedule digest, sample timebase, per-sample source index and fault identity.
+
+This is a deterministic software perturbation of synthetic vectors, **not** an instrument model. The declared saturation/bias/gain parameters are challenge parameters, not fitted physical calibration values. No noise model, ADC behavior, detector transfer function, plasma kinetics, or inverse reconstruction is implied. All output samples and receipts remain synthetic.
+
+Example API shape:
+
+```rust
+use plasma_diagnostic_fault_replay::waveform::{
+    run_waveform_replay, WaveformFault, WaveformFaultMode, WaveformRequest,
+    WAVEFORM_SCHEMA_VERSION,
+};
+
+let request = WaveformRequest {
+    schema_version: WAVEFORM_SCHEMA_VERSION.to_owned(),
+    scenario_id: "synthetic-shot-001".to_owned(),
+    channel_id: "density".to_owned(),
+    units: "synthetic-unit".to_owned(),
+    time_origin_ns: 0,
+    sample_interval_ns: 1_000,
+    input_values: vec![0.1, 0.2, 0.3, 0.4],
+    faults: vec![WaveformFault {
+        fault_id: "synthetic-bias".to_owned(),
+        start_sample: 1,
+        end_sample: 3,
+        mode: WaveformFaultMode::Bias { offset: 0.05 },
+    }],
+};
+let receipt = run_waveform_replay(&request)?;
+```
