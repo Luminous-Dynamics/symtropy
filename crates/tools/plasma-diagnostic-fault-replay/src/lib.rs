@@ -719,13 +719,19 @@ mod tests {
             end_time_ns: 50,
         }];
         let receipt = run_replay(&request).expect("group fault should replay");
-        for row in &receipt.body.rows {
+        for row in &receipt.body.rows[..3] {
             assert_eq!(row.channels[1].state, ChannelState::Unavailable);
             assert_eq!(
                 row.channels[1].active_fault_ids,
                 vec!["thomson-system-loss"]
             );
         }
+        // The diagnostic system recovers at the half-open interval boundary.
+        assert_eq!(
+            receipt.body.rows[3].channels[1].state,
+            ChannelState::SyntheticNominal
+        );
+        assert!(receipt.body.rows[3].channels[1].active_fault_ids.is_empty());
     }
 
     #[test]
