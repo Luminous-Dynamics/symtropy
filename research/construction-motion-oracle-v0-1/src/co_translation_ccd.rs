@@ -1332,7 +1332,6 @@ mod tests {
     }
 }
 
-
 /// One terminal interval in a replayable adaptive collision certificate.
 #[derive(Clone, Debug, PartialEq)]
 pub struct AdaptiveProofLeaf {
@@ -1357,9 +1356,7 @@ pub enum AdaptiveProofLeafDisposition {
         closest: CoTranslatingCapsuleClosestApproach,
     },
     /// The analytic query declined to classify this candidate interval.
-    Unresolved {
-        error: TranslationCcdError,
-    },
+    Unresolved { error: TranslationCcdError },
 }
 
 /// Complete typed input snapshot and terminal-interval ledger for one adaptive query.
@@ -1543,7 +1540,11 @@ pub fn verify_adaptive_collision_certificate(
         return Err(AdaptiveCertificateError::EmptyCertificate);
     }
     if certificate.leaves[0].window.start_parameter != 0.0
-        || certificate.leaves.last().map(|leaf| leaf.window.end_parameter) != Some(1.0)
+        || certificate
+            .leaves
+            .last()
+            .map(|leaf| leaf.window.end_parameter)
+            != Some(1.0)
     {
         return Err(AdaptiveCertificateError::InvalidCoverage);
     }
@@ -1615,10 +1616,8 @@ pub fn verify_adaptive_collision_certificate(
                 )
                 .map_err(AdaptiveCertificateError::Geometry)?;
                 if actual != *closest
-                    || actual.is_contact(
-                        certificate.moving.radius_mm,
-                        certificate.obstacle.radius_mm,
-                    )
+                    || actual
+                        .is_contact(certificate.moving.radius_mm, certificate.obstacle.radius_mm)
                 {
                     return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
                 }
@@ -1637,10 +1636,8 @@ pub fn verify_adaptive_collision_certificate(
                 )
                 .map_err(AdaptiveCertificateError::Geometry)?;
                 if actual != *closest
-                    || !actual.is_contact(
-                        certificate.moving.radius_mm,
-                        certificate.obstacle.radius_mm,
-                    )
+                    || !actual
+                        .is_contact(certificate.moving.radius_mm, certificate.obstacle.radius_mm)
                 {
                     return Err(AdaptiveCertificateError::NarrowPhaseClaimMismatch);
                 }
@@ -1793,7 +1790,10 @@ mod adaptive_certificate_tests {
             config(),
         )
         .unwrap();
-        assert_eq!(certificate.report.status, AdaptiveCollisionStatus::NoContact);
+        assert_eq!(
+            certificate.report.status,
+            AdaptiveCollisionStatus::NoContact
+        );
         assert_eq!(certificate.leaves.len(), 1);
         assert!(matches!(
             certificate.leaves[0].disposition,
