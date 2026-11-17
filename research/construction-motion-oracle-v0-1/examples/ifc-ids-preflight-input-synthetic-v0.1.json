@@ -78,5 +78,36 @@
       "ids_requirement_evaluations": [],
       "in_work_scope": false
     }
-  ]
+  ],
+  "coordinate_context": {
+    "model_frame_id": "site-level-02",
+    "project_crs_identifier": "EPSG:32735",
+    "vertical_datum_identifier": "local-project-benchmark-datum",
+    "length_unit": "millimetre",
+    "model_to_site_rotation": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "model_to_site_translation_mm": [
+      10000,
+      20000,
+      0
+    ],
+    "map_conversion_scale": 1,
+    "frame_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "transform_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  }
 }
