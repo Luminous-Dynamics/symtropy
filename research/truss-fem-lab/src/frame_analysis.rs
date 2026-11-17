@@ -89,7 +89,8 @@ impl FrameBoundaryConditions {
             .nodal_loads
             .get_mut(node)
             .ok_or(FrameAnalysisError::InvalidBoundaryConditions)?;
-        let updated = std::array::from_fn(|axis| nodal_load[axis] + load[axis]);
+        let updated: [f64; 6] =
+            std::array::from_fn(|axis| nodal_load[axis] + load[axis]);
         if !updated.iter().all(|value| value.is_finite()) {
             return Err(FrameAnalysisError::NonFiniteInput);
         }
@@ -735,6 +736,19 @@ mod tests {
         assert!(audit.net_force_residual_norm_n < 1.0e-6);
         assert!(audit.net_moment_residual_norm_nm < 1.0e-6);
         assert!(audit.energy_relative_error < 1.0e-10);
+    }
+
+    #[test]
+    fn load_accumulation_overflow_is_rejected_without_partial_mutation() {
+        let mut boundary = FrameBoundaryConditions::new(1);
+        boundary
+            .add_load(0, [f64::MAX, 0.0, 0.0, 0.0, 0.0, 0.0])
+            .unwrap();
+        assert_eq!(
+            boundary.add_load(0, [f64::MAX, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Err(FrameAnalysisError::NonFiniteInput)
+        );
+        assert_eq!(boundary.nodal_loads[0][0], f64::MAX);
     }
 
     #[test]
