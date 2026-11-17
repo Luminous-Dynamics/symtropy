@@ -32,10 +32,10 @@ It reports cost per **unique released output**, never per process completion or 
 - 20 synthetic cases.
 - 50 cost-item rows.
 - 46 final output-disposition rows.
-- 23 Rust unit tests.
+- 26 Rust unit tests.
 - Known-answer dispositions include 15 computed cases, 2 zero-release cases, 1 ineligible route, 1 unknown route and 1 incomplete cost account.
 
-The hand-calculated expected-results file is separate from candidate output. Tests also attack duplicate output/release/cost identities, mixed currency/date/unit, missing release evidence, incomplete or reversed cost intervals, total overflow and output-order dependence.
+The hand-calculated expected-results file is separate from candidate output. Tests also attack duplicate output/release/cost identities, mixed currency/date/unit, missing release evidence, incomplete or reversed cost intervals, total overflow, negative or omitted cost items, component-total reconciliation and output-order dependence.
 
 ## Run
 
