@@ -330,10 +330,11 @@ fn main() -> ExitCode {
                     }
                     for score in &example.observable_event_scores {
                         println!(
-                            "adaptive_readout_case=predicted_event policy={:?} reads={} unknown={} observed_fraction={:.4} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={} speedup_vs_full={:?}",
+                            "adaptive_readout_case=predicted_event policy={:?} reads={} unknown={} unavailable={} observed_fraction={:.4} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={} speedup_vs_full={:?}",
                             score.policy,
                             score.selected_taxel_count,
                             score.unknown_taxel_count,
+                            score.unavailable_taxel_count,
                             score.observed_taxel_fraction,
                             score.active_contact_recall,
                             score.urgent_event_recall,
@@ -344,10 +345,11 @@ fn main() -> ExitCode {
                     }
                     for score in &example.off_prediction_region_event_scores {
                         println!(
-                            "adaptive_readout_case=off_prediction_event policy={:?} reads={} unknown={} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={}",
+                            "adaptive_readout_case=off_prediction_event policy={:?} reads={} unknown={} unavailable={} contact_recall={:?} event_recall={:?} latency_ns={} energy_nj={}",
                             score.policy,
                             score.selected_taxel_count,
                             score.unknown_taxel_count,
+                            score.unavailable_taxel_count,
                             score.active_contact_recall,
                             score.urgent_event_recall,
                             score.estimated_total_latency_ns,
