@@ -331,7 +331,9 @@ mod tests {
         let stressed = step_plant_hydraulic_capacitance(dry_soil, 0.02, 60.0, initial).unwrap();
 
         assert!(stressed.state.leaf_water_potential_mpa < baseline.state.leaf_water_potential_mpa);
-        assert!(stressed.soil_to_root_water_flux_kg_m2_s < baseline.soil_to_root_water_flux_kg_m2_s);
+        assert!(
+            stressed.soil_to_root_water_flux_kg_m2_s < baseline.soil_to_root_water_flux_kg_m2_s
+        );
     }
 
     #[test]
