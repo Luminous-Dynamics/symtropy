@@ -664,3 +664,12 @@ A small 3D Euler-Bernoulli beam/frame assembly solver is now authored in researc
 The solver assumes rigid six-DOF joints wherever members share a node and small-displacement Euler-Bernoulli behavior. It is not yet a Timoshenko model, flexible connector solver, global eigenvalue-buckling model or nonlinear/contact solver. New fixtures cover both cantilever bending planes, a two-member elbow frame with a shared joint, equilibrium/energy closure and a free-frame mechanism. They are authored but unexecuted pending exact-head CI and independent OpenSees comparison.
 
 The assembled frame prototype currently imposes rigid six-DOF continuity at shared nodes. This is only the ideal rigid-joint frame baseline; it is not the physical modular connector model. The research comparison must distinguish ideal rigid joints, axial spring joints, future six-DOF flexible joints and measured coupon-derived joint behavior.
+
+### Occupant-authored architecture and robotic servicing workstreams
+
+Two new work programmes turn spatial expression and lifecycle assembly into testable engineering:
+
+- [Issue #5817](https://github.com/Luminous-Dynamics/symtropy/issues/5817) develops occupant-authored reconfigurable habitats/public spaces. It separates primary structure, services, accessible routes/egress and reversible expressive infill. It measures route/reach/task success, privacy/social choice, sensory control, wayfinding, reversibility and agency; it explicitly avoids a universal aesthetic score.
+- [Issue #5818](https://github.com/Luminous-Dynamics/symtropy/issues/5818) defines grasp/approach/align/insert/lock/verify/inspect/release contracts, assembly task graphs, bounded pose-error negative controls and repair/replacement benchmarks. NASA ARMADAS is an existing baseline, so the novelty hypothesis is a richer interface/lifecycle grammar, not robotic assembly by itself.
+
+Both are research plans. No occupant studies, physical mockups or robotic assembly trials have yet been performed.
