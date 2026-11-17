@@ -1001,7 +1001,7 @@ fn build_site_time_sap_bodies(bodies: &[ClockDomainCapsuleBody]) -> Vec<TimedCap
 
 fn run_hierarchical_sap_algorithm_benchmarks() {
     println!(
-        "distribution,body_count,subdivisions,possible_pairs,direct_candidates,hierarchical_coarse_candidates,hierarchical_refined_candidates,refinement_pair_slabs,direct_p50_us,direct_p95_us,direct_p99_us,hierarchical_p50_us,hierarchical_p95_us,hierarchical_p99_us,hierarchical_speedup"
+        "distribution,body_count,subdivisions,possible_pairs,direct_candidates,hierarchical_coarse_candidates,hierarchical_refined_candidates,refinement_pair_slabs,cached_body_slab_bounds,cache_fast_rejects,common_interval_rebuilds,direct_p50_us,direct_p95_us,direct_p99_us,hierarchical_p50_us,hierarchical_p95_us,hierarchical_p99_us,hierarchical_speedup"
     );
     let distributions = [
         ClockBroadphaseDistribution::Sparse,
@@ -1088,7 +1088,7 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
                     / hierarchical_p50.as_nanos().max(1) as f64;
 
                 println!(
-                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
                     distribution.label(),
                     count,
                     subdivisions,
@@ -1097,6 +1097,9 @@ fn run_hierarchical_sap_algorithm_benchmarks() {
                     hierarchical.coarse.pairs.len(),
                     hierarchical.refinement.pairs.len(),
                     hierarchical.refinement.tested_pair_slabs,
+                    hierarchical.refinement.body_slab_bounds_built,
+                    hierarchical.refinement.cached_bounds_fast_rejects,
+                    hierarchical.refinement.common_interval_rebuilds,
                     direct_p50.as_micros(),
                     direct_p95.as_micros(),
                     direct_p99.as_micros(),
