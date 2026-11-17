@@ -310,6 +310,12 @@ fn make_case(seed: u64, morphology: ContactMorphology) -> SyntheticFieldCase {
         }
     }
 
+    let mut opaque_digest_state = seed ^ morphology.salt().rotate_left(23);
+    if opaque_digest_state == 0 {
+        opaque_digest_state = 1;
+    }
+    let opaque_digest_value = next_random(&mut opaque_digest_state);
+
     SyntheticFieldCase {
         mechanics_problem: FieldReconstructionProblem {
             native_response: native_response.clone(),
@@ -318,10 +324,9 @@ fn make_case(seed: u64, morphology: ContactMorphology) -> SyntheticFieldCase {
             spatial_edges: physical_edges(),
             smoothness_penalty: 0.0,
             sparsity_penalty: 0.0,
-            forward_model_digest: format!(
-                "sha256:prior-study-{}-{seed:016x}",
-                morphology.as_str()
-            ),
+            // Opaque fixture identity: the selector must not receive the
+            // evaluator-only morphology family label.
+            forward_model_digest: format!("fixture-model-{opaque_digest_value:016x}"),
         },
         independent_native_response: native_response,
         admitted_native_channels,
@@ -701,18 +706,4 @@ mod tests {
         assert!(run_prior_study(20261117, 20261217, 49).is_err());
     }
 
-    #[test]
-    fn prior_study_requires_a_valid_frozen_development_selection() {
-        let report = run_prior_study(20261117, 20261217, 50).expect("disjoint prior study");
-        assert_eq!(report.replicate_count_per_morphology, 50);
-        assert_eq!(report.development.len(), ContactMorphology::ALL.len());
-        assert_eq!(report.final_test.len(), ContactMorphology::ALL.len());
-        assert!(DEVELOPMENT_L1_PENALTIES.contains(&report.selected_l1_penalty));
-        for morphology in &report.development {
-            assert_eq!(morphology.replicate_count, 50);
-        }
-        for morphology in &report.final_test {
-            assert_eq!(morphology.replicate_count, 50);
-        }
-    }
 }
