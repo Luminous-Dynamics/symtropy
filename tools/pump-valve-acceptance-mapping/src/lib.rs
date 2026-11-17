@@ -429,6 +429,12 @@ fn evaluate_one(profile: &StandardProfile, scenario: &Scenario) -> (Disposition,
         );
     }
 
+    if scenario.seat_family == "UNKNOWN" || scenario.seat_family == "-" {
+        return (
+            Disposition::ProfileIncomplete,
+            "valve seat family must be explicitly declared",
+        );
+    }
     if !profile.seat_families.iter().any(|seat| seat == "ANY_DECLARED")
         && !profile
             .seat_families
@@ -625,7 +631,7 @@ mod tests {
     #[test]
     fn frozen_twenty_seven_case_oracle_matches() {
         let result = evaluate_corpus(PROFILES, SCENARIOS, EXPECTED).unwrap();
-        assert_eq!(result.len(), 27);
+        assert_eq!(result.len(), 29);
         assert_eq!(
             result
                 .iter()
@@ -770,6 +776,28 @@ mod tests {
             .unwrap();
         assert_eq!(agreed.disposition, Disposition::Applicable);
         assert_eq!(not_agreed.disposition, Disposition::NotApplicable);
+    }
+
+    #[test]
+    fn unknown_api_598_seat_family_is_incomplete() {
+        let (profiles, scenarios) = parsed();
+        let row = evaluate(&profiles, &scenarios)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.scenario_id == "valve_api598_unknown_seat_family")
+            .unwrap();
+        assert_eq!(row.disposition, Disposition::ProfileIncomplete);
+    }
+
+    #[test]
+    fn noncovered_api_598_seat_family_is_not_applicable() {
+        let (profiles, scenarios) = parsed();
+        let row = evaluate(&profiles, &scenarios)
+            .unwrap()
+            .into_iter()
+            .find(|row| row.scenario_id == "valve_api598_noncovered_seat_family")
+            .unwrap();
+        assert_eq!(row.disposition, Disposition::NotApplicable);
     }
 
     #[test]
