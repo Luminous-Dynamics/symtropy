@@ -746,7 +746,7 @@ fn solve_dense(mut matrix: Vec<Vec<f64>>, mut rhs: Vec<f64>) -> Result<Vec<f64>,
 
 /// Jacobi diagonalization for a real symmetric matrix.
 /// Eigenvectors are returned by columns of the matrix.
-fn symmetric_eigen(mut matrix: Vec<Vec<f64>>) -> Result<(Vec<f64>, Vec<Vec<f64>>), NetworkError> {
+pub(crate) fn symmetric_eigen(mut matrix: Vec<Vec<f64>>) -> Result<(Vec<f64>, Vec<Vec<f64>>), NetworkError> {
     let n = matrix.len();
     let mut vectors = vec![vec![0.0; n]; n];
     for i in 0..n {
