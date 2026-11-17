@@ -18,7 +18,7 @@
 
 use super::field_reconstruction::{
     FieldReconstructionConfig, FieldReconstructionProblem, FieldReconstructionReport,
-    FieldCellSupport, SpatialEdge, reconstruct_contact_field,
+    SpatialEdge, reconstruct_contact_field,
 };
 
 const TAXEL_COUNT: usize = 113;
