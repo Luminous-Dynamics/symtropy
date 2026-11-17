@@ -151,8 +151,8 @@ struct RankedCell {
 
 /// Parse the versioned trace and check required JSON keys before deserializing.
 pub fn parse_trace_json(bytes: &[u8]) -> Result<TrafficTrace, AllocationError> {
-    let value: Value = serde_json::from_slice(bytes)
-        .map_err(|error| AllocationError::Json(error.to_string()))?;
+    let value: Value =
+        serde_json::from_slice(bytes).map_err(|error| AllocationError::Json(error.to_string()))?;
 
     require_keys(
         &value,
@@ -231,29 +231,21 @@ pub fn parse_trace_json(bytes: &[u8]) -> Result<TrafficTrace, AllocationError> {
             require_keys(
                 load,
                 &format!("intervals[{index}].cell_loads[{load_index}]"),
-                &[
-                    "cell_id",
-                    "offered_load_mbps",
-                    "terrestrial_available_mbps",
-                ],
+                &["cell_id", "offered_load_mbps", "terrestrial_available_mbps"],
             )?;
         }
     }
 
-    let trace: TrafficTrace = serde_json::from_value(value)
-        .map_err(|error| AllocationError::Json(error.to_string()))?;
+    let trace: TrafficTrace =
+        serde_json::from_value(value).map_err(|error| AllocationError::Json(error.to_string()))?;
     validate_trace(&trace)?;
     Ok(trace)
 }
 
-fn require_keys(
-    value: &Value,
-    context: &str,
-    keys: &[&str],
-) -> Result<(), AllocationError> {
-    let object = value.as_object().ok_or_else(|| {
-        AllocationError::InvalidTrace(format!("{context} must be a JSON object"))
-    })?;
+fn require_keys(value: &Value, context: &str, keys: &[&str]) -> Result<(), AllocationError> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| AllocationError::InvalidTrace(format!("{context} must be a JSON object")))?;
     for key in keys {
         if !object.contains_key(*key) {
             return Err(AllocationError::MissingField(format!(
@@ -296,16 +288,12 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
             "trace revision must be positive".to_owned(),
         ));
     }
-    if trace.evidence_class != "synthetic"
-        && trace.claim_ceiling != "offline_traffic_replay"
-    {
+    if trace.evidence_class != "synthetic" && trace.claim_ceiling != "offline_traffic_replay" {
         return Err(AllocationError::InvalidTrace(
             "non-synthetic traces must use offline_traffic_replay claim ceiling".to_owned(),
         ));
     }
-    if trace.evidence_class == "synthetic"
-        && trace.claim_ceiling != "synthetic_demand_input"
-    {
+    if trace.evidence_class == "synthetic" && trace.claim_ceiling != "synthetic_demand_input" {
         return Err(AllocationError::InvalidTrace(
             "synthetic traces must use synthetic_demand_input claim ceiling".to_owned(),
         ));
@@ -340,9 +328,7 @@ pub fn validate_trace(trace: &TrafficTrace) -> Result<(), AllocationError> {
             "reanalysis cannot be marked available as an operational live forecast".to_owned(),
         ));
     }
-    if trace.source.source_kind == "synthetic_generator"
-        && trace.evidence_class != "synthetic"
-    {
+    if trace.source.source_kind == "synthetic_generator" && trace.evidence_class != "synthetic" {
         return Err(AllocationError::InvalidTrace(
             "synthetic_generator source must use synthetic evidence_class".to_owned(),
         ));
@@ -490,8 +476,7 @@ pub fn select_static_assignment(
 
     for interval in trace.intervals.iter().take(training_days) {
         for load in &interval.cell_loads {
-            let excess =
-                (load.offered_load_mbps - load.terrestrial_available_mbps).max(0.0);
+            let excess = (load.offered_load_mbps - load.terrestrial_available_mbps).max(0.0);
             let score = excess * weights[load.cell_id.as_str()];
             let current = scores.get_mut(load.cell_id.as_str()).ok_or_else(|| {
                 AllocationError::InvalidTrace(format!(
@@ -561,8 +546,7 @@ pub fn evaluate_window(
         AllocationPolicy::StaticFixedAssignment(cell_ids) => {
             if cell_ids.is_empty() || cell_ids.len() > beam_budget {
                 return Err(AllocationError::InvalidPolicy(
-                    "static assignment must contain between one and beam_budget cells"
-                        .to_owned(),
+                    "static assignment must contain between one and beam_budget cells".to_owned(),
                 ));
             }
             let mut seen = HashSet::with_capacity(cell_ids.len());
@@ -691,8 +675,9 @@ pub fn evaluate_window(
 mod tests {
     use super::*;
 
-    const TRAFFIC_TRACE: &str =
-        include_str!("../../../docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json");
+    const TRAFFIC_TRACE: &str = include_str!(
+        "../../../docs/research/aviation/examples/synthetic_haps_disaster_traffic_trace_v1.json"
+    );
     const FULL_ALLOCATION_CASE: &str = include_str!(
         "../../../docs/research/aviation/examples/synthetic_haps_disaster_30day_allocation_v1.json"
     );
@@ -825,7 +810,10 @@ mod tests {
     fn static_assignment_is_selected_only_from_training_days() {
         let trace = fixture_trace();
         let assignment = select_static_assignment(&trace, 15, 2).unwrap();
-        assert_eq!(assignment, vec!["cell-east".to_owned(), "cell-north".to_owned()]);
+        assert_eq!(
+            assignment,
+            vec!["cell-east".to_owned(), "cell-north".to_owned()]
+        );
         let report = evaluate_window(
             &trace,
             15,
@@ -975,7 +963,10 @@ mod tests {
             AllocationPolicy::CriticalExcessWeightedGreedy,
         )
         .unwrap();
-        assert_eq!(report.intervals[0].selected_cell_ids, vec!["cell-a".to_owned()]);
+        assert_eq!(
+            report.intervals[0].selected_cell_ids,
+            vec!["cell-a".to_owned()]
+        );
     }
 
     #[test]
