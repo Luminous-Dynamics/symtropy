@@ -194,3 +194,8 @@ The terrestrial LHC 0.15 mm relative-displacement figure is a comparator only. A
 ### Effective dipole-fill definition
 
 The local-ring screen's 0.67 is the ring-wide effective bending fraction, not the dipole packing fraction inside the arcs. The FCC-hh CDR geometry gives approximately 82 km of arcs within a 97.75 km ring and a 0.80 dipole packing fraction within those arcs; the corresponding whole-ring fraction is approximately 0.6711. PR #3962 now exposes that conversion and adds a 0.60 / 0.67 / 0.6711 / 0.75 sensitivity sweep. This keeps the FCC benchmark definition auditable and avoids comparing an arc-cell filling factor with a whole-circumference effective fill.
+
+
+### FCC-hh benchmark vintage
+
+One industry-comparison nuance: **100 TeV / 97.75 km / 16 T** is the FCC-hh CDR configuration used as the stretch comparator in the local-ring reference, not the only or latest study reference. The 2025 updated FCC-hh study also presents an **85 TeV / 90.7 km / 14 T** configuration, with 76.9 km of arcs and a 0.83 dipole packing fraction within arcs. Its ring-wide effective fill is about 0.7037. The local 100 km / 16 T calculation therefore shows comparability with the 100 TeV CDR design point, while the updated 85 TeV / 14 T configuration remains a second, lower-field industry comparator. Neither row represents operating hardware.
