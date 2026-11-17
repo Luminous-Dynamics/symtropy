@@ -676,7 +676,6 @@ pub fn assess_wrench_consistency(
 /// structural constraints; priors are deliberately not accepted as rows.
 pub fn compare_field_identifiability(
     operator: &WrenchOperator,
-    native_observation_set_digest: &str,
     native_design_matrix: &[f64],
     native_row_count: usize,
     reference_evidence: &WrenchReferenceEvidence,
@@ -848,7 +847,6 @@ pub fn run_synthetic_wrench_example() -> Result<SyntheticWrenchExampleReport, St
     }
     let identifiability = compare_field_identifiability(
         &operator,
-        "sha256:synthetic-native-observations",
         &native,
         3,
         &evidence,
@@ -986,7 +984,6 @@ mod tests {
         }
         let report = compare_field_identifiability(
             &operator,
-            "sha256:native-observations",
             &native,
             3,
             &evidence(),
