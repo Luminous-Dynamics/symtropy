@@ -12,6 +12,7 @@
 
 pub mod adversarial;
 pub mod coupling_campaign;
+pub mod crosstalk_decomposition;
 pub mod coupling_identification;
 pub mod crosstalk_decomposition;
 pub mod field_campaign;
