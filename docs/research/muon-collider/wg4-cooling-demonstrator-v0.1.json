@@ -1,0 +1,115 @@
+{
+  "schema_version": "0.1.0",
+  "audit_id": "wg4-cooling-demonstrator-bdsim-userfile-2026-11-09",
+  "evidence_class": "upstream_native_input_distribution",
+  "upstream": {
+    "repository": "MuonCollider-WG4/cooling_demonstrator",
+    "repository_url": "https://github.com/MuonCollider-WG4/cooling_demonstrator",
+    "ref": "2026-11-09-prerelease",
+    "commit": "d453b0ce0efd018ffb8d32927ac74cb597a02d26",
+    "license": "MIT"
+  },
+  "input": {
+    "path": "cooling/bdsim/lowemittancebeam.dat",
+    "git_blob_sha1": "9e31ff9e1e65ca31aa082f685a2f5fc0b81a7217",
+    "byte_length": 1257234,
+    "ignored_header_lines": 1,
+    "expected_record_count": 10001,
+    "expected_header": "\"x [mm]\" \"xp [rad]\" \"y [mm]\" \"yp [rad]\" \"z [mm]\" \"Ek [MeV]\" \"t [ns]\"",
+    "columns": [
+      {
+        "name": "x",
+        "unit": "mm",
+        "meaning": "horizontal position"
+      },
+      {
+        "name": "xp",
+        "unit": "rad",
+        "meaning": "horizontal angle"
+      },
+      {
+        "name": "y",
+        "unit": "mm",
+        "meaning": "vertical position"
+      },
+      {
+        "name": "yp",
+        "unit": "rad",
+        "meaning": "vertical angle"
+      },
+      {
+        "name": "z",
+        "unit": "mm",
+        "meaning": "longitudinal position"
+      },
+      {
+        "name": "Ek",
+        "unit": "MeV",
+        "meaning": "kinetic energy"
+      },
+      {
+        "name": "t",
+        "unit": "ns",
+        "meaning": "time"
+      }
+    ],
+    "explicit_particle_ids": false,
+    "explicit_weights": false
+  },
+  "bdsim_declaration": {
+    "path": "cooling/bdsim/lowemittancebeam.gmad",
+    "git_blob_sha1": "f5ff777ee61ec8985a03f5439b272903917c8e8e",
+    "particle": "mu-",
+    "energy": "200*MeV",
+    "distr_type": "userfile",
+    "distr_file": "lowemittancebeam.dat",
+    "distr_file_format": "x[mm]:xp[rad]:y[mm]:yp[rad]:z[mm]:Ek[MeV]:t[ns]",
+    "nlines_ignore": 1
+  },
+  "bdsim_lattice": {
+    "path": "cooling/bdsim/solenoidsheetdemonstrator102.gmad",
+    "git_blob_sha1": "1f564a733fcc63d46d0eff6ece5c89d2b93519c9",
+    "model_name": "solenoidsheetdemonstrator102",
+    "coil_count": 102,
+    "absorber_count": 0,
+    "rf_cavity_count": 0,
+    "ionization_cooling_claim_admissible": false,
+    "rf_acceleration_claim_admissible": false,
+    "explanation": "The pinned model declares a solenoid-sheet field model but instantiates zero absorbers and zero RF cavities. This input/configuration pair cannot evidence ionization cooling or RF acceleration."
+  },
+  "g4bl_baseline": {
+    "path": "cooling/g4bl/cooling.g4bl",
+    "git_blob_sha1": "dc0cb955ef657cdc1862b4b5c30e2fe415d4e377",
+    "cell_count": 60,
+    "rf_gradient_mv_per_m": 30,
+    "absorber_material": "LITHIUM_HYDRIDE",
+    "model_identity": "separate_G4Beamline_cooling_lattice",
+    "equivalent_to_bdsim_model": false
+  },
+  "g4bl_run_log": {
+    "path": "cooling/g4bl/g4bl.log",
+    "git_blob_sha1": "a69acc28ea77d9055685c05936615460f87059d9",
+    "g4beamline_version": "3.08",
+    "geant4_version": "11.1-patch-01",
+    "event_count": 10000,
+    "runtime_seconds": 773,
+    "output_regions": 51,
+    "output_z_min_mm": 0,
+    "output_z_max_mm": 100000,
+    "unsupported_particle_ignores_total": 2087,
+    "unsupported_particle_ignores_max_per_region": 65,
+    "fatal_exceptions": 0,
+    "aborted_events": 0,
+    "stuck_tracks": 0,
+    "decay_process_disabled": true,
+    "muon_survival_status": "not_evaluated",
+    "parameter_override_provenance": "incomplete",
+    "note": "The log's recorded beam offsets and RF phase differ from the current param -unset defaults. The originating command and override file are not pinned in this source snapshot; do not infer stale data or silently reconstruct the invocation."
+  },
+  "source_documentation": {
+    "bdsim_userfile_manual": "https://www.pp.rhul.ac.uk/bdsim/manual/model_control.html",
+    "g4beamline_user_guide": "https://beamdocs.fnal.gov/AD/DocDB/0079/007950/001/G4beamlineUsersGuide.pdf",
+    "upstream_readme": "The upstream README identifies the BDSIM lattice as an early-stage model and says it is not consistent with the G4Beamline lattice; use G4Beamline as the current baseline."
+  },
+  "claim_ceiling": "Native-coordinate input parsing, source-object identity and model/run evidence admission only. No beam-dynamics reproduction, ionization-cooling, RF, transmission or muon-survival qualification."
+}
