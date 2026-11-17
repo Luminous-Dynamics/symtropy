@@ -592,8 +592,10 @@ fn evaluate_all(inputs: &Value, input_schema: &Value, oracle: &Value) -> Result<
         return Err("exactly four unique required state IDs are required".to_owned());
     }
     let input_domains = string_set(field(inputs, "domain_types", "input")?, "domain_types")?;
-    let expected_domains: BTreeSet<String> =
-        DOMAIN_TYPES.iter().map(|value| (*value).to_owned()).collect();
+    let expected_domains: BTreeSet<String> = DOMAIN_TYPES
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect();
     if input_domains != expected_domains {
         return Err("input domain type set differs from six frozen domains".to_owned());
     }
