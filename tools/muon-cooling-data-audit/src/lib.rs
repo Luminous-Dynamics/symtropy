@@ -926,6 +926,9 @@ mod tests {
         manifest = manifest_for(&bytes);
         manifest["input"]["columns"][1]["name"] = json!("py");
         assert!(audit_bytes(&manifest, &bytes).is_err());
+        manifest = manifest_for(&bytes);
+        manifest["input"]["columns"][1]["header_label"] = json!("xp");
+        assert!(audit_bytes(&manifest, &bytes).is_err());
     }
 
     #[test]
