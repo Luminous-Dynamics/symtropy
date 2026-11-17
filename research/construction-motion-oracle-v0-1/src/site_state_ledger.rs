@@ -178,6 +178,7 @@ pub enum SiteLedgerError {
     ConflictingEventId(String),
     ConflictingEventDigest(String),
     EventIndexCorrupt,
+    EventHistoryContainsDuplicate(String),
     ActorRoleDenied,
     EmptyPackageIdentity,
     InvalidPackageDigest,
@@ -213,14 +214,14 @@ pub enum SiteApplyOutcome {
     DuplicateIgnored,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct StationQualification {
     package_sha256: String,
     station_id: String,
     calibration_sha256: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct ExecutionAttempt {
     package_sha256: String,
     entity_id: String,
@@ -229,7 +230,7 @@ struct ExecutionAttempt {
     referee_assessed: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct PackageProjection {
     package: SiteWorkPackage,
     superseded_by: Option<String>,
@@ -237,7 +238,7 @@ struct PackageProjection {
     station_qualifications: BTreeMap<String, StationQualification>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SiteStateLedger {
     last_sequence: u64,
     last_event_sha256: Option<String>,
@@ -252,6 +253,22 @@ pub struct SiteStateLedger {
 impl SiteStateLedger {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Reconstruct the projection from an ordered, caller-preverified event
+    /// history. The input must contain each committed event exactly once.
+    /// Sequence and previous-digest links are validated by apply; a duplicate
+    /// record in a persisted history is corruption, not an idempotent replay.
+    pub fn replay(events: &[SiteEventEnvelope]) -> Result<Self, SiteLedgerError> {
+        let mut ledger = Self::new();
+        for event in events {
+            if ledger.apply(event.clone())? == SiteApplyOutcome::DuplicateIgnored {
+                return Err(SiteLedgerError::EventHistoryContainsDuplicate(
+                    event.event_id.clone(),
+                ));
+            }
+        }
+        Ok(ledger)
     }
 
     /// Apply a caller-preverified event atomically.
@@ -2091,6 +2108,71 @@ mod tests {
             Ok(SiteApplyOutcome::DuplicateIgnored)
         );
         assert_eq!(ledger.event_count(), 130);
+    }
+
+
+    #[test]
+    fn event_history_replay_reconstructs_an_identical_projection() {
+        let (mut ledger, package_digest, attempt_id) = setup_started_attempt();
+        let robot = event(
+            "event-robot",
+            4,
+            ledger.last_event_sha256().map(str::to_owned),
+            '5',
+            "robot-1",
+            SiteActorRole::Robot,
+            SiteEventPayload::RobotObservationRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id: attempt_id.clone(),
+                disposition: RobotExecutionDisposition::Printed,
+                robot_receipt_sha256: digest('7'),
+            },
+        );
+        ledger.apply(robot).unwrap();
+        let referee = event(
+            "event-referee",
+            5,
+            ledger.last_event_sha256().map(str::to_owned),
+            '6',
+            "referee-1",
+            SiteActorRole::Referee,
+            SiteEventPayload::RefereeAssessmentRecorded {
+                package_sha256: package_digest.clone(),
+                entity_id: "line-1".into(),
+                attempt_id,
+                assessment: SiteRefereeAssessment::Measured(measurement(0.2, 0.1)),
+            },
+        );
+        ledger.apply(referee).unwrap();
+
+        let replayed = SiteStateLedger::replay(ledger.event_history()).unwrap();
+        assert_eq!(replayed, ledger);
+        assert_eq!(replayed.accepted_count(&package_digest), Some(1));
+    }
+
+    #[test]
+    fn persisted_duplicate_or_broken_chain_is_not_valid_replay_history() {
+        let mut ledger = SiteStateLedger::new();
+        publish_package(&mut ledger, package('a', &["point-1"]));
+        let first = ledger.event_history()[0].clone();
+        let duplicate_history = vec![first.clone(), first];
+        assert_eq!(
+            SiteStateLedger::replay(&duplicate_history),
+            Err(SiteLedgerError::EventHistoryContainsDuplicate(
+                "event-publish".into()
+            ))
+        );
+
+        let mut broken = ledger.event_history().to_vec();
+        let mut next = station_event(&ledger, 2, "event-station");
+        next.previous_event_sha256 = Some(digest('0'));
+        next.event_sha256 = digest('2');
+        broken.push(next);
+        assert_eq!(
+            SiteStateLedger::replay(&broken),
+            Err(SiteLedgerError::PreviousEventDigestMismatch)
+        );
     }
 
 }
