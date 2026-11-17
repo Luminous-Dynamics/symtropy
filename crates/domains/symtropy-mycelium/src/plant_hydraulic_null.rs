@@ -98,15 +98,9 @@ pub struct PlantHydraulicState {
 pub fn solve_two_resistance_null(
     inputs: PlantHydraulicInputs,
 ) -> Result<PlantHydraulicState, PlantHydraulicError> {
-    validate_inputs(inputs)?;
-
+    let equivalent_conductance = equivalent_hydraulic_conductance(inputs)?;
     let soil_to_root = inputs.soil_to_root_conductance_kg_m2_s_mpa;
     let root_to_leaf = inputs.root_to_leaf_conductance_kg_m2_s_mpa;
-    let smaller = soil_to_root.min(root_to_leaf);
-    let larger = soil_to_root.max(root_to_leaf);
-    // Algebraically equal to (K1 * K2) / (K1 + K2), while avoiding
-    // multiplication of two potentially large conductance values.
-    let equivalent_conductance = smaller / (1.0 + smaller / larger);
 
     let vapor_fraction = inputs.vapor_pressure_deficit_pa / inputs.atmospheric_pressure_pa;
     let maximum_demand =
@@ -210,6 +204,28 @@ pub fn solve_two_resistance_null(
     })
 }
 
+pub(crate) fn equivalent_hydraulic_conductance(
+    inputs: PlantHydraulicInputs,
+) -> Result<f64, PlantHydraulicError> {
+    validate_inputs(inputs)?;
+
+    let soil_to_root = inputs.soil_to_root_conductance_kg_m2_s_mpa;
+    let root_to_leaf = inputs.root_to_leaf_conductance_kg_m2_s_mpa;
+    let smaller = soil_to_root.min(root_to_leaf);
+    let larger = soil_to_root.max(root_to_leaf);
+    // Algebraically equal to (K1 * K2) / (K1 + K2), while avoiding
+    // multiplication of two potentially large conductance values.
+    let conductance = smaller / (1.0 + smaller / larger);
+
+    if !conductance.is_finite() || conductance <= 0.0 {
+        return Err(PlantHydraulicError::NonFiniteDerivedValue(
+            "equivalent_hydraulic_conductance",
+        ));
+    }
+
+    Ok(conductance)
+}
+
 fn validate_inputs(inputs: PlantHydraulicInputs) -> Result<(), PlantHydraulicError> {
     for (field, value) in [
         ("soil_water_potential_mpa", inputs.soil_water_potential_mpa),
@@ -299,6 +315,17 @@ mod tests {
             stomatal_open_leaf_potential_mpa: -0.5,
             stomatal_closed_leaf_potential_mpa: -2.0,
         }
+    }
+
+    #[test]
+    fn equivalent_conductance_is_series_combination() {
+        let mut inputs = reference_inputs();
+        inputs.soil_to_root_conductance_kg_m2_s_mpa = 0.001;
+        inputs.root_to_leaf_conductance_kg_m2_s_mpa = 0.002;
+
+        let conductance = equivalent_hydraulic_conductance(inputs).unwrap();
+
+        assert!((conductance - (0.001 * 0.002 / 0.003)).abs() < 1e-15);
     }
 
     #[test]
