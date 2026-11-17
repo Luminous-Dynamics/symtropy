@@ -268,6 +268,8 @@ pub struct NetworkScore {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkError {
+    InvalidTopologyEventTime,
+    TopologyEventNotGridAligned,
     InvalidAdaptiveConfig,
     AdaptiveStepUnderflow,
     AdaptiveAttemptLimitReached,
@@ -474,6 +476,140 @@ pub fn simulate_network(
         max_state,
         max_spectral_stability_number: oracle.max_eigenvalue() * communication_step,
         positive_states: min_state >= 0.0,
+        final_state: state,
+    })
+}
+
+
+/// A deterministic graph-topology change at an exact model time.
+/// The state remains continuous; only the active edge set changes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TopologyEvent {
+    pub at_time: f64,
+    pub edges: Vec<Edge>,
+}
+
+/// Score for a piecewise-constant topology campaign.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TopologyEventScore {
+    pub total_steps: usize,
+    pub topology_event_count: usize,
+    pub max_abs_state_error: f64,
+    pub rms_state_error: f64,
+    pub max_abs_total_residual: f64,
+    pub max_quadratic_energy_increase: f64,
+    pub min_state: f64,
+    pub max_state: f64,
+    pub max_spectral_stability_number: f64,
+    pub positive_states: bool,
+    pub event_states: Vec<Vec<f64>>,
+    pub final_state: Vec<f64>,
+}
+
+/// Integrate a network whose topology is piecewise constant in time.
+///
+/// Every topology event is required to lie exactly on the communication grid.
+/// The interval before an event is simulated with the old topology; the
+/// accepted final state is then used as the initial state under the new
+/// topology. No state interpolation or event-time rounding is performed.
+pub fn simulate_network_topology_events(
+    scenario: &NetworkScenario,
+    events: &[TopologyEvent],
+    method: NetworkMethod,
+    communication_step: f64,
+) -> Result<TopologyEventScore, NetworkError> {
+    scenario.validate()?;
+    if !communication_step.is_finite() || communication_step <= 0.0 {
+        return Err(NetworkError::InvalidStep);
+    }
+
+    let mut previous_event_time = 0.0;
+    for event in events {
+        if !event.at_time.is_finite()
+            || event.at_time <= previous_event_time
+            || event.at_time >= scenario.horizon
+        {
+            return Err(NetworkError::InvalidTopologyEventTime);
+        }
+        let duration = event.at_time - previous_event_time;
+        let raw_steps = duration / communication_step;
+        let rounded_steps = raw_steps.round();
+        let tolerance = 1.0e-10 * raw_steps.abs().max(1.0);
+        if !raw_steps.is_finite() || (raw_steps - rounded_steps).abs() > tolerance {
+            return Err(NetworkError::TopologyEventNotGridAligned);
+        }
+        previous_event_time = event.at_time;
+    }
+
+    let final_duration = scenario.horizon - previous_event_time;
+    let final_steps = final_duration / communication_step;
+    let final_rounded_steps = final_steps.round();
+    let final_tolerance = 1.0e-10 * final_steps.abs().max(1.0);
+    if !final_steps.is_finite() || (final_steps - final_rounded_steps).abs() > final_tolerance {
+        return Err(NetworkError::StepDoesNotDivideHorizon);
+    }
+
+    let mut state = scenario.initial.clone();
+    let mut active_edges = scenario.edges.clone();
+    let mut segment_start = 0.0;
+    let mut total_steps = 0_usize;
+    let mut max_abs_state_error: f64 = 0.0;
+    let mut sum_squared_error = 0.0;
+    let mut error_samples = 0_usize;
+    let mut max_abs_total_residual: f64 = 0.0;
+    let mut max_quadratic_energy_increase: f64 = 0.0;
+    let mut min_state = state.iter().copied().fold(f64::INFINITY, f64::min);
+    let mut max_state = state.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let mut max_spectral_stability_number: f64 = 0.0;
+    let mut event_states = Vec::with_capacity(events.len());
+
+    for event in events.iter().chain(std::iter::once(&TopologyEvent {
+        at_time: scenario.horizon,
+        edges: Vec::new(),
+    })) {
+        let segment_duration = event.at_time - segment_start;
+        let segment = NetworkScenario {
+            name: scenario.name,
+            capacities: scenario.capacities.clone(),
+            initial: state.clone(),
+            edges: active_edges.clone(),
+            horizon: segment_duration,
+        };
+        let score = simulate_network(&segment, method, communication_step)?;
+        total_steps += score.steps;
+        max_abs_state_error = max_abs_state_error.max(score.max_abs_state_error);
+        sum_squared_error += score.rms_state_error * score.rms_state_error
+            * score.steps as f64
+            * scenario.capacities.len() as f64;
+        error_samples += score.steps * scenario.capacities.len();
+        max_abs_total_residual = max_abs_total_residual.max(score.max_abs_total_residual);
+        max_quadratic_energy_increase =
+            max_quadratic_energy_increase.max(score.max_quadratic_energy_increase);
+        min_state = min_state.min(score.min_state);
+        max_state = max_state.max(score.max_state);
+        max_spectral_stability_number =
+            max_spectral_stability_number.max(score.max_spectral_stability_number);
+        state = score.final_state;
+
+        if event.at_time < scenario.horizon {
+            event_states.push(state.clone());
+            active_edges = event.edges.clone();
+        }
+        segment_start = event.at_time;
+    }
+
+    Ok(TopologyEventScore {
+        total_steps,
+        topology_event_count: events.len(),
+        max_abs_state_error,
+        rms_state_error: (sum_squared_error / error_samples as f64).sqrt(),
+        max_abs_total_residual,
+        max_quadratic_energy_increase,
+        min_state,
+        max_state,
+        max_spectral_stability_number,
+        positive_states: min_state >= 0.0,
+        event_states,
         final_state: state,
     })
 }
@@ -997,6 +1133,84 @@ mod tests {
         assert_eq!(
             simulate_network(&scenario, NetworkMethod::BackwardEulerReference, 0.3),
             Err(NetworkError::StepDoesNotDivideHorizon)
+        );
+    }
+
+
+    #[test]
+    fn topology_event_splits_state_continuously_and_preserves_total() {
+        let scenario = chain();
+        let initial_oracle = scenario.spectral_oracle().unwrap();
+        let expected_at_event = initial_oracle.state_at(2.0).unwrap();
+        let events = [TopologyEvent {
+            at_time: 2.0,
+            edges: vec![
+                Edge {
+                    left: 0,
+                    right: 1,
+                    conductance: 0.1,
+                },
+                Edge {
+                    left: 1,
+                    right: 2,
+                    conductance: 0.9,
+                },
+            ],
+        }];
+
+        let score = simulate_network_topology_events(
+            &scenario,
+            &events,
+            NetworkMethod::BackwardEulerReference,
+            0.1,
+        )
+        .unwrap();
+
+        assert_eq!(score.topology_event_count, 1);
+        assert_eq!(score.total_steps, 40);
+        for (actual, expected) in score.event_states[0].iter().zip(expected_at_event.iter()) {
+            assert!((actual - expected).abs() < 1.0e-10);
+        }
+        assert!(score.max_abs_total_residual < 1.0e-10);
+        assert!(score.positive_states);
+        assert!(score.max_quadratic_energy_increase < 1.0e-10);
+    }
+
+    #[test]
+    fn non_grid_aligned_or_reordered_topology_events_reject() {
+        let scenario = chain();
+        let non_aligned = [TopologyEvent {
+            at_time: 0.35,
+            edges: scenario.edges.clone(),
+        }];
+        assert_eq!(
+            simulate_network_topology_events(
+                &scenario,
+                &non_aligned,
+                NetworkMethod::BackwardEulerReference,
+                0.1,
+            ),
+            Err(NetworkError::TopologyEventNotGridAligned)
+        );
+
+        let reordered = [
+            TopologyEvent {
+                at_time: 2.0,
+                edges: scenario.edges.clone(),
+            },
+            TopologyEvent {
+                at_time: 1.0,
+                edges: scenario.edges.clone(),
+            },
+        ];
+        assert_eq!(
+            simulate_network_topology_events(
+                &scenario,
+                &reordered,
+                NetworkMethod::BackwardEulerReference,
+                0.1,
+            ),
+            Err(NetworkError::InvalidTopologyEventTime)
         );
     }
 
