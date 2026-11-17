@@ -1335,6 +1335,15 @@ mod tests {
     }
 
     #[test]
+    fn report_json_round_trip_preserves_exact_integer_totals() {
+        let report = evaluate_kitchen_outcome_accounting(&request());
+        let encoded = serde_json::to_vec(&report).expect("bounded report must serialize");
+        let decoded: KitchenOutcomeAccountingReportV1 =
+            serde_json::from_slice(&encoded).expect("report must deserialize exactly");
+        assert_eq!(decoded, report);
+    }
+
+    #[test]
     fn unknown_water_is_not_silently_zero() {
         let mut request = request();
         request.water_terms[1].observation = KitchenFlowObservationV1::Unknown {
