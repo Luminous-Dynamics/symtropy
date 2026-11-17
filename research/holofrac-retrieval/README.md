@@ -38,7 +38,7 @@ The CLI emits a CSV summary for 2K/4K/8K/16K dimensions and per-query raw outcom
 - Precision@k, recall@k, reciprocal rank and separate timing measures for both partial-retrieval treatments.
 - Stale-index rejection when the exact canonical source graph changes after index construction; insertion-order changes remain equivalent.
 - Rejection of an index queried with a different encoder schema, seed or dimension.
-- Separate bipolar-only, f32-only and combined dual-view vector-payload estimates.
+- Separate bipolar-only, f32-only and dual-view vector-payload estimates, plus the five role-slot vectors per fact retained by partial retrieval and the total currently retained vector payload.
 
 ## Claim boundaries
 
@@ -46,7 +46,7 @@ This is an initial exact-fact and partial-context retrieval fixture, not a floor
 
 The f32 view is a conversion of the same bipolar code. It does not test learned continuous-HV representations. The current fixture is small and synthetic; its results cannot establish generalization to real buildings or superiority over commercial/academic graph retrieval systems.
 
-The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains both vector views at once, so the dual-view estimate is the currently retained vector payload; single-view figures are hypothetical per-representation comparisons. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
+The reported memory values are vector-payload estimates, not allocator-inclusive process RSS. The prototype retains both full-vector views and five bipolar role-slot vectors per fact. The dual-view estimate excludes role slots; the separate role-slot estimate and total retained-vector estimate account for the additional partial-retrieval state. All estimates exclude allocator overhead, graph objects, and canonical-key strings. Timings are local microbenchmarks on a small synthetic graph and must not be treated as SOTA results. The index build is separated from query scoring; source freshness is verified before the timed batch.
 
 The source-graph digest and encoder fingerprint are non-cryptographic regression identifiers. They are not security hashes, signatures, or provenance attestations.
 
