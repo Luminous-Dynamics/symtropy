@@ -595,7 +595,7 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
+        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
     }
 
     #[test]
@@ -614,7 +614,7 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
+        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
 
         let row = receipts
             .iter_mut()
@@ -626,7 +626,7 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own).actual, Disposition::Indeterminate);
+        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Indeterminate);
     }
 
     #[test]
@@ -676,6 +676,6 @@ mod tests {
             .filter(|row| row.case_id == case.case_id)
             .cloned()
             .collect();
-        assert_eq!(evaluate_case(case, &own).actual, Disposition::Blocked);
+        assert_eq!(evaluate_case(case, &own, &BTreeSet::new()).actual, Disposition::Blocked);
     }
 }
