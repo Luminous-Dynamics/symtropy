@@ -12,10 +12,66 @@
 
 #![forbid(unsafe_code)]
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct ClockSyncPair {
     pub local_timestamp_ns: u64,
     pub reference_timestamp_ns: u64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub enum ClockSyncEvidenceDisposition {
+    IndependentlyCharacterized,
+    SharedCommonCause,
+    Unresolved,
+}
+
+/// External receipt bundle binding synchronization pulses to their reference
+/// ancestry and common-cause analysis. Receipt identifiers are references only;
+/// consumers must resolve and verify the underlying evidence independently.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct ClockSyncAttestation {
+    pub attestation_id: String,
+    pub clock_domain: String,
+    pub reference_clock_domain: String,
+    pub sync_pairs: Vec<ClockSyncPair>,
+    pub reference_instrument_receipt_id: String,
+    pub reference_ancestry_receipt_id: String,
+    pub common_cause_analysis_receipt_id: String,
+    pub verifier_receipt_id: String,
+    pub disposition: ClockSyncEvidenceDisposition,
+}
+
+impl ClockSyncAttestation {
+    fn validate_binding(
+        &self,
+        clock_domain: &str,
+        reference_clock_domain: &str,
+        pairs: &[ClockSyncPair],
+    ) -> Result<(), String> {
+        for (name, value) in [
+            ("attestation_id", self.attestation_id.as_str()),
+            ("reference_instrument_receipt_id", self.reference_instrument_receipt_id.as_str()),
+            ("reference_ancestry_receipt_id", self.reference_ancestry_receipt_id.as_str()),
+            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            ("verifier_receipt_id", self.verifier_receipt_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                return Err(format!("clock sync attestation field {name} is missing"));
+            }
+        }
+        if self.clock_domain != clock_domain
+            || self.reference_clock_domain != reference_clock_domain
+        {
+            return Err("clock sync attestation domain binding mismatch".to_owned());
+        }
+        if self.sync_pairs != pairs {
+            return Err("clock sync attestation does not bind the supplied synchronization pairs".to_owned());
+        }
+        if self.disposition != ClockSyncEvidenceDisposition::IndependentlyCharacterized {
+            return Err("clock synchronization ancestry/common-cause disposition is not independently characterized".to_owned());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize)]
@@ -31,6 +87,11 @@ pub struct ClockMapping {
     /// Maximum absolute sync-pair residual after affine fitting.
     pub maximum_fit_residual_ns: u64,
     pub sync_pair_count: usize,
+    pub sync_attestation_id: String,
+    pub reference_instrument_receipt_id: String,
+    pub reference_ancestry_receipt_id: String,
+    pub common_cause_analysis_receipt_id: String,
+    pub verifier_receipt_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -119,11 +180,13 @@ fn checked_i64(value: f64, field: &str) -> Result<i64, String> {
 /// `reference_time = reference_epoch + offset + delta * (1 + drift_ppb / 1e9)`
 ///
 /// Three or more synchronization pairs are required so residuals can be
-/// checked rather than simply fitting a line through two points.
+/// checked rather than simply fitting a line through two points. The exact
+/// pulse set must be bound to an independent-reference/common-cause attestation.
 pub fn fit_clock_mapping(
     clock_domain: &str,
     reference_clock_domain: &str,
     pairs: &[ClockSyncPair],
+    attestation: &ClockSyncAttestation,
 ) -> Result<ClockMapping, String> {
     if clock_domain.trim().is_empty() || reference_clock_domain.trim().is_empty() {
         return Err("clock domains must be nonempty".to_owned());
@@ -131,6 +194,7 @@ pub fn fit_clock_mapping(
     if clock_domain == reference_clock_domain {
         return Err("clock mapping source and reference domains must differ".to_owned());
     }
+    attestation.validate_binding(clock_domain, reference_clock_domain, pairs)?;
     if pairs.len() < 3 {
         return Err("at least three synchronization pairs are required".to_owned());
     }
@@ -194,6 +258,11 @@ pub fn fit_clock_mapping(
         drift_ppb,
         maximum_fit_residual_ns: maximum_fit_residual_ns as u64,
         sync_pair_count: pairs.len(),
+        sync_attestation_id: attestation.attestation_id.clone(),
+        reference_instrument_receipt_id: attestation.reference_instrument_receipt_id.clone(),
+        reference_ancestry_receipt_id: attestation.reference_ancestry_receipt_id.clone(),
+        common_cause_analysis_receipt_id: attestation.common_cause_analysis_receipt_id.clone(),
+        verifier_receipt_id: attestation.verifier_receipt_id.clone(),
     })
 }
 
@@ -443,6 +512,11 @@ mod tests {
             drift_ppb: 0,
             maximum_fit_residual_ns: 0,
             sync_pair_count: 3,
+            sync_attestation_id: "attestation:identity-sync".to_owned(),
+            reference_instrument_receipt_id: "receipt:identity-reference".to_owned(),
+            reference_ancestry_receipt_id: "receipt:identity-ancestry".to_owned(),
+            common_cause_analysis_receipt_id: "receipt:identity-common-cause".to_owned(),
+            verifier_receipt_id: "receipt:identity-verifier".to_owned(),
         }
     }
 
