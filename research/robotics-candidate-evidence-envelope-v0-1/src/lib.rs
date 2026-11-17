@@ -275,7 +275,11 @@ pub fn validate_candidate_envelope<'a>(
 
     validate_binding(&envelope.binding, &mut errors);
     validate_sha256(&envelope.binding_sha256, "binding_sha256", &mut errors);
-    validate_sha256(computed_binding_sha256, "computed_binding_sha256", &mut errors);
+    validate_sha256(
+        computed_binding_sha256,
+        "computed_binding_sha256",
+        &mut errors,
+    );
     if computed_binding_sha256 != envelope.binding_sha256 {
         errors.push(EnvelopeError::ComputedBindingDigestMismatch);
     }
@@ -300,7 +304,11 @@ pub fn validate_candidate_envelope<'a>(
         }
 
         validate_receipt_metadata(receipt, &mut errors);
-        validate_sha256(&receipt.binding_sha256, "receipt.binding_sha256", &mut errors);
+        validate_sha256(
+            &receipt.binding_sha256,
+            "receipt.binding_sha256",
+            &mut errors,
+        );
         validate_sha256(&receipt.result_sha256, "receipt.result_sha256", &mut errors);
         validate_sha256(
             &receipt.source_bundle_sha256,
@@ -337,18 +345,13 @@ pub fn validate_candidate_envelope<'a>(
 
         match receipt.domain {
             EvidenceDomain::GeometryCoverage => {
-                if !same_string_set(
-                    &receipt.covered_target_ids,
-                    &envelope.binding.target_ids,
-                ) {
+                if !same_string_set(&receipt.covered_target_ids, &envelope.binding.target_ids) {
                     errors.push(EnvelopeError::GeometryCoverageMismatch);
                 }
             }
             EvidenceDomain::SensorQuality | EvidenceDomain::Calibration => {
                 if !receipt.covered_target_ids.is_empty() {
-                    errors.push(EnvelopeError::UnexpectedReceiptTargetScope(
-                        receipt.domain,
-                    ));
+                    errors.push(EnvelopeError::UnexpectedReceiptTargetScope(receipt.domain));
                 }
             }
         }
@@ -501,10 +504,7 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
             binding.estimated_travel_distance_m,
             "estimated_travel_distance_m",
         ),
-        (
-            binding.estimated_travel_time_s,
-            "estimated_travel_time_s",
-        ),
+        (binding.estimated_travel_time_s, "estimated_travel_time_s"),
         (
             binding.estimated_acquisition_time_s,
             "estimated_acquisition_time_s",
@@ -522,9 +522,7 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
     {
         errors.push(EnvelopeError::InvalidNumericValue("position"));
     }
-    if !(-std::f64::consts::PI..=std::f64::consts::PI)
-        .contains(&binding.view_angle_rad)
-    {
+    if !(-std::f64::consts::PI..=std::f64::consts::PI).contains(&binding.view_angle_rad) {
         errors.push(EnvelopeError::InvalidNumericValue("view_angle_rad"));
     }
     if binding.estimated_travel_distance_m < 0.0
@@ -534,8 +532,7 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
             "estimated_travel_distance_m",
         ));
     }
-    if binding.estimated_travel_time_s < 0.0
-        || binding.estimated_travel_time_s > MAX_RESOURCE_VALUE
+    if binding.estimated_travel_time_s < 0.0 || binding.estimated_travel_time_s > MAX_RESOURCE_VALUE
     {
         errors.push(EnvelopeError::InvalidNumericValue(
             "estimated_travel_time_s",
@@ -548,9 +545,7 @@ fn validate_binding(binding: &CandidateBinding, errors: &mut Vec<EnvelopeError>)
             "estimated_acquisition_time_s",
         ));
     }
-    if binding.estimated_energy_wh < 0.0
-        || binding.estimated_energy_wh > MAX_RESOURCE_VALUE
-    {
+    if binding.estimated_energy_wh < 0.0 || binding.estimated_energy_wh > MAX_RESOURCE_VALUE {
         errors.push(EnvelopeError::InvalidNumericValue("estimated_energy_wh"));
     }
     if binding.risk_penalty_s < 0.0 || binding.risk_penalty_s > MAX_RESOURCE_VALUE {
@@ -589,10 +584,7 @@ fn validate_optional_validity(
     }
 }
 
-fn validity_covers_acquisition(
-    receipt: &EvidenceReceipt,
-    binding: &CandidateBinding,
-) -> bool {
+fn validity_covers_acquisition(receipt: &EvidenceReceipt, binding: &CandidateBinding) -> bool {
     matches!(
         (receipt.valid_from_ns, receipt.valid_until_ns),
         (Some(start), Some(end))
@@ -767,7 +759,10 @@ mod tests {
         value.receipts[1].status = EvidenceStatus::NotQualified;
         let result = validate_candidate_envelope(&value, A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::NotQualified);
-        assert_eq!(result.assessment().non_qualified_domains, vec![EvidenceDomain::SensorQuality]);
+        assert_eq!(
+            result.assessment().non_qualified_domains,
+            vec![EvidenceDomain::SensorQuality]
+        );
     }
 
     #[test]
@@ -785,7 +780,10 @@ mod tests {
         value.receipts[2].status = EvidenceStatus::InvalidEvidence;
         let result = validate_candidate_envelope(&value, A).unwrap();
         assert_eq!(result.eligibility(), CandidateEligibility::InvalidEvidence);
-        assert_eq!(result.assessment().invalid_domains, vec![EvidenceDomain::Calibration]);
+        assert_eq!(
+            result.assessment().invalid_domains,
+            vec![EvidenceDomain::Calibration]
+        );
     }
 
     #[test]
@@ -805,48 +803,58 @@ mod tests {
     fn receipt_timebase_must_match_candidate_binding() {
         let mut value = envelope();
         value.receipts[0].timebase_revision = "other-clock-revision".to_owned();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::ReceiptTimebaseMismatch(
-                EvidenceDomain::GeometryCoverage
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::ReceiptTimebaseMismatch(
+                    EvidenceDomain::GeometryCoverage
+                ))
+        );
     }
 
     #[test]
     fn unsupported_schema_is_rejected() {
         let mut value = envelope();
         value.schema_version = "robotics-candidate-evidence-envelope/v9".to_owned();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::UnsupportedSchemaVersion));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::UnsupportedSchemaVersion)
+        );
     }
 
     #[test]
     fn externally_computed_binding_digest_must_match_envelope_commitment() {
         let value = envelope();
-        assert!(validate_candidate_envelope(&value, B)
-            .unwrap_err()
-            .contains(&EnvelopeError::ComputedBindingDigestMismatch));
+        assert!(
+            validate_candidate_envelope(&value, B)
+                .unwrap_err()
+                .contains(&EnvelopeError::ComputedBindingDigestMismatch)
+        );
     }
 
     #[test]
     fn receipt_binding_digest_must_match_exact_candidate_context() {
         let mut value = envelope();
         value.receipts[0].binding_sha256 = B.to_owned();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::BindingDigestMismatch(
-                EvidenceDomain::GeometryCoverage
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::BindingDigestMismatch(
+                    EvidenceDomain::GeometryCoverage
+                ))
+        );
     }
 
     #[test]
     fn geometry_receipt_must_cover_exact_declared_targets() {
         let mut value = envelope();
         value.receipts[0].covered_target_ids.pop();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::GeometryCoverageMismatch));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::GeometryCoverageMismatch)
+        );
     }
 
     #[test]
@@ -866,119 +874,143 @@ mod tests {
         value.receipts[1]
             .covered_target_ids
             .push("module-01".to_owned());
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::UnexpectedReceiptTargetScope(
-                EvidenceDomain::SensorQuality
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::UnexpectedReceiptTargetScope(
+                    EvidenceDomain::SensorQuality
+                ))
+        );
     }
 
     #[test]
     fn calibration_validity_must_cover_the_whole_acquisition_interval() {
         let mut value = envelope();
         value.receipts[2].valid_from_ns = Some(1_500);
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::CalibrationNotValidForAcquisition));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::CalibrationNotValidForAcquisition)
+        );
     }
 
     #[test]
     fn geometry_result_must_be_issued_after_acquisition() {
         let mut value = envelope();
         value.receipts[0].issued_at_ns = 1_999;
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::ReceiptIssuedBeforeAcquisition(
-                EvidenceDomain::GeometryCoverage
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::ReceiptIssuedBeforeAcquisition(
+                    EvidenceDomain::GeometryCoverage
+                ))
+        );
     }
 
     #[test]
     fn all_required_evidence_domains_must_be_present() {
         let mut value = envelope();
         value.receipts.pop();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::UnexpectedReceiptCount));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::UnexpectedReceiptCount)
+        );
     }
 
     #[test]
     fn duplicate_receipt_domains_are_rejected() {
         let mut value = envelope();
         value.receipts[1].domain = EvidenceDomain::GeometryCoverage;
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::DuplicateReceiptDomain(
-                EvidenceDomain::GeometryCoverage
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::DuplicateReceiptDomain(
+                    EvidenceDomain::GeometryCoverage
+                ))
+        );
     }
 
     #[test]
     fn duplicate_receipt_ids_are_rejected() {
         let mut value = envelope();
         value.receipts[1].record_id = value.receipts[0].record_id.clone();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::DuplicateReceiptId(
-                "geometry-record-01".to_owned()
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::DuplicateReceiptId(
+                    "geometry-record-01".to_owned()
+                ))
+        );
     }
 
     #[test]
     fn duplicate_result_digests_are_rejected() {
         let mut value = envelope();
         value.receipts[1].result_sha256 = value.receipts[0].result_sha256.clone();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .iter()
-            .any(|error| matches!(error, EnvelopeError::DuplicateResultDigest(_))));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .iter()
+                .any(|error| matches!(error, EnvelopeError::DuplicateResultDigest(_)))
+        );
     }
 
     #[test]
     fn source_bundle_must_match_bound_observation_or_calibration() {
         let mut value = envelope();
         value.receipts[1].source_bundle_sha256 = A.to_owned();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::SourceBundleMismatch(
-                EvidenceDomain::SensorQuality
-            )));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::SourceBundleMismatch(
+                    EvidenceDomain::SensorQuality
+                ))
+        );
     }
 
     #[test]
     fn non_finite_coordinates_are_rejected() {
         let mut value = envelope();
         value.binding.position_u_m = f64::NAN;
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::InvalidNumericValue("position_u_m")));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::InvalidNumericValue("position_u_m"))
+        );
     }
 
     #[test]
     fn invalid_acquisition_interval_is_rejected() {
         let mut value = envelope();
         value.binding.acquisition_end_ns = value.binding.acquisition_start_ns;
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::InvalidAcquisitionInterval));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::InvalidAcquisitionInterval)
+        );
     }
 
     #[test]
     fn malformed_digest_is_rejected() {
         let mut value = envelope();
         value.binding.calibration_bundle_sha256 = "not-a-digest".to_owned();
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::MalformedSha256("calibration_bundle_sha256")));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::MalformedSha256("calibration_bundle_sha256"))
+        );
     }
 
     #[test]
     fn duplicate_target_ids_are_rejected() {
         let mut value = envelope();
         value.binding.target_ids.push("module-01".to_owned());
-        assert!(validate_candidate_envelope(&value, A)
-            .unwrap_err()
-            .contains(&EnvelopeError::DuplicateTarget("module-01".to_owned())));
+        assert!(
+            validate_candidate_envelope(&value, A)
+                .unwrap_err()
+                .contains(&EnvelopeError::DuplicateTarget("module-01".to_owned()))
+        );
     }
 
     #[test]
