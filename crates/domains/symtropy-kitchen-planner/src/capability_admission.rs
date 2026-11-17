@@ -681,13 +681,14 @@ pub fn evaluate_kitchen_capability_admission(
         );
     }
 
-    match recipe_graph_to_kitchen_plan(&request.recipe) {
-        Ok(mapped_plan) if request.power_plan.plan != mapped_plan => add_issue(
+    let power_plan_mismatch = recipe_graph_to_kitchen_plan(&request.recipe)
+        .is_ok_and(|mapped_plan| request.power_plan.plan != mapped_plan);
+    if power_plan_mismatch {
+        add_issue(
             &mut request_issues,
             KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch,
             "power plan tasks and scheduling fields must exactly equal the recipe graph's mapped plan",
-        ),
-        _ => {}
+        );
     }
 
     let power_report = validate_power_envelope(&request.power_plan, &request.schedule);
