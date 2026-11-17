@@ -620,3 +620,9 @@ A separate exploratory coupon programme is now tracked in [issue #5771](https://
 The truss reference now includes a separate audit of global force resultant, global moment resultant and the linear strain-energy / half-external-work identity. Mass-normalized receipts include these diagnostics plus a deterministic input digest. The digest is explicitly non-cryptographic and is not an evidence seal.
 
 The next solver issue (#5768) has begun with an isolated 12-DOF 3D Euler-Bernoulli beam element kernel: axial/torsion/two-plane bending stiffness and local/global transformation, including a closed-form cantilever fixture. It is not yet a global frame solver or global buckling model. The issue remains open for assembly, rotational connector stiffness, eigenvalue stability and independent solver comparison.
+
+### Frozen benchmark protocol and first comparison result to reproduce
+
+The comparison rules are now versioned in research/ffmfe-benchmark/PROTOCOL_V1.md. The protocol separates evidence levels L0-L7, member-only and installed-system mass, baseline families, search budgets, hold-outs, statistical reporting and evidence receipts.
+
+The first matched-mass tetrahedron vs. interior-hub scratch calculation is recorded in [issue #5808](https://github.com/Luminous-Dynamics/symtropy/issues/5808) for reproduction with the Rust evaluator and an independent solver. It is a single ideal axial-truss case and not a generalized topology conclusion.
