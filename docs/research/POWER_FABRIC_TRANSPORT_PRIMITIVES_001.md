@@ -71,8 +71,8 @@ Batteries, flow-battery electrolytes, thermal stores, chemical stores and mobile
 
 These are testable hypotheses, not established advantages.
 
-### H1 — direct-to-load wireless energy conversion
-Where the actual load needs torque, heat or optical output, test whether wireless reception can drive that service directly and avoid intermediate battery/supercapacitor storage and unnecessary electrical conversion. The 2026 *Nature Reviews Electrical Engineering* review identifies wireless energy conversion to mechanical, thermal and optical loads as an emerging direction. The comparison must charge receiver complexity, controllability, efficiency, service quality and safety.
+### H1 — direct-to-load wireless energy conversion (existing owner: #3680)
+Compose [WPT-DIRECT-CONVERSION-001](https://github.com/Luminous-Dynamics/symtropy/issues/3680), which already owns this research frontier, its EnergyService contract and matched wired / wireless / storage-mediated comparisons. #5832 must integrate its service semantics into the broader transport taxonomy rather than create a second direct-conversion programme. The 2026 *Nature Reviews Electrical Engineering* review identifies wireless energy conversion to mechanical, thermal and optical loads as an emerging direction. Any advantage must include receiver complexity, controllability, efficiency, service quality and safety.
 
 ### H2 — subsea acoustic energy service
 Explore acoustic/ultrasonic charging for autonomous underwater vehicles and long-lived ocean sensor nodes where a connector-free wet interface has operational value. A 2025 prototype reported 2.5 W transmitter input, 433 mW received power at 35 cm and 17% under its stated conditions. A 2026 study examined a 40 kHz cavitation-constrained acoustic transmit ceiling of 6.76 W under a modeled seawater condition. These are distinct evidence types and must not be combined into one demonstrated performance claim.
