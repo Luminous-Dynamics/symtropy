@@ -109,7 +109,6 @@ impl OperatingDomainCell {
         }
         for (name, value) in [
             ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
-            ("sensor_identity_digest", self.sensor_identity_digest.as_str()),
             ("sensorized_body_context_digest", self.sensorized_body_context_digest.as_str()),
             ("readout_chain_digest", self.readout_chain_digest.as_str()),
             ("material_profile_digest", self.material_profile_digest.as_str()),
@@ -475,7 +474,6 @@ mod tests {
             contact_velocity_mm_per_s: NumericRange { minimum: 0.0, maximum: 100.0 },
             contact_radius_mm: NumericRange { minimum: 1.0, maximum: 20.0 },
             sensor_identity_digest: "sha256:sensor-article".to_owned(),
-            sensor_identity_digest: "sha256:sensor-article".to_owned(),
             sensorized_body_context_digest: "sha256:body".to_owned(),
             readout_chain_digest: "sha256:readout".to_owned(),
             material_profile_digest: "sha256:material".to_owned(),
@@ -507,6 +505,7 @@ mod tests {
             loading_rate_n_per_s: Some(4.0),
             contact_velocity_mm_per_s: Some(20.0),
             contact_radius_mm: Some(5.0),
+            sensor_identity_digest: "sha256:sensor-article".to_owned(),
             sensorized_body_context_digest: "sha256:body".to_owned(),
             readout_chain_digest: "sha256:readout".to_owned(),
             material_profile_digest: "sha256:material".to_owned(),
