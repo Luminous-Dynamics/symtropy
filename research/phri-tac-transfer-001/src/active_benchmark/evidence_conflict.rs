@@ -200,15 +200,27 @@ fn validate_source(
         ("source_id", source.source_id.as_str()),
         ("modality", source.modality.as_str()),
         ("interaction_event_id", source.interaction_event_id.as_str()),
-        ("raw_observation_digest", source.raw_observation_digest.as_str()),
+        (
+            "raw_observation_digest",
+            source.raw_observation_digest.as_str(),
+        ),
         ("sample_identity", source.sample_identity.as_str()),
         ("clock_domain", source.clock_domain.as_str()),
-        ("sensor_article_digest", source.sensor_article_digest.as_str()),
+        (
+            "sensor_article_digest",
+            source.sensor_article_digest.as_str(),
+        ),
         ("readout_chain_digest", source.readout_chain_digest.as_str()),
         ("body_context_digest", source.body_context_digest.as_str()),
-        ("operating_envelope_cell_id", source.operating_envelope_cell_id.as_str()),
+        (
+            "operating_envelope_cell_id",
+            source.operating_envelope_cell_id.as_str(),
+        ),
         ("causal_group_id", source.causal_group_id.as_str()),
-        ("reference_ancestry_receipt_id", source.reference_ancestry_receipt_id.as_str()),
+        (
+            "reference_ancestry_receipt_id",
+            source.reference_ancestry_receipt_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(format!("modality source field {name} is missing"));
@@ -217,11 +229,17 @@ fn validate_source(
     if source.interaction_event_id != request.interaction_event_id
         || source.body_context_digest != request.body_context_digest
     {
-        return Err(format!("source {} does not bind the requested interaction/body context", source.source_id));
+        return Err(format!(
+            "source {} does not bind the requested interaction/body context",
+            source.source_id
+        ));
     }
     source.mass.validate(1.0e-9)?;
     if !source.channel_qualified || !source.observable || source.saturated {
-        return Err(format!("source {} is unqualified, unobservable or saturated", source.source_id));
+        return Err(format!(
+            "source {} is unqualified, unobservable or saturated",
+            source.source_id
+        ));
     }
     Ok(())
 }
@@ -268,8 +286,14 @@ fn validate_pair_attestation(
     let attestation = matching[0];
     for (name, value) in [
         ("attestation_id", attestation.attestation_id.as_str()),
-        ("common_cause_analysis_receipt_id", attestation.common_cause_analysis_receipt_id.as_str()),
-        ("verifier_receipt_id", attestation.verifier_receipt_id.as_str()),
+        (
+            "common_cause_analysis_receipt_id",
+            attestation.common_cause_analysis_receipt_id.as_str(),
+        ),
+        (
+            "verifier_receipt_id",
+            attestation.verifier_receipt_id.as_str(),
+        ),
     ] {
         if value.trim().is_empty() {
             return Err((
@@ -429,11 +453,8 @@ pub fn assess_evidence_fusion(request: &EvidenceFusionRequest) -> EvidenceFusion
     let mut unconditional = request.modalities[0].mass;
     let mut cumulative_conflict = 0.0;
     for source in request.modalities.iter().skip(1) {
-        let (conflict, combined) = dempster_combine(
-            unconditional,
-            source.mass,
-            request.normalization_epsilon,
-        );
+        let (conflict, combined) =
+            dempster_combine(unconditional, source.mass, request.normalization_epsilon);
         cumulative_conflict = 1.0 - (1.0 - cumulative_conflict) * (1.0 - conflict);
         let Some(combined) = combined else {
             unconditional = MassAssignment {
@@ -548,19 +569,37 @@ mod tests {
     fn mass(state: usize, confidence: f64, ignorance: f64) -> MassAssignment {
         let mut singleton = [0.0; CONTACT_STATE_COUNT];
         singleton[state] = confidence;
-        MassAssignment { singleton, ignorance }
+        MassAssignment {
+            singleton,
+            ignorance,
+        }
     }
 
     #[test]
     fn independent_agreement_combines_and_preserves_ignorance() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.8, 0.2), 10_000, "physical-pressure");
-        let right = modality("vibration", "imu", mass(1, 0.7, 0.3), 10_100, "mechanical-vibration");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.8, 0.2),
+            10_000,
+            "physical-pressure",
+        );
+        let right = modality(
+            "vibration",
+            "imu",
+            mass(1, 0.7, 0.3),
+            10_100,
+            "mechanical-vibration",
+        );
         let report = assess_evidence_fusion(&request(
             left,
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::SafelyCombined);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::SafelyCombined
+        );
         assert_eq!(report.maximum_pairwise_conflict, Some(0.0));
         let combined = report.safe_combined_mass.unwrap();
         assert!((combined.singleton[1] - 0.94).abs() < 1.0e-12);
@@ -569,8 +608,20 @@ mod tests {
 
     #[test]
     fn high_disagreement_abstains_before_normalized_dempster_output_is_admitted() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.95, 0.05), 10_000, "physical-pressure");
-        let right = modality("vibration", "imu", mass(3, 0.95, 0.05), 10_100, "mechanical-vibration");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.95, 0.05),
+            10_000,
+            "physical-pressure",
+        );
+        let right = modality(
+            "vibration",
+            "imu",
+            mass(3, 0.95, 0.05),
+            10_100,
+            "mechanical-vibration",
+        );
         let report = assess_evidence_fusion(&request(
             left,
             right,
@@ -587,14 +638,29 @@ mod tests {
 
     #[test]
     fn total_conflict_never_yields_a_primary_fused_state() {
-        let left = modality("pressure", "barometric-array", mass(1, 1.0, 0.0), 10_000, "physical-pressure");
-        let right = modality("vibration", "imu", mass(3, 1.0, 0.0), 10_100, "mechanical-vibration");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 1.0, 0.0),
+            10_000,
+            "physical-pressure",
+        );
+        let right = modality(
+            "vibration",
+            "imu",
+            mass(3, 1.0, 0.0),
+            10_100,
+            "mechanical-vibration",
+        );
         let report = assess_evidence_fusion(&request(
             left,
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::ConflictTriggeredAbstention);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::ConflictTriggeredAbstention
+        );
         assert_eq!(report.maximum_pairwise_conflict, Some(1.0));
         assert!(report.safe_combined_mass.is_none());
         assert!(report.unconditional_dempster_comparator.is_none());
@@ -602,20 +668,41 @@ mod tests {
 
     #[test]
     fn shared_common_cause_or_same_readout_cannot_be_fused_as_independent() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.8, 0.2), 10_000, "shared-readout");
-        let right = modality("vibration", "imu", mass(1, 0.8, 0.2), 10_100, "shared-readout");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.8, 0.2),
+            10_000,
+            "shared-readout",
+        );
+        let right = modality(
+            "vibration",
+            "imu",
+            mass(1, 0.8, 0.2),
+            10_100,
+            "shared-readout",
+        );
         let report = assess_evidence_fusion(&request(
             left,
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::DependenceUnresolved);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::DependenceUnresolved
+        );
         assert!(report.safe_combined_mass.is_none());
     }
 
     #[test]
     fn missing_or_unresolved_pair_attestation_fails_closed() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.8, 0.2), 10_000, "pressure");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.8, 0.2),
+            10_000,
+            "pressure",
+        );
         let right = modality("vibration", "imu", mass(1, 0.8, 0.2), 10_100, "vibration");
         let mut unresolved = request(
             left.clone(),
@@ -636,20 +723,41 @@ mod tests {
 
     #[test]
     fn asynchronous_modalities_are_not_fused_without_event_time_alignment() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.8, 0.2), 10_000, "pressure");
-        let right = modality("vibration", "imu", mass(1, 0.8, 0.2), 50_000_000, "vibration");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.8, 0.2),
+            10_000,
+            "pressure",
+        );
+        let right = modality(
+            "vibration",
+            "imu",
+            mass(1, 0.8, 0.2),
+            50_000_000,
+            "vibration",
+        );
         let report = assess_evidence_fusion(&request(
             left,
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::TemporallyUnresolved);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::TemporallyUnresolved
+        );
         assert!(report.safe_combined_mass.is_none());
     }
 
     #[test]
     fn saturated_or_unqualified_modality_cannot_contribute_mass() {
-        let left = modality("pressure", "barometric-array", mass(1, 0.8, 0.2), 10_000, "pressure");
+        let left = modality(
+            "pressure",
+            "barometric-array",
+            mass(1, 0.8, 0.2),
+            10_000,
+            "pressure",
+        );
         let mut right = modality("vibration", "imu", mass(1, 0.8, 0.2), 10_100, "vibration");
         right.saturated = true;
         let report = assess_evidence_fusion(&request(
@@ -657,7 +765,10 @@ mod tests {
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::InvalidEvidence);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::InvalidEvidence
+        );
     }
 
     #[test]
@@ -678,6 +789,9 @@ mod tests {
             right,
             EvidenceIndependenceDisposition::IndependentlyVerified,
         ));
-        assert_eq!(report.disposition, EvidenceFusionDisposition::InvalidEvidence);
+        assert_eq!(
+            report.disposition,
+            EvidenceFusionDisposition::InvalidEvidence
+        );
     }
 }

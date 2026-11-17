@@ -11,13 +11,13 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
+pub mod contact_mechanics;
 pub mod coupling_campaign;
 pub mod coupling_identification;
-pub mod contact_mechanics;
+pub mod evidence_conflict;
 pub mod field_campaign;
 pub mod field_reconstruction;
 pub mod hysteresis_identifiability;
-pub mod evidence_conflict;
 pub mod model_forms;
 pub mod observability_design;
 pub mod operating_envelope;

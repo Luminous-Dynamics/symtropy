@@ -106,15 +106,16 @@ fn validate_model(model: SyntheticHysteresisModel) -> Result<(), String> {
         || !model.dwell_offset_response_units.is_finite()
         || model.dwell_offset_response_units < 0.0
     {
-        return Err("hysteresis model gain must be positive and finite; offsets finite and nonnegative".to_owned());
+        return Err(
+            "hysteresis model gain must be positive and finite; offsets finite and nonnegative"
+                .to_owned(),
+        );
     }
     Ok(())
 }
 
 fn direction_from_history(history: &CausalHistoryState) -> Result<LoadingDirection, HistoryError> {
-    if !history.dwell_fraction.is_finite()
-        || !(0.0..=1.0).contains(&history.dwell_fraction)
-    {
+    if !history.dwell_fraction.is_finite() || !(0.0..=1.0).contains(&history.dwell_fraction) {
         return Err(HistoryError::InvalidDwell);
     }
     if history.history_trace_digest.trim().is_empty()
@@ -302,16 +303,20 @@ pub fn run_hysteresis_identifiability_campaign(
     for replicate in 0..replicate_count {
         let trial = make_paired_trial(first_seed + replicate as u64)?;
         if (trial.loading_raw_response - trial.unloading_raw_response).abs() > 1.0e-10 {
-            return Err("known-answer hysteresis pair failed to collide in raw observation space".to_owned());
+            return Err(
+                "known-answer hysteresis pair failed to collide in raw observation space"
+                    .to_owned(),
+            );
         }
         if (trial.loading_force_n - trial.unloading_force_n).abs() <= 1.0e-8 {
-            return Err("known-answer hysteresis pair did not preserve distinct force labels".to_owned());
+            return Err(
+                "known-answer hysteresis pair did not preserve distinct force labels".to_owned(),
+            );
         }
         collisions += 1;
         force_separation += (trial.unloading_force_n - trial.loading_force_n).abs();
 
-        let static_loading =
-            static_single_frame_inverse(trial.model, trial.loading_raw_response)?;
+        let static_loading = static_single_frame_inverse(trial.model, trial.loading_raw_response)?;
         let static_unloading =
             static_single_frame_inverse(trial.model, trial.unloading_raw_response)?;
         static_squared_error += (static_loading - trial.loading_force_n).powi(2);
@@ -332,7 +337,10 @@ pub fn run_hysteresis_identifiability_campaign(
             (history_unloading, trial.unloading_force_n),
         ] {
             if report.disposition != HistoryInverseDisposition::RecoveredWithQualifiedHistory {
-                return Err("known causal history was not admitted by history-conditioned inverse".to_owned());
+                return Err(
+                    "known causal history was not admitted by history-conditioned inverse"
+                        .to_owned(),
+                );
             }
             let estimate = report
                 .estimated_force_n
@@ -402,10 +410,10 @@ mod tests {
         );
         let loading_force = 10.0;
         let raw = forward_response(model, loading_force, &loading).unwrap();
-        let unloading_force =
-            (raw + model.branch_offset_response_units
-                + model.dwell_offset_response_units * unloading.dwell_fraction)
-                / model.gain_response_units_per_n;
+        let unloading_force = (raw
+            + model.branch_offset_response_units
+            + model.dwell_offset_response_units * unloading.dwell_fraction)
+            / model.gain_response_units_per_n;
         let unloading_raw = forward_response(model, unloading_force, &unloading).unwrap();
         assert!((raw - unloading_raw).abs() < 1.0e-12);
         assert!((loading_force - unloading_force).abs() > 1.0);
@@ -418,14 +426,24 @@ mod tests {
     #[test]
     fn causal_history_resolves_the_force_ambiguity() {
         let model = model();
-        let loading = history(HysteresisPhase::Loading, Some(LoadingDirection::Loading), 0.2, "load");
-        let unloading = history(HysteresisPhase::Unloading, Some(LoadingDirection::Unloading), 0.6, "unload");
+        let loading = history(
+            HysteresisPhase::Loading,
+            Some(LoadingDirection::Loading),
+            0.2,
+            "load",
+        );
+        let unloading = history(
+            HysteresisPhase::Unloading,
+            Some(LoadingDirection::Unloading),
+            0.6,
+            "unload",
+        );
         let force_load = 10.0;
         let raw = forward_response(model, force_load, &loading).unwrap();
-        let force_unload =
-            (raw + model.branch_offset_response_units
-                + model.dwell_offset_response_units * unloading.dwell_fraction)
-                / model.gain_response_units_per_n;
+        let force_unload = (raw
+            + model.branch_offset_response_units
+            + model.dwell_offset_response_units * unloading.dwell_fraction)
+            / model.gain_response_units_per_n;
         let report_load = history_conditioned_inverse(model, raw, &loading);
         let report_unload = history_conditioned_inverse(model, raw, &unloading);
         assert!((report_load.estimated_force_n.unwrap() - force_load).abs() < 1.0e-10);
@@ -436,16 +454,30 @@ mod tests {
     fn missing_or_invalid_history_abstains_instead_of_using_static_fallback() {
         let unknown = history(HysteresisPhase::Unknown, None, 0.5, "unknown");
         let report = history_conditioned_inverse(model(), 1.4, &unknown);
-        assert_eq!(report.disposition, HistoryInverseDisposition::AbstainHistoryUnresolved);
+        assert_eq!(
+            report.disposition,
+            HistoryInverseDisposition::AbstainHistoryUnresolved
+        );
         assert!(report.estimated_force_n.is_none());
 
         let missing_direction = history(HysteresisPhase::Holding, None, 0.5, "hold");
         let report = history_conditioned_inverse(model(), 1.4, &missing_direction);
-        assert_eq!(report.disposition, HistoryInverseDisposition::AbstainHistoryUnresolved);
+        assert_eq!(
+            report.disposition,
+            HistoryInverseDisposition::AbstainHistoryUnresolved
+        );
 
-        let bad_dwell = history(HysteresisPhase::Loading, Some(LoadingDirection::Loading), 1.5, "bad-dwell");
+        let bad_dwell = history(
+            HysteresisPhase::Loading,
+            Some(LoadingDirection::Loading),
+            1.5,
+            "bad-dwell",
+        );
         let report = history_conditioned_inverse(model(), 1.4, &bad_dwell);
-        assert_eq!(report.disposition, HistoryInverseDisposition::AbstainHistoryUnresolved);
+        assert_eq!(
+            report.disposition,
+            HistoryInverseDisposition::AbstainHistoryUnresolved
+        );
     }
 
     #[test]

@@ -195,7 +195,12 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
-fn row_space_basis(matrix: &[f64], row_count: usize, column_count: usize, tolerance: f64) -> Vec<Vec<f64>> {
+fn row_space_basis(
+    matrix: &[f64],
+    row_count: usize,
+    column_count: usize,
+    tolerance: f64,
+) -> Vec<Vec<f64>> {
     let mut basis: Vec<Vec<f64>> = Vec::with_capacity(row_count.min(column_count));
     for row_index in 0..row_count {
         let start = row_index * column_count;
@@ -229,7 +234,12 @@ fn row_space_basis(matrix: &[f64], row_count: usize, column_count: usize, tolera
     basis
 }
 
-fn scalar_estimable(basis: &[Vec<f64>], parameter_index: usize, parameter_count: usize, tolerance: f64) -> bool {
+fn scalar_estimable(
+    basis: &[Vec<f64>],
+    parameter_index: usize,
+    parameter_count: usize,
+    tolerance: f64,
+) -> bool {
     let mut projected = vec![0.0; parameter_count];
     for direction in basis {
         let coefficient = direction[parameter_index];
@@ -261,14 +271,20 @@ fn validate_geometry(geometry: &TaxelGeometrySet) -> Result<(), String> {
             return Err("taxel IDs must be nonempty and unique".to_owned());
         }
         if !taxel.area_m2.is_finite() || taxel.area_m2 <= 0.0 {
-            return Err(format!("taxel {} area must be finite and positive", taxel.taxel_id));
+            return Err(format!(
+                "taxel {} area must be finite and positive",
+                taxel.taxel_id
+            ));
         }
         if !taxel.application_point_m.is_finite()
             || !taxel.normal.is_finite()
             || !taxel.tangent_u.is_finite()
             || !taxel.tangent_v.is_finite()
         {
-            return Err(format!("taxel {} geometry contains non-finite values", taxel.taxel_id));
+            return Err(format!(
+                "taxel {} geometry contains non-finite values",
+                taxel.taxel_id
+            ));
         }
         let tolerance = 1.0e-6;
         if (taxel.normal.norm() - 1.0).abs() > tolerance
@@ -278,11 +294,21 @@ fn validate_geometry(geometry: &TaxelGeometrySet) -> Result<(), String> {
             || taxel.normal.dot(taxel.tangent_v).abs() > tolerance
             || taxel.tangent_u.dot(taxel.tangent_v).abs() > tolerance
         {
-            return Err(format!("taxel {} local basis must be orthonormal and unit length", taxel.taxel_id));
+            return Err(format!(
+                "taxel {} local basis must be orthonormal and unit length",
+                taxel.taxel_id
+            ));
         }
-        let handedness_error = taxel.tangent_u.cross(taxel.tangent_v).subtract(taxel.normal).norm();
+        let handedness_error = taxel
+            .tangent_u
+            .cross(taxel.tangent_v)
+            .subtract(taxel.normal)
+            .norm();
         if handedness_error > tolerance {
-            return Err(format!("taxel {} local basis is not right-handed (u × v must equal normal)", taxel.taxel_id));
+            return Err(format!(
+                "taxel {} local basis is not right-handed (u × v must equal normal)",
+                taxel.taxel_id
+            ));
         }
     }
     Ok(())
@@ -320,7 +346,11 @@ pub fn build_wrench_operator(geometry: &TaxelGeometrySet) -> Result<WrenchOperat
         geometry_digest: geometry.geometry_digest.clone(),
         reference_frame_digest: geometry.reference_frame_digest.clone(),
         contact_boundary_digest: geometry.contact_boundary_digest.clone(),
-        taxel_ids: geometry.taxels.iter().map(|taxel| taxel.taxel_id.clone()).collect(),
+        taxel_ids: geometry
+            .taxels
+            .iter()
+            .map(|taxel| taxel.taxel_id.clone())
+            .collect(),
         parameter_count,
         coefficients,
     })
@@ -336,7 +366,9 @@ fn validate_operator(operator: &WrenchOperator) -> Result<(), String> {
         || operator.reference_frame_digest.trim().is_empty()
         || operator.contact_boundary_digest.trim().is_empty()
     {
-        return Err("wrench operator dimensions, coefficients or context digests are invalid".to_owned());
+        return Err(
+            "wrench operator dimensions, coefficients or context digests are invalid".to_owned(),
+        );
     }
     Ok(())
 }
@@ -346,7 +378,10 @@ fn validate_field(operator: &WrenchOperator, local_traction_pa: &[f64]) -> Resul
     if local_traction_pa.len() != operator.parameter_count
         || local_traction_pa.iter().any(|value| !value.is_finite())
     {
-        return Err("local traction field must contain exactly three finite Pa components per taxel".to_owned());
+        return Err(
+            "local traction field must contain exactly three finite Pa components per taxel"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -365,8 +400,16 @@ pub fn integrate_tactile_field(
         );
     }
     Ok(WrenchVector {
-        force_n: Vec3 { x: values[0], y: values[1], z: values[2] },
-        moment_nm: Vec3 { x: values[3], y: values[4], z: values[5] },
+        force_n: Vec3 {
+            x: values[0],
+            y: values[1],
+            z: values[2],
+        },
+        moment_nm: Vec3 {
+            x: values[3],
+            y: values[4],
+            z: values[5],
+        },
     })
 }
 
@@ -378,14 +421,35 @@ impl WrenchReferenceEvidence {
         wrench_observation_digest: &str,
     ) -> Result<(), String> {
         for (name, value) in [
-            ("native_observation_set_digest", self.native_observation_set_digest.as_str()),
-            ("wrench_observation_digest", self.wrench_observation_digest.as_str()),
+            (
+                "native_observation_set_digest",
+                self.native_observation_set_digest.as_str(),
+            ),
+            (
+                "wrench_observation_digest",
+                self.wrench_observation_digest.as_str(),
+            ),
             ("sample_identity", self.sample_identity.as_str()),
-            ("reference_frame_digest", self.reference_frame_digest.as_str()),
-            ("contact_boundary_digest", self.contact_boundary_digest.as_str()),
-            ("reference_instrument_receipt_id", self.reference_instrument_receipt_id.as_str()),
-            ("reference_ancestry_receipt_id", self.reference_ancestry_receipt_id.as_str()),
-            ("common_cause_analysis_receipt_id", self.common_cause_analysis_receipt_id.as_str()),
+            (
+                "reference_frame_digest",
+                self.reference_frame_digest.as_str(),
+            ),
+            (
+                "contact_boundary_digest",
+                self.contact_boundary_digest.as_str(),
+            ),
+            (
+                "reference_instrument_receipt_id",
+                self.reference_instrument_receipt_id.as_str(),
+            ),
+            (
+                "reference_ancestry_receipt_id",
+                self.reference_ancestry_receipt_id.as_str(),
+            ),
+            (
+                "common_cause_analysis_receipt_id",
+                self.common_cause_analysis_receipt_id.as_str(),
+            ),
             ("verifier_receipt_id", self.verifier_receipt_id.as_str()),
         ] {
             if value.trim().is_empty() {
@@ -395,23 +459,37 @@ impl WrenchReferenceEvidence {
         if self.reference_frame_digest != operator.reference_frame_digest
             || self.contact_boundary_digest != operator.contact_boundary_digest
         {
-            return Err("wrench reference frame/contact boundary does not match the geometry operator".to_owned());
+            return Err(
+                "wrench reference frame/contact boundary does not match the geometry operator"
+                    .to_owned(),
+            );
         }
         if self.native_observation_set_digest != native_observation_set_digest
             || self.wrench_observation_digest != wrench_observation_digest
         {
-            return Err("wrench evidence does not bind the exact native and wrench observation sets".to_owned());
+            return Err(
+                "wrench evidence does not bind the exact native and wrench observation sets"
+                    .to_owned(),
+            );
         }
-        if self.reference_independence != ReferenceIndependenceDisposition::IndependentlyCharacterized {
-            return Err("wrench reference ancestry/common-cause status is not independently characterized".to_owned());
+        if self.reference_independence
+            != ReferenceIndependenceDisposition::IndependentlyCharacterized
+        {
+            return Err(
+                "wrench reference ancestry/common-cause status is not independently characterized"
+                    .to_owned(),
+            );
         }
-        if self.timestamp_alignment_uncertainty_ns > self.maximum_permitted_alignment_uncertainty_ns {
-            return Err("wrench and tactile sample synchronization uncertainty exceeds the permitted bound".to_owned());
+        if self.timestamp_alignment_uncertainty_ns > self.maximum_permitted_alignment_uncertainty_ns
+        {
+            return Err(
+                "wrench and tactile sample synchronization uncertainty exceeds the permitted bound"
+                    .to_owned(),
+            );
         }
         Ok(())
     }
 }
-
 
 pub fn assess_wrench_consistency(
     operator: &WrenchOperator,
@@ -433,13 +511,19 @@ pub fn assess_wrench_consistency(
         reasons,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     };
-    if !maximum_absolute_standardized_residual.is_finite() || maximum_absolute_standardized_residual <= 0.0 {
+    if !maximum_absolute_standardized_residual.is_finite()
+        || maximum_absolute_standardized_residual <= 0.0
+    {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
             vec!["standardized residual threshold must be finite and positive".to_owned()],
         );
     }
-    if let Err(error) = evidence.validate(operator, native_observation_set_digest, wrench_observation_digest) {
+    if let Err(error) = evidence.validate(
+        operator,
+        native_observation_set_digest,
+        wrench_observation_digest,
+    ) {
         let geometry_or_sample = error.contains("frame/contact boundary");
         return base(
             if geometry_or_sample {
@@ -454,8 +538,16 @@ pub fn assess_wrench_consistency(
         || !observed.moment_nm.is_finite()
         || !observed.force_standard_uncertainty_n.is_finite()
         || !observed.moment_standard_uncertainty_nm.is_finite()
-        || observed.force_standard_uncertainty_n.components().iter().any(|value| *value <= 0.0)
-        || observed.moment_standard_uncertainty_nm.components().iter().any(|value| *value <= 0.0)
+        || observed
+            .force_standard_uncertainty_n
+            .components()
+            .iter()
+            .any(|value| *value <= 0.0)
+        || observed
+            .moment_standard_uncertainty_nm
+            .components()
+            .iter()
+            .any(|value| *value <= 0.0)
     {
         return base(
             WrenchConsistencyDisposition::InvalidObservation,
@@ -532,7 +624,9 @@ pub fn compare_field_identifiability(
         return Err("identifiability tolerance must be finite and positive".to_owned());
     }
     validate_operator(operator)?;
-    if !native_design_matrix.len().is_multiple_of(operator.parameter_count)
+    if !native_design_matrix
+        .len()
+        .is_multiple_of(operator.parameter_count)
         || native_design_matrix.len() != native_row_count.saturating_mul(operator.parameter_count)
         || native_design_matrix.iter().any(|value| !value.is_finite())
     {
@@ -545,7 +639,12 @@ pub fn compare_field_identifiability(
     )?;
 
     let parameter_count = operator.parameter_count;
-    let native_basis = row_space_basis(native_design_matrix, native_row_count, parameter_count, tolerance);
+    let native_basis = row_space_basis(
+        native_design_matrix,
+        native_row_count,
+        parameter_count,
+        tolerance,
+    );
     let wrench_basis = row_space_basis(&operator.coefficients, 6, parameter_count, tolerance);
     let mut combined = native_design_matrix.to_vec();
     combined.extend_from_slice(&operator.coefficients);
@@ -573,7 +672,9 @@ pub fn compare_field_identifiability(
                 normal_pressure_estimable,
                 tangent_u_estimable,
                 tangent_v_estimable,
-                fully_estimable: normal_pressure_estimable && tangent_u_estimable && tangent_v_estimable,
+                fully_estimable: normal_pressure_estimable
+                    && tangent_u_estimable
+                    && tangent_v_estimable,
             }
         })
         .collect();
@@ -591,9 +692,16 @@ pub fn compare_field_identifiability(
         native_identifiable_scalar_count: native_scalar_count,
         combined_identifiable_scalar_count: combined_scalar_count,
         taxels_fully_identifiable_native: (0..operator.taxel_ids.len())
-            .filter(|index| native_estimable[index * 3..index * 3 + 3].iter().all(|value| *value))
+            .filter(|index| {
+                native_estimable[index * 3..index * 3 + 3]
+                    .iter()
+                    .all(|value| *value)
+            })
             .count(),
-        taxels_fully_identifiable_combined: per_taxel.iter().filter(|taxel| taxel.fully_estimable).count(),
+        taxels_fully_identifiable_combined: per_taxel
+            .iter()
+            .filter(|taxel| taxel.fully_estimable)
+            .count(),
         per_taxel,
         claim_class: "synthetic_wrench_consistency_and_identifiability_only",
     })
@@ -604,9 +712,21 @@ mod tests {
     use super::*;
 
     fn geometry() -> TaxelGeometrySet {
-        let tangent_u = Vec3 { x: 1.0, y: 0.0, z: 0.0 };
-        let tangent_v = Vec3 { x: 0.0, y: 1.0, z: 0.0 };
-        let normal = Vec3 { x: 0.0, y: 0.0, z: 1.0 };
+        let tangent_u = Vec3 {
+            x: 1.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let tangent_v = Vec3 {
+            x: 0.0,
+            y: 1.0,
+            z: 0.0,
+        };
+        let normal = Vec3 {
+            x: 0.0,
+            y: 0.0,
+            z: 1.0,
+        };
         TaxelGeometrySet {
             geometry_digest: "sha256:geometry-3-taxel".to_owned(),
             reference_frame_digest: "sha256:frame-sensorized-body".to_owned(),
@@ -647,9 +767,7 @@ mod tests {
     fn field() -> Vec<f64> {
         // [normal pressure, tangent-u traction, tangent-v traction] per taxel (Pa).
         vec![
-            10_000.0, 1_000.0, 500.0,
-            12_000.0, 1_500.0, 750.0,
-            8_000.0, 2_000.0, 1_000.0,
+            10_000.0, 1_000.0, 500.0, 12_000.0, 1_500.0, 750.0, 8_000.0, 2_000.0, 1_000.0,
         ]
     }
 
@@ -658,8 +776,16 @@ mod tests {
         WrenchObservation {
             force_n: wrench.force_n,
             moment_nm: wrench.moment_nm,
-            force_standard_uncertainty_n: Vec3 { x: 0.01, y: 0.01, z: 0.01 },
-            moment_standard_uncertainty_nm: Vec3 { x: 0.001, y: 0.001, z: 0.001 },
+            force_standard_uncertainty_n: Vec3 {
+                x: 0.01,
+                y: 0.01,
+                z: 0.01,
+            },
+            moment_standard_uncertainty_nm: Vec3 {
+                x: 0.001,
+                y: 0.001,
+                z: 0.001,
+            },
         }
     }
 
@@ -754,7 +880,10 @@ mod tests {
             "sha256:wrench-observation",
             3.0,
         );
-        assert_eq!(report.disposition, WrenchConsistencyDisposition::ReferenceChainUnresolved);
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::ReferenceChainUnresolved
+        );
 
         let mut wrong_frame = evidence();
         wrong_frame.reference_frame_digest = "sha256:wrong-frame".to_owned();
@@ -767,7 +896,10 @@ mod tests {
             "sha256:wrench-observation",
             3.0,
         );
-        assert_eq!(report.disposition, WrenchConsistencyDisposition::GeometryOrFrameMismatch);
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::GeometryOrFrameMismatch
+        );
     }
 
     #[test]
@@ -798,7 +930,10 @@ mod tests {
             "sha256:wrench-observation",
             3.0,
         );
-        assert_eq!(report.disposition, WrenchConsistencyDisposition::ReferenceChainUnresolved);
+        assert_eq!(
+            report.disposition,
+            WrenchConsistencyDisposition::ReferenceChainUnresolved
+        );
     }
 
     #[test]
@@ -808,7 +943,11 @@ mod tests {
         assert!(build_wrench_operator(&invalid_geometry).is_err());
 
         let mut left_handed = geometry();
-        left_handed.taxels[0].tangent_v = Vec3 { x: 0.0, y: -1.0, z: 0.0 };
+        left_handed.taxels[0].tangent_v = Vec3 {
+            x: 0.0,
+            y: -1.0,
+            z: 0.0,
+        };
         assert!(build_wrench_operator(&left_handed).is_err());
 
         let operator = build_wrench_operator(&geometry()).unwrap();
