@@ -323,8 +323,10 @@ pub enum RecoverabilityStatus {
     CoveredWithRequiredDiversity,
     /// One admissible option is sufficient under the frozen policy.
     CoveredSingleOption,
-    /// Admissible options exist, but no pairwise-independent witness meets the requirement.
+    /// Admissible options exist, but shared non-exempt dependencies reduce the independent set.
     CoveredButCorrelated,
+    /// The exact maximum independent set is below the required count even though all options are independent.
+    InsufficientIndependentOptions,
     /// Complete inventory shows no admissible option.
     NoAdmissibleOption,
     /// Missing evidence or a conservative witness limit prevents a definitive conclusion.
@@ -858,11 +860,15 @@ pub fn evaluate_recoverability(
         RecoverabilityStatus::Indeterminate
     } else if has_reauthorization {
         RecoverabilityStatus::ReauthorizationRequired
-    } else if witness.len() == 1 && admissible_option_ids.len() == 1 {
-        RecoverabilityStatus::CoveredSingleOption
-    } else {
-        // The exact maximum is known but falls short of the required option count.
+    } else if witness.len() < admissible_option_ids.len() {
+        // The exact maximum is smaller than the known option inventory because
+        // one or more non-exempt common-mode dependencies create conflicts.
         RecoverabilityStatus::CoveredButCorrelated
+    } else {
+        // Every admitted option is independent, but the inventory is too small
+        // to satisfy the profile's required option count. This is determinate,
+        // not an uncertainty or a correlation finding.
+        RecoverabilityStatus::InsufficientIndependentOptions
     };
 
     let mut failed_domains = case.failed_domains.clone();
