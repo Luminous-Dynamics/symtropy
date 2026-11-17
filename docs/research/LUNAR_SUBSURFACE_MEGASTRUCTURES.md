@@ -230,3 +230,44 @@ Unknown or stale critical state blocks progression. A simulator pass is not a ph
 9. NASA SBIR: Brickbot for Lunar Surface Subscale Technology Demonstration, https://www.sbir.gov/awards/220309
 10. NASA, Construction Technology for Moon and Mars Exploration, https://www.nasa.gov/directorates/stmd/nasa-enables-construction-technology-for-moon-and-mars-exploration/
 11. NASA TechPort: Regolith Overburden Structures on the Moon, https://techport.nasa.gov/projects/154421
+
+
+## 9. Additional architecture candidates and explicit non-candidates
+
+### 9.1 Subsurface power and industrial heat vaults
+
+A protected fission-power conversion plant or high-voltage switchyard could be emplaced in a shielded, compartmentalized underground vault, while the radiator field remains at the surface with an unobstructed view to space. This is a siting hypothesis, not a reactor design. The comparison must include reactor servicing, shielding, cable losses, thermal transport, fire/pressure isolation, and independent shutdown/decay-heat removal. A buried power plant that cannot reject heat safely is not a viable plant.
+
+### 9.2 Rotating artificial-gravity settlement inside a cavern
+
+A very large engineered cavern could, in principle, host one or more mechanically independent rotating habitat rings or cylinders. This is a long-horizon megastructure option, not a reason to excavate a giant lunar cave first. The primary design challenges become rotor dynamics, bearing/support loads, containment, fatigue, pressure boundaries, vibration isolation from nearby scientific equipment, emergency braking, and maintenance of rotating interfaces. The cavern should be compared against a free-standing or surface-assembled rotating habitat; underground placement is beneficial only if its shielding and containment benefits exceed excavation and structural costs.
+
+For scale, a rotating ring's radial acceleration is a = omega² r. At a 500 m radius and 1 rpm this is approximately 5.5 m/s² (0.56 g). That number is kinematics only; it says nothing about structural feasibility, comfort, or required mass.
+
+### 9.3 Radio astronomy belongs above ground
+
+Do not place the active collecting aperture of an optical or radio telescope underground. Rock blocks the incoming signal. On the lunar far side, a surface or orbiting radio array may exploit shielding from terrestrial radio interference; underground galleries can house power conditioning, timing, computing, repair equipment, and cable routes, but the antennas must retain a clear sky view. This is an important counterexample to the idea that every major scientific instrument should be subterranean.
+
+### 9.4 Linear freight launcher versus collider
+
+A mass driver or electromagnetic freight launcher is a long linear accelerator for payload logistics, not a particle collider. An underground or mountain-side launch track might protect precision guideways and allow a controlled terminal aperture, but the exit corridor, payload acceleration, launch plume/ejecta, orbital insertion, and failure containment dominate. Keep this as a separate architecture with its own trajectory and safety authority.
+
+### 9.5 Excavation-volume sensitivity table
+
+The table below exposes the scale of the civil works before detector halls, shafts, cross-passages, overbreak, lining/support, or spoil-handling allowance. It assumes a constant tunnel cross-section and one bore; a second equivalent full-length bore doubles every entry.
+
+| Ring length | 10 m² section | 20 m² section | 30 m² section | 40 m² section |
+|---:|---:|---:|---:|---:|
+| 50 km | 0.5 million m³ | 1.0 million m³ | 1.5 million m³ | 2.0 million m³ |
+| 100 km | 1.0 million m³ | 2.0 million m³ | 3.0 million m³ | 4.0 million m³ |
+| 150 km | 1.5 million m³ | 3.0 million m³ | 4.5 million m³ | 6.0 million m³ |
+
+This is a deliberately simple geometry lower bound: V = length × excavated cross-section. It is not a prediction of actual ring civil layout, because tunnel diameters, beam separation, emergency/service galleries, detector caverns, shafts, support thickness, local geology, and construction method are not yet selected. The value of this table is that it makes excavation volume visible early enough to influence architecture.
+
+### 9.6 Body-specific geology references
+
+- **Ceres:** NASA's Dawn synthesis identifies a water-rich, differentiated body with high-latitude ice and a crust containing mixtures of hydrated salts, rocks and clathrates. The substrate should be treated as heterogeneous rather than as ordinary dry rock: https://science.nasa.gov/mission/dawn/science/ceres/
+- **Titan:** NASA describes a dense nitrogen/methane atmosphere and a water-ice surface that behaves mechanically as rock at Titan's cryogenic temperatures. This makes excavation and pressure/thermal boundaries fundamentally different from lunar construction: https://science.nasa.gov/saturn/moons/titan/facts/
+- **Mercury:** MESSENGER-era observations and thermal modeling support permanently shadowed polar deposits with local temperatures below 100 K. This is a specialized cold-trap architecture, not a general underground settlement advantage: https://science.nasa.gov/photojournal/hot-and-cold/
+
+The Callisto and Mars entries remain screening hypotheses in this baseline. Before architecture ranking, add body-specific primary sources for crust composition, temperature, radiation, seismicity, gravity, and subsurface uncertainty. Do not fill missing evidence with analogy.
