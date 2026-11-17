@@ -25,8 +25,12 @@
     },
     "previous_event_sha256": {
       "oneOf": [
-        { "type": "null" },
-        { "$ref": "#/$defs/sha256" }
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/sha256"
+        }
       ]
     },
     "event_sha256": {
@@ -47,12 +51,24 @@
     },
     "payload": {
       "oneOf": [
-        { "$ref": "#/$defs/work_package_published" },
-        { "$ref": "#/$defs/station_qualified" },
-        { "$ref": "#/$defs/execution_started" },
-        { "$ref": "#/$defs/robot_observation_recorded" },
-        { "$ref": "#/$defs/referee_assessment_recorded" },
-        { "$ref": "#/$defs/human_waiver_issued" }
+        {
+          "$ref": "#/$defs/work_package_published"
+        },
+        {
+          "$ref": "#/$defs/station_qualified"
+        },
+        {
+          "$ref": "#/$defs/execution_started"
+        },
+        {
+          "$ref": "#/$defs/robot_observation_recorded"
+        },
+        {
+          "$ref": "#/$defs/referee_assessment_recorded"
+        },
+        {
+          "$ref": "#/$defs/human_waiver_issued"
+        }
       ]
     }
   },
@@ -64,7 +80,10 @@
     "entity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["design_entity_id", "entity_type"],
+      "required": [
+        "design_entity_id",
+        "entity_type"
+      ],
       "properties": {
         "design_entity_id": {
           "type": "string",
@@ -115,18 +134,26 @@
       "allOf": [
         {
           "if": {
-            "required": ["max_abs_z_residual_mm"]
+            "required": [
+              "max_abs_z_residual_mm"
+            ]
           },
           "then": {
-            "required": ["max_reference_u95_z_mm"]
+            "required": [
+              "max_reference_u95_z_mm"
+            ]
           }
         },
         {
           "if": {
-            "required": ["max_reference_u95_z_mm"]
+            "required": [
+              "max_reference_u95_z_mm"
+            ]
           },
           "then": {
-            "required": ["max_abs_z_residual_mm"]
+            "required": [
+              "max_abs_z_residual_mm"
+            ]
           }
         }
       ]
@@ -136,6 +163,10 @@
       "additionalProperties": false,
       "required": [
         "package_sha256",
+        "source_model_sha256",
+        "source_schema_release",
+        "ids_spec_sha256",
+        "ids_version",
         "design_revision_sha256",
         "frame_id",
         "frame_sha256",
@@ -146,31 +177,68 @@
         "acceptance_profile"
       ],
       "properties": {
-        "package_sha256": { "$ref": "#/$defs/sha256" },
-        "design_revision_sha256": { "$ref": "#/$defs/sha256" },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "design_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "frame_id": {
           "type": "string",
           "minLength": 1
         },
-        "frame_sha256": { "$ref": "#/$defs/sha256" },
-        "transform_sha256": { "$ref": "#/$defs/sha256" },
-        "entity_manifest_sha256": { "$ref": "#/$defs/sha256" },
-        "acceptance_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "entity_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "acceptance_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "entities": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/entity" }
+          "items": {
+            "$ref": "#/$defs/entity"
+          }
         },
-        "acceptance_profile": { "$ref": "#/$defs/acceptance_profile" }
+        "acceptance_profile": {
+          "$ref": "#/$defs/acceptance_profile"
+        },
+        "source_model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_schema_release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ids_spec_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "ids_version": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "work_package_published": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "package"],
+      "required": [
+        "kind",
+        "package"
+      ],
       "properties": {
-        "kind": { "const": "work_package_published" },
-        "package": { "$ref": "#/$defs/work_package" }
+        "kind": {
+          "const": "work_package_published"
+        },
+        "package": {
+          "$ref": "#/$defs/work_package"
+        }
       }
     },
     "station_qualified": {
@@ -185,15 +253,25 @@
         "calibration_sha256"
       ],
       "properties": {
-        "kind": { "const": "station_qualified" },
-        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "kind": {
+          "const": "station_qualified"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "station_id": {
           "type": "string",
           "minLength": 1
         },
-        "frame_sha256": { "$ref": "#/$defs/sha256" },
-        "transform_sha256": { "$ref": "#/$defs/sha256" },
-        "calibration_sha256": { "$ref": "#/$defs/sha256" }
+        "frame_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "transform_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "execution_started": {
@@ -207,8 +285,12 @@
         "station_qualification_event_id"
       ],
       "properties": {
-        "kind": { "const": "execution_started" },
-        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "kind": {
+          "const": "execution_started"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "entity_id": {
           "type": "string",
           "minLength": 1
@@ -235,8 +317,12 @@
         "robot_receipt_sha256"
       ],
       "properties": {
-        "kind": { "const": "robot_observation_recorded" },
-        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "kind": {
+          "const": "robot_observation_recorded"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "entity_id": {
           "type": "string",
           "minLength": 1
@@ -246,9 +332,16 @@
           "minLength": 1
         },
         "disposition": {
-          "enum": ["printed", "not_printed", "partial", "unknown"]
+          "enum": [
+            "printed",
+            "not_printed",
+            "partial",
+            "unknown"
+          ]
         },
-        "robot_receipt_sha256": { "$ref": "#/$defs/sha256" }
+        "robot_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
     "referee_assessment": {
@@ -269,25 +362,43 @@
             "measurement_receipt_sha256"
           ],
           "properties": {
-            "kind": { "const": "measured" },
-            "residual_x_mm": { "type": "number" },
-            "residual_y_mm": { "type": "number" },
+            "kind": {
+              "const": "measured"
+            },
+            "residual_x_mm": {
+              "type": "number"
+            },
+            "residual_y_mm": {
+              "type": "number"
+            },
             "residual_z_mm": {
               "oneOf": [
-                { "type": "number" },
-                { "type": "null" }
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "endpoint_start_mm": {
               "oneOf": [
-                { "type": "number" },
-                { "type": "null" }
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "endpoint_end_mm": {
               "oneOf": [
-                { "type": "number" },
-                { "type": "null" }
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "reference_u95_x_mm": {
@@ -300,29 +411,51 @@
             },
             "reference_u95_z_mm": {
               "oneOf": [
-                { "type": "number", "minimum": 0 },
-                { "type": "null" }
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
-            "measurement_receipt_sha256": { "$ref": "#/$defs/sha256" }
+            "measurement_receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "receipt_sha256"],
+          "required": [
+            "kind",
+            "receipt_sha256"
+          ],
           "properties": {
-            "kind": { "const": "no_mark_found" },
-            "receipt_sha256": { "$ref": "#/$defs/sha256" }
+            "kind": {
+              "const": "no_mark_found"
+            },
+            "receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "receipt_sha256", "reason"],
+          "required": [
+            "kind",
+            "receipt_sha256",
+            "reason"
+          ],
           "properties": {
-            "kind": { "const": "unresolved" },
-            "receipt_sha256": { "$ref": "#/$defs/sha256" },
+            "kind": {
+              "const": "unresolved"
+            },
+            "receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
             "reason": {
               "type": "string",
               "minLength": 1
@@ -342,8 +475,12 @@
         "assessment"
       ],
       "properties": {
-        "kind": { "const": "referee_assessment_recorded" },
-        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "kind": {
+          "const": "referee_assessment_recorded"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "entity_id": {
           "type": "string",
           "minLength": 1
@@ -352,16 +489,26 @@
           "type": "string",
           "minLength": 1
         },
-        "assessment": { "$ref": "#/$defs/referee_assessment" }
+        "assessment": {
+          "$ref": "#/$defs/referee_assessment"
+        }
       }
     },
     "human_waiver_issued": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "package_sha256", "waiver"],
+      "required": [
+        "kind",
+        "package_sha256",
+        "waiver"
+      ],
       "properties": {
-        "kind": { "const": "human_waiver_issued" },
-        "package_sha256": { "$ref": "#/$defs/sha256" },
+        "kind": {
+          "const": "human_waiver_issued"
+        },
+        "package_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
         "waiver": {
           "type": "object",
           "additionalProperties": false,
@@ -394,7 +541,9 @@
               "type": "string",
               "minLength": 1
             },
-            "waiver_receipt_sha256": { "$ref": "#/$defs/sha256" }
+            "waiver_receipt_sha256": {
+              "$ref": "#/$defs/sha256"
+            }
           }
         }
       }
