@@ -278,10 +278,10 @@ fn validate_capture(
     let to_day = to_date
         .map(|d| parse_date(d).map(|(y, m, d)| days_from_civil(y, m, d)))
         .transpose()?;
-    if let (Some(start), Some(end)) = (from_day, to_day) {
-        if start > end {
-            return Err("from_date is later than to_date".to_owned());
-        }
+    if let (Some(start), Some(end)) = (from_day, to_day)
+        && start > end
+    {
+        return Err("from_date is later than to_date".to_owned());
     }
 
     let capture = field(&manifest, "capture", "manifest")?;
