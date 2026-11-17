@@ -1,6 +1,7 @@
 use flight_pv_array_survey::{
     ArrayIdentity, FlightFrame, IrImage, MissionEnergyEnvelope, ModuleBounds, RadiometricQc,
-    RgbImage, SurveyProfile, SweepAxis, assess_return_reserve, evaluate_survey,
+    RasterPlanSpec, RgbImage, SurveyProfile, SweepAxis, assess_return_reserve,
+    evaluate_survey, generate_raster_plan,
 };
 
 fn identity() -> ArrayIdentity {
@@ -167,6 +168,18 @@ fn main() {
         maximum_emissivity: 0.99,
         maximum_rgb_ir_skew_s: 0.10,
     };
+    let raster_plan = generate_raster_plan(
+        &profile,
+        &RasterPlanSpec {
+            footprint_half_width_m: 0.6,
+            footprint_half_height_m: 0.6,
+            forward_overlap_fraction: 0.20,
+            side_overlap_fraction: 0.25,
+            camera_height_m: 20.0,
+            view_angle_rad: 0.0,
+        },
+    )
+    .expect("synthetic raster plan should be valid");
     let observations = vec![
         frame("a0", "pass-a", 0, 1.0, 0.0, 1.0, &identity),
         frame("b0", "pass-b", 0, 1.0, 0.6, 2.0, &identity),
@@ -186,6 +199,11 @@ fn main() {
 
     println!("suite=FLIGHT-PV-ARRAY-SURVEY-001");
     println!("survey_disposition={:?}", survey.disposition);
+    println!("p1_raster_waypoints={}", raster_plan.waypoints.len());
+    println!(
+        "p1_raster_route_length_lower_bound_m={:.3}",
+        raster_plan.route_length_lower_bound_m
+    );
     println!(
         "geometric_modules={}/{}",
         survey.geometrically_qualified_modules, survey.expected_modules
