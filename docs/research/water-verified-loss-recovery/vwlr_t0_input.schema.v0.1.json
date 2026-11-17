@@ -87,7 +87,8 @@
                 "max_pressure_difference_percent",
                 "max_demand_difference_percent",
                 "uncertainty_expansion_factor",
-                "follow_up"
+                "follow_up",
+                "control_boundary_id"
               ],
               "properties": {
                 "event_id": {
@@ -318,6 +319,10 @@
                       "minimum": 0
                     }
                   }
+                },
+                "control_boundary_id": {
+                  "type": "string",
+                  "minLength": 1
                 }
               }
             }
