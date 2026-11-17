@@ -1593,6 +1593,8 @@ mod tests {
             laboratory_id: Some("urn:lab:one".to_string()),
         };
 
+        let measurements = vec![qcm, common_witness, capture, assay];
+
         for claim in &measurements {
             let suffix = claim.id.rsplit(':').next().unwrap_or("claim");
             for (receipt_id, activity_suffix, activity_name) in [
@@ -1646,7 +1648,7 @@ mod tests {
             profile_version: "0.1".to_string(),
             nodes,
             relations,
-            measurements: vec![qcm, common_witness, capture, assay],
+            measurements,
             product_acceptance: Some(ProductAcceptance {
                 product_lot_id: "urn:product:one".to_string(),
                 independent_assay_claim_id: "urn:observation:assay".to_string(),
