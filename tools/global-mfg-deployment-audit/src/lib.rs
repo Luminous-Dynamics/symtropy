@@ -910,6 +910,30 @@ mod tests {
     }
 
     #[test]
+    fn schema_requires_artifact_for_official_translation() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_status"] =
+            Value::String("official_translation".to_owned());
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_language"] =
+            Value::String("en".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        let error = audit_schema_and_corpus(SCHEMA, &encoded).expect_err("missing translation artifact rejects");
+        assert!(error.contains("corpus violates Draft 2020-12 schema"));
+    }
+
+    #[test]
+    fn schema_rejects_artifact_on_not_translated_source() {
+        let mut fixture = fixture_value();
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_status"] =
+            Value::String("not_translated".to_owned());
+        fixture["profiles"][0]["obligations"][0]["source"]["translation_artifact_ref"] =
+            Value::String("urn:luminous:synthetic:translation:should-not-exist".to_owned());
+        let encoded = serde_json::to_string(&fixture).expect("encode fixture");
+        let error = audit_schema_and_corpus(SCHEMA, &encoded).expect_err("unexpected translation artifact rejects");
+        assert!(error.contains("corpus violates Draft 2020-12 schema"));
+    }
+
+    #[test]
     fn rejects_jurisdiction_level_promotion_in_synthetic_corpus() {
         let mut fixture = fixture_value();
         fixture["profiles"][0]["obligations"][0]["jurisdiction_level"] =
