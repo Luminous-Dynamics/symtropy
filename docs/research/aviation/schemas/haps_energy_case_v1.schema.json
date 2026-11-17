@@ -251,7 +251,8 @@
         "own_service_continuous",
         "daily_energy_cycle_closed",
         "export_service_admissible",
-        "max_abs_pv_bus_ledger_residual_wh"
+        "max_abs_pv_bus_ledger_residual_wh",
+        "horizon_energy_cycle_closed"
       ],
       "properties": {
         "oracle_status": {
@@ -317,14 +318,19 @@
           "type": "boolean"
         },
         "daily_energy_cycle_closed": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "For a multi-day case, true only when every constituent 24-hour day closes independently; for a single-day case this is the single day result."
         },
         "export_service_admissible": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Requires own service, reserve and the complete case horizon to close; a multi-day horizon may recover a prior low-energy day."
         },
         "max_abs_pv_bus_ledger_residual_wh": {
           "type": "number",
           "minimum": 0
+        },
+        "horizon_energy_cycle_closed": {
+          "type": "boolean"
         }
       }
     },
