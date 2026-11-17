@@ -13,7 +13,8 @@
     "tasks",
     "metrics",
     "target_hypotheses",
-    "runs"
+    "runs",
+    "power_scheduler"
   ],
   "properties": {
     "schema_version": {
@@ -377,6 +378,52 @@
               "type": "string"
             }
           }
+        }
+      }
+    },
+    "power_scheduler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "implementation_ref",
+        "issue_ref",
+        "schema_ref",
+        "fixtures_ref",
+        "unit",
+        "claim_boundary"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "linked_unrun",
+            "schema_checked",
+            "code_checked",
+            "qualified"
+          ]
+        },
+        "implementation_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "issue_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schema_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fixtures_ref": {
+          "type": "string",
+          "format": "uri"
+        },
+        "unit": {
+          "const": "W_real"
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 10
         }
       }
     }
