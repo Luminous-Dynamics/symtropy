@@ -87,3 +87,8 @@ The ledger enforces contiguous sequence numbers, previous-event digest links, un
 Important boundary: the caller must cryptographically verify canonical event bytes, actor signatures and source receipts before calling the reducer. This module checks digest encoding and chain linkage but does not recompute SHA-256 or verify signatures. It is not a distributed consensus protocol, safety-rated controller, motion authorization or physical acceptance system. The sequence is a ledger order, not a wall-clock truth; cross-robot clocks are evidence metadata, not ordering authority.
 
 Unit tests cover robot/referee separation, accepted measurement, no-mark rejection, stale transform and wrong actor denial, atomic rollback, duplicate idempotency, sequence gaps, historical acceptance after revision supersession, and waiver separation.
+
+
+The wire contract for adapters is schema/site-state-event-v0.1.schema.json. examples/site-state-event-stream-synthetic-v0.1.json contains a six-event synthetic stream: package publication, station qualification, a robot attempt/observation, independent referee measurement, and a superseding package revision. Its repeated hexadecimal digests are placeholders for schema/replay tests, not cryptographically valid event receipts or signed evidence. The schema is not yet connected to a JSON parser; it describes the planned versioned adapter boundary.
+
+Adapter conformance should prove round-trip preservation of stable design entity IDs (preferably the source IFC GlobalId), event identity and order, package/revision/frame/transform hashes, actor role, robot/attempt identity, station calibration and referee measurement receipts. Unknown event kinds or missing required fields must fail closed, not be ignored.
