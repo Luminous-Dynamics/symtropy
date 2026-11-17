@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WaterLoop matched-service T1 oracle v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "benchmark_id",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "waterloop-matched-service-t1-oracle-v0.1"
+    },
+    "benchmark_id": {
+      "const": "WATERLOOP-MATCHED-SERVICE-T1-EXECUTOR-001"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 13,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "paired_block_count",
+          "point_credit_l",
+          "uncertainty_screened_lower_credit_l",
+          "energy_kwh",
+          "energy_kwh_per_1000l_lower_credit",
+          "block_dispositions",
+          "disposition_counts",
+          "physical_qualification_status",
+          "statistical_inference_status",
+          "claim_eligibility",
+          "energy_observed_block_count"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "paired_block_count": {
+            "type": "integer"
+          },
+          "point_credit_l": {
+            "type": "number",
+            "minimum": 0
+          },
+          "uncertainty_screened_lower_credit_l": {
+            "type": "number",
+            "minimum": 0
+          },
+          "energy_kwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "energy_kwh_per_1000l_lower_credit": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "block_dispositions": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 12
+          },
+          "disposition_counts": {
+            "type": "object"
+          },
+          "physical_qualification_status": {
+            "const": "NotRun"
+          },
+          "statistical_inference_status": {
+            "const": "NotRun"
+          },
+          "claim_eligibility": {
+            "const": "NotEligible"
+          },
+          "energy_observed_block_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          }
+        }
+      }
+    }
+  }
+}
