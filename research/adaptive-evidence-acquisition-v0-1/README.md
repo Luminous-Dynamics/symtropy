@@ -26,12 +26,15 @@ The candidate list is not a motion plan. Travel time is Euclidean distance divid
 
 ## Benchmark design
 
-Compare the evidence-first greedy policy against matched candidate sets using:
+The example exposes five selection policies over the exact same candidate pool, evidence requirements, and budgets:
 
-1. Fixed raster / fixed waypoint order.
-2. Nearest-candidate greedy.
-3. Maximum-coverage greedy without evidence quality/independence gates.
-4. Random feasible candidate selection.
+1. **Evidence gain per cost** — weighted marginal evidence divided by travel/acquisition time, risk penalty, and energy penalty.
+2. **Nearest feasible** — shortest travel distance among candidates that pass the same quality, independence and budget gates.
+3. **Maximum marginal evidence** — largest weighted evidence gain, without normalizing by cost.
+4. **Input order / fixed route** — stable first-feasible ordering; supply raster/waypoint order to reproduce a fixed-route baseline.
+5. **Seeded hash order** — deterministic pseudo-random candidate ordering keyed by a published seed.
+
+Every policy uses identical upstream quality, independence and resource-budget gates. The benchmark must never disable safety/evidence gates to make a baseline weaker; this isolates selection quality, not permission to accept bad evidence.
 
 Report:
 - weighted evidence deficit closed per elapsed minute and per Wh;
@@ -59,3 +62,5 @@ cargo run
 ```
 
 No third-party dependencies are required.
+
+The synthetic example runs all five policies on the same inputs and prints selected candidates, target completion, elapsed time and energy. The current unit suite includes policy-comparison and cross-policy gate-preservation tests. These checks are not a public benchmark leaderboard result.
