@@ -238,6 +238,123 @@ pub fn evaluate_mass_normalized_candidate(
     })
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReferenceCandidate {
+    pub name: &'static str,
+    pub model: TrussModel,
+    pub boundary: BoundaryConditions,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MatchedTetrahedronPair {
+    pub edge_length_m: f64,
+    pub baseline: ReferenceCandidate,
+    pub interior_hub: ReferenceCandidate,
+}
+
+/// Build a small matched-envelope topology pair for benchmark harness testing.
+///
+/// Both candidates share the same four external tetrahedron vertices,
+/// support conditions and nodal load. The second adds one internal hub and
+/// four spokes. A caller can evaluate both under the same member-mass budget
+/// using evaluate_mass_normalized_candidate. This is a benchmark fixture,
+/// not a claim that either topology is optimal.
+pub fn matched_tetrahedron_pair(
+    edge_length_m: f64,
+    applied_load_n: [f64; 3],
+) -> Result<MatchedTetrahedronPair, BenchmarkError> {
+    if !edge_length_m.is_finite() || edge_length_m <= 0.0 {
+        return Err(BenchmarkError::InvalidSpec("edge_length_m"));
+    }
+    if !applied_load_n.iter().all(|value| value.is_finite()) {
+        return Err(BenchmarkError::InvalidSpec("applied_load_n"));
+    }
+
+    let base_y = 3.0_f64.sqrt() * edge_length_m / 6.0;
+    let top_y = 3.0_f64.sqrt() * edge_length_m / 3.0;
+    let height = (2.0_f64 / 3.0).sqrt() * edge_length_m;
+    let outer_nodes = vec![
+        symtropy_freeflow_structure_lab::Vec3::new(-edge_length_m * 0.5, -base_y, 0.0),
+        symtropy_freeflow_structure_lab::Vec3::new(edge_length_m * 0.5, -base_y, 0.0),
+        symtropy_freeflow_structure_lab::Vec3::new(0.0, top_y, 0.0),
+        symtropy_freeflow_structure_lab::Vec3::new(0.0, 0.0, height),
+    ];
+
+    let outer_members = vec![
+        crate::TrussMember { from: 0, to: 1 },
+        crate::TrussMember { from: 1, to: 2 },
+        crate::TrussMember { from: 2, to: 0 },
+        crate::TrussMember { from: 0, to: 3 },
+        crate::TrussMember { from: 1, to: 3 },
+        crate::TrussMember { from: 2, to: 3 },
+    ];
+
+    let mut baseline_boundary = BoundaryConditions::new(4);
+    baseline_boundary
+        .fix_node(0)
+        .map_err(BenchmarkError::Analysis)?;
+    baseline_boundary
+        .fix_dof(1, 1)
+        .map_err(BenchmarkError::Analysis)?;
+    baseline_boundary
+        .fix_dof(1, 2)
+        .map_err(BenchmarkError::Analysis)?;
+    baseline_boundary
+        .fix_dof(2, 2)
+        .map_err(BenchmarkError::Analysis)?;
+    baseline_boundary
+        .add_force(3, applied_load_n)
+        .map_err(BenchmarkError::Analysis)?;
+
+    let mut interior_nodes = outer_nodes.clone();
+    interior_nodes.push(symtropy_freeflow_structure_lab::Vec3::new(
+        0.0,
+        0.0,
+        height * 0.25,
+    ));
+    let mut interior_members = outer_members.clone();
+    for endpoint in 0..4 {
+        interior_members.push(crate::TrussMember { from: endpoint, to: 4 });
+    }
+
+    let mut interior_boundary = BoundaryConditions::new(5);
+    interior_boundary
+        .fix_node(0)
+        .map_err(BenchmarkError::Analysis)?;
+    interior_boundary
+        .fix_dof(1, 1)
+        .map_err(BenchmarkError::Analysis)?;
+    interior_boundary
+        .fix_dof(1, 2)
+        .map_err(BenchmarkError::Analysis)?;
+    interior_boundary
+        .fix_dof(2, 2)
+        .map_err(BenchmarkError::Analysis)?;
+    interior_boundary
+        .add_force(3, applied_load_n)
+        .map_err(BenchmarkError::Analysis)?;
+
+    Ok(MatchedTetrahedronPair {
+        edge_length_m,
+        baseline: ReferenceCandidate {
+            name: "regular-tetrahedron-6-member",
+            model: TrussModel {
+                nodes: outer_nodes,
+                members: outer_members,
+            },
+            boundary: baseline_boundary,
+        },
+        interior_hub: ReferenceCandidate {
+            name: "tetrahedron-plus-interior-hub-10-member",
+            model: TrussModel {
+                nodes: interior_nodes,
+                members: interior_members,
+            },
+            boundary: interior_boundary,
+        },
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,6 +412,40 @@ mod tests {
         assert!(receipt.equilibrium_residual_n < 1e-5);
         assert_eq!(receipt.tested_two_member_pairs, 8);
         assert_eq!(receipt.omitted_two_member_pairs, receipt.total_two_member_pairs - 8);
+    }
+
+    #[test]
+    fn matched_tetrahedron_pair_shares_outer_envelope_and_load_case() {
+        let pair = matched_tetrahedron_pair(1.0, [0.0, 0.0, -100.0]).unwrap();
+        assert_eq!(pair.baseline.model.nodes.len(), 4);
+        assert_eq!(pair.baseline.model.members.len(), 6);
+        assert_eq!(pair.interior_hub.model.nodes.len(), 5);
+        assert_eq!(pair.interior_hub.model.members.len(), 10);
+        assert_eq!(
+            pair.baseline.boundary.nodal_forces_n[3],
+            pair.interior_hub.boundary.nodal_forces_n[3]
+        );
+        assert_eq!(
+            pair.baseline.boundary.fixed_dofs[..4],
+            pair.interior_hub.boundary.fixed_dofs[..4]
+        );
+
+        let spec = spec();
+        let baseline = evaluate_mass_normalized_candidate(
+            &pair.baseline.model,
+            &pair.baseline.boundary,
+            spec,
+        )
+        .unwrap();
+        let interior_hub = evaluate_mass_normalized_candidate(
+            &pair.interior_hub.model,
+            &pair.interior_hub.boundary,
+            spec,
+        )
+        .unwrap();
+        assert!((baseline.computed_member_mass_kg - interior_hub.computed_member_mass_kg).abs() < 1e-10);
+        assert!(baseline.maximum_node_displacement_m.is_finite());
+        assert!(interior_hub.maximum_node_displacement_m.is_finite());
     }
 
     #[test]
