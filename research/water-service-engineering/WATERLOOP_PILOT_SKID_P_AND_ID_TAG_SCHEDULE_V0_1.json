@@ -11,6 +11,9 @@
         "age/temperature tracking",
         "high-high level",
         "source identity valid"
+      ],
+      "module_ids": [
+        "EQ-100"
       ]
     },
     {
@@ -20,6 +23,9 @@
       "interlocks": [
         "screen service state",
         "high differential level/pressure"
+      ],
+      "module_ids": [
+        "PRE-100"
       ]
     },
     {
@@ -29,17 +35,65 @@
       "interlocks": [
         "inlet/outlet flow",
         "sample upstream/downstream"
+      ],
+      "module_ids": [
+        "PRE-100"
       ]
     },
     {
-      "tag": "MB-101A..D",
-      "function": "one treatment cassette active per comparison run",
+      "tag": "MB-101A",
+      "function": "treatment cassette candidate A",
       "boundary": "candidate treated product + reject",
       "interlocks": [
         "module passport valid",
         "feed envelope admitted",
         "barrier state valid",
         "reject path available"
+      ],
+      "module_ids": [
+        "TR-A-100"
+      ]
+    },
+    {
+      "tag": "MB-101B",
+      "function": "treatment cassette candidate B",
+      "boundary": "candidate treated product + reject",
+      "interlocks": [
+        "module passport valid",
+        "feed envelope admitted",
+        "barrier state valid",
+        "reject path available"
+      ],
+      "module_ids": [
+        "TR-B-100"
+      ]
+    },
+    {
+      "tag": "MB-101C",
+      "function": "treatment cassette candidate C",
+      "boundary": "candidate treated product + reject",
+      "interlocks": [
+        "module passport valid",
+        "feed envelope admitted",
+        "barrier state valid",
+        "reject path available"
+      ],
+      "module_ids": [
+        "TR-C-100"
+      ]
+    },
+    {
+      "tag": "MB-101D",
+      "function": "treatment cassette candidate D",
+      "boundary": "candidate treated product + reject",
+      "interlocks": [
+        "module passport valid",
+        "feed envelope admitted",
+        "barrier state valid",
+        "reject path available"
+      ],
+      "module_ids": [
+        "TR-D-100"
       ]
     },
     {
@@ -51,6 +105,9 @@
         "quality decision identity",
         "batch identity",
         "residence time valid"
+      ],
+      "module_ids": [
+        "HOLD-100"
       ]
     },
     {
@@ -60,6 +117,9 @@
       "interlocks": [
         "unknown source -> drain",
         "loss of power -> safe diversion"
+      ],
+      "module_ids": [
+        "SRC-100"
       ]
     },
     {
@@ -69,35 +129,125 @@
       "interlocks": [
         "no release without independent use-quality permission",
         "fault -> closed"
+      ],
+      "module_ids": [
+        "HOLD-100",
+        "DIST-100"
       ]
     },
     {
-      "tag": "FT-101..103",
-      "function": "raw, useful-product and reject metering",
-      "boundary": "stock/flow reconciliation",
+      "tag": "FT-101",
+      "function": "raw feed flow meter",
+      "boundary": "raw source to pretreatment",
       "interlocks": [
         "calibration current",
         "timebase aligned",
         "uncertainty within declared budget"
-      ]
+      ],
+      "module_ids": []
     },
     {
-      "tag": "SP-101..104",
-      "function": "raw, process, final hold and residual sampling",
-      "boundary": "independent sample evidence",
+      "tag": "FT-102",
+      "function": "useful product delivery flow meter",
+      "boundary": "named non-potable fixture delivery",
+      "interlocks": [
+        "calibration current",
+        "timebase aligned",
+        "use-profile identity present"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "FT-103",
+      "function": "reject/backwash/residual flow meter or validated gravimetric boundary",
+      "boundary": "process reject and residual streams",
+      "interlocks": [
+        "calibration current",
+        "timebase aligned",
+        "uncertainty within declared budget"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "LT-101",
+      "function": "equalisation tank level channel",
+      "boundary": "raw equalisation inventory",
+      "interlocks": [
+        "calibration current",
+        "tank geometry revision bound"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "TT-101",
+      "function": "raw/hold water temperature channel",
+      "boundary": "source/storage conditions",
+      "interlocks": [
+        "calibration current",
+        "timebase aligned"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "PT-101",
+      "function": "process inlet/outlet pressure channels",
+      "boundary": "treatment/process hydraulics",
+      "interlocks": [
+        "calibration current",
+        "pressure reference identified",
+        "service pressure limit declared"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "AI-101",
+      "function": "process indicator suite (pH, conductivity, turbidity; optional ORP/UV intensity)",
+      "boundary": "process observations only",
+      "interlocks": [
+        "capability and calibration admitted",
+        "no sensor substitutes for independent quality decision"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "SP-101",
+      "function": "raw feed sample point",
+      "boundary": "source and raw-feed sample",
       "interlocks": [
         "sample ID linked to batch",
         "method/revision/calibration recorded"
-      ]
+      ],
+      "module_ids": []
     },
     {
-      "tag": "DR-001",
-      "function": "contained approved drain/reject route",
-      "boundary": "reject/overflow/waste",
+      "tag": "SP-102",
+      "function": "post-process sample point",
+      "boundary": "candidate process outlet",
       "interlocks": [
-        "availability must be proven before process run",
-        "blocked route -> stop/hold"
-      ]
+        "sample ID linked to batch",
+        "method/revision/calibration recorded"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "SP-103",
+      "function": "final hold tank sample point",
+      "boundary": "final treated hold and release decision",
+      "interlocks": [
+        "sample ID linked to batch",
+        "independent quality assessment reference required"
+      ],
+      "module_ids": []
+    },
+    {
+      "tag": "SP-104",
+      "function": "reject/backwash sample point",
+      "boundary": "residual stream",
+      "interlocks": [
+        "sample ID linked to batch",
+        "method/revision/calibration recorded"
+      ],
+      "module_ids": []
     }
   ],
   "safety_invariants": [
