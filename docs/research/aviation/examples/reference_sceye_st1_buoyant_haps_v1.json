@@ -45,6 +45,12 @@
       "source_kind": "manufacturer",
       "claim_scope": "Sceye's platform-level design propositions and manufacturer-stated 425 Wh/kg lithium-sulphur battery energy density; not an independently verified installed-pack specification.",
       "independence": "source_attributed"
+    },
+    {
+      "url": "https://sceye.com/press-releases/sceye-softbank-sign-agreement-for-fleet-of-stratospheric-platforms/",
+      "source_kind": "manufacturer",
+      "claim_scope": "Sceye/SoftBank announced a five-year agreement to manufacture, launch and operate a fleet over Japan; a subset is intended for a stratospheric free-space-optical communications network. This is a future deployment plan, not an already operating nationwide fleet.",
+      "independence": "source_attributed"
     }
   ],
   "owner_work_refs": [
@@ -150,6 +156,7 @@
     "Sceye's platform website states a 425 Wh/kg lithium-sulphur battery energy density and months-to-a-year design ambition. Those remain manufacturer claims and are not independently verified installed-pack data or a demonstrated year-long flight.",
     "The 2026 Sceye mission reports are source-attributed operational evidence; exact mass, payload, solar area, power, wind/positioning trace, thermal profile, fuel/gas usage, duty cycle and life-cycle data remain unknown.",
     "No fixed-wing-versus-buoyant performance winner is asserted. Architecture selection must use the same service, weather, coverage, payload, reserve, reliability and cost boundaries.",
-    "All unreported physical properties, model outputs and operational permissions remain unknown."
+    "All unreported physical properties, model outputs and operational permissions remain unknown.",
+    "The November 2026 Sceye/SoftBank five-year fleet agreement is a plan to scale operations, not evidence of an already operating nationwide fleet; the announced FSO component is an optical communications/backhaul network, not wireless power transfer."
   ]
 }
