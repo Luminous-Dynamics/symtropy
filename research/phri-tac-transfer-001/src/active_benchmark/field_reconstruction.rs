@@ -478,10 +478,7 @@ pub fn reconstruct_contact_field(
             .iter()
             .zip(&field)
             .map(|(value, estimate)| {
-                ((estimate
-                    - step_size * (value + problem.sparsity_penalty))
-                    .max(0.0)
-                    - estimate)
+                ((estimate - step_size * (value + problem.sparsity_penalty)).max(0.0) - estimate)
                     .abs()
             })
             .fold(0.0_f64, f64::max);
@@ -644,14 +641,18 @@ mod tests {
     fn nonnegative_l1_prior_suppresses_subthreshold_contact_without_minting_support() {
         let mut problem = identity_problem(vec![1.0, 0.005, 0.0]);
         problem.sparsity_penalty = 0.01;
-        let report = reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default(),
-        )
-        .expect("sparse contact prior");
+        let report = reconstruct_contact_field(&problem, &FieldReconstructionConfig::default())
+            .expect("sparse contact prior");
         assert!(report.converged);
         assert!(report.sparsity_prior_enabled);
-        assert!((report.estimates[0].latent_contact_intensity.expect("supported") - 0.99).abs() < 1.0e-7);
+        assert!(
+            (report.estimates[0]
+                .latent_contact_intensity
+                .expect("supported")
+                - 0.99)
+                .abs()
+                < 1.0e-7
+        );
         assert_eq!(report.estimates[1].latent_contact_intensity, Some(0.0));
         assert_eq!(report.estimates[2].latent_contact_intensity, Some(0.0));
         assert_eq!(report.native_data_rank, 3);
@@ -661,11 +662,9 @@ mod tests {
     fn negative_sparsity_penalty_is_rejected() {
         let mut problem = identity_problem(vec![0.1, 0.2]);
         problem.sparsity_penalty = -0.1;
-        assert!(reconstruct_contact_field(
-            &problem,
-            &FieldReconstructionConfig::default()
-        )
-        .is_err());
+        assert!(
+            reconstruct_contact_field(&problem, &FieldReconstructionConfig::default()).is_err()
+        );
     }
 
     #[test]

@@ -11,8 +11,8 @@
 #![forbid(unsafe_code)]
 
 pub mod adversarial;
-pub mod field_reconstruction;
 pub mod field_campaign;
+pub mod field_reconstruction;
 pub mod model_forms;
 
 const PARAMS: usize = 8;

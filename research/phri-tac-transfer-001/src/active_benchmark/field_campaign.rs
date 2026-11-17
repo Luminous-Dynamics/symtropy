@@ -17,8 +17,8 @@
 #![forbid(unsafe_code)]
 
 use super::field_reconstruction::{
-    FieldReconstructionConfig, FieldReconstructionProblem, FieldReconstructionReport,
-    SpatialEdge, reconstruct_contact_field,
+    FieldReconstructionConfig, FieldReconstructionProblem, FieldReconstructionReport, SpatialEdge,
+    reconstruct_contact_field,
 };
 
 const TAXEL_COUNT: usize = 113;
@@ -156,7 +156,8 @@ fn make_truth(seed: u64) -> Vec<f64> {
         let width = 2 + (next_random(&mut state) as usize % 5);
         let available = range.end - range.start;
         let margin = width.min(available / 2);
-        let center = range.start + margin
+        let center = range.start
+            + margin
             + (next_random(&mut state) as usize % (available - 2 * margin).max(1));
         let amplitude = 0.25 + random_unit(&mut state) * 0.95;
         let lower = center.saturating_sub(width).max(range.start);
@@ -200,19 +201,17 @@ fn make_case(seed: u64) -> SyntheticFieldCase {
     // only when the declared forward kernel has sensitivity to that cell.
     let mut admitted_native_channels = vec![true; TAXEL_COUNT];
     for (module_index, range) in module_ranges().into_iter().enumerate() {
-        let dropped = range.start
-            + (next_random(&mut state) as usize % (range.end - range.start));
+        let dropped = range.start + (next_random(&mut state) as usize % (range.end - range.start));
         admitted_native_channels[dropped] = false;
         // Deterministic seed-dependent second outage in alternating modules.
         if module_index % 2 == 1 && range.len() > 3 {
-            let second = range.start
-                + (next_random(&mut state) as usize % (range.end - range.start));
+            let second =
+                range.start + (next_random(&mut state) as usize % (range.end - range.start));
             admitted_native_channels[second] = false;
         }
     }
 
-    let forward_model_digest =
-        format!("sha256:synthetic-113-taxel-kernel-seed-{seed:016x}");
+    let forward_model_digest = format!("sha256:synthetic-113-taxel-kernel-seed-{seed:016x}");
     let problem = FieldReconstructionProblem {
         native_response: native_response.clone(),
         coupling_matrix: kernel,
@@ -282,7 +281,10 @@ fn score_independent_taxels(case: &SyntheticFieldCase) -> Result<ReplicateScore,
     if problem.native_response.len() != case.evaluator_truth.len()
         || problem.admitted_native_channels.len() != case.evaluator_truth.len()
     {
-        return Err("independent-taxel baseline requires matching native response, mask and truth".to_owned());
+        return Err(
+            "independent-taxel baseline requires matching native response, mask and truth"
+                .to_owned(),
+        );
     }
 
     let mut squared_error = 0.0;
@@ -319,7 +321,9 @@ fn summarize_scores(
     independent_baseline: &[ReplicateScore],
 ) -> Result<FieldEstimatorSummary, String> {
     if scores.len() < REQUIRED_REPLICATES || scores.len() != independent_baseline.len() {
-        return Err("field campaign summary requires at least fifty aligned paired replicates".to_owned());
+        return Err(
+            "field campaign summary requires at least fifty aligned paired replicates".to_owned(),
+        );
     }
 
     let mut errors: Vec<_> = scores.iter().map(|score| score.field_rmse).collect();
@@ -335,14 +339,11 @@ fn summarize_scores(
     paired_deltas.sort_by(f64::total_cmp);
     let paired_rmse_delta_mean_vs_independent =
         paired_deltas.iter().sum::<f64>() / paired_deltas.len() as f64;
-    let paired_rmse_delta_p95_vs_independent = paired_deltas
-        [((paired_deltas.len() - 1) as f64 * 0.95).ceil() as usize];
+    let paired_rmse_delta_p95_vs_independent =
+        paired_deltas[((paired_deltas.len() - 1) as f64 * 0.95).ceil() as usize];
 
-    let mean_sensitivity_support_ratio = scores
-        .iter()
-        .map(|score| score.coverage_ratio)
-        .sum::<f64>()
-        / scores.len() as f64;
+    let mean_sensitivity_support_ratio =
+        scores.iter().map(|score| score.coverage_ratio).sum::<f64>() / scores.len() as f64;
     let minimum_sensitivity_support_ratio = scores
         .iter()
         .map(|score| score.coverage_ratio)
@@ -434,8 +435,10 @@ pub fn run_field_reconstruction_campaign(
 
         let mut graph_problem = case.problem.clone();
         graph_problem.smoothness_penalty = GRAPH_SMOOTHNESS_PENALTY;
-        graph_problem.forward_model_digest =
-            format!("{}-graph-lambda-{GRAPH_SMOOTHNESS_PENALTY:.3}", graph_problem.forward_model_digest);
+        graph_problem.forward_model_digest = format!(
+            "{}-graph-lambda-{GRAPH_SMOOTHNESS_PENALTY:.3}",
+            graph_problem.forward_model_digest
+        );
         let graph_report = reconstruct_contact_field(&graph_problem, &config)?;
         graph_scores.push(score_report(&graph_report, &case.evaluator_truth)?);
 
@@ -489,7 +492,10 @@ mod tests {
     fn module_partition_is_exactly_113_taxels_across_seven_modules() {
         assert_eq!(MODULE_SIZES.iter().sum::<usize>(), TAXEL_COUNT);
         assert_eq!(module_ranges().len(), MODULE_COUNT);
-        assert_eq!(module_ranges().last().expect("last module").end, TAXEL_COUNT);
+        assert_eq!(
+            module_ranges().last().expect("last module").end,
+            TAXEL_COUNT
+        );
         assert_eq!(make_spatial_edges().len(), TAXEL_COUNT - MODULE_COUNT);
     }
 
@@ -504,7 +510,10 @@ mod tests {
     fn generated_field_has_module_local_coupling_and_no_cross_seam_edges() {
         let kernel = make_coupling_kernel();
         let ranges = module_ranges();
-        for (left, right) in ranges.windows(2).map(|pair| (pair[0].end - 1, pair[1].start)) {
+        for (left, right) in ranges
+            .windows(2)
+            .map(|pair| (pair[0].end - 1, pair[1].start))
+        {
             assert_eq!(kernel[left * TAXEL_COUNT + right], 0.0);
             assert_eq!(kernel[right * TAXEL_COUNT + left], 0.0);
         }
@@ -549,8 +558,7 @@ mod tests {
         // inversion on a sparse, sharp-boundary field. The paired scorecard
         // exists to quantify that trade-off without changing evaluator truth.
         assert!(
-            mechanics.mean_sensitivity_support_ratio
-                > independent.mean_sensitivity_support_ratio,
+            mechanics.mean_sensitivity_support_ratio > independent.mean_sensitivity_support_ratio,
             "mechanics coupling should provide sensitivity support to some dropped cells"
         );
         assert_eq!(mechanics.full_rank_replicates, 0);
