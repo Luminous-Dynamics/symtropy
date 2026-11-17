@@ -29,6 +29,7 @@ const COUPLING_DIAGONAL: f64 = 0.76;
 const COUPLING_NEIGHBOR: f64 = 0.12;
 const RESPONSE_NOISE_SCALE: f64 = 0.0015;
 const GRAPH_SMOOTHNESS_PENALTY: f64 = 0.02;
+const SPARSE_CONTACT_L1_PENALTY: f64 = 0.01;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FieldEstimatorSummary {
@@ -48,6 +49,7 @@ pub struct FieldEstimatorSummary {
     pub mean_native_data_rank: f64,
     pub mean_projected_gradient_residual: f64,
     pub maximum_projected_gradient_residual: f64,
+    pub sparsity_prior_enabled: bool,
     /// Replicates whose native data matrix identifies every latent field cell.
     pub full_rank_replicates: usize,
     pub converged_replicates: usize,
@@ -80,6 +82,7 @@ struct ReplicateScore {
     native_data_rank: usize,
     native_data_full_column_rank: bool,
     projected_gradient_residual: f64,
+    sparsity_prior_enabled: bool,
     converged: bool,
 }
 
@@ -216,6 +219,7 @@ fn make_case(seed: u64) -> SyntheticFieldCase {
         admitted_native_channels: admitted_native_channels.clone(),
         spatial_edges: make_spatial_edges(),
         smoothness_penalty: 0.0,
+        sparsity_penalty: 0.0,
         forward_model_digest: forward_model_digest.clone(),
     };
 
@@ -229,6 +233,7 @@ fn make_case(seed: u64) -> SyntheticFieldCase {
         admitted_native_channels,
         spatial_edges: Vec::new(),
         smoothness_penalty: 0.0,
+        sparsity_penalty: 0.0,
         forward_model_digest: format!("sha256:independent-taxel-identity-seed-{seed:016x}"),
     };
 
@@ -267,6 +272,7 @@ fn score_report(
         native_data_rank: report.native_data_rank,
         native_data_full_column_rank: report.native_data_full_column_rank,
         projected_gradient_residual: report.projected_gradient_residual,
+        sparsity_prior_enabled: report.sparsity_prior_enabled,
         converged: report.converged,
     })
 }
@@ -302,6 +308,7 @@ fn score_independent_taxels(case: &SyntheticFieldCase) -> Result<ReplicateScore,
         native_data_rank: admitted_count,
         native_data_full_column_rank: admitted_count == case.evaluator_truth.len(),
         projected_gradient_residual: 0.0,
+        sparsity_prior_enabled: false,
         converged: true,
     })
 }
@@ -363,6 +370,7 @@ fn summarize_scores(
         .iter()
         .filter(|score| score.native_data_full_column_rank)
         .count();
+    let sparsity_prior_enabled = scores.iter().all(|score| score.sparsity_prior_enabled);
     let converged_replicates = scores.iter().filter(|score| score.converged).count();
 
     Ok(FieldEstimatorSummary {
@@ -378,6 +386,7 @@ fn summarize_scores(
         mean_native_data_rank,
         mean_projected_gradient_residual,
         maximum_projected_gradient_residual,
+        sparsity_prior_enabled,
         full_rank_replicates,
         converged_replicates,
         replicate_count: scores.len(),
@@ -412,6 +421,7 @@ pub fn run_field_reconstruction_campaign(
     let mut independent_scores = Vec::with_capacity(replicate_count);
     let mut mechanics_scores = Vec::with_capacity(replicate_count);
     let mut graph_scores = Vec::with_capacity(replicate_count);
+    let mut sparse_scores = Vec::with_capacity(replicate_count);
 
     for replicate in 0..replicate_count {
         let seed = first_seed + replicate as u64;
@@ -428,6 +438,15 @@ pub fn run_field_reconstruction_campaign(
             format!("{}-graph-lambda-{GRAPH_SMOOTHNESS_PENALTY:.3}", graph_problem.forward_model_digest);
         let graph_report = reconstruct_contact_field(&graph_problem, &config)?;
         graph_scores.push(score_report(&graph_report, &case.evaluator_truth)?);
+
+        let mut sparse_problem = case.problem.clone();
+        sparse_problem.sparsity_penalty = SPARSE_CONTACT_L1_PENALTY;
+        sparse_problem.forward_model_digest = format!(
+            "{}-sparse-contact-l1-{SPARSE_CONTACT_L1_PENALTY:.3}",
+            sparse_problem.forward_model_digest
+        );
+        let sparse_report = reconstruct_contact_field(&sparse_problem, &config)?;
+        sparse_scores.push(score_report(&sparse_report, &case.evaluator_truth)?);
     }
 
     Ok(FieldReconstructionCampaignReport {
@@ -450,6 +469,11 @@ pub fn run_field_reconstruction_campaign(
             summarize_scores(
                 "mechanics_kernel_graph_regularized",
                 &graph_scores,
+                &independent_scores,
+            )?,
+            summarize_scores(
+                "mechanics_kernel_sparse_contact_l1_0_01",
+                &sparse_scores,
                 &independent_scores,
             )?,
         ],
@@ -506,7 +530,7 @@ mod tests {
         assert_eq!(first.taxel_count, 113);
         assert_eq!(first.module_count, 7);
         assert_eq!(first.replicate_count, 50);
-        assert_eq!(first.results.len(), 3);
+        assert_eq!(first.results.len(), 4);
         for result in &first.results {
             assert_eq!(result.replicate_count, 50);
             assert_eq!(result.converged_replicates, 50);
