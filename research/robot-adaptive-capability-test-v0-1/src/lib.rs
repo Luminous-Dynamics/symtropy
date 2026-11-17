@@ -132,10 +132,7 @@ fn valid_digest(value: &str) -> bool {
 }
 
 fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String> {
-    if !nonempty(&bank.bank_id)
-        || !nonempty(&profile.axis_id)
-        || !nonempty(&profile.calibration_id)
-    {
+    if !nonempty(&bank.bank_id) || !nonempty(&profile.axis_id) || !nonempty(&profile.calibration_id) {
         return Err("bank, capability axis or calibration identity is missing".to_owned());
     }
     if !valid_digest(&bank.bank_digest)
@@ -178,13 +175,22 @@ fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String>
             return Err(format!("duplicate challenge item ID: {}", item.item_id));
         }
         if !item.difficulty.is_finite() || item.difficulty.abs() > MAX_ABS_LOGIT {
-            return Err(format!("item {} has invalid calibrated difficulty", item.item_id));
+            return Err(format!(
+                "item {} has invalid calibrated difficulty",
+                item.item_id
+            ));
         }
         if item.common_anchor && !item.mandatory {
-            return Err(format!("common anchor {} must be mandatory", item.item_id));
+            return Err(format!(
+                "common anchor {} must be mandatory",
+                item.item_id
+            ));
         }
         if item.safety_critical && !item.mandatory {
-            return Err(format!("safety-critical item {} must be mandatory", item.item_id));
+            return Err(format!(
+                "safety-critical item {} must be mandatory",
+                item.item_id
+            ));
         }
         *counts_by_stratum.entry(item.stratum.as_str()).or_default() += 1;
     }
@@ -192,12 +198,17 @@ fn validate(bank: &ItemBank, profile: &CalibrationProfile) -> Result<(), String>
     let mut quota_strata = BTreeSet::new();
     for quota in &profile.minimum_per_stratum {
         if !nonempty(&quota.stratum) || quota.minimum_count == 0 {
-            return Err("stratum minimum requires a nonempty stratum and positive count".to_owned());
+            return Err(
+                "stratum minimum requires a nonempty stratum and positive count".to_owned(),
+            );
         }
         if !quota_strata.insert(quota.stratum.as_str()) {
             return Err(format!("duplicate minimum for stratum {}", quota.stratum));
         }
-        let available = counts_by_stratum.get(quota.stratum.as_str()).copied().unwrap_or(0);
+        let available = counts_by_stratum
+            .get(quota.stratum.as_str())
+            .copied()
+            .unwrap_or(0);
         if available < quota.minimum_count {
             return Err(format!(
                 "stratum {} requires {} items but bank contains {}",
@@ -253,7 +264,11 @@ fn posterior(
                 .copied()
                 .ok_or_else(|| format!("response references unknown item {}", response.item_id))?;
             let probability = sigmoid(theta - difficulty);
-            gradient += if response.success { 1.0 - probability } else { -probability };
+            gradient += if response.success {
+                1.0 - probability
+            } else {
+                -probability
+            };
             information += probability * (1.0 - probability);
         }
         let step = gradient / information;
@@ -287,14 +302,21 @@ fn validate_responses(bank: &ItemBank, responses: &[Response]) -> Result<(), Str
     if responses.len() > bank.items.len() {
         return Err("response count exceeds the item bank size".to_owned());
     }
-    let item_ids: BTreeSet<&str> = bank.items.iter().map(|item| item.item_id.as_str()).collect();
+    let item_ids: BTreeSet<&str> = bank
+        .items
+        .iter()
+        .map(|item| item.item_id.as_str())
+        .collect();
     let mut seen = BTreeSet::new();
     for (index, response) in responses.iter().enumerate() {
         if response.sequence as usize != index {
             return Err("response sequence numbers must be contiguous from zero".to_owned());
         }
         if !item_ids.contains(response.item_id.as_str()) {
-            return Err(format!("response references unknown item {}", response.item_id));
+            return Err(format!(
+                "response references unknown item {}",
+                response.item_id
+            ));
         }
         if !seen.insert(response.item_id.as_str()) {
             return Err(format!("duplicate response for item {}", response.item_id));
@@ -311,7 +333,11 @@ fn response_counts(
     let mut strata = BTreeMap::<String, usize>::new();
     for response in responses {
         administered.insert(response.item_id.clone());
-        if let Some(item) = bank.items.iter().find(|item| item.item_id == response.item_id) {
+        if let Some(item) = bank
+            .items
+            .iter()
+            .find(|item| item.item_id == response.item_id)
+        {
             *strata.entry(item.stratum.clone()).or_default() += 1;
         }
     }
@@ -435,11 +461,8 @@ fn decide_validated(
                         && !administered.contains(&item.item_id)
                 })
                 .collect();
-            let selected = choose_most_informative(
-                candidates,
-                theta,
-                SelectionReason::StratumMinimum,
-            );
+            let selected =
+                choose_most_informative(candidates, theta, SelectionReason::StratumMinimum);
             if selected.is_none() {
                 return Ok(Decision {
                     selected: None,
@@ -496,11 +519,7 @@ fn decide_validated(
         .iter()
         .filter(|item| !item.mandatory && !administered.contains(&item.item_id))
         .collect();
-    let selected = choose_most_informative(
-        candidates,
-        theta,
-        SelectionReason::MaximumInformation,
-    );
+    let selected = choose_most_informative(candidates, theta, SelectionReason::MaximumInformation);
     if selected.is_none() {
         return Ok(Decision {
             selected: None,
@@ -628,7 +647,14 @@ mod tests {
                 item("anchor-common", "nominal", 0.0, true, true, false),
                 item("adaptive-easy", "nominal", -2.0, false, false, false),
                 item("adaptive-hard", "nominal", 2.0, false, false, false),
-                item("safety-negative", "negative-control", 0.0, true, false, true),
+                item(
+                    "safety-negative",
+                    "negative-control",
+                    0.0,
+                    true,
+                    false,
+                    true,
+                ),
             ],
         }
     }
@@ -651,7 +677,12 @@ mod tests {
 
     #[test]
     fn common_anchor_is_administered_before_adaptive_items() {
-        let result = evaluate_run(&bank(), &profile(), &[response(0, "safety-negative", false)]).unwrap();
+        let result = evaluate_run(
+            &bank(),
+            &profile(),
+            &[response(0, "safety-negative", false)],
+        )
+        .unwrap();
         let selected = result.decision.selected.unwrap();
         assert_eq!(selected.item_id, "anchor-common");
         assert_eq!(selected.reason, SelectionReason::CommonAnchor);
@@ -705,7 +736,14 @@ mod tests {
             minimum_count: 1,
         }];
         let mut test_bank = bank();
-        test_bank.items.push(item("payload-item", "payload-shift", 0.0, false, false, false));
+        test_bank.items.push(item(
+            "payload-item",
+            "payload-shift",
+            0.0,
+            false,
+            false,
+            false,
+        ));
         let result = evaluate_run(
             &test_bank,
             &test_profile,
@@ -729,7 +767,10 @@ mod tests {
             response(1, "anchor-common", true),
         ];
         let result = evaluate_run(&bank(), &test_profile, &responses).unwrap();
-        assert_eq!(result.decision.stop_reason, Some(StopReason::PrecisionReached));
+        assert_eq!(
+            result.decision.stop_reason,
+            Some(StopReason::PrecisionReached)
+        );
         assert!(result.decision.selected.is_none());
     }
 
@@ -742,7 +783,10 @@ mod tests {
             response(1, "anchor-common", true),
         ];
         let result = evaluate_run(&bank(), &test_profile, &responses).unwrap();
-        assert_eq!(result.decision.stop_reason, Some(StopReason::BudgetExhausted));
+        assert_eq!(
+            result.decision.stop_reason,
+            Some(StopReason::BudgetExhausted)
+        );
         assert!(result.decision.posterior_sem > test_profile.target_posterior_sem);
     }
 
@@ -767,7 +811,9 @@ mod tests {
     #[test]
     fn duplicate_item_id_is_invalid() {
         let mut test_bank = bank();
-        test_bank.items.push(item("anchor-common", "other", 0.0, false, false, false));
+        test_bank
+            .items
+            .push(item("anchor-common", "other", 0.0, false, false, false));
         assert!(evaluate_run(&test_bank, &profile(), &[]).is_err());
     }
 
@@ -816,7 +862,9 @@ mod tests {
 
     #[test]
     fn response_sequence_must_be_contiguous() {
-        assert!(evaluate_run(&bank(), &profile(), &[response(1, "safety-negative", true)]).is_err());
+        assert!(
+            evaluate_run(&bank(), &profile(), &[response(1, "safety-negative", true)]).is_err()
+        );
     }
 
     #[test]
