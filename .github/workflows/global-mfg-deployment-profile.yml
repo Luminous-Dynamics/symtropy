@@ -1,0 +1,100 @@
+name: Global manufacturing deployment profile v0.1
+
+on:
+  pull_request:
+    paths:
+      - "docs/research/GLOBAL_MFG_DEPLOYMENT_PROFILE_V0_1.md"
+      - "schemas/global/global_mfg_deployment_profile_v0_1.schema.json"
+      - "fixtures/global/global_mfg_deployment_profiles_v0_1.json"
+      - "tools/global-mfg-deployment-audit/**"
+      - ".github/workflows/global-mfg-deployment-profile.yml"
+  push:
+    branches:
+      - "research/global-mfg-deploy-profile-v0-1"
+    paths:
+      - "docs/research/GLOBAL_MFG_DEPLOYMENT_PROFILE_V0_1.md"
+      - "schemas/global/global_mfg_deployment_profile_v0_1.schema.json"
+      - "fixtures/global/global_mfg_deployment_profiles_v0_1.json"
+      - "tools/global-mfg-deployment-audit/**"
+      - ".github/workflows/global-mfg-deployment-profile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-profile-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Parse schema and fixture JSON
+        run: |
+          jq empty schemas/global/global_mfg_deployment_profile_v0_1.schema.json
+          jq empty fixtures/global/global_mfg_deployment_profiles_v0_1.json
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+            and .title == "Global Manufacturing Deployment Profile Corpus v0.1"
+            and (.required | index("profiles") != null)
+            and (.required | index("negative_controls") != null)
+          ' schemas/global/global_mfg_deployment_profile_v0_1.schema.json
+          jq -e '
+            .corpus_id == "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
+            and .schema_version == "0.1.0"
+            and .evidence_class == "synthetic_fixture"
+            and (.profiles | length) == 4
+            and (.negative_controls | length) == 10
+            and ([.profiles[].profile_id] | unique | length) == 4
+            and ([.negative_controls[].case_id] | unique | length) == 10
+            and all(.profiles[];
+              .profile_class == "synthetic_archetype"
+              and .claims.global_compliance_claim == "not_established"
+              and .claims.site_readiness_claim == "not_established"
+              and .claims.market_approval_claim == "not_established"
+              and .claims.production_authorization == false
+            )
+            and all(.negative_controls[]; .expected_disposition == "REJECT_OR_ABSTAIN")
+          ' fixtures/global/global_mfg_deployment_profiles_v0_1.json
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/global-mfg-deployment-audit/Cargo.toml -- --check
+      - name: Run structural and adversarial audit tests
+        run: cargo test --manifest-path tools/global-mfg-deployment-audit/Cargo.toml
+      - name: Run deployment profile audit
+        run: |
+          cargo run --quiet --manifest-path tools/global-mfg-deployment-audit/Cargo.toml -- \
+            fixtures/global/global_mfg_deployment_profiles_v0_1.json \
+            > global-mfg-deployment-audit-report.json
+          jq -e '
+            .corpus_id == "GLOBAL-MFG-DEPLOY-CORPUS-V0.1"
+            and .profile_count == 4
+            and .negative_control_count == 10
+            and .all_profile_claims_not_established == true
+            and .production_authorization == false
+            and .legal_or_market_approval == false
+            and .physical_site_qualification == false
+            and .disposition == "STRUCTURALLY_VALID_SYNTHETIC_ONLY"
+          ' global-mfg-deployment-audit-report.json
+      - name: Hash corpus, schema, source and report
+        run: |
+          sha256sum \
+            docs/research/GLOBAL_MFG_DEPLOYMENT_PROFILE_V0_1.md \
+            schemas/global/global_mfg_deployment_profile_v0_1.schema.json \
+            fixtures/global/global_mfg_deployment_profiles_v0_1.json \
+            tools/global-mfg-deployment-audit/Cargo.toml \
+            tools/global-mfg-deployment-audit/src/lib.rs \
+            tools/global-mfg-deployment-audit/src/main.rs \
+            global-mfg-deployment-audit-report.json \
+            > global-mfg-deployment-profile-v0_1.sha256
+      - name: Upload audit receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: global-mfg-deployment-profile-v0-1
+          path: |
+            global-mfg-deployment-audit-report.json
+            global-mfg-deployment-profile-v0_1.sha256
+          if-no-files-found: error
