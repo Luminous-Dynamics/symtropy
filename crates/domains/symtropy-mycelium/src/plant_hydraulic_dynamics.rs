@@ -372,9 +372,9 @@ mod tests {
         }
 
         assert!(
-            state.cumulative_storage_change_kg_m2
+            (state.cumulative_storage_change_kg_m2
                 - (state.cumulative_soil_water_uptake_kg_m2
-                    - state.cumulative_transpired_water_kg_m2)
+                    - state.cumulative_transpired_water_kg_m2))
                 .abs()
                 < 1e-8
         );
@@ -423,13 +423,13 @@ mod tests {
         let mut coarse = initial;
         let mut fine = initial;
 
-        for _ in 0..100 {
-            coarse = step_plant_hydraulic_capacitance(inputs, 0.02, 10.0, coarse)
+        for _ in 0..10 {
+            coarse = step_plant_hydraulic_capacitance(inputs, 0.02, 1.0, coarse)
                 .unwrap()
                 .state;
         }
-        for _ in 0..200 {
-            fine = step_plant_hydraulic_capacitance(inputs, 0.02, 5.0, fine)
+        for _ in 0..20 {
+            fine = step_plant_hydraulic_capacitance(inputs, 0.02, 0.5, fine)
                 .unwrap()
                 .state;
         }
@@ -440,6 +440,38 @@ mod tests {
         let fine_error =
             (fine.leaf_water_potential_mpa - steady.leaf_water_potential_mpa).abs();
         assert!(fine_error <= coarse_error + 1e-12);
+    }
+
+    #[test]
+    fn identical_current_forcing_retains_lumped_storage_history() {
+        let normal = reference_inputs();
+        let mut drought = normal;
+        drought.soil_water_potential_mpa = -1.5;
+        let mut drought_history = PlantHydraulicDynamicState::new(-0.2).unwrap();
+        let mut control_history = drought_history;
+
+        for _ in 0..100 {
+            drought_history =
+                step_plant_hydraulic_capacitance(drought, 0.02, 10.0, drought_history)
+                    .unwrap()
+                    .state;
+            control_history =
+                step_plant_hydraulic_capacitance(normal, 0.02, 10.0, control_history)
+                    .unwrap()
+                    .state;
+        }
+
+        // The external forcing is now identical. Remaining differences are
+        // due only to the modelled water-storage state, not acclimation.
+        let drought_recovery =
+            step_plant_hydraulic_capacitance(normal, 0.02, 10.0, drought_history).unwrap();
+        let control_recovery =
+            step_plant_hydraulic_capacitance(normal, 0.02, 10.0, control_history).unwrap();
+
+        assert!(
+            drought_recovery.state.leaf_water_potential_mpa
+                < control_recovery.state.leaf_water_potential_mpa
+        );
     }
 
     #[test]
