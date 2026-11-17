@@ -192,6 +192,72 @@ The integration benchmark should consume vendor/MES/PLM/SCADA evidence and send 
 
 To compare commercial systems fairly, use a matched A→B module/configuration-change episode and measure engineering time, schedule disturbance, qualification scope, time to first accepted output, genealogy coverage and recovery under common-cause events. Record baseline workflows and vendor assistance. Do not compare against a vendor's “up to” claim unless its denominator, scope, plant, baseline, and measurement method are available.
 
+## 4.1 Compare against full industrial APS workflows, not a weak scheduler baseline
+
+The vendor comparison must start from what mature APS platforms already claim to do.
+
+**Siemens Opcenter APS** publicly describes:
+- multi-horizon production planning and detailed scheduling;
+- resource availability, materials, capacity, work orders, labor and tooling;
+- order-based multi-constraint sequencing;
+- concurrent resource-use rules and inter-operation time constraints;
+- sequence-dependent changeovers, operation-specific run speeds, overlap and slack;
+- priorities, due-date negotiation, split batches and interactive schedule views;
+- ERP-connected planning and rescheduling around production disruptions.
+
+Sources:
+- https://www.siemens.com/en-us/products/opcenter/production-planning-scheduling-capabilities/
+- https://www.siemens.com/en-us/products/opcenter/advanced-planning-scheduling-aps/advanced-scheduling-software/
+- https://www.siemens.com/en-us/technology/manufacturing-scheduling-software/
+
+Siemens' Opcenter APS page also displays vendor-reported figures such as +25% productivity, -50% inventory and +50% on-time delivery. These are marketing/product-page claims with no matched denominator or common benchmark protocol in the retrieved page; do not use them as directly comparable measured performance.
+
+**Dassault Systèmes DELMIA Ortems** publicly describes:
+- finite-capacity optimization over machines, materials, workforce and process constraints;
+- long-, mid- and short-term planning;
+- ERP/MES/operational-data integration;
+- rescheduling after late deliveries, breakdowns, labor shortages and quality issues;
+- virtual-twin scenario simulation and KPI analysis;
+- multi-resource planning, including tools, operators and subcontractors.
+
+Sources:
+- https://www.3ds.com/products/delmia/ortems
+- https://www.3ds.com/products/delmia/ortems/production-scheduler
+- https://www.3ds.com/products/delmia/ortems/manufacturing-planner
+
+These products are serious competitors in conventional APS scope. We should not claim they lack finite-capacity modelling, resource constraints, scenario simulation, MES integration or disruption rescheduling.
+
+### Fair matched industrial comparison protocol
+
+Build a matched evaluation in which all candidate systems receive:
+- the same product and engineering revision;
+- the same process/resource/capability/qualification requirements;
+- the same order set, WIP, material lots, worker/tool calendars and utilities;
+- the same disruption and late-information event trace;
+- the same permitted action/authority boundary;
+- equivalent wall-clock, compute and human-planning/review budgets.
+
+Compare at least:
+- current customer/plant workflow (MES/ERP + planner/manual recovery);
+- Siemens Opcenter APS or a documented Opcenter workflow;
+- DELMIA Ortems or a documented Ortems workflow;
+- open CP-SAT / exact-oracle reference where available;
+- evidence-gated Luminous policy with the same scheduling engine budget;
+- evidence-gated Luminous policy plus selective inspection and dependency-closure repair.
+
+When a vendor implementation, license or test environment is unavailable, label the result **feature-level comparison only**. Do not synthesize a numerical vendor baseline from brochures. Record which functions were available, which data could be exported, and which interventions were performed by vendor specialists.
+
+Keep separate scoreboards for:
+1. schedule quality (makespan, tardiness, on-time delivery, WIP, setup, utilization);
+2. schedule stability (changed operations/machines, preserved commitments, repair time);
+3. model correctness (obligation coverage, constraint omissions, objective-preserving mutation detection);
+4. capability/evidence correctness (qualification currentness, identity, independence, material and inspection scope);
+5. accepted production (first-article result, complete genealogy, time to first independently accepted output);
+6. resilience (surviving independent qualified routes, common-cause miss, worst-case recovery);
+7. human/economic burden (planner effort, review/escalation, engineering change effort, requalification labour, downtime).
+
+**Our differentiation hypothesis:** retain the mature APS strengths of constraint modelling, finite-capacity planning and rapid rescheduling while adding an independently checkable layer that answers whether the model was complete, the route remained qualified, the evidence is admissible, and the resulting product was actually accepted. This has to be demonstrated on matched plant workflows; architecture diagrams or synthetic tests alone do not prove vendor superiority.
+
 ## 5. Standards and interoperability mapping
 
 - **ISO 23247-5:2026** is published (June 2026) and describes the digital thread for connecting and maintaining manufacturing digital twins across the product lifecycle: https://www.iso.org/standard/87425.html
