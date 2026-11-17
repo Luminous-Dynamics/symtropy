@@ -6,7 +6,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("# source_sha={source_sha}");
     println!("# target_arch={}", std::env::consts::ARCH);
     println!("# target_os={}", std::env::consts::OS);
-    println!("artifacts,chain_length,changed_chains,dependencies,evidence,affected_artifacts,stale_evidence,retained_evidence,graph_build_us,closure_us,evidence_revalidation_avoided");
+    println!(
+        "artifacts,chain_length,changed_chains,dependencies,evidence,affected_artifacts,stale_evidence,retained_evidence,graph_build_us,closure_us,evidence_revalidation_avoided"
+    );
 
     for artifact_count in [100_usize, 1_000, 10_000, 100_000] {
         for changed_chains in [1_usize, 10, 100] {
