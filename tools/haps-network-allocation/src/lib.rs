@@ -103,8 +103,14 @@ pub enum AllocationPolicy {
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct IntervalAllocation {
+    /// Zero-based day index inside the requested evaluation window.
     pub day_index: usize,
+    /// Zero-based day index inside the original traffic trace.
+    pub source_day_index: usize,
+    /// Offset relative to this evaluation window.
     pub offset_s: f64,
+    /// Original offset in the source traffic trace.
+    pub source_offset_s: f64,
     pub selected_cell_ids: Vec<String>,
     pub critical_excess_offered_mbps: f64,
     pub critical_excess_served_mbps: f64,
@@ -601,8 +607,10 @@ pub fn evaluate_window(
         total_served += served;
         total_unserved += unserved;
         report_intervals.push(IntervalAllocation {
-            day_index: source_day,
-            offset_s: interval.offset_s,
+            day_index: relative_day,
+            source_day_index: source_day,
+            offset_s: relative_day as f64 * trace.interval_duration_s,
+            source_offset_s: interval.offset_s,
             selected_cell_ids,
             critical_excess_offered_mbps: offered,
             critical_excess_served_mbps: served,
@@ -709,6 +717,11 @@ mod tests {
                 .as_f64()
                 .expect("expected offset_s must be numeric");
             assert!((actual.offset_s - expected_offset).abs() < 1.0e-9);
+            let expected_source_offset = expected_interval
+                .get("source_offset_s")
+                .and_then(Value::as_f64)
+                .unwrap_or(expected_offset);
+            assert!((actual.source_offset_s - expected_source_offset).abs() < 1.0e-9);
 
             let mut actual_ids = actual.selected_cell_ids.clone();
             actual_ids.sort();
