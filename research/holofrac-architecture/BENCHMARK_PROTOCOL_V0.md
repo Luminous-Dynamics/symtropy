@@ -153,6 +153,8 @@ Use 2D and 3D fields derived from analytic functions, public spatial data, and l
 
 A VSA pipeline must be measured end to end, not as a binding-only microbenchmark. Record separate costs for coordinate encoding, value encoding, binding, bundling/storage, inversion/unbinding, similarity, cleanup and regression/decoding. Compare at matched field samples, held-out query points, precision, actual bytes and compute budget. Include the cleanup mechanism as a first-class ablation: resonator, modern Hopfield, codebook/nearest-neighbour cleanup, or no cleanup when applicable. Report both the best pipeline and every component configuration used to obtain it.
 
+Memory must include every retained vector, codebook, role/coordinate index array, sample record and lookup structure. Compare the VSA total against scalar-grid value storage (the normal bilinear-interpolation baseline) and full point records, not merely against another hypervector dimension. Report both payload bytes and allocator-inclusive process RSS. A large fixed scalar cleanup codebook can make a low-sample VSA memory-inefficient even when its query path is associative. Do not present a memory reduction until this comparison demonstrates it.
+
 Metrics:
 - held-out MAE, RMSE, R² and normalized error;
 - field-specific conservation/invariant error where a physical law applies;
