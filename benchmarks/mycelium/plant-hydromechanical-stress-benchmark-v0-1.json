@@ -34,7 +34,12 @@
       "published": "2026-04-12",
       "role": "time-dependent hydraulic null model separating soil supply and atmospheric demand",
       "scope": "soil hydraulic conductivity loss, deep-water supply, root uptake, leaf water potential and stomatal response",
-      "admission_status": "equations_code_and_supplement_rights_audit_required"
+      "admission_status": "equations_code_and_supplement_rights_audit_required",
+      "supporting_artifacts": [
+        "Notes S1 PDF: governing equations and boundary-condition derivations",
+        "Notes S2 PDF: runnable code for the model simulations and figures"
+      ],
+      "supporting_artifact_rights_status": "Publisher-hosted supplements are publicly linked, but separate reuse/adaptation permissions have not been admitted."
     },
     {
       "id": "buckley-global-change-biology-2026",
@@ -44,7 +49,10 @@
       "role": "process-based stomatal model comparator",
       "scope": "biophysical stomatal conductance with metabolic and hydraulic regulation",
       "admission_status": "equations_code_data_and_supplement_rights_audit_required",
-      "reported_parameterization": "two parameters require empirical fitting"
+      "reported_parameterization": "two parameters require empirical fitting",
+      "code_data_release_doi": "10.5281/zenodo.21105704",
+      "code_data_release": "TomBuckleyLab/stomatal-model-GCB v1.0",
+      "release_license_status": "Zenodo record does not populate a license field; paper is CC BY-NC-ND. Inspect code/data files and resolve rights before modification, ingestion or redistribution."
     },
     {
       "id": "openalea-hydroroot-2026",
@@ -54,7 +62,14 @@
       "role": "root hydraulic and solute-transport comparator and interface reference",
       "scope": "static hydraulic solver, coupled water-solute transport, statistical root architecture generator and dynamic hydraulic model with root growth",
       "admission_status": "exact_source_revision_and_license_audit_required",
-      "ownership_boundary": "compose_with_existing_root_authority; do_not_create_a_second_root_graph"
+      "ownership_boundary": "compose_with_existing_root_authority; do_not_create_a_second_root_graph",
+      "known_limitations": [
+        "The 2026 paper states that HydroRoot is soilless: soil is treated as a one-dimensional boundary condition and there is no explicit soil-root interaction.",
+        "Root segments are homogeneous single compartments; axial and radial conductances are parameterized by distance from the root tip as an age proxy.",
+        "The paper reports validation only on annual plants."
+      ],
+      "software_license_reported": "CeCILL-C, as stated by the 2026 paper; check compatibility before copying or linking code into Apache-2.0/MIT components.",
+      "integration_opportunity": "Use HydroRoot for measured root-architecture hydraulic characterization and compose its outputs with Symtropy SOIL-HYDRAULIC-001 #2861 and the plant stress model; do not duplicate either solver."
     },
     {
       "id": "collaborative-root-water-uptake-benchmark",
@@ -461,6 +476,14 @@
         "no_fungal_interface"
       ],
       "role": "isolate_contribution_of_each_modelled_path"
+    },
+    {
+      "id": "existing_soil_hydraulic_owner",
+      "families": [
+        "Symtropy_SOIL_HYDRAULIC_001_van_Genuchten_Mualem",
+        "HYDRUS_1D"
+      ],
+      "role": "soil constitutive and transient-flow comparison; retain SOIL-HYDRAULIC-001 #2861 as the source of soil water retention/conductivity authority"
     }
   ],
   "metrics": [
@@ -495,7 +518,9 @@
     "include no-path and matched-control cases to measure false causal attribution",
     "report each process scale and worst stratum separately; do not hide failure in pooled averages",
     "report capacitance and time-step values with units; distinguish numerical storage memory from biological acclimation or long-term stress memory",
-    "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting"
+    "compare transient trajectories at common observation timestamps and verify time-step refinement before parameter fitting",
+    "HydroRoot root-side output must be coupled through an explicit soil boundary adapter; do not interpret its soilless boundary model as a soil-root interaction solver",
+    "respect source-specific software licenses; a public code/data record with missing license metadata is not automatically a grant to modify or redistribute"
   ],
   "preregistration_receipt": [
     "model_and_source_revision",
