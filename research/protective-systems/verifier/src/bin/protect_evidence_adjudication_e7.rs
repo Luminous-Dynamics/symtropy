@@ -311,6 +311,13 @@ fn validate_structure(corpus: &Corpus) -> Result<(), String> {
         corpus.lifecycle_events.iter().map(|item| item.event_id.as_str()),
         "lifecycle event",
     )?;
+    let dependency_keys = corpus.dependencies.iter().map(|edge| {
+        format!(
+            "{}|{}|{}",
+            edge.dependent_evidence_id, edge.upstream_evidence_id, edge.relation
+        )
+    });
+    unique_ids(dependency_keys.map(|item| Box::leak(item.into_boxed_str()) as &str), "dependency edge")?;
     let evidence_by_id: BTreeMap<&str, &EvidenceArtifact> = corpus
         .evidence_artifacts
         .iter()
@@ -367,9 +374,6 @@ fn validate_structure(corpus: &Corpus) -> Result<(), String> {
                 "{} references unknown evidence {}",
                 event.event_id, event.evidence_id
             ));
-        }
-        if event.recorded_at < event.effective_at && event.event_type == "REVOKE" {
-            // A revocation may be back-dated; preserve both clocks rather than rejecting it.
         }
     }
     Ok(())
@@ -569,8 +573,12 @@ fn evaluate(
 ) -> Result<AdjudicationReport, String> {
     canonical_utc(decision_time, "decision_time")?;
     canonical_utc(valid_at, "valid_at")?;
-    if decision_time < corpus.decision_time_default.as_str() && decision_time.is_empty() {
-        return Err("decision_time is invalid".to_owned());
+    if !valid_interval_contains(
+        &corpus.claim.valid_from,
+        &corpus.claim.valid_to,
+        valid_at,
+    ) {
+        return Err("requested valid_at is outside the claim validity interval".to_owned());
     }
     let evidence_by_id: BTreeMap<&str, &EvidenceArtifact> = corpus
         .evidence_artifacts
@@ -766,15 +774,6 @@ mod tests {
     fn corpus() -> Corpus {
         let value: Value = serde_json::from_slice(CORPUS_BYTES).expect("fixture JSON");
         serde_json::from_value(value).expect("fixture model")
-    }
-
-    fn default_eval(data: &Corpus) -> AdjudicationReport {
-        evaluate(
-            data,
-            &data.decision_time_default,
-            &data.valid_at_default,
-        )
-        .expect("E7 evaluation")
     }
 
     #[test]
@@ -1018,6 +1017,40 @@ mod tests {
         let mut data = corpus();
         data.evidence_artifacts.push(data.evidence_artifacts[0].clone());
         assert!(validate_structure(&data).is_err());
+    }
+
+    #[test]
+    fn duplicate_dependency_edge_is_rejected() {
+        let mut data = corpus();
+        data.dependencies.push(data.dependencies[0].clone());
+        assert!(validate_structure(&data).is_err());
+    }
+
+    #[test]
+    fn decision_outside_claim_validity_fails_closed() {
+        let data = corpus();
+        let error = evaluate(
+            &data,
+            "2026-11-16T17:00:00Z",
+            "2026-11-16T14:00:00Z",
+        )
+        .expect_err("valid_at outside claim interval");
+        assert!(error.contains("outside the claim validity interval"));
+    }
+
+    #[test]
+    fn unverified_independence_statement_does_not_count() {
+        let mut data = corpus();
+        data.independence_attestations[0].status = "UNVERIFIED".to_owned();
+        let (accepted, independent, rejected) = verified_independence(
+            &data,
+            &dependency_graph(&data),
+            "2026-11-16T12:00:00Z",
+            "2026-11-16T11:30:00Z",
+        );
+        assert!(accepted.is_empty());
+        assert!(independent.is_empty());
+        assert_eq!(rejected[0].reason_code, "ATTESTATION_NOT_VERIFIED");
     }
 
     #[test]
