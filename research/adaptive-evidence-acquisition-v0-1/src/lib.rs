@@ -171,8 +171,7 @@ pub fn plan_acquisition_with_policy(
         if target.target_id.trim().is_empty()
             || target.required_independent_passes == 0
             || !target.minimum_view_angle_separation_rad.is_finite()
-            || !(0.0..=std::f64::consts::PI)
-                .contains(&target.minimum_view_angle_separation_rad)
+            || !(0.0..=std::f64::consts::PI).contains(&target.minimum_view_angle_separation_rad)
             || !target.weight.is_finite()
             || target.weight <= 0.0
             || target.weight > 1.0e12
@@ -183,7 +182,10 @@ pub fn plan_acquisition_with_policy(
             .insert(target.target_id.clone(), target.clone())
             .is_some()
         {
-            return Err(format!("duplicate evidence target ID: {}", target.target_id));
+            return Err(format!(
+                "duplicate evidence target ID: {}",
+                target.target_id
+            ));
         }
     }
 
@@ -196,13 +198,15 @@ pub fn plan_acquisition_with_policy(
         if pass.target_id.trim().is_empty()
             || pass.pass_id.trim().is_empty()
             || !pass.view_angle_rad.is_finite()
-            || !(-std::f64::consts::PI..=std::f64::consts::PI)
-                .contains(&pass.view_angle_rad)
+            || !(-std::f64::consts::PI..=std::f64::consts::PI).contains(&pass.view_angle_rad)
         {
             return Err("existing qualified pass contains invalid identity or angle".to_owned());
         }
         if !target_map.contains_key(&pass.target_id) {
-            return Err(format!("existing pass references unknown target: {}", pass.target_id));
+            return Err(format!(
+                "existing pass references unknown target: {}",
+                pass.target_id
+            ));
         }
         if !seen_existing.insert((pass.target_id.clone(), pass.pass_id.clone())) {
             return Err(format!(
@@ -221,7 +225,10 @@ pub fn plan_acquisition_with_policy(
     for candidate in candidates {
         validate_candidate(candidate, &target_map)?;
         if !seen_candidates.insert(candidate.candidate_id.clone()) {
-            return Err(format!("duplicate candidate ID: {}", candidate.candidate_id));
+            return Err(format!(
+                "duplicate candidate ID: {}",
+                candidate.candidate_id
+            ));
         }
         match candidate.quality {
             CandidateQuality::Qualified => {}
@@ -314,8 +321,7 @@ pub fn plan_acquisition_with_policy(
                 Some((best_index, best_policy_score, _, _, _, _)) => {
                     policy_score.total_cmp(best_policy_score).is_gt()
                         || (policy_score.total_cmp(best_policy_score).is_eq()
-                            && candidate.candidate_id
-                                < remaining[*best_index].candidate_id)
+                            && candidate.candidate_id < remaining[*best_index].candidate_id)
                 }
             };
             if replace {
@@ -330,7 +336,8 @@ pub fn plan_acquisition_with_policy(
             }
         }
 
-        let Some((index, _policy_score, score, travel_distance, travel_time, marginal)) = best else {
+        let Some((index, _policy_score, score, travel_distance, travel_time, marginal)) = best
+        else {
             break;
         };
         let candidate = remaining.remove(index);
@@ -435,8 +442,7 @@ fn validate_candidate(
         || candidate.u_m.abs() > MAX_ABSOLUTE_COORDINATE_M
         || candidate.v_m.abs() > MAX_ABSOLUTE_COORDINATE_M
         || !candidate.view_angle_rad.is_finite()
-        || !(-std::f64::consts::PI..=std::f64::consts::PI)
-            .contains(&candidate.view_angle_rad)
+        || !(-std::f64::consts::PI..=std::f64::consts::PI).contains(&candidate.view_angle_rad)
         || !candidate.acquisition_time_s.is_finite()
         || candidate.acquisition_time_s < 0.0
         || !candidate.energy_wh.is_finite()
@@ -444,7 +450,10 @@ fn validate_candidate(
         || !candidate.risk_penalty_s.is_finite()
         || candidate.risk_penalty_s < 0.0
     {
-        return Err(format!("candidate {} contains invalid fields", candidate.candidate_id));
+        return Err(format!(
+            "candidate {} contains invalid fields",
+            candidate.candidate_id
+        ));
     }
     let mut seen = BTreeSet::new();
     for target_id in &candidate.covered_target_ids {
@@ -718,9 +727,10 @@ mod tests {
 
     #[test]
     fn angular_separation_wraps_at_pi_boundary() {
-        assert!((angular_separation(std::f64::consts::PI - 0.1, -std::f64::consts::PI + 0.1)
-            - 0.2)
-            .abs()
-            < 1.0e-9);
+        assert!(
+            (angular_separation(std::f64::consts::PI - 0.1, -std::f64::consts::PI + 0.1) - 0.2)
+                .abs()
+                < 1.0e-9
+        );
     }
 }
