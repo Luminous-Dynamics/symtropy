@@ -335,5 +335,7 @@ fn main() {
         "frame_energy_relative_error={:.12e}",
         frame_audit.energy_relative_error
     );
-    println!("frame_claim_ceiling=linear Euler-Bernoulli frame reference; no global buckling qualification");
+    println!(
+        "frame_claim_ceiling=linear Euler-Bernoulli frame reference; no global buckling qualification"
+    );
 }
