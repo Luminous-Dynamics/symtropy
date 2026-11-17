@@ -48,6 +48,7 @@ pub mod safety;
 pub mod sanctuary;
 pub mod simple_field;
 pub mod spatial_hash;
+pub mod thermal_entropy;
 pub mod thermodynamics;
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings;
