@@ -857,7 +857,9 @@ fn validate_camera_model(model: &CameraSensorModel) -> Result<(), String> {
         || !model.integration_time_s.is_finite()
         || model.integration_time_s <= 0.0
     {
-        return Err("camera model contains invalid FOV, resolution, GSD or integration time".to_owned());
+        return Err(
+            "camera model contains invalid FOV, resolution, GSD or integration time".to_owned(),
+        );
     }
     Ok(())
 }
@@ -868,10 +870,10 @@ fn gsd_at_height(height_m: f64, fov_rad: f64, pixels: u32) -> f64 {
 
 fn gsd_height_limit(model: &CameraSensorModel) -> f64 {
     let allowed_gsd = model.maximum_gsd_m_per_pixel - model.gsd_uncertainty_m_per_pixel;
-    let horizontal_height =
-        allowed_gsd * f64::from(model.horizontal_pixels) / (2.0 * (model.horizontal_fov_rad * 0.5).tan());
-    let vertical_height =
-        allowed_gsd * f64::from(model.vertical_pixels) / (2.0 * (model.vertical_fov_rad * 0.5).tan());
+    let horizontal_height = allowed_gsd * f64::from(model.horizontal_pixels)
+        / (2.0 * (model.horizontal_fov_rad * 0.5).tan());
+    let vertical_height = allowed_gsd * f64::from(model.vertical_pixels)
+        / (2.0 * (model.vertical_fov_rad * 0.5).tan());
     horizontal_height.min(vertical_height)
 }
 
@@ -881,9 +883,7 @@ fn motion_blur_speed_limit(
     vertical_gsd: f64,
     maximum_blur_pixels: f64,
 ) -> Option<f64> {
-    let conservative_gsd = horizontal_gsd
-        .min(vertical_gsd)
-        - model.gsd_uncertainty_m_per_pixel;
+    let conservative_gsd = horizontal_gsd.min(vertical_gsd) - model.gsd_uncertainty_m_per_pixel;
     if !conservative_gsd.is_finite() || conservative_gsd <= 0.0 {
         return None;
     }
@@ -911,14 +911,19 @@ pub fn compute_camera_flight_envelope(
         || spec.requested_maximum_ground_speed_m_per_s <= 0.0
         || !finite_nonnegative(spec.ground_speed_uncertainty_m_per_s)
     {
-        return Err("camera flight envelope contains invalid altitude, speed or blur limits".to_owned());
+        return Err(
+            "camera flight envelope contains invalid altitude, speed or blur limits".to_owned(),
+        );
     }
 
     let gsd_limit_height_m = gsd_height_limit(&spec.rgb)
         .min(gsd_height_limit(&spec.ir))
         .min(spec.maximum_height_m);
     if !gsd_limit_height_m.is_finite() || gsd_limit_height_m < spec.minimum_height_m {
-        return Err("no altitude satisfies both RGB and IR GSD limits inside the allowed height range".to_owned());
+        return Err(
+            "no altitude satisfies both RGB and IR GSD limits inside the allowed height range"
+                .to_owned(),
+        );
     }
     let selected_height_m = spec
         .requested_height_m
@@ -964,7 +969,9 @@ pub fn compute_camera_flight_envelope(
         rgb_gsd_vertical,
         spec.maximum_motion_blur_pixels,
     )
-    .ok_or_else(|| "RGB GSD uncertainty leaves no positive motion-blur speed envelope".to_owned())?;
+    .ok_or_else(|| {
+        "RGB GSD uncertainty leaves no positive motion-blur speed envelope".to_owned()
+    })?;
     let ir_speed_limit = motion_blur_speed_limit(
         &spec.ir,
         ir_gsd_horizontal,
@@ -977,7 +984,9 @@ pub fn compute_camera_flight_envelope(
         .min(spec.requested_maximum_ground_speed_m_per_s)
         - spec.ground_speed_uncertainty_m_per_s;
     if !maximum_commanded_speed.is_finite() || maximum_commanded_speed <= 0.0 {
-        return Err("speed uncertainty consumes the entire camera blur-limited speed envelope".to_owned());
+        return Err(
+            "speed uncertainty consumes the entire camera blur-limited speed envelope".to_owned(),
+        );
     }
 
     let rgb_half_width = selected_height_m * (spec.rgb.horizontal_fov_rad * 0.5).tan();
@@ -1801,12 +1810,8 @@ mod tests {
     fn camera_flight_envelope_is_limited_by_ir_gsd_at_high_altitude() {
         let envelope = compute_camera_flight_envelope(&camera_flight_spec()).unwrap();
         assert!(envelope.selected_height_m < 30.0);
-        assert!(
-            envelope.ir_gsd_vertical_m_per_pixel + 0.002 <= 0.030 + 1.0e-12
-        );
-        assert!(
-            envelope.rgb_gsd_horizontal_m_per_pixel + 0.001 <= 0.010 + 1.0e-12
-        );
+        assert!(envelope.ir_gsd_vertical_m_per_pixel + 0.002 <= 0.030 + 1.0e-12);
+        assert!(envelope.rgb_gsd_horizontal_m_per_pixel + 0.001 <= 0.010 + 1.0e-12);
     }
 
     #[test]
