@@ -19,6 +19,7 @@ const CANONICAL_VERSION: u16 = 1;
 pub struct TimedCcdVerifierConfig {
     pub point_tolerance_mm: f64,
     pub distance_tolerance_mm: f64,
+    pub time_offset_tolerance_ms: f64,
     pub parameter_tolerance: f64,
     pub kkt_gradient_tolerance_mm2: f64,
 }
@@ -28,6 +29,7 @@ impl Default for TimedCcdVerifierConfig {
         Self {
             point_tolerance_mm: 1.0e-7,
             distance_tolerance_mm: 1.0e-7,
+            time_offset_tolerance_ms: 1.0e-7,
             parameter_tolerance: 1.0e-10,
             kkt_gradient_tolerance_mm2: 1.0e-6,
         }
@@ -254,6 +256,7 @@ pub fn verify_timed_co_translating_result(
         && reported_obstacle_point.finite()
         && distance.is_finite()
         && reported_distance.is_finite()
+        && reported.closest.time_parameter.is_finite()
         && radius_sum.is_finite()
         && reported_distance >= 0.0
         && reported.closest_time_offset_ms.is_finite();
@@ -261,7 +264,7 @@ pub fn verify_timed_co_translating_result(
         || terminal_flag_mismatch
         || receipt.max_point_residual_mm > config.point_tolerance_mm
         || receipt.distance_residual_mm > config.distance_tolerance_mm
-        || receipt.time_offset_residual_ms > config.distance_tolerance_mm.max(1.0e-12)
+        || receipt.time_offset_residual_ms > config.time_offset_tolerance_ms
     {
         receipt.reason = TimedCcdVerificationReason::ReportedValueMismatch;
         return Ok(receipt);
@@ -343,6 +346,7 @@ fn validate_config(config: TimedCcdVerifierConfig) -> Result<(), TimedCcdVerifie
     for value in [
         config.point_tolerance_mm,
         config.distance_tolerance_mm,
+        config.time_offset_tolerance_ms,
         config.parameter_tolerance,
         config.kkt_gradient_tolerance_mm2,
     ] {
