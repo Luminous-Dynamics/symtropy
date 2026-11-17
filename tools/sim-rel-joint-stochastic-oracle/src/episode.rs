@@ -714,10 +714,68 @@ mod tests {
     }
 
     #[test]
+    fn public_manifest_is_visible_but_contains_only_non_secret_digests() {
+        let provider = new_provider(deterministic_kernel(false), 42);
+        let view = provider.view();
+        assert_eq!(view.manifest.contract_sha256, "a".repeat(64));
+        assert_eq!(view.manifest.world_recipe_sha256, "d".repeat(64));
+        assert!(!format!("{view:?}").contains("42"));
+    }
+
+    #[test]
+    fn malformed_manifest_is_rejected_before_episode_creation() {
+        let mut manifest = test_manifest();
+        manifest.world_model_sha256 = "not-a-digest".to_owned();
+        assert!(matches!(
+            EpisodeProvider::new(
+                "opaque-episode-invalid-manifest",
+                manifest,
+                deterministic_kernel(false),
+                EpisodeConfig::default(),
+                0,
+            ),
+            Err(EpisodeError::InvalidManifest)
+        ));
+    }
+
+    #[test]
+    fn receipt_cap_marks_trace_incomplete_and_counts_dropped_requests() {
+        let mut provider = new_provider(deterministic_kernel(false), 77);
+        for _ in 0..MAX_ATTEMPT_RECEIPTS {
+            provider
+                .submit_action("unknown-action")
+                .expect("request retained under the receipt cap");
+        }
+        assert_eq!(
+            provider.submit_action("unknown-action"),
+            Err(EpisodeError::AttemptReceiptLimit)
+        );
+        let view = provider.view();
+        assert_eq!(view.attempts.len(), MAX_ATTEMPT_RECEIPTS);
+        assert_eq!(view.dropped_attempts, 1);
+        assert!(!view.trace_complete);
+        assert!(view.terminal);
+    }
+
+    #[test]
+    fn sampler_rejects_positive_probability_below_53_bit_resolution() {
+        let tiny = Rational::new(1, 1_u128 << 54).unwrap();
+        let rest = Rational::new((1_u128 << 54) - 1, 1_u128 << 54).unwrap();
+        let mut rng = SplitMix64::new(1);
+        assert_eq!(
+            sample_index(&[tiny, rest], |mass| *mass, &mut rng),
+            Err(EpisodeError::SamplingResolutionTooCoarse)
+        );
+    }
+
+    #[test]
     fn public_view_contains_catalogue_and_no_hidden_model_fields() {
         let provider = new_provider(deterministic_kernel(false), 7);
         let view = provider.view();
         assert_eq!(view.episode_id, "opaque-episode-0001");
+        assert_eq!(view.manifest.world_model_sha256, "b".repeat(64));
+        assert!(view.trace_complete);
+        assert_eq!(view.dropped_attempts, 0);
         assert_eq!(view.actions[0].action_id, "measure");
         assert!(view.observations.is_empty());
         assert_eq!(view.current_step, 0);
@@ -728,6 +786,8 @@ mod tests {
     fn deterministic_kernel_emits_observation_and_charges_exact_action_cost() {
         let mut provider = new_provider(deterministic_kernel(false), 7);
         let receipt = provider.submit_action("measure").unwrap();
+        assert_eq!(receipt.requested_at_step, 0);
+        assert_eq!(receipt.executed_at_step, Some(1));
         assert_eq!(receipt.charged_cost_units, 2);
         assert_eq!(
             receipt.disposition,
