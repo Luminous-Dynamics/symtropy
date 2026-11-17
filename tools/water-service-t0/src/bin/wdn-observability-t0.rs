@@ -102,13 +102,11 @@ fn sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
-fn nonempty_ref(value: &Value, key: &str, context: &str) -> bool {
+fn nonempty_ref(value: &Value, key: &str, _context: &str) -> bool {
     value
         .get(key)
         .and_then(Value::as_str)
         .is_some_and(|reference| !reference.trim().is_empty())
-        && value.get(key).is_some_and(|reference| !reference.is_null())
-        && context.len() > 0
 }
 
 fn parse_sensor(value: &Value, index: usize, required_states: &BTreeSet<String>) -> Result<Sensor, String> {
