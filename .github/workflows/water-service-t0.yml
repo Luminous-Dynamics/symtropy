@@ -78,6 +78,7 @@ jobs:
             docs/research/jw-water-intake-t1/response_headers.synthetic.v0.1.txt \
             docs/research/jw-water-intake-t1/capture_manifest.synthetic.v0.1.json \
             docs/research/jw-water-intake-t1/watersearch_suburb_history_response.schema.v0.1.json \
+            docs/research/jw-water-intake-t1/capture_manifest.schema.v0.1.json \
             artifacts/water-service-t0/jw-water-intake-t1-receipt.json
       - name: Upload exact inputs, manifests, oracle and receipt
         if: always()
