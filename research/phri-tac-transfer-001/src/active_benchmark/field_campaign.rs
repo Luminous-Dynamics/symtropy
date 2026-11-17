@@ -31,7 +31,7 @@ const RESPONSE_NOISE_SCALE: f64 = 0.0015;
 const GRAPH_SMOOTHNESS_PENALTY: f64 = 0.02;
 const SPARSE_CONTACT_L1_PENALTY: f64 = 0.01;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct FieldEstimatorSummary {
     pub estimator_id: &'static str,
     pub mean_field_rmse: f64,
@@ -61,7 +61,7 @@ pub struct FieldEstimatorSummary {
     pub replicate_count: usize,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize)]
 pub struct FieldReconstructionCampaignReport {
     pub taxel_count: usize,
     pub module_count: usize,
