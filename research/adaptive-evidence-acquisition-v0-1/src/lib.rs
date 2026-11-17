@@ -16,6 +16,8 @@ pub struct EvidenceTarget {
     pub target_id: String,
     pub required_independent_passes: usize,
     pub minimum_view_angle_separation_rad: f64,
+    /// Priority weight supplied by the upstream decision/evidence request owner.
+    /// This crate consumes the weight; it does not estimate decision value.
     pub weight: f64,
 }
 
