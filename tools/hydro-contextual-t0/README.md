@@ -18,7 +18,7 @@ HYDRO_CONTEXTUAL_T0_REVISION="$(git rev-parse HEAD)" \\
 
 ## Scope
 
-The frozen 32-case corpus exercises:
+The frozen 35-case corpus exercises:
 - B0 persistence and training-only seasonal-climatology metric recomputation;
 - B1 parameter-prior member visibility and invalid-member disclosure;
 - B2 repeated train-only calibration-reference summary;
@@ -31,7 +31,7 @@ The evaluator reads frozen arrays. It does not generate, calibrate, select or ex
 
 ## Evidence receipt
 
-The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 32 rows match the separate oracle.
+The CLI binds input, manifest, oracle and Cargo.lock SHA-256 digests and the exact implementation revision. Local runs without a valid revision are labelled PassedLocalUnpinned; CI provides the checkout SHA and emits PassedExactRevision only when all 35 rows match the separate oracle.
 
 ## Nonclaims
 
@@ -65,3 +65,10 @@ The 32-case synthetic corpus adds:
 - rejection of probabilities outside [0,1] and negative streamflow members.
 
 CRPS and Brier are proper scores, unlike raw coverage alone. Reliability bins are descriptive, not proof of calibration; meaningful calibration requires many independent events, catchments, forecast horizons and uncertainty intervals. Event threshold, units, lead time and valid-time semantics must be frozen before scoring. All cases remain synthetic; the evaluator does not issue forecasts.
+
+
+### Reference-relative probabilistic skill (cases 033–035)
+
+The corpus adds CRPSS and Brier Skill Score against explicit reference forecasts. Each skill score uses the same verifying observation/event population and binds the reference forecast ID. Positive means better than the reference, zero means equal, negative means worse; values are not clipped. A zero/near-zero reference score makes skill Undefined while raw forecast/reference scores remain visible.
+
+This is the bridge from scoring a probabilistic forecast to asking whether it adds value over persistence, seasonal climatology or a predeclared operational reference. The evaluator does not generate or tune the reference forecast.
