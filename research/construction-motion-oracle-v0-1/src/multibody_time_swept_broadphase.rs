@@ -1096,4 +1096,41 @@ mod tests {
         }
     }
 
+
+    #[test]
+    fn generated_hierarchical_refinement_matches_direct_sap_for_all_slab_counts() {
+        let mut bodies = Vec::new();
+        for index in 0..64_usize {
+            let x = ((index * 37) % 113) as f64 * 2.5;
+            let y = ((index * 19) % 71) as f64 * 1.5;
+            let delta_x = ((index * 23) % 41) as f64 - 20.0;
+            let start_ms = (index % 4) as u64 * 25;
+            let end_ms = 1_000 + (index % 4) as u64 * 25;
+            let id = format!("body-{index:03}");
+            bodies.push(body(
+                &id,
+                span(x, y, delta_x, start_ms, end_ms),
+            ));
+        }
+
+        for subdivisions in [1, 2, 4, 8, 16] {
+            let hierarchical =
+                time_swept_capsule_broadphase_hierarchical(&bodies, subdivisions).unwrap();
+            let direct = time_swept_capsule_broadphase(&bodies, subdivisions).unwrap();
+            assert_eq!(
+                hierarchical.refinement.pairs,
+                direct.pairs,
+                "generated pair/slab records diverged at {subdivisions} subdivisions"
+            );
+            assert_eq!(
+                hierarchical.refinement.coarse_candidate_pairs,
+                hierarchical.coarse.pairs.len() as u64
+            );
+            assert!(
+                hierarchical.refinement.tested_pair_slabs
+                    >= hierarchical.refinement.pairs.len() as u64
+            );
+        }
+    }
+
 }
