@@ -268,6 +268,9 @@ pub struct NetworkScore {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NetworkError {
+    InvalidAdaptiveConfig,
+    AdaptiveStepUnderflow,
+    AdaptiveAttemptLimitReached,
     InvalidNodeCount,
     InvalidHorizon,
     InvalidCapacity { node: usize },
@@ -619,6 +622,228 @@ fn symmetric_eigen(mut matrix: Vec<Vec<f64>>) -> Result<(Vec<f64>, Vec<Vec<f64>>
     Ok((eigenvalues, vectors))
 }
 
+
+/// Configuration for adaptive network-wide Jacobi shared-flux subcycling.
+///
+/// The step-doubling difference is a local error indicator. Global trajectory
+/// error is measured independently against the spectral oracle.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AdaptiveNetworkConfig {
+    pub initial_step: f64,
+    pub min_step: f64,
+    pub max_step: f64,
+    pub absolute_tolerance: f64,
+    pub relative_tolerance: f64,
+    pub max_attempts: usize,
+}
+
+/// Separate accuracy, conservation, dissipation and controller metrics.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AdaptiveNetworkScore {
+    pub accepted_steps: usize,
+    pub rejected_steps: usize,
+    pub max_accepted_local_error_norm: f64,
+    pub max_abs_state_error: f64,
+    pub rms_state_error: f64,
+    pub max_abs_total_residual: f64,
+    pub max_quadratic_energy_increase: f64,
+    pub min_state: f64,
+    pub max_state: f64,
+    pub min_accepted_step: f64,
+    pub max_accepted_step: f64,
+    pub max_spectral_stability_number: f64,
+    pub positive_states: bool,
+    pub final_state: Vec<f64>,
+}
+
+/// One simultaneous, paired shared-edge Euler update. All edge fluxes are
+/// computed from the same immutable input snapshot and accumulated before
+/// any node state is advanced.
+fn network_shared_flux_euler(
+    scenario: &NetworkScenario,
+    state: &[f64],
+    step: f64,
+) -> Vec<f64> {
+    let mut increments = vec![0.0; state.len()];
+    for edge in &scenario.edges {
+        let flux = edge.conductance * (state[edge.left] - state[edge.right]) * step;
+        increments[edge.left] -= flux / scenario.capacities[edge.left];
+        increments[edge.right] += flux / scenario.capacities[edge.right];
+    }
+    state
+        .iter()
+        .zip(increments.iter())
+        .map(|(value, delta)| value + delta)
+        .collect()
+}
+
+/// Adaptive shared-flux network integration with full-step / two-half-step
+/// error estimation, positivity rejection, quadratic-energy rejection and
+/// independent global error scoring against the spectral oracle.
+///
+/// A rejected trial never mutates the last accepted state. Every accepted edge
+/// flux is applied as a paired debit/credit using one shared transfer value.
+pub fn simulate_network_adaptive(
+    scenario: &NetworkScenario,
+    config: AdaptiveNetworkConfig,
+) -> Result<AdaptiveNetworkScore, NetworkError> {
+    scenario.validate()?;
+    if !config.initial_step.is_finite()
+        || !config.min_step.is_finite()
+        || !config.max_step.is_finite()
+        || !config.absolute_tolerance.is_finite()
+        || !config.relative_tolerance.is_finite()
+        || config.min_step <= 0.0
+        || config.max_step < config.min_step
+        || config.initial_step < config.min_step
+        || config.initial_step > config.max_step
+        || config.absolute_tolerance <= 0.0
+        || config.relative_tolerance < 0.0
+        || config.max_attempts == 0
+    {
+        return Err(NetworkError::InvalidAdaptiveConfig);
+    }
+
+    let oracle = scenario.spectral_oracle()?;
+    let initial_total = scenario.conserved_total();
+    let initial_energy = scenario.quadratic_energy(&scenario.initial);
+    let positivity_required = scenario.initial.iter().all(|value| *value >= 0.0);
+
+    let mut state = scenario.initial.clone();
+    let mut time = 0.0;
+    let mut step = config.initial_step;
+    let mut accepted_steps = 0_usize;
+    let mut rejected_steps = 0_usize;
+    let mut attempts = 0_usize;
+    let mut max_accepted_local_error_norm: f64 = 0.0;
+    let mut max_abs_state_error: f64 = 0.0;
+    let mut sum_squared_error = 0.0;
+    let mut error_samples = 0_usize;
+    let mut max_abs_total_residual: f64 = 0.0;
+    let mut max_quadratic_energy_increase: f64 = 0.0;
+    let mut min_state = state.iter().copied().fold(f64::INFINITY, f64::min);
+    let mut max_state = state.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let mut min_accepted_step = f64::INFINITY;
+    let mut max_accepted_step: f64 = 0.0;
+
+    while time < scenario.horizon {
+        if attempts >= config.max_attempts {
+            return Err(NetworkError::AdaptiveAttemptLimitReached);
+        }
+        attempts += 1;
+
+        let remaining = scenario.horizon - time;
+        let attempted_step = step.min(remaining);
+        if !attempted_step.is_finite() || attempted_step <= 0.0 {
+            return Err(NetworkError::AdaptiveStepUnderflow);
+        }
+
+        let coarse = network_shared_flux_euler(scenario, &state, attempted_step);
+        let first_half =
+            network_shared_flux_euler(scenario, &state, attempted_step * 0.5);
+        let fine = network_shared_flux_euler(
+            scenario,
+            &first_half,
+            attempted_step * 0.5,
+        );
+        let finite = coarse.iter().chain(fine.iter()).all(|value| value.is_finite());
+
+        let error_norm = if finite {
+            state
+                .iter()
+                .zip(coarse.iter().zip(fine.iter()))
+                .map(|(current, (coarse_value, fine_value))| {
+                    let scale = config.absolute_tolerance
+                        + config.relative_tolerance * current.abs().max(fine_value.abs());
+                    (fine_value - coarse_value).abs() / scale
+                })
+                .fold(0.0_f64, f64::max)
+        } else {
+            f64::INFINITY
+        };
+
+        let positivity_ok =
+            !positivity_required || fine.iter().all(|value| *value >= 0.0);
+        let old_energy = scenario.quadratic_energy(&state);
+        let new_energy = if finite {
+            scenario.quadratic_energy(&fine)
+        } else {
+            f64::INFINITY
+        };
+        let energy_slack = 1.0e-12 * old_energy.abs().max(1.0);
+        let energy_ok = finite && new_energy <= old_energy + energy_slack;
+        let accepted = finite && error_norm <= 1.0 && positivity_ok && energy_ok;
+
+        if accepted {
+            state = fine;
+            time += attempted_step;
+            accepted_steps += 1;
+            max_accepted_local_error_norm =
+                max_accepted_local_error_norm.max(error_norm);
+            min_accepted_step = min_accepted_step.min(attempted_step);
+            max_accepted_step = max_accepted_step.max(attempted_step);
+
+            let reference = oracle.state_at(time)?;
+            for (actual, expected) in state.iter().zip(reference.iter()) {
+                let error = actual - expected;
+                max_abs_state_error = max_abs_state_error.max(error.abs());
+                sum_squared_error += error * error;
+                error_samples += 1;
+            }
+
+            let total: f64 = scenario
+                .capacities
+                .iter()
+                .zip(state.iter())
+                .map(|(capacity, value)| capacity * value)
+                .sum();
+            max_abs_total_residual =
+                max_abs_total_residual.max((total - initial_total).abs());
+
+            let energy = scenario.quadratic_energy(&state);
+            max_quadratic_energy_increase =
+                max_quadratic_energy_increase.max((energy - old_energy).max(0.0));
+            min_state = min_state.min(state.iter().copied().fold(f64::INFINITY, f64::min));
+            max_state = max_state.max(state.iter().copied().fold(f64::NEG_INFINITY, f64::max));
+
+            let factor = if error_norm < 1.0e-16 {
+                2.0
+            } else {
+                (0.9 / error_norm.sqrt()).clamp(0.2, 2.0)
+            };
+            step = (attempted_step * factor).clamp(config.min_step, config.max_step);
+        } else {
+            rejected_steps += 1;
+            if attempted_step <= config.min_step * (1.0 + 1.0e-12) {
+                return Err(NetworkError::AdaptiveStepUnderflow);
+            }
+            let factor = if error_norm.is_finite() && error_norm > 0.0 {
+                (0.9 / error_norm.sqrt()).clamp(0.1, 0.5)
+            } else {
+                0.5
+            };
+            step = (attempted_step * factor).max(config.min_step);
+        }
+    }
+
+    Ok(AdaptiveNetworkScore {
+        accepted_steps,
+        rejected_steps,
+        max_accepted_local_error_norm,
+        max_abs_state_error,
+        rms_state_error: (sum_squared_error / error_samples as f64).sqrt(),
+        max_abs_total_residual,
+        max_quadratic_energy_increase,
+        min_state,
+        max_state,
+        min_accepted_step,
+        max_accepted_step,
+        max_spectral_stability_number: oracle.max_eigenvalue() * max_accepted_step,
+        positive_states: min_state >= 0.0,
+        final_state: state,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -775,4 +1000,47 @@ mod tests {
             Err(NetworkError::StepDoesNotDivideHorizon)
         );
     }
+
+    #[test]
+    fn adaptive_network_preserves_total_energy_and_positivity() {
+        let scenario = chain();
+        let score = simulate_network_adaptive(
+            &scenario,
+            AdaptiveNetworkConfig {
+                initial_step: scenario.horizon,
+                min_step: 1.0e-8,
+                max_step: scenario.horizon,
+                absolute_tolerance: 1.0e-7,
+                relative_tolerance: 1.0e-6,
+                max_attempts: 100_000,
+            },
+        )
+        .unwrap();
+
+        assert!(score.accepted_steps > 0);
+        assert!(score.rejected_steps > 0);
+        assert!(score.positive_states);
+        assert!(score.max_abs_total_residual < 1.0e-10);
+        assert!(score.max_quadratic_energy_increase < 1.0e-11);
+        assert!(score.max_abs_state_error < 1.0e-3);
+        assert!(score.max_accepted_local_error_norm <= 1.0);
+    }
+
+    #[test]
+    fn adaptive_network_rejects_invalid_tolerances() {
+        let result = simulate_network_adaptive(
+            &chain(),
+            AdaptiveNetworkConfig {
+                initial_step: 1.0,
+                min_step: 1.0e-4,
+                max_step: 2.0,
+                absolute_tolerance: 0.0,
+                relative_tolerance: 1.0e-6,
+                max_attempts: 100,
+            },
+        );
+        assert_eq!(result, Err(NetworkError::InvalidAdaptiveConfig));
+    }
+
+
 }
