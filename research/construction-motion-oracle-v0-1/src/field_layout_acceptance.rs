@@ -594,8 +594,7 @@ fn evaluate_measurement(
         }
     }
 
-    if measurement.residual_x_mm.hypot(measurement.residual_y_mm) > profile.max_abs_xy_residual_mm
-    {
+    if measurement.residual_x_mm.hypot(measurement.residual_y_mm) > profile.max_abs_xy_residual_mm {
         return MeasurementEvaluation::Rejected;
     }
 
@@ -904,14 +903,9 @@ mod tests {
             scope: "point-1 only".into(),
             waiver_receipt_sha256: digest('b'),
         };
-        let result = score_field_layout_run(
-            &manifest(&["point-1"]),
-            &[],
-            &[waiver],
-            profile(),
-            crew(),
-        )
-        .unwrap();
+        let result =
+            score_field_layout_run(&manifest(&["point-1"]), &[], &[waiver], profile(), crew())
+                .unwrap();
         assert_eq!(result.waived_count, 1);
         assert_eq!(result.attempted_count, 0);
         assert_eq!(result.first_pass_yield, None);
