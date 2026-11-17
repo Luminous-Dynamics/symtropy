@@ -104,10 +104,11 @@ fn receipt(source_commit: &str, corpus_sha256: &str, input: &str) -> Result<Stri
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() != 4 || args[0] != "--source-commit" || args[2] != "--corpus-sha256" {
-        return Err(
-            "usage: ors-skyhook-reference --source-commit <40-char-sha> --corpus-sha256 <64-char-sha>"
-                .to_owned(),
+        let usage = concat!(
+            "usage: ors-skyhook-reference --source-commit ",
+            "<40-char-sha> --corpus-sha256 <64-char-sha>"
         );
+        return Err(usage.to_owned());
     }
     if !valid_hex(&args[1], 40) {
         return Err("source commit must be a 40-character lowercase hexadecimal SHA".to_owned());
