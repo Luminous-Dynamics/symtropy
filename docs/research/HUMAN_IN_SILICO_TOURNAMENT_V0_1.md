@@ -107,6 +107,19 @@ Sources: [NASA POWER hourly API](https://power.larc.nasa.gov/docs/services/api/t
 
 Use these data only as real external forcing for synthetic model runs: real weather in, simulated physiology out. This validates the ingestion, timestamp, unit-conversion and boundary-condition pipeline against observed environmental variability. It does **not** validate the model's human response, and it must not be described as a real-human scenario.
 
+For a South African forcing lane, compose [HIGHVELD-HYDRO-DATA-ADMISSION-001 / Symtropy #5350](https://github.com/Luminous-Dynamics/symtropy/issues/5350) rather than creating another environmental data registry. It catalogs distinct candidate sources: SAWS station records (including hourly meteorology, subject to access and data-policy terms), CHIRPS gridded precipitation, ERA5-Land reanalysis and GPM IMERG precipitation. Preserve the evidence classes: station observation, satellite/blended product and reanalysis are not interchangeable. In particular, CHIRPS is a satellite + in-situ blended precipitation product, ERA5-Land is a gridded reanalysis, and GPM IMERG has its own product/run/quality semantics. A gridded cell is not a local station observation.
+
+Initial adapter requirements:
+- bind source product, version, station/grid cell, coordinate/elevation, retrieval time and license;
+- preserve UTC capture time and source time zone separately;
+- retain interval semantics (instantaneous value vs preceding-hour accumulation);
+- preserve native units, conversions, quality fields, provisional/final status and revisions;
+- never fill a missing forcing value with zero or silently interpolate it;
+- record any resampling, bias correction, downscaling and preprocessing digest;
+- treat external weather as boundary forcing only; all internal states remain synthetic.
+
+SAWS observations require the relevant access/data-policy review before acquisition or redistribution. The candidate source inventory in #5350 is not an admission or a claim that data bytes have already been acquired.
+
 A second, strictly separate method lane may use existing public non-human data in the repository (for example Drosophila sensorimotor experiments, plant hydraulic/stomatal observations and fungal-network measurements) to test generic observation, event, conservation and causal-evaluation methods. Keep taxa, model equations and parameter provenance separate; no cross-species physiological claims or human parameter transfer.
 
 Every adapter must pin exact release/commit, license, equations, parameter defaults, dependencies, solver, initial-state procedure, output units and unsupported inputs before admission.
@@ -132,7 +145,7 @@ The companion [scenarios.json](../../benchmarks/human-systems/v0.1/scenarios.jso
 | SYN-013 | Assignment/delivery/exposure mismatch | Attributing effects to undelivered actions |
 | SYN-014 | Coupling semantic corruption | Wrong units, sign, direction or double-counted flux |
 | SYN-015 | Out-of-domain input | Silent extrapolation beyond declared validity |
-| SYN-016 | Observed environmental forcing with synthetic response | Treating real weather inputs as human response validation |
+| SYN-016 | Observed environmental forcing with synthetic response | Treating real weather inputs as human response validation |\n| SYN-017 | Multi-rate co-simulation master tournament | Instability, energy leakage or event-order dependence introduced by the federation algorithm |
 
 Use separate truth generators and candidate models to reduce inverse-crime risk. Use analytic known-answer cases and structurally distinct model families for cross-model claims. Keep seeds, model discrepancy and scorer truth outside candidate-visible inputs.
 
