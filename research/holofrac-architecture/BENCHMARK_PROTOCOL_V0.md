@@ -38,21 +38,26 @@ Report: deterministic replay rate, schema rejection rate, invalid-input handling
 Queries include containment, adjacency, access, support, supply/drain, shading, ventilation and maintenance relationships. Include reversed-edge negative controls (for example, room A supplies room B versus room B supplies room A).
 
 Baselines:
-- exact typed-edge lookup;
-- canonical key/value or adjacency-list lookup;
+- exact typed-edge lookup and a source-keyed inverted postings index;
+- canonical key/value and adjacency-list lookup;
+- graph embedding / ANN retrieval where the same partial-query semantics can be implemented;
 - HRR/FHRR/MAP/BSC/TPR;
-- GHRR after independently specified implementation;
-- untyped or direction-ablated HDC as negative controls.
+- GHRR after independently specified non-commutative implementation and its flattened inference treatment;
+- untyped, direction-ablated and random-vector HDC as negative controls.
 
-Metrics: top-1/top-k accuracy, mean reciprocal rank, relation precision/recall/F1, false match rate under reversed edges, query latency, index memory and update cost.
+The exact postings index is the primary baseline whenever query fields are exact source identifiers. HDC should not be expected to beat it on fully specified or exact-key queries. The HDC research question is whether it adds robust recall for noisy cues, aliases, cross-scale analogies, incomplete semantic descriptions or generalization beyond observed identifiers.
+
+Metrics: top-1/top-k accuracy, MRR, relation precision/recall/F1, reversed-edge false match rate, abstention, query/build/update latency, full index memory including postings/codebook metadata, and energy where measurable. Report separate exact-oracle, exact-postings, slot-HDC and holistic-HDC results.
 
 ### H2 — Partial graph completion and context retrieval
 
 Mask 10%, 25%, 50% and 75% of selected non-critical nodes/relations using a published, deterministic masking schedule. Ask the system to retrieve candidate missing relations or relevant parent/neighbor context.
 
-Keep ground truth hidden from the retrieval step. Report exact-edge recovery, graph edit distance, calibration, abstention quality and false completion rate. Do not reward plausible but unsupported invention.
+Keep ground truth hidden from the retrieval step. Use distinct query regimes: exact identifiers partially masked; aliases/synonyms; noisy or corrupted labels; natural-language descriptions mapped through a declared parser; and truly novel/unanswerable contexts. Report exact-edge recovery, graph edit distance, calibration, abstention quality and false completion rate. Do not reward plausible but unsupported invention.
 
-Split by complete building/project, not randomly by adjacent rooms or repeated variants from one source model.
+For each regime compare the source-graph oracle, exact role-postings intersection, adjacency-list traversal, HDC role-slot ranking and holistic partial-bundle ranking. If using learned text or graph embeddings, include their training corpus, leakage controls and ANN index cost. A hybrid may use approximate retrieval for recall and exact source verification for accepted facts; report both pre-verification suggestions and verified outcomes.
+
+Split by complete building/project, not randomly by adjacent rooms or repeated variants from one source model. Hold out terminology, topology families, relation combinations and at least one complete project family.
 
 ### H3 — Cross-scale and held-out-family transfer
 
@@ -277,7 +282,9 @@ The product comparison owner is Sol-Atlas [HIGHVELD-KEEP-INDUSTRY-001 #617](http
 
 ### What HoloFrac should attempt to outperform
 
-The proposed advantage is not raw CAD, daylight, CFD, FEA, zoning or floor-plan generation. The testable hypothesis is a reduction in cross-tool information loss and rework through:
+The proposed advantage is not raw CAD, daylight, CFD, FEA, zoning, drawing search, generic project-change highlighting or floor-plan generation: Autodesk Forma is actively investing in connected project context, AI drawing search/change analysis and goal-based multifamily layouts. HoloFrac must demonstrate something more specific in matched tasks: machine-checkable source lineage, exact dependency closure, independent evidence invalidation/replay, and measurable reductions in stale analyses or engineering rework across heterogeneous toolchains. Whether commercial platforms already satisfy parts of this requirement must be assessed empirically, not assumed.
+
+The testable hypothesis is a reduction in cross-tool information loss and rework through:
 
 1. typed multiscale spatial memory with source IDs and relation direction preserved;
 2. intent-to-design lineage and hard/soft requirement traceability;
@@ -298,9 +305,12 @@ Primary comparative measures should include time to first feasible candidate, de
 - BOPTEST building-operations benchmark: https://ibpsa.github.io/project1-boptest/
 - Yeung, Zou & Imani (2024), *Generalized Holographic Reduced Representations*: non-commutative matrix binding, compositional decoding and capacity baselines: https://arxiv.org/abs/2405.09689
 - Chung et al. (arXiv version 12 November 2026; ISLPED '26), *Vector-Space Projection and Unified Complex-Valued Acceleration for Scaling Matrix-Based Brain-Inspired Representations*: GHRR flattening equivalence and an ASIC/software comparison. The paper's flattened effective dimension is D*m^2; its RTX 3060 Ti sequence experiment, RTX 4090 PyTorch comparison and 28 nm ASIC results must be reported as distinct experimental settings: https://arxiv.org/abs/2611.16363 and https://doi.org/10.1145/3816440.3818598
+- Naamrudi & Aghamolaei (1 November 2026), *A BIM-based adaptive surrogate framework for efficient uncertainty quantification in building energy simulation*: Sparse Polynomial Chaos Expansion with sequential sampling, multi-output/multi-timescale sensitivity analysis, and archetype-specific uncertainty rankings. Include adaptive PCE as a comparison arm alongside RBF surrogates and TPE; measure calibration and simulation calls as well as point prediction error: https://doi.org/10.1016/j.enbuild.2026.118098
 - Chung et al., DATE 2026 GHRR accelerator paper: https://doi.org/10.23919/DATE69613.2026.11539261
 
 ### Required GHRR comparison contract
+
+The November 2026 flattened-GHRR paper derives an exact inference similarity representation in effective complex dimension D*m^2; its synthetic RTX 3060 Ti sequence experiment, software comparisons and 28 nm ASIC results are different experimental settings. The hardware paper reports D=8K, m=2, P=8 for one configuration and additional large-D sweeps. We must not describe the flattened representation as O(D) storage or compare ASIC efficiency directly with laptop CPU/GPU software.
 
 A nominal hyperdimension D is not a fair comparison between FHRR and matrix-valued GHRR. For every GHRR run record:
 - matrix block count D and matrix width m;
@@ -313,10 +323,11 @@ Compare at least matrix-native GHRR, flattened GHRR and current FHRR/bipolar bas
 
 ## 10. First implementation sequence
 
-1. Build a typed spatial-graph fixture and an exact graph oracle in Rust; include directed-edge and reversed-edge negative controls.
-2. Add an HDC adapter using existing symtropy-hdc-core without changing its semantics; persist encoder fingerprint and exact source IDs.
-3. Add separate HRR/FHRR/MAP/BSC/TPR adapters; add GHRR only as an independently specified research implementation.
-4. Publish H0-H3 raw results and hold-out manifests before integrating generation.
+1. Build a typed spatial-graph fixture, exact graph oracle, exact role-postings baseline and directed/reversed negative controls in Rust.
+2. Add HDC adapters using existing symtropy-hdc-core; persist encoder specification, exact source IDs and codebook/index statistics.
+3. Publish H0-H2 raw results comparing exact postings, slot-HDC and holistic-HDC under exact, masked, noisy and held-out query regimes.
+4. Add separate HRR/FHRR/MAP/BSC/TPR adapters; add GHRR only as an independently specified, dimension/byte-matched research implementation.
+5. Publish held-out manifests and raw artifacts before connecting architectural generation.
 5. Connect a minimal IFC 4.3/IDS exchange fixture and MSD task adapter.
 6. Connect Symtropy physical evaluation and FFMFE structural/assembly tests without allowing representation changes to mutate authoritative physics inputs.
 7. Add building-performance simulation, uncertainty, measured calibration and occupant evaluation only when independently reproducible inputs are available.
