@@ -687,9 +687,21 @@ mod tests {
         }
     }
 
+    fn test_manifest() -> EpisodeManifest {
+        EpisodeManifest {
+            contract_sha256: "a".repeat(64),
+            world_model_sha256: "b".repeat(64),
+            model_profile_sha256: "c".repeat(64),
+            world_recipe_sha256: "d".repeat(64),
+            clock_profile_sha256: "e".repeat(64),
+            time_origin_sha256: "f".repeat(64),
+        }
+    }
+
     fn new_provider(kernel: JointKernel, seed: u64) -> EpisodeProvider {
         EpisodeProvider::new(
             "opaque-episode-0001",
+            test_manifest(),
             kernel,
             EpisodeConfig {
                 max_attempts: 4,
@@ -771,6 +783,7 @@ mod tests {
     fn cost_budget_rejects_mutation_but_retains_request() {
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0002",
+            test_manifest(),
             deterministic_kernel(false),
             EpisodeConfig {
                 max_attempts: 4,
@@ -797,6 +810,7 @@ mod tests {
     fn accepted_attempt_budget_rejects_additional_interventions_and_records_them() {
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0003",
+            test_manifest(),
             deterministic_kernel(false),
             EpisodeConfig {
                 max_attempts: 1,
@@ -828,10 +842,22 @@ mod tests {
         // With this fixture and SplitMix64 mapping, seed 3 selects the first
         // initial tuple and seed 0 selects the second. The public histories
         // remain identical until the final post-calibration measurement.
-        let mut first = EpisodeProvider::new("opaque-confound-a-0001", kernel.clone(), config, 3)
-            .expect("first episode");
-        let mut second = EpisodeProvider::new("opaque-confound-b-0001", kernel, config, 0)
-            .expect("second episode");
+        let mut first = EpisodeProvider::new(
+            "opaque-confound-a-0001",
+            test_manifest(),
+            kernel.clone(),
+            config,
+            3,
+        )
+        .expect("first episode");
+        let mut second = EpisodeProvider::new(
+            "opaque-confound-b-0001",
+            test_manifest(),
+            kernel,
+            config,
+            0,
+        )
+        .expect("second episode");
 
         let first_measure = first.submit_action("measure-combined-signal").unwrap();
         let second_measure = second.submit_action("measure-combined-signal").unwrap();
@@ -925,6 +951,7 @@ mod tests {
     fn configured_world_horizon_is_enforced_and_request_is_retained() {
         let mut provider = EpisodeProvider::new(
             "opaque-episode-0004",
+            test_manifest(),
             deterministic_kernel(false),
             EpisodeConfig {
                 max_attempts: 4,
@@ -949,6 +976,7 @@ mod tests {
     fn invalid_kernel_or_episode_id_is_rejected_before_episode_creation() {
         let invalid_id = EpisodeProvider::new(
             "short",
+            test_manifest(),
             deterministic_kernel(false),
             EpisodeConfig::default(),
             0,
@@ -963,6 +991,7 @@ mod tests {
         assert!(matches!(
             EpisodeProvider::new(
                 "opaque-episode-0005",
+                test_manifest(),
                 invalid,
                 EpisodeConfig::default(),
                 0,
