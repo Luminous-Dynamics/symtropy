@@ -139,7 +139,8 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          from jsonschema import Draft202012Validator
+          from datetime import datetime
+          from jsonschema import Draft202012Validator, FormatChecker
 
           root = Path("research/water-service-engineering")
           plan_schema = json.loads((root / "waterloop-matched-service-plan.schema.v0.1.json").read_text())
@@ -148,7 +149,7 @@ jobs:
           for name, schema in [("plan", plan_schema), ("run", run_schema)]:
               Draft202012Validator.check_schema(schema)
           errors = sorted(
-              Draft202012Validator(plan_schema).iter_errors(plan),
+              Draft202012Validator(plan_schema, format_checker=FormatChecker()).iter_errors(plan),
               key=lambda error: (list(map(str, error.absolute_path)), error.message),
           )
           if errors:
@@ -185,7 +186,7 @@ jobs:
               ("t1_oracle", t1_oracle_schema, t1_oracle),
           ]:
               errors = sorted(
-                  Draft202012Validator(schema).iter_errors(document),
+                  Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(document),
                   key=lambda error: (list(map(str, error.absolute_path)), error.message),
               )
               if errors:
@@ -197,7 +198,7 @@ jobs:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CLAIM_CEILING_FAIL")
           if t1_input["frozen_plan_blob_sha"] != "3b64690fa02ac47b3bc430a22b1392c65583bba7":
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PLAN_IDENTITY_FAIL")
-          if len(t1_input["cases"]) != 15 or len(t1_oracle["cases"]) != 15:
+          if len(t1_input["cases"]) != 19 or len(t1_oracle["cases"]) != 19:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CASE_COUNT_FAIL")
           if {x["case_id"] for x in t1_input["cases"]} != {x["case_id"] for x in t1_oracle["cases"]}:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ORACLE_CASE_SET_FAIL")
@@ -209,20 +210,75 @@ jobs:
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_COVERAGE_BREACH")
           if any(case["control_energy_observed_block_count"] > case["paired_block_count"] or case["net_energy_observed_block_count"] > case["paired_block_count"] for case in t1_oracle["cases"]):
               raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CONTROL_ENERGY_COVERAGE_BREACH")
+          def instant(value):
+              return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+          expired_calibration_records = []
+          pressure_mismatch_blocks = []
+          flow_mismatch_blocks = []
+          duration_mismatch_blocks = []
           for case in t1_input["cases"]:
+              if case["max_service_pressure_difference_kpa"] < 0 or case["max_service_flow_difference_lpm"] < 0:
+                  raise SystemExit(f"WATERLOOP_MATCHED_SERVICE_T1_NEGATIVE_TOLERANCE: {case['case_id']}")
               for block in case["blocks"]:
+                  runs = {}
                   for arm_name in ["control", "treatment"]:
                       run = block[arm_name]
                       if run is None:
                           continue
+                      runs[arm_name] = run
+                      run_start, run_end = instant(run["start_utc"]), instant(run["end_utc"])
+                      if run_start >= run_end:
+                          raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_INVALID_RUN_WINDOW")
                       for key, value in run.items():
                           if isinstance(value, dict) and "raw_record_digest" in value:
                               if value.get("time_window_start_utc") != run["start_utc"] or value.get("time_window_end_utc") != run["end_utc"]:
                                   raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_MEASUREMENT_WINDOW_BINDING_FAIL")
+                              cal_start = value.get("calibration_valid_from_utc")
+                              cal_end = value.get("calibration_valid_until_utc")
+                              if not cal_start or not cal_end:
+                                  raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CALIBRATION_WINDOW_MISSING")
+                              if instant(cal_start) >= run_start or instant(cal_end) < run_end:
+                                  expired_calibration_records.append((case["case_id"], block["block_id"], arm_name, key))
+                      if not isinstance(run.get("energy"), dict):
+                          raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_ENERGY_RECORD_MISSING")
+                  control = runs.get("control")
+                  treatment = runs.get("treatment")
+                  if control is not None and treatment is not None:
+                      c_duration = instant(control["end_utc"]) - instant(control["start_utc"])
+                      t_duration = instant(treatment["end_utc"]) - instant(treatment["start_utc"])
+                      if c_duration != t_duration:
+                          duration_mismatch_blocks.append((case["case_id"], block["block_id"]))
+                      pressure_diff = max(
+                          abs(control["service_pressure_min_kpa"] - treatment["service_pressure_min_kpa"]),
+                          abs(control["service_pressure_max_kpa"] - treatment["service_pressure_max_kpa"]),
+                      )
+                      flow_diff = max(
+                          abs(control["service_flow_min_lpm"] - treatment["service_flow_min_lpm"]),
+                          abs(control["service_flow_max_lpm"] - treatment["service_flow_max_lpm"]),
+                      )
+                      if pressure_diff > case["max_service_pressure_difference_kpa"]:
+                          pressure_mismatch_blocks.append((case["case_id"], block["block_id"]))
+                      if flow_diff > case["max_service_flow_difference_lpm"]:
+                          flow_mismatch_blocks.append((case["case_id"], block["block_id"]))
                   quality = block["treatment"]["quality_release"]
-                  if quality is not None and (not quality.get("sample_set_digest") or not quality.get("independent_reviewer_ref") or not quality.get("method_revision_ref") or not quality.get("valid_from_utc") or not quality.get("valid_until_utc")):
-                      raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
-          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 15 cases; six paired blocks; run-bound records; scoped quality releases; synthetic-only")
+                  if quality is not None:
+                      for key in ["sample_set_digest", "independent_reviewer_ref", "method_revision_ref", "valid_from_utc", "valid_until_utc"]:
+                          if not quality.get(key):
+                              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_QUALITY_RELEASE_SCOPE_FAIL")
+                      if instant(quality["valid_from_utc"]) > instant(block["treatment"]["start_utc"]) or instant(quality["valid_until_utc"]) < instant(block["treatment"]["end_utc"]):
+                          if case["case_id"] != "MS-T1-015-expired-quality-release":
+                              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_UNDECLARED_EXPIRED_QUALITY_RELEASE")
+
+          if len(expired_calibration_records) != 1 or expired_calibration_records[0][0] != "MS-T1-016-expired-instrument-calibration":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_CALIBRATION_NEGATIVE_CONTROL_SET_FAIL")
+          if len(pressure_mismatch_blocks) != 1 or pressure_mismatch_blocks[0][0] != "MS-T1-017-pressure-envelope-not-matched":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_PRESSURE_MATCH_NEGATIVE_CONTROL_SET_FAIL")
+          if len(flow_mismatch_blocks) != 1 or flow_mismatch_blocks[0][0] != "MS-T1-018-flow-envelope-not-matched":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_FLOW_MATCH_NEGATIVE_CONTROL_SET_FAIL")
+          if len(duration_mismatch_blocks) != 1 or duration_mismatch_blocks[0][0] != "MS-T1-019-run-duration-mismatch":
+              raise SystemExit("WATERLOOP_MATCHED_SERVICE_T1_DURATION_NEGATIVE_CONTROL_SET_FAIL")
+          print("WATERLOOP_MATCHED_SERVICE_T1_SCHEMA_PASS: 19 cases; calibration validity; paired pressure/flow/duration; six blocks; synthetic-only")
           PY
       - name: Require an exact successful evaluator receipt
         if: always()
