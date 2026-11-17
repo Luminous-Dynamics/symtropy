@@ -1,0 +1,174 @@
+{
+  "schema_version": "waterloop-modular-fat-sat-v0.1",
+  "status": "draft_test_plan_not_approved_for_physical_execution",
+  "parent_issue": "Luminous-Dynamics/symtropy#5784",
+  "configuration_id": "WATERLOOP-A0-UNPOPULATED-TESTCELL",
+  "tests": [
+    {
+      "id": "FAT-001",
+      "name": "Documentation and traceability",
+      "setup": "review design revision, module UID, BOM, wiring and calibration documents",
+      "pass_criteria": "all items revision-bound; no missing safety-critical interface",
+      "evidence": [
+        "signed design review",
+        "configuration manifest"
+      ]
+    },
+    {
+      "id": "FAT-002",
+      "name": "Port identification and misconnection resistance",
+      "setup": "try plausible wrong connections without fluid introduction",
+      "pass_criteria": "feed/product/reject/drain ports cannot be confused or casually misconnected",
+      "evidence": [
+        "photos",
+        "port inspection record"
+      ]
+    },
+    {
+      "id": "FAT-003",
+      "name": "Static leak integrity",
+      "setup": "test isolated water-containing assemblies within approved component pressure limits",
+      "pass_criteria": "no visible leak or pressure loss beyond specified test uncertainty",
+      "evidence": [
+        "pressure trace",
+        "inspection"
+      ]
+    },
+    {
+      "id": "FAT-004",
+      "name": "Instrument identity and calibration",
+      "setup": "verify each instrument UID, range, capability, calibration validity, timebase and uncertainty",
+      "pass_criteria": "Mycelix admits each channel for its stated measurand/use",
+      "evidence": [
+        "instrument passport",
+        "calibration certificate",
+        "uncertainty budget"
+      ]
+    },
+    {
+      "id": "SAT-001",
+      "name": "Water-path reconciliation",
+      "setup": "run known metered volumes through each zone including reject and overflow",
+      "pass_criteria": "one-water balance residual within predeclared combined measurement uncertainty",
+      "evidence": [
+        "all inlet/outlet/stock readings",
+        "uncertainty calculation"
+      ]
+    },
+    {
+      "id": "SAT-002",
+      "name": "Feed identity and source exclusion",
+      "setup": "separate batches from each permitted source and one deliberately incompatible challenge",
+      "pass_criteria": "source identities preserved; incompatible challenge isolated and diverted",
+      "evidence": [
+        "batch UID",
+        "sample results",
+        "diversion trace"
+      ]
+    },
+    {
+      "id": "SAT-003",
+      "name": "Equalisation over-age and high-high",
+      "setup": "seed maximum age and independent high-high trip",
+      "pass_criteria": "feed stops and batch routes only to authorized waste",
+      "evidence": [
+        "age/temperature",
+        "switch trace",
+        "waste meter"
+      ]
+    },
+    {
+      "id": "SAT-004",
+      "name": "Pump faults",
+      "setup": "per manufacturer-approved safe test method, seed low level and blocked discharge",
+      "pass_criteria": "pump de-energizes/isolation occurs without unsafe pressure or siphon",
+      "evidence": [
+        "pressure/flow/power/event trace"
+      ]
+    },
+    {
+      "id": "SAT-005",
+      "name": "Treatment process challenge",
+      "setup": "run low/median/high feed challenge composites within approved laboratory plan",
+      "pass_criteria": "all outputs independently sampled; report pass/fail against intended-use assessment; no performance assumption",
+      "evidence": [
+        "lab reports",
+        "feed envelope",
+        "process data"
+      ]
+    },
+    {
+      "id": "SAT-006",
+      "name": "Barrier unavailable",
+      "setup": "seed loss of UV dose evidence or module fault",
+      "pass_criteria": "quarantine or divert; zero released fixture volume during fault window",
+      "evidence": [
+        "fault injection",
+        "valve state",
+        "fixture meter"
+      ]
+    },
+    {
+      "id": "SAT-007",
+      "name": "Quality evidence invalid",
+      "setup": "seed stale, missing, mismatched and conflicting batch/sample evidence",
+      "pass_criteria": "release remains physically unavailable",
+      "evidence": [
+        "evidence-state receipt",
+        "output isolation trace"
+      ]
+    },
+    {
+      "id": "SAT-008",
+      "name": "Power interruption and recovery",
+      "setup": "remove power during feed, treatment, quarantine and idle states",
+      "pass_criteria": "safe isolation during outage; no automatic release on restart; post-fault requalification required",
+      "evidence": [
+        "power/event timebase",
+        "restart trace"
+      ]
+    },
+    {
+      "id": "SAT-009",
+      "name": "Residual handling",
+      "setup": "meter screenings, sediment, reject, backwash, cleaning and failed-batch streams",
+      "pass_criteria": "all flows accounted and destination documented; no unqualified reuse/recovery credit",
+      "evidence": [
+        "residual ledger",
+        "destination acceptance"
+      ]
+    },
+    {
+      "id": "SAT-010",
+      "name": "Maintenance and changeover",
+      "setup": "trained technician removes/reinstalls cassette and carries out defined service tasks",
+      "pass_criteria": "no unsafe exposure, no fluid cross-connection, all work and downtime measured",
+      "evidence": [
+        "task timing",
+        "procedure deviations",
+        "inspection"
+      ]
+    },
+    {
+      "id": "SAT-011",
+      "name": "Post-storage end-use sample",
+      "setup": "sample accepted-water tank outlet after controlled storage intervals",
+      "pass_criteria": "independent intended-use quality assessment controls release; tank age and turnover in scope",
+      "evidence": [
+        "sample chain of custody",
+        "laboratory report",
+        "batch linkage"
+      ]
+    },
+    {
+      "id": "SAT-012",
+      "name": "Cross-connection review",
+      "setup": "independent plumbing professional inspection and approved cross-connection test",
+      "pass_criteria": "no direct potable/non-potable cross-connection; approved air gap/backflow arrangement where applicable",
+      "evidence": [
+        "signed inspection and test report"
+      ]
+    }
+  ],
+  "release_gate": "No occupied installation or procurement. A0 only advances after formal design, HAZOP, plumbing/electrical/water-quality review and approved test procedures."
+}
