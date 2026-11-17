@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "fixture_bundle_id": "action-ontology-evaluation-v1",
+  "status": "synthetic_only",
+  "cases": [
+    {
+      "case_id": "chop-correct",
+      "action_kind": "chop",
+      "gold_group": "chop",
+      "prediction": {
+        "ontology_version": 1,
+        "mapping": {
+          "method": "rule_based",
+          "core": "cutting",
+          "group": "chop",
+          "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+        },
+        "parameters": [],
+        "tool_capability_refs": [],
+        "precondition_refs": [],
+        "evidence_class": "declared"
+      },
+      "occurrence_weight": 3
+    },
+    {
+      "case_id": "saute-wrong-group",
+      "action_kind": "saute",
+      "gold_group": "boil",
+      "prediction": {
+        "ontology_version": 1,
+        "mapping": {
+          "method": "rule_based",
+          "core": "cook_and_cool",
+          "group": "saute",
+          "provenance_ref": "builtin:symtropy-kitchen-action-rules-v1"
+        },
+        "parameters": [],
+        "tool_capability_refs": [],
+        "precondition_refs": [],
+        "evidence_class": "declared"
+      },
+      "occurrence_weight": 1
+    },
+    {
+      "case_id": "other-correct-abstention",
+      "action_kind": "other",
+      "gold_group": null,
+      "prediction": {
+        "ontology_version": 1,
+        "mapping": {
+          "method": "unmapped",
+          "core": null,
+          "group": null,
+          "provenance_ref": null
+        },
+        "parameters": [],
+        "tool_capability_refs": [],
+        "precondition_refs": [],
+        "evidence_class": "modelled"
+      },
+      "occurrence_weight": 2
+    },
+    {
+      "case_id": "other-unsupported-human-guess",
+      "action_kind": "other",
+      "gold_group": null,
+      "prediction": {
+        "ontology_version": 1,
+        "mapping": {
+          "method": "human_reviewed",
+          "core": "preparing",
+          "group": "trim",
+          "provenance_ref": "review:fixture-unnecessary-map"
+        },
+        "parameters": [],
+        "tool_capability_refs": [],
+        "precondition_refs": [],
+        "evidence_class": "modelled"
+      },
+      "occurrence_weight": 1
+    }
+  ],
+  "expected": {
+    "case_count": 4,
+    "total_occurrence_weight": 7,
+    "weighted_core_coverage": [
+      5,
+      7
+    ],
+    "micro_group_precision": [
+      3,
+      5
+    ],
+    "micro_group_recall": [
+      3,
+      4
+    ],
+    "abstention_precision": [
+      2,
+      2
+    ]
+  }
+}
