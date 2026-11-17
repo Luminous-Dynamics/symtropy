@@ -243,7 +243,7 @@ pub fn screen_member_stability(
         yield_exceedance_count,
         elastic_euler_exceedance_count,
         euler_outside_nominal_range_count,
-        claim_ceiling: "nominal axial-yield and ideal elastic Euler member screen only; not beam/frame stability, code design, or qualification",
+        claim_ceiling: "axial yield and ideal Euler member screen only; not frame stability or qualification",
     })
 }
 
