@@ -1,5 +1,9 @@
 #![forbid(unsafe_code)]
 
+//! Independent analytic references for the supported straight-segment and
+//! upper-semicircle geometry families. This module does not call the envelope
+//! producer's geometric expansion helpers.
+
 pub mod field_layout_acceptance;
 pub use field_layout_acceptance::{
     CrewHours, DesignIntentEntity, DesignIntentManifest, EntityAcceptanceResult,
@@ -7,10 +11,6 @@ pub use field_layout_acceptance::{
     FieldEntityObservation, FieldLayoutEntityType, HumanWaiver, MeasurementDisposition,
     RefereeEntityState, RefereeMeasurement, RobotClaimedEntityState, score_field_layout_run,
 };
-
-//! Independent analytic references for the supported straight-segment and
-//! upper-semicircle geometry families. This module does not call the envelope
-//! producer's geometric expansion helpers.
 
 use construction_motion_envelope::{
     AxisMm, Context, EvidenceRefs, MarginsMm, Point3Mm, Segment, build,
