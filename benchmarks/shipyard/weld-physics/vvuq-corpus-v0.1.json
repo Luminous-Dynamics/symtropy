@@ -1,0 +1,502 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-WELD-PHYSICS-VVUQ-001",
+  "snapshot_date": "2026-11-10",
+  "claim_ceiling": "Synthetic manifest/source-admission contract only. No physical weld, WPS/PQR, NDT or structural qualification.",
+  "sources": [
+    {
+      "source_id": "nafems-weld-validation-index",
+      "title": "NAFEMS MANWG Weld Validation Data Review",
+      "citation_uri": "https://www.nafems.org/publications/resource_center/knowledge-base-manwg-weld-validation/",
+      "doi": null,
+      "publication_year": 2024,
+      "artifact_kind": "dataset_index",
+      "evidence_class": "literature_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "MEMBER_ACCESS_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "thermocouple",
+        "displacement",
+        "XRD",
+        "neutron_diffraction",
+        "hole_drilling",
+        "contour_method",
+        "published_table",
+        "unknown"
+      ],
+      "known_scope_summary": "Literature index covering experimental welding studies and availability of procedure, parameter, clamping, macrograph, temperature, residual-stress and distortion information.",
+      "admission_notes": "Discovery index only. Underlying member-download materials and individual papers require separate source-byte, access and rights admission."
+    },
+    {
+      "source_id": "net-task-group-4",
+      "title": "NeT Task Group 4 residual-stress measurement and analysis round robin on a three-pass slot-welded plate specimen",
+      "citation_uri": "https://doi.org/10.1016/j.ijpvp.2017.09.003",
+      "doi": "10.1016/j.ijpvp.2017.09.003",
+      "publication_year": 2018,
+      "artifact_kind": "round_robin_report",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "RIGHTS_PENDING",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "neutron_diffraction",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Three-pass slot-welded AISI 316L(N) plate residual-stress measurement and numerical-analysis round robin, with instrument-to-instrument measurement variability.",
+      "admission_notes": "Candidate validation reference only. Obtain exact report/data files, measurement coordinates, uncertainty and reuse permission before numerical scoring."
+    },
+    {
+      "source_id": "net-task-group-6",
+      "title": "NeT Task Group 6 residual stress measurement and numerical analysis round robin on a three-pass slot nickel-base repair weld",
+      "citation_uri": "https://doi.org/10.1016/j.promfg.2020.10.109",
+      "doi": "10.1016/j.promfg.2020.10.109",
+      "publication_year": 2020,
+      "artifact_kind": "round_robin_report",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "RIGHTS_PENDING",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "neutron_diffraction",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Three-pass Alloy 600 plate / Alloy 82 consumable repair weld with residual-stress measurements reported across five neutron-diffraction instruments.",
+      "admission_notes": "Candidate for measurement variability and method uncertainty. Exact artifacts and data rights remain to be established."
+    },
+    {
+      "source_id": "q235-55mm-k-groove-12-pass-2026",
+      "title": "Numerical Simulation and Experimental Investigation of Residual Stress in Multi-Pass Butt-Welded Joints of Q235 Thick Plates for Engine Structures",
+      "citation_uri": "https://doi.org/10.1088/1742-6596/3309/1/012014",
+      "doi": "10.1088/1742-6596/3309/1/012014",
+      "publication_year": 2026,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_table_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "CC_BY_4_0_METADATA_ONLY",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "hole_drilling",
+        "published_figure",
+        "published_table",
+        "thermocouple",
+        "macrograph"
+      ],
+      "known_scope_summary": "55 mm Q235 K-groove butt joint welded in 12 passes; the article reports blind-hole residual stress measurements and sequentially coupled thermal-mechanical FE.",
+      "admission_notes": "Article indicates CC BY 4.0. No raw instrument bytes are admitted. Extracted table/figure points need units, coordinates, uncertainty, attribution and independent transcription audit."
+    },
+    {
+      "source_id": "dh36-stiffened-panel-6-lines-18-passes-2026",
+      "title": "Investigation of altering multi-pass welding sequences and mechanical constraints on stiffened panel distortion",
+      "citation_uri": "https://doi.org/10.1016/j.marstruc.2026.104146",
+      "doi": "10.1016/j.marstruc.2026.104146",
+      "publication_year": 2026,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "thermocouple",
+        "displacement",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "DH36 stiffened panel study with six weld lines and 18 passes; compares forward, back-step and center-out sequencing and free versus template-constrained conditions.",
+      "admission_notes": "Published abstract reports model-to-experiment thermal and mechanical comparisons. Full geometry, measurement definitions, source bytes and reuse rights must be reviewed."
+    },
+    {
+      "source_id": "nour-slanted-groove-13-pass-2026",
+      "title": "Horizontal welding deformation and residual stress of narrow slanted groove for thick plates",
+      "citation_uri": "https://doi.org/10.1007/s44500-026-00020-1",
+      "doi": "10.1007/s44500-026-00020-1",
+      "publication_year": 2026,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "thermocouple",
+        "contour_method",
+        "XRD",
+        "hardness",
+        "displacement",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Thick-plate narrow slanted-groove specimen with 13 CO2-shielded passes; reports temperature history, residual stress, deformation and hardness comparisons.",
+      "admission_notes": "Candidate cross-check. Verify exact raw/supplementary artifacts, source terms, measurement points and uncertainty before any numerical fixture is admitted."
+    },
+    {
+      "source_id": "twi-instrumented-pipe-weld",
+      "title": "Intensive validation of computer prediction of welding residual stresses in a multi-pass butt weld",
+      "citation_uri": "https://www.twi-global.com/technical-knowledge/published-papers/intensive-validation-of-computer-prediction-of-welding-residual-stresses-in-a-multi-pass-butt-weld-june-2010",
+      "doi": null,
+      "publication_year": 2010,
+      "artifact_kind": "technical_report",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "thermocouple",
+        "strain_gauge",
+        "displacement",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Heavily instrumented 32 mm-wall, 910 mm-diameter multi-pass pipe weld with MIG root passes and submerged-arc completion; reports temperature/strain/displacement during welding and post-weld through-thickness residual stress.",
+      "admission_notes": "Candidate validation reference. The paper summary is not raw sensor data; obtain exact data, model inputs and rights before numerical scoring."
+    },
+    {
+      "source_id": "curved-ship-offshore-plate-2026",
+      "title": "A systematic numerical framework to predict welding residual stress distributions in curved steel plates for shipbuilding and offshore applications",
+      "citation_uri": "https://doi.org/10.1016/j.marstruc.2026.104098",
+      "doi": "10.1016/j.marstruc.2026.104098",
+      "publication_year": 2026,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "published_figure",
+        "published_table",
+        "unknown"
+      ],
+      "known_scope_summary": "2026 study of residual-stress distributions in curved welded plates for shipbuilding and offshore contexts, including empirical stress-field representations.",
+      "admission_notes": "Treat as literature metadata until actual experimental reference, measured profiles, geometry and model-input availability are confirmed."
+    },
+    {
+      "source_id": "s355j2n-buried-arc-pipe-2022",
+      "title": "Numerical Simulation and Experimental Measurement of Residual Stresses in a Thick-Walled Buried-Arc Welded Pipe Structure",
+      "citation_uri": "https://doi.org/10.3390/met12071102",
+      "doi": "10.3390/met12071102",
+      "publication_year": 2022,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_table_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "CC_BY_4_0_METADATA_ONLY",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "XRD",
+        "published_figure",
+        "published_table"
+      ],
+      "known_scope_summary": "Single-pass buried-arc/MAG circumferential weld on two S355J2+N pipes of Ø168 × 12 mm. Article records six outer-surface XRD residual-stress locations, model mesh/cooling/source assumptions and a comparison of measured and predicted axial/hoop residual-stress profiles.",
+      "admission_notes": "The article is CC BY 4.0, but its Data Availability Statement says Not applicable and measured residual-stress results are published as figures rather than raw measurement files. Treat only as rights-cleared literature metadata until measurement values, graph-digitization error and XRD uncertainty are independently reconstructed. This is a single-pass buried-arc case, not a matched multipass GMAW comparator."
+    },
+    {
+      "source_id": "s460g2m-multipass-gmaw-distortion-2022",
+      "title": "Experimental validation on multi-pass weld distortion behavior of structural offshore steel HSLA S460 using FE-based inherent strain and thermo-mechanical method",
+      "citation_uri": "https://doi.org/10.1557/s43579-021-00148-3",
+      "doi": "10.1557/s43579-021-00148-3",
+      "publication_year": 2022,
+      "artifact_kind": "journal_article",
+      "evidence_class": "published_report_metadata",
+      "admission_status": "METADATA_ONLY",
+      "rights_status": "PENDING_REVIEW",
+      "retrieved_on": "2026-11-10",
+      "source_bytes_sha256": null,
+      "raw_data_bytes_available": false,
+      "numerical_scoring_eligible": false,
+      "measurement_modalities": [
+        "published_figure",
+        "published_table",
+        "unknown"
+      ],
+      "known_scope_summary": "Multi-pass GMAW distortion study on offshore structural steel S460G2+M. Compares thermo-mechanical FEM with an inherent-strain method. Publisher/institutional abstract records study-reported distortion error ranges of 8% for TMM and 12% for ISM, with low computation time.",
+      "admission_notes": "High-relevance shipbuilding/HSLA candidate. The accessible institutional record gives abstract metadata; full measurement data, error definition/denominator, specimen geometry, weld procedure, clamping/release conditions, uncertainty and raw source artifacts have not been admitted. Publisher record reports copyright under exclusive licence to the Materials Research Society. Keep rights and numerical scoring pending; do not compare 8%/12% directly with other studies without identical output definition and evaluation conditions."
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "WPHYS-001",
+      "case_class": "positive_contract_control",
+      "source_id": "nafems-weld-validation-index",
+      "target": "source admission",
+      "mutation": "Retain a literature index as metadata only and prohibit numerical scoring",
+      "expected_disposition": "METADATA_ONLY_RETAINED",
+      "rationale": "A positive contract outcome is allowed to preserve useful discovery metadata without elevating it to a measured reference."
+    },
+    {
+      "case_id": "WPHYS-002",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "Required source snapshot digest is absent",
+      "expected_disposition": "BLOCK_NUMERICAL_SCORING",
+      "rationale": "A citation or DOI is not an immutable source artifact."
+    },
+    {
+      "case_id": "WPHYS-003",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "Rights status is unknown or pending but numerical scoring is requested",
+      "expected_disposition": "BLOCK_NUMERICAL_SCORING",
+      "rationale": "No dataset bytes or derived values may be admitted without an applicable rights basis."
+    },
+    {
+      "case_id": "WPHYS-004",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "METADATA_ONLY source is used as a numerical validation target",
+      "expected_disposition": "BLOCK_NUMERICAL_SCORING",
+      "rationale": "Literature metadata is discovery evidence, not measured reference data."
+    },
+    {
+      "case_id": "WPHYS-005",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "measurement",
+      "mutation": "Values transcribed from a figure are declared raw sensor data",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "Raw, tabulated and digitized data classes must remain explicit."
+    },
+    {
+      "case_id": "WPHYS-006",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "specimen",
+      "mutation": "Specimen geometry or coordinate datum is missing",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Geometry and measurement coordinates are required to compare fields."
+    },
+    {
+      "case_id": "WPHYS-007",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "specimen",
+      "mutation": "Material grade/heat or applicable material property source is missing",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Material uncertainty cannot be silently replaced with a guessed nominal value."
+    },
+    {
+      "case_id": "WPHYS-008",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "process",
+      "mutation": "Necessary procedure/process inputs are absent but model output is scored",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Missing source-native inputs must be marked incomplete, not inferred without disclosure."
+    },
+    {
+      "case_id": "WPHYS-009",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "boundary",
+      "mutation": "Clamping, fixture or release history is absent",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Residual stress and distortion depend on the declared mechanical boundary history."
+    },
+    {
+      "case_id": "WPHYS-010",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "measurement",
+      "mutation": "Measurement uncertainty is absent or silently set to zero",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Instrument, calibration, placement and reconstruction uncertainty must be represented."
+    },
+    {
+      "case_id": "WPHYS-011",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "measurement",
+      "mutation": "Stress or temperature units differ between model and measurement",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "A dimensional mismatch must not pass through implicit conversion or guessed units."
+    },
+    {
+      "case_id": "WPHYS-012",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "measurement",
+      "mutation": "Measurement positions lack a defined specimen frame or datum",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Spatial correspondence cannot be assumed from plot ordering."
+    },
+    {
+      "case_id": "WPHYS-013",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "measurement",
+      "mutation": "Thermocouple timestamps have an unresolved clock or trigger offset",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Transient response comparisons require explicit time alignment uncertainty."
+    },
+    {
+      "case_id": "WPHYS-014",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "split",
+      "mutation": "The same measurement values are used to calibrate and validate the model",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "A fitted result is not an independent validation result."
+    },
+    {
+      "case_id": "WPHYS-015",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "split",
+      "mutation": "Points from one physical specimen occur in both training and test partitions",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "Holdouts must group by physical specimen/weld, not random samples."
+    },
+    {
+      "case_id": "WPHYS-016",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "split",
+      "mutation": "The same specimen is represented under multiple aliases across partitions",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "Stable physical identity is required to prevent disguised leakage."
+    },
+    {
+      "case_id": "WPHYS-017",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "transfer",
+      "mutation": "A model calibrated on one material class is asserted for a different unsupported class",
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN",
+      "rationale": "Transfer requires evidence for the new material/property domain."
+    },
+    {
+      "case_id": "WPHYS-018",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "boundary",
+      "mutation": "Clamped geometry is compared with post-restraint-release measurement",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Boundary-condition state must match the measured state."
+    },
+    {
+      "case_id": "WPHYS-019",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "A report labels tabulated values as raw data without admitted byte artifacts",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "Evidence class and exact source bytes must agree."
+    },
+    {
+      "case_id": "WPHYS-020",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "Two conflicting source revisions are silently merged",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Conflict remains explicit until a source owner resolves it."
+    },
+    {
+      "case_id": "WPHYS-021",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "source",
+      "mutation": "Source content digest does not match the retrieved bytes",
+      "expected_disposition": "REJECT_SOURCE",
+      "rationale": "Exact source identity must be verified."
+    },
+    {
+      "case_id": "WPHYS-022",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "solver",
+      "mutation": "Mesh/time-step convergence is omitted from a numerical comparison",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Solution verification is distinct from physical validation."
+    },
+    {
+      "case_id": "WPHYS-023",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "solver",
+      "mutation": "Heat-source or model energy imbalance is not reported",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "A model result cannot omit fundamental conservation diagnostics."
+    },
+    {
+      "case_id": "WPHYS-024",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "model",
+      "mutation": "Surrogate prediction is emitted outside declared training support without abstention",
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN",
+      "rationale": "A prediction outside qualified support must not appear validated."
+    },
+    {
+      "case_id": "WPHYS-025",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "model",
+      "mutation": "Held-out predictive intervals materially under-cover observations",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Uncertainty performance must be reported with confidence and strata."
+    },
+    {
+      "case_id": "WPHYS-026",
+      "case_class": "negative_control",
+      "source_id": null,
+      "target": "authority",
+      "mutation": "Model result is promoted to WPS/PQR, weld acceptance, class approval or release authority",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "rationale": "A model benchmark does not grant engineering or statutory authority."
+    },
+    {
+      "case_id": "WPHYS-027",
+      "case_class": "negative_control",
+      "source_id": "s355j2n-buried-arc-pipe-2022",
+      "target": "output-specific model validation scope",
+      "mutation": "A model's agreement with post-weld XRD residual-stress profiles is used to claim the predicted molten-pool peak temperature is physically validated, despite the source explicitly acknowledging omitted liquid-solid coupling and an unrealistic computed peak.",
+      "expected_disposition": "BLOCK_VALIDATION",
+      "rationale": "Validation of one output (post-weld residual stress) cannot be promoted to a different output domain (local weld-pool thermophysics) when the source model explicitly documents an important limitation.",
+      "claim_scope": {
+        "validated_output": "post_weld_residual_stress",
+        "claimed_output": "molten_pool_peak_temperature",
+        "documented_limitation": "liquid_solid_coupling_omitted",
+        "supports_claimed_output": false
+      }
+    },
+    {
+      "case_id": "WPHYS-028",
+      "case_class": "negative_control",
+      "source_id": "s460g2m-multipass-gmaw-distortion-2022",
+      "target": "cross-study benchmark comparability",
+      "mutation": "Treat abstract-reported 8% thermo-mechanical and 12% inherent-strain distortion errors as directly comparable leaderboard scores against another model/case without an identical output metric, specimen, geometry, restraint, validation split, uncertainty and data-access basis.",
+      "expected_disposition": "BLOCK_NUMERICAL_SCORING",
+      "rationale": "The abstract reports useful study-specific comparisons but the summary does not disclose enough information to establish a matched scoring denominator or admit the underlying measurements as a reusable numerical benchmark."
+    }
+  ]
+}

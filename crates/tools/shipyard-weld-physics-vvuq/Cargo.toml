@@ -1,0 +1,16 @@
+[package]
+name = "shipyard-weld-physics-vvuq"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Independent source-admission and contract verifier for shipyard weld physics VVUQ"
+
+[dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[workspace]
