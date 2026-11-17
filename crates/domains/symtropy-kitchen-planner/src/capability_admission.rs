@@ -8,6 +8,7 @@
 //! perform automatic module selection, control appliances, certify safety,
 //! establish physical fitment, or validate food quality.
 
+use crate::KitchenScheduleReceiptV1;
 use crate::action_ontology::{ActionGroupV1, validate_action_ontology_binding};
 use crate::module_capability::{
     KitchenModuleCapabilityV1, ModuleCapabilityClaimStatusV1, ModuleEvidenceClassV1,
@@ -18,7 +19,6 @@ use crate::recipe_graph::{
     ExactRecipeQuantityV1, RecipeQuantityUnitV1, RecipeTaskGraphV1, RecipeTaskNodeV1,
     recipe_graph_to_kitchen_plan, validate_recipe_task_graph,
 };
-use crate::KitchenScheduleReceiptV1;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -244,7 +244,6 @@ fn task_batch_mass_nanograms(task: &RecipeTaskNodeV1) -> Result<u128, BatchMassE
             total.checked_add(amount).ok_or(BatchMassError::Overflow)
         })
 }
-
 
 /// Check one task power profile against the exact selected module's own
 /// continuous, peak and transient limits. Household aggregate power is
@@ -783,14 +782,12 @@ pub fn evaluate_kitchen_capability_admission(
                     issues,
                 });
             }
-            Some(bindings) => {
-                task_assessments.push(task_assessment(
-                    task,
-                    bindings[0],
-                    &request.modules,
-                    &request.power_plan,
-                ))
-            }
+            Some(bindings) => task_assessments.push(task_assessment(
+                task,
+                bindings[0],
+                &request.modules,
+                &request.power_plan,
+            )),
         }
     }
 
@@ -1187,7 +1184,6 @@ mod tests {
             KitchenCapabilityDispositionV1::Blocked
         );
     }
-
 
     #[test]
     fn module_peak_and_contiguous_surge_limits_are_enforced() {
