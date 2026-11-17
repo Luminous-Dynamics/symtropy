@@ -253,7 +253,7 @@ impl SpatialIndex {
         let holistic_started = Instant::now();
         let mut holistic_ranked = Vec::with_capacity(self.facts.len());
         for indexed in &self.facts {
-            let holistic_score = query_vector.similarity(&indexed.encoded.bipolar)?;
+            let holistic_score = query_vector.similarity(&indexed.bipolar)?;
             holistic_ranked.push(PartialCandidate {
                 fact: indexed.fact.clone(),
                 slot_score: 0.0,
