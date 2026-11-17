@@ -27,6 +27,7 @@ These are source-attributed anchors, not interchangeable performance claims.
 | Programme / study | Reported evidence | Comparison boundary |
 |---|---|---|
 | Airbus / AALTO Zephyr | 67 days, 6 hours and 52 minutes continuous stratospheric flight, completed 28 April 2025; supersedes the earlier 64-day 2022 result | Strong public fixed-wing stratospheric endurance benchmark; one flight, not a fleet availability distribution |
+| Mira Aerospace / UAVOS ApusNeo18 | 100 hours 50 minutes, 2–6 November 2026, maximum altitude 14.5 km; UAVOS reports turbulence, dense high-altitude cloud and strong winds; flexible wing adapts via controlled bending and torsional deformation | Four-day HAPS flight and structural/weather-adaptation demonstration; not a multi-week endurance record or comparable mission to Zephyr/Sceye |
 | BAE / Prismatic PHASA-35 | Stratospheric trials in 2023 and 2024 above 66,000 ft; solar generation by day and battery operation at night | Altitude trials; months-long operation is a design proposition, not a reported months-long flight |
 | BAE / ARIA PHASA-35 programme | September 2026 programme to demonstrate ground-to-HAPS power beaming | Ground transmitter to airborne HAPS receiver; not HAPS-to-UAV transfer |
 | U.S. Navy / Skydweller | Publicly reported 73-hour solar-powered unmanned flight in 2025 | Multi-day solar-flight comparator, not a stratospheric HAPS endurance record |
@@ -43,6 +44,7 @@ These are source-attributed anchors, not interchangeable performance claims.
 Primary references:
 
 - [AALTO's 67-day Zephyr record, 1 May 2025](https://www.aaltohaps.com/zephyr-sets-world-record-for-longest-continuous-flight-flying-67-days-in-stratosphere/)
+- [UAVOS ApusNeo 100-hour 50-minute flight, 12 November 2026](https://www.uavos.com/apusneo-haps-completes-record-breaking-100-hour-flight-in-european-airspace/)
 - [BAE Systems PHASA-35](https://www.baesystems.com/en-us/product/phasa-35)
 - [BAE Systems / ARIA power-beaming programme, 15 September 2026](https://www.baesystems.com/en-uk/article/PHASA-35-selected-for-ARIA-backed-power-beaming-project-)
 - [U.S. Navy / Skydweller demonstration, 5 December 2025](https://www.usff.navy.mil/Press-Room/News-Stories/Article/4354688/navy-demonstrates-multi-day-solar-uas-flight/)
@@ -150,6 +152,22 @@ Multi-platform literature already addresses parts of the problem:
 - Repairable k-out-of-n reliability using a Semi-Markov model provides a fleet availability/reliability baseline with non-exponential sojourn times: [DOI 10.1016/j.ress.2025.111450](https://doi.org/10.1016/j.ress.2025.111450).
 
 The next integration layer is therefore **demand → cell/beam allocation → platform positioning → topology/backhaul → edge work → service assurance**, with all energy, thermal, reserve, outage and maintenance consequences charged to the same service boundary. The planner should choose not to move an aircraft when beam selection, gateway routing, edge processing or a neighbor node can satisfy demand at lower total system cost. The dedicated workstream is [AERO-HAPS-NET-ORCH-001 #5948](https://github.com/Luminous-Dynamics/symtropy/issues/5948).
+
+### 3.9 Treat onboard compute as a network resource and thermal load
+
+Sceye / SoftBank reported that ST1 hosted a mobile core network and web server onboard the HAPS. Their source reports a **68 ms average round-trip processing response time**, with over 40% lower communications latency than internet-cloud processing, for the demonstrated service path. The same service campaign verified direct-to-device smartphone communications and HAPS-to-drone control, location and video exchange. This is a source-attributed trial result, not a general p95 edge-compute benchmark or a guarantee for other platforms. [Sceye ST1, 9 September 2026](https://sceye.com/press-releases/sceye-completes-record-us-japan-stratospheric-flight/); [SoftBank trial service, 2 September 2026](https://www.softbank.jp/en/corp/news/press/sbkk/2026/20260902_01/).
+
+The benchmark should treat compute placement as a decision variable:
+- platform edge vs drone edge vs terrestrial gateway edge vs satellite edge vs remote cloud;
+- latency by explicit measurement boundary (processing-only, application round-trip, one-way network, or control-loop round-trip);
+- input data rate, request rate, compute demand, placement and fallback path;
+- local bytes processed, backhaul bytes avoided, task accuracy/completion and response-time distribution (p50/p95/p99);
+- compute electrical power, waste heat, cooling burden and thermal derating added to the HAPS multi-day energy ledger;
+- service continuity under gateway/backhaul outage and platform node loss.
+
+The important paradigm shift is to optimize **where a task is processed**, not assume all data must be backhauled or that all compute should sit onboard. Some missions should process video locally and send only alerts/metadata; some should relay raw data to a ground gateway; safety-critical drone commands need a bounded control-loop response and defined fail-safe when the HAPS edge path is lost. Do not conflate a 68 ms average round-trip trial metric with a p95 control-loop SLA.
+
+
 
 ## 4. Benchmark scenario matrix
 
