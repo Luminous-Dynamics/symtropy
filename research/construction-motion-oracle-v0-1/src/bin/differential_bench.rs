@@ -831,12 +831,11 @@ fn run_relative_time_multibody_comparison_benchmarks() {
                     clock_mapping: clock_config.clone(),
                     subdivision_count,
                 };
-                let broadphase_report =
-                    evaluate_relative_time_multibody_ccd_with_broadphase(
-                        &bodies,
-                        &broadphase_config,
-                    )
-                    .expect("bounded clock-aware broadphase inputs are valid");
+                let broadphase_report = evaluate_relative_time_multibody_ccd_with_broadphase(
+                    &bodies,
+                    &broadphase_config,
+                )
+                .expect("bounded clock-aware broadphase inputs are valid");
 
                 // Warm both paths once before timing to reduce cold-start bias.
                 black_box(
@@ -968,4 +967,3 @@ fn run_relative_time_multibody_comparison_benchmarks() {
         }
     }
 }
-
