@@ -95,19 +95,35 @@ struct V3 {
 
 impl V3 {
     fn from_public(value: Vec3) -> Self {
-        Self { x: value.x, y: value.y, z: value.z }
+        Self {
+            x: value.x,
+            y: value.y,
+            z: value.z,
+        }
     }
 
     fn add(self, rhs: Self) -> Self {
-        Self { x: self.x + rhs.x, y: self.y + rhs.y, z: self.z + rhs.z }
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
     }
 
     fn sub(self, rhs: Self) -> Self {
-        Self { x: self.x - rhs.x, y: self.y - rhs.y, z: self.z - rhs.z }
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
     }
 
     fn scale(self, scalar: f64) -> Self {
-        Self { x: self.x * scalar, y: self.y * scalar, z: self.z * scalar }
+        Self {
+            x: self.x * scalar,
+            y: self.y * scalar,
+            z: self.z * scalar,
+        }
     }
 
     fn dot(self, rhs: Self) -> f64 {
@@ -242,8 +258,7 @@ pub fn verify_timed_co_translating_result(
     let obstacle_point_residual = obstacle_point.sub(reported_obstacle_point).norm();
     receipt.max_point_residual_mm = moving_point_residual.max(obstacle_point_residual);
     receipt.distance_residual_mm = (distance - reported_distance).abs();
-    receipt.time_offset_residual_ms =
-        (duration * t - reported.closest_time_offset_ms).abs();
+    receipt.time_offset_residual_ms = (duration * t - reported.closest_time_offset_ms).abs();
 
     let expected_terminal = time == 1.0;
     let terminal_flag_mismatch = reported.closest_at_terminal_limit != expected_terminal;
@@ -414,10 +429,7 @@ fn canonical_query_bytes(
     Ok(bytes)
 }
 
-fn encode_span(
-    bytes: &mut Vec<u8>,
-    span: &CapsuleMotionSpan,
-) -> Result<(), TimedCcdVerifierError> {
+fn encode_span(bytes: &mut Vec<u8>, span: &CapsuleMotionSpan) -> Result<(), TimedCcdVerifierError> {
     bytes.extend_from_slice(&span.start_ms.to_le_bytes());
     bytes.extend_from_slice(&span.end_ms.to_le_bytes());
     bytes.extend_from_slice(&span.clock_uncertainty_ms.to_le_bytes());
@@ -456,7 +468,9 @@ fn encode_f64(bytes: &mut Vec<u8>, value: f64) -> Result<(), TimedCcdVerifierErr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Capsule, CoTranslatingCapsuleClosestApproach, timed_co_translating_capsule_vs_capsule};
+    use crate::{
+        Capsule, CoTranslatingCapsuleClosestApproach, timed_co_translating_capsule_vs_capsule,
+    };
 
     fn point(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3::new(x, y, z)
@@ -479,7 +493,10 @@ mod tests {
         }
     }
 
-    fn verify_pair(moving: &CapsuleMotionSpan, obstacle: &CapsuleMotionSpan) -> TimedCcdVerificationReceipt {
+    fn verify_pair(
+        moving: &CapsuleMotionSpan,
+        obstacle: &CapsuleMotionSpan,
+    ) -> TimedCcdVerificationReceipt {
         let reported = timed_co_translating_capsule_vs_capsule(moving, obstacle).ok();
         verify_timed_co_translating_result(
             moving,
@@ -495,7 +512,10 @@ mod tests {
         let moving = span(-10.0, 20.0, 0, 1_000);
         let obstacle = span(10.0, -20.0, 0, 1_000);
         let receipt = verify_pair(&moving, &obstacle);
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::ContactWitness);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::ContactWitness
+        );
         assert!(receipt.max_point_residual_mm <= 1.0e-7);
     }
 
@@ -504,7 +524,10 @@ mod tests {
         let moving = span(0.0, 0.0, 0, 1_000);
         let obstacle = span(5.0, 0.0, 0, 1_000);
         let receipt = verify_pair(&moving, &obstacle);
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::SeparatedKktChecked);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::SeparatedKktChecked
+        );
         assert!(receipt.max_kkt_gradient_residual_mm2 <= 1.0e-6);
     }
 
@@ -513,7 +536,10 @@ mod tests {
         let moving = span(-10.0, 9.0, 0, 1_000);
         let obstacle = span(0.0, 0.0, 0, 1_000);
         let receipt = verify_pair(&moving, &obstacle);
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::TerminalBoundaryCandidate);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::TerminalBoundaryCandidate
+        );
     }
 
     #[test]
@@ -521,7 +547,10 @@ mod tests {
         let moving = span(-10.0, 0.0, 0, 100);
         let obstacle = span(10.0, 0.0, 100, 200);
         let receipt = verify_pair(&moving, &obstacle);
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::NoTemporalOverlap);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::NoTemporalOverlap
+        );
     }
 
     #[test]
@@ -550,7 +579,10 @@ mod tests {
             TimedCcdVerifierConfig::default(),
         )
         .unwrap();
-        assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
+        assert_eq!(
+            receipt.disposition,
+            TimedCcdVerificationDisposition::Unresolved
+        );
     }
 
     #[test]
@@ -567,7 +599,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
-        assert_eq!(receipt.reason, TimedCcdVerificationReason::ReportedValueMismatch);
+        assert_eq!(
+            receipt.reason,
+            TimedCcdVerificationReason::ReportedValueMismatch
+        );
     }
 
     #[test]
@@ -583,7 +618,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
-        assert_eq!(receipt.reason, TimedCcdVerificationReason::ClockUncertaintyUnsupported);
+        assert_eq!(
+            receipt.reason,
+            TimedCcdVerificationReason::ClockUncertaintyUnsupported
+        );
     }
 
     #[test]
@@ -672,9 +710,11 @@ mod tests {
         )
         .unwrap();
         assert_eq!(receipt.disposition, TimedCcdVerificationDisposition::Unresolved);
-        assert_eq!(receipt.reason, TimedCcdVerificationReason::KktConditionsFailed);
+        assert_eq!(
+            receipt.reason,
+            TimedCcdVerificationReason::KktConditionsFailed
+        );
         assert!(receipt.kkt_checked);
         assert!(receipt.max_kkt_gradient_residual_mm2 > 1.0e-6);
     }
-
 }
