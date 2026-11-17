@@ -1,14 +1,14 @@
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
 use symtropy_freeflow_structure_lab::Vec3;
 use symtropy_truss_fem_lab::beam_element::{BeamMaterial3D, BeamSection3D};
-use symtropy_truss_fem_lab::frame_analysis::{
-    audit_frame_equilibrium, FrameBoundaryConditions, FrameMember3D, FrameModel3D,
-};
 use symtropy_truss_fem_lab::benchmark::{
     evaluate_mass_normalized_candidate, matched_tetrahedron_pair, MassNormalizedBenchmarkSpec,
 };
 use symtropy_truss_fem_lab::damage::{
     bounded_pair_member_removal_campaign, single_member_removal_campaign,
+};
+use symtropy_truss_fem_lab::frame_analysis::{
+    audit_frame_equilibrium, FrameBoundaryConditions, FrameMember3D, FrameModel3D,
 };
 use symtropy_truss_fem_lab::interfaces::{
     analyze_with_joint_end_stiffness, JointEndStiffness,
@@ -336,6 +336,6 @@ fn main() {
         frame_audit.energy_relative_error
     );
     println!(
-        "frame_claim_ceiling=linear Euler-Bernoulli frame reference; no global buckling qualification"
+        "frame_claim_ceiling=linear beam-frame reference; no global buckling qualification"
     );
 }
