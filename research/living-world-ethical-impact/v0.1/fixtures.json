@@ -1,0 +1,1611 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "LIVING-WORLD-ETHICAL-IMPACT-001/v0.1",
+  "claim_ceiling": "The corpus freezes synthetic known-answer cases and conditional premise findings for conformance testing only. It does not establish empirical ecological outcomes, universal moral truth, sentience, welfare calibration, field validity, thermodynamic qualification or action authority.",
+  "profiles": [
+    {
+      "profile_id": "aggregate_consequence",
+      "description": "A limited aggregate output or service premise. It can support only the named output claim and never cancels other harms or establishes an overall moral verdict.",
+      "premises": [
+        {
+          "premise_id": "declared_output_floor",
+          "statement": "The declared aggregate output or service measure meets its frozen threshold.",
+          "required_dimensions": [
+            "physical_feasibility",
+            "ecological_integrity",
+            "human_community_impacts"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    },
+    {
+      "profile_id": "ecological_integrity",
+      "description": "A conditional ecological-integrity premise over habitat, connectivity, functional relationships and resilience; biomass or productivity alone is insufficient.",
+      "premises": [
+        {
+          "premise_id": "ecological_integrity_floor",
+          "statement": "The declared ecological integrity requirements are supported by the required evidence dimensions.",
+          "required_dimensions": [
+            "ecological_integrity",
+            "intergenerational_effects"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    },
+    {
+      "profile_id": "individual_welfare_precaution",
+      "description": "A precautionary individual-welfare premise. Species-appropriate observed welfare evidence is required; ecological function is not a substitute.",
+      "premises": [
+        {
+          "premise_id": "avoid_preventable_severe_harm",
+          "statement": "The intervention does not impose evidenced, preventable severe individual harm under this declared premise.",
+          "required_dimensions": [
+            "individual_welfare",
+            "moral_patient_uncertainty"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    },
+    {
+      "profile_id": "rights_constrained",
+      "description": "A rights, consent and custodianship constraint. Missing consent remains unrecorded or unknown, never inferred from preference, participation or majority vote.",
+      "premises": [
+        {
+          "premise_id": "consent_or_authority",
+          "statement": "Required consent, custodianship and legitimate authority evidence is present and not contradicted.",
+          "required_dimensions": [
+            "human_community_impacts",
+            "consent_and_custodianship"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    },
+    {
+      "profile_id": "intergenerational_stewardship",
+      "description": "A future-options and long-horizon stewardship premise covering thresholds, recovery horizons and intergenerational service/ecological floors.",
+      "premises": [
+        {
+          "premise_id": "preserve_future_options_and_floors",
+          "statement": "Declared future ecological and essential-service floors remain supported, or missing evidence is explicitly undetermined.",
+          "required_dimensions": [
+            "ecological_integrity",
+            "human_community_impacts",
+            "intergenerational_effects"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    },
+    {
+      "profile_id": "precaution_under_uncertainty",
+      "description": "A proportional precaution premise under epistemic uncertainty, plausible severe harm and irreversibility. It does not assert sentience or authorize intervention.",
+      "premises": [
+        {
+          "premise_id": "proportionate_precaution",
+          "statement": "The selected option manages plausible harm and uncertainty proportionately, using monitoring, reversibility and review.",
+          "required_dimensions": [
+            "individual_welfare",
+            "moral_patient_uncertainty",
+            "intergenerational_effects"
+          ]
+        }
+      ],
+      "status_semantics": "conditional_premise_finding_not_global_moral_verdict"
+    }
+  ],
+  "anti_derivation_controls": [
+    {
+      "control_id": "AD-01",
+      "prohibited_inference": "Entropy production, dissipation or thermodynamic throughput directly entails a moral ought.",
+      "required_behavior": "Reject the direct inference; require explicit normative premises and qualified physical observables."
+    },
+    {
+      "control_id": "AD-02",
+      "prohibited_inference": "Survival, self-maintenance, persistence or reproduction establishes moral worth.",
+      "required_behavior": "Keep persistence descriptive and moral evaluation premise-dependent."
+    },
+    {
+      "control_id": "AD-03",
+      "prohibited_inference": "Phi, integration, complexity or coherence alone establishes sentience or moral worth.",
+      "required_behavior": "Preserve moral-patient uncertainty and do not map unvalidated metrics to status probabilities."
+    },
+    {
+      "control_id": "AD-04",
+      "prohibited_inference": "Ecosystem function or population viability can stand in for individual welfare.",
+      "required_behavior": "Keep ecological integrity and individual welfare findings separate."
+    },
+    {
+      "control_id": "AD-05",
+      "prohibited_inference": "A generated or inferred preference, consultation attendance or majority vote is equivalent to consent.",
+      "required_behavior": "Require the relevant consent or custodianship evidence; otherwise report not_recorded or unknown."
+    },
+    {
+      "control_id": "AD-06",
+      "prohibited_inference": "Missing, not tested, not observable or out-of-domain evidence means absence.",
+      "required_behavior": "Preserve each evidence state and return undetermined where the premise requires it."
+    },
+    {
+      "control_id": "AD-07",
+      "prohibited_inference": "A majority judgment or dataset majority is universal moral truth.",
+      "required_behavior": "Report sampled viewpoints and disagreement without converting frequency into authority."
+    },
+    {
+      "control_id": "AD-08",
+      "prohibited_inference": "A high aggregate score compensates for a rights, consent or essential-service-floor violation.",
+      "required_behavior": "Retain hard constraints and affected-party findings outside aggregate output."
+    },
+    {
+      "control_id": "AD-09",
+      "prohibited_inference": "Switching the normative profile changes the underlying physical facts or evidence.",
+      "required_behavior": "Hold factset, evidence refs and action permissions invariant across profile switches."
+    },
+    {
+      "control_id": "AD-10",
+      "prohibited_inference": "A simulated or modelled outcome is field observation.",
+      "required_behavior": "Preserve evidence class and block promotion to observed or field-validated."
+    },
+    {
+      "control_id": "AD-11",
+      "prohibited_inference": "Unknown moral status alone authorizes invasive experimentation or removes precaution.",
+      "required_behavior": "Keep action authority absent; require proportional precaution and independent review under uncertainty."
+    },
+    {
+      "control_id": "AD-12",
+      "prohibited_inference": "Energy throughput or resource inventory is itself entropy production or exergy destruction.",
+      "required_behavior": "Keep energy, entropy, exergy and resource accounting typed and separately qualified."
+    }
+  ],
+  "fixtures": [
+    {
+      "fixture_id": "LW-01-tumour-parasite",
+      "factset_id": "LW-01-tumour-parasite-facts-v1",
+      "family": "tumour_parasite_countermodel",
+      "scenario": "A local proliferating subsystem remains viable while its host suffers measurable tissue damage. The case tests whether local persistence can be mistaken for whole-system flourishing or moral worth.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "observed",
+          "claim": "The local cell population persists and reproduces within this bounded synthetic scenario."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "individual_welfare",
+          "status": "observed",
+          "claim": "Host tissue damage and loss of host function are observed."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "moral_patient_uncertainty",
+          "status": "not_tested",
+          "claim": "No sentience or moral-patient assessment is performed for the local cell population."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "local-cell-population",
+          "level": "population",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "host-organism",
+          "level": "individual",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "short_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "observe-and-treat-host",
+          "description": "Observe and treat host harm using an independently reviewed clinical protocol.",
+          "reversibility": "staged_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "preserve-local-growth",
+          "description": "Preserve local subsystem growth without addressing host harm.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "Persistence and reproduction are observed, but the declared aggregate output/service threshold is not measured; local viability cannot stand in for that separate premise.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "The declared no-severe-harm premise is contradicted by observed host injury.",
+          "action_option_ids": []
+        }
+      ],
+      "required_control_ids": [
+        "AD-02",
+        "AD-03",
+        "AD-04",
+        "AD-06"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-02-stable-exploitation",
+      "factset_id": "LW-02-stable-exploitation-facts-v1",
+      "family": "stable_exploitation",
+      "scenario": "An institution maintains stable output and internal order by externalizing burdens onto a less powerful community. Persistence and stability coexist with distributive and consent failures.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "physical_feasibility",
+          "status": "modelled",
+          "claim": "The institution maintains stable output over the synthetic horizon."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "human_community_impacts",
+          "status": "observed",
+          "claim": "A downstream community bears a burden above the declared cap."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "consent_and_custodianship",
+          "status": "not_recorded",
+          "claim": "No valid recipient consent or custodial authorization is recorded."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "institution",
+          "level": "institution",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "downstream-community",
+          "level": "community",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "consent_status": "not_recorded",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "continue-current-regime",
+          "description": "Continue the current stable-output arrangement.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "renegotiate-burden-and-authority",
+          "description": "Reopen burden allocation and consent/custodianship review.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The declared output-only premise is supported.",
+          "action_option_ids": [
+            "continue-current-regime"
+          ]
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e3"
+          ],
+          "rationale": "The consent/authority record is not recorded. The burden evidence remains important, but missing authorization evidence does not establish either grant or refusal.",
+          "action_option_ids": [
+            "continue-current-regime"
+          ]
+        },
+        {
+          "profile_id": "intergenerational_stewardship",
+          "premise_id": "preserve_future_options_and_floors",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "The case shows a present downstream burden, but contains no qualified future ecological or essential-service floor measurement; the intergenerational finding remains undetermined.",
+          "action_option_ids": [
+            "continue-current-regime"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-02",
+        "AD-05",
+        "AD-07",
+        "AD-08"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-03-throughput-welfare",
+      "factset_id": "LW-03-throughput-welfare-facts-v1",
+      "family": "high_dissipation_lower_welfare",
+      "scenario": "A high-throughput operating regime produces more aggregate output but worsens individual welfare indicators relative to a lower-throughput alternative. The energy inventory is not a qualified entropy-production measurement.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "physical_feasibility",
+          "status": "observed",
+          "claim": "The high-throughput arm records greater input energy than the comparator in the synthetic episode.",
+          "unit": "kWh"
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "individual_welfare",
+          "status": "modelled",
+          "claim": "Species-appropriate welfare indicators worsen in the high-throughput arm."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "thermodynamic_observables",
+          "status": "unqualified",
+          "claim": "System boundaries, heat reservoirs and full energy closure are absent; entropy production and exergy destruction are not measured."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "physical_feasibility",
+          "status": "observed",
+          "claim": "The high-throughput arm produces 18 declared output units versus 13 in the comparator and meets the frozen synthetic output threshold.",
+          "unit": "output units",
+          "source_ref": "synthetic fixture truth"
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "affected-individuals",
+          "level": "population",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "operators-and-community",
+          "level": "community",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "short_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "high-throughput",
+          "description": "Select the higher-throughput operating regime.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "lower-throughput",
+          "description": "Select the lower-throughput regime with better observed welfare indicators.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "The synthetic declared output threshold is met by the measured output comparison; this narrow output result does not establish welfare, entropy production or exergy destruction.",
+          "action_option_ids": [
+            "high-throughput"
+          ]
+        },
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "Welfare indicators worsen in the modelled arm, but this fixture does not establish that they cross a declared severe-harm threshold; field validation is also absent.",
+          "action_option_ids": [
+            "high-throughput"
+          ]
+        },
+        {
+          "profile_id": "precaution_under_uncertainty",
+          "premise_id": "proportionate_precaution",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "rationale": "The welfare signal is modelled and the thermodynamic boundary is unqualified; this supports review but does not establish a complete proportionality finding.",
+          "action_option_ids": [
+            "high-throughput"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-01",
+        "AD-04",
+        "AD-10",
+        "AD-12"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-04-predator-prey",
+      "factset_id": "LW-04-predator-prey-facts-v1",
+      "family": "predator_prey_conflict",
+      "scenario": "Predator population stability and trophic function improve while a monitored prey cohort shows increased injury and stress. Ecological function and individual welfare yield distinct findings.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "modelled",
+          "claim": "The predator-prey interaction remains within the declared trophic stability envelope."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "individual_welfare",
+          "status": "observed",
+          "claim": "Prey injury and stress indicators exceed the declared synthetic severe-harm threshold under the selected intervention."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "moral_patient_uncertainty",
+          "status": "modelled",
+          "claim": "Species-specific capacities and the coverage of welfare indicators remain incompletely assessed."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "predator-population",
+          "level": "population",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "prey-individuals",
+          "level": "population",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "ecosystem",
+          "level": "ecosystem",
+          "impact": "mixed",
+          "evidence_refs": [
+            "e1",
+            "e2"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "maintain-current-predation",
+          "description": "Maintain the current intervention level.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "modify-habitat-and-monitor",
+          "description": "Modify habitat and monitor both trophic and individual outcomes.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "ecological_integrity",
+          "premise_id": "ecological_integrity_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The specified trophic-stability premise is supported within this model scope.",
+          "action_option_ids": [
+            "maintain-current-predation"
+          ]
+        },
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "Observed prey injury/stress indicators cross the declared synthetic severe-harm threshold and contradict this explicit no-severe-harm premise.",
+          "action_option_ids": [
+            "maintain-current-predation"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-04",
+        "AD-06",
+        "AD-10"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-05-invasive-management",
+      "factset_id": "LW-05-invasive-management-facts-v1",
+      "family": "invasive_species_management",
+      "scenario": "An introduced species presents a modelled ecological risk. Culling may reduce spread but causes individual harm; containment and non-intervention have uncertain effectiveness. The fixture intentionally does not select a universally best action.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "modelled",
+          "claim": "Spread risk is elevated in a bounded ecological model, with parameter uncertainty."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "individual_welfare",
+          "status": "modelled",
+          "claim": "The culling option is predicted to cause severe individual injury and mortality."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "ecological_integrity",
+          "status": "missing",
+          "claim": "No held-out field evidence establishes the comparative effectiveness of containment or non-intervention."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "consent_and_custodianship",
+          "status": "not_recorded",
+          "claim": "Relevant custodianship and affected-community authorization has not been established."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "native-species-community",
+          "level": "population",
+          "impact": "harm",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "introduced-individuals",
+          "level": "population",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "immediate"
+        },
+        {
+          "party_id": "local-custodians",
+          "level": "community",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e4"
+          ],
+          "consent_status": "not_recorded",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "cull",
+          "description": "Cull the introduced population.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "contain-and-monitor",
+          "description": "Use staged containment with monitoring and predefined stop/review triggers.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        },
+        {
+          "option_id": "no-intervention",
+          "description": "Do not intervene during the observation window.",
+          "reversibility": "reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "ecological_integrity",
+          "premise_id": "ecological_integrity_floor",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e1",
+            "e3"
+          ],
+          "rationale": "Risk is modelled, but comparative intervention efficacy is missing.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "The culling option is predicted to cause severe injury and mortality, contradicting the declared no-severe-harm premise; this remains a modelled synthetic outcome.",
+          "action_option_ids": [
+            "cull"
+          ]
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "Required custodianship and authorization evidence is not recorded.",
+          "action_option_ids": [
+            "cull",
+            "contain-and-monitor"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-04",
+        "AD-05",
+        "AD-06",
+        "AD-10",
+        "AD-11"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-06-forest-restoration",
+      "factset_id": "LW-06-forest-restoration-facts-v1",
+      "family": "forest_restoration",
+      "scenario": "A restoration treatment increases modelled biomass and productivity, but habitat connectivity, species composition, local stewardship and long-horizon recovery evidence are incomplete.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "modelled",
+          "claim": "Biomass and primary productivity increase to meet the frozen synthetic aggregate-output threshold in the simulation; these measures are not sufficient measures of ecological integrity."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "ecological_integrity",
+          "status": "missing",
+          "claim": "Connectivity, species composition and functional diversity are not measured in the fixture."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "consent_and_custodianship",
+          "status": "missing",
+          "claim": "Local stewardship, tenure and consent evidence is absent."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "intergenerational_effects",
+          "status": "not_tested",
+          "claim": "Long-horizon recovery and threshold effects are not evaluated."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "forest-ecosystem",
+          "level": "ecosystem",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e1",
+            "e2",
+            "e4"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "intergenerational"
+        },
+        {
+          "party_id": "local-community",
+          "level": "community",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e3"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "future-generations",
+          "level": "future_generation",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e4"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "intergenerational"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "plant-fast-growing-monoculture",
+          "description": "Deploy a high-biomass monoculture restoration treatment.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "native-mosaic-restoration",
+          "description": "Use a staged native mosaic with connectivity and local stewardship monitoring.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The narrow biomass/productivity premise is supported within the model.",
+          "action_option_ids": [
+            "plant-fast-growing-monoculture"
+          ]
+        },
+        {
+          "profile_id": "ecological_integrity",
+          "premise_id": "ecological_integrity_floor",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e1",
+            "e2"
+          ],
+          "rationale": "Biomass gain is modelled, while key integrity indicators are missing.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e3"
+          ],
+          "rationale": "Stewardship and consent evidence is missing.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "intergenerational_stewardship",
+          "premise_id": "preserve_future_options_and_floors",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "Long-horizon effects are not tested.",
+          "action_option_ids": []
+        }
+      ],
+      "required_control_ids": [
+        "AD-04",
+        "AD-05",
+        "AD-06",
+        "AD-10"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-07-fungal-network",
+      "factset_id": "LW-07-fungal-network-facts-v1",
+      "family": "fungal_network",
+      "scenario": "A tracer moves through a connected fungal network, but cargo identity, recipient uptake, biological benefit and causal dependence are not established.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "observed",
+          "claim": "Hyphal connectivity and tracer movement are observed in the synthetic reference."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "physical_feasibility",
+          "status": "missing",
+          "claim": "Cargo identity and the transported material's mass balance are not measured."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "ecological_integrity",
+          "status": "missing",
+          "claim": "Recipient uptake and measurable recipient benefit are not observed."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "moral_patient_uncertainty",
+          "status": "not_tested",
+          "claim": "No moral-patient or sentience assessment is performed."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "fungal-network",
+          "level": "ecosystem",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e1",
+            "e2"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "putative-recipient-organism",
+          "level": "individual",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e3"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "repeat-tracer-with-controls",
+          "description": "Repeat tracer analysis with negative controls, cargo identification and recipient assays.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        },
+        {
+          "option_id": "claim-mutualistic-benefit",
+          "description": "Treat tracer movement alone as proof of mutualistic benefit.",
+          "reversibility": "unknown",
+          "monitoring": "none"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "ecological_integrity",
+          "premise_id": "ecological_integrity_floor",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "rationale": "Connectivity and tracer movement do not establish transfer, uptake or benefit.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "precaution_under_uncertainty",
+          "premise_id": "proportionate_precaution",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "Moral-patient status was not tested; no moral-status inference is warranted.",
+          "action_option_ids": []
+        }
+      ],
+      "required_control_ids": [
+        "AD-03",
+        "AD-04",
+        "AD-06",
+        "AD-10"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-08-water-commons",
+      "factset_id": "LW-08-water-commons-facts-v1",
+      "family": "water_commons",
+      "scenario": "An allocation meets an aggregate household service average while one household group falls below an essential-water floor and a wetland flow requirement is breached.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "human_community_impacts",
+          "status": "observed",
+          "claim": "Aggregate household service mean meets its declared threshold."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "human_community_impacts",
+          "status": "observed",
+          "claim": "A named household group falls below the declared essential-water floor."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "ecological_integrity",
+          "status": "observed",
+          "claim": "Wetland environmental flow is below the declared minimum."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "consent_and_custodianship",
+          "status": "not_recorded",
+          "claim": "No valid consent record covers the reallocation."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "majority-households",
+          "level": "community",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "underserved-households",
+          "level": "community",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2"
+          ],
+          "consent_status": "not_recorded",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "wetland-ecosystem",
+          "level": "ecosystem",
+          "impact": "harm",
+          "evidence_refs": [
+            "e3"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "optimize-average-only",
+          "description": "Maintain allocation based on aggregate service average.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "protect-floors-and-review",
+          "description": "Stage reallocation that enforces household and wetland floors with community review.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The aggregate service premise is supported.",
+          "action_option_ids": [
+            "optimize-average-only"
+          ]
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "Consent evidence is not recorded.",
+          "action_option_ids": [
+            "optimize-average-only"
+          ]
+        },
+        {
+          "profile_id": "intergenerational_stewardship",
+          "premise_id": "preserve_future_options_and_floors",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "rationale": "The essential household and wetland floors are breached.",
+          "action_option_ids": [
+            "optimize-average-only"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-05",
+        "AD-07",
+        "AD-08",
+        "AD-09"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-09-possible-moral-patient",
+      "factset_id": "LW-09-possible-moral-patient-facts-v1",
+      "family": "uncertain_possible_moral_patient",
+      "scenario": "A system exhibits ambiguous behavioural responses that may be relevant to welfare, but observations are sparse, not calibrated and outside the validated envelope. A proposed invasive experiment is irreversible.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "moral_patient_uncertainty",
+          "status": "out_of_domain",
+          "claim": "Behavioural signals are outside the validated instrument and model domain."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "individual_welfare",
+          "status": "missing",
+          "claim": "Species-appropriate welfare indicators and independent replication are unavailable."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "intergenerational_effects",
+          "status": "modelled",
+          "claim": "The invasive experiment has an irreversible intervention pathway and no validated recovery estimate."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "consent_and_custodianship",
+          "status": "not_recorded",
+          "claim": "No valid authorization or custodianship decision is recorded."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "possible-patient",
+          "level": "individual",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e1",
+            "e2"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "unknown"
+        },
+        {
+          "party_id": "future-cohort",
+          "level": "population",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e3"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "custodians",
+          "level": "community",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e4"
+          ],
+          "consent_status": "not_recorded",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "invasive-experiment",
+          "description": "Conduct the invasive experiment immediately.",
+          "reversibility": "irreversible",
+          "monitoring": "none"
+        },
+        {
+          "option_id": "non-invasive-monitoring",
+          "description": "Use non-invasive observation and independent review with stop criteria.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e1",
+            "e2"
+          ],
+          "rationale": "The evidence is out-of-domain and missing; uncertainty does not become evidence of safety or sentience.",
+          "action_option_ids": [
+            "invasive-experiment"
+          ]
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "Authorization is not recorded.",
+          "action_option_ids": [
+            "invasive-experiment"
+          ]
+        },
+        {
+          "profile_id": "precaution_under_uncertainty",
+          "premise_id": "proportionate_precaution",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e1",
+            "e3",
+            "e4"
+          ],
+          "rationale": "Immediate irreversible experimentation without monitoring or authority fails the declared proportional-precaution premise.",
+          "action_option_ids": [
+            "invasive-experiment"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-03",
+        "AD-05",
+        "AD-06",
+        "AD-10",
+        "AD-11"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-10-reversibility",
+      "factset_id": "LW-10-reversibility-facts-v1",
+      "family": "reversible_irreversible_intervention",
+      "scenario": "Two interventions have similar uncertain predicted benefit. One is staged, monitored and reversible; the other crosses a difficult-to-recover threshold without an adequate monitoring plan.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "modelled",
+          "claim": "Predicted benefits overlap within the declared uncertainty interval."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "intergenerational_effects",
+          "status": "modelled",
+          "claim": "The irreversible option may cross a difficult-to-recover threshold."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "intergenerational_effects",
+          "status": "missing",
+          "claim": "Long-horizon recovery data are absent."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "ecosystem",
+          "level": "ecosystem",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "intergenerational"
+        },
+        {
+          "party_id": "future-generations",
+          "level": "future_generation",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "intergenerational"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "staged-monitor-revise",
+          "description": "Deploy a small reversible stage with monitoring and predefined stop/revision triggers.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        },
+        {
+          "option_id": "irreversible-scale-up",
+          "description": "Commit to irreversible full deployment without adequate monitoring.",
+          "reversibility": "irreversible",
+          "monitoring": "none"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "precaution_under_uncertainty",
+          "premise_id": "proportionate_precaution",
+          "status": "supported",
+          "evidence_refs": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "rationale": "The staged option preserves the ability to learn and revise under uncertain long-horizon effects.",
+          "action_option_ids": [
+            "staged-monitor-revise"
+          ]
+        },
+        {
+          "profile_id": "intergenerational_stewardship",
+          "premise_id": "preserve_future_options_and_floors",
+          "status": "contradicted",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "rationale": "The irreversible option violates the stated future-options premise.",
+          "action_option_ids": [
+            "irreversible-scale-up"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-06",
+        "AD-08",
+        "AD-10",
+        "AD-11"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-11-ecological-value-without-sentience",
+      "factset_id": "LW-11-ecological-value-without-sentience-facts-v1",
+      "family": "ecological_value_without_sentience_evidence",
+      "scenario": "A habitat has evidenced ecological and relational value, while no sentience evidence is established for the relevant plant populations. The case tests whether ecological reasons can be represented without inventing sentience.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "ecological_integrity",
+          "status": "observed",
+          "claim": "Habitat connectivity and a declared ecosystem function are observed in the synthetic case."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "moral_patient_uncertainty",
+          "status": "not_tested",
+          "claim": "Plant sentience is not tested and is not asserted."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "human_community_impacts",
+          "status": "observed",
+          "claim": "A community has a documented stewardship relationship with the habitat."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "habitat",
+          "level": "ecosystem",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "local-stewards",
+          "level": "community",
+          "impact": "mixed",
+          "evidence_refs": [
+            "e3"
+          ],
+          "consent_status": "granted",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "plant-populations",
+          "level": "population",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e2"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "long_term"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "protect-habitat",
+          "description": "Protect habitat connectivity under the declared ecological and relational premises.",
+          "reversibility": "staged_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "convert-habitat",
+          "description": "Convert the habitat to a different land use.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "ecological_integrity",
+          "premise_id": "ecological_integrity_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The declared ecological-integrity premise is supported independently of any sentience claim.",
+          "action_option_ids": []
+        },
+        {
+          "profile_id": "individual_welfare_precaution",
+          "premise_id": "avoid_preventable_severe_harm",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e2"
+          ],
+          "rationale": "No individual sentience or welfare conclusion follows from this non-test.",
+          "action_option_ids": []
+        }
+      ],
+      "required_control_ids": [
+        "AD-03",
+        "AD-04",
+        "AD-06",
+        "AD-10"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    },
+    {
+      "fixture_id": "LW-12-same-facts-different-premises",
+      "factset_id": "LW-12-same-facts-different-premises-facts-v1",
+      "family": "same_facts_different_premises",
+      "scenario": "One immutable synthetic factset is evaluated under separate premise profiles. Aggregate output meets its declared floor, while one group bears a concentrated burden and a required consent record is absent.",
+      "evidence_class": "synthetic_known_answer",
+      "evidence": [
+        {
+          "evidence_id": "e1",
+          "dimension": "physical_feasibility",
+          "status": "observed",
+          "claim": "The aggregate output measure meets its declared floor."
+        },
+        {
+          "evidence_id": "e2",
+          "dimension": "human_community_impacts",
+          "status": "observed",
+          "claim": "A named group bears a burden above the declared cap."
+        },
+        {
+          "evidence_id": "e3",
+          "dimension": "consent_and_custodianship",
+          "status": "not_recorded",
+          "claim": "The affected recipient's consent is not recorded."
+        },
+        {
+          "evidence_id": "e4",
+          "dimension": "intergenerational_effects",
+          "status": "missing",
+          "claim": "Long-horizon resource and ecological floors are not measured."
+        }
+      ],
+      "affected_parties": [
+        {
+          "party_id": "aggregate-beneficiaries",
+          "level": "community",
+          "impact": "benefit",
+          "evidence_refs": [
+            "e1"
+          ],
+          "consent_status": "unknown",
+          "time_horizon": "short_term"
+        },
+        {
+          "party_id": "burdened-group",
+          "level": "community",
+          "impact": "harm",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "consent_status": "not_recorded",
+          "time_horizon": "long_term"
+        },
+        {
+          "party_id": "future-generations",
+          "level": "future_generation",
+          "impact": "unknown",
+          "evidence_refs": [
+            "e4"
+          ],
+          "consent_status": "not_applicable",
+          "time_horizon": "intergenerational"
+        }
+      ],
+      "action_options": [
+        {
+          "option_id": "preserve-aggregate-only",
+          "description": "Preserve the aggregate-output arrangement without changing burden distribution.",
+          "reversibility": "partly_reversible",
+          "monitoring": "periodic"
+        },
+        {
+          "option_id": "redistribute-and-review",
+          "description": "Review burden distribution and obtain valid consent/authority evidence before any change.",
+          "reversibility": "staged_reversible",
+          "monitoring": "continuous"
+        }
+      ],
+      "thermodynamics": {
+        "status": "not_qualified",
+        "qualified_observables": [],
+        "notes": "No thermodynamic observable is qualified by this synthetic fixture."
+      },
+      "expected_findings": [
+        {
+          "profile_id": "aggregate_consequence",
+          "premise_id": "declared_output_floor",
+          "status": "supported",
+          "evidence_refs": [
+            "e1"
+          ],
+          "rationale": "The aggregate-output premise is supported on the shared facts.",
+          "action_option_ids": [
+            "preserve-aggregate-only"
+          ]
+        },
+        {
+          "profile_id": "rights_constrained",
+          "premise_id": "consent_or_authority",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e2",
+            "e3"
+          ],
+          "rationale": "The affected recipient's consent is not recorded. The observed burden-cap breach is a separate fact; the consent state itself remains undetermined.",
+          "action_option_ids": [
+            "preserve-aggregate-only"
+          ]
+        },
+        {
+          "profile_id": "intergenerational_stewardship",
+          "premise_id": "preserve_future_options_and_floors",
+          "status": "undetermined",
+          "evidence_refs": [
+            "e4"
+          ],
+          "rationale": "The future-floor premise remains undetermined because required long-horizon evidence is missing.",
+          "action_option_ids": [
+            "preserve-aggregate-only"
+          ]
+        }
+      ],
+      "required_control_ids": [
+        "AD-05",
+        "AD-07",
+        "AD-08",
+        "AD-09"
+      ],
+      "human_review_required": true,
+      "no_action_authority": true
+    }
+  ]
+}
