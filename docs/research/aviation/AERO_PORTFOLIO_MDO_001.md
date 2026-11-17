@@ -64,7 +64,7 @@ The design decision and the evidence-acquisition decision are coupled. A cheap m
 
 ## 3. Architecture portfolio
 
-The comparison layer should support multiple architecture families, while allowing a family to be `NOT_APPLICABLE` or `INFEASIBLE` for a particular service.
+The comparison layer should support multiple architecture families, while allowing a family to be `NOT_APPLICABLE` or `INFEASIBLE` for a particular service. Solar-electric HAPS is a distinct persistent-infrastructure family, not merely an unpowered glider: its solar arrays and batteries supply an electrically propelled station-keeping aircraft. A glide-capable emergency descent mode does not change that classification.
 
 | Family | Typical strength to investigate | Dominant trade-offs to keep visible |
 |---|---|---|
@@ -76,6 +76,7 @@ The comparison layer should support multiple architecture families, while allowi
 | Electric helicopter / rotorcraft | Hover and vertical access with a single primary rotor system | Rotor/drive complexity, vibration, rotor efficiency, maintenance and installed power |
 | Hybrid-electric fixed-wing or VTOL | Range and reserve flexibility beyond battery-only energy limits | Fuel/electric split, thermal and acoustic impacts, generator mass, dispatch and lifecycle emissions |
 | Glider / solar-assisted / high-endurance | Endurance, observation and low-power missions | Weather dependence, payload/power envelope, launch/recovery and energy intermittency |
+| Solar-electric HAPS / HALE | Persistent stratospheric sensing, communications and possible energy-relay service | 24-hour energy closure, night storage, wind/station-keeping, low-density propulsion, seasonal latitude limits, high-aspect-ratio structure and maintenance/recovery |
 
 Do not force a universal winner. A family can dominate for one service and lose for another. Keep vehicle performance, service accessibility and infrastructure/economic burden as separate axes.
 
@@ -414,6 +415,7 @@ Evidence stages do not automatically promote one another. Any physical test or f
 - [x] Versioned mission-profile JSON Schema and synthetic schema fixture.
 - [x] Candidate identity/profile schema and three-family conceptual portfolio with explicit unknowns and owner-work references.
 - [ ] Candidate-specific physical model receipts and configuration/closure outputs.
+- [x] Solar-electric HAPS family admitted in mission and candidate profile schemas; performance and closure remain unfilled pending owner evidence.
 - [ ] Three-family evaluated synthetic comparison: fixed-wing, eSTOL and lift-plus-cruise.
 - [ ] Exact whole-aircraft closure inputs/outputs and unknown-field semantics.
 - [ ] Independent tiny oracle and adversarial known-answer fixtures.
