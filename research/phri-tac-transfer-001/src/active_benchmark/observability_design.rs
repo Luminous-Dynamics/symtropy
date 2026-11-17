@@ -83,6 +83,7 @@ pub struct ObservabilityDesignReport {
     pub initial_identifiable_output_rows: usize,
     pub final_identifiable_output_rows: usize,
     pub total_required_coefficients: usize,
+    pub initial_identifiable_coefficients: usize,
     pub final_identifiable_coefficients: usize,
     pub remaining_unidentifiable_coefficients: usize,
     pub steps: Vec<ObservabilitySelectionStep>,
@@ -373,6 +374,7 @@ pub fn select_observability_first_patterns(
         initial_identifiable_output_rows,
         final_identifiable_output_rows,
         total_required_coefficients,
+        initial_identifiable_coefficients,
         final_identifiable_coefficients,
         remaining_unidentifiable_coefficients: total_required_coefficients
             .saturating_sub(final_identifiable_coefficients),
