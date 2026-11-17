@@ -50,6 +50,10 @@ pub enum SiteRefereeAssessment {
 #[derive(Clone, Debug, PartialEq)]
 pub struct SiteWorkPackage {
     pub package_sha256: String,
+    pub source_model_sha256: String,
+    pub source_schema_release: String,
+    pub ids_spec_sha256: String,
+    pub ids_version: String,
     pub design_revision_sha256: String,
     pub frame_id: String,
     pub frame_sha256: String,
@@ -740,11 +744,16 @@ fn validate_event_envelope(event: &SiteEventEnvelope) -> Result<(), SiteLedgerEr
 }
 
 fn validate_work_package(package: &SiteWorkPackage) -> Result<(), SiteLedgerError> {
-    if package.frame_id.trim().is_empty() {
+    if package.frame_id.trim().is_empty()
+        || package.source_schema_release.trim().is_empty()
+        || package.ids_version.trim().is_empty()
+    {
         return Err(SiteLedgerError::EmptyPackageIdentity);
     }
     if [
         package.package_sha256.as_str(),
+        package.source_model_sha256.as_str(),
+        package.ids_spec_sha256.as_str(),
         package.design_revision_sha256.as_str(),
         package.frame_sha256.as_str(),
         package.transform_sha256.as_str(),
@@ -832,6 +841,10 @@ mod tests {
     fn package(package_digest: char, entity_ids: &[&str]) -> SiteWorkPackage {
         SiteWorkPackage {
             package_sha256: digest(package_digest),
+            source_model_sha256: digest('c'),
+            source_schema_release: "IFC4X3_ADD2".into(),
+            ids_spec_sha256: digest('d'),
+            ids_version: "1.0".into(),
             design_revision_sha256: digest('b'),
             frame_id: "site-frame".into(),
             frame_sha256: digest('c'),
