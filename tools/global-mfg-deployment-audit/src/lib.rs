@@ -304,6 +304,7 @@ pub fn audit_schema_and_corpus(schema_input: &str, corpus_input: &str) -> Result
         .map_err(|e| format!("Draft 2020-12 meta-schema validation failed: {e}"))?;
 
     let validator = jsonschema::draft202012::options()
+        .offline()
         .should_validate_formats(true)
         .build(&schema)
         .map_err(|e| format!("could not compile Draft 2020-12 schema: {e}"))?;
@@ -430,6 +431,15 @@ mod tests {
             .remove("data_processing_jurisdictions");
         let encoded = serde_json::to_string(&fixture).expect("encode mutation");
         assert!(audit_schema_and_corpus(SCHEMA, &encoded).is_err());
+    }
+
+    #[test]
+    fn rejects_external_schema_references_without_network_access() {
+        let remote_schema = r#"{
+            "$schema":"https://json-schema.org/draft/2020-12/schema",
+            "$ref":"https://example.com/remote-schema.json"
+        }"#;
+        assert!(audit_schema_and_corpus(remote_schema, FIXTURE).is_err());
     }
 
     #[test]
