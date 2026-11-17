@@ -210,9 +210,10 @@ pub fn run_waveform_replay(
     validate_request(request)?;
 
     let input_sha256 = digest_serialized(&request.input_values)?;
-    let fault_schedule_sha256 = digest_serialized(&request.faults)?;
-    let mut ordered_faults: Vec<&WaveformFault> = request.faults.iter().collect();
-    ordered_faults.sort_by_key(|fault| (fault.start_sample, fault.end_sample, &fault.fault_id));
+    let mut canonical_faults = request.faults.clone();
+    canonical_faults.sort_by_key(|fault| (fault.start_sample, fault.end_sample, fault.fault_id.clone()));
+    let fault_schedule_sha256 = digest_serialized(&canonical_faults)?;
+    let ordered_faults: Vec<&WaveformFault> = canonical_faults.iter().collect();
 
     let mut samples = Vec::with_capacity(request.input_values.len());
     for (sample_index, input_value) in request.input_values.iter().copied().enumerate() {
@@ -419,27 +420,27 @@ pub fn verify_waveform_receipt(receipt: &WaveformReceipt) -> Result<(), ReplayEr
             WaveformSampleState::Degraded => {
                 if sample.value.is_none()
                     || sample.source_sample_index != Some(index)
-                    || sample.active_fault_id.is_none()
+                    || sample.active_fault_id.as_deref().is_none_or(str::is_empty)
                 {
                     return Err(waveform_error(
-                        "degraded sample must retain its own value and fault identity",
+                        "degraded sample must retain its own value and non-empty fault identity",
                     ));
                 }
             }
             WaveformSampleState::Delayed => {
                 if sample.value.is_some() != sample.source_sample_index.is_some()
-                    || sample.active_fault_id.is_none()
+                    || sample.active_fault_id.as_deref().is_none_or(str::is_empty)
                     || sample.source_sample_index.is_some_and(|source| source >= index)
                 {
                     return Err(waveform_error(
-                        "delayed sample must bind an earlier source and active fault identity",
+                        "delayed sample must bind an earlier source and non-empty fault identity",
                     ));
                 }
             }
             WaveformSampleState::Unavailable | WaveformSampleState::Invalid => {
                 if sample.value.is_some()
                     || sample.source_sample_index.is_some()
-                    || sample.active_fault_id.is_none()
+                    || sample.active_fault_id.as_deref().is_none_or(str::is_empty)
                 {
                     return Err(waveform_error(
                         "unavailable/invalid sample must not expose a value and must identify its fault",
@@ -512,6 +513,37 @@ mod tests {
         assert_eq!(first.body.samples[0].state, WaveformSampleState::Degraded);
         assert_eq!(first.body.samples[5].state, WaveformSampleState::SyntheticNominal);
         verify_waveform_receipt(&first).expect("receipt should verify");
+    }
+
+    #[test]
+    fn fault_schedule_digest_is_independent_of_non_overlapping_input_order() {
+        let mut first = request();
+        first.faults = vec![
+            WaveformFault {
+                fault_id: "late-bias".to_owned(),
+                start_sample: 3,
+                end_sample: 5,
+                mode: WaveformFaultMode::Bias { offset: 0.2 },
+            },
+            WaveformFault {
+                fault_id: "early-clamp".to_owned(),
+                start_sample: 0,
+                end_sample: 2,
+                mode: WaveformFaultMode::Saturation {
+                    lower: -1.0,
+                    upper: 1.0,
+                },
+            },
+        ];
+        let mut second = first.clone();
+        second.faults.reverse();
+        let receipt_a = run_waveform_replay(&first).expect("first ordering should replay");
+        let receipt_b = run_waveform_replay(&second).expect("second ordering should replay");
+        assert_eq!(
+            receipt_a.body.fault_schedule_sha256,
+            receipt_b.body.fault_schedule_sha256
+        );
+        assert_eq!(receipt_a.body.samples, receipt_b.body.samples);
     }
 
     #[test]
