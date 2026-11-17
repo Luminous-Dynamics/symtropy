@@ -152,11 +152,16 @@ IFC is an exchange and information model, not the sole internal solver represent
 ## HDC/VSA experiment design
 
 The current executable research slices are intentionally separated:
-- [Typed graph, partial-context and factorized-index retrieval](../holofrac-retrieval/README.md)
+- [Typed graph, exact postings, partial-context and factorized-index retrieval](../holofrac-retrieval/README.md)
 - [Continuous spatial-field encoding and reconstruction](../holofrac-retrieval/src/field.rs)
+- [Shared multi-channel spatial memory](../holofrac-retrieval/src/multichannel.rs)
+- [Geometric box-counting qualification](../holofrac-retrieval/src/fractal.rs)
+- [Exact engineering-evidence dependency closure](../holofrac-retrieval/src/impact.rs)
 - [Continuous-field benchmark CLI](../holofrac-retrieval/src/bin/field_sweep.rs)
+- [Multi-channel field benchmark CLI](../holofrac-retrieval/src/bin/multichannel_sweep.rs)
+- [Geometric scale benchmark CLI](../holofrac-retrieval/src/bin/fractal_sweep.rs)
 
-The graph benchmark measures exact relations and partial-context candidates. The continuous-field benchmark measures positional encoding, bundling, unbinding, cleanup and held-out reconstruction against classical interpolation. Neither substitutes for physical simulation.
+The graph benchmark measures exact relations and partial-context candidates; the continuous-field tracks measure positional encoding, multi-channel binding, bundling, unbinding, cleanup and held-out reconstruction against classical storage/interpolation. The geometry track tests a declared scale estimator against known-dimension controls. The dependency track computes exact evidence invalidation. None substitutes for physical simulation or engineering authority.
 
 Compare representations on identical graph fixtures and query sets:
 
