@@ -459,14 +459,14 @@ pub fn evaluate(
             ("input_lot_set_ref", case.input_lot_set_ref.as_str()),
             ("material_state_ref", case.material_state_ref.as_str()),
             ("facility_profile_ref", case.facility_profile_ref.as_str()),
-            ("acceptance_profile_ref", case.acceptance_profile_ref.as_str()),
+            (
+                "acceptance_profile_ref",
+                case.acceptance_profile_ref.as_str(),
+            ),
             ("output_ref", case.output_ref.as_str()),
         ] {
             if !valid_ref(value) {
-                return Err(format!(
-                    "case {}: invalid {label}: {value}",
-                    case.case_id
-                ));
+                return Err(format!("case {}: invalid {label}: {value}", case.case_id));
             }
         }
         if cases_by_id.insert(case.case_id.as_str(), case).is_some() {
