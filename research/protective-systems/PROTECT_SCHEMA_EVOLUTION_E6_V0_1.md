@@ -5,7 +5,7 @@
 **Branch:** `research/protect-schema-evolution-e6-v0-1`  
 **Parent:** E4 typed semantic projections #5643 / PR #5708  
 **Adjacent work:** E5 capability assurance #5710 / PR #5712  
-**Status:** dated six-profile registry, three upstream schema-root snapshots, Rust admission gate and 27 tests written; exact-head hosted execution pending
+**Status:** dated six-profile registry, three upstream schema-root snapshots, Rust admission gate and 34 tests written; exact-head hosted execution pending
 
 ## 1. Paradigm shift: schema evolution is an evidence-affecting change event
 
