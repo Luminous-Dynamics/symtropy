@@ -292,6 +292,10 @@ pub fn run_hysteresis_identifiability_campaign(
     first_seed
         .checked_add(offset)
         .ok_or_else(|| "hysteresis seed range overflows u64".to_owned())?;
+    let evaluated_force_count = replicate_count
+        .checked_mul(2)
+        .ok_or_else(|| "hysteresis evaluator sample count overflows usize".to_owned())?;
+    let evaluated_force_count_f64 = evaluated_force_count as f64;
 
     let mut static_squared_error = 0.0;
     let mut history_squared_error = 0.0;
@@ -365,14 +369,13 @@ pub fn run_hysteresis_identifiability_campaign(
         }
     }
 
-    let evaluated_force_count = (replicate_count * 2) as f64;
     Ok(HysteresisCampaignReport {
         first_seed,
         replicate_count,
         paired_raw_observation_collisions: collisions,
         mean_force_separation_for_equal_frames_n: force_separation / replicate_count as f64,
-        static_single_frame_rmse_n: (static_squared_error / evaluated_force_count).sqrt(),
-        history_conditioned_rmse_n: (history_squared_error / evaluated_force_count).sqrt(),
+        static_single_frame_rmse_n: (static_squared_error / evaluated_force_count_f64).sqrt(),
+        history_conditioned_rmse_n: (history_squared_error / evaluated_force_count_f64).sqrt(),
         missing_history_abstentions,
         missing_history_trials,
         missing_history_abstention_rate: missing_history_abstentions as f64
