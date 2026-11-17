@@ -86,3 +86,30 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  factory-matched-routes:
+    name: Matched Factory Route Benchmark
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+
+
+    - name: Check Formatting
+      run: cargo fmt --manifest-path tools/factory-matched-routes/Cargo.toml -- --check
+
+    - name: Run Clippy
+      run: cargo clippy --manifest-path tools/factory-matched-routes/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests
+      run: cargo test --manifest-path tools/factory-matched-routes/Cargo.toml --all-targets
+
+    - name: Emit and Verify Synthetic Route Matrix
+      run: |
+        cargo run --quiet --manifest-path tools/factory-matched-routes/Cargo.toml --bin route-matrix | tee /tmp/factory-route-matrix.tsv
+        test "$(wc -l < /tmp/factory-route-matrix.tsv)" -eq 57
