@@ -315,15 +315,15 @@ fn assess_module_power(
                     }
                 }
                 Some(_) => {}
-                None if segment.real_power_w <= peak_limit_w => {
-                    if !missing_surge_issue_added {
-                        add_issue(
-                            issues,
-                            KitchenCapabilityIssueCodeV1::MissingModuleSurgeDuration,
-                            "module has no declared maximum surge duration for demand above its continuous limit",
-                        );
-                        missing_surge_issue_added = true;
-                    }
+                None
+                    if segment.real_power_w <= peak_limit_w && !missing_surge_issue_added =>
+                {
+                    add_issue(
+                        issues,
+                        KitchenCapabilityIssueCodeV1::MissingModuleSurgeDuration,
+                        "module has no declared maximum surge duration for demand above its continuous limit",
+                    );
+                    missing_surge_issue_added = true;
                 }
                 None => {}
             }
@@ -681,14 +681,13 @@ pub fn evaluate_kitchen_capability_admission(
         );
     }
 
-    if let Ok(mapped_plan) = recipe_graph_to_kitchen_plan(&request.recipe) {
-        if request.power_plan.plan != mapped_plan {
-            add_issue(
-                &mut request_issues,
-                KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch,
-                "power plan tasks and scheduling fields must exactly equal the recipe graph's mapped plan",
-            );
-        }
+    match recipe_graph_to_kitchen_plan(&request.recipe) {
+        Ok(mapped_plan) if request.power_plan.plan != mapped_plan => add_issue(
+            &mut request_issues,
+            KitchenCapabilityIssueCodeV1::PowerPlanRecipeMismatch,
+            "power plan tasks and scheduling fields must exactly equal the recipe graph's mapped plan",
+        ),
+        _ => {}
     }
 
     let power_report = validate_power_envelope(&request.power_plan, &request.schedule);
