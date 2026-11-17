@@ -127,7 +127,7 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
     let relation = non_empty_string(measurement, "relation", label)?;
     let upper = measurement.get("value_upper").and_then(Value::as_f64);
     match relation.as_str() {
-        "exact" | "approximate" | "greater_than" => {
+        "exact" | "approximate" | "greater_than" | "less_than" => {
             if upper.is_some() {
                 return Err(format!("{label}: {relation} measurements must not have value_upper"));
             }
@@ -139,6 +139,17 @@ fn validate_measurement(measurement: &Value, label: &str) -> Result<(), String> 
             }
         }
         _ => return Err(format!("{label}: unsupported relation {relation}")),
+    }
+    let evidence_kind = non_empty_string(measurement, "evidence_kind", label)?;
+    let allowed_evidence_kinds = [
+        "source_reported_measurement",
+        "source_reported_derived",
+        "source_declared_parameter",
+        "source_reported_model_fit",
+        "source_reported_announcement_claim",
+    ];
+    if !allowed_evidence_kinds.contains(&evidence_kind.as_str()) {
+        return Err(format!("{label}: unsupported evidence_kind {evidence_kind}"));
     }
     non_empty_string(measurement, "measurement_plane", label)?;
     let boundary = non_empty_string(measurement, "boundary", label)?;
@@ -306,8 +317,8 @@ mod tests {
     fn frozen_jsonl_records_match_the_json_manifest_exactly() {
         let document = corpus();
         let summary = validate_frozen_artifacts(&document, BASELINES_JSONL).unwrap();
-        assert_eq!(summary.records, 6);
-        assert_eq!(summary.measurements, 19);
+        assert_eq!(summary.records, 7);
+        assert_eq!(summary.measurements, 28);
     }
 
     #[test]
@@ -331,8 +342,8 @@ mod tests {
     #[test]
     fn frozen_v01_corpus_validates_with_six_source_records() {
         let summary = validate_document(&corpus()).unwrap();
-        assert_eq!(summary.records, 6);
-        assert_eq!(summary.measurements, 19);
+        assert_eq!(summary.records, 7);
+        assert_eq!(summary.measurements, 28);
     }
 
     #[test]
@@ -361,6 +372,47 @@ mod tests {
         let yigit = records.iter().find(|r| r["id"] == "yigit-2026-20m-laser").unwrap();
         assert_ne!(ntt["comparison_group"], yigit["comparison_group"]);
         assert_eq!(document["comparison_policy"]["global_efficiency_ranking"], false);
+    }
+
+    #[test]
+    fn accepts_source_declared_efficiency_parameters_without_promoting_them_to_results() {
+        let document = corpus();
+        let record = document["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["id"] == "sfasciamuro-2026-uav-laser-pointing")
+            .unwrap();
+        let laser = record["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|measurement| measurement["name"] == "laser_electrical_to_optical_efficiency_parameter")
+            .unwrap();
+        assert_eq!(laser["evidence_kind"], "source_declared_parameter");
+        assert!(laser["boundary"].as_str().unwrap().contains("not presented as a complete"));
+        assert!(record["known_unknowns"].as_array().unwrap().iter().any(|x| {
+            x.as_str().unwrap().contains("No independently metered useful battery-terminal energy")
+        }));
+    }
+
+    #[test]
+    fn accepts_less_than_relation_for_calibration_error() {
+        let document = corpus();
+        let record = document["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|record| record["id"] == "sfasciamuro-2026-uav-laser-pointing")
+            .unwrap();
+        let calibration = record["measurements"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|measurement| measurement["name"] == "spot_center_and_diameter_calibration_error")
+            .unwrap();
+        assert_eq!(calibration["relation"], "less_than");
+        assert!(validate_measurement(calibration, "calibration").is_ok());
     }
 
     #[test]
