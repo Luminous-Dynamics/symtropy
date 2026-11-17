@@ -390,11 +390,14 @@ pub fn audit_frame_equilibrium(
             .iter()
             .flatten()
             .all(|value| value.is_finite())
-        || !result
-            .nodal_displacements
-            .iter()
-            .flatten()
-            .all(|value| value.is_finite())
+    {
+        return Err(FrameAnalysisError::NonFiniteInput);
+    }
+    if !result
+        .nodal_displacements
+        .iter()
+        .flatten()
+        .all(|value| value.is_finite())
         || !result
             .nodal_reactions
             .iter()
@@ -403,7 +406,7 @@ pub fn audit_frame_equilibrium(
         || !result.total_strain_energy_j.is_finite()
         || !result.maximum_free_dof_residual.is_finite()
     {
-        return Err(FrameAnalysisError::NonFiniteInput);
+        return Err(FrameAnalysisError::NonFiniteResult);
     }
 
     let mut applied_force = Vec3::new(0.0, 0.0, 0.0);
