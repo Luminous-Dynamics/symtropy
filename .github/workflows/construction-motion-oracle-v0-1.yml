@@ -10,6 +10,7 @@ on:
       - research/construction-co-translating-capsule-oracle-v0-2
       - research/construction-absolute-time-capsule-ccd-v0-1
       - research/construction-multibody-time-swept-broadphase-v0-1
+      - research/construction-multibody-relative-clock-domain-ccd-v0-1
     paths:
       - "research/construction-motion-oracle-v0-1/**"
       - ".github/workflows/construction-motion-oracle-v0-1.yml"

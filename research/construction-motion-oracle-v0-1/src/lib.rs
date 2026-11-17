@@ -5,14 +5,20 @@
 //! producer's geometric expansion helpers.
 
 mod capsule;
+mod clock_uncertainty_ccd;
 mod co_translation_ccd;
 mod multibody_time_swept_broadphase;
+mod relative_time_multibody_ccd;
 mod timed_co_translation_ccd;
 mod translation_ccd;
 pub use capsule::{
     Capsule, CapsuleAabb3, CapsuleError, SegmentClosestApproach, closest_segment_approach,
     endpoints_only_sphere_capsule_collision, moving_sphere_capsule_collision,
     moving_sphere_vs_capsule, swept_sphere_capsule_aabb_candidate,
+};
+pub use clock_uncertainty_ccd::{
+    ClockUncertaintyCcdResult, ClockUncertaintyDisposition, ClockUncertaintyError,
+    clock_uncertainty_aware_capsule_query,
 };
 pub use co_translation_ccd::{
     CoTranslatingCapsuleClosestApproach, TimeSlicedAabbCandidates,
@@ -24,6 +30,13 @@ pub use multibody_time_swept_broadphase::{
     CandidateSlab, MAX_BODY_SLAB_CELLS, MAX_TIME_SLABS, MultiBodyBroadphaseError,
     MultiBodyBroadphaseReport, SlabMetrics, SweepAxis, TimedCapsuleBody, TimedCapsulePairCandidate,
     time_swept_capsule_broadphase,
+};
+pub use relative_time_multibody_ccd::{
+    BodyClockMappingReceipt, ClockDomainCapsuleBody, ClockMappingDisposition, ClockMappingFailure,
+    MAX_RELATIVE_TIME_BODIES, MAX_RELATIVE_TIME_PAIR_CHECKS, QualifiedClockMapping,
+    RelativeTimeMultiBodyConfig, RelativeTimeMultiBodyError, RelativeTimeMultiBodyReport,
+    RelativeTimePairDisposition, RelativeTimePairReceipt, RelativeTimePairUnresolvedReason,
+    evaluate_relative_time_multibody_ccd,
 };
 pub use timed_co_translation_ccd::{
     CapsuleMotionSpan, TimedCcdError, TimedCoTranslatingClosestApproach,
