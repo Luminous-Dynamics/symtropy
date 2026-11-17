@@ -9,6 +9,8 @@ on:
       - "research/protect-evidence-portability-e2-review-v0-1"
       - "research/protect-evidence-multiprovider-e3-v0-1"
       - "research/protect-evidence-semantic-projection-e4-v0-1"
+      - "research/protect-evidence-semantic-projection-e4-v0-1"
+      - "research/protect-capability-assurance-e5-review-v0-1"
     paths:
       - "research/protective-systems/**"
       - ".github/workflows/protective-systems-verifier.yml"
@@ -91,6 +93,9 @@ jobs:
 
       - name: Run E4 typed semantic projection and roundtrip gate
         run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-evidence-semantic-projection-e4
+
+      - name: Run E5 capability assurance and requalification gate
+        run: cargo run --manifest-path research/protective-systems/verifier/Cargo.toml --bin protect-capability-assurance-e5
 
 
   independent-ro-crate-validation:
