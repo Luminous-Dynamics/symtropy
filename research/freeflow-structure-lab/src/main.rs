@@ -1,3 +1,4 @@
+use symtropy_freeflow_structure_lab::assembly::plan_tetrahedral_assembly;
 use symtropy_freeflow_structure_lab::tetrahedral::{TetrahedralAssembly, TetrahedralConfig};
 use symtropy_freeflow_structure_lab::{Config, StructureGraph};
 
@@ -61,4 +62,19 @@ fn main() {
         tetra_metrics.ideal_attachment_contract
     );
     println!("claim_ceiling={}", tetra_metrics.claim_ceiling);
+
+    let plan =
+        plan_tetrahedral_assembly(&tetrahedral).expect("valid parent-before-child assembly plan");
+    println!("assembly_plan.root_cell_id={}", plan.root_cell_id);
+    println!("assembly_plan.steps={}", plan.steps.len());
+    println!("assembly_plan.maximum_generation={}", plan.maximum_generation);
+    println!(
+        "assembly_plan.blocked_attachment_faces={}",
+        plan.blocked_attachment_faces
+    );
+    println!(
+        "assembly_plan.digest_non_security={:016x}",
+        plan.digest_non_security
+    );
+    println!("assembly_plan.claim_ceiling={}", plan.claim_ceiling);
 }
