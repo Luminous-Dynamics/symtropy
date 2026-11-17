@@ -323,6 +323,13 @@ pub struct FieldBenchmarkReport {
     pub build_micros: f64,
     pub retained_vector_payload_bytes_estimate: usize,
     pub encoder_index_bytes_estimate: usize,
+    pub hdc_payload_plus_encoder_index_bytes_estimate: usize,
+    /// Scalar values only for exact regular-grid interpolation.
+    pub reference_grid_value_payload_bytes_estimate: usize,
+    /// Full (x, y, value) source records for a point-cloud baseline.
+    pub reference_sample_record_payload_bytes_estimate: usize,
+    /// HDC total payload divided by the scalar-grid value payload.
+    pub hdc_to_grid_value_payload_ratio: f64,
 }
 
 pub fn run_regular_grid_field_benchmark(
@@ -408,6 +415,15 @@ pub fn run_field_family_benchmark(
 
     let query_p50_micros = percentile(&mut total_times.clone(), 0.50);
     let query_p95_micros = percentile(&mut total_times, 0.95);
+    let retained_vector_payload_bytes_estimate =
+        memory.retained_vector_payload_bytes_estimate();
+    let encoder_index_bytes_estimate = memory.encoder_index_bytes_estimate();
+    let hdc_payload_plus_encoder_index_bytes_estimate =
+        retained_vector_payload_bytes_estimate + encoder_index_bytes_estimate;
+    let reference_grid_value_payload_bytes_estimate =
+        samples.len() * std::mem::size_of::<f64>();
+    let reference_sample_record_payload_bytes_estimate =
+        samples.len() * std::mem::size_of::<FieldSample>();
 
     Ok(FieldBenchmarkReport {
         field_family,
@@ -430,8 +446,13 @@ pub fn run_field_family_benchmark(
         query_p50_micros,
         query_p95_micros,
         build_micros: memory.build_micros(),
-        retained_vector_payload_bytes_estimate: memory.retained_vector_payload_bytes_estimate(),
-        encoder_index_bytes_estimate: memory.encoder_index_bytes_estimate(),
+        retained_vector_payload_bytes_estimate,
+        encoder_index_bytes_estimate,
+        hdc_payload_plus_encoder_index_bytes_estimate,
+        reference_grid_value_payload_bytes_estimate,
+        reference_sample_record_payload_bytes_estimate,
+        hdc_to_grid_value_payload_ratio: hdc_payload_plus_encoder_index_bytes_estimate as f64
+            / reference_grid_value_payload_bytes_estimate as f64,
     })
 }
 
@@ -695,6 +716,10 @@ mod tests {
             assert!(report.hdc_r2.is_finite());
             assert!(report.nearest_r2.is_finite());
             assert!(report.bilinear_r2.is_finite());
+            assert!(report.hdc_payload_plus_encoder_index_bytes_estimate
+                >= report.retained_vector_payload_bytes_estimate);
+            assert!(report.reference_grid_value_payload_bytes_estimate > 0);
+            assert!(report.hdc_to_grid_value_payload_ratio.is_finite());
         }
     }
 
