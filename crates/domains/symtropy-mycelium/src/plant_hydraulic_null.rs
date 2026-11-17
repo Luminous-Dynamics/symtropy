@@ -329,6 +329,40 @@ mod tests {
     }
 
     #[test]
+    fn leaf_potential_alone_cannot_identify_supply_vs_demand_limitation() {
+        let mut supply_limited = reference_inputs();
+        supply_limited.soil_to_root_conductance_kg_m2_s_mpa = 0.0002;
+        supply_limited.root_to_leaf_conductance_kg_m2_s_mpa = 0.0002;
+        supply_limited.soil_water_potential_mpa = -0.3245102969849023;
+        supply_limited.vapor_pressure_deficit_pa = 1_000.0;
+
+        let mut demand_limited = supply_limited;
+        demand_limited.soil_water_potential_mpa = 0.0;
+        demand_limited.vapor_pressure_deficit_pa = 2_000.0;
+
+        let supply_state = solve_two_resistance_null(supply_limited).unwrap();
+        let demand_state = solve_two_resistance_null(demand_limited).unwrap();
+
+        assert!(
+            (supply_state.leaf_water_potential_mpa - demand_state.leaf_water_potential_mpa).abs()
+                < 1e-12
+        );
+        assert!(
+            (supply_state.stomatal_conductance_mol_m2_s
+                - demand_state.stomatal_conductance_mol_m2_s)
+                .abs()
+                < 1e-12
+        );
+        assert!(
+            (demand_state.hydraulic_transpiration_kg_m2_s
+                / supply_state.hydraulic_transpiration_kg_m2_s
+                - 2.0)
+                .abs()
+                < 1e-10
+        );
+    }
+
+    #[test]
     fn well_watered_reference_remains_fully_open() {
         let state = solve_two_resistance_null(reference_inputs()).unwrap();
 
